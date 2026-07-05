@@ -49,6 +49,23 @@ create/modify, order of changes, and how you'll verify (typecheck, and visual
 check in the running widget via the Playwright MCP for UI changes). Ask the user
 to confirm. Iterate until aligned.
 
+**Working with the SahajCloud / Payload API?** If the issue touches the data
+layer (`src/config/api/`, `src/types/`), refresh the synced contract **at the
+start** so your zod schemas and `select`/`populate` objects match the live API:
+
+```bash
+pnpm types:cms       # committed TS types (payload-types.ts + response-types.ts)
+pnpm types:openapi   # OpenAPI spec → src/types/payload/openapi.json (gitignored)
+```
+
+`types:openapi` needs `SAHAJCLOUD_DOCS_PASSWORD` in `.env.local` (see
+`.claude/docs/environment.md`). The OpenAPI request/response schemas are the
+source of truth for what a fetcher may `select` and what shape returns — but
+**treat live runtime data as authoritative where it diverges**: a field the
+contract marks required (non-null) can still come back `null` (e.g.
+`schedule.firstDate_tz`), so lean toward `.nullish()` at the zod boundary and
+fall back in consumers rather than trusting the generated type.
+
 ### 4. Create a branch
 
 See `branch-naming.md`. Branch from latest `main`:

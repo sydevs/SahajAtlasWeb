@@ -1,16 +1,14 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router'
-import { useEffect } from 'react'
-import { lazy } from 'react'
+import { useLocation, useNavigate } from 'react-router'
+import { useEffect, lazy } from 'react'
 
 import api from '@/config/api'
 import { Link } from '@/components/atoms/Link'
-import { Panel } from '@/components/molecules'
+import { EventMetadata, Panel } from '@/components/molecules'
 import { useViewState } from '@/config/store'
-import { EventMetadata } from '@/components/molecules'
 import { UpArrowIcon } from '@/components/atoms'
 import { useMapbox } from '@/hooks/use-mapbox'
-import { isOnline, regionPath } from '@/lib/shape'
+import { isCanonicalPath, isOnline, parentOf } from '@/lib/shape'
 
 const EventViewContent = lazy(() =>
   import('@/components/organisms/EventView').then((m) => ({ default: m.EventView })),
@@ -18,6 +16,8 @@ const EventViewContent = lazy(() =>
 
 function EventPanel({ eventId }: { eventId: number }) {
   const { mapbox, moveMap } = useMapbox()
+  const navigate = useNavigate()
+  const location = useLocation()
   const setMapSelection = useViewState((s) => s.setSelection)
   const { data: event } = useSuspenseQuery({
     queryKey: ['event', eventId],
@@ -27,6 +27,13 @@ function EventPanel({ eventId }: { eventId: number }) {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  // Canonicalize to the event's nested breadcrumb path (also subsumes /events/:id).
+  useEffect(() => {
+    if (event.path && !isCanonicalPath(location.pathname, event.path)) {
+      navigate(event.path, { replace: true })
+    }
+  }, [event.path, location.pathname, navigate])
 
   useEffect(() => {
     if (!mapbox) return
@@ -44,8 +51,8 @@ function EventPanel({ eventId }: { eventId: number }) {
     }
   }, [event, mapbox])
 
-  // Back-button target: the event's city/center region page.
-  const parentPath = regionPath(event.region.level, event.region.slug)
+  // Back-button target: the event's region (city/center) page — drop the trailing id.
+  const parentPath = parentOf(event.path) ?? '/search'
 
   return (
     <>
@@ -61,13 +68,11 @@ function EventPanel({ eventId }: { eventId: number }) {
   )
 }
 
-export default function EventPage() {
-  let { id } = useParams()
-
+export default function EventPage({ id }: { id: number }) {
   // This wrapper is necessary because <Panel> contains an <ErrorBoundary> and <Suspense> to handle loading
   return (
     <Panel mapWindow={180} width={467}>
-      <EventPanel eventId={Number(id)} />
+      <EventPanel eventId={id} />
     </Panel>
   )
 }

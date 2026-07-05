@@ -1,6 +1,6 @@
 import z from 'zod'
 
-import { RegionRefSchema } from './region'
+import { RegionRefSchema } from './region-ref'
 
 export const EventTypeSchema = z.enum(['offline', 'online'])
 export type EventType = z.infer<typeof EventTypeSchema>
@@ -29,7 +29,9 @@ export type EventAddress = z.infer<typeof EventAddressSchema>
 // pre-computed by SahajCloud; `upcomingDates[0]` is the next occurrence.
 export const EventScheduleSchema = z.object({
   firstDate: z.coerce.date(),
-  firstDate_tz: z.string(),
+  // IANA tz of firstDate. The collection type marks it required, but the feed
+  // returns null for events with no stored timezone — consumers fall back to UTC.
+  firstDate_tz: z.string().nullish(),
   endTime: z.string().nullish(), // "HH:MM", same day
   recurrenceType: RecurrenceTypeSchema.nullish(),
   upcomingDates: z.array(z.coerce.date()).nullish(),
@@ -83,6 +85,9 @@ export const FeedEventSchema = z.object({
   address: EventAddressSchema.nullish(),
   schedule: EventScheduleSchema.nullish(),
   region: RegionRefSchema,
+  // Server-computed canonical route (region chain + `/<id>`); the list/map
+  // navigate to it directly.
+  webPath: z.string().nullish(),
 })
 export type FeedEvent = z.infer<typeof FeedEventSchema>
 
@@ -112,6 +117,7 @@ export const EventDocSchema = z.object({
   registrationLimit: z.number().nullish(),
   registrationQuestions: RegistrationQuestionsSchema.nullish(),
   region: RegionRefSchema,
+  webPath: z.string().nullish(),
   webUrl: SafeUrlSchema,
 })
 export type EventDoc = z.infer<typeof EventDocSchema>

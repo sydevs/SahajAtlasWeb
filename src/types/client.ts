@@ -1,6 +1,6 @@
 import z from 'zod'
 
-import { RegionRefSchema } from './region'
+import { RegionRefSchema } from './region-ref'
 
 // `GET /api/clients/me` — the widget's own SahajCloud service document, used to
 // bootstrap its locale, theme colors, and home region. `region` resolves to a

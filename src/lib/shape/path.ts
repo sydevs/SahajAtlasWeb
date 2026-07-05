@@ -1,25 +1,65 @@
-import type { RegionLevel } from '@/types'
-import type { Region } from '@/types/payload/payload-types'
+/**
+ * Route helpers for the hierarchical URL scheme. Canonical paths are computed by
+ * the backend now — `webPath` on regions/events and in the geojson feed — so the
+ * widget no longer builds them from breadcrumb slugs. It only resolves an incoming
+ * pathname to a region/event (terminal segment) and derives a parent path for
+ * back-navigation.
+ */
+
+/** Decode a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
+const safeDecode = (segment: string): string => {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
 
 /**
- * Maps a SahajCloud region `level` to the widget's flat route base.
- *
- * The backend taxonomy is `country / region / city / center`; the widget keeps
- * its long-standing `country / region / area / venue` routes (city → area,
- * center → venue), so user-facing URLs stay stable across the migration. The
- * `satisfies` ties this map to the generated `Region['level']` union, so a new
- * backend level fails the type-check until it's routed here.
+ * Parent of a nested path — drop the last segment. `undefined` for a single-segment
+ * (top-level) path. Works for both a region path (→ its parent region) and an event
+ * path (→ its region page, dropping the numeric id).
  */
-export const LEVEL_ROUTES = {
-  country: 'countries',
-  region: 'regions',
-  city: 'areas',
-  center: 'venues',
-} as const satisfies Record<Region['level'], string>
+export const parentOf = (path: string): string | undefined => {
+  const segments = path.split('/').filter(Boolean)
 
-/** Flat route for a region, e.g. `regionPath('city', 'antwerpen')` → `/areas/antwerpen`. */
-export const regionPath = (level: RegionLevel, slug: string): string =>
-  `/${LEVEL_ROUTES[level]}/${slug}`
+  return segments.length > 1 ? `/${segments.slice(0, -1).join('/')}` : undefined
+}
 
-/** Flat route for an event detail page (events are keyed by numeric id, not slug). */
-export const eventPath = (id: number): string => `/events/${id}`
+/**
+ * A server-provided route (`webPath`) is only trusted as a same-origin route if
+ * it's a site-relative path: a leading `/` that isn't protocol-relative (`//host`).
+ * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS
+ * `webPath` can never reach an `<a href>` — the widget builds a safe `/slug`·`/id`
+ * fallback instead. Returns `undefined` for anything else.
+ */
+export const safePath = (path: string | null | undefined): string | undefined =>
+  path && path.startsWith('/') && !path.startsWith('//') ? path : undefined
+
+/**
+ * True when `pathname` already is the canonical `target`, ignoring percent-
+ * encoding. The address bar stores non-ASCII slugs encoded (`/li%C3%A8ge`) while
+ * `webPath` is decoded (`/liège`), so a raw `!==` would loop the canonicalize
+ * redirect forever on accented slugs.
+ */
+export const isCanonicalPath = (pathname: string, target: string): boolean =>
+  safeDecode(pathname) === target
+
+/** What an incoming pathname resolves to, keyed off its terminal segment. */
+export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
+
+/**
+ * Resolve a pathname by its **terminal segment only**: an all-digits tail is an
+ * event id; any other tail is a (globally unique) region slug. Depth-independent,
+ * so every nested shape and the legacy flat URLs resolve identically. Returns null
+ * for the root (no region/event segment) so the caller can fall back to the home view.
+ */
+export const resolvePath = (pathname: string): ResolvedPath => {
+  const segments = pathname.split('/').filter(Boolean)
+  const terminal = segments.at(-1)
+
+  if (!terminal) return null
+  if (/^\d+$/.test(terminal)) return { kind: 'event', id: Number(terminal) }
+
+  return { kind: 'region', slug: safeDecode(terminal) }
+}

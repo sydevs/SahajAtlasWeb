@@ -1,44 +1,76 @@
 import { describe, it, expect } from 'vitest'
 
-import { RegionDocSchema, RegionSchema } from './region'
+import { RegionDocSchema, RegionListItemSchema, RegionSchema } from './region'
+
+import { mockEventSlimList } from '@/mocks/events'
 
 const regionDoc = {
   id: 28,
   slug: 'belgium',
   level: 'country',
   name: 'Belgium',
-  mapboxId: 'dXJuOm1ieHBsYzpJaFU',
-  breadcrumbs: [{ doc: 28, label: 'Belgium' }],
+  breadcrumbs: [{ doc: 28 }],
+  webPath: '/belgium',
+  webUrl: 'https://atlas.example/belgium',
   legacyData: { countryCode: 'BE' },
 }
 
-const region = {
-  id: 5,
-  slug: 'flanders',
-  name: 'Flanders',
-  eventCount: 3,
+const listItem = {
+  id: 9,
+  slug: 'antwerpen',
+  level: 'city',
+  name: 'Antwerpen',
+  subtitle: null,
+  eventCount: 2,
+  path: '/belgium/flanders/antwerpen',
+}
+
+// A country: `subregions` populated, `events` empty.
+const country = {
+  id: 28,
+  slug: 'belgium',
+  name: 'Belgium',
+  level: 'country',
+  countryCode: 'BE',
+  eventCount: 5,
   bounds: [3, 50, 5, 52],
-  path: '/regions/flanders',
-  parentPath: '/countries/belgium',
-  areas: [
-    {
-      id: 9,
-      slug: 'antwerpen',
-      level: 'city',
-      name: 'Antwerpen',
-      subtitle: null,
-      eventCount: 2,
-      path: '/areas/antwerpen',
-    },
-  ],
+  center: [4, 51],
+  path: '/belgium',
+  parentPath: undefined,
+  webUrl: 'https://atlas.example/belgium',
+  subregions: [listItem],
+  events: [],
+}
+
+// A center (venue): `events` populated, derived center point.
+const venue = {
+  id: 13,
+  slug: 'town-hall',
+  name: 'Town Hall',
+  level: 'center',
+  eventCount: mockEventSlimList.length,
+  bounds: [4.35, 50.85, 4.35, 50.85],
+  center: [4.35, 50.85],
+  path: '/belgium/flanders/antwerpen/town-hall',
+  parentPath: '/belgium/flanders/antwerpen',
+  subregions: [],
+  events: mockEventSlimList,
 }
 
 describe('RegionDocSchema', () => {
-  it('parses a raw region read and its ISO country code', () => {
+  it('parses a raw region read with its webPath + ISO code', () => {
     const parsed = RegionDocSchema.parse(regionDoc)
 
     expect(parsed.level).toBe('country')
+    expect(parsed.webPath).toBe('/belgium')
     expect(parsed.legacyData?.countryCode).toBe('BE')
+    expect(parsed.breadcrumbs?.[0].doc).toBe(28)
+  })
+
+  it('accepts an object breadcrumb doc ({ id })', () => {
+    const parsed = RegionDocSchema.parse({ ...regionDoc, breadcrumbs: [{ doc: { id: 28 } }] })
+
+    expect(parsed.breadcrumbs?.[0].doc).toEqual({ id: 28 })
   })
 
   it('rejects an unknown level', () => {
@@ -46,12 +78,48 @@ describe('RegionDocSchema', () => {
   })
 })
 
-describe('RegionSchema', () => {
-  it('parses a region view-model with its child areas', () => {
-    expect(RegionSchema.parse(region).areas).toHaveLength(1)
+describe('RegionListItemSchema', () => {
+  it('parses a child list item with its nested path', () => {
+    expect(RegionListItemSchema.parse(listItem).path).toBe('/belgium/flanders/antwerpen')
   })
 
-  it('allows null bounds', () => {
-    expect(RegionSchema.parse({ ...region, bounds: null }).bounds).toBeNull()
+  it('carries a countryCode for the home country list', () => {
+    const parsed = RegionListItemSchema.parse({ ...listItem, level: 'country', countryCode: 'GB' })
+
+    expect(parsed.countryCode).toBe('GB')
+  })
+
+  it('rejects a non-numeric eventCount', () => {
+    expect(() => RegionListItemSchema.parse({ ...listItem, eventCount: 'many' })).toThrow()
+  })
+})
+
+describe('RegionSchema', () => {
+  it('parses a country: subregions populated, events empty', () => {
+    const parsed = RegionSchema.parse(country)
+
+    expect(parsed.level).toBe('country')
+    expect(parsed.subregions).toHaveLength(1)
+    expect(parsed.events).toHaveLength(0)
+    expect(parsed.countryCode).toBe('BE')
+    expect(parsed.webUrl).toBe('https://atlas.example/belgium')
+  })
+
+  it('parses a center (venue) with a derived center point and events', () => {
+    const parsed = RegionSchema.parse(venue)
+
+    expect(parsed.center).toEqual([4.35, 50.85])
+    expect(parsed.events).toHaveLength(mockEventSlimList.length)
+  })
+
+  it('allows null bounds and null center', () => {
+    const parsed = RegionSchema.parse({ ...country, bounds: null, center: null })
+
+    expect(parsed.bounds).toBeNull()
+    expect(parsed.center).toBeNull()
+  })
+
+  it('rejects a bounds tuple of the wrong length', () => {
+    expect(() => RegionSchema.parse({ ...country, bounds: [0, 0, 0] })).toThrow()
   })
 })

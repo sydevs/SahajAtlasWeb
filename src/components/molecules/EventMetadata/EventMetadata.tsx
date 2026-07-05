@@ -77,12 +77,12 @@ export function EventMetadata({ event }: EventMetadataProps) {
   return (
     <Helmet htmlAttributes={{ lang: locale }}>
       <title>{`${event.title} - ${t('free_meditation_class')}`}</title>
-      <link href={url} rel="canonical" />
+      {url && <link href={url} rel="canonical" />}
       <meta content={description} name="description" />
       <meta content="event" property="og:type" />
       <meta content={event.title} property="og:title" />
       <meta content={description} property="og:description" />
-      <meta content={url} property="og:url" />
+      {url && <meta content={url} property="og:url" />}
       <meta content={languageCode} property="og:locale:alternate" />
       {startDate && <meta content={startDate} property="og:event:start_time" />}
       {image && <meta content={image} property="og:image" />}

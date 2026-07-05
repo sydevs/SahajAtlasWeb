@@ -1,15 +1,11 @@
 import type {
-  Area,
-  Country,
-  CountrySlim,
   Event,
   EventSlim,
   GeoFeature,
   Geojson,
   Region,
   RegionDoc,
-  RegionLevel,
-  Venue,
+  RegionListItem,
 } from '@/types'
 import type { GeoEvent } from '@/lib/shape'
 import type { Position } from 'geojson'
@@ -22,33 +18,32 @@ import {
   ancestorIdsFromBreadcrumbs,
   boundsUnder,
   countUnder,
-  eventPath,
   eventsUnder,
-  regionPath,
+  parentOf,
+  safePath,
 } from '@/lib/shape'
 import {
-  AreaSchema,
   ClientSchema,
-  CountrySchema,
-  CountrySlimSchema,
-  EventSchema,
+  EventDocSchema,
   EventSlimSchema,
   GeojsonSchema,
   RegionDocSchema,
   RegionListItemSchema,
   RegionSchema,
-  VenueSchema,
 } from '@/types'
 
 // Most we return from a "near here" search, ordered by distance.
 const NEAREST_LIMIT = 50
 
-// The region fields populated into the geojson feed + raw region reads.
+// The region fields populated into the geojson feed + event reads. `breadcrumbs`
+// carries the ancestor `id`s used to aggregate event counts/bounds under a region
+// (slug/name drive display); the canonical route comes from `webPath`, not these.
 const REGION_POPULATE = {
   regions: { slug: true, name: true, level: true, subtitle: true, breadcrumbs: true },
 }
 
-// The event fields the geojson feed selects (must mirror FeedEventSchema).
+// The event fields the geojson feed selects (must mirror FeedEventSchema). `webPath`
+// is the server-computed canonical route, so map/list items navigate to it directly.
 const FEED_SELECT = {
   title: true,
   eventType: true,
@@ -72,6 +67,7 @@ const FEED_SELECT = {
     icalRule: true,
   },
   region: true,
+  webPath: true,
 }
 
 // ── GeoJSON feed (single source of geometry + counts) ──────────────────────────
@@ -113,19 +109,26 @@ const indexFeatures = (geojson: Geojson): IndexedFeature[] =>
     ],
   }))
 
+// The feed carries the canonical `webPath`; fall back to a flat `/id` (still
+// resolvable via the terminal segment) only if it's ever absent.
 const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
   EventSlimSchema.parse({
     ...feature.properties,
-    path: eventPath(feature.properties.id),
+    path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
     distance: from && feature.geometry ? distanceKm(from, feature.geometry.coordinates) : undefined,
   })
 
 // ── Raw region reads ───────────────────────────────────────────────────────────
 
-const getRegionDoc = async (slug: string, level: RegionLevel): Promise<RegionDoc> => {
+// The canonical route (`webPath`) is server-computed and virtual, so no depth /
+// breadcrumb populate is needed. Slugs are globally unique, so no `level` filter —
+// the level comes from the doc. Falls back to a flat `/slug` if webPath is absent.
+const regionRoute = (doc: RegionDoc): string => safePath(doc.webPath) ?? `/${doc.slug}`
+
+const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
   const response = await client.get('/regions', {
     params: {
-      where: { slug: { equals: slug }, level: { equals: level } },
+      where: { slug: { equals: slug } },
       depth: 1,
       limit: 1,
       select: {
@@ -133,18 +136,16 @@ const getRegionDoc = async (slug: string, level: RegionLevel): Promise<RegionDoc
         name: true,
         level: true,
         subtitle: true,
-        mapboxId: true,
-        parent: true,
-        breadcrumbs: true,
         legacyData: true,
+        webPath: true,
+        webUrl: true,
       },
-      populate: { regions: { slug: true, name: true, level: true } },
     },
   })
 
   const doc = response.data?.docs?.[0]
 
-  if (!doc) throw new Error(`Region not found: ${level}/${slug}`)
+  if (!doc) throw new Error(`Region not found: ${slug}`)
 
   return RegionDocSchema.parse(doc)
 }
@@ -156,7 +157,7 @@ const getChildRegions = async (parentId: number): Promise<RegionDoc[]> => {
       depth: 0,
       limit: 1000,
       sort: 'name',
-      select: { slug: true, name: true, level: true, subtitle: true },
+      select: { slug: true, name: true, level: true, subtitle: true, webPath: true },
     },
   })
 
@@ -172,12 +173,7 @@ const countryCodeOf = (doc: RegionDoc): string | undefined => {
   return typeof code === 'string' && /^[A-Za-z]{2}$/.test(code) ? code : undefined
 }
 
-const parentPathOf = (doc: RegionDoc): string | undefined =>
-  doc.parent && typeof doc.parent === 'object'
-    ? regionPath(doc.parent.level, doc.parent.slug)
-    : undefined
-
-const toListItem = (doc: RegionDoc, events: GeoEvent[]) =>
+const toListItem = (doc: RegionDoc, events: GeoEvent[]): RegionListItem =>
   RegionListItemSchema.parse({
     id: doc.id,
     slug: doc.slug,
@@ -185,12 +181,13 @@ const toListItem = (doc: RegionDoc, events: GeoEvent[]) =>
     name: doc.name ?? doc.slug,
     subtitle: doc.subtitle,
     eventCount: countUnder(events, doc.id),
-    path: regionPath(doc.level, doc.slug),
+    path: regionRoute(doc),
   })
 
 // ── Hierarchy fetchers (raw region + geojson-derived counts/bounds) ─────────────
 
-const getCountries = async (): Promise<CountrySlim[]> => {
+// Home/search country list — level=country regions with counts + ISO code.
+const getCountries = async (): Promise<RegionListItem[]> => {
   const [geojson, response] = await Promise.all([
     loadGeojson(),
     client.get('/regions', {
@@ -199,7 +196,7 @@ const getCountries = async (): Promise<CountrySlim[]> => {
         depth: 0,
         limit: 1000,
         sort: 'name',
-        select: { slug: true, name: true, level: true, legacyData: true },
+        select: { slug: true, name: true, level: true, legacyData: true, webPath: true },
       },
     }),
   ])
@@ -209,87 +206,53 @@ const getCountries = async (): Promise<CountrySlim[]> => {
   return RegionDocSchema.array()
     .parse(response.data.docs)
     .map((doc) =>
-      CountrySlimSchema.parse({
+      RegionListItemSchema.parse({
         id: doc.id,
         slug: doc.slug,
+        level: doc.level,
         name: doc.name ?? doc.slug,
         countryCode: countryCodeOf(doc),
         eventCount: countUnder(events, doc.id),
-        path: regionPath('country', doc.slug),
+        path: regionRoute(doc),
       }),
     )
     .filter((country) => country.eventCount > 0)
 }
 
-const getCountry = async (slug: string): Promise<Country> => {
-  const doc = await getRegionDoc(slug, 'country')
-  const [geojson, children] = await Promise.all([loadGeojson(), getChildRegions(doc.id)])
-  const events = indexFeatures(geojson)
-
-  return CountrySchema.parse({
-    id: doc.id,
-    slug: doc.slug,
-    name: doc.name ?? doc.slug,
-    countryCode: countryCodeOf(doc),
-    eventCount: countUnder(events, doc.id),
-    bounds: boundsUnder(events, doc.id),
-    path: regionPath('country', doc.slug),
-    children: children.map((child) => toListItem(child, events)).filter((c) => c.eventCount > 0),
-  })
-}
-
+// One fetcher for every region level. `country`/`region` populate `subregions`
+// (child list); `city`/`center` populate `events`. Path/webUrl come from the
+// server; bounds/center/counts are derived from the feed.
 const getRegion = async (slug: string): Promise<Region> => {
-  const doc = await getRegionDoc(slug, 'region')
-  const [geojson, children] = await Promise.all([loadGeojson(), getChildRegions(doc.id)])
+  // The region read and the feed are independent — load them in parallel.
+  const [doc, geojson] = await Promise.all([getRegionDoc(slug), loadGeojson()])
   const events = indexFeatures(geojson)
+
+  const path = regionRoute(doc)
+  const isParent = doc.level === 'country' || doc.level === 'region'
+  const under = eventsUnder(events, doc.id)
+  const bounds = boundsUnder(events, doc.id)
+
+  const subregions = isParent
+    ? (await getChildRegions(doc.id))
+        .map((child) => toListItem(child, events))
+        .filter((child) => child.eventCount > 0)
+    : []
 
   return RegionSchema.parse({
     id: doc.id,
     slug: doc.slug,
     name: doc.name ?? doc.slug,
-    eventCount: countUnder(events, doc.id),
-    bounds: boundsUnder(events, doc.id),
-    path: regionPath('region', doc.slug),
-    parentPath: parentPathOf(doc),
-    areas: children.map((child) => toListItem(child, events)).filter((c) => c.eventCount > 0),
-  })
-}
-
-const getArea = async (slug: string): Promise<Area> => {
-  const doc = await getRegionDoc(slug, 'city')
-  const geojson = await loadGeojson()
-  const events = indexFeatures(geojson)
-  const under = eventsUnder(events, doc.id)
-
-  return AreaSchema.parse({
-    id: doc.id,
-    slug: doc.slug,
-    name: doc.name ?? doc.slug,
+    level: doc.level,
     subtitle: doc.subtitle,
+    countryCode: doc.level === 'country' ? countryCodeOf(doc) : undefined,
     eventCount: under.length,
-    bounds: boundsUnder(events, doc.id),
-    path: regionPath('city', doc.slug),
-    parentPath: parentPathOf(doc),
-    events: under.map((indexed) => toSlim(indexed.feature)),
-  })
-}
-
-const getVenue = async (slug: string): Promise<Venue> => {
-  const doc = await getRegionDoc(slug, 'center')
-  const geojson = await loadGeojson()
-  const events = indexFeatures(geojson)
-  const under = eventsUnder(events, doc.id)
-  const bounds = boundsUnder(events, doc.id)
-
-  return VenueSchema.parse({
-    id: doc.id,
-    slug: doc.slug,
-    name: doc.name ?? doc.slug,
-    eventCount: under.length,
+    bounds,
     center: bounds ? centerOfBounds(bounds) : null,
-    path: regionPath('center', doc.slug),
-    parentPath: parentPathOf(doc),
-    events: under.map((indexed) => toSlim(indexed.feature)),
+    path,
+    parentPath: parentOf(path),
+    webUrl: doc.webUrl,
+    subregions,
+    events: isParent ? [] : under.map((indexed) => toSlim(indexed.feature)),
   })
 }
 
@@ -332,6 +295,7 @@ const getEvent = async (id: number): Promise<Event> => {
         registrationLimit: true,
         registrationQuestions: true,
         region: true,
+        webPath: true,
         webUrl: true,
       },
       populate: {
@@ -341,7 +305,9 @@ const getEvent = async (id: number): Promise<Event> => {
     },
   })
 
-  return EventSchema.parse({ ...response.data, path: eventPath(response.data.id) })
+  const event = EventDocSchema.parse(response.data)
+
+  return { ...event, path: safePath(event.webPath) ?? `/${event.id}` }
 }
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────
@@ -361,7 +327,7 @@ const getClient = async () => {
         region: true,
         legacyConfig: true,
       },
-      populate: { regions: { slug: true, name: true, level: true } },
+      populate: { regions: { slug: true, name: true, level: true, webPath: true, webUrl: true } },
     },
   })
 
@@ -376,10 +342,7 @@ export default {
   getGeojson,
   getCountries,
   getEvents,
-  getCountry,
   getRegion,
-  getArea,
-  getVenue,
   getEvent,
   getClient,
 }

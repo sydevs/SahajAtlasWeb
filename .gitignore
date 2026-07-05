@@ -13,6 +13,9 @@ dist-ssr
 build
 *.local
 
+# SahajCloud OpenAPI contract — pulled on demand via `pnpm types:openapi` (large, changes often)
+src/types/payload/openapi.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

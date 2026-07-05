@@ -607,6 +607,7 @@ export type RoleSlug =
   | 'meditations-editor'
   | 'path-editor'
   | 'web-translator'
+  | 'atlas-manager'
   | 'wemeditate-web-client'
   | 'wemeditate-app-client'
   | 'sahaj-atlas-client';
@@ -891,6 +892,7 @@ export interface Page {
    * Managers who can edit this page without broader permissions.
    */
   managers?: (number | Manager)[] | null;
+  webPath?: string | null;
   webUrl?: string | null;
   appUrl?: string | null;
   updatedAt: string;
@@ -1053,7 +1055,7 @@ export interface Manager {
   /**
    * Assign roles for each locale. Different roles can be assigned for different languages.
    */
-  roles?: ('meditations-editor' | 'path-editor' | 'web-translator')[] | null;
+  roles?: ('meditations-editor' | 'path-editor' | 'web-translator' | 'atlas-manager')[] | null;
   /**
    * Pages this manager can edit.
    */
@@ -2141,7 +2143,7 @@ export interface Region {
     totalDocs?: number;
   };
   /**
-   * Region-level nodes nested directly beneath this one.
+   * Region-level nodes anywhere beneath this one.
    */
   childrenRegions?: {
     docs?: (number | Region)[];
@@ -2149,7 +2151,7 @@ export interface Region {
     totalDocs?: number;
   };
   /**
-   * Cities nested directly beneath this one.
+   * Cities anywhere beneath this one.
    */
   childrenCities?: {
     docs?: (number | Region)[];
@@ -2157,7 +2159,7 @@ export interface Region {
     totalDocs?: number;
   };
   /**
-   * SY Centers nested directly beneath this one.
+   * SY Centers anywhere beneath this one.
    */
   childrenCenters?: {
     docs?: (number | Region)[];
@@ -2180,6 +2182,9 @@ export interface Region {
         id?: string | null;
       }[]
     | null;
+  webPath?: string | null;
+  webUrl?: string | null;
+  appUrl?: string | null;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -2529,7 +2534,9 @@ export interface Event {
     | number
     | boolean
     | null;
+  webPath?: string | null;
   webUrl?: string | null;
+  appUrl?: string | null;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -4574,6 +4581,7 @@ export interface PagesSelect<T extends boolean = true> {
   featuredVideo?: T;
   tags?: T;
   managers?: T;
+  webPath?: T;
   webUrl?: T;
   appUrl?: T;
   updatedAt?: T;
@@ -5154,6 +5162,9 @@ export interface RegionsSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
+  webPath?: T;
+  webUrl?: T;
+  appUrl?: T;
   legacyId?: T;
   legacyData?: T;
   updatedAt?: T;
@@ -5231,7 +5242,9 @@ export interface EventsSelect<T extends boolean = true> {
   verificationStage?: T;
   nextCheckAt?: T;
   notificationLog?: T;
+  webPath?: T;
   webUrl?: T;
+  appUrl?: T;
   legacyId?: T;
   legacyData?: T;
   updatedAt?: T;
@@ -5497,6 +5510,10 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface WmWebConfig {
   id: number;
   homePage: number | Page;
+  /**
+   * Audience(s) the public We Meditate Web site targets for audience-gated content (e.g. related lectures). The site has no per-user login, so this fixed set is what it passes as the `audiences` param.
+   */
+  audiences: (number | Audience)[];
   /**
    * Select 2-3 pages to feature in the website header and footer.
    */
@@ -6647,6 +6664,7 @@ export interface PayloadJobsStat {
  */
 export interface WmWebConfigSelect<T extends boolean = true> {
   homePage?: T;
+  audiences?: T;
   featuredPages?: T;
   featuredArticles?: T;
   classPages?: T;
@@ -6952,6 +6970,241 @@ export interface TaskSchedulePublish {
     user?: (number | null) | Manager;
   };
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TextBoxBlock".
+ */
+export interface TextBoxBlock {
+  image: number | Image;
+  imagePosition: 'left' | 'right' | 'overlay';
+  textPosition?: ('left' | 'right' | 'center') | null;
+  textColor?: ('dark' | 'light') | null;
+  wisdomStyle?: boolean | null;
+  title?: string | null;
+  subtitle?: string | null;
+  text?: string | null;
+  buttonText?: string | null;
+  buttonUrl?: string | null;
+  /**
+   * Original import data (background, color, position, spacing, decorations)
+   */
+  importData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'textbox';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "LayoutBlock".
+ */
+export interface LayoutBlock {
+  style: 'grid' | 'tabs' | 'accordion' | 'list' | 'textList';
+  /**
+   * If you use this title instead of a regular heading block, this title will be used as a sticky header that remains visible as you scroll through the blocks.
+   */
+  title?: string | null;
+  /**
+   * Enter the title of the tab that should be open by default. Will be converted to match the tab anchor (e.g. "My Tab" → "#my-tab").
+   */
+  defaultTab?: string | null;
+  /**
+   * Display tabs as side-by-side columns on desktop screens.
+   */
+  useColumnsOnDesktop?: boolean | null;
+  items?:
+    | {
+        image?: (number | null) | Image;
+        title?: string | null;
+        titleUrl?: string | null;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'layout';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ImageGalleryBlock".
+ */
+export interface ImageGalleryBlock {
+  items?: (number | Image)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'image-gallery';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ShowcaseBlock".
+ */
+export interface ShowcaseBlock {
+  items?:
+    | (
+        | {
+            relationTo: 'meditations';
+            value: number | Meditation;
+          }
+        | {
+            relationTo: 'pages';
+            value: number | Page;
+          }
+        | {
+            relationTo: 'lectures';
+            value: number | Lecture;
+          }
+        | {
+            relationTo: 'app-cards';
+            value: number | AppCard;
+          }
+      )[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'showcase';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ButtonBlock".
+ */
+export interface ButtonBlock {
+  text: string;
+  url: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'button';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "QuoteBlock".
+ */
+export interface QuoteBlock {
+  title?: string | null;
+  text: string;
+  /**
+   * This is the author or other source for the quote.
+   */
+  credit?: string | null;
+  /**
+   * This will appear below the credit.
+   */
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'quote';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TableOfContentsBlock".
+ */
+export interface TableOfContentsBlock {
+  /**
+   * Optional heading displayed above the list (e.g. "In this article")
+   */
+  title?: string | null;
+  /**
+   * Select headings above to include in the table of contents
+   */
+  headings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'table-of-contents';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContentIndexBlock".
+ */
+export interface ContentIndexBlock {
+  type: 'meditations' | 'pages' | 'songs' | 'lectures';
+  /**
+   * Maximum number of items to return (1–100)
+   */
+  limit: number;
+  /**
+   * Select page tags to use as filters for this index grid
+   */
+  pageFilters?: ('wisdom' | 'lifestyle' | 'creativity' | 'event' | 'technique')[] | null;
+  /**
+   * Select user choices to use as filters for this index grid
+   */
+  userChoiceFilters?: (number | UserChoice)[] | null;
+  /**
+   * Select music tags to use as filters for this index grid
+   */
+  songFilters?: (number | SongTag)[] | null;
+  apiEndpoint?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'content-index';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SubtleSystemBlock".
+ */
+export interface SubtleSystemBlock {
+  left: number | Page;
+  right: number | Page;
+  center: number | Page;
+  mooladhara: number | Page;
+  kundalini: number | Page;
+  swadhistan: number | Page;
+  nabhi: number | Page;
+  void: number | Page;
+  anahat: number | Page;
+  vishuddhi: number | Page;
+  agnya: number | Page;
+  sahasrara: number | Page;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'subtle-system';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SplashBlock".
+ */
+export interface SplashBlock {
+  /**
+   * Select the layout style for this splash section
+   */
+  layout: 'default' | 'countdown' | 'app' | 'map-search';
+  /**
+   * Text colour for the splash. Light text suits a dark hero; dark text suits a light hero. The overlaid site-header theme follows this setting.
+   */
+  textColor?: ('dark' | 'light') | null;
+  /**
+   * Select one or more images for the splash section
+   */
+  images?: (number | Image)[] | null;
+  title?: string | null;
+  subtitle?: string | null;
+  /**
+   * Button or call-to-action text
+   */
+  actionText?: string | null;
+  /**
+   * URL for the action button
+   */
+  actionURL?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'splash';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

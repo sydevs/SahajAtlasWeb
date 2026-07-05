@@ -16,16 +16,18 @@ export const mockEventImages: EventImage[] = [
   },
 ]
 
+// A city (Cambridge) under the UK — the region-optional shape. Breadcrumbs carry
+// the ancestor ids (for count aggregation); the canonical route is the server
+// `webPath`.
 const mockRegion: RegionRef = {
   id: 8001,
   slug: 'cambridge',
   level: 'city',
   name: 'Cambridge',
   subtitle: null,
-  breadcrumbs: [
-    { doc: 44, label: 'United Kingdom' },
-    { doc: 8001, label: 'Cambridge' },
-  ],
+  breadcrumbs: [{ doc: 44 }, { doc: 8001 }],
+  webPath: '/united-kingdom/cambridge',
+  webUrl: 'https://atlas.example/united-kingdom/cambridge',
 }
 
 export const mockEventSlim: EventSlim = {
@@ -50,7 +52,7 @@ export const mockEventSlim: EventSlim = {
     upcomingDates: [new Date('2026-07-04T09:30:00Z'), new Date('2026-07-11T09:30:00Z')],
   },
   region: mockRegion,
-  path: '/events/101',
+  path: '/united-kingdom/cambridge/101',
   distance: 3,
 }
 
@@ -61,7 +63,7 @@ export const mockEventSlimOnline: EventSlim = {
   eventType: 'online',
   languages: ['fr'],
   schedule: { ...mockEventSlim.schedule!, recurrenceType: 'DAILY' },
-  path: '/events/102',
+  path: '/united-kingdom/cambridge/102',
   distance: 42,
 }
 
@@ -74,7 +76,7 @@ export const mockEventSlimList: EventSlim[] = [
     title: 'Beginners Course',
     address: { city: 'Oxford', country: 'GB' },
     schedule: null,
-    path: '/events/103',
+    path: '/united-kingdom/cambridge/103',
     distance: 18,
   },
 ]
@@ -116,6 +118,7 @@ export const mockEvent: Event = {
     guests: null,
   },
   region: mockRegion,
-  webUrl: 'https://atlas.example/events/101',
-  path: '/events/101',
+  webPath: '/united-kingdom/cambridge/101',
+  webUrl: 'https://atlas.example/united-kingdom/cambridge/101',
+  path: '/united-kingdom/cambridge/101',
 }

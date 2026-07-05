@@ -14,13 +14,10 @@ import MapLayout from './layouts/map'
 import { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
-import { regionPath } from '@/lib/shape'
+import { resolvePath, safePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import EventPage from '@/pages/event'
-import VenuePage from '@/pages/venue'
-import AreaPage from '@/pages/area'
 import RegionPage from '@/pages/region'
-import CountryPage from '@/pages/country'
 import IndexPage from '@/pages/index'
 import '@/styles/globals.css'
 import '@/config/i18n'
@@ -62,10 +59,10 @@ function AppRouter({ apiKey, defaultLocale }: AppProps) {
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
 
   // The widget's home view is its configured region; fall back to the search index.
+  // The client's configured home region (its canonical webPath), else the search index.
   const initialPath =
-    client.region && typeof client.region === 'object'
-      ? regionPath(client.region.level, client.region.slug)
-      : '/search'
+    (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
+    '/search'
 
   // Primary host for analytics (allowedDomains is a newline-separated list).
   const primaryDomain =
@@ -109,14 +106,27 @@ function AppRouter({ apiKey, defaultLocale }: AppProps) {
       <MapLayout>
         <Routes>
           <Route element={<IndexPage />} path="/search" />
-          <Route element={<CountryPage />} path="/countries/:slug" />
-          <Route element={<RegionPage />} path="/regions/:slug" />
-          <Route element={<AreaPage />} path="/areas/:slug" />
-          <Route element={<VenuePage />} path="/venues/:slug" />
-          <Route element={<EventPage />} path="/events/:id" />
-          <Route element={<Navigate to={initialPath} />} path="*" />
+          <Route element={<ResolvedRoute initialPath={initialPath} />} path="*" />
         </Routes>
       </MapLayout>
     </>
   )
+}
+
+// ===== RESOLVED ROUTE ===== //
+
+// The single hierarchical route: resolve the pathname by its terminal segment
+// (numeric → event, else → region slug) and render the matching page. `key`
+// remounts the page when the target changes so its effects re-run cleanly.
+function ResolvedRoute({ initialPath }: { initialPath: string }) {
+  const location = useLocation()
+  const resolved = resolvePath(location.pathname)
+
+  if (!resolved) return <Navigate replace to={initialPath} />
+
+  if (resolved.kind === 'event') {
+    return <EventPage key={`event:${resolved.id}`} id={resolved.id} />
+  }
+
+  return <RegionPage key={`region:${resolved.slug}`} slug={resolved.slug} />
 }

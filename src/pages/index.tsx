@@ -11,7 +11,9 @@ import { Panel } from '@/components/molecules'
 import { useSearchState, useViewState } from '@/config/store'
 import { List, RegionCard } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
-import api from '@/config/api'
+import api, { clientQuery } from '@/config/api'
+import atlasAuth from '@/config/api/auth'
+import { validateWebUrl } from '@/lib/url'
 import { SearchBar } from '@/components/molecules'
 import { useMapbox } from '@/hooks/use-mapbox'
 
@@ -29,6 +31,10 @@ function IndexPanel() {
     queryKey: ['countries'],
     queryFn: () => api.getCountries(),
   })
+  // The widget's canonical home is its configured region (cached by App).
+  const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
+  const homeUrl = client.region && typeof client.region === 'object' ? client.region.webUrl : null
+  const canonicalUrl = validateWebUrl(homeUrl)
 
   const showCountries = zoom < 7 && !onlineOnly
 
@@ -54,8 +60,8 @@ function IndexPanel() {
     <>
       <Helmet>
         <title>{t('free_meditation_classes')}</title>
-        <meta content="https://wemeditate.com/map" property="og:url" />
-        <link href="https://wemeditate.com/map" rel="canonical" />
+        {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
+        {canonicalUrl && <link href={canonicalUrl} rel="canonical" />}
       </Helmet>
       <SearchBar
         eventCount={

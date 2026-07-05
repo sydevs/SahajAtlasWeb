@@ -1,67 +1,58 @@
 import z from 'zod'
 
+import { EventSlimSchema } from './event'
+import { RegionLevelSchema, RegionRefSchema } from './region-ref'
+
+// Re-export the low-level refs so `@/types` consumers still reach them here.
+export { RegionLevelSchema, BreadcrumbSchema, RegionRefSchema } from './region-ref'
+export type { RegionLevel, Breadcrumb, RegionRef } from './region-ref'
+
 // Shared geo primitives for derived view-models.
 export const BoundsSchema = z.tuple([z.number(), z.number(), z.number(), z.number()])
 export const PositionSchema = z.tuple([z.number(), z.number()])
 
-// SahajCloud region taxonomy. The widget routes city→area and center→venue
-// (see src/lib/shape/path.ts), but the backend `level` values are these.
-export const RegionLevelSchema = z.enum(['country', 'region', 'city', 'center'])
-export type RegionLevel = z.infer<typeof RegionLevelSchema>
-
-// One entry of the nested-docs `breadcrumbs` chain (country → … → self). At
-// depth=1 `doc` is a numeric region id; deeper populations may inline the doc.
-export const BreadcrumbSchema = z.object({
-  doc: z.union([z.number(), z.object({ id: z.number() }).passthrough()]).nullish(),
-  label: z.string().nullish(),
-})
-
-// Populated region reference — the subset selected in the geojson feed's
-// `populate[regions]` and on raw region reads.
-export const RegionRefSchema = z.object({
-  id: z.number(),
-  slug: z.string(),
-  name: z.string().nullish(),
-  level: RegionLevelSchema,
-  subtitle: z.string().nullish(),
-  breadcrumbs: z.array(BreadcrumbSchema).nullish(),
-})
-export type RegionRef = z.infer<typeof RegionRefSchema>
-
-// Raw region document from `GET /api/regions` (depth=1 resolves `parent`).
-// Mapbox-resolved regions leave latitude/longitude/radius null; the ISO country
-// code survives only on legacyData (used for flags + localized country names).
+// Raw region document from `GET /api/regions`. `webPath`/`webUrl` (from RegionRef)
+// are the server-computed canonical route; the ISO country code survives only on
+// legacyData (used for flags + localized country names).
 export const RegionDocSchema = RegionRefSchema.extend({
-  mapboxId: z.string().nullish(),
-  parent: z.union([RegionRefSchema, z.number(), z.null()]).optional(),
-  latitude: z.number().nullish(),
-  longitude: z.number().nullish(),
-  radius: z.number().nullish(),
   legacyData: z.object({ countryCode: z.string().nullish() }).passthrough().nullish(),
 })
 export type RegionDoc = z.infer<typeof RegionDocSchema>
 
-// Derived list item for a child region shown under a country/region page.
+// Derived list item for a region shown under a parent (country/region page) or in
+// the home country list. `countryCode` is set only for countries (drives the flag
+// + localized name); `path` is the item's full nested route.
 export const RegionListItemSchema = z.object({
   id: z.number(),
   slug: z.string(),
   level: RegionLevelSchema,
   name: z.string(),
   subtitle: z.string().nullish(),
+  countryCode: z.string().nullish(),
   eventCount: z.number(),
   path: z.string(),
 })
 export type RegionListItem = z.infer<typeof RegionListItemSchema>
 
-// Derived view-model for a region page (level=region): its child areas (cities).
+// One derived view-model for every region level. `country`/`region` populate
+// `subregions` (child list); `city`/`center` populate `events`. `bounds` frames
+// the map for all levels; `center` is the derived point a `center` (venue) uses
+// when it has no bounds. `countryCode` is set only for countries.
 export const RegionSchema = z.object({
   id: z.number(),
   slug: z.string(),
   name: z.string(),
+  level: RegionLevelSchema,
+  subtitle: z.string().nullish(),
+  countryCode: z.string().nullish(),
   eventCount: z.number(),
   bounds: BoundsSchema.nullable(),
+  center: PositionSchema.nullable(),
   path: z.string(),
   parentPath: z.string().nullish(),
-  areas: z.array(RegionListItemSchema),
+  // Absolute canonical URL (server webUrl) for the page's <link rel="canonical">.
+  webUrl: z.string().nullish(),
+  subregions: z.array(RegionListItemSchema),
+  events: z.array(EventSlimSchema),
 })
 export type Region = z.infer<typeof RegionSchema>
