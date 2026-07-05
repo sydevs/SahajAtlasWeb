@@ -29,7 +29,9 @@ export type EventAddress = z.infer<typeof EventAddressSchema>
 // pre-computed by SahajCloud; `upcomingDates[0]` is the next occurrence.
 export const EventScheduleSchema = z.object({
   firstDate: z.coerce.date(),
-  firstDate_tz: z.string(),
+  // IANA tz of firstDate. The collection type marks it required, but the feed
+  // returns null for events with no stored timezone — consumers fall back to UTC.
+  firstDate_tz: z.string().nullish(),
   endTime: z.string().nullish(), // "HH:MM", same day
   recurrenceType: RecurrenceTypeSchema.nullish(),
   upcomingDates: z.array(z.coerce.date()).nullish(),
