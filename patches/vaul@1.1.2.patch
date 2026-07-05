@@ -1,0 +1,17 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 0dbbce5526681925a81804ced237a045a53c0355..6db8161ead66f6490d8ec58fbc8344d53827b6ea 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -1339,6 +1339,12 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
+         modal
+     ]);
+     return /*#__PURE__*/ React__default.createElement(DialogPrimitive.Root, {
++        // vaul@1.1.2 patch (Sahaj Atlas #30): forward `modal` to Radix Dialog.Root.
++        // Upstream never passes it, so Radix always runs modal → hideOthers()
++        // aria-hides the background + FocusScope traps focus even when vaul
++        // modal={false}. Forwarding it makes modal={false} truly non-modal, so the
++        // always-open drawers leave the map reachable by AT + keyboard.
++        modal: modal,
+         defaultOpen: defaultOpen,
+         onOpenChange: (open)=>{
+             if (!dismissible && !open) return;
