@@ -23,8 +23,15 @@ async function resolvePassword() {
 
   try {
     const env = await readFile(new URL('../.env.local', import.meta.url), 'utf8')
-    const match = env.match(/^\s*SAHAJCLOUD_DOCS_PASSWORD\s*=\s*["']?([^"'\n#]+)/m)
-    if (match) return match[1].trim()
+    const line = env.match(/^\s*SAHAJCLOUD_DOCS_PASSWORD\s*=\s*(.*)$/m)
+    if (line) {
+      const raw = line[1].trim()
+      // Quoted value: take what's inside the quotes (a trailing ` # comment` is
+      // ignored, matching the other .env.local vars). Unquoted: the value verbatim,
+      // so a `#` in the password is preserved rather than truncating on it.
+      const quoted = raw.match(/^(["'])(.*?)\1/)
+      return quoted ? quoted[2] : raw
+    }
   } catch {
     // .env.local is optional
   }
