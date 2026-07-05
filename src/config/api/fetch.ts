@@ -20,6 +20,7 @@ import {
   countUnder,
   eventsUnder,
   parentOf,
+  safePath,
 } from '@/lib/shape'
 import {
   ClientSchema,
@@ -113,7 +114,7 @@ const indexFeatures = (geojson: Geojson): IndexedFeature[] =>
 const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
   EventSlimSchema.parse({
     ...feature.properties,
-    path: feature.properties.webPath ?? `/${feature.properties.id}`,
+    path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
     distance: from && feature.geometry ? distanceKm(from, feature.geometry.coordinates) : undefined,
   })
 
@@ -122,7 +123,7 @@ const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
 // The canonical route (`webPath`) is server-computed and virtual, so no depth /
 // breadcrumb populate is needed. Slugs are globally unique, so no `level` filter —
 // the level comes from the doc. Falls back to a flat `/slug` if webPath is absent.
-const regionRoute = (doc: RegionDoc): string => doc.webPath ?? `/${doc.slug}`
+const regionRoute = (doc: RegionDoc): string => safePath(doc.webPath) ?? `/${doc.slug}`
 
 const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
   const response = await client.get('/regions', {
@@ -306,7 +307,7 @@ const getEvent = async (id: number): Promise<Event> => {
 
   const event = EventDocSchema.parse(response.data)
 
-  return { ...event, path: event.webPath ?? `/${event.id}` }
+  return { ...event, path: safePath(event.webPath) ?? `/${event.id}` }
 }
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────

@@ -1,6 +1,23 @@
 import { describe, it, expect } from 'vitest'
 
-import { isCanonicalPath, parentOf, resolvePath } from './path'
+import { isCanonicalPath, parentOf, resolvePath, safePath } from './path'
+
+describe('safePath', () => {
+  it('accepts a site-relative path', () => {
+    expect(safePath('/belgium/flanders')).toBe('/belgium/flanders')
+    expect(safePath('/507')).toBe('/507')
+  })
+
+  it('rejects scheme, protocol-relative, relative, empty, and nullish', () => {
+    expect(safePath('javascript:alert(1)')).toBeUndefined()
+    expect(safePath('https://evil.example')).toBeUndefined()
+    expect(safePath('//evil.example')).toBeUndefined()
+    expect(safePath('belgium')).toBeUndefined()
+    expect(safePath('')).toBeUndefined()
+    expect(safePath(null)).toBeUndefined()
+    expect(safePath(undefined)).toBeUndefined()
+  })
+})
 
 describe('parentOf', () => {
   it('drops the last segment (region → parent, event → its region page)', () => {

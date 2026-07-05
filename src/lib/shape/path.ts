@@ -27,6 +27,16 @@ export const parentOf = (path: string): string | undefined => {
 }
 
 /**
+ * A server-provided route (`webPath`) is only trusted as a same-origin route if
+ * it's a site-relative path: a leading `/` that isn't protocol-relative (`//host`).
+ * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS
+ * `webPath` can never reach an `<a href>` — the widget builds a safe `/slug`·`/id`
+ * fallback instead. Returns `undefined` for anything else.
+ */
+export const safePath = (path: string | null | undefined): string | undefined =>
+  path && path.startsWith('/') && !path.startsWith('//') ? path : undefined
+
+/**
  * True when `pathname` already is the canonical `target`, ignoring percent-
  * encoding. The address bar stores non-ASCII slugs encoded (`/li%C3%A8ge`) while
  * `webPath` is decoded (`/liège`), so a raw `!==` would loop the canonicalize

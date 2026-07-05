@@ -14,7 +14,7 @@ import MapLayout from './layouts/map'
 import { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
-import { resolvePath } from '@/lib/shape'
+import { resolvePath, safePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import EventPage from '@/pages/event'
 import RegionPage from '@/pages/region'
@@ -61,7 +61,8 @@ function AppRouter({ apiKey, defaultLocale }: AppProps) {
   // The widget's home view is its configured region; fall back to the search index.
   // The client's configured home region (its canonical webPath), else the search index.
   const initialPath =
-    (client.region && typeof client.region === 'object' && client.region.webPath) || '/search'
+    (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
+    '/search'
 
   // Primary host for analytics (allowedDomains is a newline-separated list).
   const primaryDomain =
