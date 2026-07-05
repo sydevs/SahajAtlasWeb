@@ -18,6 +18,7 @@ import {
 } from '@/components/molecules'
 import { useViewState } from '@/config/store'
 import { isCanonicalPath } from '@/lib/shape'
+import { validateWebUrl } from '@/lib/url'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
 
@@ -62,7 +63,7 @@ function RegionPanel({ slug }: { slug: string }) {
   const isVenue = region.level === 'center'
   const showEvents = region.level === 'city' || region.level === 'center'
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
-  const canonicalUrl = region.webUrl && /^https?:/i.test(region.webUrl) ? region.webUrl : undefined
+  const canonicalUrl = validateWebUrl(region.webUrl)
 
   return (
     <Panel mapWindow={isVenue ? 240 : undefined}>
