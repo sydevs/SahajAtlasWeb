@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router'
 import { useEffect, lazy } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 import api from '@/config/api'
 import { Link } from '@/components/atoms/Link'
@@ -8,7 +9,7 @@ import { EventMetadata, Panel } from '@/components/molecules'
 import { useViewState } from '@/config/store'
 import { UpArrowIcon } from '@/components/atoms'
 import { useMapbox } from '@/hooks/use-mapbox'
-import { isCanonicalPath, isOnline, regionRefPath } from '@/lib/shape'
+import { isCanonicalPath, isOnline, parentOf } from '@/lib/shape'
 
 const EventViewContent = lazy(() =>
   import('@/components/organisms/EventView').then((m) => ({ default: m.EventView })),
@@ -51,11 +52,17 @@ function EventPanel({ eventId }: { eventId: number }) {
     }
   }, [event, mapbox])
 
-  // Back-button target: the event's city/center region page.
-  const parentPath = regionRefPath(event.region)
+  // Back-button target: the event's region (city/center) page — drop the trailing id.
+  const parentPath = parentOf(event.path) ?? '/search'
 
   return (
     <>
+      {event.webUrl && (
+        <Helmet>
+          <link href={event.webUrl} rel="canonical" />
+          <meta content={event.webUrl} property="og:url" />
+        </Helmet>
+      )}
       <Link
         className="text-3xl absolute top-5 left-2.5 z-20 bg-background rounded hover:opacity-100 hover:bg-primary-3 transition-colors"
         href={parentPath}

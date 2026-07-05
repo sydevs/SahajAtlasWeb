@@ -83,6 +83,9 @@ export const FeedEventSchema = z.object({
   address: EventAddressSchema.nullish(),
   schedule: EventScheduleSchema.nullish(),
   region: RegionRefSchema,
+  // Server-computed canonical route (region chain + `/<id>`); the list/map
+  // navigate to it directly.
+  webPath: z.string().nullish(),
 })
 export type FeedEvent = z.infer<typeof FeedEventSchema>
 
@@ -112,6 +115,7 @@ export const EventDocSchema = z.object({
   registrationLimit: z.number().nullish(),
   registrationQuestions: RegistrationQuestionsSchema.nullish(),
   region: RegionRefSchema,
+  webPath: z.string().nullish(),
   webUrl: SafeUrlSchema,
 })
 export type EventDoc = z.infer<typeof EventDocSchema>

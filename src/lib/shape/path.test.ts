@@ -1,71 +1,19 @@
-import type { Breadcrumb, RegionRef } from '@/types'
-
 import { describe, it, expect } from 'vitest'
 
-import {
-  ancestorSlugsFromBreadcrumbs,
-  eventPath,
-  eventStubPath,
-  isCanonicalPath,
-  regionPath,
-  regionRefPath,
-  regionSlugChain,
-  resolvePath,
-} from './path'
+import { isCanonicalPath, parentOf, resolvePath } from './path'
 
-const breadcrumbs: Breadcrumb[] = [
-  { doc: { id: 1, slug: 'belgium', level: 'country' }, label: 'Belgium' },
-  { doc: { id: 2, slug: 'flanders', level: 'region' }, label: 'Flanders' },
-  { doc: { id: 3, slug: 'antwerpen', level: 'city' }, label: 'Antwerpen' },
-]
-
-const cityRef: RegionRef = { id: 3, slug: 'antwerpen', level: 'city', breadcrumbs }
-
-describe('regionPath', () => {
-  it('joins an ancestor slug chain into a nested path', () => {
-    expect(regionPath(['belgium'])).toBe('/belgium')
-    expect(regionPath(['belgium', 'flanders', 'antwerpen'])).toBe('/belgium/flanders/antwerpen')
-  })
-})
-
-describe('ancestorSlugsFromBreadcrumbs', () => {
-  it('extracts the ordered slug chain from populated breadcrumb docs', () => {
-    expect(ancestorSlugsFromBreadcrumbs(breadcrumbs)).toEqual(['belgium', 'flanders', 'antwerpen'])
+describe('parentOf', () => {
+  it('drops the last segment (region → parent, event → its region page)', () => {
+    expect(parentOf('/belgium/flanders')).toBe('/belgium')
+    expect(parentOf('/belgium/flanders/antwerpen/downtown-hall/507')).toBe(
+      '/belgium/flanders/antwerpen/downtown-hall',
+    )
   })
 
-  it('skips bare numeric docs (the feed depth) and nullish input', () => {
-    expect(ancestorSlugsFromBreadcrumbs([{ doc: 1 }, { doc: 2 }])).toEqual([])
-    expect(ancestorSlugsFromBreadcrumbs(null)).toEqual([])
-    expect(ancestorSlugsFromBreadcrumbs(undefined)).toEqual([])
-  })
-})
-
-describe('regionRefPath', () => {
-  it('builds the full nested path from a populated breadcrumb chain', () => {
-    expect(regionRefPath(cityRef)).toBe('/belgium/flanders/antwerpen')
-  })
-
-  it('falls back to a flat /slug when the chain is not populated', () => {
-    expect(regionRefPath({ id: 3, slug: 'antwerpen', level: 'city' })).toBe('/antwerpen')
-    expect(regionRefPath({ ...cityRef, breadcrumbs: [{ doc: 1 }] })).toBe('/antwerpen')
-  })
-})
-
-describe('regionSlugChain', () => {
-  it('uses the chain as-is when breadcrumbs already include the region itself', () => {
-    expect(regionSlugChain(cityRef)).toEqual(['belgium', 'flanders', 'antwerpen'])
-  })
-
-  it('appends the region slug when breadcrumbs are ancestors-only', () => {
-    expect(regionSlugChain({ ...cityRef, breadcrumbs: breadcrumbs.slice(0, -1) })).toEqual([
-      'belgium',
-      'flanders',
-      'antwerpen',
-    ])
-  })
-
-  it('falls back to just the region slug when the chain is unpopulated', () => {
-    expect(regionSlugChain({ id: 3, slug: 'antwerpen', level: 'city' })).toEqual(['antwerpen'])
+  it('is undefined for a single-segment (top-level) path', () => {
+    expect(parentOf('/belgium')).toBeUndefined()
+    expect(parentOf('/507')).toBeUndefined()
+    expect(parentOf('/')).toBeUndefined()
   })
 })
 
@@ -80,18 +28,6 @@ describe('isCanonicalPath', () => {
 
   it('does not throw on a malformed percent escape', () => {
     expect(isCanonicalPath('/foo%', '/foo%')).toBe(true)
-  })
-})
-
-describe('eventPath', () => {
-  it('appends the numeric id to its region chain', () => {
-    expect(eventPath(cityRef, 507)).toBe('/belgium/flanders/antwerpen/507')
-  })
-})
-
-describe('eventStubPath', () => {
-  it('is the minimal numeric-terminal route', () => {
-    expect(eventStubPath(507)).toBe('/507')
   })
 })
 

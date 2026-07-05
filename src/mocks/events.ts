@@ -16,20 +16,18 @@ export const mockEventImages: EventImage[] = [
   },
 ]
 
-// A city (Cambridge) with no intermediate region, so its breadcrumb chain is
-// country → self — the region-optional shape. `doc`s are populated with slugs
-// (as a deep region/event read returns them), so the path helpers build
-// `/united-kingdom/cambridge`.
+// A city (Cambridge) under the UK — the region-optional shape. Breadcrumbs carry
+// the ancestor ids (for count aggregation); the canonical route is the server
+// `webPath`.
 const mockRegion: RegionRef = {
   id: 8001,
   slug: 'cambridge',
   level: 'city',
   name: 'Cambridge',
   subtitle: null,
-  breadcrumbs: [
-    { doc: { id: 44, slug: 'united-kingdom', level: 'country' }, label: 'United Kingdom' },
-    { doc: { id: 8001, slug: 'cambridge', level: 'city' }, label: 'Cambridge' },
-  ],
+  breadcrumbs: [{ doc: 44 }, { doc: 8001 }],
+  webPath: '/united-kingdom/cambridge',
+  webUrl: 'https://atlas.example/united-kingdom/cambridge',
 }
 
 export const mockEventSlim: EventSlim = {
@@ -120,6 +118,7 @@ export const mockEvent: Event = {
     guests: null,
   },
   region: mockRegion,
-  webUrl: 'https://atlas.example/events/101',
+  webPath: '/united-kingdom/cambridge/101',
+  webUrl: 'https://atlas.example/united-kingdom/cambridge/101',
   path: '/united-kingdom/cambridge/101',
 }

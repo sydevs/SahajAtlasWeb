@@ -11,16 +11,10 @@ export type { RegionLevel, Breadcrumb, RegionRef } from './region-ref'
 export const BoundsSchema = z.tuple([z.number(), z.number(), z.number(), z.number()])
 export const PositionSchema = z.tuple([z.number(), z.number()])
 
-// Raw region document from `GET /api/regions`. We read at depth ≥ 1 so `parent`
-// and the breadcrumb `doc`s resolve; Mapbox-resolved regions leave
-// latitude/longitude/radius null; the ISO country code survives only on
+// Raw region document from `GET /api/regions`. `webPath`/`webUrl` (from RegionRef)
+// are the server-computed canonical route; the ISO country code survives only on
 // legacyData (used for flags + localized country names).
 export const RegionDocSchema = RegionRefSchema.extend({
-  mapboxId: z.string().nullish(),
-  parent: z.union([RegionRefSchema, z.number(), z.null()]).optional(),
-  latitude: z.number().nullish(),
-  longitude: z.number().nullish(),
-  radius: z.number().nullish(),
   legacyData: z.object({ countryCode: z.string().nullish() }).passthrough().nullish(),
 })
 export type RegionDoc = z.infer<typeof RegionDocSchema>
@@ -56,6 +50,8 @@ export const RegionSchema = z.object({
   center: PositionSchema.nullable(),
   path: z.string(),
   parentPath: z.string().nullish(),
+  // Absolute canonical URL (server webUrl) for the page's <link rel="canonical">.
+  webUrl: z.string().nullish(),
   subregions: z.array(RegionListItemSchema),
   events: z.array(EventSlimSchema),
 })

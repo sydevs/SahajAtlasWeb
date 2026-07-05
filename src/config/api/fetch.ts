@@ -18,11 +18,8 @@ import {
   ancestorIdsFromBreadcrumbs,
   boundsUnder,
   countUnder,
-  eventPath,
-  eventStubPath,
   eventsUnder,
-  regionPath,
-  regionSlugChain,
+  parentOf,
 } from '@/lib/shape'
 import {
   ClientSchema,
@@ -37,15 +34,15 @@ import {
 // Most we return from a "near here" search, ordered by distance.
 const NEAREST_LIMIT = 50
 
-// The region fields populated into the geojson feed + raw region/event reads.
-// `breadcrumbs` gives the ancestry: at the feed's depth the crumb `doc`s are bare
-// ids (used for counts); on a deeper region/event read they resolve to
-// `{ slug, level }` — the slug chain that builds nested paths.
+// The region fields populated into the geojson feed + event reads. `breadcrumbs`
+// carries the ancestor `id`s used to aggregate event counts/bounds under a region
+// (slug/name drive display); the canonical route comes from `webPath`, not these.
 const REGION_POPULATE = {
   regions: { slug: true, name: true, level: true, subtitle: true, breadcrumbs: true },
 }
 
-// The event fields the geojson feed selects (must mirror FeedEventSchema).
+// The event fields the geojson feed selects (must mirror FeedEventSchema). `webPath`
+// is the server-computed canonical route, so map/list items navigate to it directly.
 const FEED_SELECT = {
   title: true,
   eventType: true,
@@ -69,6 +66,7 @@ const FEED_SELECT = {
     icalRule: true,
   },
   region: true,
+  webPath: true,
 }
 
 // ── GeoJSON feed (single source of geometry + counts) ──────────────────────────
@@ -110,36 +108,37 @@ const indexFeatures = (geojson: Geojson): IndexedFeature[] =>
     ],
   }))
 
-// Feed-derived list items navigate by a minimal `/id` route (the feed doesn't
-// carry ancestor slugs); the event page canonicalizes it to the full chain.
+// The feed carries the canonical `webPath`; fall back to a flat `/id` (still
+// resolvable via the terminal segment) only if it's ever absent.
 const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
   EventSlimSchema.parse({
     ...feature.properties,
-    path: eventStubPath(feature.properties.id),
+    path: feature.properties.webPath ?? `/${feature.properties.id}`,
     distance: from && feature.geometry ? distanceKm(from, feature.geometry.coordinates) : undefined,
   })
 
 // ── Raw region reads ───────────────────────────────────────────────────────────
 
-// Read at depth 2 with an explicit populate so the breadcrumb `doc`s resolve to
-// `{ slug, level }` (the ancestor chain), narrowed to a few fields. Slugs are
-// globally unique, so no `level` filter is needed — the level comes from the doc.
+// The canonical route (`webPath`) is server-computed and virtual, so no depth /
+// breadcrumb populate is needed. Slugs are globally unique, so no `level` filter —
+// the level comes from the doc. Falls back to a flat `/slug` if webPath is absent.
+const regionRoute = (doc: RegionDoc): string => doc.webPath ?? `/${doc.slug}`
+
 const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
   const response = await client.get('/regions', {
     params: {
       where: { slug: { equals: slug } },
-      depth: 2,
+      depth: 1,
       limit: 1,
       select: {
         slug: true,
         name: true,
         level: true,
         subtitle: true,
-        mapboxId: true,
-        breadcrumbs: true,
         legacyData: true,
+        webPath: true,
+        webUrl: true,
       },
-      populate: { regions: { slug: true, name: true, level: true } },
     },
   })
 
@@ -157,7 +156,7 @@ const getChildRegions = async (parentId: number): Promise<RegionDoc[]> => {
       depth: 0,
       limit: 1000,
       sort: 'name',
-      select: { slug: true, name: true, level: true, subtitle: true },
+      select: { slug: true, name: true, level: true, subtitle: true, webPath: true },
     },
   })
 
@@ -173,8 +172,7 @@ const countryCodeOf = (doc: RegionDoc): string | undefined => {
   return typeof code === 'string' && /^[A-Za-z]{2}$/.test(code) ? code : undefined
 }
 
-// A child region's nested path is its parent's path plus its own slug.
-const toListItem = (doc: RegionDoc, events: GeoEvent[], parentPath: string): RegionListItem =>
+const toListItem = (doc: RegionDoc, events: GeoEvent[]): RegionListItem =>
   RegionListItemSchema.parse({
     id: doc.id,
     slug: doc.slug,
@@ -182,7 +180,7 @@ const toListItem = (doc: RegionDoc, events: GeoEvent[], parentPath: string): Reg
     name: doc.name ?? doc.slug,
     subtitle: doc.subtitle,
     eventCount: countUnder(events, doc.id),
-    path: `${parentPath}/${doc.slug}`,
+    path: regionRoute(doc),
   })
 
 // ── Hierarchy fetchers (raw region + geojson-derived counts/bounds) ─────────────
@@ -197,7 +195,7 @@ const getCountries = async (): Promise<RegionListItem[]> => {
         depth: 0,
         limit: 1000,
         sort: 'name',
-        select: { slug: true, name: true, level: true, legacyData: true },
+        select: { slug: true, name: true, level: true, legacyData: true, webPath: true },
       },
     }),
   ])
@@ -214,32 +212,28 @@ const getCountries = async (): Promise<RegionListItem[]> => {
         name: doc.name ?? doc.slug,
         countryCode: countryCodeOf(doc),
         eventCount: countUnder(events, doc.id),
-        path: regionPath([doc.slug]),
+        path: regionRoute(doc),
       }),
     )
     .filter((country) => country.eventCount > 0)
 }
 
 // One fetcher for every region level. `country`/`region` populate `subregions`
-// (child list); `city`/`center` populate `events`. Path + parentPath come from
-// the breadcrumb slug chain; bounds/center are derived from the feed.
+// (child list); `city`/`center` populate `events`. Path/webUrl come from the
+// server; bounds/center/counts are derived from the feed.
 const getRegion = async (slug: string): Promise<Region> => {
   // The region read and the feed are independent — load them in parallel.
   const [doc, geojson] = await Promise.all([getRegionDoc(slug), loadGeojson()])
   const events = indexFeatures(geojson)
 
-  // ancestors + self, tolerant of whether breadcrumbs include the region itself.
-  const chain = regionSlugChain(doc)
-  const path = regionPath(chain)
-  const parentPath = chain.length > 1 ? regionPath(chain.slice(0, -1)) : undefined
-
+  const path = regionRoute(doc)
   const isParent = doc.level === 'country' || doc.level === 'region'
   const under = eventsUnder(events, doc.id)
   const bounds = boundsUnder(events, doc.id)
 
   const subregions = isParent
     ? (await getChildRegions(doc.id))
-        .map((child) => toListItem(child, events, path))
+        .map((child) => toListItem(child, events))
         .filter((child) => child.eventCount > 0)
     : []
 
@@ -254,7 +248,8 @@ const getRegion = async (slug: string): Promise<Region> => {
     bounds,
     center: bounds ? centerOfBounds(bounds) : null,
     path,
-    parentPath,
+    parentPath: parentOf(path),
+    webUrl: doc.webUrl,
     subregions,
     events: isParent ? [] : under.map((indexed) => toSlim(indexed.feature)),
   })
@@ -282,9 +277,7 @@ const getEvents = async (
 const getEvent = async (id: number): Promise<Event> => {
   const response = await client.get(`/events/${id}`, {
     params: {
-      // depth 2 so the event region's breadcrumb `doc`s resolve to slugs — the
-      // ancestor chain the canonical nested event path is built from.
-      depth: 2,
+      depth: 1,
       select: {
         title: true,
         eventType: true,
@@ -301,6 +294,7 @@ const getEvent = async (id: number): Promise<Event> => {
         registrationLimit: true,
         registrationQuestions: true,
         region: true,
+        webPath: true,
         webUrl: true,
       },
       populate: {
@@ -310,11 +304,9 @@ const getEvent = async (id: number): Promise<Event> => {
     },
   })
 
-  // Parse first (validates the region), then derive the canonical path from the
-  // validated region — never dereference the raw response.
   const event = EventDocSchema.parse(response.data)
 
-  return { ...event, path: eventPath(event.region, event.id) }
+  return { ...event, path: event.webPath ?? `/${event.id}` }
 }
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────
@@ -334,7 +326,7 @@ const getClient = async () => {
         region: true,
         legacyConfig: true,
       },
-      populate: { regions: { slug: true, name: true, level: true } },
+      populate: { regions: { slug: true, name: true, level: true, webPath: true, webUrl: true } },
     },
   })
 

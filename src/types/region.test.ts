@@ -9,8 +9,9 @@ const regionDoc = {
   slug: 'belgium',
   level: 'country',
   name: 'Belgium',
-  mapboxId: 'dXJuOm1ieHBsYzpJaFU',
-  breadcrumbs: [{ doc: { id: 28, slug: 'belgium', level: 'country' }, label: 'Belgium' }],
+  breadcrumbs: [{ doc: 28 }],
+  webPath: '/belgium',
+  webUrl: 'https://atlas.example/belgium',
   legacyData: { countryCode: 'BE' },
 }
 
@@ -36,6 +37,7 @@ const country = {
   center: [4, 51],
   path: '/belgium',
   parentPath: undefined,
+  webUrl: 'https://atlas.example/belgium',
   subregions: [listItem],
   events: [],
 }
@@ -56,20 +58,19 @@ const venue = {
 }
 
 describe('RegionDocSchema', () => {
-  it('parses a raw region read with populated breadcrumb slugs + ISO code', () => {
+  it('parses a raw region read with its webPath + ISO code', () => {
     const parsed = RegionDocSchema.parse(regionDoc)
 
     expect(parsed.level).toBe('country')
+    expect(parsed.webPath).toBe('/belgium')
     expect(parsed.legacyData?.countryCode).toBe('BE')
-    const doc = parsed.breadcrumbs?.[0].doc
-
-    expect(typeof doc === 'object' && doc?.slug).toBe('belgium')
+    expect(parsed.breadcrumbs?.[0].doc).toBe(28)
   })
 
-  it('accepts a bare numeric breadcrumb doc (the feed depth)', () => {
-    const parsed = RegionDocSchema.parse({ ...regionDoc, breadcrumbs: [{ doc: 28 }] })
+  it('accepts an object breadcrumb doc ({ id })', () => {
+    const parsed = RegionDocSchema.parse({ ...regionDoc, breadcrumbs: [{ doc: { id: 28 } }] })
 
-    expect(parsed.breadcrumbs?.[0].doc).toBe(28)
+    expect(parsed.breadcrumbs?.[0].doc).toEqual({ id: 28 })
   })
 
   it('rejects an unknown level', () => {
@@ -101,6 +102,7 @@ describe('RegionSchema', () => {
     expect(parsed.subregions).toHaveLength(1)
     expect(parsed.events).toHaveLength(0)
     expect(parsed.countryCode).toBe('BE')
+    expect(parsed.webUrl).toBe('https://atlas.example/belgium')
   })
 
   it('parses a center (venue) with a derived center point and events', () => {

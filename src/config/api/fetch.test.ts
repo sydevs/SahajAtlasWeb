@@ -102,7 +102,7 @@ describe('getGeojson', () => {
 describe('getRegion (unified hierarchy derivation)', () => {
   // Belgium(28) → Brussels(470), with one located event under Brussels. The
   // region read resolves by slug alone; the country's path + its child's nested
-  // path come from the breadcrumb slug chain.
+  // path come from the server `webPath`; counts/bounds from the feed's breadcrumb ids.
   const route = (
     url: string,
     config?: { params?: { where?: Record<string, { equals?: unknown }> } },
@@ -118,10 +118,8 @@ describe('getRegion (unified hierarchy derivation)', () => {
               slug: 'belgium',
               level: 'country',
               name: 'Belgium',
-              mapboxId: 'mbx',
-              breadcrumbs: [
-                { doc: { id: 28, slug: 'belgium', level: 'country' }, label: 'Belgium' },
-              ],
+              webPath: '/belgium',
+              webUrl: 'https://atlas.example/belgium',
               legacyData: { countryCode: 'BE' },
             },
           ],
@@ -129,7 +127,19 @@ describe('getRegion (unified hierarchy derivation)', () => {
       }
     }
     if (url === '/regions' && where?.parent) {
-      return { data: { docs: [{ id: 470, slug: 'brussels', level: 'city', name: 'Brussels' }] } }
+      return {
+        data: {
+          docs: [
+            {
+              id: 470,
+              slug: 'brussels',
+              level: 'city',
+              name: 'Brussels',
+              webPath: '/belgium/brussels',
+            },
+          ],
+        },
+      }
     }
 
     // /events/geojson
@@ -145,6 +155,7 @@ describe('getRegion (unified hierarchy derivation)', () => {
               title: 'Class',
               eventType: 'offline',
               languages: ['nl'],
+              webPath: '/belgium/brussels/1',
               region: {
                 id: 470,
                 slug: 'brussels',
@@ -158,7 +169,7 @@ describe('getRegion (unified hierarchy derivation)', () => {
     }
   }
 
-  it('derives level, eventCount, bounds, ISO code, path, and nested children', async () => {
+  it('derives level, eventCount, bounds, ISO code, webPath, and nested children', async () => {
     get.mockImplementation((url: string, config?: never) => Promise.resolve(route(url, config)))
 
     const region = await api.getRegion('belgium')
@@ -168,6 +179,7 @@ describe('getRegion (unified hierarchy derivation)', () => {
     expect(region.bounds).toEqual([4.35, 50.85, 4.35, 50.85])
     expect(region.countryCode).toBe('BE')
     expect(region.path).toBe('/belgium')
+    expect(region.webUrl).toBe('https://atlas.example/belgium')
     // a country lists subregions, not events
     expect(region.events).toHaveLength(0)
     expect(region.subregions).toHaveLength(1)

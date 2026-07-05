@@ -62,6 +62,7 @@ function RegionPanel({ slug }: { slug: string }) {
   const isVenue = region.level === 'center'
   const showEvents = region.level === 'city' || region.level === 'center'
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
+  const canonicalUrl = region.webUrl && /^https?:/i.test(region.webUrl) ? region.webUrl : undefined
 
   return (
     <Panel mapWindow={isVenue ? 240 : undefined}>
@@ -79,6 +80,8 @@ function RegionPanel({ slug }: { slug: string }) {
           }
           name="description"
         />
+        {canonicalUrl && <link href={canonicalUrl} rel="canonical" />}
+        {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
       </Helmet>
       <SearchBar
         backHref={region.parentPath ?? '/search'}

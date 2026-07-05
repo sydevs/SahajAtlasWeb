@@ -14,7 +14,7 @@ import MapLayout from './layouts/map'
 import { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
-import { regionPath, resolvePath } from '@/lib/shape'
+import { resolvePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import EventPage from '@/pages/event'
 import RegionPage from '@/pages/region'
@@ -59,12 +59,9 @@ function AppRouter({ apiKey, defaultLocale }: AppProps) {
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
 
   // The widget's home view is its configured region; fall back to the search index.
-  // Minimal home path (just the region slug); the region page canonicalizes it to
-  // the full breadcrumb chain once loaded.
+  // The client's configured home region (its canonical webPath), else the search index.
   const initialPath =
-    client.region && typeof client.region === 'object'
-      ? regionPath([client.region.slug])
-      : '/search'
+    (client.region && typeof client.region === 'object' && client.region.webPath) || '/search'
 
   // Primary host for analytics (allowedDomains is a newline-separated list).
   const primaryDomain =
