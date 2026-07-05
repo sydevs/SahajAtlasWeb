@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router'
 import { useEffect, lazy } from 'react'
-import { Helmet } from 'react-helmet-async'
 
 import api from '@/config/api'
 import { Link } from '@/components/atoms/Link'
@@ -57,12 +56,6 @@ function EventPanel({ eventId }: { eventId: number }) {
 
   return (
     <>
-      {event.webUrl && (
-        <Helmet>
-          <link href={event.webUrl} rel="canonical" />
-          <meta content={event.webUrl} property="og:url" />
-        </Helmet>
-      )}
       <Link
         className="text-3xl absolute top-5 left-2.5 z-20 bg-background rounded hover:opacity-100 hover:bg-primary-3 transition-colors"
         href={parentPath}
