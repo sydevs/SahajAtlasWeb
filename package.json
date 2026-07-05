@@ -16,7 +16,8 @@
     "ladle": "ladle serve",
     "ladle:build": "ladle build",
     "preview": "vite preview",
-    "types:cms": "mkdir -p src/types/payload && curl -fsSL -o src/types/payload/payload-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/payload-types.ts && curl -fsSL -o src/types/payload/response-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/collections/Events/endpoints/responseTypes.ts && node scripts/strip-payload-augmentation.mjs"
+    "types:cms": "mkdir -p src/types/payload && curl -fsSL -o src/types/payload/payload-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/payload-types.ts && curl -fsSL -o src/types/payload/response-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/collections/Events/endpoints/responseTypes.ts && node scripts/strip-payload-augmentation.mjs",
+    "types:openapi": "node scripts/fetch-openapi.mjs"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.19",
