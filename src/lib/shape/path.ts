@@ -53,6 +53,12 @@ export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; i
  * event id; any other tail is a (globally unique) region slug. Depth-independent,
  * so every nested shape and the legacy flat URLs resolve identically. Returns null
  * for the root (no region/event segment) so the caller can fall back to the home view.
+ *
+ * Unlike `resolveStack`, this has no `RESERVED_SLUGS` carve-out — `resolvePath('/search')`
+ * resolves to a (non-existent) region slug `'search'`, not the search view. That's fine
+ * today because every caller passes an already-derived entity path (e.g. `useEventFromPath`'s
+ * `eventPath`), never a bare top-level route — but don't reuse this on a raw pathname that
+ * might be `/search`, `/register`, or `/share` without adding the same guard.
  */
 export const resolvePath = (pathname: string): ResolvedPath => {
   const segments = pathname.split('/').filter(Boolean)
