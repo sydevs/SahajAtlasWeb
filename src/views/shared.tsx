@@ -1,15 +1,21 @@
 import type { FallbackProps } from 'react-error-boundary'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
+import type { DependencyList } from 'react'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerContent } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerContent, DrawerFooter } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
+import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { UpArrowIcon } from '@/components/atoms/Icons'
+import { Toolbar } from '@/components/molecules/Toolbar'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
+import api from '@/config/api'
+import { resolvePath } from '@/lib/shape'
 
 // A back/close affordance that navigates to a parent route — how the desktop-left
 // drawers (which have no swipe-to-dismiss) go up the stack.
@@ -54,27 +60,73 @@ export function SearchField() {
   return <MapSearch onSelect={handleSelect} />
 }
 
+// Every View frames the map only when it's the top of the stack, via one of
+// these `if (isTop) frame...()` effects. Centralizing the shell here keeps the
+// six call sites to one line each and their deps arrays honest — `deps` is
+// spread into the effect's own array, so it's fine that its length varies
+// per view (it's fixed for any given call site across renders).
+export function useFrameOnTop(isTop: boolean, frame: () => void, deps: DependencyList) {
+  useEffect(() => {
+    if (isTop) frame()
+  }, [isTop, ...deps])
+}
+
+// Every View's drawer footer is the same Toolbar; a one-line shared component
+// so that isn't hand-repeated six times.
+export function ViewFooter() {
+  return (
+    <DrawerFooter>
+      <Toolbar />
+    </DrawerFooter>
+  )
+}
+
+// RegistrationView and ShareView both resolve an event from its route path and
+// suspense-fetch it — shared here so the resolvePath + queryKey convention stays
+// in one place. (EventView, one level up in the stack, already fetches the same
+// event; TanStack Query's `['event', id]` cache serves this call from that
+// fetch, not a fresh network round trip.)
+export function useEventFromPath(eventPath: string) {
+  const resolved = resolvePath(eventPath)
+  const id = resolved?.kind === 'event' ? resolved.id : NaN
+
+  return useSuspenseQuery({
+    queryKey: ['event', id],
+    queryFn: () => api.getEvent(id),
+  })
+}
+
 // Suspense fallback for a view whose data is still loading — a drawer panel with a
-// spinner, so the drawer's chrome is present while its content resolves.
+// spinner, so the drawer's chrome is present while its content resolves. Mirrors
+// the top-level LoadingFallback (molecules/Fallbacks) so loading states look the
+// same everywhere.
 export function DrawerLoading({ ariaLabel }: { ariaLabel: string }) {
+  const { t } = useTranslation('common')
+
   return (
     <DrawerContent ariaLabel={ariaLabel}>
       <DrawerBody className="flex items-center justify-center py-16">
-        <Spinner />
+        <Spinner color="secondary" label={t('loading')} />
       </DrawerBody>
     </DrawerContent>
   )
 }
 
 // ErrorBoundary fallback for a view whose query failed — kept local to the drawer
-// so one failing view never blanks the whole stack.
+// so one failing view never blanks the whole stack. Mirrors the top-level
+// ErrorFallback (molecules/Fallbacks): an Alert, not hand-rolled error markup;
+// adds a retry action since resetErrorBoundary is only available at this level.
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
 
   return (
-    <DrawerContent ariaLabel="Error">
-      <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <p className="text-sm text-gray-11">{error?.message ?? t('error.generic')}</p>
+    <DrawerContent ariaLabel={t('error.generic')}>
+      <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
+        <Alert
+          className="max-w-xs"
+          color="danger"
+          description={error?.message ?? t('error.generic')}
+        />
         <Button variant="flat" onClick={resetErrorBoundary}>
           {t('error.retry')}
         </Button>

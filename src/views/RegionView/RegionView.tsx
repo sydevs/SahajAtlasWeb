@@ -1,16 +1,15 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 
-import { DrawerBody, DrawerContent, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventCard, List, RegionCard } from '@/components/molecules'
-import { Toolbar } from '@/components/molecules/Toolbar'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { BackButton } from '@/views/shared'
+import { BackButton, ViewFooter, useFrameOnTop } from '@/views/shared'
 
 // A region at any level (route `<region-path>`): one list of child regions then
 // child events (plain concatenation, no section headers). Frames the map to the
@@ -36,9 +35,7 @@ export function RegionView({
     queryFn: () => api.getRegion(slug),
   })
 
-  useEffect(() => {
-    if (isTop) frameRegion(region)
-  }, [isTop, region, frameRegion])
+  useFrameOnTop(isTop, () => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined
@@ -75,9 +72,7 @@ export function RegionView({
           ))}
         </List>
       </DrawerBody>
-      <DrawerFooter>
-        <Toolbar />
-      </DrawerFooter>
+      <ViewFooter />
       {children}
     </DrawerContent>
   )

@@ -1,16 +1,13 @@
-import { type ReactNode, useEffect } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerContent, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
-import { Toolbar } from '@/components/molecules/Toolbar'
-import api from '@/config/api'
 import { useMapController } from '@/hooks/use-map-controller'
-import { isOnline, resolvePath } from '@/lib/shape'
+import { isOnline } from '@/lib/shape'
 import { Event } from '@/types'
-import { BackButton } from '@/views/shared'
+import { BackButton, ViewFooter, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field).
 function enabledQuestions(event: Event): string[] {
@@ -40,17 +37,9 @@ export function RegistrationView({
   const navigate = useNavigate()
   const { frameEvent } = useMapController()
 
-  const resolved = resolvePath(eventPath)
-  const id = resolved?.kind === 'event' ? resolved.id : NaN
+  const { data: event } = useEventFromPath(eventPath)
 
-  const { data: event } = useSuspenseQuery({
-    queryKey: ['event', id],
-    queryFn: () => api.getEvent(id),
-  })
-
-  useEffect(() => {
-    if (isTop) frameEvent(event)
-  }, [isTop, event, frameEvent])
+  useFrameOnTop(isTop, () => frameEvent(event), [event, frameEvent])
 
   return (
     <DrawerContent ariaLabel={t('registration.register_now')}>
@@ -71,9 +60,7 @@ export function RegistrationView({
           onClose={() => navigate(parentPath)}
         />
       </DrawerBody>
-      <DrawerFooter>
-        <Toolbar />
-      </DrawerFooter>
+      <ViewFooter />
       {children}
     </DrawerContent>
   )

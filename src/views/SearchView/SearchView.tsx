@@ -1,13 +1,12 @@
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerContent, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
 import { DynamicEventsList } from '@/components/organisms'
-import { Toolbar } from '@/components/molecules/Toolbar'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { SearchField } from '@/views/shared'
+import { SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
 
 const parsePair = (value: string | null): [number, number] | undefined => {
   if (!value) return undefined
@@ -36,9 +35,7 @@ export function SearchView({ isTop, children }: { isTop: boolean; children?: Rea
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  useEffect(() => {
-    if (isTop) frameSearch({ bbox: bounds, center })
-  }, [isTop, frameSearch, searchParams])
+  useFrameOnTop(isTop, () => frameSearch({ bbox: bounds, center }), [frameSearch, searchParams])
 
   return (
     <DrawerContent ariaLabel={t('search')}>
@@ -48,9 +45,7 @@ export function SearchView({ isTop, children }: { isTop: boolean; children?: Rea
       <DrawerBody>
         <DynamicEventsList latitude={latitude} longitude={longitude} />
       </DrawerBody>
-      <DrawerFooter>
-        <Toolbar />
-      </DrawerFooter>
+      <ViewFooter />
       {children}
     </DrawerContent>
   )

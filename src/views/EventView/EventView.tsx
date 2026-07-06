@@ -1,14 +1,13 @@
 import { type ReactNode, Suspense, lazy, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerContent, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerContent } from '@/components/atoms/Drawer'
 import { EventMetadata } from '@/components/molecules'
-import { Toolbar } from '@/components/molecules/Toolbar'
 import { Spinner } from '@/components/atoms/Spinner'
 import api from '@/config/api'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { BackButton } from '@/views/shared'
+import { BackButton, ViewFooter, useFrameOnTop } from '@/views/shared'
 
 // EventDetails pulls in DOMPurify + the detail cards; keep it out of the main
 // chunk (as pages/event.tsx used to) by lazy-loading it here.
@@ -40,9 +39,7 @@ export function EventView({
     queryFn: () => api.getEvent(id),
   })
 
-  useEffect(() => {
-    if (isTop) frameEvent(event)
-  }, [isTop, event, frameEvent])
+  useFrameOnTop(isTop, () => frameEvent(event), [event, frameEvent])
 
   useEffect(() => () => clearSelection(), [clearSelection])
 
@@ -57,9 +54,7 @@ export function EventView({
           <EventDetails basePath={basePath} event={event} />
         </Suspense>
       </DrawerBody>
-      <DrawerFooter>
-        <Toolbar />
-      </DrawerFooter>
+      <ViewFooter />
       {children}
     </DrawerContent>
   )

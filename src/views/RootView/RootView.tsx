@@ -1,19 +1,18 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerContent, DrawerFooter, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
 import { List, RegionCard } from '@/components/molecules'
-import { Toolbar } from '@/components/molecules/Toolbar'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { SearchField } from '@/views/shared'
+import { SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
 
 // The base view (route `/`): the global country/region list, with the geocoder
 // in its header. Always the base of the drawer stack (non-dismissable).
@@ -30,9 +29,7 @@ export function RootView({ isTop, children }: { isTop: boolean; children?: React
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
   // The world view frames the map when this is the top of the stack.
-  useEffect(() => {
-    if (isTop) frameSearch({})
-  }, [isTop, frameSearch])
+  useFrameOnTop(isTop, () => frameSearch({}), [frameSearch])
 
   const homeUrl = client.region && typeof client.region === 'object' ? client.region.webUrl : null
   const canonicalUrl = validateWebUrl(homeUrl)
@@ -70,9 +67,7 @@ export function RootView({ isTop, children }: { isTop: boolean; children?: React
             ))}
         </List>
       </DrawerBody>
-      <DrawerFooter>
-        <Toolbar />
-      </DrawerFooter>
+      <ViewFooter />
       {children}
     </DrawerContent>
   )

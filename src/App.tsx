@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 
-import { type RefObject, Suspense, useEffect, useRef } from 'react'
+import { type RefObject, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
@@ -105,11 +105,14 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
 
   // Analytics: one pageview per real navigation. Dedupe repeats so a `replace` or a
   // map-click landing on the same URL isn't double-counted.
-  const primaryDomain =
-    client.allowedDomains
-      ?.split('\n')
-      .map((domain) => domain.trim())
-      .find(Boolean) ?? ''
+  const primaryDomain = useMemo(
+    () =>
+      client.allowedDomains
+        ?.split('\n')
+        .map((domain) => domain.trim())
+        .find(Boolean) ?? '',
+    [client.allowedDomains],
+  )
   const fathomEnabled =
     !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
   const lastTracked = useRef('')

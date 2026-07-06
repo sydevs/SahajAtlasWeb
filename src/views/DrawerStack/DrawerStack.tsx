@@ -1,4 +1,4 @@
-import { type ReactNode, Suspense, useState } from 'react'
+import { type ReactNode, Suspense, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { ErrorBoundary } from 'react-error-boundary'
 
@@ -77,7 +77,7 @@ export function DrawerStack() {
   const direction = isDesktop ? 'left' : 'bottom'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
-  const entries = resolveStack(location.pathname)
+  const entries = useMemo(() => resolveStack(location.pathname), [location.pathname])
 
   // Build drawers deepest-first; each entry is the previous one's child. With a
   // map every entry is nested inside the RootView base drawer; map-less, the first
