@@ -131,7 +131,9 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
       </Helmet>
       {hasMap ? (
         <MapProvider>
-          <div className="fixed inset-0">
+          {/* Inline fixed/inset so the map always fills the viewport behind the
+              drawers — independent of Tailwind viewport-unit utility generation. */}
+          <div style={{ position: 'fixed', inset: 0 }}>
             <Mapbox />
           </div>
           <RealMapControllerProvider>
