@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { Drawer } from '@/components/atoms/Drawer'
-import { useBreakpoint } from '@/config/responsive'
+import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { type StackEntry, resolveStack } from '@/lib/shape'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/shared'
@@ -72,9 +72,9 @@ function EntryView({
 export function DrawerStack() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isMd } = useBreakpoint('md')
+  const isDesktop = useIsDesktop()
   const { hasMap, standalone } = useWidgetMode()
-  const direction = isMd ? 'left' : 'bottom'
+  const direction = isDesktop ? 'left' : 'bottom'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
   const entries = resolveStack(location.pathname)

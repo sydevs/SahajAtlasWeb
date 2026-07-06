@@ -1,4 +1,9 @@
 {
+  "back": "Back",
+  "error": {
+    "generic": "Something went wrong.",
+    "retry": "Try again"
+  },
   "events": "events",
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",
@@ -9,6 +14,7 @@
     "description_other": "%{count} free meditation classes in %{location}",
     "title": "Free Meditation Classes in %{location}"
   },
+  "search": "Search",
   "show_online_classes": "Show online classes",
   "showing_online_classes": "Showing online classes",
   "venues": {

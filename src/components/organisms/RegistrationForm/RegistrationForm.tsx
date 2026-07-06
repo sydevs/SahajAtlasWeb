@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
@@ -19,6 +19,7 @@ import { Checkbox } from '@/components/atoms/Checkbox'
 import { Select, SelectItem } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
+import { useRegistrationDraft } from '@/config/store'
 import { Registration, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 
@@ -54,19 +55,40 @@ export function RegistrationForm({
   const [submitted, setSubmitted] = useState(false)
   const { t } = useTranslation('events')
 
+  // Restore any in-progress values for this event once, so a drawer remount (e.g.
+  // the md-crossing direction remount) can't drop a half-filled form.
+  const [defaultValues] = useState<Partial<Registration>>(() => {
+    const draft = useRegistrationDraft.getState()
+
+    return draft.eventId === eventId ? (draft.values as Partial<Registration>) : {}
+  })
+
   const {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<Registration>({ resolver: zodResolver(RegistrationSchema) })
+  } = useForm<Registration>({ resolver: zodResolver(RegistrationSchema), defaultValues })
+
+  // Persist edits to the hoisted draft (via getState() so this never re-renders).
+  useEffect(() => {
+    const sub = watch((values) =>
+      useRegistrationDraft.getState().setDraft(eventId, values as Record<string, unknown>),
+    )
+
+    return () => sub.unsubscribe()
+  }, [watch, eventId])
 
   const mutation = useMutation({
     scope: { id: `registration-for-${eventId}` },
     mutationFn: (newRegistration: Registration) => {
       return api.createRegistration(eventId, newRegistration)
     },
-    onSuccess: () => setSubmitted(true),
+    onSuccess: () => {
+      setSubmitted(true)
+      useRegistrationDraft.getState().clearDraft()
+    },
   })
 
   return (
