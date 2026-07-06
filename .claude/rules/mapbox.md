@@ -37,8 +37,16 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - `useViewState` (`src/config/store.ts`) holds `zoom/latitude/longitude/selection/boundary`.
   Read it with a **`useShallow` selector** (as `Map.tsx` does) so the map only
   re-renders when the fields it uses change.
-- Drive imperative camera moves through `useMapbox().moveMap(...)` / padding
-  helpers — don't call `map.flyTo` directly from components.
+- **Views never touch the map directly.** Camera framing goes through the
+  `MapController` seam (`src/hooks/use-map-controller.tsx`): views call
+  `useMapController().frameRegion/frameEvent/frameSearch/clearSelection`
+  unconditionally. The real provider drives `useMapbox().moveMap/fitBounds` + the
+  `useViewState` selection/boundary; the **no-op** provider (when `map=false`)
+  does nothing — so one place knows whether a map exists and no view branches on it.
+- `useMapbox().moveMap(...)`/`fitBounds(...)` are the low-level camera ops behind
+  the controller — don't call `map.flyTo` directly from components. Map padding is
+  set from the known drawer width per breakpoint by the MapController (no DOM
+  measurement of the panel).
 
 ## Geo helpers
 
