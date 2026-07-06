@@ -1,9 +1,10 @@
-import { type ReactNode, Suspense } from 'react'
+import { type ReactNode, Suspense, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { Drawer } from '@/components/atoms/Drawer'
 import { useBreakpoint } from '@/config/responsive'
+import { useWidgetMode } from '@/config/mode'
 import { type StackEntry, resolveStack } from '@/lib/shape'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { RootView } from '@/views/RootView/RootView'
@@ -59,21 +60,28 @@ function EntryView({
 }
 
 // The whole drawer navigation, derived purely from the pathname: RootView is the
-// non-dismissable base, and `resolveStack` gives one nested drawer per ancestor.
-// There is no drawer-stack store and no PUSH/POP interception — dismissing a
-// drawer (swipe/Esc/back) is just `navigate(parentPath)`, so the router's history
-// is the stack. Direction is left at ≥md, bottom on mobile; the wrapper remounts
-// on the crossing (vaul `direction` is not hot-swappable) but content is
-// route-driven so nothing is lost.
+// base, and `resolveStack` gives one drawer per ancestor. There is no drawer-stack
+// store and no PUSH/POP interception — dismissing a drawer (swipe/Esc/back) is just
+// `navigate(parentPath)`, so the router's history is the stack. Direction is left
+// at ≥md, bottom on mobile; the wrapper remounts on the crossing (vaul `direction`
+// is not hot-swappable) but content is route-driven so nothing is lost.
+//
+// With a map, RootView is the non-dismissable base drawer and every ancestor is a
+// nested drawer over the map. Map-less, RootView renders inline (filling the widget
+// container) and the ancestors are `contained` drawers portaled into that container.
 export function DrawerStack() {
   const location = useLocation()
   const navigate = useNavigate()
   const { isMd } = useBreakpoint('md')
+  const { hasMap, standalone } = useWidgetMode()
   const direction = isMd ? 'left' : 'bottom'
+  const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
   const entries = resolveStack(location.pathname)
 
-  // Build nested drawers deepest-first; each entry is the previous one's child.
+  // Build drawers deepest-first; each entry is the previous one's child. With a
+  // map every entry is nested inside the RootView base drawer; map-less, the first
+  // entry is a root drawer over the inline base and the rest nest inside it.
   const renderEntry = (index: number): ReactNode => {
     if (index >= entries.length) return null
 
@@ -84,9 +92,11 @@ export function DrawerStack() {
     return (
       <Drawer
         key={entry.path}
-        nested
         open
+        contained={!hasMap}
+        container={hasMap ? undefined : container}
         direction={direction}
+        nested={hasMap || index > 0}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) navigate(parentPath)
         }}
@@ -102,6 +112,29 @@ export function DrawerStack() {
     )
   }
 
+  const rootView = (
+    <Suspense fallback={<DrawerLoading ariaLabel="Loading" />}>
+      <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+        <RootView isTop={entries.length === 0}>{renderEntry(0)}</RootView>
+      </ErrorBoundary>
+    </Suspense>
+  )
+
+  // Map-less: inline base fills the widget container; drawers portal into it.
+  // Standalone owns the viewport (100dvh); embedded fills the host's slot (100%),
+  // so we never assume viewport height inside a host container.
+  if (!hasMap) {
+    return (
+      <div
+        ref={setContainer}
+        className="relative w-full overflow-hidden bg-background"
+        style={{ height: standalone ? '100dvh' : '100%' }}
+      >
+        {rootView}
+      </div>
+    )
+  }
+
   return (
     <Drawer
       key={direction}
@@ -110,11 +143,7 @@ export function DrawerStack() {
       dismissible={false}
       snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
     >
-      <Suspense fallback={<DrawerLoading ariaLabel="Loading" />}>
-        <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
-          <RootView isTop={entries.length === 0}>{renderEntry(0)}</RootView>
-        </ErrorBoundary>
-      </Suspense>
+      {rootView}
     </Drawer>
   )
 }

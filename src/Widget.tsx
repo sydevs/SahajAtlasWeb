@@ -17,6 +17,9 @@ type WidgetProps = {
   apiKey: string
   locale?: string
   basePath?: string
+  // Render the map canvas? Default true; `map="false"` (or "0") renders content-
+  // only (no Mapbox, no token needed) — the mode-agnostic <sahaj-atlas> element.
+  map?: string
   // Per-embed brand palette (hex). Each role overrides the client record's
   // color; omitted roles fall back to the record, then the built-in default.
   primaryColor?: string
@@ -27,6 +30,7 @@ type WidgetProps = {
 export default function Widget({
   apiKey,
   locale,
+  map,
   primaryColor,
   secondaryColor,
   backgroundColor,
@@ -43,6 +47,8 @@ export default function Widget({
     window.location.hash = HASH_BASE
   }
 
+  const hasMap = map !== 'false' && map !== '0'
+
   // The widget scopes its theme to this wrapper so it never mutates the host
   // page's <html>. Set the initial light/dark class synchronously to avoid a
   // flash; BrandTheme adopts the wrapper as the theme root + paints the brand
@@ -58,6 +64,7 @@ export default function Widget({
           apiKey={apiKey}
           brand={{ primary: primaryColor, secondary: secondaryColor, background: backgroundColor }}
           defaultLocale={locale}
+          hasMap={hasMap}
           themeRootRef={themeRootRef}
         />
       </div>
@@ -66,11 +73,12 @@ export default function Widget({
 }
 
 customElements.define(
-  'syatlas-map',
+  'sahaj-atlas',
   r2wc(Widget, {
     props: {
       apiKey: 'string',
       locale: 'string',
+      map: 'string',
       primaryColor: 'string',
       secondaryColor: 'string',
       backgroundColor: 'string',

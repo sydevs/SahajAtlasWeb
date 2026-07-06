@@ -12,7 +12,10 @@ import { overlayContainer } from '@/lib/overlay'
 //
 // The DrawerStack renders one <Drawer> per resolved URL ancestor: the base as a
 // root drawer, deeper entries as `nested`. Direction is left at ≥md, bottom on
-// mobile; snapPoints are the mobile RootView peek/half/full.
+// mobile; snapPoints are the mobile RootView peek/half/full. In map-less mode the
+// base view renders *inline* (a DrawerContent with no enclosing <Drawer>) and the
+// deeper drawers are `contained` — absolute within the widget container, not fixed
+// to the viewport.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
@@ -20,6 +23,8 @@ const drawer = tv({
   slots: {
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
+    // The map-less base view: plain content filling the widget container.
+    inline: 'flex h-full w-full flex-col overflow-y-auto bg-background text-foreground',
     header: 'flex shrink-0 items-center gap-2 px-4 pb-2 pt-4',
     body: 'min-h-0 flex-1 overflow-y-auto px-4 py-2',
     footer: 'mt-auto shrink-0 border-t border-gray-4',
@@ -33,15 +38,31 @@ const drawer = tv({
       bottom: { content: 'inset-x-0 bottom-0 max-h-[97%] rounded-t-2xl' },
       top: { content: 'inset-x-0 top-0 max-h-[97%] rounded-b-2xl' },
     },
+    // Map-less: position absolutely within the widget container instead of fixed to
+    // the viewport, so the drawer covers only the content area.
+    contained: {
+      true: { content: '!absolute' },
+      false: {},
+    },
   },
-  defaultVariants: { direction: 'bottom' },
+  defaultVariants: { direction: 'bottom', contained: false },
 })
 
 type DrawerSlots = ReturnType<typeof drawer>
 
-const DrawerContext = createContext<{ slots: DrawerSlots; direction: DrawerDirection }>({
+type DrawerCtx = {
+  slots: DrawerSlots
+  direction: DrawerDirection
+  // No enclosing <Drawer> → DrawerContent renders inline (the map-less base view).
+  inline: boolean
+  // Portal target for a real drawer (map-less passes the widget container).
+  container?: HTMLElement | null
+}
+
+const DrawerContext = createContext<DrawerCtx>({
   slots: drawer({ direction: 'bottom' }),
   direction: 'bottom',
+  inline: true,
 })
 
 const useDrawerSlots = () => useContext(DrawerContext)
@@ -60,6 +81,8 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   snapPoints?: (number | string)[]
   activeSnapPoint?: number | string | null
   setActiveSnapPoint?: (snapPoint: number | string | null) => void
+  /** Portal target (map-less passes the widget container; default is the theme root). */
+  container?: HTMLElement | null
   children: ReactNode
 }
 
@@ -71,12 +94,14 @@ export function Drawer({
   modal = false,
   dismissible = true,
   nested = false,
+  contained = false,
   snapPoints,
   activeSnapPoint,
   setActiveSnapPoint,
+  container,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction })
+  const slots = drawer({ direction, contained })
 
   // Pass snap props unconditionally (undefined = no snap points) so the
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly, and render
@@ -94,7 +119,9 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom' }}>
+    <DrawerContext.Provider
+      value={{ slots, direction: direction ?? 'bottom', inline: false, container }}
+    >
       {nested ? <Vaul.NestedRoot {...rootProps} /> : <Vaul.Root {...rootProps} />}
     </DrawerContext.Provider>
   )
@@ -105,21 +132,19 @@ export type DrawerContentProps = {
   ariaLabel: string
   children: ReactNode
   className?: string
-  /** Portal target; defaults to the themed widget root (`overlayContainer()`). */
-  container?: HTMLElement | null
   /** Show the drag handle. Defaults to true for bottom sheets only. */
   handle?: boolean
 }
 
-/** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
-export function DrawerContent({
-  ariaLabel,
-  children,
-  className,
-  container,
-  handle,
-}: DrawerContentProps) {
-  const { slots, direction } = useDrawerSlots()
+/** The portaled, positioned drawer panel — or, with no enclosing <Drawer>, plain
+ *  inline content (the map-less base view). Compose Header/Body/Footer inside. */
+export function DrawerContent({ ariaLabel, children, className, handle }: DrawerContentProps) {
+  const { slots, direction, inline, container } = useDrawerSlots()
+
+  if (inline) {
+    return <div className={slots.inline({ className })}>{children}</div>
+  }
+
   const showHandle = handle ?? direction === 'bottom'
   // `undefined` = use the default themed root; an explicit `null` opts out.
   const target = container === undefined ? overlayContainer() : container
