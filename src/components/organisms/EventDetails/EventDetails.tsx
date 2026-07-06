@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router'
 import createDOMPurify from 'dompurify'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -5,10 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { EventContactDetails, EventTimingDetails, EventLocationDetails } from './details'
 
 import { EventSoonChip } from '@/components/molecules/EventSoon'
-import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
-import { ShareContent } from '@/components/molecules/ShareContent'
-import { Modal, ModalHeader, ModalBody } from '@/components/atoms/Modal'
 import { Button } from '@/components/atoms/Button'
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { useLocale } from '@/hooks/use-locale'
@@ -18,22 +16,20 @@ import { Chip } from '@/components/atoms/Chip'
 
 const DOMPurify = createDOMPurify(window)
 
-// The registration questions enabled on this event (each `true` boolean → a field).
-function enabledQuestions(event: Event): string[] {
-  const questions = event.registrationQuestions
-
-  if (!questions) return []
-
-  return Object.entries(questions)
-    .filter(([, enabled]) => enabled)
-    .map(([key]) => key)
-}
-
 // The registration call-to-action. External events link straight out; native
-// events (with at least one upcoming date) open the RegistrationForm in a Modal.
-// EventView owns this decision so RegistrationForm can stay a config-driven form.
-function RegisterAction({ event, className }: { event: Event; className?: string }) {
+// events (with at least one upcoming date) open the RegistrationView drawer at
+// `${basePath}/register` — registration is a routed drawer now, not a modal.
+function RegisterAction({
+  event,
+  basePath,
+  className,
+}: {
+  event: Event
+  basePath: string
+  className?: string
+}) {
   const { t } = useTranslation('events')
+  const navigate = useNavigate()
 
   if (event.registrationMode === 'external') {
     if (!event.externalRegistrationUrl) return null
@@ -58,53 +54,45 @@ function RegisterAction({ event, className }: { event: Event; className?: string
   if (upcomingDates.length === 0) return null
 
   return (
-    <Modal
-      backdrop="blur"
-      placement="bottom"
-      trigger={
-        <Button className={className} color="primary" variant="flat">
-          <span className="font-semibold tracking-wider">{t('registration.register_now')}</span>
-        </Button>
-      }
+    <Button
+      className={className}
+      color="primary"
+      variant="flat"
+      onClick={() => navigate(`${basePath}/register`)}
     >
-      <RegistrationForm
-        eventId={event.id}
-        eventTitle={event.title}
-        eventUrl={event.webUrl ?? ''}
-        isOnline={isOnline(event)}
-        questions={enabledQuestions(event)}
-        upcomingDates={upcomingDates}
-      />
-    </Modal>
+      <span className="font-semibold tracking-wider">{t('registration.register_now')}</span>
+    </Button>
   )
 }
 
-// The share call-to-action: a trigger that opens the "invite a friend" dialog
-// wrapping the shared ShareContent block.
-function ShareAction({ event, className }: { event: Event; className?: string }) {
+// The share call-to-action: opens the ShareView drawer at `${basePath}/share`.
+function ShareAction({ basePath, className }: { basePath: string; className?: string }) {
   const { t } = useTranslation('events')
+  const navigate = useNavigate()
 
   return (
-    <Modal
-      trigger={
-        <Button className={className} color="primary" variant="faded">
-          <span className="font-semibold tracking-wider">{t('details.share')}</span>
-        </Button>
-      }
+    <Button
+      className={className}
+      color="primary"
+      variant="faded"
+      onClick={() => navigate(`${basePath}/share`)}
     >
-      <ModalHeader className="flex flex-col gap-1">{t('registration.invite_friend')}</ModalHeader>
-      <ModalBody className="pb-6">
-        <ShareContent label={event.title} url={event.webUrl ?? ''} />
-      </ModalBody>
-    </Modal>
+      <span className="font-semibold tracking-wider">{t('details.share')}</span>
+    </Button>
   )
 }
 
-export type EventViewProps = {
+export type EventDetailsProps = {
   event: Event
+  /** The event's current route; register/share drawers open at `${basePath}/register|share`. */
+  basePath: string
 }
 
-export function EventView({ event }: EventViewProps) {
+// The reusable event content body — carousel, description, and the
+// timing/contact/location cards — rendered inside the EventView drawer (the
+// drawer supplies the chrome). Register/share are routed drawers, reached via the
+// CTAs here.
+export function EventDetails({ event, basePath }: EventDetailsProps) {
   const { t } = useTranslation('events')
   const { locale, languageNames } = useLocale()
 
@@ -127,14 +115,14 @@ export function EventView({ event }: EventViewProps) {
 
   return (
     <>
-      <div className="flex w-full justify-center items-center">
+      <div className="flex w-full items-center justify-center">
         <ImageCarousel slides={slides} />
       </div>
-      <div className="flex flex-col gap-3 px-8 pt-3 pb-12">
+      <div className="flex flex-col gap-3 px-8 pb-12 pt-3">
         <h1
           className={`
           text-[24px] font-semibold leading-7 tracking-wide
-          ${event.images.length > 0 ? '' : 'pl-5 mt-3'}
+          ${event.images.length > 0 ? '' : 'mt-3 pl-5'}
         `}
         >
           {event.title}
@@ -169,15 +157,15 @@ export function EventView({ event }: EventViewProps) {
                 ADD_ATTR: ['target'],
               }),
             }}
-            className="flex flex-col gap-2 my-2 colored-links normal-nums"
+            className="colored-links normal-nums my-2 flex flex-col gap-2"
           />
         )}
         <div className="flex-center-x gap-1">
-          <RegisterAction className="flex-grow-[3]" event={event} />
-          <ShareAction className="flex-grow" event={event} />
+          <RegisterAction basePath={basePath} className="flex-grow-[3]" event={event} />
+          <ShareAction basePath={basePath} className="flex-grow" />
         </div>
         {/* The host-contact card's position and emphasis depend on whether the
-            event has an upcoming occurrence, so EventView owns the ordering:
+            event has an upcoming occurrence, so this owns the ordering:
             contact-highlighted-first when there's no upcoming date, else
             timing → location → contact. */}
         <div className="mt-5 flex flex-col gap-4">
