@@ -21,6 +21,16 @@ export type { CheckboxProps } from './Checkbox'
 export { Chip } from './Chip'
 export type { ChipProps } from './Chip'
 
+export {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
+  DrawerFooter,
+  DrawerClose,
+} from './Drawer'
+export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
+
 export { Dropdown, DropdownItem } from './Dropdown'
 export type { DropdownProps, DropdownItemProps } from './Dropdown'
 
