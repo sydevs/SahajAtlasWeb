@@ -4,18 +4,17 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { overlayContainer } from '@/lib/overlay'
 
-// A drawer built on vaul (see AC-0 in issue #30). Mirrors the Modal atom: a
-// tailwind-variants slot set portaled into the themed widget root via
-// `overlayContainer()`. Non-modal by default so the map/content behind stays
-// interactive; the pinned `vaul@1.1.2` patch (patches/) forwards `modal` to Radix
-// so non-modal is *truly* non-modal (no background aria-hidden / focus trap).
+// A drawer built on vaul (see issue #30). A tailwind-variants slot set portaled
+// into the themed widget root via `overlayContainer()`. Non-modal by default so
+// the map/content behind stays interactive; the pinned `vaul@1.1.2` patch
+// (patches/) forwards `modal` to Radix so non-modal is *truly* non-modal (no
+// background aria-hidden / focus trap).
 //
-// The DrawerStack renders one <Drawer> per resolved URL ancestor: the base as a
-// root drawer, deeper entries as `nested`. Direction is left at ≥md, bottom on
-// mobile; snapPoints are the mobile RootView peek/half/full. In map-less mode the
-// base view renders *inline* (a DrawerContent with no enclosing <Drawer>) and the
-// deeper drawers are `contained` — absolute within the widget container, not fixed
-// to the viewport.
+// DrawerStack renders a SINGLE drawer holding the active (top) view; parent views
+// are simulated as static peek cards behind it, not real nested drawers. Direction
+// is left at ≥md, bottom on mobile; `snapPoints` are the mobile peek/third/full
+// ladder. Map-less, the drawer is `contained` + `full` — absolute and filling the
+// widget container rather than fixed to the viewport.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
@@ -23,21 +22,27 @@ const drawer = tv({
   slots: {
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
-    // The map-less base view: plain content filling the widget container.
+    // Fallback for a DrawerContent with no enclosing <Drawer> (not used by the
+    // stack today, which always wraps a real Drawer).
     inline: 'flex h-full w-full flex-col overflow-y-auto bg-background text-foreground',
     header: 'flex shrink-0 items-center gap-2 px-4 pb-2 pt-4',
     body: 'min-h-0 flex-1 overflow-y-auto',
     footer: 'mt-auto shrink-0 border-t border-gray-4',
-    // Theme the vaul drag handle (its vendored CSS hardcodes a light grey) and give it
-    // breathing room from the sheet's rounded top edge and the header below.
-    handle: '!bg-gray-7 my-3',
+    // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it
+    // breathing room from the sheet's rounded top edge and the header below, and a
+    // grab cursor so the drag affordance reads on pointer devices.
+    handle: '!bg-gray-7 my-3 cursor-grab active:cursor-grabbing',
   },
   variants: {
     direction: {
       left: { content: 'inset-y-0 left-0 h-full w-[var(--sy-drawer-w,22rem)] max-w-[90vw]' },
       right: { content: 'inset-y-0 right-0 h-full w-[var(--sy-drawer-w,22rem)] max-w-[90vw]' },
-      bottom: { content: 'inset-x-0 bottom-0 max-h-[97%] rounded-t-2xl' },
-      top: { content: 'inset-x-0 top-0 max-h-[97%] rounded-b-2xl' },
+      // Snap-point sheets must be full viewport height: vaul computes its snap
+      // translate from the window height, so a content-sized sheet gets pushed
+      // off-screen. The 3dvh bottom padding keeps the footer above the fold at the
+      // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
+      bottom: { content: 'inset-x-0 bottom-0 h-[100dvh] rounded-t-2xl pb-[3dvh]' },
+      top: { content: 'inset-x-0 top-0 h-[100dvh] rounded-b-2xl' },
     },
     // Map-less: position absolutely within the widget container instead of fixed to
     // the viewport, so the drawer covers only the content area.
@@ -45,8 +50,14 @@ const drawer = tv({
       true: { content: '!absolute' },
       false: {},
     },
+    // Fill the container instead of anchoring to an edge — the map-less single panel
+    // (still a real vaul root, so the header close button keeps working).
+    full: {
+      true: { content: '!inset-0 !h-full !w-full !max-h-none !max-w-none !rounded-none !pb-0' },
+      false: {},
+    },
   },
-  defaultVariants: { direction: 'bottom', contained: false },
+  defaultVariants: { direction: 'bottom', contained: false, full: false },
 })
 
 type DrawerSlots = ReturnType<typeof drawer>
@@ -54,8 +65,11 @@ type DrawerSlots = ReturnType<typeof drawer>
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // No enclosing <Drawer> → DrawerContent renders inline (the map-less base view).
+  // No enclosing <Drawer> → DrawerContent renders inline (a safety fallback; every
+  // current call site wraps a real Drawer).
   inline: boolean
+  // A filling contained drawer (map-less) hides the drag handle — nothing to drag.
+  full: boolean
   // Portal target for a real drawer (map-less passes the widget container).
   container?: HTMLElement | null
 }
@@ -64,6 +78,7 @@ const DrawerContext = createContext<DrawerCtx>({
   slots: drawer({ direction: 'bottom' }),
   direction: 'bottom',
   inline: true,
+  full: false,
 })
 
 const useDrawerSlots = () => useContext(DrawerContext)
@@ -74,11 +89,9 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   onOpenChange?: (open: boolean) => void
   /** Non-modal by default — the map/content behind stays interactive. */
   modal?: boolean
-  /** When false the drawer can't be closed by swipe/Esc/outside (the RootView). */
+  /** When false the drawer can't be closed by swipe/Esc/outside (map-less root). */
   dismissible?: boolean
-  /** Render as a stacked child of a parent Drawer (vaul `NestedRoot`). */
-  nested?: boolean
-  /** Mobile snap points, e.g. `['8rem', 0.5, 0.97]`. Only the RootView uses them. */
+  /** Mobile snap points, e.g. `['96px', '336px', 0.97]`. */
   snapPoints?: (number | string)[]
   activeSnapPoint?: number | string | null
   setActiveSnapPoint?: (snapPoint: number | string | null) => void
@@ -94,19 +107,18 @@ export function Drawer({
   direction = 'bottom',
   modal = false,
   dismissible = true,
-  nested = false,
   contained = false,
+  full = false,
   snapPoints,
   activeSnapPoint,
   setActiveSnapPoint,
   container,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction, contained })
+  const slots = drawer({ direction, contained, full })
 
   // Pass snap props unconditionally (undefined = no snap points) so the
-  // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly, and render
-  // the root/nested variant explicitly rather than through a union-typed element.
+  // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
   const rootProps = {
     direction,
     dismissible,
@@ -121,9 +133,9 @@ export function Drawer({
 
   return (
     <DrawerContext.Provider
-      value={{ slots, direction: direction ?? 'bottom', inline: false, container }}
+      value={{ slots, direction: direction ?? 'bottom', inline: false, full, container }}
     >
-      {nested ? <Vaul.NestedRoot {...rootProps} /> : <Vaul.Root {...rootProps} />}
+      <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
 }
@@ -133,20 +145,20 @@ export type DrawerContentProps = {
   ariaLabel: string
   children: ReactNode
   className?: string
-  /** Show the drag handle. Defaults to true for bottom sheets only. */
+  /** Show the drag handle. Defaults to true for bottom sheets (never when full). */
   handle?: boolean
 }
 
 /** The portaled, positioned drawer panel — or, with no enclosing <Drawer>, plain
- *  inline content (the map-less base view). Compose Header/Body/Footer inside. */
+ *  inline content (a fallback). Compose Header/Body/Footer inside. */
 export function DrawerContent({ ariaLabel, children, className, handle }: DrawerContentProps) {
-  const { slots, direction, inline, container } = useDrawerSlots()
+  const { slots, direction, inline, full, container } = useDrawerSlots()
 
   if (inline) {
     return <div className={slots.inline({ className })}>{children}</div>
   }
 
-  const showHandle = handle ?? direction === 'bottom'
+  const showHandle = handle ?? (direction === 'bottom' && !full)
   // `undefined` = use the default themed root; an explicit `null` opts out.
   const target = container === undefined ? overlayContainer() : container
 

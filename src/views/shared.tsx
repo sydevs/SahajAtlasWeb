@@ -59,7 +59,11 @@ export function SearchField() {
     [navigate],
   )
 
-  return <MapSearch onSelect={handleSelect} />
+  return (
+    <div className="min-w-0 flex-1">
+      <MapSearch onSelect={handleSelect} />
+    </div>
+  )
 }
 
 // Every View frames the map only when it's the top of the stack, via one of

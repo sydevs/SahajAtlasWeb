@@ -7,7 +7,7 @@ import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useMapController } from '@/hooks/use-map-controller'
 import { isOnline } from '@/lib/shape'
 import { Event } from '@/types'
-import { CloseButton, ViewFooter, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field).
 function enabledQuestions(event: Event): string[] {
@@ -60,7 +60,6 @@ export function RegistrationView({
           onClose={() => navigate(parentPath)}
         />
       </DrawerBody>
-      <ViewFooter />
       {children}
     </DrawerContent>
   )

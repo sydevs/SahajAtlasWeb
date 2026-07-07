@@ -12,14 +12,15 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
+import { CloseButton, SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
 
-// The base view (route `/`): the global country/region list, with the geocoder
-// in its header. Always the base of the drawer stack (non-dismissable).
+// The base view (route `/`): the global country/region list, with the geocoder in
+// its header. It's the base of the drawer stack but, like every other view, is
+// dismissable — DrawerStack collapses to the floating reopen button when it closes.
 export function RootView({ isTop, children }: { isTop: boolean; children?: ReactNode }) {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
-  const { standalone } = useWidgetMode()
+  const { standalone, hasMap } = useWidgetMode()
   const { frameSearch } = useMapController()
 
   const { data: countries } = useSuspenseQuery({
@@ -45,6 +46,9 @@ export function RootView({ isTop, children }: { isTop: boolean; children?: React
       )}
       <DrawerHeader>
         <SearchField />
+        {/* Map-less has nothing to reveal behind the panel, so the base view can't
+            be collapsed — only offer the close control when there's a map. */}
+        {hasMap && <CloseButton />}
       </DrawerHeader>
       <DrawerBody>
         <List>

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
 import { ShareContent } from '@/components/molecules'
 import { useMapController } from '@/hooks/use-map-controller'
-import { CloseButton, ViewFooter, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // Share links for an event (route `<event-path>/share`). Reached by the event's
 // Share CTA and deep-linkable. Closing returns to the event.
@@ -35,7 +35,6 @@ export function ShareView({
       <DrawerBody className="p-4">
         <ShareContent label={event.title} url={event.webUrl ?? ''} />
       </DrawerBody>
-      <ViewFooter />
       {children}
     </DrawerContent>
   )

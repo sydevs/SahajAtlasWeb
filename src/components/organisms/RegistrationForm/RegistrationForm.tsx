@@ -92,7 +92,10 @@ export function RegistrationForm({
   })
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={handleSubmit((data) => mutation.mutate(data))}>
+    <form
+      className="mx-auto flex w-full max-w-md flex-col gap-3"
+      onSubmit={handleSubmit((data) => mutation.mutate(data))}
+    >
       {submitted ? (
         <div className="flex flex-col gap-3 text-center">
           <p>{t('registration.followup')}</p>
