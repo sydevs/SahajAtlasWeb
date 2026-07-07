@@ -152,9 +152,10 @@ const TAILWIND_REM_TO_PX = {
 module.exports = {
   content: [
     './index.html',
-    './src/layouts/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    // Scan all of src so a directory rename can't silently drop utilities the way the
+    // removed pages/ + layouts/ globs did — the drawer rework moved views into src/views/
+    // and any class used *only* in a view (e.g. the RootView flag sizing) went ungenerated.
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
     './.ladle/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {

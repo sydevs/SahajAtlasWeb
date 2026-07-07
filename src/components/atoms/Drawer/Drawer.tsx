@@ -26,10 +26,11 @@ const drawer = tv({
     // The map-less base view: plain content filling the widget container.
     inline: 'flex h-full w-full flex-col overflow-y-auto bg-background text-foreground',
     header: 'flex shrink-0 items-center gap-2 px-4 pb-2 pt-4',
-    body: 'min-h-0 flex-1 overflow-y-auto px-4 py-2',
+    body: 'min-h-0 flex-1 overflow-y-auto',
     footer: 'mt-auto shrink-0 border-t border-gray-4',
-    // Theme the vaul drag handle (its vendored CSS hardcodes a light grey).
-    handle: '!bg-gray-7',
+    // Theme the vaul drag handle (its vendored CSS hardcodes a light grey) and give it
+    // breathing room from the sheet's rounded top edge and the header below.
+    handle: '!bg-gray-7 my-3',
   },
   variants: {
     direction: {

@@ -7,31 +7,33 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerContent, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerClose, DrawerContent, DrawerFooter } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { UpArrowIcon } from '@/components/atoms/Icons'
+import { CloseIcon } from '@/components/atoms/Icons'
 import { Toolbar } from '@/components/molecules/Toolbar'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { resolvePath } from '@/lib/shape'
 
-// A back/close affordance that navigates to a parent route — how the desktop-left
-// drawers (which have no swipe-to-dismiss) go up the stack.
-export function BackButton({ to, className }: { to: string; className?: string }) {
-  const navigate = useNavigate()
+// The close affordance for the nested drawers. Wrapped in vaul's DrawerClose so
+// activating it closes this drawer; DrawerStack's onOpenChange then navigates to the
+// parent route — the same path a swipe-dismiss takes. Sits top-right, the conventional
+// drawer/dialog close position, replacing the old custom back button.
+export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')
 
   return (
-    <button
-      aria-label={t('back')}
-      className={`shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3 ${className ?? ''}`}
-      type="button"
-      onClick={() => navigate(to)}
-    >
-      <UpArrowIcon size={28} />
-    </button>
+    <DrawerClose>
+      <button
+        aria-label={t('close')}
+        className={`shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3 ${className ?? ''}`}
+        type="button"
+      >
+        <CloseIcon size={22} />
+      </button>
+    </DrawerClose>
   )
 }
 

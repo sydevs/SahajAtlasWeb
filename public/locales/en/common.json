@@ -1,5 +1,6 @@
 {
   "back": "Back",
+  "close": "Close",
   "error": {
     "generic": "Something went wrong.",
     "retry": "Try again"

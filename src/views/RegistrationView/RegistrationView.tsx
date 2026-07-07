@@ -7,7 +7,7 @@ import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useMapController } from '@/hooks/use-map-controller'
 import { isOnline } from '@/lib/shape'
 import { Event } from '@/types'
-import { BackButton, ViewFooter, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, ViewFooter, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field).
 function enabledQuestions(event: Event): string[] {
@@ -43,13 +43,13 @@ export function RegistrationView({
 
   return (
     <DrawerContent ariaLabel={t('registration.register_now')}>
-      <DrawerHeader>
-        <BackButton to={parentPath} />
-        <div className="truncate text-lg font-bold">
+      <DrawerHeader className="justify-between">
+        <div className="min-w-0 truncate text-lg font-bold">
           {t('registration.register_for', { event: event.title })}
         </div>
+        <CloseButton />
       </DrawerHeader>
-      <DrawerBody>
+      <DrawerBody className="p-4">
         <RegistrationForm
           eventId={event.id}
           eventTitle={event.title}

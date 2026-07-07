@@ -9,7 +9,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { BackButton, ViewFooter, useFrameOnTop } from '@/views/shared'
+import { CloseButton, ViewFooter, useFrameOnTop } from '@/views/shared'
 
 // A region at any level (route `<region-path>`): one list of child regions then
 // child events (plain concatenation, no section headers). Frames the map to the
@@ -17,12 +17,10 @@ import { BackButton, ViewFooter, useFrameOnTop } from '@/views/shared'
 // the URL stays where the user navigated; the canonical tag is standalone-only.
 export function RegionView({
   slug,
-  parentPath,
   isTop,
   children,
 }: {
   slug: string
-  parentPath: string
   isTop: boolean
   children?: ReactNode
 }) {
@@ -49,12 +47,12 @@ export function RegionView({
           <meta content={canonicalUrl} property="og:url" />
         </Helmet>
       )}
-      <DrawerHeader>
-        <BackButton to={parentPath} />
+      <DrawerHeader className="justify-between">
         <div className="min-w-0">
           <div className="truncate text-lg font-bold">{header}</div>
           {subheader && <div className="truncate text-sm text-gray-11">{subheader}</div>}
         </div>
+        <CloseButton />
       </DrawerHeader>
       <DrawerBody>
         <List>

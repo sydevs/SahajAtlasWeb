@@ -14,8 +14,11 @@ import { EventView } from '@/views/EventView/EventView'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
 import { ShareView } from '@/views/ShareView/ShareView'
 
-// The mobile RootView peek / half / full snap points.
-const SNAP_POINTS = ['8rem', '0.5', '0.97']
+// The mobile RootView peek / half / full snap points. vaul reads any string as a
+// px value (parseInt) and any number as a fraction of the sheet height — so the peek
+// is a px string and the half/full stops MUST be numbers, not '0.5'/'0.97' strings
+// (which vaul would parse as 0.5px / 0.97px).
+const SNAP_POINTS = ['128px', 0.5, 0.97]
 
 // Render the view for one stack entry, threading the nested child drawer through.
 function EntryView({
@@ -34,13 +37,13 @@ function EntryView({
       return <SearchView isTop={isTop}>{children}</SearchView>
     case 'region':
       return (
-        <RegionView isTop={isTop} parentPath={parentPath} slug={entry.slug}>
+        <RegionView isTop={isTop} slug={entry.slug}>
           {children}
         </RegionView>
       )
     case 'event':
       return (
-        <EventView basePath={entry.path} id={entry.id} isTop={isTop} parentPath={parentPath}>
+        <EventView basePath={entry.path} id={entry.id} isTop={isTop}>
           {children}
         </EventView>
       )
@@ -52,7 +55,7 @@ function EntryView({
       )
     case 'share':
       return (
-        <ShareView eventPath={entry.eventPath} isTop={isTop} parentPath={parentPath}>
+        <ShareView eventPath={entry.eventPath} isTop={isTop}>
           {children}
         </ShareView>
       )
