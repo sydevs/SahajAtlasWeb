@@ -12,15 +12,16 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { CloseButton, SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
+import { CollapseToggle, SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
 
-// The base view (route `/`): the global country/region list, with the geocoder in
-// its header. It's the base of the drawer stack but, like every other view, is
-// dismissable — DrawerStack collapses to the floating reopen button when it closes.
-export function RootView({ isTop, children }: { isTop: boolean; children?: ReactNode }) {
+// The base view (route `/`): the global country list, with the geocoder + a
+// stacked-list toggle in its header. Handled by DrawerStack exactly like every
+// other view — it's simply the one with no parent, so dismissing it collapses the
+// sheet to its peek (the search + list toggle) rather than popping up a level.
+export function CountriesView({ isTop, children }: { isTop: boolean; children?: ReactNode }) {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
-  const { standalone, hasMap } = useWidgetMode()
+  const { standalone } = useWidgetMode()
   const { frameSearch } = useMapController()
 
   const { data: countries } = useSuspenseQuery({
@@ -46,9 +47,7 @@ export function RootView({ isTop, children }: { isTop: boolean; children?: React
       )}
       <DrawerHeader>
         <SearchField />
-        {/* Map-less has nothing to reveal behind the panel, so the base view can't
-            be collapsed — only offer the close control when there's a map. */}
-        {hasMap && <CloseButton />}
+        <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
         <List>

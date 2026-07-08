@@ -2,7 +2,7 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList } from 'react'
 
-import { useCallback, useEffect } from 'react'
+import { createContext, useCallback, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -11,13 +11,13 @@ import { DrawerBody, DrawerClose, DrawerContent, DrawerFooter } from '@/componen
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { CloseIcon } from '@/components/atoms/Icons'
+import { CloseIcon, ListIcon } from '@/components/atoms/Icons'
 import { Toolbar } from '@/components/molecules/Toolbar'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { resolvePath } from '@/lib/shape'
 
-// The close affordance for the nested drawers. Wrapped in vaul's DrawerClose so
+// The close affordance for the drawer views. Wrapped in vaul's DrawerClose so
 // activating it closes this drawer; DrawerStack's onOpenChange then navigates to the
 // parent route — the same path a swipe-dismiss takes. Sits top-right, the conventional
 // drawer/dialog close position, replacing the old custom back button.
@@ -37,7 +37,43 @@ export function CloseButton({ className }: { className?: string }) {
   )
 }
 
-// The geocoder search field used by RootView/SearchView headers. Selecting a
+// Collapse/expand control for the sheet, provided by DrawerStack. CountriesView's
+// stacked-list toggle uses it to snap between the collapsed peek and the open list.
+// `canCollapse` is false where there's no snap ladder (desktop / map-less), so the
+// toggle renders nothing there.
+export type DrawerControl = { collapsed: boolean; canCollapse: boolean; toggle: () => void }
+
+export const DrawerControlContext = createContext<DrawerControl>({
+  collapsed: false,
+  canCollapse: false,
+  toggle: () => {},
+})
+
+export const useDrawerControl = () => useContext(DrawerControlContext)
+
+// The stacked-list toggle in CountriesView's header: expands the collapsed peek into
+// the country list, or collapses the open list back to the peek. Hidden where the
+// sheet can't collapse (desktop / map-less).
+export function CollapseToggle() {
+  const { t } = useTranslation('common')
+  const { collapsed, canCollapse, toggle } = useDrawerControl()
+
+  if (!canCollapse) return null
+
+  return (
+    <button
+      aria-expanded={!collapsed}
+      aria-label={t('explore')}
+      className="shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3"
+      type="button"
+      onClick={toggle}
+    >
+      <ListIcon size={24} />
+    </button>
+  )
+}
+
+// The geocoder search field used by CountriesView/SearchView headers. Selecting a
 // place navigates to /search with the geocoded bbox + centre (the SearchView
 // ranks events by distance from there). Carries the geocode→search behaviour that
 // used to live in the removed SearchBar.
@@ -68,9 +104,9 @@ export function SearchField() {
 
 // Every View frames the map only when it's the top of the stack, via one of
 // these `if (isTop) frame...()` effects. Centralizing the shell here keeps the
-// six call sites to one line each and their deps arrays honest — `deps` is
-// spread into the effect's own array, so it's fine that its length varies
-// per view (it's fixed for any given call site across renders).
+// call sites to one line each and their deps arrays honest — `deps` is spread into
+// the effect's own array, so it's fine that its length varies per view (it's fixed
+// for any given call site across renders).
 export function useFrameOnTop(isTop: boolean, frame: () => void, deps: DependencyList) {
   useEffect(() => {
     if (isTop) frame()
@@ -78,7 +114,7 @@ export function useFrameOnTop(isTop: boolean, frame: () => void, deps: Dependenc
 }
 
 // Every View's drawer footer is the same Toolbar; a one-line shared component
-// so that isn't hand-repeated six times.
+// so that isn't hand-repeated across the views.
 export function ViewFooter() {
   return (
     <DrawerFooter>

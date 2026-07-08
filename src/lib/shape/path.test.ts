@@ -83,7 +83,7 @@ describe('resolvePath', () => {
 })
 
 describe('resolveStack', () => {
-  it('is empty for the root (RootView is the implicit base)', () => {
+  it('is empty for the root (CountriesView is the implicit base)', () => {
     expect(resolveStack('/')).toEqual([])
     expect(resolveStack('')).toEqual([])
   })

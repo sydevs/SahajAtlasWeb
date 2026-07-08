@@ -83,7 +83,7 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
   const location = useLocation()
   const { locale } = useLocale()
 
-  // The configured home region opens as a RegionView over RootView on first load;
+  // The configured home region opens as a RegionView over CountriesView on first load;
   // Back returns to the global list. Runs once — re-visiting `/` shows the list,
   // not a redirect loop.
   const homePath =

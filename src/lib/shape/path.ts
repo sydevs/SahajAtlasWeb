@@ -101,7 +101,7 @@ export type StackEntry =
  * entry over that event. Each entry's `path` is the site-relative route to it
  * (encoded as in the address bar); region slugs are decoded for querying. Legacy
  * prefixes (`events`, `areas`, …) resolve no drawer, so `/events/507` is just the
- * event — matching resolvePath's terminal rule but for every ancestor. RootView is
+ * event — matching resolvePath's terminal rule but for every ancestor. CountriesView is
  * always the implicit base, so `/` yields an empty chain.
  */
 export const resolveStack = (pathname: string): StackEntry[] => {
