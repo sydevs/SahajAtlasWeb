@@ -18,9 +18,7 @@ export function ShareView({ eventPath, isTop }: { eventPath: string; isTop: bool
   return (
     <>
       <DrawerHeader className="justify-between">
-        <div className="min-w-0 truncate text-lg font-bold">
-          {t('details.share_event', { event: event.title })}
-        </div>
+        <div className="min-w-0 truncate text-lg font-bold">{t('details.share_meditation')}</div>
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

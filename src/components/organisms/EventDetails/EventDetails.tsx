@@ -157,7 +157,7 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
                 ADD_ATTR: ['target'],
               }),
             }}
-            className="colored-links normal-nums my-2 flex flex-col gap-2"
+            className="colored-links normal-nums my-2 flex flex-col gap-2 leading-snug"
           />
         )}
         <div className="flex-center-x gap-1">
