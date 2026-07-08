@@ -1,8 +1,7 @@
-import { type ReactNode } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 
-import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventCard, List, RegionCard } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
@@ -15,15 +14,7 @@ import { CloseButton, ViewFooter, useFrameOnTop } from '@/views/shared'
 // child events (plain concatenation, no section headers). Frames the map to the
 // region's bounds when it's the top of the stack. No canonicalization redirect —
 // the URL stays where the user navigated; the canonical tag is standalone-only.
-export function RegionView({
-  slug,
-  isTop,
-  children,
-}: {
-  slug: string
-  isTop: boolean
-  children?: ReactNode
-}) {
+export function RegionView({ slug, isTop }: { slug: string; isTop: boolean }) {
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -40,7 +31,7 @@ export function RegionView({
   const canonicalUrl = validateWebUrl(region.webUrl)
 
   return (
-    <DrawerContent ariaLabel={header}>
+    <>
       {standalone && canonicalUrl && (
         <Helmet>
           <link href={canonicalUrl} rel="canonical" />
@@ -71,7 +62,6 @@ export function RegionView({
         </List>
       </DrawerBody>
       <ViewFooter />
-      {children}
-    </DrawerContent>
+    </>
   )
 }

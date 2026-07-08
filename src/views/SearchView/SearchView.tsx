@@ -1,8 +1,7 @@
-import { type ReactNode, useRef } from 'react'
+import { useRef } from 'react'
 import { useSearchParams } from 'react-router'
-import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -20,8 +19,7 @@ const parsePair = (value: string | null): [number, number] | undefined => {
 // centre — never the live viewport, so the list doesn't re-sort on map pan. The
 // distance query key stays quantized inside DynamicEventsList. Online events are
 // always included.
-export function SearchView({ isTop, children }: { isTop: boolean; children?: ReactNode }) {
-  const { t } = useTranslation('common')
+export function SearchView({ isTop }: { isTop: boolean }) {
   const [searchParams] = useSearchParams()
   const { frameSearch } = useMapController()
 
@@ -38,7 +36,7 @@ export function SearchView({ isTop, children }: { isTop: boolean; children?: Rea
   useFrameOnTop(isTop, () => frameSearch({ bbox: bounds, center }), [frameSearch, searchParams])
 
   return (
-    <DrawerContent ariaLabel={t('search')}>
+    <>
       <DrawerHeader>
         <SearchField />
         <CloseButton />
@@ -47,7 +45,6 @@ export function SearchView({ isTop, children }: { isTop: boolean; children?: Rea
         <DynamicEventsList latitude={latitude} longitude={longitude} />
       </DrawerBody>
       <ViewFooter />
-      {children}
-    </DrawerContent>
+    </>
   )
 }

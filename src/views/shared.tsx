@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerClose, DrawerContent, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
@@ -17,39 +17,44 @@ import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { resolvePath } from '@/lib/shape'
 
-// The close affordance for the drawer views. Wrapped in vaul's DrawerClose so
-// activating it closes this drawer; DrawerStack's onOpenChange then navigates to the
-// parent route — the same path a swipe-dismiss takes. Sits top-right, the conventional
-// drawer/dialog close position, replacing the old custom back button.
-export function CloseButton({ className }: { className?: string }) {
-  const { t } = useTranslation('common')
-
-  return (
-    <DrawerClose>
-      <button
-        aria-label={t('close')}
-        className={`shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3 ${className ?? ''}`}
-        type="button"
-      >
-        <CloseIcon size={22} />
-      </button>
-    </DrawerClose>
-  )
+// Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
+// use it for their close / list-toggle buttons, so those act on the ONE persistent
+// vaul sheet directly (a plain navigation) rather than opening/closing a drawer —
+// which is what kept the sheet from sliding out and back in on every transition.
+export type DrawerControl = {
+  collapsed: boolean
+  canCollapse: boolean
+  toggle: () => void
+  dismiss: () => void
 }
-
-// Collapse/expand control for the sheet, provided by DrawerStack. CountriesView's
-// stacked-list toggle uses it to snap between the collapsed peek and the open list.
-// `canCollapse` is false where there's no snap ladder (desktop / map-less), so the
-// toggle renders nothing there.
-export type DrawerControl = { collapsed: boolean; canCollapse: boolean; toggle: () => void }
 
 export const DrawerControlContext = createContext<DrawerControl>({
   collapsed: false,
   canCollapse: false,
   toggle: () => {},
+  dismiss: () => {},
 })
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
+
+// The close affordance for the drawer views. Dismisses via the control seam (a
+// navigation to the parent) rather than vaul's Close — closing the real drawer made
+// the sheet animate shut and then re-open with the parent, which read as jarring.
+export function CloseButton({ className }: { className?: string }) {
+  const { t } = useTranslation('common')
+  const { dismiss } = useDrawerControl()
+
+  return (
+    <button
+      aria-label={t('close')}
+      className={`shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3 ${className ?? ''}`}
+      type="button"
+      onClick={dismiss}
+    >
+      <CloseIcon size={22} />
+    </button>
+  )
+}
 
 // The stacked-list toggle in CountriesView's header: expands the collapsed peek into
 // the country list, or collapses the open list back to the peek. Hidden where the
@@ -102,19 +107,19 @@ export function SearchField() {
   )
 }
 
-// Every View frames the map only when it's the top of the stack, via one of
-// these `if (isTop) frame...()` effects. Centralizing the shell here keeps the
-// call sites to one line each and their deps arrays honest — `deps` is spread into
-// the effect's own array, so it's fine that its length varies per view (it's fixed
-// for any given call site across renders).
+// Each view frames the map only when it's the top of the stack, via one of these
+// `if (isTop) frame...()` effects. Centralizing the shell keeps the call sites to one
+// line each and their deps arrays honest — `deps` is spread into the effect's own
+// array, so it's fine that its length varies per view (it's fixed for any given call
+// site across renders).
 export function useFrameOnTop(isTop: boolean, frame: () => void, deps: DependencyList) {
   useEffect(() => {
     if (isTop) frame()
   }, [isTop, ...deps])
 }
 
-// Every View's drawer footer is the same Toolbar; a one-line shared component
-// so that isn't hand-repeated across the views.
+// Every View's drawer footer is the same Toolbar; a one-line shared component so
+// that isn't hand-repeated across the views.
 export function ViewFooter() {
   return (
     <DrawerFooter>
@@ -145,41 +150,37 @@ export function useEventFromPath(eventPath: string) {
   })
 }
 
-// Suspense fallback for a view whose data is still loading — a drawer panel with a
-// spinner, so the drawer's chrome is present while its content resolves. Mirrors
-// the top-level LoadingFallback (molecules/Fallbacks) so loading states look the
-// same everywhere.
-export function DrawerLoading({ ariaLabel }: { ariaLabel: string }) {
+// Suspense fallback for a view whose data is still loading. Renders only the sheet's
+// inner body (a spinner) — the persistent DrawerContent supplies the sheet chrome —
+// so loading doesn't remount or re-animate the drawer. Mirrors the top-level
+// LoadingFallback (molecules/Fallbacks).
+export function DrawerLoading() {
   const { t } = useTranslation('common')
 
   return (
-    <DrawerContent ariaLabel={ariaLabel}>
-      <DrawerBody className="flex items-center justify-center py-16">
-        <Spinner color="secondary" label={t('loading')} />
-      </DrawerBody>
-    </DrawerContent>
+    <DrawerBody className="flex items-center justify-center py-16">
+      <Spinner color="secondary" label={t('loading')} />
+    </DrawerBody>
   )
 }
 
-// ErrorBoundary fallback for a view whose query failed — kept local to the drawer
-// so one failing view never blanks the whole stack. Mirrors the top-level
-// ErrorFallback (molecules/Fallbacks): an Alert, not hand-rolled error markup;
-// adds a retry action since resetErrorBoundary is only available at this level.
+// ErrorBoundary fallback for a view whose query failed — kept local to the drawer so
+// one failing view never blanks the whole stack. Renders inner body only (the
+// persistent DrawerContent supplies the chrome). Mirrors the top-level ErrorFallback
+// (molecules/Fallbacks): an Alert, plus a retry since resetErrorBoundary is available.
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
 
   return (
-    <DrawerContent ariaLabel={t('error.generic')}>
-      <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
-        <Alert
-          className="max-w-xs"
-          color="danger"
-          description={error?.message ?? t('error.generic')}
-        />
-        <Button variant="flat" onClick={resetErrorBoundary}>
-          {t('error.retry')}
-        </Button>
-      </DrawerBody>
-    </DrawerContent>
+    <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
+      <Alert
+        className="max-w-xs"
+        color="danger"
+        description={error?.message ?? t('error.generic')}
+      />
+      <Button variant="flat" onClick={resetErrorBoundary}>
+        {t('error.retry')}
+      </Button>
+    </DrawerBody>
   )
 }

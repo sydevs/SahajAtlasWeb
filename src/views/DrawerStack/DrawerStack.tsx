@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
+import { AnimatePresence, motion } from 'framer-motion'
 
-import { Drawer } from '@/components/atoms/Drawer'
+import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { overlayContainer } from '@/lib/overlay'
@@ -27,14 +28,16 @@ const PEEK_SNAP = '96px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 
 // How far each stacked ancestor peeks out behind the active sheet.
-const PEEK_MOBILE = 16 // px above the sheet's top edge
-const PEEK_DESKTOP = 12 // px to the right of the left panel
+const PEEK_MOBILE = 8 // px above the sheet's top edge
+const PEEK_DESKTOP = 6 // px to the right of the left panel
+// Desktop drawer margin (matches the atom's inset-y-4 / left-4 floating panel).
+const DESKTOP_MARGIN = '1rem'
 
 type Direction = 'left' | 'bottom'
 
-// Dispatch the active (top) view — the one real drawer's content. `isTop` is always
-// true here (ancestors are peek panels, not rendered views), so the view always
-// frames the map for its level.
+// Dispatch the active (top) view's inner content. `isTop` is always true here
+// (ancestors are peek panels, not rendered views), so the view always frames the
+// map for its level.
 function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: string }) {
   if (!entry) return <CountriesView isTop />
 
@@ -76,14 +79,14 @@ function PeekStrip({
   let className: string
 
   if (direction === 'left') {
-    style.top = 0
-    style.bottom = 0
-    style.left = 0
+    style.top = DESKTOP_MARGIN
+    style.bottom = DESKTOP_MARGIN
+    style.left = DESKTOP_MARGIN
     style.width = 'var(--sy-drawer-w, 22rem)'
-    style.maxWidth = '90vw'
+    style.maxWidth = 'calc(100vw - 2rem)'
     style.transform = `translateX(${depth * PEEK_DESKTOP}px)`
     style.transition = 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)'
-    className = 'rounded-r-2xl border-r border-divider bg-background'
+    className = 'rounded-2xl border border-divider bg-background'
   } else {
     style.left = 0
     style.right = 0
@@ -103,14 +106,14 @@ function PeekStrip({
   )
 }
 
-// The whole drawer navigation, derived purely from the pathname. ONE real vaul
+// The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
 // drawer holds the active (top) view; its ancestors are simulated as semi-transparent
-// peek panels behind it (issue #30 — simulate rather than nest, so parents can't be
-// dismissed and their peek stays synced to the sheet). Every view is handled the same
+// peek panels behind it. Because the sheet is rendered once (DrawerStack owns the
+// DrawerContent; views are just inner content), navigating never remounts/re-slides
+// the drawer — the inner content cross-fades instead. Every view is handled the same
 // way: dismissing navigates to the parent, and the one view with no parent
-// (CountriesView) collapses to its peek instead of closing — so the panel never fully
-// dismisses and there's no reopen affordance. Direction is left at ≥md, bottom on
-// mobile. Map-less, the single drawer fills the widget container.
+// (CountriesView) collapses to its peek instead of closing. Direction is left at ≥md,
+// bottom on mobile. Map-less, the single drawer fills the widget container.
 export function DrawerStack() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -159,28 +162,37 @@ export function DrawerStack() {
   }, [hasMap, direction, parentPaths.length])
 
   // Uniform for every view: dismissing pops to the parent; the one view with no
-  // parent (CountriesView) collapses to the peek instead of closing.
-  const handleOpenChange = (open: boolean) => {
-    if (open) return
-    if (parentPath) navigate(parentPath)
-    else setSnap(PEEK_SNAP)
-  }
-
+  // parent (CountriesView) collapses to the peek instead of closing. Wired to both
+  // the close/list buttons (via context) and vaul's swipe (onOpenChange).
   const control = useMemo(
     () => ({
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
+      dismiss: () => (parentPath ? navigate(parentPath) : setSnap(PEEK_SNAP)),
     }),
-    [snap, canCollapse],
+    [snap, canCollapse, parentPath, navigate],
   )
 
-  const topView = (
-    <Suspense fallback={<DrawerLoading ariaLabel={t('loading')} />}>
-      <ErrorBoundary FallbackComponent={DrawerErrorFallback} resetKeys={[location.pathname]}>
-        <TopView entry={top} parentPath={parentPath ?? '/'} />
-      </ErrorBoundary>
-    </Suspense>
+  const sheet = (
+    <DrawerContent ariaLabel={t('free_meditation_classes')}>
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={location.pathname}
+          animate={{ opacity: 1 }}
+          className="flex min-h-0 flex-1 flex-col"
+          exit={{ opacity: 0 }}
+          initial={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <Suspense fallback={<DrawerLoading />}>
+            <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+              <TopView entry={top} parentPath={parentPath ?? '/'} />
+            </ErrorBoundary>
+          </Suspense>
+        </motion.div>
+      </AnimatePresence>
+    </DrawerContent>
   )
 
   // Map-less: one contained drawer fills the widget container (no map to reveal, so
@@ -202,9 +214,9 @@ export function DrawerStack() {
             container={container}
             direction={direction}
             dismissible={parentPaths.length > 0}
-            onOpenChange={handleOpenChange}
+            onOpenChange={(o) => !o && control.dismiss()}
           >
-            {topView}
+            {sheet}
           </Drawer>
         </div>
       </DrawerControlContext.Provider>
@@ -245,9 +257,9 @@ export function DrawerStack() {
         direction={direction}
         setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
         snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
-        onOpenChange={handleOpenChange}
+        onOpenChange={(o) => !o && control.dismiss()}
       >
-        {topView}
+        {sheet}
       </Drawer>
     </DrawerControlContext.Provider>
   )

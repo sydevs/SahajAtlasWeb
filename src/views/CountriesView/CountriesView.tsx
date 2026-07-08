@@ -1,10 +1,9 @@
-import { type ReactNode } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { List, RegionCard } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -15,10 +14,10 @@ import { validateWebUrl } from '@/lib/url'
 import { CollapseToggle, SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
 
 // The base view (route `/`): the global country list, with the geocoder + a
-// stacked-list toggle in its header. Handled by DrawerStack exactly like every
-// other view — it's simply the one with no parent, so dismissing it collapses the
-// sheet to its peek (the search + list toggle) rather than popping up a level.
-export function CountriesView({ isTop, children }: { isTop: boolean; children?: ReactNode }) {
+// stacked-list toggle in its header. Rendered as inner content of the persistent
+// drawer (DrawerStack owns the sheet). Handled like every other view — it's simply
+// the one with no parent, so dismissing it collapses the sheet to its peek.
+export function CountriesView({ isTop }: { isTop: boolean }) {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
@@ -37,7 +36,7 @@ export function CountriesView({ isTop, children }: { isTop: boolean; children?: 
   const canonicalUrl = validateWebUrl(homeUrl)
 
   return (
-    <DrawerContent ariaLabel={t('free_meditation_classes')}>
+    <>
       {standalone && (
         <Helmet>
           <title>{t('free_meditation_classes')}</title>
@@ -71,7 +70,6 @@ export function CountriesView({ isTop, children }: { isTop: boolean; children?: 
         </List>
       </DrawerBody>
       <ViewFooter />
-      {children}
-    </DrawerContent>
+    </>
   )
 }

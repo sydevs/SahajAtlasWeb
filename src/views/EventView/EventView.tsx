@@ -1,7 +1,7 @@
-import { type ReactNode, Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerContent } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventMetadata } from '@/components/molecules'
 import { Spinner } from '@/components/atoms/Spinner'
 import api from '@/config/api'
@@ -15,19 +15,17 @@ const EventDetails = lazy(() =>
   import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
 )
 
-// A single event (route `<event-path>`). No header — the drawer is the chrome —
-// so a floating close control returns up the stack. Frames + selects the event on
-// the map when it's the top of the stack, and clears the selection on unmount.
+// A single event (route `<event-path>`). No header — the drawer is the chrome — so
+// a floating close control returns up the stack. Frames + selects the event on the
+// map when it's the top of the stack, and clears the selection on unmount.
 export function EventView({
   id,
   basePath,
   isTop,
-  children,
 }: {
   id: number
   basePath: string
   isTop: boolean
-  children?: ReactNode
 }) {
   const { standalone } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
@@ -42,7 +40,7 @@ export function EventView({
   useEffect(() => () => clearSelection(), [clearSelection])
 
   return (
-    <DrawerContent ariaLabel={event.title}>
+    <>
       {/* SEO (title, canonical, JSON-LD) is only meaningful for the crawlable
           standalone build; the embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
@@ -53,7 +51,6 @@ export function EventView({
         </Suspense>
       </DrawerBody>
       <ViewFooter />
-      {children}
-    </DrawerContent>
+    </>
   )
 }

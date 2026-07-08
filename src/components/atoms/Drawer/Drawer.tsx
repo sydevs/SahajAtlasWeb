@@ -35,8 +35,16 @@ const drawer = tv({
   },
   variants: {
     direction: {
-      left: { content: 'inset-y-0 left-0 h-full w-[var(--sy-drawer-w,22rem)] max-w-[90vw]' },
-      right: { content: 'inset-y-0 right-0 h-full w-[var(--sy-drawer-w,22rem)] max-w-[90vw]' },
+      // Desktop floats with a margin so the map shows around it, rounded on all
+      // corners to match the stacked ancestor panels (`full` cancels this map-less).
+      left: {
+        content:
+          'inset-y-4 left-4 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-2xl',
+      },
+      right: {
+        content:
+          'inset-y-4 right-4 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-2xl',
+      },
       // Snap-point sheets must be full viewport height: vaul computes its snap
       // translate from the window height, so a content-sized sheet gets pushed
       // off-screen. The 3dvh bottom padding keeps the footer above the fold at the

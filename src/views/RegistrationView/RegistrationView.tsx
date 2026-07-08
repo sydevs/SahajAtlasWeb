@@ -1,8 +1,7 @@
-import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
-import { DrawerBody, DrawerContent, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useMapController } from '@/hooks/use-map-controller'
 import { isOnline } from '@/lib/shape'
@@ -26,12 +25,10 @@ export function RegistrationView({
   eventPath,
   parentPath,
   isTop,
-  children,
 }: {
   eventPath: string
   parentPath: string
   isTop: boolean
-  children?: ReactNode
 }) {
   const { t } = useTranslation('events')
   const navigate = useNavigate()
@@ -42,7 +39,7 @@ export function RegistrationView({
   useFrameOnTop(isTop, () => frameEvent(event), [event, frameEvent])
 
   return (
-    <DrawerContent ariaLabel={t('registration.register_now')}>
+    <>
       <DrawerHeader className="justify-between">
         <div className="min-w-0 truncate text-lg font-bold">
           {t('registration.register_for', { event: event.title })}
@@ -60,7 +57,6 @@ export function RegistrationView({
           onClose={() => navigate(parentPath)}
         />
       </DrawerBody>
-      {children}
-    </DrawerContent>
+    </>
   )
 }
