@@ -252,7 +252,16 @@ const getRegion = async (slug: string): Promise<Region> => {
     parentPath: parentOf(path),
     webUrl: doc.webUrl,
     subregions,
-    events: isParent ? [] : under.map((indexed) => toSlim(indexed.feature)),
+    // Nest each event under this region's path so navigating to it keeps the full
+    // region ancestry in the URL (an event's own webPath is flat / often null, which
+    // would otherwise stack the event straight on the country list).
+    events: isParent
+      ? []
+      : under.map((indexed) => {
+          const slim = toSlim(indexed.feature)
+
+          return { ...slim, path: `${path}/${slim.id}` }
+        }),
   })
 }
 

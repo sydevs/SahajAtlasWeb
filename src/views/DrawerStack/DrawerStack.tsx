@@ -75,31 +75,43 @@ function PeekStrip({
   label: string
   onClick: () => void
 }) {
-  const style: CSSProperties = { position: 'fixed', zIndex, opacity }
+  const isLeft = direction === 'left'
+  const style: CSSProperties = { position: 'fixed', zIndex }
   let className: string
 
-  if (direction === 'left') {
+  if (isLeft) {
     style.top = DESKTOP_MARGIN
     style.bottom = DESKTOP_MARGIN
     style.left = DESKTOP_MARGIN
     style.width = 'var(--sy-drawer-w, 22rem)'
     style.maxWidth = 'calc(100vw - 2rem)'
-    style.transform = `translateX(${depth * PEEK_DESKTOP}px)`
-    style.transition = 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)'
-    className = 'rounded-2xl border border-divider bg-background'
+    className = 'rounded-2xl border border-divider bg-background shadow-xl'
   } else {
     style.left = 0
     style.right = 0
     style.height = '100dvh'
-    style.top = `calc(var(--sy-sheet-top, 100dvh) - ${depth * PEEK_MOBILE}px)`
-    className = 'rounded-t-2xl border-t border-divider bg-background'
+    // `top` tracks the sheet's live position (rAF); the depth offset is the animated
+    // transform below, so drag-tracking stays instant while the stack eases.
+    style.top = 'var(--sy-sheet-top, 100dvh)'
+    className = 'rounded-t-2xl border-t border-divider bg-background shadow-xl'
   }
 
+  // The stack slides out to make room as it grows (and back in as it shrinks): each
+  // panel eases from flush with the sheet edge (offset 0) out to `depth * PEEK`, so
+  // a newly-stacked panel enters from under the sheet while the existing panels shift
+  // further out — and the reverse on close.
+  const offset = isLeft ? { x: depth * PEEK_DESKTOP } : { y: -depth * PEEK_MOBILE }
+  const flush = isLeft ? { x: 0 } : { y: 0 }
+
   return (
-    <button
+    <motion.button
+      animate={{ ...offset, opacity }}
       aria-label={label}
       className={className}
+      exit={{ ...flush, opacity: 0 }}
+      initial={{ ...flush, opacity: 0 }}
       style={style}
+      transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
       type="button"
       onClick={onClick}
     />
@@ -225,9 +237,11 @@ export function DrawerStack() {
 
   // Map mode: stacked ancestor panels (portaled behind the drawer) + the single drawer.
   const target = overlayContainer()
-  const strips =
-    parentPaths.length > 0 ? (
-      <div ref={stripsRef}>
+  // Always render the container + AnimatePresence (even at 0 ancestors) so a removed
+  // strip animates out on the way back to the root instead of vanishing.
+  const strips = (
+    <div ref={stripsRef}>
+      <AnimatePresence>
         {parentPaths.map((path, i) => {
           const depth = parentPaths.length - i
 
@@ -243,12 +257,13 @@ export function DrawerStack() {
             />
           )
         })}
-      </div>
-    ) : null
+      </AnimatePresence>
+    </div>
+  )
 
   return (
     <DrawerControlContext.Provider value={control}>
-      {target && strips && createPortal(strips, target)}
+      {target && createPortal(strips, target)}
       <Drawer
         key={direction}
         dismissible

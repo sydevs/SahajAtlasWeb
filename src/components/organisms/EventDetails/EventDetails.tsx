@@ -122,7 +122,7 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
         <h1
           className={`
           text-[24px] font-semibold leading-7 tracking-wide
-          ${event.images.length > 0 ? '' : 'mt-3 pl-5'}
+          ${event.images.length > 0 ? '' : 'mt-3'}
         `}
         >
           {event.title}
