@@ -17,19 +17,25 @@ describe('resolveImageUrl', () => {
     expect(resolveImageUrl(cdn, ORIGIN)).toBe(cdn)
   })
 
-  it('falls back to the raw url when the origin is empty (never throws)', () => {
-    // A misconfigured/empty origin must not crash the event read — degrade to the
-    // raw (relative) url so at most one <img> is broken.
-    expect(resolveImageUrl('/api/images/file/pic.jpg', '')).toBe('/api/images/file/pic.jpg')
+  it('rejects a non-http(s) scheme so a hostile url cannot reach a sink', () => {
+    // A `data:`/`javascript:` image url must not flow into <img src> or the
+    // OG/JSON-LD metadata — drop it rather than pass it through.
+    expect(resolveImageUrl('data:text/html,<script>alert(1)</script>', ORIGIN)).toBeNull()
+    expect(resolveImageUrl('javascript:alert(1)', ORIGIN)).toBeNull()
+  })
+
+  it('returns null when the origin is empty, instead of throwing', () => {
+    // A misconfigured/empty origin must not crash the event read; drop the url so
+    // the UI skips it (at most one broken <img>, never a whole-event failure).
+    expect(resolveImageUrl('/api/images/file/pic.jpg', '')).toBeNull()
   })
 
   it('defaults the origin to VITE_SAHAJCLOUD_URL', () => {
-    // Env-driven default (loaded from .env in the vitest env) — assert it yields
-    // an absolute URL carrying the relative path, without coupling to a specific
-    // origin (a dev `.env.local` may point elsewhere).
-    const resolved = resolveImageUrl('/api/images/file/pic.jpg')
-
-    expect(resolved).toMatch(/^https?:\/\//)
-    expect(resolved.endsWith('/api/images/file/pic.jpg')).toBe(true)
+    // Env-driven default (loaded from .env in the vitest env) — an absolute URL
+    // carrying the relative path, without coupling to a specific origin (a dev
+    // `.env.local` may point elsewhere).
+    expect(resolveImageUrl('/api/images/file/pic.jpg')).toMatch(
+      /^https?:\/\/.*\/api\/images\/file\/pic\.jpg$/,
+    )
   })
 })

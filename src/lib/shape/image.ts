@@ -7,16 +7,22 @@
 // Prefix with the origin — not the axios baseURL — because the URL already carries
 // `/api/…` and the client baseURL is `${origin}/api`, which would double the `/api`.
 //
-// Best-effort: if `origin` is empty/misconfigured, `new URL` throws on a relative
-// url — fall back to the raw url so a bad env degrades to a broken <img> rather
-// than failing the whole event read (this runs inside `getEvent`'s image map).
+// Returns null — rather than throwing or passing a raw value through — when the
+// url can't be resolved to an http(s) URL: an empty/misconfigured origin (which
+// makes `new URL` throw on a relative url), or a non-http(s) scheme
+// (`data:`/`javascript:`). That keeps one bad image (or a bad env) from failing
+// the whole event read, and stops a hostile CMS image url from smuggling a
+// `</script>` payload into the OG/JSON-LD metadata. `getEvent` and the UI already
+// skip null urls.
 export const resolveImageUrl = (
   url: string,
   origin: string | undefined = import.meta.env.VITE_SAHAJCLOUD_URL,
-): string => {
+): string | null => {
   try {
-    return new URL(url, origin).href
+    const resolved = new URL(url, origin)
+
+    return resolved.protocol === 'https:' || resolved.protocol === 'http:' ? resolved.href : null
   } catch {
-    return url
+    return null
   }
 }
