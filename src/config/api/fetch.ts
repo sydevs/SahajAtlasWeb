@@ -310,7 +310,10 @@ const getEvent = async (id: number): Promise<Event> => {
       },
       populate: {
         ...REGION_POPULATE,
-        images: { url: true, thumbnailURL: true, alt: true },
+        // `url` is a virtual field SahajCloud derives from `filename`, so we must
+        // select `filename` or `url` comes back null. `thumbnailURL` doesn't exist
+        // on this collection (Cloudflare Images flexible variants replaced sizes).
+        images: { url: true, filename: true, alt: true },
       },
     },
   })

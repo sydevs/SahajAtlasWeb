@@ -10,7 +10,7 @@ import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { Button } from '@/components/atoms/Button'
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { useLocale } from '@/hooks/use-locale'
-import { isOnline, lexicalToHtml, nextOccurrence } from '@/lib/shape'
+import { isOnline, lexicalToHtml, nextOccurrence, resolveImageUrl } from '@/lib/shape'
 import { Event } from '@/types'
 import { Chip } from '@/components/atoms/Chip'
 
@@ -103,13 +103,21 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
 
   // The image alt doubles as the lightbox caption (today's behavior). Memoized so
   // a stable slides array is threaded to the carousel/lightbox across re-renders.
+  // Skip images without a resolved url and origin-prefix the rest (relative dev
+  // URLs would otherwise 404 against the widget's own host).
   const slides = useMemo(
     () =>
-      event.images.map((image) => ({
-        src: image.url,
-        alt: image.alt ?? undefined,
-        caption: image.alt ?? undefined,
-      })),
+      event.images.flatMap((image) =>
+        image.url
+          ? [
+              {
+                src: resolveImageUrl(image.url),
+                alt: image.alt ?? undefined,
+                caption: image.alt ?? undefined,
+              },
+            ]
+          : [],
+      ),
     [event.images],
   )
 
@@ -122,7 +130,7 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
         <h1
           className={`
           text-[24px] font-semibold leading-7 tracking-wide
-          ${event.images.length > 0 ? '' : 'mt-3'}
+          ${slides.length > 0 ? '' : 'mt-3'}
         `}
         >
           {event.title}
