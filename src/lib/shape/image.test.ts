@@ -17,6 +17,12 @@ describe('resolveImageUrl', () => {
     expect(resolveImageUrl(cdn, ORIGIN)).toBe(cdn)
   })
 
+  it('falls back to the raw url when the origin is empty (never throws)', () => {
+    // A misconfigured/empty origin must not crash the event read — degrade to the
+    // raw (relative) url so at most one <img> is broken.
+    expect(resolveImageUrl('/api/images/file/pic.jpg', '')).toBe('/api/images/file/pic.jpg')
+  })
+
   it('defaults the origin to VITE_SAHAJCLOUD_URL', () => {
     // Env-driven default (loaded from .env in the vitest env) — assert it yields
     // an absolute URL carrying the relative path, without coupling to a specific
