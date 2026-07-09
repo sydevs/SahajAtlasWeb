@@ -19,7 +19,7 @@ const parsePair = (value: string | null): [number, number] | undefined => {
 // centre — never the live viewport, so the list doesn't re-sort on map pan. The
 // distance query key stays quantized inside DynamicEventsList. Online events are
 // always included.
-export function SearchView({ isTop }: { isTop: boolean }) {
+export function SearchView() {
   const [searchParams] = useSearchParams()
   const { frameSearch } = useMapController()
 
@@ -33,7 +33,7 @@ export function SearchView({ isTop }: { isTop: boolean }) {
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  useFrameOnTop(isTop, () => frameSearch({ bbox: bounds, center }), [frameSearch, searchParams])
+  useFrameOnTop(() => frameSearch({ bbox: bounds, center }), [frameSearch, searchParams])
 
   return (
     <>

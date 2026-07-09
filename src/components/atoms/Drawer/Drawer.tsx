@@ -22,9 +22,6 @@ const drawer = tv({
   slots: {
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
-    // Fallback for a DrawerContent with no enclosing <Drawer> (not used by the
-    // stack today, which always wraps a real Drawer).
-    inline: 'flex h-full w-full flex-col overflow-y-auto bg-background text-foreground',
     header: 'flex shrink-0 items-center gap-2 px-4 pb-2 pt-4',
     body: 'min-h-0 flex-1 overflow-y-auto',
     footer: 'mt-auto shrink-0 border-t border-gray-4',
@@ -76,9 +73,6 @@ type DrawerSlots = ReturnType<typeof drawer>
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // No enclosing <Drawer> → DrawerContent renders inline (a safety fallback; every
-  // current call site wraps a real Drawer).
-  inline: boolean
   // A filling contained drawer (map-less) hides the drag handle — nothing to drag.
   full: boolean
   // Portal target for a real drawer (map-less passes the widget container).
@@ -88,7 +82,6 @@ type DrawerCtx = {
 const DrawerContext = createContext<DrawerCtx>({
   slots: drawer({ direction: 'bottom' }),
   direction: 'bottom',
-  inline: true,
   full: false,
 })
 
@@ -143,9 +136,7 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider
-      value={{ slots, direction: direction ?? 'bottom', inline: false, full, container }}
-    >
+    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', full, container }}>
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
@@ -160,14 +151,9 @@ export type DrawerContentProps = {
   handle?: boolean
 }
 
-/** The portaled, positioned drawer panel — or, with no enclosing <Drawer>, plain
- *  inline content (a fallback). Compose Header/Body/Footer inside. */
+/** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
 export function DrawerContent({ ariaLabel, children, className, handle }: DrawerContentProps) {
-  const { slots, direction, inline, full, container } = useDrawerSlots()
-
-  if (inline) {
-    return <div className={slots.inline({ className })}>{children}</div>
-  }
+  const { slots, direction, full, container } = useDrawerSlots()
 
   const showHandle = handle ?? (direction === 'bottom' && !full)
   // `undefined` = use the default themed root; an explicit `null` opts out.

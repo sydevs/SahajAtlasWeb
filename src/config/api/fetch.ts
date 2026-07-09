@@ -19,6 +19,7 @@ import {
   boundsUnder,
   countUnder,
   eventsUnder,
+  childRoute,
   parentOf,
   safePath,
 } from '@/lib/shape'
@@ -260,7 +261,7 @@ const getRegion = async (slug: string): Promise<Region> => {
       : under.map((indexed) => {
           const slim = toSlim(indexed.feature)
 
-          return { ...slim, path: `${path}/${slim.id}` }
+          return { ...slim, path: childRoute(path, slim.id) }
         }),
   })
 }

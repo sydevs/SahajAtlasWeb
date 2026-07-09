@@ -18,15 +18,7 @@ const EventDetails = lazy(() =>
 // A single event (route `<event-path>`). No header — the drawer is the chrome — so
 // a floating close control returns up the stack. Frames + selects the event on the
 // map when it's the top of the stack, and clears the selection on unmount.
-export function EventView({
-  id,
-  basePath,
-  isTop,
-}: {
-  id: number
-  basePath: string
-  isTop: boolean
-}) {
+export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
 
@@ -35,7 +27,7 @@ export function EventView({
     queryFn: () => api.getEvent(id),
   })
 
-  useFrameOnTop(isTop, () => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
 
   useEffect(() => () => clearSelection(), [clearSelection])
 

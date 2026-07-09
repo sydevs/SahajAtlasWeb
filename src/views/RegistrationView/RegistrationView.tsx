@@ -60,11 +60,9 @@ function EventSummary({ event }: { event: Event }) {
 export function RegistrationView({
   eventPath,
   parentPath,
-  isTop,
 }: {
   eventPath: string
   parentPath: string
-  isTop: boolean
 }) {
   const { t } = useTranslation('events')
   const navigate = useNavigate()
@@ -72,7 +70,7 @@ export function RegistrationView({
 
   const { data: event } = useEventFromPath(eventPath)
 
-  useFrameOnTop(isTop, () => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
 
   return (
     <>

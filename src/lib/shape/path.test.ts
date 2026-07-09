@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { isCanonicalPath, parentOf, resolvePath, resolveStack, safePath } from './path'
+import { childRoute, isCanonicalPath, parentOf, resolvePath, resolveStack, safePath } from './path'
 
 describe('safePath', () => {
   it('accepts a site-relative path', () => {
@@ -31,6 +31,14 @@ describe('parentOf', () => {
     expect(parentOf('/belgium')).toBeUndefined()
     expect(parentOf('/507')).toBeUndefined()
     expect(parentOf('/')).toBeUndefined()
+  })
+})
+
+describe('childRoute', () => {
+  it('nests a child id/slug under a parent path (inverse of parentOf)', () => {
+    expect(childRoute('/belgium/flanders/antwerpen', 507)).toBe('/belgium/flanders/antwerpen/507')
+    expect(childRoute('/belgium', 'flanders')).toBe('/belgium/flanders')
+    expect(parentOf(childRoute('/india/pune', 507))).toBe('/india/pune')
   })
 })
 

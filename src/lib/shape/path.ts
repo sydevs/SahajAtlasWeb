@@ -27,6 +27,15 @@ export const parentOf = (path: string): string | undefined => {
 }
 
 /**
+ * Nest a child (an event id, or a slug) under a parent route. The inverse of
+ * `parentOf`: `childRoute('/india/pune', 507)` → `/india/pune/507`. Region events
+ * use this so navigating to an event keeps the region ancestry in the URL (an
+ * event's own `webPath` is flat / often null), rather than composing the path inline.
+ */
+export const childRoute = (parentPath: string, child: string | number): string =>
+  `${parentPath}/${child}`
+
+/**
  * A server-provided route (`webPath`) is only trusted as a same-origin route if
  * it's a site-relative path: a leading `/` that isn't protocol-relative (`//host`).
  * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS

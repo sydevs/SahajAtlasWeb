@@ -180,7 +180,7 @@ export const initTheme = (defaultTheme: Theme = ThemeProps.light) => {
 export const useTheme = () => {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  return { theme, isDark: theme === ThemeProps.dark, isLight: theme === ThemeProps.light }
+  return { theme }
 }
 
 // The user's preference (light/dark/auto) + setter — drives the settings menu. The

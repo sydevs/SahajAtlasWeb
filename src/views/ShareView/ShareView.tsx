@@ -7,13 +7,13 @@ import { CloseButton, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // Share links for an event (route `<event-path>/share`). Reached by the event's
 // Share CTA and deep-linkable. Closing returns to the event.
-export function ShareView({ eventPath, isTop }: { eventPath: string; isTop: boolean }) {
+export function ShareView({ eventPath }: { eventPath: string }) {
   const { t } = useTranslation('events')
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
 
-  useFrameOnTop(isTop, () => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
 
   return (
     <>

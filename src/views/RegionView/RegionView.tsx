@@ -14,7 +14,7 @@ import { CloseButton, useFrameOnTop } from '@/views/shared'
 // child events (plain concatenation, no section headers). Frames the map to the
 // region's bounds when it's the top of the stack. No canonicalization redirect —
 // the URL stays where the user navigated; the canonical tag is standalone-only.
-export function RegionView({ slug, isTop }: { slug: string; isTop: boolean }) {
+export function RegionView({ slug }: { slug: string }) {
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -24,7 +24,7 @@ export function RegionView({ slug, isTop }: { slug: string; isTop: boolean }) {
     queryFn: () => api.getRegion(slug),
   })
 
-  useFrameOnTop(isTop, () => frameRegion(region), [region, frameRegion])
+  useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined

@@ -17,7 +17,7 @@ import { CollapseToggle, SearchField, useFrameOnTop } from '@/views/shared'
 // stacked-list toggle in its header. Rendered as inner content of the persistent
 // drawer (DrawerStack owns the sheet). Handled like every other view — it's simply
 // the one with no parent, so dismissing it collapses the sheet to its peek.
-export function CountriesView({ isTop }: { isTop: boolean }) {
+export function CountriesView() {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
@@ -29,8 +29,8 @@ export function CountriesView({ isTop }: { isTop: boolean }) {
   })
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
-  // The world view frames the map when this is the top of the stack.
-  useFrameOnTop(isTop, () => frameSearch({}), [frameSearch])
+  // Frame the world view when this view mounts.
+  useFrameOnTop(() => frameSearch({}), [frameSearch])
 
   const homeUrl = client.region && typeof client.region === 'object' ? client.region.webUrl : null
   const canonicalUrl = validateWebUrl(homeUrl)

@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { SettingsMenu } from '@/components/molecules'
-import { useBreakpoint, useIsDesktop } from '@/config/responsive'
+import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { overlayContainer } from '@/lib/overlay'
 import { type StackEntry, resolveStack } from '@/lib/shape'
@@ -31,29 +31,26 @@ const OPEN_SNAP = '300px' // default, and what the peek expands to
 // How far each stacked ancestor peeks out behind the active sheet.
 const PEEK_MOBILE = 5 // px above the sheet's top edge
 const PEEK_DESKTOP = 6 // px to the right of the left panel
-// Desktop (≥lg) drawer margin (matches the atom's lg:inset-y-4 / lg:left-4 float);
-// tablet is flush, so the strips pass '0px' there.
-const DESKTOP_MARGIN = '1rem'
 
 type Direction = 'left' | 'bottom'
 
-// Dispatch the active (top) view's inner content. `isTop` is always true here
-// (ancestors are peek panels, not rendered views), so the view always frames the
-// map for its level.
+// Dispatch the active (top) view's inner content. Only the top view is rendered
+// (ancestors are peek panels, not rendered views), so each view frames the map for
+// its level on mount.
 function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: string }) {
-  if (!entry) return <CountriesView isTop />
+  if (!entry) return <CountriesView />
 
   switch (entry.kind) {
     case 'search':
-      return <SearchView isTop />
+      return <SearchView />
     case 'region':
-      return <RegionView isTop slug={entry.slug} />
+      return <RegionView slug={entry.slug} />
     case 'event':
-      return <EventView isTop basePath={entry.path} id={entry.id} />
+      return <EventView basePath={entry.path} id={entry.id} />
     case 'register':
-      return <RegistrationView isTop eventPath={entry.eventPath} parentPath={parentPath} />
+      return <RegistrationView eventPath={entry.eventPath} parentPath={parentPath} />
     case 'share':
-      return <ShareView isTop eventPath={entry.eventPath} />
+      return <ShareView eventPath={entry.eventPath} />
   }
 }
 
@@ -65,7 +62,6 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
 function PeekStrip({
   depth,
   direction,
-  margin,
   zIndex,
   opacity,
   label,
@@ -73,7 +69,6 @@ function PeekStrip({
 }: {
   depth: number
   direction: Direction
-  margin: string
   zIndex: number
   opacity: number
   label: string
@@ -84,13 +79,10 @@ function PeekStrip({
   let className: string
 
   if (isLeft) {
-    // Match the drawer: flush + square on tablet (margin 0), floating + rounded at ≥lg.
-    style.top = margin
-    style.bottom = margin
-    style.left = margin
-    style.width = 'var(--sy-drawer-w, 22rem)'
-    style.maxWidth = 'calc(100vw - 2rem)'
-    className = `border border-divider bg-background shadow-xl ${margin === '0px' ? 'rounded-none' : 'rounded-2xl'}`
+    // Match the drawer atom's left variant: flush + square on tablet, floating +
+    // rounded at ≥lg — geometry lives in these classes, not inline styles.
+    className =
+      'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:left-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -135,12 +127,9 @@ export function DrawerStack() {
   const location = useLocation()
   const navigate = useNavigate()
   const isDesktop = useIsDesktop()
-  const { isLg } = useBreakpoint('lg')
   const { hasMap, standalone } = useWidgetMode()
   const { t } = useTranslation('common')
   const direction: Direction = isDesktop ? 'left' : 'bottom'
-  // The desktop panel only floats at ≥lg; tablet (md–lg) is flush to the edge.
-  const stripMargin = isLg ? DESKTOP_MARGIN : '0px'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
@@ -161,8 +150,11 @@ export function DrawerStack() {
     if (!hasMap || direction !== 'bottom' || parentPaths.length === 0) return
     let raf = 0
     let last = Number.NaN
+    // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
+    // re-query the DOM every frame; the effect re-runs (resetting this) if direction flips.
+    let sheet: HTMLElement | null = null
     const tick = () => {
-      const sheet = document.querySelector<HTMLElement>('[data-vaul-drawer]')
+      sheet ??= document.querySelector<HTMLElement>('[data-vaul-drawer]')
       const el = stripsRef.current
 
       if (sheet && el) {
@@ -260,7 +252,6 @@ export function DrawerStack() {
               depth={depth}
               direction={direction}
               label={t('back')}
-              margin={stripMargin}
               opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
               zIndex={30 + i}
               onClick={() => navigate(path)}

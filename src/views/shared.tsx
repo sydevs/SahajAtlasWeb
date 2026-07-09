@@ -36,6 +36,11 @@ export const DrawerControlContext = createContext<DrawerControl>({
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
+// Shared chrome for the header icon-buttons (close, list toggle): subtle by default,
+// full-contrast on hover.
+const iconButton =
+  'shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground'
+
 // The close affordance for the drawer views. Dismisses via the control seam (a
 // navigation to the parent) rather than vaul's Close — closing the real drawer made
 // the sheet animate shut and then re-open with the parent, which read as jarring.
@@ -46,7 +51,7 @@ export function CloseButton({ className }: { className?: string }) {
   return (
     <button
       aria-label={t('close')}
-      className={`shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground ${className ?? ''}`}
+      className={`${iconButton} ${className ?? ''}`}
       type="button"
       onClick={dismiss}
     >
@@ -70,7 +75,7 @@ export function CollapseToggle() {
     <button
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('explore') : t('close')}
-      className="shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground"
+      className={iconButton}
       type="button"
       onClick={toggle}
     >
@@ -108,15 +113,15 @@ export function SearchField() {
   )
 }
 
-// Each view frames the map only when it's the top of the stack, via one of these
-// `if (isTop) frame...()` effects. Centralizing the shell keeps the call sites to one
-// line each and their deps arrays honest — `deps` is spread into the effect's own
-// array, so it's fine that its length varies per view (it's fixed for any given call
-// site across renders).
-export function useFrameOnTop(isTop: boolean, frame: () => void, deps: DependencyList) {
+// Only the top (active) view is rendered — ancestors are peek panels, not views — so
+// each view frames the map for its level unconditionally on mount / when its inputs
+// change. Centralized so the call sites are one line and their deps arrays stay honest:
+// `deps` is spread into the effect's own array, so a per-view length is fine (it's
+// fixed for any given call site across renders).
+export function useFrameOnTop(frame: () => void, deps: DependencyList) {
   useEffect(() => {
-    if (isTop) frame()
-  }, [isTop, ...deps])
+    frame()
+  }, [...deps])
 }
 
 // RegistrationView and ShareView both resolve an event from its route path and
