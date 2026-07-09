@@ -35,22 +35,25 @@ const drawer = tv({
   },
   variants: {
     direction: {
-      // Desktop floats with a margin so the map shows around it, rounded on all
-      // corners to match the stacked ancestor panels (`full` cancels this map-less).
+      // Flush to the edge on tablet (md–lg); at ≥lg it floats with a margin so the
+      // map shows around it, rounded to match the stacked ancestor panels. The
+      // divider border matches those panels too (`full` cancels the float map-less).
       left: {
         content:
-          'inset-y-4 left-4 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-2xl',
+          'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
       },
       right: {
         content:
-          'inset-y-4 right-4 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-2xl',
+          'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
       // Snap-point sheets must be full viewport height: vaul computes its snap
       // translate from the window height, so a content-sized sheet gets pushed
       // off-screen. The 3dvh bottom padding keeps the footer above the fold at the
       // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
-      bottom: { content: 'inset-x-0 bottom-0 h-[100dvh] rounded-t-2xl pb-[3dvh]' },
-      top: { content: 'inset-x-0 top-0 h-[100dvh] rounded-b-2xl' },
+      bottom: {
+        content: 'inset-x-0 bottom-0 h-[100dvh] rounded-t-2xl border-t border-divider pb-[3dvh]',
+      },
+      top: { content: 'inset-x-0 top-0 h-[100dvh] rounded-b-2xl border-b border-divider' },
     },
     // Map-less: position absolutely within the widget container instead of fixed to
     // the viewport, so the drawer covers only the content area.

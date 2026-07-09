@@ -6,7 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
-import { useIsDesktop } from '@/config/responsive'
+import { useBreakpoint, useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { overlayContainer } from '@/lib/overlay'
 import { type StackEntry, resolveStack } from '@/lib/shape'
@@ -28,9 +28,10 @@ const PEEK_SNAP = '96px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 
 // How far each stacked ancestor peeks out behind the active sheet.
-const PEEK_MOBILE = 8 // px above the sheet's top edge
+const PEEK_MOBILE = 5 // px above the sheet's top edge
 const PEEK_DESKTOP = 6 // px to the right of the left panel
-// Desktop drawer margin (matches the atom's inset-y-4 / left-4 floating panel).
+// Desktop (≥lg) drawer margin (matches the atom's lg:inset-y-4 / lg:left-4 float);
+// tablet is flush, so the strips pass '0px' there.
 const DESKTOP_MARGIN = '1rem'
 
 type Direction = 'left' | 'bottom'
@@ -63,6 +64,7 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
 function PeekStrip({
   depth,
   direction,
+  margin,
   zIndex,
   opacity,
   label,
@@ -70,6 +72,7 @@ function PeekStrip({
 }: {
   depth: number
   direction: Direction
+  margin: string
   zIndex: number
   opacity: number
   label: string
@@ -80,12 +83,13 @@ function PeekStrip({
   let className: string
 
   if (isLeft) {
-    style.top = DESKTOP_MARGIN
-    style.bottom = DESKTOP_MARGIN
-    style.left = DESKTOP_MARGIN
+    // Match the drawer: flush + square on tablet (margin 0), floating + rounded at ≥lg.
+    style.top = margin
+    style.bottom = margin
+    style.left = margin
     style.width = 'var(--sy-drawer-w, 22rem)'
     style.maxWidth = 'calc(100vw - 2rem)'
-    className = 'rounded-2xl border border-divider bg-background shadow-xl'
+    className = `border border-divider bg-background shadow-xl ${margin === '0px' ? 'rounded-none' : 'rounded-2xl'}`
   } else {
     style.left = 0
     style.right = 0
@@ -130,9 +134,12 @@ export function DrawerStack() {
   const location = useLocation()
   const navigate = useNavigate()
   const isDesktop = useIsDesktop()
+  const { isLg } = useBreakpoint('lg')
   const { hasMap, standalone } = useWidgetMode()
   const { t } = useTranslation('common')
   const direction: Direction = isDesktop ? 'left' : 'bottom'
+  // The desktop panel only floats at ≥lg; tablet (md–lg) is flush to the edge.
+  const stripMargin = isLg ? DESKTOP_MARGIN : '0px'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
@@ -251,6 +258,7 @@ export function DrawerStack() {
               depth={depth}
               direction={direction}
               label={t('back')}
+              margin={stripMargin}
               opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
               zIndex={30 + i}
               onClick={() => navigate(path)}

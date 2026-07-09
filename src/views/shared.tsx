@@ -47,11 +47,11 @@ export function CloseButton({ className }: { className?: string }) {
   return (
     <button
       aria-label={t('close')}
-      className={`shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3 ${className ?? ''}`}
+      className={`shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground ${className ?? ''}`}
       type="button"
       onClick={dismiss}
     >
-      <CloseIcon size={22} />
+      <CloseIcon size={20} />
     </button>
   )
 }
@@ -65,15 +65,17 @@ export function CollapseToggle() {
 
   if (!canCollapse) return null
 
+  // At the peek it's a list toggle (expand the countries list); once opened past the
+  // peek it becomes the usual close control (collapse back to the peek).
   return (
     <button
       aria-expanded={!collapsed}
-      aria-label={t('explore')}
-      className="shrink-0 rounded p-1 text-foreground transition-colors hover:bg-primary-3"
+      aria-label={collapsed ? t('explore') : t('close')}
+      className="shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground"
       type="button"
       onClick={toggle}
     >
-      <ListIcon size={24} />
+      {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
     </button>
   )
 }
