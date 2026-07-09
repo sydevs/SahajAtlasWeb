@@ -113,6 +113,11 @@ const watchSystem = (enabled: boolean) => {
   }
 }
 
+// Fully disengage the system-theme watcher. Called on widget teardown (BrandTheme's
+// unmount, alongside releasing the theme root) so a torn-down embed leaves no
+// matchMedia listener firing against a detached wrapper / the host page's <html>.
+export const stopSystemWatch = () => watchSystem(false)
+
 // ── Preference storage + signal ──────────────────────────────────────────────────
 
 // localStorage can throw — not just be absent — in sandboxed iframes (a `sandbox`
