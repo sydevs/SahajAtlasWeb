@@ -2,8 +2,7 @@
 // Public import surface: `import { EventCard } from '@/components/molecules'`.
 // See DESIGN_SYSTEM.md. Explicit named exports only — each folder surfaces its
 // primary component(s) + `Props` type; single-use internals stay private.
-export { Toolbar } from './Toolbar'
-export type { ToolbarProps } from './Toolbar'
+export { SettingsMenu } from './SettingsMenu'
 
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 

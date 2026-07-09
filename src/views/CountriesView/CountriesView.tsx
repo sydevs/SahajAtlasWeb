@@ -11,7 +11,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { CollapseToggle, SearchField, ViewFooter, useFrameOnTop } from '@/views/shared'
+import { CollapseToggle, SearchField, useFrameOnTop } from '@/views/shared'
 
 // The base view (route `/`): the global country list, with the geocoder + a
 // stacked-list toggle in its header. Rendered as inner content of the persistent
@@ -69,7 +69,6 @@ export function CountriesView({ isTop }: { isTop: boolean }) {
             ))}
         </List>
       </DrawerBody>
-      <ViewFooter />
     </>
   )
 }

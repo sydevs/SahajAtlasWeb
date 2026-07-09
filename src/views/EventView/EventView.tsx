@@ -7,7 +7,7 @@ import { Spinner } from '@/components/atoms/Spinner'
 import api from '@/config/api'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { CloseButton, ViewFooter, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useFrameOnTop } from '@/views/shared'
 
 // EventDetails pulls in DOMPurify + the detail cards; keep it out of the main
 // chunk (as pages/event.tsx used to) by lazy-loading it here.
@@ -50,7 +50,6 @@ export function EventView({
           <EventDetails basePath={basePath} event={event} />
         </Suspense>
       </DrawerBody>
-      <ViewFooter />
     </>
   )
 }

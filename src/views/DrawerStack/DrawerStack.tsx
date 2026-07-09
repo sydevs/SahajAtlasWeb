@@ -6,6 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
+import { SettingsMenu } from '@/components/molecules'
 import { useBreakpoint, useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { overlayContainer } from '@/lib/overlay'
@@ -237,6 +238,7 @@ export function DrawerStack() {
           >
             {sheet}
           </Drawer>
+          <SettingsMenu className="absolute bottom-3 right-3 z-40" />
         </div>
       </DrawerControlContext.Provider>
     )
@@ -271,7 +273,14 @@ export function DrawerStack() {
 
   return (
     <DrawerControlContext.Provider value={control}>
-      {target && createPortal(strips, target)}
+      {target &&
+        createPortal(
+          <>
+            {strips}
+            <SettingsMenu className="fixed right-3 top-16 z-40" />
+          </>,
+          target,
+        )}
       <Drawer
         key={direction}
         dismissible

@@ -7,12 +7,11 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CloseIcon, ListIcon } from '@/components/atoms/Icons'
-import { Toolbar } from '@/components/molecules/Toolbar'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { resolvePath } from '@/lib/shape'
@@ -118,16 +117,6 @@ export function useFrameOnTop(isTop: boolean, frame: () => void, deps: Dependenc
   useEffect(() => {
     if (isTop) frame()
   }, [isTop, ...deps])
-}
-
-// Every View's drawer footer is the same Toolbar; a one-line shared component so
-// that isn't hand-repeated across the views.
-export function ViewFooter() {
-  return (
-    <DrawerFooter>
-      <Toolbar />
-    </DrawerFooter>
-  )
 }
 
 // RegistrationView and ShareView both resolve an event from its route path and

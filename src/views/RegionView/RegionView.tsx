@@ -8,7 +8,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { CloseButton, ViewFooter, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useFrameOnTop } from '@/views/shared'
 
 // A region at any level (route `<region-path>`): one list of child regions then
 // child events (plain concatenation, no section headers). Frames the map to the
@@ -61,7 +61,6 @@ export function RegionView({ slug, isTop }: { slug: string; isTop: boolean }) {
           ))}
         </List>
       </DrawerBody>
-      <ViewFooter />
     </>
   )
 }
