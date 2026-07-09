@@ -190,3 +190,34 @@ describe('getRegion (unified hierarchy derivation)', () => {
     })
   })
 })
+
+describe('getEvent', () => {
+  // getEvent resolves image URLs at the boundary: SahajCloud serves a relative
+  // `url` in dev, so the fetcher origin-prefixes it. A null url (a file-less
+  // image) is left null for the UI to skip — the boundary never drops images.
+  const rawEvent = {
+    id: 13,
+    title: 'Voronezh Class',
+    eventType: 'offline',
+    languages: ['ru'],
+    registrationMode: 'sahaj-atlas',
+    region: { id: 5, slug: 'voronezh', level: 'city' },
+    images: [
+      { id: 2, filename: 'pic.jpg', url: '/api/images/file/pic.jpg', alt: 'Hall' },
+      { id: 3, url: null, alt: 'no file' },
+    ],
+  }
+
+  it('resolves relative image URLs against the origin, leaving null urls null', async () => {
+    get.mockResolvedValue({ data: rawEvent })
+
+    const event = await api.getEvent(13)
+
+    // Absolute after resolution, without coupling to a specific origin (the dev
+    // `.env.local` and CI `.env` set different SahajCloud URLs).
+    expect(event.images[0].url).toMatch(/^https?:\/\/.*\/api\/images\/file\/pic\.jpg$/)
+    // Null stays null (the UI skips it); the boundary maps, it doesn't filter.
+    expect(event.images[1].url).toBeNull()
+    expect(event.images).toHaveLength(2)
+  })
+})
