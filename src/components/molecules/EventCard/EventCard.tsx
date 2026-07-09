@@ -6,7 +6,6 @@ import { useLocale } from '@/hooks/use-locale'
 import { eventTimeZone, isOnline, nextOccurrence } from '@/lib/shape'
 import { EventTime } from '@/components/molecules/EventTime'
 import { EventSoonChip } from '@/components/molecules/EventSoon'
-import { RightArrowIcon } from '@/components/atoms/Icons'
 import { Link } from '@/components/atoms/Link'
 import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
@@ -80,10 +79,6 @@ export function EventCard({ event }: EventCardProps) {
             )}
           </div>
         </div>
-        <div className="text-right font-semibold ml-4 text-sm max-w-24">
-          {t('details.more_info')}
-        </div>
-        <RightArrowIcon />
       </li>
     </Link>
   )

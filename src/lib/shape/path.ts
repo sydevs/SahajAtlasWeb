@@ -27,6 +27,15 @@ export const parentOf = (path: string): string | undefined => {
 }
 
 /**
+ * Nest a child (an event id, or a slug) under a parent route. The inverse of
+ * `parentOf`: `childRoute('/india/pune', 507)` → `/india/pune/507`. Region events
+ * use this so navigating to an event keeps the region ancestry in the URL (an
+ * event's own `webPath` is flat / often null), rather than composing the path inline.
+ */
+export const childRoute = (parentPath: string, child: string | number): string =>
+  `${parentPath}/${child}`
+
+/**
  * A server-provided route (`webPath`) is only trusted as a same-origin route if
  * it's a site-relative path: a leading `/` that isn't protocol-relative (`//host`).
  * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS
@@ -53,6 +62,12 @@ export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; i
  * event id; any other tail is a (globally unique) region slug. Depth-independent,
  * so every nested shape and the legacy flat URLs resolve identically. Returns null
  * for the root (no region/event segment) so the caller can fall back to the home view.
+ *
+ * Unlike `resolveStack`, this has no `RESERVED_SLUGS` carve-out — `resolvePath('/search')`
+ * resolves to a (non-existent) region slug `'search'`, not the search view. That's fine
+ * today because every caller passes an already-derived entity path (e.g. `useEventFromPath`'s
+ * `eventPath`), never a bare top-level route — but don't reuse this on a raw pathname that
+ * might be `/search`, `/register`, or `/share` without adding the same guard.
  */
 export const resolvePath = (pathname: string): ResolvedPath => {
   const segments = pathname.split('/').filter(Boolean)
@@ -62,4 +77,59 @@ export const resolvePath = (pathname: string): ResolvedPath => {
   if (/^\d+$/.test(terminal)) return { kind: 'event', id: Number(terminal) }
 
   return { kind: 'region', slug: safeDecode(terminal) }
+}
+
+/**
+ * Words that are never a region slug. `search` / `register` / `share` are our own
+ * routed views (a CMS region slug can never silently shadow them — the guard);
+ * `events` / `areas` / `regions` / `venues` are legacy URL prefixes that carry no
+ * drawer of their own. Kept lowercase; matched case-insensitively.
+ */
+export const RESERVED_SLUGS = new Set([
+  'search',
+  'register',
+  'share',
+  'events',
+  'areas',
+  'regions',
+  'venues',
+])
+
+/** One open drawer, derived from a path prefix. The DrawerStack renders one per entry. */
+export type StackEntry =
+  | { kind: 'search'; path: string }
+  | { kind: 'region'; slug: string; path: string }
+  | { kind: 'event'; id: number; path: string }
+  | { kind: 'register'; eventPath: string; path: string }
+  | { kind: 'share'; eventPath: string; path: string }
+
+/**
+ * The full ancestor chain for a pathname — one entry per meaningful segment, in
+ * order — so the drawer stack is a pure function of the URL. `/india/pune/507`
+ * → [region india, region pune, event 507]; `/…/507/register` appends a register
+ * entry over that event. Each entry's `path` is the site-relative route to it
+ * (encoded as in the address bar); region slugs are decoded for querying. Legacy
+ * prefixes (`events`, `areas`, …) resolve no drawer, so `/events/507` is just the
+ * event — matching resolvePath's terminal rule but for every ancestor. CountriesView is
+ * always the implicit base, so `/` yields an empty chain.
+ */
+export const resolveStack = (pathname: string): StackEntry[] => {
+  const segments = pathname.split('/').filter(Boolean)
+  const entries: StackEntry[] = []
+
+  segments.forEach((segment, i) => {
+    const path = `/${segments.slice(0, i + 1).join('/')}`
+    const parentPath = i === 0 ? '/' : `/${segments.slice(0, i).join('/')}`
+    const word = segment.toLowerCase()
+
+    if (word === 'search') entries.push({ kind: 'search', path })
+    else if (word === 'register') entries.push({ kind: 'register', eventPath: parentPath, path })
+    else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
+    else if (RESERVED_SLUGS.has(word))
+      return // legacy prefix (events/areas/…) — no drawer
+    else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })
+    else entries.push({ kind: 'region', slug: safeDecode(segment), path })
+  })
+
+  return entries
 }

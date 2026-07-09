@@ -1,24 +1,24 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 
-import { Navigate, Route, Routes, useLocation } from 'react-router'
+import { type RefObject, Suspense, useEffect, useMemo, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
-import { Suspense, useEffect, type RefObject } from 'react'
 import * as Fathom from 'fathom-client'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
+import { MapProvider } from 'react-map-gl'
 
-import { useNavigationState } from './config/store'
 import { useLocale } from './hooks/use-locale'
 import Providers from './providers'
-import MapLayout from './layouts/map'
 import { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
-import { resolvePath, safePath } from '@/lib/shape'
+import { safePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
-import EventPage from '@/pages/event'
-import RegionPage from '@/pages/region'
-import IndexPage from '@/pages/index'
+import { Mapbox } from '@/components/organisms'
+import { DrawerStack } from '@/views'
+import { WidgetModeContext } from '@/config/mode'
+import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
@@ -33,15 +33,32 @@ type AppProps = {
   // to scope the vars + theme class to — is widget-specific.
   brand?: PaletteRoles
   themeRootRef?: RefObject<HTMLElement | null>
+  // Standalone SPA build (BrowserRouter) — advertises canonical/og:url. The
+  // embedded <sahaj-atlas> element passes false (its hash URLs aren't canonical).
+  standalone?: boolean
+  // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
+  hasMap?: boolean
 }
 
-export default function App({ apiKey, defaultLocale, brand, themeRootRef }: AppProps) {
+export default function App({
+  apiKey,
+  defaultLocale,
+  brand,
+  themeRootRef,
+  standalone = false,
+  hasMap = true,
+}: AppProps) {
   return (
     <Providers>
       <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
         <Suspense fallback={<LoadingFallback />}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <AppRouter apiKey={apiKey} defaultLocale={defaultLocale} />
+            <AppShell
+              apiKey={apiKey}
+              defaultLocale={defaultLocale}
+              hasMap={hasMap}
+              standalone={standalone}
+            />
           </ErrorBoundary>
         </Suspense>
       </BrandTheme>
@@ -49,84 +66,88 @@ export default function App({ apiKey, defaultLocale, brand, themeRootRef }: AppP
   )
 }
 
-// ===== APP ROUTER ===== //
+// ===== APP SHELL ===== //
 
-function AppRouter({ apiKey, defaultLocale }: AppProps) {
-  if (!apiKey || apiKey == '') {
-    throw new Error('Missing api key.')
-  }
+type AppShellProps = {
+  apiKey: string | undefined | null
+  defaultLocale?: string | null
+  standalone: boolean
+  hasMap: boolean
+}
+
+function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) {
+  if (!apiKey) throw new Error('Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { locale } = useLocale()
 
-  // The widget's home view is its configured region; fall back to the search index.
-  // The client's configured home region (its canonical webPath), else the search index.
-  const initialPath =
+  // The configured home region opens as a RegionView over CountriesView on first load;
+  // Back returns to the global list. Runs once — re-visiting `/` shows the list,
+  // not a redirect loop.
+  const homePath =
     (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
-    '/search'
+    undefined
+  const didInit = useRef(false)
 
-  // Primary host for analytics (allowedDomains is a newline-separated list).
-  const primaryDomain =
-    client.allowedDomains
-      ?.split('\n')
-      .map((domain) => domain.trim())
-      .find(Boolean) ?? ''
+  useEffect(() => {
+    if (didInit.current) return
+    didInit.current = true
+    if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
+  }, [homePath, location.pathname, navigate])
 
   useEffect(() => {
     if (defaultLocale || client.locale) {
       i18n.changeLanguage(defaultLocale || client.locale || 'en')
     }
-
-    return () => {}
   }, [defaultLocale, client.locale])
 
-  const { locale } = useLocale()
-  const location = useLocation()
-  const setCurrentPath = useNavigationState((s) => s.setCurrentPath)
-
-  useEffect(() => setCurrentPath(location.pathname), [location])
-
+  // Analytics: one pageview per real navigation. Dedupe repeats so a `replace` or a
+  // map-click landing on the same URL isn't double-counted.
+  const primaryDomain = useMemo(
+    () =>
+      client.allowedDomains
+        ?.split('\n')
+        .map((domain) => domain.trim())
+        .find(Boolean) ?? '',
+    [client.allowedDomains],
+  )
   const fathomEnabled =
     !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
+  const lastTracked = useRef('')
 
   useEffect(() => {
     if (fathomEnabled) Fathom.load(import.meta.env.VITE_FATHOM_ID)
   }, [fathomEnabled])
 
   useEffect(() => {
-    if (fathomEnabled) {
-      Fathom.trackPageview({ url: `https://${primaryDomain}/${location.pathname}` })
-    }
-  }, [location, fathomEnabled, primaryDomain])
+    if (!fathomEnabled || lastTracked.current === location.pathname) return
+    lastTracked.current = location.pathname
+    Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
+  }, [location.pathname, fathomEnabled, primaryDomain])
 
   return (
-    <>
+    <WidgetModeContext.Provider value={{ standalone, hasMap }}>
       <Helmet>
         <meta content={locale} property="og:locale" />
       </Helmet>
-      <MapLayout>
-        <Routes>
-          <Route element={<IndexPage />} path="/search" />
-          <Route element={<ResolvedRoute initialPath={initialPath} />} path="*" />
-        </Routes>
-      </MapLayout>
-    </>
+      {hasMap ? (
+        <MapProvider>
+          {/* Inline fixed/inset so the map always fills the viewport behind the
+              drawers — independent of Tailwind viewport-unit utility generation. */}
+          <div style={{ position: 'fixed', inset: 0 }}>
+            <Mapbox />
+          </div>
+          <RealMapControllerProvider>
+            <DrawerStack />
+          </RealMapControllerProvider>
+        </MapProvider>
+      ) : (
+        <NoopMapControllerProvider>
+          <DrawerStack />
+        </NoopMapControllerProvider>
+      )}
+    </WidgetModeContext.Provider>
   )
-}
-
-// ===== RESOLVED ROUTE ===== //
-
-// The single hierarchical route: resolve the pathname by its terminal segment
-// (numeric → event, else → region slug) and render the matching page. `key`
-// remounts the page when the target changes so its effects re-run cleanly.
-function ResolvedRoute({ initialPath }: { initialPath: string }) {
-  const location = useLocation()
-  const resolved = resolvePath(location.pathname)
-
-  if (!resolved) return <Navigate replace to={initialPath} />
-
-  if (resolved.kind === 'event') {
-    return <EventPage key={`event:${resolved.id}`} id={resolved.id} />
-  }
-
-  return <RegionPage key={`region:${resolved.slug}`} slug={resolved.slug} />
 }

@@ -21,14 +21,21 @@ export type { CheckboxProps } from './Checkbox'
 export { Chip } from './Chip'
 export type { ChipProps } from './Chip'
 
+export {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
+  DrawerFooter,
+  DrawerClose,
+} from './Drawer'
+export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
+
 export { Dropdown, DropdownItem } from './Dropdown'
 export type { DropdownProps, DropdownItemProps } from './Dropdown'
 
 export { Link } from './Link'
 export type { LinkProps } from './Link'
-
-export { Modal, ModalHeader, ModalBody, ModalFooter, ModalClose } from './Modal'
-export type { ModalProps } from './Modal'
 
 export { Select, SelectItem } from './Select'
 export type { SelectProps, SelectItemProps } from './Select'

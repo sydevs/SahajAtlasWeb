@@ -57,19 +57,17 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `Checkbox/`           | `Checkbox`                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`); the checkbox appearance backs the registration consent field |
 | `Chip/`               | `Chip`                                               | Pure presentational atom; brand-token styling (`tv()`)                                                                                  |
 | `Dropdown/`           | `Dropdown`, `DropdownItem`                           | Floating-UI popover: portaled, flip/shift (`tv()`)                                                                                      |
-| `Modal/`              | `Modal`, `ModalHeader`/`Body`/`Footer`, `ModalClose` | Radix dialog; optional `trigger` (uncontrolled) or `isOpen`/`onOpenChange` (controlled) — the single dialog abstraction                 |
+| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Body`/`Footer`/`Close` | vaul drawer (root or `nested`); left ≥md / bottom sheet on mobile, non-modal; portals into the themed root, or renders inline / `contained` when map-less. The single surface abstraction |
 | `Select/`             | `Select`, `SelectItem`                               | Radix select on brand tokens (used by the registration form)                                                                            |
 
 **Molecules** (`src/components/molecules/`)
 
 | Folder           | Exports                            | Notes                                                                                         |
 | ---------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| `Navbar/`        | `Navbar`                           | Logo + theme switch + language (`LanguageSelector` + `ThemeSwitch` are private files here)    |
-| `SearchBar/`     | `SearchBar`                        | Search input; reads `useSearchState`                                                          |
-| `Panel/`         | `Panel`                            | Suspense + ErrorBoundary page-content shell (moved up from atoms)                             |
+| `Toolbar/`       | `Toolbar`                          | Drawer-footer bar: Sahaj Atlas wordmark + language + theme (`LanguageSelector` + `ThemeSwitch` are private files here) |
 | `Fallbacks/`     | `LoadingFallback`, `ErrorFallback` | Suspense / error-boundary fallbacks (moved up from atoms; compose `Alert`/`Spinner`)          |
 | `DetailRow/`     | `DetailRow`                        | Generic labelled icon row (icon slot + title + content + optional link)                       |
-| `List/`          | `List`, `ListHeader`               | Scrollable `<ul>` container + its back-link/title header sub-component                        |
+| `List/`          | `List`                             | Scrollable `<ul>` container for region/event rows                                             |
 | `RegionCard/`    | `RegionCard`                       | Navigable region row (country → region → area drill-down)                                     |
 | `EventCard/`     | `EventCard`                        | Per-event summary card in a list                                                              |
 | `EventTime/`     | `EventTime`                        | Formatted event time range (timezone chip is a private composition)                           |
@@ -84,12 +82,15 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Mapbox/` (sub-module) | `Mapbox`, `MapSearch` (+ `layers.ts`, `themes.ts` helpers) | The Mapbox surface; see [`.claude/rules/mapbox.md`](.claude/rules/mapbox.md)                                                                                                                       |
 | `EventsList/`          | `EventsList`, `DynamicEventsList`                          | List + distance-sorted fetch                                                                                                                                                                       |
-| `EventView/`           | `EventView`                                                | Full event detail panel; owns the detail-card ordering + register/share triggers (the three detail cards + register/share actions live private in the folder). Lazy-loaded — **not** in the barrel |
-| `RegistrationForm/`    | `RegistrationForm`                                         | Form-only, config-driven registration (field chrome is private); `EventView` wraps it in a `Modal`. **Not** in the barrel                                                                          |
+| `EventDetails/`        | `EventDetails`                                             | Reusable event content body: carousel, description, timing/location/contact cards (the three detail cards live private in the folder); register/share CTAs navigate to the drawer routes. Lazy-loaded — **not** in the barrel |
+| `RegistrationForm/`    | `RegistrationForm`                                         | Form-only, config-driven registration (field chrome is private); rendered in the RegistrationView drawer body. **Not** in the barrel                                                               |
 
-**Templates** — `src/layouts/{default,map}.tsx` (`DefaultLayout`, `MapLayout`).
-Layouts stay in `src/layouts/` (route-level scaffolds owned by `App.tsx`); they
-are the template tier and are not re-exported through the component barrels.
+**Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
+`RootView`/`SearchView`/`RegionView`/`EventView`/`RegistrationView`/`ShareView`).
+`DrawerStack` derives the open drawers from the pathname (`resolveStack`) and
+renders RootView (base) + one nested vaul `Drawer` per ancestor; map-less it
+renders the base inline + `contained` drawers. Folder-per-component, not
+re-exported through the component barrels.
 
 ## Conventions
 
@@ -111,13 +112,12 @@ are the template tier and are not re-exported through the component barrels.
   2. **`Icons/`** — an icon-set module (keeps a single `export *`).
   3. **`Mapbox/`** — sub-module exposing `Mapbox` + `MapSearch` (layers/themes stay internal).
   4. **`EventsList/`** — the `DynamicEventsList` container + `EventsList` presentational pair.
-  5. **`Modal/`** — `Modal` + the `ModalHeader`/`ModalBody`/`ModalFooter` layout
-     parts + `ModalClose`. The single dialog abstraction: a `Modal` takes an
-     optional `trigger` (uncontrolled) or `isOpen`/`onOpenChange` (controlled), and
-     both the share and registration dialogs compose it.
+  5. **`Drawer/`** — `Drawer` + the `DrawerContent`/`DrawerHeader`/`DrawerBody`/
+     `DrawerFooter` layout parts + `DrawerClose`. The single surface abstraction: a
+     `Drawer` is `open`/`onOpenChange` controlled, optionally `nested` (stacked over
+     a parent) or `contained` (map-less), and every View composes it.
   6. **`Fallbacks/`** (molecules) — `LoadingFallback` + `ErrorFallback` (pending split into two folders).
-  7. **`List/`** — `List` + its `ListHeader` sub-component (back link + title).
-- **App code (pages, layouts, stories) imports from the tier barrel**:
+- **App code (views, stories) imports from the tier barrel**:
   `import { Chip } from '@/components/atoms'`. The barrel is the public surface;
   layout can change behind it.
 - **Inside `src/components`, components import each other by the _component folder_

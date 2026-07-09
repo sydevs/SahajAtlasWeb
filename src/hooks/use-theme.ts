@@ -1,15 +1,19 @@
 // originally written by @imoaazahmed; reworked to observe a configurable root
 // class so a single theme signal drives NextUI, Tailwind, and the Mapbox basemap.
 
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 
 const ThemeProps = {
   key: 'theme',
   light: 'light',
   dark: 'dark',
+  auto: 'auto',
 } as const
 
+// The *resolved* theme written to the root class (what NextUI/Tailwind/Mapbox read).
 type Theme = typeof ThemeProps.light | typeof ThemeProps.dark
+// The user's *preference*: a resolved theme, or 'auto' (follow the system).
+export type ThemePreference = Theme | typeof ThemeProps.auto
 
 // The theme root's class is the single source of truth: NextUI, Tailwind
 // (darkMode: 'class'), and the Mapbox basemap (MAP_STYLES[theme]) all key off
@@ -36,8 +40,8 @@ export const setThemeRoot = (el: HTMLElement | null) => {
 }
 
 // useTheme observes the root's class so every consumer reacts to a change made
-// anywhere — ThemeSwitch, the Ladle theme toggle, etc. The observer follows the
-// active root: if setThemeRoot swaps it, each subscription re-attaches.
+// anywhere — the settings menu, the Ladle theme toggle, etc. The observer follows
+// the active root: if setThemeRoot swaps it, each subscription re-attaches.
 const subscribe = (onChange: () => void) => {
   let observer: MutationObserver | null = null
 
@@ -67,8 +71,8 @@ const getSnapshot = (): Theme =>
 // Stories and unit tests render via renderToStaticMarkup (no DOM); default light.
 const getServerSnapshot = (): Theme => ThemeProps.light
 
-// The single seam for writing the theme to the root class — used by useTheme's
-// setters, initTheme, and the Ladle decorator so the mechanism never drifts.
+// The single seam for writing the theme to the root class — used by the preference
+// machinery, initTheme, and the Ladle decorator so the mechanism never drifts.
 export const applyTheme = (theme: Theme) => {
   const root = getThemeRoot()
 
@@ -76,60 +80,138 @@ export const applyTheme = (theme: Theme) => {
   root.classList.add(theme)
 }
 
-// localStorage can throw — not just be absent — in sandboxed iframes (a
-// `sandbox` without `allow-same-origin`) and some privacy modes, which matters
-// since this ships as an embeddable widget. Wrap reads/writes so the theme class
-// still updates; the choice just isn't persisted.
-const readStoredTheme = (): Theme | null => {
+// ── System (prefers-color-scheme) resolution + watching ──────────────────────────
+
+const prefersDark = (): boolean => {
+  try {
+    return (
+      typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    )
+  } catch {
+    return false
+  }
+}
+
+const resolvePreference = (pref: ThemePreference): Theme =>
+  pref === ThemeProps.auto ? (prefersDark() ? ThemeProps.dark : ThemeProps.light) : pref
+
+// While the preference is 'auto', re-apply the resolved theme whenever the system
+// flips. Idempotent + guarded so it's a no-op without a DOM.
+let systemMedia: MediaQueryList | null = null
+let onSystemChange: (() => void) | null = null
+
+const watchSystem = (enabled: boolean) => {
+  if (typeof window === 'undefined' || !window.matchMedia) return
+  if (enabled && !onSystemChange) {
+    systemMedia = window.matchMedia('(prefers-color-scheme: dark)')
+    onSystemChange = () => applyTheme(resolvePreference(ThemeProps.auto))
+    systemMedia.addEventListener('change', onSystemChange)
+  } else if (!enabled && onSystemChange) {
+    systemMedia?.removeEventListener('change', onSystemChange)
+    systemMedia = null
+    onSystemChange = null
+  }
+}
+
+// Fully disengage the system-theme watcher. Called on widget teardown (BrandTheme's
+// unmount, alongside releasing the theme root) so a torn-down embed leaves no
+// matchMedia listener firing against a detached wrapper / the host page's <html>.
+export const stopSystemWatch = () => watchSystem(false)
+
+// ── Preference storage + signal ──────────────────────────────────────────────────
+
+// localStorage can throw — not just be absent — in sandboxed iframes (a `sandbox`
+// without `allow-same-origin`) and some privacy modes, which matters since this
+// ships as an embeddable widget. Wrap reads/writes so the theme class still updates;
+// the choice just isn't persisted.
+const readStoredPreference = (): ThemePreference | null => {
   try {
     const stored = localStorage.getItem(ThemeProps.key)
 
-    return stored === ThemeProps.dark || stored === ThemeProps.light ? stored : null
+    return stored === ThemeProps.dark || stored === ThemeProps.light || stored === ThemeProps.auto
+      ? stored
+      : null
   } catch {
     return null
   }
 }
 
-const persistTheme = (theme: Theme) => {
+const persistPreference = (pref: ThemePreference) => {
   try {
-    localStorage.setItem(ThemeProps.key, theme)
+    localStorage.setItem(ThemeProps.key, pref)
   } catch {
     // storage unavailable — ignore; the root class still reflects the choice
   }
 }
 
-// Resolve the theme to render on first paint (persisted choice, else default)
-// without touching the DOM — used by the widget to set its wrapper's initial
-// class so there's no flash before useTheme/initTheme take over.
-export const getInitialTheme = (defaultTheme: Theme = ThemeProps.light): Theme =>
-  readStoredTheme() ?? defaultTheme
+// The current preference, mirrored to useThemePreference subscribers. Seeded lazily
+// from storage on first read so the widget (which sets its class via getInitialTheme
+// rather than initTheme) still reports the right value.
+let preference: ThemePreference | null = null
+const prefListeners = new Set<() => void>()
 
-// Apply the persisted (or default) theme to the root class once at startup, so
-// the standalone app and widget restore the user's choice. Afterwards useTheme's
-// setters keep the class in sync. Guarded to be a no-op outside the browser.
+const getPreference = (): ThemePreference => {
+  if (preference === null) preference = readStoredPreference() ?? ThemeProps.light
+
+  return preference
+}
+
+// Apply a preference to the root class and (dis)engage the system watcher. Does not
+// persist — startup applies without writing; setPreference persists first.
+const applyPreference = (pref: ThemePreference) => {
+  preference = pref
+  applyTheme(resolvePreference(pref))
+  watchSystem(pref === ThemeProps.auto)
+}
+
+// ── Startup helpers (used by main / Widget) ──────────────────────────────────────
+
+// Resolve the theme to render on first paint (persisted preference, else default),
+// without touching the DOM — the widget uses it to set its wrapper's initial class.
+export const getInitialTheme = (defaultTheme: Theme = ThemeProps.light): Theme =>
+  resolvePreference(readStoredPreference() ?? defaultTheme)
+
+// Apply the persisted (or default) preference to the root class once at startup, and
+// start watching the system when it's 'auto'. Guarded to be a no-op outside the browser.
 export const initTheme = (defaultTheme: Theme = ThemeProps.light) => {
   if (typeof document === 'undefined') return
 
-  applyTheme(getInitialTheme(defaultTheme))
+  applyPreference(readStoredPreference() ?? defaultTheme)
 }
 
+// ── Hooks ────────────────────────────────────────────────────────────────────────
+
+// The resolved theme (light/dark) read from the root class — what the map/NextUI use.
 export const useTheme = () => {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  const setTheme = (next: Theme) => {
-    persistTheme(next)
-    applyTheme(next)
+  return { theme }
+}
+
+// The user's preference (light/dark/auto) + setter — drives the settings menu. The
+// resolved class still comes from useTheme; setting the preference persists it,
+// applies the resolved theme, and (dis)engages the system watcher. Also keeps the
+// watcher engaged for an 'auto' preference restored on load.
+export const useThemePreference = () => {
+  const value = useSyncExternalStore(
+    (cb) => {
+      prefListeners.add(cb)
+
+      return () => prefListeners.delete(cb)
+    },
+    getPreference,
+    () => ThemeProps.light as ThemePreference,
+  )
+
+  useEffect(() => {
+    watchSystem(value === ThemeProps.auto)
+  }, [value])
+
+  const setPreference = (pref: ThemePreference) => {
+    persistPreference(pref)
+    applyPreference(pref)
+    prefListeners.forEach((n) => n())
   }
 
-  return {
-    theme,
-    isDark: theme === ThemeProps.dark,
-    isLight: theme === ThemeProps.light,
-    setLightTheme: () => setTheme(ThemeProps.light),
-    setDarkTheme: () => setTheme(ThemeProps.dark),
-    // Read the live class rather than closing over `theme`, so the toggle never
-    // acts on a stale value.
-    toggleTheme: () =>
-      setTheme(getSnapshot() === ThemeProps.dark ? ThemeProps.light : ThemeProps.dark),
-  }
+  return { preference: value, setPreference }
 }

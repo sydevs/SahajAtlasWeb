@@ -36,8 +36,10 @@ When embedded, the host page supplies the API key (and optional locale) as
 element props:
 
 ```html
-<syatlas-map api-key="…" locale="en"></syatlas-map>
+<sahaj-atlas api-key="…" locale="en"></sahaj-atlas>
 ```
+
+Add `map="false"` to render content-only (no map canvas, no Mapbox token needed).
 
 In dev/standalone, the key comes from `VITE_SAHAJCLOUD_API_KEY`. See `src/Widget.tsx`
 and `src/config/api/auth.ts`.

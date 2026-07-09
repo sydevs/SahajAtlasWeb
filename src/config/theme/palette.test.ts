@@ -103,16 +103,28 @@ describe('applyPalette', () => {
     expect(props.has('--background')).toBe(false)
   })
 
-  it('applies the background override in light mode only', () => {
+  it('derives the background surface from the ladder app-bg step (both modes)', () => {
     const light = fakeRoot()
 
+    // Hue + capped saturation are honored, but the shade is the ladder's
+    // near-white app-background step — not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
-    expect(light.props.get('--background')).toBe('43 32% 91%')
+    expect(light.props.get('--background')).toBe('43 32% 99%')
 
+    // Dark mode now applies too, tinting the near-black app-background step.
     const dark = fakeRoot()
 
     applyPalette(dark.root, { background: '#f0ece2' }, 'dark')
-    expect(dark.props.has('--background')).toBe(false)
+    expect(dark.props.get('--background')).toBe('43 32% 9%')
+  })
+
+  it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
+    const { root, props } = fakeRoot()
+
+    // A #000000 seed (e.g. an unset client default) must not blacken the panel:
+    // the shade snaps to the near-white app-bg step, keeping the dark text legible.
+    applyPalette(root, { background: '#000000' }, 'light')
+    expect(props.get('--background')).toBe('0 0% 99%')
   })
 
   it('ignores invalid seed hexes', () => {

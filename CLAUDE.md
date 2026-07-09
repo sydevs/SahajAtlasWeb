@@ -1,7 +1,7 @@
 # Sahaj Atlas — Developer Guide (AGENTS.md / CLAUDE.md)
 
 Map-based atlas of Sahaja Yoga events and venues, shipped as an **embeddable web
-component** (`<syatlas-map>`). Host sites drop in the custom element with an API
+component** (`<sahaj-atlas>`). Host sites drop in the custom element with an API
 key; it renders a full Mapbox experience with a country → region → area → venue →
 event hierarchy.
 
@@ -78,24 +78,24 @@ separately. A PostToolUse hook runs the unit lane on `src/**` edits.
 
 ```
 src/
-  Widget.tsx          # Web-component entry — defines <syatlas-map>, wraps <App>
-  App.tsx             # Router + providers + client bootstrap (HashRouter)
-  main.tsx            # Standalone dev entry
+  Widget.tsx          # Web-component entry — defines <sahaj-atlas> (map prop), wraps <App>
+  App.tsx             # Providers + client bootstrap; renders the map (or not) + DrawerStack
+  main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
   providers.tsx       # NextUI + React Query + Helmet providers
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
-    atoms/            # Primitives: Chip/, Dropdown/, Panel/, LanguageSelector/, Fallbacks/, ThemeSwitch/, Icons/
-    molecules/        # Compositions: Navbar/, SearchBar/, List*/, EventTime|Share|Images|Soon/, EventItem/, EventMetadata/
-    organisms/        # Data-connected: EventsList/, EventPanel|Details|Registration/, Mapbox/
+    atoms/            # Primitives: Drawer/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
+    molecules/        # Compositions: Toolbar/, List/, RegionCard/, EventCard/, EventTime|Share|Images|Soon/, EventMetadata/, Fallbacks/
+    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
+  views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Region/Event/Registration/Share
   config/
     api/              # axios client + zod-parsed fetchers (fetch.ts, mutate.ts, auth.ts)
-    store.ts          # zustand stores (view / navigation / search state)
+    store.ts          # zustand stores (view / search / registration-draft)
+    mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
     site.ts, responsive.ts
-  hooks/              # use-locale, use-mapbox, use-theme
-  layouts/            # default, map
-  pages/              # index(search), country, region, area, venue, event
+  hooks/              # use-locale, use-mapbox, use-map-controller, use-theme
   types/              # zod schemas + inferred types per entity
 public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 ```
@@ -107,11 +107,17 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response
   through a zod schema from `src/types/`. Keep that contract — see
   `.claude/rules/data-layer.md`.
-- **State**: zustand stores are the single source of truth for map view,
-  navigation history, and search filters. Read with `useShallow` selectors in
-  hot paths (the map). See `.claude/rules/i18n-and-state.md`.
+- **State**: zustand stores are the single source of truth for map view and
+  search filters. Read with `useShallow` selectors in hot paths (the map). See
+  `.claude/rules/i18n-and-state.md`.
+- **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
+  `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open
+  drawers; `DrawerStack` renders RootView (base) + one nested vaul drawer per
+  ancestor. No drawer-stack store — dismissing a drawer is `navigate(parentPath)`.
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`;
-  never inline layer paint/layout in JSX. See `.claude/rules/mapbox.md`.
+  never inline layer paint/layout in JSX. Camera control goes through the
+  `MapController` seam (`src/hooks/use-map-controller.tsx`) — a no-op when
+  `map=false` — so no view branches on whether a map exists. See `.claude/rules/mapbox.md`.
 - **Components**: atomic tiers (`atoms/molecules/organisms`), **PascalCase
   folder-per-component** (`Chip/Chip.tsx` + stories + `index.ts`), named exports,
   barrel per tier; prefer NextUI built-ins + `tailwind-variants`

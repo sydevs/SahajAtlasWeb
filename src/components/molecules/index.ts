@@ -1,18 +1,8 @@
 // Molecules — small compositions of atoms; data passed in via props.
-// Public import surface: `import { SearchBar } from '@/components/molecules'`.
+// Public import surface: `import { EventCard } from '@/components/molecules'`.
 // See DESIGN_SYSTEM.md. Explicit named exports only — each folder surfaces its
 // primary component(s) + `Props` type; single-use internals stay private.
-export { Navbar } from './Navbar'
-export type { NavbarProps } from './Navbar'
-
-export { SearchBar } from './SearchBar'
-export type { SearchBarProps } from './SearchBar'
-
-// Panel — the page-content container (Suspense + ErrorBoundary) and the
-// Loading/Error fallbacks it renders. Moved up from atoms: they compose Alert/
-// Spinner and own the loading/error UX, so they sit above the atom tier.
-export { Panel } from './Panel'
-export type { PanelProps } from './Panel'
+export { SettingsMenu } from './SettingsMenu'
 
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
@@ -20,9 +10,7 @@ export { LoadingFallback, ErrorFallback } from './Fallbacks'
 export { DetailRow } from './DetailRow'
 export type { DetailRowProps } from './DetailRow'
 
-// List also surfaces its ListHeader sub-component (back link + title).
-export { List, ListHeader } from './List'
-export type { ListHeaderProps } from './List'
+export { List } from './List'
 
 export { RegionCard } from './RegionCard'
 export type { RegionCardProps } from './RegionCard'
@@ -33,8 +21,8 @@ export type { EventCardProps } from './EventCard'
 export { EventTime } from './EventTime'
 export type { EventTimeProps } from './EventTime'
 
-// ShareContent — the copyable URL + social-links block, reused by the event
-// share dialog (composed by EventView) and the registration "thank you" screen.
+// ShareContent — the copyable URL + social-links block, reused by the ShareView
+// drawer and the registration "thank you" screen.
 export { ShareContent } from './ShareContent'
 export type { ShareContentProps } from './ShareContent'
 

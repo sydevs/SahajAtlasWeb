@@ -36,9 +36,14 @@ Three stores, each the single source of truth for its slice:
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`
   selector — keep that pattern when consuming multiple fields so components only
   re-render on the fields they use.
-- **`useNavigationState`** — `previousPath` / `currentPath`, updated from
-  `App.tsx` on every route change (enables "back to previous view" behavior).
 - **`useSearchState`** — search filters (`onlineOnly`).
+- **`useRegistrationDraft`** — in-progress RegistrationView form values, hoisted
+  out of the form so the md-crossing drawer remount can't drop a half-filled form.
+
+Navigation is **not** a store: the drawer stack is a pure function of the URL
+(`resolveStack` in `src/lib/shape/path.ts`); dismissing a drawer is
+`navigate(parentPath)`. Camera control goes through the `MapController` seam
+(`src/hooks/use-map-controller.tsx`), never a store or the map directly.
 
 Conventions:
 

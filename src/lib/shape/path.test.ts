@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { isCanonicalPath, parentOf, resolvePath, safePath } from './path'
+import { childRoute, isCanonicalPath, parentOf, resolvePath, resolveStack, safePath } from './path'
 
 describe('safePath', () => {
   it('accepts a site-relative path', () => {
@@ -31,6 +31,14 @@ describe('parentOf', () => {
     expect(parentOf('/belgium')).toBeUndefined()
     expect(parentOf('/507')).toBeUndefined()
     expect(parentOf('/')).toBeUndefined()
+  })
+})
+
+describe('childRoute', () => {
+  it('nests a child id/slug under a parent path (inverse of parentOf)', () => {
+    expect(childRoute('/belgium/flanders/antwerpen', 507)).toBe('/belgium/flanders/antwerpen/507')
+    expect(childRoute('/belgium', 'flanders')).toBe('/belgium/flanders')
+    expect(parentOf(childRoute('/india/pune', 507))).toBe('/india/pune')
   })
 })
 
@@ -79,5 +87,52 @@ describe('resolvePath', () => {
 
   it('does not throw on a malformed percent escape', () => {
     expect(resolvePath('/foo%')).toEqual({ kind: 'region', slug: 'foo%' })
+  })
+})
+
+describe('resolveStack', () => {
+  it('is empty for the root (CountriesView is the implicit base)', () => {
+    expect(resolveStack('/')).toEqual([])
+    expect(resolveStack('')).toEqual([])
+  })
+
+  it('returns one entry per segment for a nested region → event path', () => {
+    expect(resolveStack('/india/pune/507')).toEqual([
+      { kind: 'region', slug: 'india', path: '/india' },
+      { kind: 'region', slug: 'pune', path: '/india/pune' },
+      { kind: 'event', id: 507, path: '/india/pune/507' },
+    ])
+  })
+
+  it('appends a register/share entry over the parent event', () => {
+    expect(resolveStack('/india/pune/507/register')).toEqual([
+      { kind: 'region', slug: 'india', path: '/india' },
+      { kind: 'region', slug: 'pune', path: '/india/pune' },
+      { kind: 'event', id: 507, path: '/india/pune/507' },
+      { kind: 'register', eventPath: '/india/pune/507', path: '/india/pune/507/register' },
+    ])
+    expect(resolveStack('/507/share').at(-1)).toEqual({
+      kind: 'share',
+      eventPath: '/507',
+      path: '/507/share',
+    })
+  })
+
+  it('owns /search', () => {
+    expect(resolveStack('/search')).toEqual([{ kind: 'search', path: '/search' }])
+  })
+
+  it('skips legacy prefixes so a legacy URL is just its terminal entity', () => {
+    expect(resolveStack('/events/507')).toEqual([{ kind: 'event', id: 507, path: '/events/507' }])
+    expect(resolveStack('/areas/antwerpen')).toEqual([
+      { kind: 'region', slug: 'antwerpen', path: '/areas/antwerpen' },
+    ])
+  })
+
+  it('decodes a region slug but keeps the path encoded (matches the address bar)', () => {
+    expect(resolveStack('/belgium/li%C3%A8ge')).toEqual([
+      { kind: 'region', slug: 'belgium', path: '/belgium' },
+      { kind: 'region', slug: 'liège', path: '/belgium/li%C3%A8ge' },
+    ])
   })
 })

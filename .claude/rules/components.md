@@ -2,8 +2,7 @@
 description: React component patterns — NextUI, tailwind-variants, widget context.
 globs:
   - "src/components/**/*.tsx"
-  - "src/layouts/**/*.tsx"
-  - "src/pages/**/*.tsx"
+  - "src/views/**/*.tsx"
   - "src/providers.tsx"
 alwaysApply: false
 ---
@@ -36,7 +35,7 @@ atomic tier (`src/components/atoms|molecules|organisms/`) per `DESIGN_SYSTEM.md`
 
 ## Widget / embedding constraints
 
-This app ships as the `<syatlas-map>` custom element (`src/Widget.tsx`) embedded
+This app ships as the `<sahaj-atlas>` custom element (`src/Widget.tsx`) embedded
 in host pages, **and** runs standalone in dev. Because of that:
 
 - Routing uses **HashRouter** with basename `!` (the widget owns `window.location.hash`).

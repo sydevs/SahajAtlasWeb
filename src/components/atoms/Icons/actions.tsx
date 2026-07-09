@@ -77,3 +77,7 @@ export const ExternalIcon: React.FC<IconSvgProps> = ({ ...props }) => (
     {...props}
   />
 )
+
+export const ListIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon paths={['M3 5h18v2H3zM3 11h18v2H3zM3 17h18v2H3z']} view="0 0 24 24" {...props} />
+)

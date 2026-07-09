@@ -3,8 +3,6 @@ import { useCallback } from 'react'
 import { useMap } from 'react-map-gl'
 import { create } from 'zustand/react'
 
-import { useBreakpoint } from '@/config/responsive'
-
 type PaddingState = {
   padding: PaddingOptions
   setPadding: (padding: PaddingOptions) => void
@@ -17,7 +15,6 @@ export const usePaddingState = create<PaddingState>((set) => ({
 
 export function useMapbox() {
   const { mapbox } = useMap()
-  const { isMd } = useBreakpoint('md')
   const padding = usePaddingState((s) => s.padding)
   const setPadding = usePaddingState((s) => s.setPadding)
 
@@ -38,24 +35,6 @@ export function useMapbox() {
     mapbox,
     padding,
     setPadding: changePadding,
-    updatePadding: useCallback(() => {
-      if (!mapbox) return
-      const mapRect = mapbox.getCanvas().getBoundingClientRect()
-      const mainRect = document.getElementById('syatlas-main')?.getBoundingClientRect()
-
-      if (!mapRect || !mainRect) return
-
-      const padding = {
-        left: 20 + (isMd ? mainRect.right - mainRect.left : 0),
-        right: 20,
-        top: 20,
-        bottom: 20 + (!isMd ? mapRect.bottom - mainRect.top : 0),
-      }
-
-      changePadding(padding)
-
-      return padding
-    }, [mapbox, isMd, changePadding]),
     fitBounds: useCallback(
       (bounds: LngLatBoundsLike) => {
         mapbox?.fitBounds(bounds, { padding })

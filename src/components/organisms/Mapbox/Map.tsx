@@ -1,14 +1,13 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
   Layer,
   MapMouseEvent,
-  PaddingOptions,
   Source,
 } from 'react-map-gl'
 import { useQuery } from '@tanstack/react-query'
-import { useLocation, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -23,7 +22,6 @@ import { useViewState } from '@/config/store'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { safePath } from '@/lib/shape'
-import { useBreakpoint } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -55,7 +53,7 @@ const DEBUG_PADDING = false
 
 export function Mapbox() {
   let navigate = useNavigate()
-  const { mapbox, padding, updatePadding, moveMap } = useMapbox()
+  const { mapbox, padding, moveMap } = useMapbox()
   const { zoom, latitude, longitude, setViewState, selection, boundary } = useViewState(
     useShallow((s) => ({
       zoom: s.zoom,
@@ -66,8 +64,6 @@ export function Mapbox() {
       setViewState: s.setViewState,
     })),
   )
-  const location = useLocation()
-  const { isMd } = useBreakpoint('md')
   const { locale, languageCode } = useLocale()
   const { theme } = useTheme()
 
@@ -112,30 +108,10 @@ export function Mapbox() {
     [mapbox],
   )
 
-  useEffect(() => {
-    if (!mapbox) return
-
-    const resetPadding = (evt?: Event) => {
-      const padding = updatePadding()
-
-      if (evt?.type || mapbox.isEasing()) {
-        mapbox.setPadding(padding as PaddingOptions)
-      } else {
-        moveMap({ padding })
-      }
-    }
-
-    resetPadding()
-    window.addEventListener('resize', resetPadding)
-    window.addEventListener('orientationchange', resetPadding)
-    window.addEventListener('scroll', resetPadding)
-
-    return () => {
-      window.removeEventListener('resize', resetPadding)
-      window.removeEventListener('orientationchange', resetPadding)
-      window.removeEventListener('scroll', resetPadding)
-    }
-  }, [mapbox, isMd, location])
+  // Map padding (keeping the drawer's footprint out of the camera) is owned by the
+  // MapController now — set from the known drawer width per breakpoint, not by
+  // DOM-measuring the panel or listening to window scroll/resize (react-map-gl
+  // resizes its own container). See hooks/use-map-controller.tsx.
 
   return (
     <ReactMapGL

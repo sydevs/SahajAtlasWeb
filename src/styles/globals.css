@@ -3,6 +3,8 @@
 @import 'swiper/css';
 @import 'swiper/css/a11y';
 @import 'swiper/css/pagination';
+/* vaul drawer slide/snap transforms + handle — vendored (see src/styles/vaul.css header) */
+@import './vaul.css';
 
 /* Radix Colors — the neutral (gray) and status (danger=red) ramps. Each file
    scopes its scale to `:root, .light` (light) / `.dark` (dark), which matches the

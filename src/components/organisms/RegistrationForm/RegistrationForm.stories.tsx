@@ -1,12 +1,11 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-// Not in the organisms barrel (reached only via the lazy event view); import
-// from the co-located file.
+// Not in the organisms barrel (reached only via the RegistrationView drawer);
+// import from the co-located file.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { RegistrationForm } from './RegistrationForm'
 
-import { Modal } from '@/components/atoms/Modal'
 import { Button } from '@/components/atoms/Button'
 
 export default { title: 'Organisms' } satisfies StoryDefault
@@ -14,26 +13,19 @@ export default { title: 'Organisms' } satisfies StoryDefault
 const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
 
 /**
- * RegistrationForm — the form-only registration component, shown inside a
- * <Modal>. It carries the date/name/email fields, an opt-in mailing-list consent
- * checkbox above the privacy note, and the thank-you/share screen on success.
- * External registration (a link out) is handled by EventView, not the form.
+ * RegistrationForm — the form-only registration component, rendered in the
+ * RegistrationView drawer body. It carries the date/name/email fields, an opt-in
+ * mailing-list consent checkbox above the privacy note, and the thank-you/share
+ * screen on success. External registration (a link out) is handled by
+ * EventDetails, not the form.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="Opens the form in a Modal; note the opt-in consent checkbox above the privacy note."
-      title="Native (in a Modal)"
+      description="The native form as it renders in the drawer body; note the opt-in consent checkbox above the privacy note."
+      title="Native"
     >
-      <Modal
-        backdrop="blur"
-        placement="bottom"
-        trigger={
-          <Button color="primary" variant="flat">
-            Register now
-          </Button>
-        }
-      >
+      <div className="max-w-md rounded-lg border border-divider p-4">
         <RegistrationForm
           eventId={1}
           eventTitle="Saturday Morning Meditation"
@@ -42,19 +34,11 @@ export const Default: Story = () => (
           questions={[]}
           upcomingDates={upcomingDates}
         />
-      </Modal>
+      </div>
     </StorySection>
 
     <StorySection description="An online event also shows the join-link notice." title="Online">
-      <Modal
-        backdrop="blur"
-        placement="bottom"
-        trigger={
-          <Button color="primary" variant="flat">
-            Register (online)
-          </Button>
-        }
-      >
+      <div className="max-w-md rounded-lg border border-divider p-4">
         <RegistrationForm
           eventId={2}
           eventTitle="Online Meditation"
@@ -63,11 +47,11 @@ export const Default: Story = () => (
           questions={[]}
           upcomingDates={upcomingDates}
         />
-      </Modal>
+      </div>
     </StorySection>
 
     <StorySection
-      description="External registration links out to the host's page — rendered by EventView, shown here for reference."
+      description="External registration links out to the host's page — rendered by EventDetails, shown here for reference."
       title="External"
     >
       <Button

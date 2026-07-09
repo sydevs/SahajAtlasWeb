@@ -29,7 +29,8 @@ extend([a11yPlugin])
 export type ThemeMode = 'light' | 'dark'
 
 // One seed hex per themeable role; any role may be omitted (then it's left to
-// the built-in default). `background` themes the page surface in light mode only.
+// the built-in default). `background` tints the page surface in both modes,
+// using the seed's hue/saturation at the Radix app-background shade.
 export type PaletteRoles = {
   primary?: string | null
   secondary?: string | null
@@ -82,12 +83,6 @@ const DARK_L: Record<Exclude<Step, 9 | 10>, number> = {
 const channel = (h: number, s: number, l: number) =>
   `${Math.round(h)} ${Math.round(s)}% ${Math.round(l)}%`
 
-const toChannel = (c: Colord) => {
-  const { h, s, l } = c.toHsl()
-
-  return channel(h, s, l)
-}
-
 const BLACK = '0 0% 0%'
 const WHITE = '0 0% 100%'
 
@@ -109,6 +104,12 @@ const MAX_SATURATION = 60
 // normal mid-toned brand sits between these and is used as-is.
 const LIGHT_MAX_LIGHTNESS = 70
 const DARK_MIN_LIGHTNESS = 60
+
+// The page/panel surface (`--background`) uses the ladder's app-background step,
+// so a themed background is a near-white (light) / near-black (dark) tint of the
+// seed's hue — light/dark enough to keep the fixed neutral text legible, rather
+// than the seed's raw shade (a near-black seed would otherwise blacken the panel).
+const BACKGROUND_STEP: Step = 1
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
@@ -166,18 +167,20 @@ const MANAGED_VARS = [
 // Repaint a root element in the supplied palette by writing the brand CSS vars
 // inline. Resets to the static theme first, then layers on only the supplied
 // roles, so omitted roles fall back to the built-in default. `mode` drives the
-// per-step ladder and gates the background override.
+// per-step ladder (including the background surface's shade).
 export function applyPalette(root: HTMLElement, palette: PaletteRoles, mode: ThemeMode) {
   for (const name of MANAGED_VARS) root.style.removeProperty(name)
 
   if (palette.primary) setRole(root, 'primary', palette.primary, mode)
   if (palette.secondary) setRole(root, 'secondary', palette.secondary, mode)
 
-  // The background override applies to light mode only; dark keeps its (already
-  // cleared) dark neutral, and an invalid value fails closed to the default.
-  const background = palette.background ? colord(palette.background) : null
-
-  if (background?.isValid() && mode === 'light') {
-    root.style.setProperty('--background', toChannel(background))
+  // The background surface is derived like every other role: the seed's hue and
+  // (capped) saturation are honored, but the shade comes from the Radix ladder's
+  // app-background step for the active mode — never the seed's own lightness. So
+  // a near-black seed (e.g. an unset #000000 default) still yields a readable
+  // near-white surface in light mode (near-black in dark), keeping the fixed
+  // neutral text legible. An invalid value fails closed to the static default.
+  if (palette.background && colord(palette.background).isValid()) {
+    root.style.setProperty('--background', buildScale(palette.background, mode)[BACKGROUND_STEP])
   }
 }

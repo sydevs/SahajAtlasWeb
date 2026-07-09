@@ -8,7 +8,7 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [
     cssInjectedByJsPlugin({
-      styleId: 'syatlas-map-style',
+      styleId: 'sahaj-atlas-style',
       relativeCSSInjection: true,
       dev: { enableDev: true },
     }),
