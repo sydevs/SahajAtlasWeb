@@ -6,12 +6,10 @@ import type { Event, EventImage, EventSlim, RegionRef } from '@/types'
 export const mockEventImages: EventImage[] = [
   {
     url: 'https://picsum.photos/seed/atlas-hall/1200/800',
-    thumbnailURL: 'https://picsum.photos/seed/atlas-hall/400/300',
     alt: 'Meditation hall',
   },
   {
     url: 'https://picsum.photos/seed/atlas-group/1200/800',
-    thumbnailURL: 'https://picsum.photos/seed/atlas-group/400/300',
     alt: 'Group session',
   },
 ]

@@ -21,6 +21,7 @@ import {
   eventsUnder,
   childRoute,
   parentOf,
+  resolveImageUrl,
   safePath,
 } from '@/lib/shape'
 import {
@@ -310,14 +311,26 @@ const getEvent = async (id: number): Promise<Event> => {
       },
       populate: {
         ...REGION_POPULATE,
-        images: { url: true, thumbnailURL: true, alt: true },
+        // `url` is a virtual field SahajCloud derives from `filename`, so we must
+        // select `filename` or `url` comes back null. `thumbnailURL` doesn't exist
+        // on this collection (Cloudflare Images flexible variants replaced sizes).
+        images: { url: true, filename: true, alt: true },
       },
     },
   })
 
   const event = EventDocSchema.parse(response.data)
 
-  return { ...event, path: safePath(event.webPath) ?? `/${event.id}` }
+  return {
+    ...event,
+    // Resolve image URLs at the data boundary so every consumer gets a ready-to-use
+    // absolute URL (SahajCloud serves relative image URLs in dev) — the same kind of
+    // wire-quirk shaping as `path` below. Null urls stay null; the UI skips them.
+    images: event.images.map((image) =>
+      image.url ? { ...image, url: resolveImageUrl(image.url) } : image,
+    ),
+    path: safePath(event.webPath) ?? `/${event.id}`,
+  }
 }
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────

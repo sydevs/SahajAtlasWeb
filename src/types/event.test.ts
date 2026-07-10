@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { EventSchema, EventSlimSchema, FeedEventSchema } from './event'
+import { EventDocSchema, EventSchema, EventSlimSchema, FeedEventSchema } from './event'
 
 import { mockEvent, mockEventSlim, mockEventSlimList } from '@/mocks/events'
 
@@ -61,5 +61,32 @@ describe('EventSchema', () => {
 
   it('rejects a missing required field', () => {
     expect(() => EventSchema.parse({ ...mockEvent, title: undefined })).toThrow()
+  })
+})
+
+describe('EventDocSchema images', () => {
+  // The real wire shape: `getEvent` selects `filename` (so SahajCloud's virtual
+  // `url` resolves) and the dev backend returns a relative `url`. `filename` is
+  // not part of the schema — it's dropped — and `url` is retained as-is.
+  it('parses an image with filename + relative url, keeping url and dropping filename', () => {
+    const parsed = EventDocSchema.parse({
+      ...mockEvent,
+      images: [
+        { id: 2, filename: 'picture-9.jpg', url: '/api/images/file/picture-9.jpg', alt: 'Hall' },
+      ],
+    })
+
+    expect(parsed.images[0].url).toBe('/api/images/file/picture-9.jpg')
+    expect(parsed.images[0]).not.toHaveProperty('filename')
+    expect(parsed.images[0].alt).toBe('Hall')
+  })
+
+  it('tolerates a null image url so a file-less image cannot crash the event read', () => {
+    const parsed = EventDocSchema.parse({
+      ...mockEvent,
+      images: [{ id: 3, url: null, alt: 'no file' }],
+    })
+
+    expect(parsed.images[0].url).toBeNull()
   })
 })

@@ -39,10 +39,12 @@ export const EventScheduleSchema = z.object({
 })
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
-// Populated `images` upload (the SahajCloud `Image` collection).
+// Populated `images` upload (the SahajCloud `Image` collection). `url` is a
+// virtual field derived from `filename` (which `getEvent` selects); it is nullish
+// so a single file-less image can't fail the whole event read — consumers skip
+// images without a url (mirrors the `SafeUrlSchema` / `firstDate_tz` tolerance).
 export const EventImageSchema = z.object({
-  url: z.string(),
-  thumbnailURL: z.string().nullish(),
+  url: z.string().nullish(),
   alt: z.string().nullish(),
 })
 export type EventImage = z.infer<typeof EventImageSchema>

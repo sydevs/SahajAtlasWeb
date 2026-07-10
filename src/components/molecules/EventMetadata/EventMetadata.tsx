@@ -19,7 +19,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
   const languageCode = event.languages[0] ?? locale
   const description = lexicalToText(event.description) || 'Free meditation class'
   const startDate = (nextOccurrence(event) ?? event.schedule?.firstDate)?.toISOString()
-  const image = event.images[0]?.url
+  const image = event.images.find((img) => img.url)?.url ?? undefined
 
   const schema: EventSchema = {
     '@type': 'Event',

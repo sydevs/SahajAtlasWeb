@@ -103,13 +103,20 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
 
   // The image alt doubles as the lightbox caption (today's behavior). Memoized so
   // a stable slides array is threaded to the carousel/lightbox across re-renders.
+  // URLs are already origin-resolved by getEvent; skip any image that has none.
   const slides = useMemo(
     () =>
-      event.images.map((image) => ({
-        src: image.url,
-        alt: image.alt ?? undefined,
-        caption: image.alt ?? undefined,
-      })),
+      event.images.flatMap((image) =>
+        image.url
+          ? [
+              {
+                src: image.url,
+                alt: image.alt ?? undefined,
+                caption: image.alt ?? undefined,
+              },
+            ]
+          : [],
+      ),
     [event.images],
   )
 
@@ -122,7 +129,7 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
         <h1
           className={`
           text-[24px] font-semibold leading-7 tracking-wide
-          ${event.images.length > 0 ? '' : 'mt-3'}
+          ${slides.length > 0 ? '' : 'mt-3'}
         `}
         >
           {event.title}
