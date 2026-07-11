@@ -135,6 +135,20 @@ describe('applyPalette', () => {
     expect(props.size).toBe(0)
   })
 
+  it('ignores an achromatic seed so the default brand theme stands', () => {
+    const { root, props } = fakeRoot()
+
+    // The local client record defaults color1–3 to #000000. An achromatic primary /
+    // secondary must NOT paint a grey ramp — the roles fall back to the globals.css
+    // default (the built-in teal / orange). Background still snaps to the readable
+    // near-white app-bg step, as it does for any near-black seed.
+    applyPalette(root, { primary: '#000000', secondary: '#000000', background: '#000000' }, 'light')
+
+    expect([...props.keys()].some((k) => k.startsWith('--primary'))).toBe(false)
+    expect([...props.keys()].some((k) => k.startsWith('--secondary'))).toBe(false)
+    expect(props.get('--background')).toBe('0 0% 99%')
+  })
+
   it('clears a role that is dropped on a later apply (reverts to the default)', () => {
     const { root, props } = fakeRoot()
 

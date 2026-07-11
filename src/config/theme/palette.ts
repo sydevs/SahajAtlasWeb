@@ -139,8 +139,23 @@ export function buildScale(seedHex: string, mode: ThemeMode): ColorScale {
   return scale
 }
 
+// A brand seed must carry a real hue. A fully-desaturated (black / white / grey)
+// seed is the backend's "unconfigured" sentinel — the client record defaults
+// color1–3 to #000000 — not a brand color; painting its ramp washes the whole
+// widget grey (a #000000 seed → a 0%-saturation ramp). So an achromatic seed is
+// treated like an invalid one: the role isn't written and the static globals.css
+// default (the built-in teal / orange) stands. (Background is handled separately —
+// its shade always snaps to the near-white/near-black app-bg step regardless.)
+const MIN_BRAND_SATURATION = 5
+
+const isBrandSeed = (seedHex: string): boolean => {
+  const c = colord(seedHex)
+
+  return c.isValid() && c.toHsl().s >= MIN_BRAND_SATURATION
+}
+
 const setRole = (root: HTMLElement, token: string, seedHex: string, mode: ThemeMode) => {
-  if (!colord(seedHex).isValid()) return false
+  if (!isBrandSeed(seedHex)) return false
 
   const scale = buildScale(seedHex, mode)
 
