@@ -226,16 +226,19 @@ export function DrawerStack() {
             container={container}
             direction={direction}
             dismissible={parentPaths.length > 0}
+            // Same as the map drawer: the left panel (≥md) has no handle, so
+            // handle-only drag makes it undraggable — dismiss is the close button only.
+            handleOnly={direction === 'left'}
             onOpenChange={(o) => !o && control.dismiss()}
           >
             {sheet}
           </Drawer>
           {/* Map-less the drawer fills the container and its search header owns the
               top, so a top-left cog would cover the search field. Keep it on the left
-              but at the bottom, clear of the header; align="start" opens it upward.
-              z-50 so it sits above the fill-the-container drawer content (z-40, and
-              portaled in last) — otherwise a list row intercepts the cog's clicks. */}
-          <SettingsMenu className="absolute bottom-3 left-3 z-50" />
+              but at the bottom, clear of the header; side="top" opens the menu upward
+              from there. z-50 so it sits above the fill-the-container drawer content
+              (z-40, and portaled in last) — otherwise a list row intercepts its clicks. */}
+          <SettingsMenu className="absolute bottom-3 left-3 z-50" side="top" />
         </div>
       </DrawerControlContext.Provider>
     )

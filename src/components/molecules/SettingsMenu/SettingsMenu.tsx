@@ -38,7 +38,14 @@ function ItemCheck() {
 // on Radix DropdownMenu (Sub / RadioGroup) — one clean menu with submenu flow —
 // replacing the old footer's LanguageSelector + ThemeSwitch. `className` positions
 // the trigger button.
-export function SettingsMenu({ className }: { className?: string }) {
+export function SettingsMenu({
+  className,
+  side = 'bottom',
+}: {
+  className?: string
+  /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
+  side?: DropdownMenu.DropdownMenuContentProps['side']
+}) {
   const { t } = useTranslation('common')
   const { locale, setLocale, languageNames } = useLocale()
   const { preference, setPreference } = useThemePreference()
@@ -64,7 +71,7 @@ export function SettingsMenu({ className }: { className?: string }) {
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
-        <DropdownMenu.Content align="start" className={menu} sideOffset={8}>
+        <DropdownMenu.Content align="start" className={menu} side={side} sideOffset={8}>
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <LanguageIcon size={18} />
