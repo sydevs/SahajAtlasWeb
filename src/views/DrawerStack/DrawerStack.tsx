@@ -21,16 +21,23 @@ import { ShareView } from '@/views/ShareView/ShareView'
 
 // Mobile bottom-sheet snap ladder (ascending; vaul reads a string as px, a number
 // as a fraction of the sheet height):
-//  - '96px'  peek — the handle + the search / title row
+//  - '80px'  peek — the handle + the search / title row
 //  - '300px' lower third — title + a list row + a peek of the next
 //  - 0.97    near-full
-const SNAP_POINTS = ['96px', '300px', 0.97]
-const PEEK_SNAP = '96px' // the collapsed peek
+const SNAP_POINTS = ['80px', '300px', 0.97]
+const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 
 // How far each stacked ancestor peeks out behind the active sheet.
 const PEEK_MOBILE = 5 // px above the sheet's top edge
 const PEEK_DESKTOP = 6 // px to the right of the left panel
+
+// Each deeper ancestor peeks a little LESS than the one before, so a tall stack
+// reads denser (and its total spread stays bounded) instead of fanning out
+// linearly. Cumulative offset at `depth` = base·(1−decay^depth)/(1−decay).
+const PEEK_DECAY = 0.6
+const peekOffset = (depth: number, base: number) =>
+  (base * (1 - Math.pow(PEEK_DECAY, depth))) / (1 - PEEK_DECAY)
 
 type Direction = 'left' | 'bottom'
 
@@ -97,7 +104,9 @@ function PeekStrip({
   // panel eases from flush with the sheet edge (offset 0) out to `depth * PEEK`, so
   // a newly-stacked panel enters from under the sheet while the existing panels shift
   // further out — and the reverse on close.
-  const offset = isLeft ? { x: depth * PEEK_DESKTOP } : { y: -depth * PEEK_MOBILE }
+  const offset = isLeft
+    ? { x: peekOffset(depth, PEEK_DESKTOP) }
+    : { y: -peekOffset(depth, PEEK_MOBILE) }
   const flush = isLeft ? { x: 0 } : { y: 0 }
 
   return (
