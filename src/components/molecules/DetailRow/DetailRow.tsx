@@ -57,20 +57,17 @@ export type DetailRowProps = {
 function LeadingBox({ box, tone }: { box: DetailRowBox; tone: DetailRowTone }) {
   const styles = detailRow({ tone })
 
-  if (box.kind === 'split') {
-    return (
-      <div className={styles.box()}>
+  const inner =
+    box.kind === 'split' ? (
+      <>
         <div className={styles.splitTop()}>{box.top}</div>
         <div className={styles.splitBottom()}>{box.bottom}</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className={styles.box()}>
+      </>
+    ) : (
       <div className={styles.iconSlot()}>{box.icon}</div>
-    </div>
-  )
+    )
+
+  return <div className={styles.box()}>{inner}</div>
 }
 
 /**
