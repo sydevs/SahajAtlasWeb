@@ -67,7 +67,7 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
 // with no lag. Clicking pops straight to that ancestor.
 function PeekStrip({
   depth,
-  total,
+  gap,
   direction,
   zIndex,
   opacity,
@@ -75,7 +75,7 @@ function PeekStrip({
   onClick,
 }: {
   depth: number
-  total: number
+  gap: number
   direction: Direction
   zIndex: number
   opacity: number
@@ -104,9 +104,8 @@ function PeekStrip({
   // The stack slides out to make room as it grows (and back in as it shrinks): each
   // panel eases from flush with the sheet edge (offset 0) out to `depth · gap`, where
   // `gap` is one uniform per-level width for the whole stack (tighter the deeper the
-  // stack). A newly-stacked panel enters from under the sheet while the existing
-  // panels shift further out — and the reverse on close.
-  const gap = perLevelPeek(total, isLeft ? PEEK_DESKTOP : PEEK_MOBILE)
+  // stack — computed once by DrawerStack). A newly-stacked panel enters from under the
+  // sheet while the existing panels shift further out — and the reverse on close.
   const offset = isLeft ? { x: depth * gap } : { y: -depth * gap }
   const flush = isLeft ? { x: 0 } : { y: 0 }
 
@@ -256,6 +255,12 @@ export function DrawerStack() {
 
   // Map mode: stacked ancestor panels (portaled behind the drawer) + the single drawer.
   const target = overlayContainer()
+  // One uniform per-level peek width for the whole stack, tighter the deeper it goes —
+  // computed once here (it's a stack constant) rather than per strip.
+  const peekGap = perLevelPeek(
+    parentPaths.length,
+    direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE,
+  )
   // Always render the container + AnimatePresence (even at 0 ancestors) so a removed
   // strip animates out on the way back to the root instead of vanishing.
   const strips = (
@@ -269,9 +274,9 @@ export function DrawerStack() {
               key={path}
               depth={depth}
               direction={direction}
+              gap={peekGap}
               label={t('back')}
               opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
-              total={parentPaths.length}
               zIndex={30 + i}
               onClick={() => navigate(path)}
             />

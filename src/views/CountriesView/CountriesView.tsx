@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
@@ -33,17 +32,6 @@ export function CountriesView() {
   // Frame the world view when this view mounts.
   useFrameOnTop(() => frameSearch({}), [frameSearch])
 
-  // Only countries with events, busiest first (most events at the top). `.filter`
-  // already returns a fresh array, so sorting it doesn't touch the query cache;
-  // equal counts keep the API order.
-  const rankedCountries = useMemo(
-    () =>
-      countries
-        .filter((country) => country.eventCount > 0)
-        .sort((a, b) => b.eventCount - a.eventCount),
-    [countries],
-  )
-
   const homeUrl = client.region && typeof client.region === 'object' ? client.region.webUrl : null
   const canonicalUrl = validateWebUrl(homeUrl)
 
@@ -62,7 +50,7 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <List>
-          {rankedCountries.map((country) => (
+          {countries.map((country) => (
             <RegionCard
               key={country.id}
               count={country.eventCount}
