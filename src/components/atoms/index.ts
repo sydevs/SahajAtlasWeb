@@ -40,5 +40,11 @@ export type { LinkProps } from './Link'
 export { Select, SelectItem } from './Select'
 export type { SelectProps, SelectItemProps } from './Select'
 
+export { Slider } from './Slider'
+export type { SliderProps } from './Slider'
+
 export { Spinner } from './Spinner'
 export type { SpinnerProps } from './Spinner'
+
+export { ToggleGroup, ToggleGroupItem } from './ToggleGroup'
+export type { ToggleGroupProps, ToggleGroupItemProps } from './ToggleGroup'
