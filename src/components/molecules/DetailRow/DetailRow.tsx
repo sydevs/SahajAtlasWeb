@@ -4,24 +4,39 @@ import { tv } from 'tailwind-variants'
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { Link } from '@/components/atoms/Link'
 
-// The leading square slot owns its own tone, so callers just drop a bare icon in:
+// The leading square slot models the two box shapes explicitly so it's always
+// square and consistent — callers pass structured content, not a hand-assembled
+// slot. `tone` owns the box tint for the icon shape:
 // - `icon` (default): a brand-tinted icon (location, host contact).
 // - `highlight`: fill the slot and invert the icon — the emphasised host-contact
 //   card that leads the stack when an event has no upcoming date.
-// - `plain`: a self-styled slot (e.g. the timing date badge), left untinted.
+// - `plain`: an untinted frame (the split date badge supplies its own colours).
 const detailRow = tv({
   slots: {
-    iconBox: 'text-center border border-primary-4 rounded-sm w-11 h-11',
+    // Always square; overflow-hidden clips the split top band to the rounded corners.
+    box: 'h-11 w-11 shrink-0 overflow-hidden rounded-sm border border-primary-4 text-center',
+    // Icon shape: centre the single icon and inherit the box tint.
+    iconSlot: 'flex-center h-full',
+    // Split shape: a tinted top band (e.g. "JUL") over a bottom line (e.g. "14").
+    splitTop: 'bg-primary-4 py-0.5 text-xs font-semibold dark:bg-primary-5',
+    splitBottom: 'flex h-6 items-center justify-center text-md font-semibold text-gray-11',
   },
   variants: {
     tone: {
-      icon: { iconBox: 'text-primary' },
-      highlight: { iconBox: 'bg-primary-4 text-background' },
+      icon: { box: 'text-primary' },
+      highlight: { box: 'bg-primary-4 text-background' },
       plain: {},
     },
   },
   defaultVariants: { tone: 'icon' },
 })
+
+/** The two real leading-box shapes: a framed single icon, or a split top/bottom badge. */
+export type DetailRowBox =
+  | { kind: 'icon'; icon: ReactNode }
+  | { kind: 'split'; top: ReactNode; bottom: ReactNode }
+
+type DetailRowTone = 'icon' | 'highlight' | 'plain'
 
 export type DetailRowProps = {
   /** Primary label; becomes a link when `url` is set. */
@@ -32,21 +47,42 @@ export type DetailRowProps = {
   url?: string
   /** Render the title as an external link (adds the anchor icon + new-tab rel). */
   isExternal?: boolean
-  /** Leading-slot appearance: a tinted icon (default), the highlighted fill, or an untinted slot. */
-  tone?: 'icon' | 'highlight' | 'plain'
-  /** Visual for the leading square slot (an icon, a date badge, etc.). */
-  children: ReactNode
+  /** Leading-box tint for the icon shape: tinted icon (default), highlighted fill, or untinted. */
+  tone?: DetailRowTone
+  /** The leading square box: a framed icon, or a split top/bottom badge. */
+  box: DetailRowBox
+}
+
+// The leading square slot — either a centred icon or a split top/bottom badge.
+function LeadingBox({ box, tone }: { box: DetailRowBox; tone: DetailRowTone }) {
+  const styles = detailRow({ tone })
+
+  if (box.kind === 'split') {
+    return (
+      <div className={styles.box()}>
+        <div className={styles.splitTop()}>{box.top}</div>
+        <div className={styles.splitBottom()}>{box.bottom}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.box()}>
+      <div className={styles.iconSlot()}>{box.icon}</div>
+    </div>
+  )
 }
 
 /**
- * A generic labelled row: a leading square slot, then a title (optionally an
+ * A generic labelled row: a leading square box, then a title (optionally an
  * internal/external link) over secondary content. Presentational only — callers
- * pass the icon/badge and copy. Used to build the event detail cards.
+ * pass a structured `box` and copy. Used to build the event detail cards.
  *
  * Variants:
+ * - `box` — the leading shape: `{ kind: 'icon', icon }` or `{ kind: 'split', top, bottom }`.
  * - `url` + `isExternal` — turn the title into an internal or external link.
- * - `tone` — the leading slot's appearance. The slot owns the icon tint, so
- *   callers pass a bare icon rather than styling it themselves.
+ * - `tone` — the icon box's tint (icon / highlight / plain). The box owns the tint,
+ *   so callers pass a bare icon rather than styling it themselves.
  */
 export function DetailRow({
   isExternal = false,
@@ -54,13 +90,11 @@ export function DetailRow({
   title,
   content,
   url,
-  children,
+  box,
 }: DetailRowProps) {
-  const { iconBox } = detailRow({ tone })
-
   return (
     <div className="flex-center-y gap-3">
-      <div className={iconBox()}>{children}</div>
+      <LeadingBox box={box} tone={tone} />
       <div className="flex flex-col gap-0.5">
         {url ? (
           <Link

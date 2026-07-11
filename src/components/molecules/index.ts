@@ -8,7 +8,7 @@ export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
 // DetailRow — a generic labelled icon row; the event detail cards build on it.
 export { DetailRow } from './DetailRow'
-export type { DetailRowProps } from './DetailRow'
+export type { DetailRowProps, DetailRowBox } from './DetailRow'
 
 export { List } from './List'
 
