@@ -278,6 +278,10 @@ export function DrawerStack() {
         open
         activeSnapPoint={direction === 'bottom' ? snap : undefined}
         direction={direction}
+        // The left panel (≥md) has no handle and no snap points, so restricting drag
+        // to the (absent) handle makes it undraggable — dismiss is the close button
+        // only. The mobile bottom sheet keeps its full-panel snap-drag.
+        handleOnly={direction === 'left'}
         setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
         snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
         onOpenChange={(o) => !o && control.dismiss()}

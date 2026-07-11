@@ -95,6 +95,9 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   modal?: boolean
   /** When false the drawer can't be closed by swipe/Esc/outside (map-less root). */
   dismissible?: boolean
+  /** Restrict dragging to the handle. With no handle rendered (the left panel), this
+   *  makes the drawer undraggable while the close button still dismisses it. */
+  handleOnly?: boolean
   /** Mobile snap points, e.g. `['96px', '336px', 0.97]`. */
   snapPoints?: (number | string)[]
   activeSnapPoint?: number | string | null
@@ -111,6 +114,7 @@ export function Drawer({
   direction = 'bottom',
   modal = false,
   dismissible = true,
+  handleOnly = false,
   contained = false,
   full = false,
   snapPoints,
@@ -126,6 +130,7 @@ export function Drawer({
   const rootProps = {
     direction,
     dismissible,
+    handleOnly,
     modal,
     open,
     onOpenChange,
