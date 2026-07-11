@@ -26,9 +26,9 @@ const drawer = tv({
     body: 'min-h-0 flex-1 overflow-y-auto',
     footer: 'mt-auto shrink-0 border-t border-gray-4',
     // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it
-    // breathing room from the sheet's rounded top edge and the header below, and a
-    // grab cursor so the drag affordance reads on pointer devices.
-    handle: '!bg-gray-7 my-3 cursor-grab active:cursor-grabbing',
+    // breathing room from the sheet's rounded top edge but sit it close to the header
+    // below, and a grab cursor so the drag affordance reads on pointer devices.
+    handle: '!bg-gray-7 mb-1 mt-2.5 cursor-grab active:cursor-grabbing',
   },
   variants: {
     direction: {
