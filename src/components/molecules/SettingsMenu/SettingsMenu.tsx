@@ -17,7 +17,7 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 
 const menu =
-  'z-50 min-w-[11rem] rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
+  'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
 const item =
   'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-sm outline-none data-[highlighted]:bg-primary-3 data-[state=open]:bg-primary-3'
 
@@ -63,10 +63,10 @@ export function SettingsMenu({
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('settings')}
-          className={`flex h-10 w-10 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
+          className={`flex h-8 w-8 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
           type="button"
         >
-          <SettingsIcon size={20} />
+          <SettingsIcon size={16} />
         </button>
       </DropdownMenu.Trigger>
 
