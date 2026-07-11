@@ -101,6 +101,17 @@
   --swiper-pagination-bullet-inactive-opacity: 0.4;
 }
 
+/* vaul disables text selection on the drawer for pointer devices (to keep drag
+   gestures clean — see vaul.css `@media (hover:hover) and (pointer:fine)`). Desktop
+   drag is already disabled (handleOnly on the left panel), so re-enable selection
+   there: event/venue copy should be selectable. Mobile is untouched — vaul only
+   sets user-select:none under hover+fine, so touch drawers stay selectable already. */
+@media (hover: hover) and (pointer: fine) {
+  [data-vaul-drawer] {
+    user-select: text;
+  }
+}
+
 @layer base {
   :root {
     --swiper-pagination-bottom: 1rem;
