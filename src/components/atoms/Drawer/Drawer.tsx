@@ -65,6 +65,12 @@ const drawer = tv({
       false: {},
     },
   },
+  compoundVariants: [
+    // The bottom sheet shows a drag handle that already spaces the header from the
+    // sheet's top edge, so relax the header's top padding for a balanced handle→header
+    // gap. Not when `full` hides the handle (map-less), where the header owns the top.
+    { direction: 'bottom', full: false, class: { header: 'pt-2' } },
+  ],
   defaultVariants: { direction: 'bottom', contained: false, full: false },
 })
 
