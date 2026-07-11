@@ -230,7 +230,12 @@ export function DrawerStack() {
           >
             {sheet}
           </Drawer>
-          <SettingsMenu className="absolute bottom-3 right-3 z-40" />
+          {/* Map-less the drawer fills the container and its search header owns the
+              top, so a top-left cog would cover the search field. Keep it on the left
+              but at the bottom, clear of the header; align="start" opens it upward.
+              z-50 so it sits above the fill-the-container drawer content (z-40, and
+              portaled in last) — otherwise a list row intercepts the cog's clicks. */}
+          <SettingsMenu className="absolute bottom-3 left-3 z-50" />
         </div>
       </DrawerControlContext.Provider>
     )
@@ -268,7 +273,10 @@ export function DrawerStack() {
         createPortal(
           <>
             {strips}
-            <SettingsMenu className="fixed right-3 top-16 z-40" />
+            {/* Top-left, offset past the left drawer on ≥md (flush left-0 on tablet,
+                floating to left-4 at ≥lg) so it never overlaps the panel. On mobile
+                the sheet is at the bottom, so the top-left corner is clear. */}
+            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)]" />
           </>,
           target,
         )}

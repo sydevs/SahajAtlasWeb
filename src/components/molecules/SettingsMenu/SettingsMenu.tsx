@@ -64,7 +64,7 @@ export function SettingsMenu({ className }: { className?: string }) {
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
-        <DropdownMenu.Content align="end" className={menu} sideOffset={8}>
+        <DropdownMenu.Content align="start" className={menu} sideOffset={8}>
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <LanguageIcon size={18} />
