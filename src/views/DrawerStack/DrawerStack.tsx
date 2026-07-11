@@ -32,12 +32,11 @@ const OPEN_SNAP = '300px' // default, and what the peek expands to
 const PEEK_MOBILE = 5 // px above the sheet's top edge
 const PEEK_DESKTOP = 6 // px to the right of the left panel
 
-// Each deeper ancestor peeks a little LESS than the one before, so a tall stack
-// reads denser (and its total spread stays bounded) instead of fanning out
-// linearly. Cumulative offset at `depth` = base·(1−decay^depth)/(1−decay).
-const PEEK_DECAY = 0.6
-const peekOffset = (depth: number, base: number) =>
-  (base * (1 - Math.pow(PEEK_DECAY, depth))) / (1 - PEEK_DECAY)
+// One uniform peek width per stack: every ancestor shares the same gap, and that gap
+// shrinks as the TOTAL depth grows — so each level stays evenly spaced while a taller
+// stack reads denser. `base` is the single-ancestor gap; strip d sits at `d · gap`.
+const PEEK_DECAY = 0.7
+const perLevelPeek = (total: number, base: number) => base * Math.pow(PEEK_DECAY, total - 1)
 
 type Direction = 'left' | 'bottom'
 
@@ -68,6 +67,7 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
 // with no lag. Clicking pops straight to that ancestor.
 function PeekStrip({
   depth,
+  total,
   direction,
   zIndex,
   opacity,
@@ -75,6 +75,7 @@ function PeekStrip({
   onClick,
 }: {
   depth: number
+  total: number
   direction: Direction
   zIndex: number
   opacity: number
@@ -101,12 +102,12 @@ function PeekStrip({
   }
 
   // The stack slides out to make room as it grows (and back in as it shrinks): each
-  // panel eases from flush with the sheet edge (offset 0) out to `depth * PEEK`, so
-  // a newly-stacked panel enters from under the sheet while the existing panels shift
-  // further out — and the reverse on close.
-  const offset = isLeft
-    ? { x: peekOffset(depth, PEEK_DESKTOP) }
-    : { y: -peekOffset(depth, PEEK_MOBILE) }
+  // panel eases from flush with the sheet edge (offset 0) out to `depth · gap`, where
+  // `gap` is one uniform per-level width for the whole stack (tighter the deeper the
+  // stack). A newly-stacked panel enters from under the sheet while the existing
+  // panels shift further out — and the reverse on close.
+  const gap = perLevelPeek(total, isLeft ? PEEK_DESKTOP : PEEK_MOBILE)
+  const offset = isLeft ? { x: depth * gap } : { y: -depth * gap }
   const flush = isLeft ? { x: 0 } : { y: 0 }
 
   return (
@@ -270,6 +271,7 @@ export function DrawerStack() {
               direction={direction}
               label={t('back')}
               opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
+              total={parentPaths.length}
               zIndex={30 + i}
               onClick={() => navigate(path)}
             />
