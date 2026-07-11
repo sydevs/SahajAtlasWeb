@@ -3,7 +3,6 @@ import { HashRouter } from 'react-router'
 import { useRef } from 'react'
 
 import App from './App'
-import i18n from './config/i18n'
 import atlasAuth from './config/api/auth'
 import { getInitialTheme } from './hooks/use-theme'
 
@@ -39,9 +38,10 @@ export default function Widget({
     atlasAuth.apiKey = apiKey
   }
 
-  if (locale) {
-    i18n.changeLanguage(locale)
-  }
+  // NB: the initial locale is applied by App's AppShell effect (from `defaultLocale`
+  // below), which runs once on mount and again only if the host changes the prop.
+  // Don't call i18n.changeLanguage here in the render body — it re-fired on every
+  // render and clobbered a language the user picked from the settings menu.
 
   if (!window.location.hash) {
     window.location.hash = HASH_BASE
