@@ -26,9 +26,9 @@ const drawer = tv({
     body: 'min-h-0 flex-1 overflow-y-auto',
     footer: 'mt-auto shrink-0 border-t border-gray-4',
     // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it
-    // breathing room from the sheet's rounded top edge and the header below, and a
-    // grab cursor so the drag affordance reads on pointer devices.
-    handle: '!bg-gray-7 my-3 cursor-grab active:cursor-grabbing',
+    // breathing room from the sheet's rounded top edge but sit it close to the header
+    // below, and a grab cursor so the drag affordance reads on pointer devices.
+    handle: '!bg-gray-7 mb-1 mt-2.5 cursor-grab active:cursor-grabbing',
   },
   variants: {
     direction: {
@@ -48,9 +48,9 @@ const drawer = tv({
       // off-screen. The 3dvh bottom padding keeps the footer above the fold at the
       // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
       bottom: {
-        content: 'inset-x-0 bottom-0 h-[100dvh] rounded-t-2xl border-t border-divider pb-[3dvh]',
+        content: 'inset-x-0 bottom-0 h-dvh rounded-t-2xl border-t border-divider pb-[3dvh]',
       },
-      top: { content: 'inset-x-0 top-0 h-[100dvh] rounded-b-2xl border-b border-divider' },
+      top: { content: 'inset-x-0 top-0 h-dvh rounded-b-2xl border-b border-divider' },
     },
     // Map-less: position absolutely within the widget container instead of fixed to
     // the viewport, so the drawer covers only the content area.
@@ -65,6 +65,12 @@ const drawer = tv({
       false: {},
     },
   },
+  compoundVariants: [
+    // The bottom sheet shows a drag handle that already spaces the header from the
+    // sheet's top edge, so relax the header's top padding for a balanced handle→header
+    // gap. Not when `full` hides the handle (map-less), where the header owns the top.
+    { direction: 'bottom', full: false, class: { header: 'pt-2' } },
+  ],
   defaultVariants: { direction: 'bottom', contained: false, full: false },
 })
 
@@ -95,6 +101,9 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   modal?: boolean
   /** When false the drawer can't be closed by swipe/Esc/outside (map-less root). */
   dismissible?: boolean
+  /** Restrict dragging to the handle. With no handle rendered (the left panel), this
+   *  makes the drawer undraggable while the close button still dismisses it. */
+  handleOnly?: boolean
   /** Mobile snap points, e.g. `['96px', '336px', 0.97]`. */
   snapPoints?: (number | string)[]
   activeSnapPoint?: number | string | null
@@ -111,6 +120,7 @@ export function Drawer({
   direction = 'bottom',
   modal = false,
   dismissible = true,
+  handleOnly = false,
   contained = false,
   full = false,
   snapPoints,
@@ -126,6 +136,7 @@ export function Drawer({
   const rootProps = {
     direction,
     dismissible,
+    handleOnly,
     modal,
     open,
     onOpenChange,

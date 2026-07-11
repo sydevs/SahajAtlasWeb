@@ -50,16 +50,13 @@ export function EventContactDetails({
 
   return (
     <DetailRow
+      box={{ kind: 'icon', icon: <CallIcon size={32} /> }}
       content={t('details.tel', { phoneNumber: event.contactPhone })}
       isExternal={true}
       title={isHighlighted ? t('details.contact_for_timing') : t('details.contact_host')}
       tone={isHighlighted ? 'highlight' : 'icon'}
       url={`tel: ${event.contactPhone}`}
-    >
-      <div className="flex-center h-full">
-        <CallIcon size={32} />
-      </div>
-    </DetailRow>
+    />
   )
 }
 
@@ -85,6 +82,11 @@ export function EventTimingDetails({
 
   return (
     <DetailRow
+      box={{
+        kind: 'split',
+        top: nextDate.toLocaleString({ month: 'short' }).toUpperCase(),
+        bottom: nextDate.day,
+      }}
       content={
         <EventTime
           endTime={schedule?.endTime}
@@ -105,14 +107,7 @@ export function EventTimingDetails({
           : t('details.contact_for_timing')
       }
       tone="plain"
-    >
-      <div className="text-xs bg-primary-4 dark:bg-primary-5 py-0.5 font-semibold">
-        {nextDate.toLocaleString({ month: 'short' }).toUpperCase()}
-      </div>
-      <div className="flex items-center justify-center font-semibold text-md h-6 text-gray-11">
-        {nextDate.day}
-      </div>
-    </DetailRow>
+    />
   )
 }
 
@@ -141,14 +136,14 @@ export function EventLocationDetails({ event }: { event: Event }) {
 
   return (
     <DetailRow
+      box={{
+        kind: 'icon',
+        icon: platform ? <SocialIcon platform={platform} size={24} /> : <LocationIcon />,
+      }}
       content={subtitle}
       isExternal={true}
       title={title}
       url={online ? (event.onlineUrl ?? undefined) : directionsUrl(event)}
-    >
-      <div className="flex-center h-full">
-        {platform ? <SocialIcon platform={platform} size={24} /> : <LocationIcon />}
-      </div>
-    </DetailRow>
+    />
   )
 }

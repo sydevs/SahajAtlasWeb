@@ -186,6 +186,10 @@ const toListItem = (doc: RegionDoc, events: GeoEvent[]): RegionListItem =>
     path: regionRoute(doc),
   })
 
+// Busiest first — order a region list by event count, descending. A stable sort
+// keeps equal counts in the incoming (server) order.
+const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount - a.eventCount
+
 // ── Hierarchy fetchers (raw region + geojson-derived counts/bounds) ─────────────
 
 // Home/search country list — level=country regions with counts + ISO code.
@@ -219,6 +223,7 @@ const getCountries = async (): Promise<RegionListItem[]> => {
       }),
     )
     .filter((country) => country.eventCount > 0)
+    .sort(byEventCountDesc)
 }
 
 // One fetcher for every region level. `country`/`region` populate `subregions`
@@ -238,6 +243,7 @@ const getRegion = async (slug: string): Promise<Region> => {
     ? (await getChildRegions(doc.id))
         .map((child) => toListItem(child, events))
         .filter((child) => child.eventCount > 0)
+        .sort(byEventCountDesc)
     : []
 
   return RegionSchema.parse({

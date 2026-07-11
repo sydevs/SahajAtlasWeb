@@ -17,7 +17,7 @@ import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 
 const menu =
-  'z-50 min-w-[11rem] rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
+  'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
 const item =
   'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-sm outline-none data-[highlighted]:bg-primary-3 data-[state=open]:bg-primary-3'
 
@@ -38,7 +38,14 @@ function ItemCheck() {
 // on Radix DropdownMenu (Sub / RadioGroup) — one clean menu with submenu flow —
 // replacing the old footer's LanguageSelector + ThemeSwitch. `className` positions
 // the trigger button.
-export function SettingsMenu({ className }: { className?: string }) {
+export function SettingsMenu({
+  className,
+  side = 'bottom',
+}: {
+  className?: string
+  /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
+  side?: DropdownMenu.DropdownMenuContentProps['side']
+}) {
   const { t } = useTranslation('common')
   const { locale, setLocale, languageNames } = useLocale()
   const { preference, setPreference } = useThemePreference()
@@ -56,15 +63,15 @@ export function SettingsMenu({ className }: { className?: string }) {
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={t('settings')}
-          className={`flex h-10 w-10 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
+          className={`flex h-8 w-8 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
           type="button"
         >
-          <SettingsIcon size={20} />
+          <SettingsIcon size={16} />
         </button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
-        <DropdownMenu.Content align="end" className={menu} sideOffset={8}>
+        <DropdownMenu.Content align="start" className={menu} side={side} sideOffset={8}>
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <LanguageIcon size={18} />

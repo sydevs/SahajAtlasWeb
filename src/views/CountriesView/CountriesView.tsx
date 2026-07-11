@@ -50,23 +50,21 @@ export function CountriesView() {
       </DrawerHeader>
       <DrawerBody>
         <List>
-          {countries
-            .filter((country) => country.eventCount > 0)
-            .map((country) => (
-              <RegionCard
-                key={country.id}
-                count={country.eventCount}
-                href={country.path}
-                label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
-              >
-                {country.countryCode && (
-                  <CircleFlag
-                    className="mr-3 h-9 w-9 rounded-full border border-divider bg-divider"
-                    countryCode={country.countryCode.toLocaleLowerCase()}
-                  />
-                )}
-              </RegionCard>
-            ))}
+          {countries.map((country) => (
+            <RegionCard
+              key={country.id}
+              count={country.eventCount}
+              href={country.path}
+              label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
+            >
+              {country.countryCode && (
+                <CircleFlag
+                  className="mr-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
+                  countryCode={country.countryCode.toLocaleLowerCase()}
+                />
+              )}
+            </RegionCard>
+          ))}
         </List>
       </DrawerBody>
     </>

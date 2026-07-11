@@ -21,16 +21,22 @@ import { ShareView } from '@/views/ShareView/ShareView'
 
 // Mobile bottom-sheet snap ladder (ascending; vaul reads a string as px, a number
 // as a fraction of the sheet height):
-//  - '96px'  peek — the handle + the search / title row
+//  - '80px'  peek — the handle + the search / title row
 //  - '300px' lower third — title + a list row + a peek of the next
 //  - 0.97    near-full
-const SNAP_POINTS = ['96px', '300px', 0.97]
-const PEEK_SNAP = '96px' // the collapsed peek
+const SNAP_POINTS = ['80px', '300px', 0.97]
+const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 
 // How far each stacked ancestor peeks out behind the active sheet.
 const PEEK_MOBILE = 5 // px above the sheet's top edge
 const PEEK_DESKTOP = 6 // px to the right of the left panel
+
+// One uniform peek width per stack: every ancestor shares the same gap, and that gap
+// shrinks as the TOTAL depth grows — so each level stays evenly spaced while a taller
+// stack reads denser. `base` is the single-ancestor gap; strip d sits at `d · gap`.
+const PEEK_DECAY = 0.7
+const perLevelPeek = (total: number, base: number) => base * Math.pow(PEEK_DECAY, total - 1)
 
 type Direction = 'left' | 'bottom'
 
@@ -61,6 +67,7 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
 // with no lag. Clicking pops straight to that ancestor.
 function PeekStrip({
   depth,
+  gap,
   direction,
   zIndex,
   opacity,
@@ -68,6 +75,7 @@ function PeekStrip({
   onClick,
 }: {
   depth: number
+  gap: number
   direction: Direction
   zIndex: number
   opacity: number
@@ -94,10 +102,11 @@ function PeekStrip({
   }
 
   // The stack slides out to make room as it grows (and back in as it shrinks): each
-  // panel eases from flush with the sheet edge (offset 0) out to `depth * PEEK`, so
-  // a newly-stacked panel enters from under the sheet while the existing panels shift
-  // further out — and the reverse on close.
-  const offset = isLeft ? { x: depth * PEEK_DESKTOP } : { y: -depth * PEEK_MOBILE }
+  // panel eases from flush with the sheet edge (offset 0) out to `depth · gap`, where
+  // `gap` is one uniform per-level width for the whole stack (tighter the deeper the
+  // stack — computed once by DrawerStack). A newly-stacked panel enters from under the
+  // sheet while the existing panels shift further out — and the reverse on close.
+  const offset = isLeft ? { x: depth * gap } : { y: -depth * gap }
   const flush = isLeft ? { x: 0 } : { y: 0 }
 
   return (
@@ -226,11 +235,19 @@ export function DrawerStack() {
             container={container}
             direction={direction}
             dismissible={parentPaths.length > 0}
+            // Same as the map drawer: the left panel (≥md) has no handle, so
+            // handle-only drag makes it undraggable — dismiss is the close button only.
+            handleOnly={direction === 'left'}
             onOpenChange={(o) => !o && control.dismiss()}
           >
             {sheet}
           </Drawer>
-          <SettingsMenu className="absolute bottom-3 right-3 z-40" />
+          {/* Map-less the drawer fills the container and its search header owns the
+              top, so a top-left cog would cover the search field. Keep it on the left
+              but at the bottom, clear of the header; side="top" opens the menu upward
+              from there. z-50 so it sits above the fill-the-container drawer content
+              (z-40, and portaled in last) — otherwise a list row intercepts its clicks. */}
+          <SettingsMenu className="absolute bottom-3 left-3 z-50" side="top" />
         </div>
       </DrawerControlContext.Provider>
     )
@@ -238,6 +255,12 @@ export function DrawerStack() {
 
   // Map mode: stacked ancestor panels (portaled behind the drawer) + the single drawer.
   const target = overlayContainer()
+  // One uniform per-level peek width for the whole stack, tighter the deeper it goes —
+  // computed once here (it's a stack constant) rather than per strip.
+  const peekGap = perLevelPeek(
+    parentPaths.length,
+    direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE,
+  )
   // Always render the container + AnimatePresence (even at 0 ancestors) so a removed
   // strip animates out on the way back to the root instead of vanishing.
   const strips = (
@@ -251,6 +274,7 @@ export function DrawerStack() {
               key={path}
               depth={depth}
               direction={direction}
+              gap={peekGap}
               label={t('back')}
               opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
               zIndex={30 + i}
@@ -268,7 +292,10 @@ export function DrawerStack() {
         createPortal(
           <>
             {strips}
-            <SettingsMenu className="fixed right-3 top-16 z-40" />
+            {/* Top-left, offset past the left drawer on ≥md (flush left-0 on tablet,
+                floating to left-4 at ≥lg) so it never overlaps the panel. On mobile
+                the sheet is at the bottom, so the top-left corner is clear. */}
+            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)]" />
           </>,
           target,
         )}
@@ -278,6 +305,10 @@ export function DrawerStack() {
         open
         activeSnapPoint={direction === 'bottom' ? snap : undefined}
         direction={direction}
+        // The left panel (≥md) has no handle and no snap points, so restricting drag
+        // to the (absent) handle makes it undraggable — dismiss is the close button
+        // only. The mobile bottom sheet keeps its full-panel snap-drag.
+        handleOnly={direction === 'left'}
         setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
         snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
         onOpenChange={(o) => !o && control.dismiss()}

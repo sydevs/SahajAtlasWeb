@@ -128,7 +128,7 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
       <div className="flex flex-col gap-3 px-8 pb-12 pt-3">
         <h1
           className={`
-          text-[24px] font-semibold leading-7 tracking-wide
+          text-2xl font-semibold leading-7 tracking-wide
           ${slides.length > 0 ? '' : 'mt-3'}
         `}
         >
@@ -164,7 +164,7 @@ export function EventDetails({ event, basePath }: EventDetailsProps) {
                 ADD_ATTR: ['target'],
               }),
             }}
-            className="colored-links normal-nums my-2 flex flex-col gap-2 leading-snug"
+            className="colored-links normal-nums my-2 flex flex-col gap-2 text-sm leading-snug"
           />
         )}
         <div className="flex-center-x gap-1">
