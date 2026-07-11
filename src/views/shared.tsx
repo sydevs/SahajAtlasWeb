@@ -10,7 +10,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
-import { Button } from '@/components/atoms/Button'
+import { Button, IconButton } from '@/components/atoms/Button'
 import { CloseIcon, ListIcon } from '@/components/atoms/Icons'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
@@ -36,11 +36,6 @@ export const DrawerControlContext = createContext<DrawerControl>({
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// Shared chrome for the header icon-buttons (close, list toggle): subtle by default,
-// full-contrast on hover.
-const iconButton =
-  'shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground'
-
 // The close affordance for the drawer views. Dismisses via the control seam (a
 // navigation to the parent) rather than vaul's Close — closing the real drawer made
 // the sheet animate shut and then re-open with the parent, which read as jarring.
@@ -49,14 +44,9 @@ export function CloseButton({ className }: { className?: string }) {
   const { dismiss } = useDrawerControl()
 
   return (
-    <button
-      aria-label={t('close')}
-      className={`${iconButton} ${className ?? ''}`}
-      type="button"
-      onClick={dismiss}
-    >
+    <IconButton aria-label={t('close')} className={className} onClick={dismiss}>
       <CloseIcon size={20} />
-    </button>
+    </IconButton>
   )
 }
 
@@ -72,15 +62,13 @@ export function CollapseToggle() {
   // At the peek it's a list toggle (expand the countries list); once opened past the
   // peek it becomes the usual close control (collapse back to the peek).
   return (
-    <button
+    <IconButton
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('explore') : t('close')}
-      className={iconButton}
-      type="button"
       onClick={toggle}
     >
       {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
-    </button>
+    </IconButton>
   )
 }
 

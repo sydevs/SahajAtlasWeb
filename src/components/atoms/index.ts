@@ -12,8 +12,8 @@ export * from './Icons'
 export { Alert } from './Alert'
 export type { AlertProps } from './Alert'
 
-export { Button } from './Button'
-export type { ButtonProps } from './Button'
+export { Button, IconButton } from './Button'
+export type { ButtonProps, IconButtonProps } from './Button'
 
 export { Checkbox } from './Checkbox'
 export type { CheckboxProps } from './Checkbox'
