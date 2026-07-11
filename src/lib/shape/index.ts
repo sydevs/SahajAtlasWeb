@@ -1,4 +1,5 @@
 export * from './event'
+export * from './filters'
 export * from './hierarchy'
 export * from './image'
 export * from './lexical'
