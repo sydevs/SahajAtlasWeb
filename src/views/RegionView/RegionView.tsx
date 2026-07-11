@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 
@@ -26,6 +27,13 @@ export function RegionView({ slug }: { slug: string }) {
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
+  // Show the busiest child regions first (most events at the top). Copy before
+  // sorting so the query cache isn't mutated; equal counts keep the API order.
+  const subregions = useMemo(
+    () => [...region.subregions].sort((a, b) => b.eventCount - a.eventCount),
+    [region.subregions],
+  )
+
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined
   const canonicalUrl = validateWebUrl(region.webUrl)
@@ -47,7 +55,7 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <List>
-          {region.subregions.map((child) => (
+          {subregions.map((child) => (
             <RegionCard
               key={child.id}
               count={child.eventCount}
