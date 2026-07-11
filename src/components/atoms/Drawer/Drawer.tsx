@@ -48,9 +48,9 @@ const drawer = tv({
       // off-screen. The 3dvh bottom padding keeps the footer above the fold at the
       // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
       bottom: {
-        content: 'inset-x-0 bottom-0 h-[100dvh] rounded-t-2xl border-t border-divider pb-[3dvh]',
+        content: 'inset-x-0 bottom-0 h-dvh rounded-t-2xl border-t border-divider pb-[3dvh]',
       },
-      top: { content: 'inset-x-0 top-0 h-[100dvh] rounded-b-2xl border-b border-divider' },
+      top: { content: 'inset-x-0 top-0 h-dvh rounded-b-2xl border-b border-divider' },
     },
     // Map-less: position absolutely within the widget container instead of fixed to
     // the viewport, so the drawer covers only the content area.
