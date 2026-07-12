@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
@@ -18,10 +18,10 @@ import {
   boundsLayer,
 } from './layers'
 
-import { useViewState } from '@/config/store'
+import { useSearchState, useViewState } from '@/config/store'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { safePath } from '@/lib/shape'
+import { matchesFilters, safePath } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -67,11 +67,34 @@ export function Mapbox() {
   const { locale, languageCode } = useLocale()
   const { theme } = useTheme()
 
+  // The active filters (stable identity via useShallow — this is the hot render
+  // path). Applied to the feed below so the pins + cluster counts match the list.
+  const filters = useSearchState(
+    useShallow((s) => ({
+      format: s.format,
+      timeOfDay: s.timeOfDay,
+      daysOfWeek: s.daysOfWeek,
+      languages: s.languages,
+      cadence: s.cadence,
+    })),
+  )
+
   const { data } = useQuery({
     queryKey: ['geojson'],
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
   })
+
+  // Filter the feed before it feeds the clustering source, so cluster counts
+  // reflect the filters (a layer-level `filter` would leave stale counts). Only
+  // recomputes when the feed or the filters change — not on pan/zoom.
+  const filtered = useMemo(
+    () =>
+      data
+        ? { ...data, features: data.features.filter((f) => matchesFilters(f.properties, filters)) }
+        : undefined,
+    [data, filters],
+  )
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {
@@ -136,12 +159,12 @@ export function Mapbox() {
           style={padding}
         />
       )}
-      {data && (
+      {filtered && (
         <Source
           cluster={true}
           clusterMaxZoom={14}
           clusterRadius={50}
-          data={data}
+          data={filtered}
           id="events"
           type="geojson"
         >

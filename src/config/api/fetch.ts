@@ -7,7 +7,7 @@ import type {
   RegionDoc,
   RegionListItem,
 } from '@/types'
-import type { GeoEvent } from '@/lib/shape'
+import type { EventFilters, GeoEvent } from '@/lib/shape'
 import type { Position } from 'geojson'
 
 import client from './client'
@@ -20,6 +20,8 @@ import {
   countUnder,
   eventsUnder,
   childRoute,
+  DEFAULT_FILTERS,
+  matchesFilters,
   parentOf,
   resolveImageUrl,
   safePath,
@@ -278,13 +280,16 @@ const getRegion = async (slug: string): Promise<Region> => {
 const getEvents = async (
   latitude: number,
   longitude: number,
-  onlineOnly: boolean = false,
+  filters: EventFilters = DEFAULT_FILTERS,
 ): Promise<EventSlim[]> => {
   const geojson = await loadGeojson()
   const from: Position = [longitude, latitude]
 
+  // Filter the whole feed *before* the nearest-N slice, so a restrictive filter
+  // returns the nearest matching events rather than whatever survives among the
+  // nearest N. Shares the exact predicate the map applies, so list and pins agree.
   return geojson.features
-    .filter((feature) => (onlineOnly ? feature.properties.eventType === 'online' : true))
+    .filter((feature) => matchesFilters(feature.properties, filters))
     .map((feature) => toSlim(feature, from))
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     .slice(0, NEAREST_LIMIT)

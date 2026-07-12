@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { Spinner } from '@/components/atoms/Spinner'
 import { SearchFilters } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
@@ -53,7 +54,18 @@ export function SearchView() {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        <DynamicEventsList latitude={latitude} longitude={longitude} />
+        {/* Local Suspense so a filter change reloads only the list — the header
+            (and any open filter panel) stays mounted rather than the whole view
+            re-suspending to the stack's DrawerLoading. */}
+        <Suspense
+          fallback={
+            <div className="flex justify-center py-8">
+              <Spinner color="secondary" />
+            </div>
+          }
+        >
+          <DynamicEventsList latitude={latitude} longitude={longitude} />
+        </Suspense>
       </DrawerBody>
     </>
   )
