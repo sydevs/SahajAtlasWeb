@@ -287,7 +287,9 @@ const getEvents = async (
 
   // Filter the whole feed *before* the nearest-N slice, so a restrictive filter
   // returns the nearest matching events rather than whatever survives among the
-  // nearest N. Shares the exact predicate the map applies, so list and pins agree.
+  // nearest N. Shares the exact predicate the map applies. (The rendered sets can
+  // still differ: online events carry no map geometry, and this list is capped at
+  // NEAREST_LIMIT while the map is not.)
   return geojson.features
     .filter((feature) => matchesFilters(feature.properties, filters))
     .map((feature) => toSlim(feature, from))

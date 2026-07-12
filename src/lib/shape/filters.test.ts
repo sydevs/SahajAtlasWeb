@@ -80,6 +80,13 @@ describe('matchesFilters — cadence', () => {
     expect(matchesFilters(oneTime, withFilters({ cadence: 'once' }))).toBe(true)
     expect(matchesFilters(weekly, withFilters({ cadence: 'once' }))).toBe(false)
   })
+
+  it('does not treat a schedule-less event as one-time', () => {
+    const noSchedule = { eventType: 'offline' as const, languages: ['en'], schedule: null }
+
+    expect(matchesFilters(noSchedule, withFilters({ cadence: 'once' }))).toBe(false)
+    expect(matchesFilters(noSchedule, DEFAULT_FILTERS)).toBe(true)
+  })
 })
 
 describe('matchesFilters — day of week (in the event zone)', () => {

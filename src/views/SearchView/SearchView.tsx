@@ -31,8 +31,9 @@ const parseBounds = (value: string | null): [number, number, number, number] | u
 // The search view (route `/search`): events ranked by distance from the geocoded
 // place (`?center=lng,lat`) or, absent that, a one-time snapshot of the map
 // centre — never the live viewport, so the list doesn't re-sort on map pan. The
-// distance query key stays quantized inside DynamicEventsList. Online events are
-// always included.
+// distance query key stays quantized inside DynamicEventsList, which also applies
+// the active event filters (online events included unless the format filter
+// narrows them out).
 export function SearchView() {
   const [searchParams] = useSearchParams()
   const { frameSearch } = useMapController()

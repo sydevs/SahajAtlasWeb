@@ -48,6 +48,13 @@ export const DEFAULT_FILTERS: EventFilters = {
   cadence: 'any',
 }
 
+// Freeze the singleton and its arrays so the store can safely seed/clear by
+// aliasing these references — nothing can mutate the shared default in place.
+Object.freeze(DEFAULT_FILTERS.timeOfDay)
+Object.freeze(DEFAULT_FILTERS.daysOfWeek)
+Object.freeze(DEFAULT_FILTERS.languages)
+Object.freeze(DEFAULT_FILTERS)
+
 /** Whether the time-of-day range narrows anything (i.e. isn't the full day). */
 export const isTimeRestricted = (timeOfDay: [number, number]): boolean =>
   timeOfDay[0] !== TIME_MIN || timeOfDay[1] !== TIME_MAX
@@ -65,7 +72,9 @@ type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
  *   starts within the time range — a Monday-morning and a Wednesday-evening
  *   occurrence don't combine to satisfy "Wednesday morning".
  * - Each occurrence is read in the **event's own frame** via `eventTimeZone`
- *   (the viewer's zone for online events, UTC when `firstDate_tz` is null).
+ *   (the viewer's zone for online events, UTC when `firstDate_tz` is null — the
+ *   same fallback the display path uses, so a null-tz occurrence is read as UTC
+ *   wall-clock here too).
  * - When a day or time filter is active, an event with no `upcomingDates` is
  *   excluded (its occurrences can't be verified).
  */
@@ -80,9 +89,13 @@ export function matchesFilters(event: FilterableEvent, filters: EventFilters): b
   }
 
   if (filters.cadence !== 'any') {
+    // `once` = a schedule with no recurrence; a schedule-less event is unknown
+    // cadence, not one-time, so it doesn't match a specific cadence.
     const recurrence = event.schedule?.recurrenceType ?? null
     const matches =
-      filters.cadence === 'once' ? recurrence === null : recurrence === filters.cadence
+      filters.cadence === 'once'
+        ? event.schedule != null && recurrence === null
+        : recurrence === filters.cadence
 
     if (!matches) return false
   }

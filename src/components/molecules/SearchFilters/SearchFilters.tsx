@@ -91,8 +91,12 @@ const FilterTrigger = forwardRef<HTMLButtonElement, ComponentProps<'button'>>(
     const { t } = useTranslation('common')
     const count = useSearchState((state) => activeFilterCount(state))
 
+    // Fold the active count into the accessible name so assistive tech knows
+    // filters are active (the badge itself is decorative / aria-hidden).
+    const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
+
     return (
-      <IconButton ref={ref} aria-label={t('filters.title')} className="relative" {...props}>
+      <IconButton ref={ref} aria-label={label} className="relative" {...props}>
         <FilterIcon size={20} />
         {count > 0 && (
           <span
