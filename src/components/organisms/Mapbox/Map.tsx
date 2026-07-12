@@ -18,10 +18,10 @@ import {
   boundsLayer,
 } from './layers'
 
-import { useSearchState, useViewState } from '@/config/store'
+import { useEventFilters, useViewState } from '@/config/store'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { matchesFilters, safePath } from '@/lib/shape'
+import { hasActiveFilters, matchesFilters, safePath } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -67,17 +67,9 @@ export function Mapbox() {
   const { locale, languageCode } = useLocale()
   const { theme } = useTheme()
 
-  // The active filters (stable identity via useShallow — this is the hot render
-  // path). Applied to the feed below so the pins + cluster counts match the list.
-  const filters = useSearchState(
-    useShallow((s) => ({
-      format: s.format,
-      timeOfDay: s.timeOfDay,
-      daysOfWeek: s.daysOfWeek,
-      languages: s.languages,
-      cadence: s.cadence,
-    })),
-  )
+  // The active filters (stable identity — this is the hot render path). Applied to
+  // the feed below so the pins + cluster counts match the list.
+  const filters = useEventFilters()
 
   const { data } = useQuery({
     queryKey: ['geojson'],
@@ -87,14 +79,13 @@ export function Mapbox() {
 
   // Filter the feed before it feeds the clustering source, so cluster counts
   // reflect the filters (a layer-level `filter` would leave stale counts). Only
-  // recomputes when the feed or the filters change — not on pan/zoom.
-  const filtered = useMemo(
-    () =>
-      data
-        ? { ...data, features: data.features.filter((f) => matchesFilters(f.properties, filters)) }
-        : undefined,
-    [data, filters],
-  )
+  // recomputes when the feed or the filters change — not on pan/zoom — and reuses
+  // the feed as-is when nothing is filtered (the common case).
+  const filtered = useMemo(() => {
+    if (!data || !hasActiveFilters(filters)) return data
+
+    return { ...data, features: data.features.filter((f) => matchesFilters(f.properties, filters)) }
+  }, [data, filters])
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {

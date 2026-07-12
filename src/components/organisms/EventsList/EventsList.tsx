@@ -1,13 +1,12 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
-import { useShallow } from 'zustand/react/shallow'
 
 import { EventCard } from '@/components/molecules/EventCard'
 import { List } from '@/components/molecules/List'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import { filtersKey, isOnline, nextOccurrence } from '@/lib/shape'
-import { useSearchState } from '@/config/store'
+import { useEventFilters } from '@/config/store'
 import api from '@/config/api'
 import i18n from '@/config/i18n'
 
@@ -35,15 +34,7 @@ export function DynamicEventsList({ latitude, longitude }: DynamicEventsListProp
   // the same filters, so the list and the map always agree. The key includes the
   // filters, so changing one refetches — SearchView wraps this list in its own
   // Suspense boundary so only the list reloads, not the header + filter panel.
-  const filters = useSearchState(
-    useShallow((state) => ({
-      format: state.format,
-      timeOfDay: state.timeOfDay,
-      daysOfWeek: state.daysOfWeek,
-      languages: state.languages,
-      cadence: state.cadence,
-    })),
-  )
+  const filters = useEventFilters()
 
   const { data: events } = useSuspenseQuery({
     // Latitude/longitude are rounded to reduce re-fetching when the map moves.

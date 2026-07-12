@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 import { Feature } from 'geojson'
 
 import {
@@ -65,8 +66,22 @@ export const useSearchState = create<SearchState & SearchAction>((set) => ({
         ? state.languages.filter((existing) => existing !== code)
         : [...state.languages, code].sort(),
     })),
-  clearFilters: () => set({ ...DEFAULT_FILTERS }),
+  clearFilters: () => set(DEFAULT_FILTERS),
 }))
+
+// The filter-value slice (no setters) — the single read the events list and the
+// map both consume, so the useShallow selector lives in one place. useShallow
+// keeps the returned identity stable, so the map's hot path only re-renders when a
+// filter field actually changes.
+const pickFilters = (state: SearchState & SearchAction): EventFilters => ({
+  format: state.format,
+  timeOfDay: state.timeOfDay,
+  daysOfWeek: state.daysOfWeek,
+  languages: state.languages,
+  cadence: state.cadence,
+})
+
+export const useEventFilters = (): EventFilters => useSearchState(useShallow(pickFilters))
 
 // ===== REGISTRATION DRAFT ===== //
 

@@ -49,7 +49,7 @@ export const DEFAULT_FILTERS: EventFilters = {
 }
 
 /** Whether the time-of-day range narrows anything (i.e. isn't the full day). */
-const isTimeRestricted = (timeOfDay: [number, number]): boolean =>
+export const isTimeRestricted = (timeOfDay: [number, number]): boolean =>
   timeOfDay[0] !== TIME_MIN || timeOfDay[1] !== TIME_MAX
 
 /** The subset of an event `matchesFilters` needs — so it works for `FeedEvent`, `EventSlim`, and `Event`. */

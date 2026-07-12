@@ -23,7 +23,6 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { useQuery } from '@tanstack/react-query'
 import { DateTime, Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { useShallow } from 'zustand/react/shallow'
 
 import { Button } from '@/components/atoms/Button'
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -45,6 +44,7 @@ import {
   TIME_STEP,
   activeFilterCount,
   hasActiveFilters,
+  isTimeRestricted,
 } from '@/lib/shape'
 
 // The Format toggle options, in display order — the `eventType` values plus `any`.
@@ -196,6 +196,9 @@ function FilterPanel() {
   const { t } = useTranslation('common')
   const { locale, languageNames } = useLocale()
 
+  // FilterPanel consumes every field + setter, so it subscribes to the whole
+  // (filter-only) store rather than projecting a redundant identical slice.
+  const store = useSearchState()
   const {
     format,
     timeOfDay,
@@ -208,21 +211,7 @@ function FilterPanel() {
     setDaysOfWeek,
     toggleLanguage,
     clearFilters,
-  } = useSearchState(
-    useShallow((state) => ({
-      format: state.format,
-      timeOfDay: state.timeOfDay,
-      daysOfWeek: state.daysOfWeek,
-      languages: state.languages,
-      cadence: state.cadence,
-      setFormat: state.setFormat,
-      setCadence: state.setCadence,
-      setTimeOfDay: state.setTimeOfDay,
-      setDaysOfWeek: state.setDaysOfWeek,
-      toggleLanguage: state.toggleLanguage,
-      clearFilters: state.clearFilters,
-    })),
-  )
+  } = store
 
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
@@ -268,8 +257,8 @@ function FilterPanel() {
 
   useEffect(() => setTimeDraft(timeOfDay), [timeOfDay])
 
-  const timeActive = timeDraft[0] !== TIME_MIN || timeDraft[1] !== TIME_MAX
-  const active = hasActiveFilters({ format, timeOfDay, daysOfWeek, languages, cadence })
+  const timeActive = isTimeRestricted(timeDraft)
+  const active = hasActiveFilters(store)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
