@@ -4,6 +4,10 @@
 // primary component(s) + `Props` type; single-use internals stay private.
 export { SettingsMenu } from './SettingsMenu'
 
+// SearchFilters — the drawer-header event-filters button + panel (popover on
+// desktop, bottom-sheet dialog on mobile). Reads/writes the useSearchState slice.
+export { SearchFilters } from './SearchFilters'
+
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
 // DetailRow — a generic labelled icon row; the event detail cards build on it.

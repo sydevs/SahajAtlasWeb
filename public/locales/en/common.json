@@ -7,6 +7,36 @@
   },
   "events": "events",
   "explore": "Explore",
+  "filters": {
+    "title": "Filters",
+    "clear": "Clear all",
+    "any_time": "Any time",
+    "format": {
+      "label": "Format",
+      "any": "Any",
+      "offline": "In person",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Frequency",
+      "any": "Any",
+      "once": "One-time",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "days": {
+      "label": "Day of week"
+    },
+    "time": {
+      "label": "Time of day",
+      "start": "Earliest start time",
+      "end": "Latest start time"
+    },
+    "language": {
+      "label": "Language",
+      "empty": "No languages available"
+    }
+  },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",
   "language_selector": "Language selector",
