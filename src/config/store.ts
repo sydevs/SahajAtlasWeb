@@ -1,6 +1,13 @@
 import { create } from 'zustand'
 import { Feature } from 'geojson'
 
+import {
+  DEFAULT_FILTERS,
+  type EventCadence,
+  type EventFilters,
+  type EventFormat,
+} from '@/lib/shape'
+
 // ===== VIEW STATE ===== //
 
 type ViewState = {
@@ -29,17 +36,36 @@ export const useViewState = create<ViewState & ViewAction>((set) => ({
 
 // ===== SEARCH STATE ===== //
 
-type SearchState = {
-  onlineOnly: boolean
-}
+// The event filters (format / time-of-day / days-of-week / languages / cadence).
+// The single source of truth for what the events list and the map show; both
+// apply the shared `matchesFilters` predicate. Read with a `useShallow` selector
+// so the map (hot path) only re-renders on the fields it uses. Day/language
+// arrays are kept sorted so their identity — and the list's query key — stay
+// stable across no-op reorders.
+type SearchState = EventFilters
 
 type SearchAction = {
-  setOnlineOnly: (onlineOnly: boolean) => void
+  setFormat: (format: EventFormat) => void
+  setCadence: (cadence: EventCadence) => void
+  setTimeOfDay: (timeOfDay: [number, number]) => void
+  setDaysOfWeek: (daysOfWeek: number[]) => void
+  toggleLanguage: (code: string) => void
+  clearFilters: () => void
 }
 
 export const useSearchState = create<SearchState & SearchAction>((set) => ({
-  onlineOnly: false,
-  setOnlineOnly: (onlineOnly) => set(() => ({ onlineOnly })),
+  ...DEFAULT_FILTERS,
+  setFormat: (format) => set({ format }),
+  setCadence: (cadence) => set({ cadence }),
+  setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
+  setDaysOfWeek: (daysOfWeek) => set({ daysOfWeek: [...daysOfWeek].sort((a, b) => a - b) }),
+  toggleLanguage: (code) =>
+    set((state) => ({
+      languages: state.languages.includes(code)
+        ? state.languages.filter((existing) => existing !== code)
+        : [...state.languages, code].sort(),
+    })),
+  clearFilters: () => set({ ...DEFAULT_FILTERS }),
 }))
 
 // ===== REGISTRATION DRAFT ===== //
