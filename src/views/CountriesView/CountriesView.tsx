@@ -4,7 +4,7 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, RegionCard } from '@/components/molecules'
+import { List, RegionCard, SearchFilters } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
@@ -46,6 +46,7 @@ export function CountriesView() {
       )}
       <DrawerHeader>
         <SearchField />
+        <SearchFilters />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>

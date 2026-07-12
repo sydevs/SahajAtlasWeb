@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { SearchFilters } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -48,6 +49,7 @@ export function SearchView() {
     <>
       <DrawerHeader>
         <SearchField />
+        <SearchFilters />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
