@@ -9,11 +9,39 @@
     "description_other": "%{count} free meditation classes in %{location}",
     "title": "Free Meditation Classes in %{location}"
   },
-  "show_online_classes": "Show online classes",
-  "showing_online_classes": "Showing online classes",
   "venues": {
     "description_one": "%{count} free meditation class at %{venue}",
     "description_other": "%{count} free meditation classes at %{venue}",
     "title": "Free Meditation Classes at %{venue}"
+  },
+  "filters": {
+    "title": "Szűrők",
+    "clear": "Összes törlése",
+    "any_time": "Bármikor",
+    "format": {
+      "label": "Forma",
+      "any": "Bármely",
+      "offline": "Személyesen",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Gyakoriság",
+      "any": "Bármely",
+      "once": "Egyszeri",
+      "weekly": "Hetente",
+      "monthly": "Havonta"
+    },
+    "days": {
+      "label": "A hét napja"
+    },
+    "time": {
+      "label": "Napszak",
+      "start": "Legkorábbi kezdési idő",
+      "end": "Legkésőbbi kezdési idő"
+    },
+    "language": {
+      "label": "Nyelv",
+      "empty": "Nincsenek elérhető nyelvek"
+    }
   }
 }

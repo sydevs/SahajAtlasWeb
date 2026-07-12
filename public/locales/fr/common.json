@@ -9,11 +9,39 @@
     "description_other": "%{count} cours de méditation gratuits à %{location}",
     "title": "Cours de méditation gratuits à %{location}"
   },
-  "show_online_classes": "Afficher les cours en ligne",
-  "showing_online_classes": "Affichage des cours en ligne",
   "venues": {
     "description_one": "%{count} cours de méditation gratuit à %{venue}",
     "description_other": "%{count} cours de méditation gratuits à %{venue}",
     "title": "Cours de méditation gratuits à %{venue}"
+  },
+  "filters": {
+    "title": "Filtres",
+    "clear": "Tout effacer",
+    "any_time": "À toute heure",
+    "format": {
+      "label": "Format",
+      "any": "Tous",
+      "offline": "En personne",
+      "online": "En ligne"
+    },
+    "cadence": {
+      "label": "Fréquence",
+      "any": "Tous",
+      "once": "Ponctuel",
+      "weekly": "Hebdomadaire",
+      "monthly": "Mensuel"
+    },
+    "days": {
+      "label": "Jour de la semaine"
+    },
+    "time": {
+      "label": "Heure de la journée",
+      "start": "Heure de début la plus tôt",
+      "end": "Heure de début la plus tard"
+    },
+    "language": {
+      "label": "Langue",
+      "empty": "Aucune langue disponible"
+    }
   }
 }

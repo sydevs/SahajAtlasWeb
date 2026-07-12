@@ -9,11 +9,39 @@
     "description_other": "%{count} bezplatné lekce meditace v %{location}",
     "title": "Bezplatné kurzy meditace v %{location}"
   },
-  "show_online_classes": "Zobrazit online kurzy",
-  "showing_online_classes": "Zobrazení online kurzů",
   "venues": {
     "description_one": "%{count} bezplatná lekce meditace v %{venue}",
     "description_other": "%{count} bezplatné lekce meditace v %{venue}",
     "title": "Bezplatné kurzy meditace v %{venue}"
+  },
+  "filters": {
+    "title": "Filtry",
+    "clear": "Vymazat vše",
+    "any_time": "Kdykoli",
+    "format": {
+      "label": "Formát",
+      "any": "Libovolný",
+      "offline": "Osobně",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Frekvence",
+      "any": "Libovolná",
+      "once": "Jednorázově",
+      "weekly": "Týdně",
+      "monthly": "Měsíčně"
+    },
+    "days": {
+      "label": "Den v týdnu"
+    },
+    "time": {
+      "label": "Denní doba",
+      "start": "Nejdřívější čas začátku",
+      "end": "Nejpozdější čas začátku"
+    },
+    "language": {
+      "label": "Jazyk",
+      "empty": "Nejsou dostupné žádné jazyky"
+    }
   }
 }

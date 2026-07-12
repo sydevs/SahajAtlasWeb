@@ -9,11 +9,39 @@
     "description_other": "%{count} kostenlose Meditationskurse in %{location}",
     "title": "Kostenlose Meditationskurse in %{location}"
   },
-  "show_online_classes": "Online-Kurse anzeigen",
-  "showing_online_classes": "Online-Kurse anzeigen",
   "venues": {
     "description_one": "%{count} kostenloser Meditationskurs bei %{venue}",
     "description_other": "%{count} kostenlose Meditationskurse bei %{venue}",
     "title": "Kostenlose Meditationskurse bei %{venue}"
+  },
+  "filters": {
+    "title": "Filter",
+    "clear": "Alle zurücksetzen",
+    "any_time": "Jederzeit",
+    "format": {
+      "label": "Format",
+      "any": "Alle",
+      "offline": "Vor Ort",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Häufigkeit",
+      "any": "Alle",
+      "once": "Einmalig",
+      "weekly": "Wöchentlich",
+      "monthly": "Monatlich"
+    },
+    "days": {
+      "label": "Wochentag"
+    },
+    "time": {
+      "label": "Uhrzeit",
+      "start": "Früheste Startzeit",
+      "end": "Späteste Startzeit"
+    },
+    "language": {
+      "label": "Sprache",
+      "empty": "Keine Sprachen verfügbar"
+    }
   }
 }

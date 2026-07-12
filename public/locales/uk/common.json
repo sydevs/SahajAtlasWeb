@@ -9,11 +9,39 @@
     "description_other": "%{count} безкоштовні заняття з медитації в %{location}",
     "title": "Безкоштовні курси медитації в %{location}"
   },
-  "show_online_classes": "Показати онлайн-класи",
-  "showing_online_classes": "Показ онлайн-класів",
   "venues": {
     "description_one": "%{count} безкоштовний курс медитації в %{venue}",
     "description_other": "%{count} безкоштовні заняття з медитації в %{venue}",
     "title": "Безкоштовні заняття з медитації в %{venue}"
+  },
+  "filters": {
+    "title": "Фільтри",
+    "clear": "Очистити все",
+    "any_time": "Будь-який час",
+    "format": {
+      "label": "Формат",
+      "any": "Будь-який",
+      "offline": "Особисто",
+      "online": "Онлайн"
+    },
+    "cadence": {
+      "label": "Періодичність",
+      "any": "Будь-яка",
+      "once": "Одноразово",
+      "weekly": "Щотижня",
+      "monthly": "Щомісяця"
+    },
+    "days": {
+      "label": "День тижня"
+    },
+    "time": {
+      "label": "Час доби",
+      "start": "Найраніший час початку",
+      "end": "Найпізніший час початку"
+    },
+    "language": {
+      "label": "Мова",
+      "empty": "Немає доступних мов"
+    }
   }
 }

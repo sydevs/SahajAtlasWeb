@@ -9,11 +9,39 @@
     "description_other": "%{count} бесплатных занятий по медитации в %{location}",
     "title": "Бесплатные занятия медитацией в %{location}"
   },
-  "show_online_classes": "Показать онлайн-классы",
-  "showing_online_classes": "Показать онлайн-классы",
   "venues": {
     "description_one": "%{count} бесплатный урок медитации в %{venue}",
     "description_other": "%{count} бесплатных занятий по медитации в %{venue}",
     "title": "Бесплатные занятия медитацией в %{venue}"
+  },
+  "filters": {
+    "title": "Фильтры",
+    "clear": "Сбросить все",
+    "any_time": "Любое время",
+    "format": {
+      "label": "Формат",
+      "any": "Любой",
+      "offline": "Очно",
+      "online": "Онлайн"
+    },
+    "cadence": {
+      "label": "Периодичность",
+      "any": "Любая",
+      "once": "Разовое",
+      "weekly": "Еженедельно",
+      "monthly": "Ежемесячно"
+    },
+    "days": {
+      "label": "День недели"
+    },
+    "time": {
+      "label": "Время суток",
+      "start": "Самое раннее время начала",
+      "end": "Самое позднее время начала"
+    },
+    "language": {
+      "label": "Язык",
+      "empty": "Нет доступных языков"
+    }
   }
 }
