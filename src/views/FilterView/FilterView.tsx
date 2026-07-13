@@ -35,11 +35,14 @@ export function FilterView() {
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  // A live preview of how many events the draft filters match.
-  const count = useMemo(
-    () => geojson?.features.filter((feature) => matchesFilters(feature.properties, draft)).length,
-    [geojson, draft],
-  )
+  // A live preview of how many events the draft filters match. Skip the full-feed
+  // predicate scan when the draft is all-default (every event matches).
+  const count = useMemo(() => {
+    if (!geojson) return undefined
+    if (!hasActiveFilters(draft)) return geojson.features.length
+
+    return geojson.features.filter((feature) => matchesFilters(feature.properties, draft)).length
+  }, [geojson, draft])
 
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)

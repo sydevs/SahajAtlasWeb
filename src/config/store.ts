@@ -53,7 +53,6 @@ type SearchAction = {
   setCadence: (cadence: EventCadence) => void
   setTimeOfDay: (timeOfDay: [number, number]) => void
   setDaysOfWeek: (daysOfWeek: number[]) => void
-  toggleLanguage: (code: string) => void
   setLanguages: (languages: string[]) => void
   clearFilters: () => void
 }
@@ -71,12 +70,6 @@ export const useSearchState = create<SearchState & SearchAction>((set) => ({
   setCadence: (cadence) => set({ cadence }),
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
   setDaysOfWeek: (daysOfWeek) => set({ daysOfWeek: [...daysOfWeek].sort((a, b) => a - b) }),
-  toggleLanguage: (code) =>
-    set((state) => ({
-      languages: state.languages.includes(code)
-        ? state.languages.filter((existing) => existing !== code)
-        : [...state.languages, code].sort(),
-    })),
   setLanguages: (languages) => set({ languages: [...languages].sort() }),
   clearFilters: () => set(DEFAULT_FILTERS),
 }))

@@ -4,6 +4,12 @@ import * as RadixSelect from '@radix-ui/react-select'
 import { overlayContainer } from '@/lib/overlay'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 
+// Shared trigger chrome for select-style controls — this Select and the filter
+// panel's language multi-select dropdown — so they look and focus identically.
+// The caller adds the border colour (default vs invalid).
+export const selectTriggerClass =
+  'inline-flex h-10 w-full items-center justify-between gap-2 rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled'
+
 // A select built on @radix-ui/react-select, replacing NextUI's Select. Controlled
 // via value/onValueChange (pair with react-hook-form's Controller for forms).
 // The listbox portals into the theme root so it stays brand/light-dark themed.
@@ -44,9 +50,7 @@ export function Select({
     >
       <RadixSelect.Trigger
         aria-label={ariaLabel}
-        className={`inline-flex h-10 w-full items-center justify-between gap-2 rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled ${
-          isInvalid ? 'border-danger-7' : 'border-gray-7'
-        } ${className ?? ''}`}
+        className={`${selectTriggerClass} ${isInvalid ? 'border-danger-7' : 'border-gray-7'} ${className ?? ''}`}
         onBlur={onBlur}
       >
         <RadixSelect.Value placeholder={placeholder} />

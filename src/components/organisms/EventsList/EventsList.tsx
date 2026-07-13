@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +22,10 @@ export interface DynamicEventsListProps {
   longitude: number
   /** Whether latitude/longitude came from a geocoded search (vs the map centre). */
   hasSearchCenter?: boolean
+  /** Whether the "< NEARBY_KM" cap has been dismissed (URL-driven, so it survives
+   *  the drawer stack's remount-on-navigation and resets on a new search). */
+  showAll?: boolean
+  onShowAll?: () => void
 }
 
 function calculateOrder(event: EventSlim) {
@@ -42,6 +45,8 @@ export function DynamicEventsList({
   latitude,
   longitude,
   hasSearchCenter = false,
+  showAll = false,
+  onShowAll,
 }: DynamicEventsListProps) {
   // The active (applied) filters. getEvents applies the shared `matchesFilters`
   // predicate; the map filters its pins/clusters with the same filters, so the
@@ -53,33 +58,30 @@ export function DynamicEventsList({
     // Latitude/longitude are rounded to reduce re-fetching when the map moves.
     queryKey: ['events', latitude.toFixed(2), longitude.toFixed(2), filtersKey(filters)],
     queryFn: () =>
-      api
-        .getEvents(latitude, longitude, filters)
-        .then((data) => data.sort((a, b) => calculateOrder(a) - calculateOrder(b))),
+      api.getEvents(latitude, longitude, filters).then((data) =>
+        // Decorate-sort-undecorate: compute each event's order once (it builds
+        // luxon DateTimes) rather than O(n·log n) times inside the comparator.
+        data
+          .map((event) => ({ event, order: calculateOrder(event) }))
+          .sort((a, b) => a.order - b.order)
+          .map(({ event }) => event),
+      ),
   })
 
   // "< NEARBY_KM" cap — only when a place was searched. Auto-applied when the
-  // results include far in-person events; dismissable (then the far ones show).
-  // Online events have no distance, so they are never distance-excluded. Reset on
-  // a new search.
-  const [nearbyDismissed, setNearbyDismissed] = useState(false)
-
-  useEffect(() => setNearbyDismissed(false), [latitude, longitude])
-
+  // results include far in-person events; dismissable via the pill (then the far
+  // ones show). Online events have no distance, so they are never distance-excluded.
   const hasFar =
-    hasSearchCenter &&
-    events.some((event) => event.distance !== undefined && event.distance > NEARBY_KM)
-  const nearbyActive = hasFar && !nearbyDismissed
+    hasSearchCenter && events.some((e) => e.distance !== undefined && e.distance > NEARBY_KM)
+  const nearbyActive = hasFar && !showAll
   const shown = nearbyActive
-    ? events.filter((event) => event.distance === undefined || event.distance <= NEARBY_KM)
+    ? events.filter((e) => e.distance === undefined || e.distance <= NEARBY_KM)
     : events
 
   return (
     <>
       <ActiveFilterPills
-        nearby={
-          nearbyActive ? { km: NEARBY_KM, onClear: () => setNearbyDismissed(true) } : undefined
-        }
+        nearby={nearbyActive && onShowAll ? { km: NEARBY_KM, onClear: onShowAll } : undefined}
       />
       {shown.length === 0 ? <EmptyResults /> : <EventsList events={shown} />}
     </>

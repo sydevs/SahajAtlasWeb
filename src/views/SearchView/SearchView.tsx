@@ -34,7 +34,7 @@ const parseBounds = (value: string | null): [number, number, number, number] | u
 // narrows them out). Filters are changed in the FilterView drawer (opened from the
 // header), so this view just reflects the current filters when it (re)mounts.
 export function SearchView() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { frameSearch } = useMapController()
 
   const center = parsePair(searchParams.get('center'))
@@ -44,7 +44,27 @@ export function SearchView() {
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  useFrameOnTop(() => frameSearch({ bbox: bounds, center }), [frameSearch, searchParams])
+  // The "< 500 km" distance cap dismissal lives in the URL (`?all=1`) so it
+  // survives the drawer stack's remount-on-navigation and the filter round-trip,
+  // and resets whenever a new place is searched (which replaces the query).
+  const showAll = searchParams.get('all') === '1'
+  const showAllEvents = () =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+
+        next.set('all', '1')
+
+        return next
+      },
+      { replace: true },
+    )
+
+  // Only re-frame when the searched place changes — not on `?q`/`?all` edits.
+  useFrameOnTop(
+    () => frameSearch({ bbox: bounds, center }),
+    [frameSearch, searchParams.get('center'), searchParams.get('bbox')],
+  )
 
   return (
     <>
@@ -58,6 +78,8 @@ export function SearchView() {
           hasSearchCenter={center !== undefined}
           latitude={latitude}
           longitude={longitude}
+          showAll={showAll}
+          onShowAll={showAllEvents}
         />
       </DrawerBody>
     </>

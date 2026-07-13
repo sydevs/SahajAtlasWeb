@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/atoms/Checkbox'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Slider } from '@/components/atoms/Slider'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
+import { selectTriggerClass } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -22,18 +23,11 @@ import {
   isTimeRestricted,
 } from '@/lib/shape'
 
-// The Format toggle options, in display order — the `eventType` values plus `any`.
+// The Format + Frequency toggle options, in display order. The i18n leaf key for
+// each is just the lowercased value (`recurrenceType` is upper-case on the wire),
+// so no lookup map is needed.
 const FORMAT_OPTIONS: EventFormat[] = ['any', 'offline', 'online']
-
-// The Frequency toggle options; the i18n leaf keys are lowercased (`recurrenceType`
-// is upper-case on the wire).
-const CADENCE_OPTIONS: { value: EventCadence; key: string }[] = [
-  { value: 'any', key: 'any' },
-  { value: 'DAILY', key: 'daily' },
-  { value: 'WEEKLY', key: 'weekly' },
-  { value: 'MONTHLY', key: 'monthly' },
-  { value: 'once', key: 'once' },
-]
+const CADENCE_OPTIONS: EventCadence[] = ['any', 'DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
 // A labelled filter group — a heading (with an optional right-aligned hint, e.g.
 // the time readout) above its control. When the filter is `active`, a small
@@ -92,7 +86,7 @@ export type SearchFiltersProps = {
  */
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
-  const { locale, languageNames } = useLocale()
+  const { locale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence } = value
 
   // Patch one or more fields of the current draft.
@@ -123,18 +117,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       feature.properties.languages.forEach((code) => codes.add(code)),
     )
 
-    const labelOf = (code: string) => {
-      try {
-        return languageNames.of(code) ?? code
-      } catch {
-        return code
-      }
-    }
-
     return [...codes]
-      .map((code) => ({ code, label: labelOf(code) }))
+      .map((code) => ({ code, label: languageLabel(code) }))
       .sort((a, b) => a.label.localeCompare(b.label, locale))
-  }, [geojson, languageNames, locale])
+  }, [geojson, languageLabel, locale])
 
   // Local draft for the time slider so a drag doesn't fire onChange on every tick —
   // the draft is patched only on release (onValueCommit).
@@ -148,7 +134,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const selectedLanguages = languages.map(
     (code) => languageOptions.find((option) => option.code === code)?.label ?? code,
   )
-  const languageLabel =
+  const languageTriggerLabel =
     selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
 
   return (
@@ -186,8 +172,8 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           onValueChange={(next) => next && patch({ cadence: next as EventCadence })}
         >
           {CADENCE_OPTIONS.map((option) => (
-            <ToggleGroupItem key={option.value} value={option.value}>
-              {t(`filters.cadence.${option.key}`)}
+            <ToggleGroupItem key={option} value={option}>
+              {t(`filters.cadence.${option.toLowerCase()}`)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -249,8 +235,8 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             ariaLabel={t('filters.language.label')}
             role="dialog"
             trigger={
-              <span className="inline-flex h-10 w-full items-center justify-between gap-2 rounded border border-gray-7 bg-background px-3 text-sm text-foreground">
-                <span className="truncate">{languageLabel}</span>
+              <span className={`${selectTriggerClass} border-gray-7`}>
+                <span className="truncate">{languageTriggerLabel}</span>
                 <DownArrowIcon className="h-4 w-4 shrink-0 opacity-70" />
               </span>
             }

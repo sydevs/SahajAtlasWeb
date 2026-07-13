@@ -66,15 +66,12 @@ describe('useSearchState', () => {
     expect(useSearchState.getState().daysOfWeek).toEqual([1, 3, 5])
   })
 
-  it('toggleLanguage adds then removes a code, staying sorted', () => {
-    const state = () => useSearchState.getState()
+  it('setLanguages replaces the selection, staying sorted', () => {
+    useSearchState.getState().setLanguages(['fr', 'en'])
+    expect(useSearchState.getState().languages).toEqual(['en', 'fr'])
 
-    state().toggleLanguage('fr')
-    state().toggleLanguage('en')
-    expect(state().languages).toEqual(['en', 'fr'])
-
-    state().toggleLanguage('fr')
-    expect(state().languages).toEqual(['en'])
+    useSearchState.getState().setLanguages([])
+    expect(useSearchState.getState().languages).toEqual([])
   })
 
   it('clearFilters restores the defaults', () => {

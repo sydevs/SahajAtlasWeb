@@ -25,6 +25,19 @@ export function useLocale() {
   const languageNames = useMemo(() => new Intl.DisplayNames(locale, { type: 'language' }), [locale])
   const regionNames = useMemo(() => new Intl.DisplayNames(locale, { type: 'region' }), [locale])
 
+  // Guarded language-name lookup: `Intl.DisplayNames.of` throws on a malformed
+  // code, so fall back to the raw code. Used by the filter form + active-filter pills.
+  const languageLabel = useCallback(
+    (code: string) => {
+      try {
+        return languageNames.of(code) ?? code
+      } catch {
+        return code
+      }
+    },
+    [languageNames],
+  )
+
   // Just change the language; the subscription above re-snapshots every consumer —
   // no local state to keep in sync.
   const setLocale = useCallback((next: string) => void i18n.changeLanguage(next), [i18n])
@@ -33,6 +46,7 @@ export function useLocale() {
     locale,
     languageCode: locale.split('-')[0],
     languageNames,
+    languageLabel,
     regionNames,
     setLocale,
   }

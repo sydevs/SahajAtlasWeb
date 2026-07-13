@@ -6,15 +6,7 @@ import { Chip } from '@/components/atoms/Chip'
 import { useSearchState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
-import { type EventCadence, TIME_MAX, TIME_MIN, isTimeRestricted } from '@/lib/shape'
-
-// Frequency value → its lowercased i18n leaf key (`recurrenceType` is upper-case).
-const CADENCE_KEY: Record<Exclude<EventCadence, 'any'>, string> = {
-  once: 'once',
-  DAILY: 'daily',
-  WEEKLY: 'weekly',
-  MONTHLY: 'monthly',
-}
+import { TIME_MAX, TIME_MIN, isTimeRestricted } from '@/lib/shape'
 
 export type ActiveFilterPillsProps = {
   /**
@@ -33,7 +25,7 @@ export type ActiveFilterPillsProps = {
  */
 export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   const { t } = useTranslation('common')
-  const { locale, languageNames } = useLocale()
+  const { locale, languageLabel } = useLocale()
   const {
     format,
     timeOfDay,
@@ -48,14 +40,6 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   } = useSearchState()
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
-
-  const languageLabel = (code: string) => {
-    try {
-      return languageNames.of(code) ?? code
-    } catch {
-      return code
-    }
-  }
 
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
@@ -76,7 +60,7 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   if (cadence !== 'any') {
     pills.push({
       key: 'cadence',
-      label: t(`filters.cadence.${CADENCE_KEY[cadence]}`),
+      label: t(`filters.cadence.${cadence.toLowerCase()}`),
       onRemove: () => setCadence('any'),
     })
   }
