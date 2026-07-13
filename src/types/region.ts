@@ -34,9 +34,11 @@ export const RegionListItemSchema = z.object({
 })
 export type RegionListItem = z.infer<typeof RegionListItemSchema>
 
-// One derived view-model for every region level. `country`/`region` populate
-// `subregions` (child list); `city`/`center` populate `events`. `bounds` frames
-// the map for all levels; `center` is the derived point a `center` (venue) uses
+// One derived view-model for every region level. `subregions` lists child regions
+// with ≥ 2 located events (a single-event child is promoted into `events` instead);
+// `events` holds this region's *located* events, and `onlineEvents` rolls up every
+// placeless online event under it. `bounds` frames the map for all levels (online
+// events never contribute); `center` is the derived point a `center` (venue) uses
 // when it has no bounds. `countryCode` is set only for countries.
 export const RegionSchema = z.object({
   id: z.number(),
@@ -53,6 +55,10 @@ export const RegionSchema = z.object({
   // Absolute canonical URL (server webUrl) for the page's <link rel="canonical">.
   webUrl: z.string().nullish(),
   subregions: z.array(RegionListItemSchema),
+  // Located events only (promoted single-event children + events directly under the
+  // region); never online — those live in `onlineEvents`. The two sets are disjoint.
   events: z.array(EventSlimSchema),
+  // Placeless online events under this region's subtree, rolled up onto every level.
+  onlineEvents: z.array(EventSlimSchema),
 })
 export type Region = z.infer<typeof RegionSchema>

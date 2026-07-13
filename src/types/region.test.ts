@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import { RegionDocSchema, RegionListItemSchema, RegionSchema } from './region'
 
-import { mockEventSlimList } from '@/mocks/events'
+import { mockEventSlim, mockEventSlimList, mockEventSlimOnline } from '@/mocks/events'
 
 const regionDoc = {
   id: 28,
@@ -40,6 +40,7 @@ const country = {
   webUrl: 'https://atlas.example/belgium',
   subregions: [listItem],
   events: [],
+  onlineEvents: [],
 }
 
 // A center (venue): `events` populated, derived center point.
@@ -55,6 +56,7 @@ const venue = {
   parentPath: '/belgium/flanders/antwerpen',
   subregions: [],
   events: mockEventSlimList,
+  onlineEvents: [],
 }
 
 describe('RegionDocSchema', () => {
@@ -110,6 +112,18 @@ describe('RegionSchema', () => {
 
     expect(parsed.center).toEqual([4.35, 50.85])
     expect(parsed.events).toHaveLength(mockEventSlimList.length)
+  })
+
+  it('rolls up online events disjoint from located events', () => {
+    const parsed = RegionSchema.parse({
+      ...venue,
+      events: [mockEventSlim],
+      onlineEvents: [mockEventSlimOnline],
+    })
+
+    expect(parsed.events.map((event) => event.eventType)).toEqual(['offline'])
+    expect(parsed.onlineEvents).toHaveLength(1)
+    expect(parsed.onlineEvents[0].eventType).toBe('online')
   })
 
   it('allows null bounds and null center', () => {
