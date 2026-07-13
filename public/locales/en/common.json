@@ -50,9 +50,9 @@
   "search": "Search",
   "settings": "Settings",
   "theme": {
-    "auto": "Auto",
-    "dark": "Dark",
-    "light": "Light"
+    "auto": "System (Auto)",
+    "dark": "Dark Theme",
+    "light": "Light Theme"
   },
   "venues": {
     "description_one": "%{count} free meditation class at %{venue}",

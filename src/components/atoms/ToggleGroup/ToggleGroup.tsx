@@ -1,21 +1,41 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, createContext, useContext } from 'react'
 import * as RadixToggleGroup from '@radix-ui/react-toggle-group'
 import { tv } from 'tailwind-variants'
 
-// A pill-style single- or multi-select on the brand tokens, wrapping
-// @radix-ui/react-toggle-group. Compose it with ToggleGroupItem (mirrors
-// Select/SelectItem). Roving focus + keyboard selection come from Radix; the
-// selected pill fills with the primary ramp via `data-[state=on]`.
+// A single- or multi-select on the brand tokens, wrapping @radix-ui/react-toggle-group.
+// Compose it with ToggleGroupItem (mirrors Select/SelectItem). Roving focus + keyboard
+// selection come from Radix; the selected item fills with the primary ramp via
+// `data-[state=on]`. `joined` renders the items as one segmented control (flush,
+// shared borders, rounded outer corners) rather than separate pills.
 const toggleGroup = tv({
   slots: {
-    root: 'inline-flex flex-wrap items-center gap-1',
-    item: 'inline-flex h-9 min-w-9 select-none items-center justify-center rounded border border-gray-6 bg-background px-3 text-sm font-medium text-gray-11 outline-none transition-colors hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
+    root: 'inline-flex items-center',
+    item: 'relative inline-flex h-9 min-w-9 select-none items-center justify-center border border-gray-6 bg-background px-3 text-sm font-medium text-gray-11 outline-none transition-colors hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
   },
+  variants: {
+    joined: {
+      false: { root: 'flex-wrap gap-1', item: 'rounded' },
+      // Segmented: full-width equal parts, flush with overlapping (collapsed)
+      // borders, only the outer corners rounded. Wraps within a part rather than
+      // overflowing, so long labels in verbose locales stay contained.
+      true: {
+        root: 'w-full',
+        item: '-ml-px h-auto min-h-9 flex-1 whitespace-normal rounded-none px-2 py-1 leading-tight first:ml-0 first:rounded-l last:rounded-r',
+      },
+    },
+  },
+  defaultVariants: { joined: false },
 })
+
+// Lets ToggleGroupItem pick up the parent's `joined` styling without threading it
+// through every item (mirrors the Drawer atom's slot context).
+const ToggleGroupContext = createContext<{ joined: boolean }>({ joined: false })
 
 type ToggleGroupBaseProps = {
   disabled?: boolean
   ariaLabel?: string
+  /** Render the items as a joined segmented control rather than separate pills. */
+  joined?: boolean
   className?: string
   children: ReactNode
 }
@@ -41,34 +61,26 @@ export type ToggleGroupProps = ToggleGroupBaseProps &
 export function ToggleGroup({
   disabled,
   ariaLabel,
+  joined = false,
   className,
   children,
   ...props
 }: ToggleGroupProps) {
-  const { root } = toggleGroup()
-  const common = { 'aria-label': ariaLabel, className: root({ className }), disabled }
+  const { root } = toggleGroup({ joined })
 
-  // Two arms so `type` narrows value/onValueChange to Radix's matching overload.
-  return props.type === 'single' ? (
-    <RadixToggleGroup.Root
-      defaultValue={props.defaultValue}
-      type="single"
-      value={props.value}
-      onValueChange={props.onValueChange}
-      {...common}
-    >
-      {children}
-    </RadixToggleGroup.Root>
-  ) : (
-    <RadixToggleGroup.Root
-      defaultValue={props.defaultValue}
-      type="multiple"
-      value={props.value}
-      onValueChange={props.onValueChange}
-      {...common}
-    >
-      {children}
-    </RadixToggleGroup.Root>
+  return (
+    <ToggleGroupContext.Provider value={{ joined }}>
+      {/* `props` is the discriminated (type/value/onValueChange) union, which is
+          assignable to Radix's own overload union — so one Root, no per-type arms. */}
+      <RadixToggleGroup.Root
+        aria-label={ariaLabel}
+        className={root({ className })}
+        disabled={disabled}
+        {...props}
+      >
+        {children}
+      </RadixToggleGroup.Root>
+    </ToggleGroupContext.Provider>
   )
 }
 
@@ -87,7 +99,8 @@ export function ToggleGroupItem({
   className,
   children,
 }: ToggleGroupItemProps) {
-  const { item } = toggleGroup()
+  const { joined } = useContext(ToggleGroupContext)
+  const { item } = toggleGroup({ joined })
 
   return (
     <RadixToggleGroup.Item

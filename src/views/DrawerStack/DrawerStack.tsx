@@ -314,7 +314,9 @@ export function DrawerStack() {
             {/* Top-left, offset past the left drawer on ≥md (flush left-0 on tablet,
                 floating to left-4 at ≥lg) so it never overlaps the panel. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
-            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)]" />
+            {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
+                bump the cog to top-4 to line up with the drawer's top edge. */}
+            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
           </>,
           target,
         )}

@@ -134,15 +134,19 @@ export function SearchFilters() {
   useEffect(() => setTimeDraft(timeOfDay), [timeOfDay])
 
   const timeActive = isTimeRestricted(timeDraft)
+  // Show the selected language names in the trigger (truncated) so the selection is
+  // visible at a glance, rather than an opaque count.
+  const selectedLanguages = languages.map(
+    (code) => languageOptions.find((option) => option.code === code)?.label ?? code,
+  )
   const languageLabel =
-    languages.length === 0
-      ? t('filters.language.all')
-      : `${t('filters.language.label')} (${languages.length})`
+    selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
 
   return (
     <div className="flex flex-col gap-5">
       <FilterGroup label={t('filters.format.label')}>
         <ToggleGroup
+          joined
           ariaLabel={t('filters.format.label')}
           type="single"
           value={format}
@@ -158,6 +162,7 @@ export function SearchFilters() {
 
       <FilterGroup label={t('filters.cadence.label')}>
         <ToggleGroup
+          joined
           ariaLabel={t('filters.cadence.label')}
           type="single"
           value={cadence}

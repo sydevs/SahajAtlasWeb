@@ -12,22 +12,36 @@ export default {
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
-/** ToggleGroup — pill-style single- or multi-select (format, day-of-week filters). */
+/** ToggleGroup — single- or multi-select; separate pills or a joined segmented bar. */
 export const ToggleGroupStory: Story = () => {
   const [format, setFormat] = useState('any')
   const [days, setDays] = useState<string[]>(['1', '3'])
 
   return (
     <StoryWrapper>
-      <StorySection description="One choice at a time (the Format filter)." title="Single-select">
-        <ToggleGroup ariaLabel="Format" type="single" value={format} onValueChange={setFormat}>
-          <ToggleGroupItem value="any">Any</ToggleGroupItem>
-          <ToggleGroupItem value="offline">In person</ToggleGroupItem>
-          <ToggleGroupItem value="online">Online</ToggleGroupItem>
-        </ToggleGroup>
+      <StorySection
+        description="Single-select as a joined segmented control (the Format/Frequency filters)."
+        title="Joined (single-select)"
+      >
+        <div className="max-w-xs">
+          <ToggleGroup
+            joined
+            ariaLabel="Format"
+            type="single"
+            value={format}
+            onValueChange={setFormat}
+          >
+            <ToggleGroupItem value="any">Any</ToggleGroupItem>
+            <ToggleGroupItem value="offline">In person</ToggleGroupItem>
+            <ToggleGroupItem value="online">Online</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </StorySection>
 
-      <StorySection description="Multiple choices (the Day-of-week filter)." title="Multi-select">
+      <StorySection
+        description="Multiple choices as separate pills (the Day-of-week filter)."
+        title="Multi-select"
+      >
         <ToggleGroup ariaLabel="Days" type="multiple" value={days} onValueChange={setDays}>
           {WEEKDAYS.map((day, index) => (
             <ToggleGroupItem key={index} value={String(index + 1)}>
