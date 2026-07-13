@@ -23,7 +23,11 @@ a file manually.
 - ESLint enforces `import/order` with blank lines between groups
   (type → builtin → object → external → internal → parent → sibling → index).
   The auto-fix handles ordering; don't fight it.
-- `unused-imports/no-unused-imports` auto-removes dead imports on fix.
+- `unused-imports/no-unused-imports` auto-removes dead imports on fix — and the
+  PostToolUse hook runs that fix after **every** edit. So an import added in a
+  separate edit from its first use is stripped before the use lands, then fails
+  typecheck with "Cannot find name". Add the import **and** its usage in the same
+  edit (or add the usage first), never import-first-in-its-own-edit.
 
 ## Naming
 
