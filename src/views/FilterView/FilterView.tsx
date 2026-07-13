@@ -59,7 +59,7 @@ export function FilterView() {
           </Button>
         )}
         <Button className="flex-1" color="primary" onClick={apply}>
-          {count === undefined ? t('filters.apply') : t('filters.apply_count', { count })}
+          {count === undefined ? t('filters.apply') : t('filters.apply_count', { total: count })}
         </Button>
       </DrawerFooter>
     </>

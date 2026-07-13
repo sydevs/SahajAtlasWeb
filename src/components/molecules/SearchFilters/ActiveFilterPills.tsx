@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { formatHour } from './SearchFilters'
 
-import { CloseIcon } from '@/components/atoms/Icons'
+import { Chip } from '@/components/atoms/Chip'
 import { useSearchState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { type EventCadence, TIME_MAX, TIME_MIN, isTimeRestricted } from '@/lib/shape'
@@ -17,36 +17,13 @@ const CADENCE_KEY: Record<Exclude<EventCadence, 'any'>, string> = {
   MONTHLY: 'monthly',
 }
 
-// A single removable filter pill: its label plus an X that removes that filter.
-function FilterPill({
-  label,
-  removeLabel,
-  onRemove,
-}: {
-  label: string
-  removeLabel: string
-  onRemove: () => void
-}) {
-  return (
-    <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary-3 py-1 pl-2.5 pr-1 text-xs font-medium text-primary-11">
-      <span className="truncate">{label}</span>
-      <button
-        aria-label={removeLabel}
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-primary-5"
-        type="button"
-        onClick={onRemove}
-      >
-        <CloseIcon size={12} />
-      </button>
-    </span>
-  )
-}
-
 /**
  * The active (applied) filters, as a row of removable pills shown above the search
- * results. Each pill's X removes that filter immediately (a quick-edit on the
- * applied store state — distinct from the FilterView drawer's deferred Apply).
- * Renders nothing when no filter is active.
+ * results. One pill per filter type — the day-of-week and language selections are
+ * each collapsed into a single pill so a stack of them stays manageable — and each
+ * pill's X clears that whole filter immediately (a quick-edit on the applied store
+ * state, distinct from the FilterView drawer's deferred Apply). Renders nothing
+ * when no filter is active.
  */
 export function ActiveFilterPills() {
   const { t } = useTranslation('common')
@@ -61,7 +38,7 @@ export function ActiveFilterPills() {
     setCadence,
     setTimeOfDay,
     setDaysOfWeek,
-    toggleLanguage,
+    setLanguages,
   } = useSearchState()
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
@@ -90,13 +67,13 @@ export function ActiveFilterPills() {
       onRemove: () => setCadence('any'),
     })
   }
-  daysOfWeek.forEach((day) => {
+  if (daysOfWeek.length > 0) {
     pills.push({
-      key: `day-${day}`,
-      label: weekdaysShort[day - 1],
-      onRemove: () => setDaysOfWeek(daysOfWeek.filter((value) => value !== day)),
+      key: 'days',
+      label: daysOfWeek.map((day) => weekdaysShort[day - 1]).join(', '),
+      onRemove: () => setDaysOfWeek([]),
     })
-  })
+  }
   if (isTimeRestricted(timeOfDay)) {
     pills.push({
       key: 'time',
@@ -104,25 +81,27 @@ export function ActiveFilterPills() {
       onRemove: () => setTimeOfDay([TIME_MIN, TIME_MAX]),
     })
   }
-  languages.forEach((code) => {
+  if (languages.length > 0) {
     pills.push({
-      key: `lang-${code}`,
-      label: languageLabel(code),
-      onRemove: () => toggleLanguage(code),
+      key: 'languages',
+      label: languages.map(languageLabel).join(', '),
+      onRemove: () => setLanguages([]),
     })
-  })
+  }
 
   if (pills.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-1.5 px-4 pb-2 pt-1">
       {pills.map((pill) => (
-        <FilterPill
+        <Chip
           key={pill.key}
-          label={pill.label}
-          removeLabel={t('filters.remove', { label: pill.label })}
-          onRemove={pill.onRemove}
-        />
+          closeLabel={t('filters.remove', { label: pill.label })}
+          radius="full"
+          onClose={pill.onRemove}
+        >
+          {pill.label}
+        </Chip>
       ))}
     </div>
   )

@@ -77,6 +77,24 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="`radius=full` for pill corners, `onClose` for a trailing remove button (the active-filter pills)."
+      title="Pill & removable"
+    >
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Chip radius="full">online</Chip>
+        <Chip closeLabel="Remove online" radius="full" onClose={() => {}}>
+          online
+        </Chip>
+        <Chip closeLabel="Remove Français" color="secondary" radius="full" onClose={() => {}}>
+          Français
+        </Chip>
+        <Chip closeLabel="Remove weekly" color="default" radius="full" onClose={() => {}}>
+          weekly
+        </Chip>
+      </div>
+    </StorySection>
+
     <div />
   </StoryWrapper>
 )

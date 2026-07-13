@@ -47,7 +47,7 @@
       "empty": "Nincsenek elérhető nyelvek"
     },
     "apply": "Alkalmaz",
-    "apply_count": "Alkalmaz (%{count})",
+    "apply_count": "Alkalmaz (%{total})",
     "no_results": "Egyetlen esemény sem felel meg a szűrőidnek.",
     "no_events": "Nem található esemény.",
     "remove": "%{label} eltávolítása"
