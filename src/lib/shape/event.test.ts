@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { eventTimeZone, isOnline, nextOccurrence } from './event'
+import { byNextOccurrence, eventTimeZone, isOnline, nextOccurrence } from './event'
 
 const offline = {
   eventType: 'offline' as const,
@@ -33,6 +33,25 @@ describe('nextOccurrence', () => {
 
   it('is undefined without a schedule or upcoming dates', () => {
     expect(nextOccurrence(noSchedule)).toBeUndefined()
+  })
+})
+
+describe('byNextOccurrence', () => {
+  const later = {
+    eventType: 'online' as const,
+    schedule: {
+      firstDate: new Date('2026-01-10T18:00:00Z'),
+      upcomingDates: [new Date('2026-07-18T18:00:00Z')],
+    },
+  }
+
+  it('orders by soonest next occurrence, undated last', () => {
+    // offline → 2026-07-04, later → 2026-07-18, noSchedule → undated (trails).
+    expect([later, noSchedule, offline].sort(byNextOccurrence)).toEqual([
+      offline,
+      later,
+      noSchedule,
+    ])
   })
 })
 
