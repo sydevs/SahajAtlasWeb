@@ -9,7 +9,9 @@ export const controlTheme = {
   variables: {
     fontFamily:
       'Raleway, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
-    unit: '16px',
+    // Base font size for the input + suggestions (spacing derives from it); kept
+    // small so the "Search for events near…" placeholder isn't truncated.
+    unit: '14px',
     fontWeight: '500',
     padding: '1em',
     colorText: 'var(--gray-12)',
