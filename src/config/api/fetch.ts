@@ -17,12 +17,13 @@ import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
   ancestorIdsFromBreadcrumbs,
   boundsUnder,
+  byNextOccurrence,
   countUnder,
-  eventsUnder,
   childRoute,
   DEFAULT_FILTERS,
   matchesFilters,
   parentOf,
+  partitionUnder,
   resolveImageUrl,
   safePath,
 } from '@/lib/shape'
@@ -105,6 +106,9 @@ const indexFeatures = (geojson: Geojson): IndexedFeature[] =>
   geojson.features.map((feature) => ({
     feature,
     point: feature.geometry?.coordinates ?? null,
+    // Online belongs to no place: classified by eventType, never geometry (a
+    // coordinate-less *offline* event still counts as located).
+    online: feature.properties.eventType === 'online',
     ancestorIds: [
       ...new Set([
         feature.properties.region.id,
@@ -177,14 +181,14 @@ const countryCodeOf = (doc: RegionDoc): string | undefined => {
   return typeof code === 'string' && /^[A-Za-z]{2}$/.test(code) ? code : undefined
 }
 
-const toListItem = (doc: RegionDoc, events: GeoEvent[]): RegionListItem =>
+const toListItem = (doc: RegionDoc, eventCount: number): RegionListItem =>
   RegionListItemSchema.parse({
     id: doc.id,
     slug: doc.slug,
     level: doc.level,
     name: doc.name ?? doc.slug,
     subtitle: doc.subtitle,
-    eventCount: countUnder(events, doc.id),
+    eventCount,
     path: regionRoute(doc),
   })
 
@@ -228,8 +232,10 @@ const getCountries = async (): Promise<RegionListItem[]> => {
     .sort(byEventCountDesc)
 }
 
-// One fetcher for every region level. `country`/`region` populate `subregions`
-// (child list); `city`/`center` populate `events`. Path/webUrl come from the
+// One fetcher for every region level. Parents (`country`/`region`) list child
+// regions with ≥ 2 located events as cards and promote a single-event child's one
+// event into the list; leaves (`city`/`center`) list their located events. Every
+// level rolls up the placeless online events under it. Path/webUrl come from the
 // server; bounds/center/counts are derived from the feed.
 const getRegion = async (slug: string): Promise<Region> => {
   // The region read and the feed are independent — load them in parallel.
@@ -238,15 +244,39 @@ const getRegion = async (slug: string): Promise<Region> => {
 
   const path = regionRoute(doc)
   const isParent = doc.level === 'country' || doc.level === 'region'
-  const under = eventsUnder(events, doc.id)
   const bounds = boundsUnder(events, doc.id)
 
-  const subregions = isParent
-    ? (await getChildRegions(doc.id))
-        .map((child) => toListItem(child, events))
-        .filter((child) => child.eventCount > 0)
-        .sort(byEventCountDesc)
-    : []
+  // Parents split their located events across child regions; a leaf has no children,
+  // so every located event lands in `direct`. Online events roll up at every level.
+  const children = isParent ? await getChildRegions(doc.id) : []
+  const { byChild, direct, online } = partitionUnder(
+    events,
+    doc.id,
+    children.map((child) => child.id),
+  )
+
+  // ≥ 2 located events → a card (badge = located count); exactly 1 → promoted into
+  // the list below; 0 located (online-only / empty child) → no card.
+  const subregions = children
+    .map((child) => ({ child, located: byChild.get(child.id) ?? [] }))
+    .filter(({ located }) => located.length >= 2)
+    .map(({ child, located }) => toListItem(child, located.length))
+    .sort(byEventCountDesc)
+
+  const promoted = children
+    .map((child) => byChild.get(child.id) ?? [])
+    .filter((located) => located.length === 1)
+    .map(([event]) => event)
+
+  // Nest each event under *this* region's path so navigating to it keeps the full
+  // region ancestry in the URL (an event's own webPath is flat / often null, which
+  // would otherwise stack it straight on the country list) — and so a promoted
+  // event's dismissal returns here, not to the skipped single-event child.
+  const nest = (indexed: IndexedFeature): EventSlim => {
+    const slim = toSlim(indexed.feature)
+
+    return { ...slim, path: childRoute(path, slim.id) }
+  }
 
   return RegionSchema.parse({
     id: doc.id,
@@ -255,23 +285,18 @@ const getRegion = async (slug: string): Promise<Region> => {
     level: doc.level,
     subtitle: doc.subtitle,
     countryCode: doc.level === 'country' ? countryCodeOf(doc) : undefined,
-    eventCount: under.length,
+    // Total (located + online), so a subtree holding only online events still renders.
+    eventCount: countUnder(events, doc.id),
     bounds,
     center: bounds ? centerOfBounds(bounds) : null,
     path,
     parentPath: parentOf(path),
     webUrl: doc.webUrl,
     subregions,
-    // Nest each event under this region's path so navigating to it keeps the full
-    // region ancestry in the URL (an event's own webPath is flat / often null, which
-    // would otherwise stack the event straight on the country list).
-    events: isParent
-      ? []
-      : under.map((indexed) => {
-          const slim = toSlim(indexed.feature)
-
-          return { ...slim, path: childRoute(path, slim.id) }
-        }),
+    // Located only: promoted single-event children + events directly under the region.
+    events: [...promoted, ...direct].map(nest),
+    // Placeless online events under the region, soonest next occurrence first.
+    onlineEvents: online.map(nest).sort(byNextOccurrence),
   })
 }
 

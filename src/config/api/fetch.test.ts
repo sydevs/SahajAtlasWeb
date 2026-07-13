@@ -100,94 +100,187 @@ describe('getGeojson', () => {
 })
 
 describe('getRegion (unified hierarchy derivation)', () => {
-  // Belgium(28) → Brussels(470), with one located event under Brussels. The
-  // region read resolves by slug alone; the country's path + its child's nested
-  // path come from the server `webPath`; counts/bounds from the feed's breadcrumb ids.
-  const route = (
-    url: string,
-    config?: { params?: { where?: Record<string, { equals?: unknown }> } },
-  ) => {
+  // One geojson feature; `region` carries the breadcrumb ancestry the split reads,
+  // geometry is null for online events, `next` seeds the roll-up ordering.
+  const feature = ({
+    id,
+    regionId,
+    slug,
+    breadcrumbs,
+    eventType = 'offline',
+    coordinates,
+    webPath,
+    next,
+  }: {
+    id: number
+    regionId: number
+    slug: string
+    breadcrumbs: number[]
+    eventType?: 'offline' | 'online'
+    coordinates?: [number, number]
+    webPath?: string
+    next?: string
+  }) => ({
+    type: 'Feature',
+    geometry: coordinates ? { type: 'Point', coordinates } : null,
+    properties: {
+      id,
+      title: `Event ${id}`,
+      eventType,
+      languages: ['nl'],
+      webPath,
+      region: {
+        id: regionId,
+        slug,
+        level: 'city',
+        breadcrumbs: breadcrumbs.map((doc) => ({ doc })),
+      },
+      schedule: next ? { firstDate: '2026-01-01T00:00:00Z', upcomingDates: [next] } : undefined,
+    },
+  })
+
+  // Belgium(28), a country with three city children: Antwerpen(473) [2 located →
+  // carded], Brussels(470) [1 located → promoted], Ghent(475) [1 online → no card].
+  const country = {
+    id: 28,
+    slug: 'belgium',
+    level: 'country',
+    name: 'Belgium',
+    webPath: '/belgium',
+    webUrl: 'https://atlas.example/belgium',
+    legacyData: { countryCode: 'BE' },
+  }
+  const children = [
+    { id: 473, slug: 'antwerpen', level: 'city', name: 'Antwerpen', webPath: '/belgium/antwerpen' },
+    { id: 470, slug: 'brussels', level: 'city', name: 'Brussels', webPath: '/belgium/brussels' },
+    { id: 475, slug: 'ghent', level: 'city', name: 'Ghent', webPath: '/belgium/ghent' },
+  ]
+  const countryFeed = [
+    feature({
+      id: 1,
+      regionId: 473,
+      slug: 'antwerpen',
+      breadcrumbs: [28, 473],
+      coordinates: [4.4, 51.2],
+    }),
+    feature({
+      id: 2,
+      regionId: 473,
+      slug: 'antwerpen',
+      breadcrumbs: [28, 473],
+      coordinates: [4.41, 51.21],
+    }),
+    feature({
+      id: 3,
+      regionId: 470,
+      slug: 'brussels',
+      breadcrumbs: [28, 470],
+      coordinates: [4.35, 50.85],
+    }),
+    feature({
+      id: 4,
+      regionId: 475,
+      slug: 'ghent',
+      breadcrumbs: [28, 475],
+      eventType: 'online',
+      next: '2026-08-01T00:00:00Z',
+    }),
+    feature({
+      id: 5,
+      regionId: 473,
+      slug: 'antwerpen',
+      breadcrumbs: [28, 473],
+      eventType: 'online',
+      next: '2026-07-20T00:00:00Z',
+    }),
+  ]
+
+  const countryRoute = (url: string, config?: { params?: { where?: Record<string, unknown> } }) => {
     const where = config?.params?.where
 
-    if (url === '/regions' && where?.slug) {
-      return {
-        data: {
-          docs: [
-            {
-              id: 28,
-              slug: 'belgium',
-              level: 'country',
-              name: 'Belgium',
-              webPath: '/belgium',
-              webUrl: 'https://atlas.example/belgium',
-              legacyData: { countryCode: 'BE' },
-            },
-          ],
-        },
-      }
-    }
-    if (url === '/regions' && where?.parent) {
-      return {
-        data: {
-          docs: [
-            {
-              id: 470,
-              slug: 'brussels',
-              level: 'city',
-              name: 'Brussels',
-              webPath: '/belgium/brussels',
-            },
-          ],
-        },
-      }
-    }
+    if (url === '/regions' && where?.slug) return { data: { docs: [country] } }
+    if (url === '/regions' && where?.parent) return { data: { docs: children } }
 
-    // /events/geojson
-    return {
-      data: {
-        type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [4.35, 50.85] },
-            properties: {
-              id: 1,
-              title: 'Class',
-              eventType: 'offline',
-              languages: ['nl'],
-              webPath: '/belgium/brussels/1',
-              region: {
-                id: 470,
-                slug: 'brussels',
-                level: 'city',
-                breadcrumbs: [{ doc: 28 }, { doc: 470 }],
-              },
-            },
-          },
-        ],
-      },
-    }
+    return { data: { type: 'FeatureCollection', features: countryFeed } }
   }
 
-  it('derives level, eventCount, bounds, ISO code, webPath, and nested children', async () => {
-    get.mockImplementation((url: string, config?: never) => Promise.resolve(route(url, config)))
+  it('cards ≥2-event children, promotes single-event children, rolls up online', async () => {
+    get.mockImplementation((url: string, config?: never) =>
+      Promise.resolve(countryRoute(url, config)),
+    )
 
     const region = await api.getRegion('belgium')
 
+    // Core derivations: level, ISO code, path, canonical URL, bounds of located events.
     expect(region.level).toBe('country')
-    expect(region.eventCount).toBe(1)
-    expect(region.bounds).toEqual([4.35, 50.85, 4.35, 50.85])
     expect(region.countryCode).toBe('BE')
     expect(region.path).toBe('/belgium')
     expect(region.webUrl).toBe('https://atlas.example/belgium')
-    // a country lists subregions, not events
-    expect(region.events).toHaveLength(0)
+    expect(region.bounds).toEqual([4.35, 50.85, 4.41, 51.21])
+    // eventCount stays total (online included) — an online-only subtree still renders.
+    expect(region.eventCount).toBe(5)
+
+    // Only Antwerpen (2 located) is carded, badge = located count; Brussels (1) and
+    // Ghent (online-only) are not.
     expect(region.subregions).toHaveLength(1)
     expect(region.subregions[0]).toMatchObject({
-      slug: 'brussels',
-      eventCount: 1,
-      path: '/belgium/brussels',
+      slug: 'antwerpen',
+      eventCount: 2,
+      path: '/belgium/antwerpen',
     })
+
+    // Brussels' single event is promoted into the list, nested under *this* region.
+    expect(region.events).toHaveLength(1)
+    expect(region.events[0]).toMatchObject({ id: 3, eventType: 'offline', path: '/belgium/3' })
+
+    // Both online events roll up (Ghent + Antwerpen), soonest next occurrence first.
+    expect(region.onlineEvents.map((event) => event.id)).toEqual([5, 4])
+    expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
+  })
+
+  it('splits a leaf city into located events and an online roll-up', async () => {
+    const city = {
+      id: 470,
+      slug: 'brussels',
+      level: 'city',
+      name: 'Brussels',
+      subtitle: 'Capital',
+      webPath: '/belgium/brussels',
+      webUrl: 'https://atlas.example/belgium/brussels',
+    }
+    const leafFeed = [
+      feature({
+        id: 10,
+        regionId: 470,
+        slug: 'brussels',
+        breadcrumbs: [28, 470],
+        coordinates: [4.35, 50.85],
+      }),
+      feature({
+        id: 11,
+        regionId: 470,
+        slug: 'brussels',
+        breadcrumbs: [28, 470],
+        eventType: 'online',
+      }),
+    ]
+    const leafRoute = (url: string, config?: { params?: { where?: Record<string, unknown> } }) =>
+      url === '/regions' && config?.params?.where?.slug
+        ? { data: { docs: [city] } }
+        : { data: { type: 'FeatureCollection', features: leafFeed } }
+
+    get.mockImplementation((url: string, config?: never) => Promise.resolve(leafRoute(url, config)))
+
+    const region = await api.getRegion('brussels')
+
+    expect(region.level).toBe('city')
+    expect(region.subregions).toHaveLength(0)
+    // Located event stays in `events` (feed order), nested under the city path.
+    expect(region.events.map((event) => event.id)).toEqual([10])
+    expect(region.events[0]).toMatchObject({ eventType: 'offline', path: '/belgium/brussels/10' })
+    // The online event rolls up instead of interleaving.
+    expect(region.onlineEvents.map((event) => event.id)).toEqual([11])
+    expect(region.onlineEvents[0].eventType).toBe('online')
   })
 })
 
