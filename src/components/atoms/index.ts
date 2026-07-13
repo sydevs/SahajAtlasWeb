@@ -12,8 +12,8 @@ export * from './Icons'
 export { Alert } from './Alert'
 export type { AlertProps } from './Alert'
 
-export { Button } from './Button'
-export type { ButtonProps } from './Button'
+export { Button, IconButton } from './Button'
+export type { ButtonProps, IconButtonProps } from './Button'
 
 export { Checkbox } from './Checkbox'
 export type { CheckboxProps } from './Checkbox'
@@ -40,5 +40,11 @@ export type { LinkProps } from './Link'
 export { Select, SelectItem } from './Select'
 export type { SelectProps, SelectItemProps } from './Select'
 
+export { Slider } from './Slider'
+export type { SliderProps } from './Slider'
+
 export { Spinner } from './Spinner'
 export type { SpinnerProps } from './Spinner'
+
+export { ToggleGroup, ToggleGroupItem } from './ToggleGroup'
+export type { ToggleGroupProps, ToggleGroupItemProps } from './ToggleGroup'

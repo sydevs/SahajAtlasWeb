@@ -3,18 +3,19 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList } from 'react'
 
 import { createContext, useCallback, useContext, useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
-import { Button } from '@/components/atoms/Button'
-import { CloseIcon, ListIcon } from '@/components/atoms/Icons'
+import { Button, IconButton } from '@/components/atoms/Button'
+import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
-import { resolvePath } from '@/lib/shape'
+import { useSearchState } from '@/config/store'
+import { activeFilterCount, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
 // use it for their close / list-toggle buttons, so those act on the ONE persistent
@@ -36,11 +37,6 @@ export const DrawerControlContext = createContext<DrawerControl>({
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// Shared chrome for the header icon-buttons (close, list toggle): subtle by default,
-// full-contrast on hover.
-const iconButton =
-  'shrink-0 rounded p-1 text-gray-11 transition-colors hover:bg-primary-3 hover:text-foreground'
-
 // The close affordance for the drawer views. Dismisses via the control seam (a
 // navigation to the parent) rather than vaul's Close — closing the real drawer made
 // the sheet animate shut and then re-open with the parent, which read as jarring.
@@ -49,14 +45,9 @@ export function CloseButton({ className }: { className?: string }) {
   const { dismiss } = useDrawerControl()
 
   return (
-    <button
-      aria-label={t('close')}
-      className={`${iconButton} ${className ?? ''}`}
-      type="button"
-      onClick={dismiss}
-    >
+    <IconButton aria-label={t('close')} className={className} onClick={dismiss}>
       <CloseIcon size={20} />
-    </button>
+    </IconButton>
   )
 }
 
@@ -72,15 +63,46 @@ export function CollapseToggle() {
   // At the peek it's a list toggle (expand the countries list); once opened past the
   // peek it becomes the usual close control (collapse back to the peek).
   return (
-    <button
+    <IconButton
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('explore') : t('close')}
-      className={iconButton}
-      type="button"
       onClick={toggle}
     >
       {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
-    </button>
+    </IconButton>
+  )
+}
+
+// The event-filters trigger in CountriesView/SearchView headers: opens the filter
+// drawer by navigating to `<current>/filters` (root → `/filters`, `/search` →
+// `/search/filters`), preserving the search query so closing returns to the same
+// search. Shows an active-filter count badge; renders the same IconButton chrome as
+// the close/list controls so the header reads as one set of buttons.
+export function FilterButton() {
+  const { t } = useTranslation('common')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const count = useSearchState((state) => activeFilterCount(state))
+
+  const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
+  const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
+
+  return (
+    <IconButton
+      aria-label={label}
+      className="relative"
+      onClick={() => navigate({ pathname: to, search: location.search })}
+    >
+      <FilterIcon size={20} />
+      {count > 0 && (
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-[10px] font-semibold leading-none text-primary-foreground"
+        >
+          {count}
+        </span>
+      )}
+    </IconButton>
   )
 }
 

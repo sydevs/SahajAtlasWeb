@@ -30,3 +30,16 @@ export function formatTimeZone(time: DateTime) {
     offset: time.toFormat('Z'),
   }
 }
+
+/**
+ * A 0–24h value rendered in the given locale's short time format (e.g. "9:30 AM").
+ * 24 wraps to midnight so an upper bound reads as a time rather than "24:00".
+ * Shared by the filter form and the active-filter pills for the time-of-day label.
+ */
+export function formatHour(locale: string, hour: number): string {
+  const minutes = Math.round(hour * 60) % (24 * 60)
+
+  return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
+    .setLocale(locale)
+    .toLocaleString(DateTime.TIME_SIMPLE)
+}

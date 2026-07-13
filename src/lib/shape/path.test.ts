@@ -122,6 +122,14 @@ describe('resolveStack', () => {
     expect(resolveStack('/search')).toEqual([{ kind: 'search', path: '/search' }])
   })
 
+  it('owns /filters, stacking it over the search view when nested', () => {
+    expect(resolveStack('/filters')).toEqual([{ kind: 'filters', path: '/filters' }])
+    expect(resolveStack('/search/filters')).toEqual([
+      { kind: 'search', path: '/search' },
+      { kind: 'filters', path: '/search/filters' },
+    ])
+  })
+
   it('skips legacy prefixes so a legacy URL is just its terminal entity', () => {
     expect(resolveStack('/events/507')).toEqual([{ kind: 'event', id: 507, path: '/events/507' }])
     expect(resolveStack('/areas/antwerpen')).toEqual([

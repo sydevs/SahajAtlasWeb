@@ -4,6 +4,16 @@
 // primary component(s) + `Props` type; single-use internals stay private.
 export { SettingsMenu } from './SettingsMenu'
 
+// SearchFilters — the controlled event-filters form (Format/Frequency/Day/Time/
+// Language), rendered inside the FilterView drawer.
+export { SearchFilters } from './SearchFilters'
+export type { SearchFiltersProps } from './SearchFilters'
+
+// ActiveFilterPills — the applied filters as removable pills at the top of the
+// search results (rendered by the events list).
+export { ActiveFilterPills } from './ActiveFilterPills'
+export type { ActiveFilterPillsProps } from './ActiveFilterPills'
+
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
 // DetailRow — a generic labelled icon row; the event detail cards build on it.

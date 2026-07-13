@@ -9,11 +9,49 @@
     "description_other": "%{count} free meditation classes in %{location}",
     "title": "Free Meditation Classes in %{location}"
   },
-  "show_online_classes": "Show online classes",
-  "showing_online_classes": "Showing online classes",
   "venues": {
     "description_one": "%{count} free meditation class at %{venue}",
     "description_other": "%{count} free meditation classes at %{venue}",
     "title": "Free Meditation Classes at %{venue}"
-  }
+  },
+  "filters": {
+    "title": "Szűrők",
+    "clear": "Összes törlése",
+    "clear_one": "Törlés",
+    "any_time": "Bármikor",
+    "format": {
+      "label": "Forma",
+      "any": "Bármely",
+      "offline": "Személyesen",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Gyakoriság",
+      "any": "Bármely",
+      "daily": "Naponta",
+      "weekly": "Hetente",
+      "monthly": "Havonta",
+      "once": "Egyszeri"
+    },
+    "days": {
+      "label": "A hét napja"
+    },
+    "time": {
+      "label": "Napszak",
+      "start": "Legkorábbi kezdési idő",
+      "end": "Legkésőbbi kezdési idő"
+    },
+    "language": {
+      "all": "Minden nyelv",
+      "label": "Nyelv",
+      "empty": "Nincsenek elérhető nyelvek"
+    },
+    "apply": "Alkalmaz",
+    "no_results": "Egyetlen esemény sem felel meg a szűrőidnek.",
+    "no_events": "Nem található esemény.",
+    "remove": "%{label} eltávolítása",
+    "nearby": "< %{km} km",
+    "no_nearby": "Nincs esemény %{km} km-en belül."
+  },
+  "search_placeholder": "Események keresése a közelben…"
 }

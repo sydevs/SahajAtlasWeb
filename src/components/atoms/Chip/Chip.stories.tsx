@@ -23,21 +23,21 @@ export default {
 const colors = ['primary', 'secondary', 'default'] as const
 
 /**
- * Chip — a compact, uppercase label built on NextUI's Chip with app defaults.
- * Showcases the colour × emphasis matrix and the icon slot.
+ * Chip — a compact, uppercase label on the Radix-semantic tokens. Showcases the
+ * colour × variant matrix and the emphasis / size / radius / removable options.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="Colour (NextUI palette) × emphasis (tailwind-variants)."
-      title="Variants"
+      description="Colour (ramp) × variant (surface treatment)."
+      title="Colour × variant"
     >
       <StoryGrid>
         <StoryGridHeader>
           <StoryGridHeaderRow>
             <StoryGridHeaderCell />
-            <StoryGridHeaderCell>solid</StoryGridHeaderCell>
-            <StoryGridHeaderCell>subtle</StoryGridHeaderCell>
+            <StoryGridHeaderCell>flat</StoryGridHeaderCell>
+            <StoryGridHeaderCell>light</StoryGridHeaderCell>
           </StoryGridHeaderRow>
         </StoryGridHeader>
         <StoryGridBody>
@@ -45,12 +45,12 @@ export const Default: Story = () => (
             <StoryGridRow key={color}>
               <StoryGridCell isLabel>{color}</StoryGridCell>
               <StoryGridCell>
-                <Chip color={color} emphasis="solid">
+                <Chip color={color} variant="flat">
                   online
                 </Chip>
               </StoryGridCell>
               <StoryGridCell>
-                <Chip color={color} emphasis="subtle">
+                <Chip color={color} variant="light">
                   online
                 </Chip>
               </StoryGridCell>
@@ -60,7 +60,45 @@ export const Default: Story = () => (
       </StoryGrid>
     </StorySection>
 
-    <StorySection title="With Icon">
+    <StorySection description="Content weight (default: solid)." title="Emphasis">
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip emphasis="solid">solid</Chip>
+        <Chip emphasis="subtle">subtle</Chip>
+      </div>
+    </StorySection>
+
+    <StorySection description="sm (default) and md." title="Size">
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip size="sm">small</Chip>
+        <Chip size="md">medium</Chip>
+      </div>
+    </StorySection>
+
+    <StorySection description="Square (sm, default) vs pill (full) corners." title="Radius">
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip radius="sm">square</Chip>
+        <Chip radius="full">pill</Chip>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="`onClose` adds a trailing remove button — pairs with `radius=full` for the active-filter pills."
+      title="Removable"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip closeLabel="Remove online" color="default" radius="full" onClose={() => {}}>
+          online
+        </Chip>
+        <Chip closeLabel="Remove Français" color="primary" radius="full" onClose={() => {}}>
+          Français
+        </Chip>
+        <Chip closeLabel="Remove weekly" color="secondary" onClose={() => {}}>
+          weekly
+        </Chip>
+      </div>
+    </StorySection>
+
+    <StorySection title="With icon">
       <div className="flex flex-wrap items-center gap-2">
         <Chip icon={<EventIcon size={14} />}>course</Chip>
         <Chip color="secondary" icon={<OnlineCallIcon size={14} />}>

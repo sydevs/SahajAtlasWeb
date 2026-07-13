@@ -9,11 +9,49 @@
     "description_other": "%{count} bezplatné lekce meditace v %{location}",
     "title": "Bezplatné kurzy meditace v %{location}"
   },
-  "show_online_classes": "Zobrazit online kurzy",
-  "showing_online_classes": "Zobrazení online kurzů",
   "venues": {
     "description_one": "%{count} bezplatná lekce meditace v %{venue}",
     "description_other": "%{count} bezplatné lekce meditace v %{venue}",
     "title": "Bezplatné kurzy meditace v %{venue}"
-  }
+  },
+  "filters": {
+    "title": "Filtry",
+    "clear": "Vymazat vše",
+    "clear_one": "Vymazat",
+    "any_time": "Kdykoli",
+    "format": {
+      "label": "Formát",
+      "any": "Libovolný",
+      "offline": "Osobně",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Frekvence",
+      "any": "Libovolná",
+      "daily": "Denně",
+      "weekly": "Týdně",
+      "monthly": "Měsíčně",
+      "once": "Jednorázově"
+    },
+    "days": {
+      "label": "Den v týdnu"
+    },
+    "time": {
+      "label": "Denní doba",
+      "start": "Nejdřívější čas začátku",
+      "end": "Nejpozdější čas začátku"
+    },
+    "language": {
+      "all": "Všechny jazyky",
+      "label": "Jazyk",
+      "empty": "Nejsou dostupné žádné jazyky"
+    },
+    "apply": "Použít",
+    "no_results": "Žádné události neodpovídají vašim filtrům.",
+    "no_events": "Nebyly nalezeny žádné události.",
+    "remove": "Odebrat %{label}",
+    "nearby": "< %{km} km",
+    "no_nearby": "Žádné události do %{km} km."
+  },
+  "search_placeholder": "Hledat události poblíž…"
 }

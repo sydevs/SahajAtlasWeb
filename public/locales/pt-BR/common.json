@@ -9,11 +9,49 @@
     "description_other": "%{count} aulas de meditação gratuitas em %{location}",
     "title": "Aulas gratuitas de meditação em %{location}"
   },
-  "show_online_classes": "Mostrar aulas on-line",
-  "showing_online_classes": "Mostrando aulas on-line",
   "venues": {
     "description_one": "%{count} aulas de meditação gratuitas em %{venue}",
     "description_other": "%{count} aulas de meditação gratuitas em %{venue}",
     "title": "Aulas gratuitas de meditação em %{venue}"
-  }
+  },
+  "filters": {
+    "title": "Filtros",
+    "clear": "Limpar tudo",
+    "clear_one": "Limpar",
+    "any_time": "Qualquer horário",
+    "format": {
+      "label": "Formato",
+      "any": "Qualquer",
+      "offline": "Presencial",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Frequência",
+      "any": "Qualquer",
+      "daily": "Diário",
+      "weekly": "Semanal",
+      "monthly": "Mensal",
+      "once": "Única vez"
+    },
+    "days": {
+      "label": "Dia da semana"
+    },
+    "time": {
+      "label": "Horário",
+      "start": "Horário de início mais cedo",
+      "end": "Horário de início mais tarde"
+    },
+    "language": {
+      "all": "Todos os idiomas",
+      "label": "Idioma",
+      "empty": "Nenhum idioma disponível"
+    },
+    "apply": "Aplicar",
+    "no_results": "Nenhum evento corresponde aos seus filtros.",
+    "no_events": "Nenhum evento encontrado.",
+    "remove": "Remover %{label}",
+    "nearby": "< %{km} km",
+    "no_nearby": "Nenhum evento num raio de %{km} km."
+  },
+  "search_placeholder": "Buscar eventos perto de…"
 }

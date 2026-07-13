@@ -9,11 +9,49 @@
     "description_other": "%{count} gratis meditatielessen in %{location}",
     "title": "Gratis meditatielessen in %{location}"
   },
-  "show_online_classes": "Toon online lessen",
-  "showing_online_classes": "Online lessen tonen",
   "venues": {
     "description_one": "%{count} gratis meditatieles op %{venue}",
     "description_other": "%{count} gratis meditatielessen op %{venue}",
     "title": "Gratis meditatielessen op %{venue}"
-  }
+  },
+  "filters": {
+    "title": "Filters",
+    "clear": "Alles wissen",
+    "clear_one": "Wissen",
+    "any_time": "Elk tijdstip",
+    "format": {
+      "label": "Vorm",
+      "any": "Alle",
+      "offline": "Op locatie",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Frequentie",
+      "any": "Alle",
+      "daily": "Dagelijks",
+      "weekly": "Wekelijks",
+      "monthly": "Maandelijks",
+      "once": "Eenmalig"
+    },
+    "days": {
+      "label": "Dag van de week"
+    },
+    "time": {
+      "label": "Tijdstip",
+      "start": "Vroegste starttijd",
+      "end": "Laatste starttijd"
+    },
+    "language": {
+      "all": "Alle talen",
+      "label": "Taal",
+      "empty": "Geen talen beschikbaar"
+    },
+    "apply": "Toepassen",
+    "no_results": "Geen evenementen komen overeen met je filters.",
+    "no_events": "Geen evenementen gevonden.",
+    "remove": "%{label} verwijderen",
+    "nearby": "< %{km} km",
+    "no_nearby": "Geen evenementen binnen %{km} km."
+  },
+  "search_placeholder": "Zoek evenementen in de buurt van…"
 }

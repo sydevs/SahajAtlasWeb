@@ -7,6 +7,45 @@
   },
   "events": "events",
   "explore": "Explore",
+  "filters": {
+    "title": "Filters",
+    "clear": "Clear all",
+    "clear_one": "Clear",
+    "any_time": "Any time",
+    "format": {
+      "label": "Format",
+      "any": "Any",
+      "offline": "In person",
+      "online": "Online"
+    },
+    "cadence": {
+      "label": "Frequency",
+      "any": "Any",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "once": "One-time"
+    },
+    "days": {
+      "label": "Day of week"
+    },
+    "time": {
+      "label": "Time of day",
+      "start": "Earliest start time",
+      "end": "Latest start time"
+    },
+    "language": {
+      "all": "All languages",
+      "label": "Language",
+      "empty": "No languages available"
+    },
+    "apply": "Apply",
+    "no_results": "No events match your filters.",
+    "no_events": "No events found.",
+    "remove": "Remove %{label}",
+    "nearby": "< %{km} km",
+    "no_nearby": "No events within %{km} km."
+  },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",
   "language_selector": "Language selector",
@@ -18,16 +57,15 @@
   },
   "search": "Search",
   "settings": "Settings",
-  "show_online_classes": "Show online classes",
-  "showing_online_classes": "Showing online classes",
   "theme": {
-    "auto": "Auto",
-    "dark": "Dark",
-    "light": "Light"
+    "auto": "System (Auto)",
+    "dark": "Dark Theme",
+    "light": "Light Theme"
   },
   "venues": {
     "description_one": "%{count} free meditation class at %{venue}",
     "description_other": "%{count} free meditation classes at %{venue}",
     "title": "Free Meditation Classes at %{venue}"
-  }
+  },
+  "search_placeholder": "Search for events near…"
 }

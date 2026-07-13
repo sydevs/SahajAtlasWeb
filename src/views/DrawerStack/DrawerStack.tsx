@@ -1,4 +1,12 @@
-import { type CSSProperties, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +22,7 @@ import { type StackEntry, resolveStack } from '@/lib/shape'
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
+import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { EventView } from '@/views/EventView/EventView'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
@@ -49,6 +58,8 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
   switch (entry.kind) {
     case 'search':
       return <SearchView />
+    case 'filters':
+      return <FilterView />
     case 'region':
       return <RegionView slug={entry.slug} />
     case 'event':
@@ -185,14 +196,22 @@ export function DrawerStack() {
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both
   // the close/list buttons (via context) and vaul's swipe (onOpenChange).
+  // The search view's query (center/bbox/q) is ambient context — keep it when
+  // popping back into `/search` (e.g. closing the filters drawer stacked over it),
+  // drop it when leaving search entirely. Only `/search` carries a query today.
+  const toStackTarget = useCallback(
+    (path: string) => (path === '/search' ? { pathname: path, search: location.search } : path),
+    [location.search],
+  )
+
   const control = useMemo(
     () => ({
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
-      dismiss: () => (parentPath ? navigate(parentPath) : setSnap(PEEK_SNAP)),
+      dismiss: () => (parentPath ? navigate(toStackTarget(parentPath)) : setSnap(PEEK_SNAP)),
     }),
-    [snap, canCollapse, parentPath, navigate],
+    [snap, canCollapse, parentPath, navigate, toStackTarget],
   )
 
   const sheet = (
@@ -278,7 +297,7 @@ export function DrawerStack() {
               label={t('back')}
               opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
               zIndex={30 + i}
-              onClick={() => navigate(path)}
+              onClick={() => navigate(toStackTarget(path))}
             />
           )
         })}
@@ -295,7 +314,9 @@ export function DrawerStack() {
             {/* Top-left, offset past the left drawer on ≥md (flush left-0 on tablet,
                 floating to left-4 at ≥lg) so it never overlaps the panel. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
-            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)]" />
+            {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
+                bump the cog to top-4 to line up with the drawer's top edge. */}
+            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
           </>,
           target,
         )}

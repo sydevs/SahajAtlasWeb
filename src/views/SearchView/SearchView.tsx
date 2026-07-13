@@ -5,7 +5,7 @@ import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { CloseButton, SearchField, useFrameOnTop } from '@/views/shared'
+import { CloseButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 
 const parsePair = (value: string | null): [number, number] | undefined => {
   if (!value) return undefined
@@ -29,10 +29,12 @@ const parseBounds = (value: string | null): [number, number, number, number] | u
 // The search view (route `/search`): events ranked by distance from the geocoded
 // place (`?center=lng,lat`) or, absent that, a one-time snapshot of the map
 // centre — never the live viewport, so the list doesn't re-sort on map pan. The
-// distance query key stays quantized inside DynamicEventsList. Online events are
-// always included.
+// distance query key stays quantized inside DynamicEventsList, which also applies
+// the active event filters (online events included unless the format filter
+// narrows them out). Filters are changed in the FilterView drawer (opened from the
+// header), so this view just reflects the current filters when it (re)mounts.
 export function SearchView() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { frameSearch } = useMapController()
 
   const center = parsePair(searchParams.get('center'))
@@ -42,16 +44,43 @@ export function SearchView() {
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  useFrameOnTop(() => frameSearch({ bbox: bounds, center }), [frameSearch, searchParams])
+  // The "< 500 km" distance cap dismissal lives in the URL (`?all=1`) so it
+  // survives the drawer stack's remount-on-navigation and the filter round-trip,
+  // and resets whenever a new place is searched (which replaces the query).
+  const showAll = searchParams.get('all') === '1'
+  const showAllEvents = () =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+
+        next.set('all', '1')
+
+        return next
+      },
+      { replace: true },
+    )
+
+  // Only re-frame when the searched place changes — not on `?q`/`?all` edits.
+  useFrameOnTop(
+    () => frameSearch({ bbox: bounds, center }),
+    [frameSearch, searchParams.get('center'), searchParams.get('bbox')],
+  )
 
   return (
     <>
       <DrawerHeader>
         <SearchField />
+        <FilterButton />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        <DynamicEventsList latitude={latitude} longitude={longitude} />
+        <DynamicEventsList
+          hasSearchCenter={center !== undefined}
+          latitude={latitude}
+          longitude={longitude}
+          showAll={showAll}
+          onShowAll={showAllEvents}
+        />
       </DrawerBody>
     </>
   )
