@@ -2,7 +2,6 @@ import { useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { ActiveFilterPills } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -54,9 +53,12 @@ export function SearchView() {
         <FilterButton />
         <CloseButton />
       </DrawerHeader>
-      <ActiveFilterPills />
       <DrawerBody>
-        <DynamicEventsList latitude={latitude} longitude={longitude} />
+        <DynamicEventsList
+          hasSearchCenter={center !== undefined}
+          latitude={latitude}
+          longitude={longitude}
+        />
       </DrawerBody>
     </>
   )

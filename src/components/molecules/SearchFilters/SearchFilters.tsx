@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { DateTime, Info } from 'luxon'
+import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -11,6 +11,7 @@ import { DownArrowIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
+import { formatHour } from '@/lib'
 import {
   type EventCadence,
   type EventFilters,
@@ -33,16 +34,6 @@ const CADENCE_OPTIONS: { value: EventCadence; key: string }[] = [
   { value: 'MONTHLY', key: 'monthly' },
   { value: 'once', key: 'once' },
 ]
-
-// A 0–24h value rendered in the active locale's short time format (e.g. "9:30 AM").
-// 24 wraps to midnight so the upper bound reads as a time rather than "24:00".
-export function formatHour(locale: string, hour: number): string {
-  const minutes = Math.round(hour * 60) % (24 * 60)
-
-  return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
-    .setLocale(locale)
-    .toLocaleString(DateTime.TIME_SIMPLE)
-}
 
 // A labelled filter group — a heading (with an optional right-aligned hint, e.g.
 // the time readout) above its control. When the filter is `active`, a small

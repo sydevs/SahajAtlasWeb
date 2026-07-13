@@ -2,6 +2,7 @@ import React from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
 import { GeocodingFeature } from '@mapbox/search-js-core'
 import { useSearchParams } from 'react-router'
+import { useTranslation } from 'react-i18next'
 
 import { controlTheme } from './themes'
 
@@ -17,6 +18,7 @@ export function MapSearch({ onSelect }: SearchProps) {
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
+  const { t } = useTranslation('common')
 
   return (
     // @ts-ignore: 'Geocoder' cannot be used as a JSX component.
@@ -28,6 +30,7 @@ export function MapSearch({ onSelect }: SearchProps) {
         language: locale, // TOOD: Make sure this switches when locale changes
         proximity: mapbox?.getCenter(),
       }}
+      placeholder={t('search_placeholder')}
       theme={controlTheme}
       value={searchQuery}
       onChange={(query) => {

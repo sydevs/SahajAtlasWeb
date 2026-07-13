@@ -32,10 +32,10 @@ export const ActiveFilterPillsStory: Story = () => {
   return (
     <StoryWrapper>
       <StorySection
-        description="The applied filters as removable pills — the day-of-week and language selections each collapse into a single pill. Click a pill's X to clear that filter."
+        description="The applied filters as removable pills — the day-of-week and language selections each collapse into one pill. The optional distance cap (search-only) leads the row."
         title="Active filter pills"
       >
-        <ActiveFilterPills />
+        <ActiveFilterPills nearby={{ km: 500, onClear: () => {} }} />
       </StorySection>
 
       <div />

@@ -49,6 +49,8 @@
     "apply": "Aplicar",
     "no_results": "Ningún evento coincide con tus filtros.",
     "no_events": "No se encontraron eventos.",
-    "remove": "Quitar %{label}"
-  }
+    "remove": "Quitar %{label}",
+    "nearby": "< %{km} km"
+  },
+  "search_placeholder": "Buscar eventos cerca de…"
 }

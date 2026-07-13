@@ -49,6 +49,8 @@
     "apply": "Alkalmaz",
     "no_results": "Egyetlen esemény sem felel meg a szűrőidnek.",
     "no_events": "Nem található esemény.",
-    "remove": "%{label} eltávolítása"
-  }
+    "remove": "%{label} eltávolítása",
+    "nearby": "< %{km} km"
+  },
+  "search_placeholder": "Események keresése a közelben…"
 }

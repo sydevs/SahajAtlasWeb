@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -9,7 +10,7 @@ import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters, useSearchState } from '@/config/store'
 import { DEFAULT_FILTERS, filtersKey, hasActiveFilters, matchesFilters } from '@/lib/shape'
-import { CloseButton, useDrawerControl } from '@/views/shared'
+import { CloseButton } from '@/views/shared'
 
 // The event-filters drawer (route `/filters`, or `/search/filters` when stacked
 // over a search). A normal drawer view — standard header + close chrome and the
@@ -20,9 +21,10 @@ import { CloseButton, useDrawerControl } from '@/views/shared'
 // applies + closes. The per-filter clears inside the form stay draft-only.
 export function FilterView() {
   const { t } = useTranslation('common')
+  const navigate = useNavigate()
+  const location = useLocation()
   const applied = useEventFilters()
   const setFilters = useSearchState((state) => state.setFilters)
-  const { dismiss } = useDrawerControl()
 
   // Start from the applied filters; discarded on close unless the user applies.
   const [draft, setDraft] = useState(applied)
@@ -42,9 +44,12 @@ export function FilterView() {
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
 
+  // Applying/clearing always shows the results: go to /search (preserving any
+  // search query), even when the drawer was opened over the country list — the
+  // point of applying is to see the filtered events, not return to the countries.
   const commit = (filters: typeof draft) => {
     setFilters(filters)
-    dismiss()
+    navigate({ pathname: '/search', search: location.search })
   }
 
   return (

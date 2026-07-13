@@ -2,11 +2,10 @@ import { useMemo } from 'react'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
-import { formatHour } from './SearchFilters'
-
 import { Chip } from '@/components/atoms/Chip'
 import { useSearchState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
+import { formatHour } from '@/lib'
 import { type EventCadence, TIME_MAX, TIME_MIN, isTimeRestricted } from '@/lib/shape'
 
 // Frequency value → its lowercased i18n leaf key (`recurrenceType` is upper-case).
@@ -17,15 +16,22 @@ const CADENCE_KEY: Record<Exclude<EventCadence, 'any'>, string> = {
   MONTHLY: 'monthly',
 }
 
+export type ActiveFilterPillsProps = {
+  /**
+   * The search-only "within N km" cap pill. Not part of the stored filters (it
+   * depends on the searched location), so the list owns it and passes it in.
+   */
+  nearby?: { km: number; onClear: () => void }
+}
+
 /**
- * The active (applied) filters, as a row of removable pills shown above the search
+ * The active filters, as a row of removable pills at the top of the search
  * results. One pill per filter type — the day-of-week and language selections are
- * each collapsed into a single pill so a stack of them stays manageable — and each
- * pill's X clears that whole filter immediately (a quick-edit on the applied store
- * state, distinct from the FilterView drawer's deferred Apply). Renders nothing
- * when no filter is active.
+ * each collapsed into a single pill — plus the optional distance cap. Each pill's
+ * X clears that filter immediately (a quick-edit on the applied store state).
+ * Renders nothing when no filter is active.
  */
-export function ActiveFilterPills() {
+export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   const { t } = useTranslation('common')
   const { locale, languageNames } = useLocale()
   const {
@@ -53,6 +59,13 @@ export function ActiveFilterPills() {
 
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
+  if (nearby) {
+    pills.push({
+      key: 'nearby',
+      label: t('filters.nearby', { km: nearby.km }),
+      onRemove: nearby.onClear,
+    })
+  }
   if (format !== 'any') {
     pills.push({
       key: 'format',

@@ -42,7 +42,8 @@
     "apply": "Apply",
     "no_results": "No events match your filters.",
     "no_events": "No events found.",
-    "remove": "Remove %{label}"
+    "remove": "Remove %{label}",
+    "nearby": "< %{km} km"
   },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",
@@ -64,5 +65,6 @@
     "description_one": "%{count} free meditation class at %{venue}",
     "description_other": "%{count} free meditation classes at %{venue}",
     "title": "Free Meditation Classes at %{venue}"
-  }
+  },
+  "search_placeholder": "Search for events near…"
 }
