@@ -4,9 +4,11 @@
 // primary component(s) + `Props` type; single-use internals stay private.
 export { SettingsMenu } from './SettingsMenu'
 
-// SearchFilters — the event-filters form (Format/Frequency/Day/Time/Language),
-// rendered inside the FilterView drawer. Reads/writes the useSearchState slice.
-export { SearchFilters } from './SearchFilters'
+// SearchFilters — the controlled event-filters form (Format/Frequency/Day/Time/
+// Language), rendered inside the FilterView drawer. ActiveFilterPills shows the
+// applied filters as removable pills above the search results.
+export { SearchFilters, ActiveFilterPills } from './SearchFilters'
+export type { SearchFiltersProps } from './SearchFilters'
 
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 

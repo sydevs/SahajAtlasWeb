@@ -28,9 +28,10 @@
     "cadence": {
       "label": "Gyakoriság",
       "any": "Bármely",
-      "once": "Egyszeri",
+      "daily": "Naponta",
       "weekly": "Hetente",
-      "monthly": "Havonta"
+      "monthly": "Havonta",
+      "once": "Egyszeri"
     },
     "days": {
       "label": "A hét napja"
@@ -44,6 +45,11 @@
       "all": "Minden nyelv",
       "label": "Nyelv",
       "empty": "Nincsenek elérhető nyelvek"
-    }
+    },
+    "apply": "Alkalmaz",
+    "apply_count": "Alkalmaz (%{count})",
+    "no_results": "Egyetlen esemény sem felel meg a szűrőidnek.",
+    "no_events": "Nem található esemény.",
+    "remove": "%{label} eltávolítása"
   }
 }

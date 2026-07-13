@@ -86,4 +86,19 @@ describe('useSearchState', () => {
 
     expect(state()).toMatchObject(DEFAULT_FILTERS)
   })
+
+  it('setFilters commits a whole filter set at once, sorting arrays', () => {
+    useSearchState.getState().setFilters({
+      ...DEFAULT_FILTERS,
+      format: 'offline',
+      daysOfWeek: [5, 1],
+      languages: ['fr', 'en'],
+    })
+
+    expect(useSearchState.getState()).toMatchObject({
+      format: 'offline',
+      daysOfWeek: [1, 5],
+      languages: ['en', 'fr'],
+    })
+  })
 })

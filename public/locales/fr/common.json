@@ -28,9 +28,10 @@
     "cadence": {
       "label": "Fréquence",
       "any": "Tous",
-      "once": "Ponctuel",
+      "daily": "Quotidien",
       "weekly": "Hebdomadaire",
-      "monthly": "Mensuel"
+      "monthly": "Mensuel",
+      "once": "Ponctuel"
     },
     "days": {
       "label": "Jour de la semaine"
@@ -44,6 +45,11 @@
       "all": "Toutes les langues",
       "label": "Langue",
       "empty": "Aucune langue disponible"
-    }
+    },
+    "apply": "Appliquer",
+    "apply_count": "Appliquer (%{count})",
+    "no_results": "Aucun événement ne correspond à vos filtres.",
+    "no_events": "Aucun événement trouvé.",
+    "remove": "Supprimer %{label}"
   }
 }

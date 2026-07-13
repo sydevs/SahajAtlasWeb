@@ -28,9 +28,10 @@
     "cadence": {
       "label": "Häufigkeit",
       "any": "Alle",
-      "once": "Einmalig",
+      "daily": "Täglich",
       "weekly": "Wöchentlich",
-      "monthly": "Monatlich"
+      "monthly": "Monatlich",
+      "once": "Einmalig"
     },
     "days": {
       "label": "Wochentag"
@@ -44,6 +45,11 @@
       "all": "Alle Sprachen",
       "label": "Sprache",
       "empty": "Keine Sprachen verfügbar"
-    }
+    },
+    "apply": "Anwenden",
+    "apply_count": "Anwenden (%{count})",
+    "no_results": "Keine Veranstaltungen entsprechen deinen Filtern.",
+    "no_events": "Keine Veranstaltungen gefunden.",
+    "remove": "%{label} entfernen"
   }
 }

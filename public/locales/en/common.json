@@ -21,9 +21,10 @@
     "cadence": {
       "label": "Frequency",
       "any": "Any",
-      "once": "One-time",
+      "daily": "Daily",
       "weekly": "Weekly",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "once": "One-time"
     },
     "days": {
       "label": "Day of week"
@@ -37,7 +38,12 @@
       "all": "All languages",
       "label": "Language",
       "empty": "No languages available"
-    }
+    },
+    "apply": "Apply",
+    "apply_count": "Apply (%{count})",
+    "no_results": "No events match your filters.",
+    "no_events": "No events found.",
+    "remove": "Remove %{label}"
   },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",

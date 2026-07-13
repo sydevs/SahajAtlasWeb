@@ -22,7 +22,7 @@ export type EventFormat = 'any' | EventType
  * events with no recurrence (a null `recurrenceType`); `WEEKLY`/`MONTHLY` match
  * that recurrence directly.
  */
-export type EventCadence = 'any' | 'once' | 'WEEKLY' | 'MONTHLY'
+export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
 /** Time-of-day range bounds (hours), and the step used by the slider. */
 export const TIME_MIN = 0

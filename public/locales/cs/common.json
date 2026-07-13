@@ -28,9 +28,10 @@
     "cadence": {
       "label": "Frekvence",
       "any": "Libovolná",
-      "once": "Jednorázově",
+      "daily": "Denně",
       "weekly": "Týdně",
-      "monthly": "Měsíčně"
+      "monthly": "Měsíčně",
+      "once": "Jednorázově"
     },
     "days": {
       "label": "Den v týdnu"
@@ -44,6 +45,11 @@
       "all": "Všechny jazyky",
       "label": "Jazyk",
       "empty": "Nejsou dostupné žádné jazyky"
-    }
+    },
+    "apply": "Použít",
+    "apply_count": "Použít (%{count})",
+    "no_results": "Žádné události neodpovídají vašim filtrům.",
+    "no_events": "Nebyly nalezeny žádné události.",
+    "remove": "Odebrat %{label}"
   }
 }

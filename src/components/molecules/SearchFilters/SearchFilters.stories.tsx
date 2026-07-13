@@ -1,7 +1,7 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { Geojson } from '@/types'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { StoryWrapper, StorySection } from '../../ladle'
@@ -9,6 +9,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { SearchFilters } from './SearchFilters'
 
 import { mockEventSlimList } from '@/mocks/events'
+import { DEFAULT_FILTERS } from '@/lib/shape'
 
 export default {
   title: 'Molecules',
@@ -30,6 +31,7 @@ const mockGeojson: Geojson = {
 /** SearchFilters — the event-filters form, as rendered inside the FilterView drawer. */
 export const SearchFiltersStory: Story = () => {
   const queryClient = useQueryClient()
+  const [filters, setFilters] = useState(DEFAULT_FILTERS)
 
   useEffect(() => {
     queryClient.setQueryData(['geojson'], mockGeojson)
@@ -38,11 +40,11 @@ export const SearchFiltersStory: Story = () => {
   return (
     <StoryWrapper>
       <StorySection
-        description="Format / Frequency / Day-of-week / Time-of-day (two-handle range) / Language (multi-select dropdown). Writes to the shared useSearchState filter slice."
+        description="Format / Frequency / Day-of-week / Time-of-day (two-handle range) / Language (multi-select dropdown). A controlled form — it edits the given value and reports changes via onChange."
         title="Event filters form"
       >
         <div className="max-w-sm rounded-lg border border-divider p-4">
-          <SearchFilters />
+          <SearchFilters value={filters} onChange={setFilters} />
         </div>
       </StorySection>
 

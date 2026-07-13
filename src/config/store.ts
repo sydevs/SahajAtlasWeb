@@ -37,15 +37,18 @@ export const useViewState = create<ViewState & ViewAction>((set) => ({
 
 // ===== SEARCH STATE ===== //
 
-// The event filters (format / time-of-day / days-of-week / languages / cadence).
-// The single source of truth for what the events list and the map show; both
-// apply the shared `matchesFilters` predicate. Read with a `useShallow` selector
-// so the map (hot path) only re-renders on the fields it uses. Day/language
-// arrays are kept sorted so their identity — and the list's query key — stay
-// stable across no-op reorders.
+// The *applied* event filters (format / time-of-day / days-of-week / languages /
+// cadence): the single source of truth for what the events list and the map show;
+// both apply the shared `matchesFilters` predicate. The FilterView drawer edits a
+// local draft and commits it here with `setFilters` on Apply; the granular setters
+// are the immediate quick-edits used by the active-filter pills in the results.
+// Read with a `useShallow` selector so the map (hot path) only re-renders on the
+// fields it uses. Day/language arrays are kept sorted so their identity — and the
+// list's query key — stay stable across no-op reorders.
 type SearchState = EventFilters
 
 type SearchAction = {
+  setFilters: (filters: EventFilters) => void
   setFormat: (format: EventFormat) => void
   setCadence: (cadence: EventCadence) => void
   setTimeOfDay: (timeOfDay: [number, number]) => void
@@ -55,8 +58,15 @@ type SearchAction = {
   clearFilters: () => void
 }
 
+const sorted = (filters: EventFilters): EventFilters => ({
+  ...filters,
+  daysOfWeek: [...filters.daysOfWeek].sort((a, b) => a - b),
+  languages: [...filters.languages].sort(),
+})
+
 export const useSearchState = create<SearchState & SearchAction>((set) => ({
   ...DEFAULT_FILTERS,
+  setFilters: (filters) => set(sorted(filters)),
   setFormat: (format) => set({ format }),
   setCadence: (cadence) => set({ cadence }),
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),

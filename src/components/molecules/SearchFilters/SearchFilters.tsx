@@ -10,10 +10,10 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useSearchState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import {
   type EventCadence,
+  type EventFilters,
   type EventFormat,
   TIME_MAX,
   TIME_MIN,
@@ -28,14 +28,15 @@ const FORMAT_OPTIONS: EventFormat[] = ['any', 'offline', 'online']
 // is upper-case on the wire).
 const CADENCE_OPTIONS: { value: EventCadence; key: string }[] = [
   { value: 'any', key: 'any' },
-  { value: 'once', key: 'once' },
+  { value: 'DAILY', key: 'daily' },
   { value: 'WEEKLY', key: 'weekly' },
   { value: 'MONTHLY', key: 'monthly' },
+  { value: 'once', key: 'once' },
 ]
 
 // A 0–24h value rendered in the active locale's short time format (e.g. "9:30 AM").
 // 24 wraps to midnight so the upper bound reads as a time rather than "24:00".
-function formatHour(locale: string, hour: number): string {
+export function formatHour(locale: string, hour: number): string {
   const minutes = Math.round(hour * 60) % (24 * 60)
 
   return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
@@ -83,30 +84,28 @@ function FilterGroup({
   )
 }
 
+export type SearchFiltersProps = {
+  /** The (draft) filter values the form edits. */
+  value: EventFilters
+  /** Called with the next draft on every change; the host applies it on demand. */
+  onChange: (filters: EventFilters) => void
+}
+
 /**
- * The event-filters form: the Format / Frequency / Day / Time / Language controls,
- * reading and writing the `useSearchState` filter slice. Presentation-only chrome
- * (title, close, "Clear all") lives in its host `FilterView` drawer. Language uses
- * a multi-select dropdown so it scales as more languages appear in the feed; the
- * options are the distinct codes in the cached geojson feed, labelled per locale.
+ * The event-filters form: the Format / Frequency / Day / Time / Language controls.
+ * Fully controlled — it edits `value` and reports the next draft via `onChange`; it
+ * does not touch the store, so the host (FilterView) can defer applying until the
+ * user clicks Apply. Language uses a multi-select dropdown so it scales as more
+ * languages appear in the feed; the options are the distinct codes in the cached
+ * geojson feed, labelled per locale.
  */
-export function SearchFilters() {
+export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
   const { locale, languageNames } = useLocale()
+  const { format, timeOfDay, daysOfWeek, languages, cadence } = value
 
-  const {
-    format,
-    timeOfDay,
-    daysOfWeek,
-    languages,
-    cadence,
-    setFormat,
-    setCadence,
-    setTimeOfDay,
-    setDaysOfWeek,
-    toggleLanguage,
-    setLanguages,
-  } = useSearchState()
+  // Patch one or more fields of the current draft.
+  const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
 
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
@@ -146,8 +145,8 @@ export function SearchFilters() {
       .sort((a, b) => a.label.localeCompare(b.label, locale))
   }, [geojson, languageNames, locale])
 
-  // Local draft for the time slider so a drag doesn't refetch the list / re-filter
-  // the map on every tick — the store is updated only on release (onValueCommit).
+  // Local draft for the time slider so a drag doesn't fire onChange on every tick —
+  // the draft is patched only on release (onValueCommit).
   const [timeDraft, setTimeDraft] = useState(timeOfDay)
 
   useEffect(() => setTimeDraft(timeOfDay), [timeOfDay])
@@ -166,14 +165,14 @@ export function SearchFilters() {
       <FilterGroup
         active={format !== 'any'}
         label={t('filters.format.label')}
-        onClear={() => setFormat('any')}
+        onClear={() => patch({ format: 'any' })}
       >
         <ToggleGroup
           joined
           ariaLabel={t('filters.format.label')}
           type="single"
           value={format}
-          onValueChange={(value) => value && setFormat(value as EventFormat)}
+          onValueChange={(next) => next && patch({ format: next as EventFormat })}
         >
           {FORMAT_OPTIONS.map((option) => (
             <ToggleGroupItem key={option} value={option}>
@@ -186,14 +185,14 @@ export function SearchFilters() {
       <FilterGroup
         active={cadence !== 'any'}
         label={t('filters.cadence.label')}
-        onClear={() => setCadence('any')}
+        onClear={() => patch({ cadence: 'any' })}
       >
         <ToggleGroup
           joined
           ariaLabel={t('filters.cadence.label')}
           type="single"
           value={cadence}
-          onValueChange={(value) => value && setCadence(value as EventCadence)}
+          onValueChange={(next) => next && patch({ cadence: next as EventCadence })}
         >
           {CADENCE_OPTIONS.map((option) => (
             <ToggleGroupItem key={option.value} value={option.value}>
@@ -206,13 +205,13 @@ export function SearchFilters() {
       <FilterGroup
         active={daysOfWeek.length > 0}
         label={t('filters.days.label')}
-        onClear={() => setDaysOfWeek([])}
+        onClear={() => patch({ daysOfWeek: [] })}
       >
         <ToggleGroup
           ariaLabel={t('filters.days.label')}
           type="multiple"
           value={daysOfWeek.map(String)}
-          onValueChange={(value) => setDaysOfWeek(value.map(Number))}
+          onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
         >
           {weekdays.map((day) => (
             <ToggleGroupItem key={day.value} ariaLabel={day.full} value={day.value}>
@@ -230,7 +229,7 @@ export function SearchFilters() {
             : t('filters.any_time')
         }
         label={t('filters.time.label')}
-        onClear={() => setTimeOfDay([TIME_MIN, TIME_MAX])}
+        onClear={() => patch({ timeOfDay: [TIME_MIN, TIME_MAX] })}
       >
         <div className="px-1 pt-1">
           <Slider
@@ -240,8 +239,8 @@ export function SearchFilters() {
             minStepsBetweenThumbs={1}
             step={TIME_STEP}
             value={timeDraft}
-            onValueChange={(value) => setTimeDraft([value[0], value[1]])}
-            onValueCommit={(value) => setTimeOfDay([value[0], value[1]])}
+            onValueChange={(next) => setTimeDraft([next[0], next[1]])}
+            onValueCommit={(next) => patch({ timeOfDay: [next[0], next[1]] })}
           />
         </div>
       </FilterGroup>
@@ -249,7 +248,7 @@ export function SearchFilters() {
       <FilterGroup
         active={languages.length > 0}
         label={t('filters.language.label')}
-        onClear={() => setLanguages([])}
+        onClear={() => patch({ languages: [] })}
       >
         {languageOptions.length === 0 ? (
           <p className="text-sm text-gray-11">{t('filters.language.empty')}</p>
@@ -272,7 +271,13 @@ export function SearchFilters() {
                   appearance="checkbox"
                   checked={languages.includes(option.code)}
                   className="w-full rounded px-2 py-1.5 hover:bg-gray-3"
-                  onCheckedChange={() => toggleLanguage(option.code)}
+                  onCheckedChange={() =>
+                    patch({
+                      languages: languages.includes(option.code)
+                        ? languages.filter((code) => code !== option.code)
+                        : [...languages, option.code],
+                    })
+                  }
                 >
                   {option.label}
                 </Checkbox>
