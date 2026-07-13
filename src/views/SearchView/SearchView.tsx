@@ -1,13 +1,11 @@
-import { Suspense, useRef } from 'react'
+import { useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { Spinner } from '@/components/atoms/Spinner'
-import { SearchFilters } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { CloseButton, SearchField, useFrameOnTop } from '@/views/shared'
+import { CloseButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 
 const parsePair = (value: string | null): [number, number] | undefined => {
   if (!value) return undefined
@@ -33,7 +31,8 @@ const parseBounds = (value: string | null): [number, number, number, number] | u
 // centre — never the live viewport, so the list doesn't re-sort on map pan. The
 // distance query key stays quantized inside DynamicEventsList, which also applies
 // the active event filters (online events included unless the format filter
-// narrows them out).
+// narrows them out). Filters are changed in the FilterView drawer (opened from the
+// header), so this view just reflects the current filters when it (re)mounts.
 export function SearchView() {
   const [searchParams] = useSearchParams()
   const { frameSearch } = useMapController()
@@ -51,22 +50,11 @@ export function SearchView() {
     <>
       <DrawerHeader>
         <SearchField />
-        <SearchFilters />
+        <FilterButton />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        {/* Local Suspense so a filter change reloads only the list — the header
-            (and any open filter panel) stays mounted rather than the whole view
-            re-suspending to the stack's DrawerLoading. */}
-        <Suspense
-          fallback={
-            <div className="flex justify-center py-8">
-              <Spinner color="secondary" />
-            </div>
-          }
-        >
-          <DynamicEventsList latitude={latitude} longitude={longitude} />
-        </Suspense>
+        <DynamicEventsList latitude={latitude} longitude={longitude} />
       </DrawerBody>
     </>
   )

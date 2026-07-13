@@ -87,6 +87,7 @@ export const resolvePath = (pathname: string): ResolvedPath => {
  */
 export const RESERVED_SLUGS = new Set([
   'search',
+  'filters',
   'register',
   'share',
   'events',
@@ -98,6 +99,7 @@ export const RESERVED_SLUGS = new Set([
 /** One open drawer, derived from a path prefix. The DrawerStack renders one per entry. */
 export type StackEntry =
   | { kind: 'search'; path: string }
+  | { kind: 'filters'; path: string }
   | { kind: 'region'; slug: string; path: string }
   | { kind: 'event'; id: number; path: string }
   | { kind: 'register'; eventPath: string; path: string }
@@ -123,6 +125,7 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     const word = segment.toLowerCase()
 
     if (word === 'search') entries.push({ kind: 'search', path })
+    else if (word === 'filters') entries.push({ kind: 'filters', path })
     else if (word === 'register') entries.push({ kind: 'register', eventPath: parentPath, path })
     else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
     else if (RESERVED_SLUGS.has(word))

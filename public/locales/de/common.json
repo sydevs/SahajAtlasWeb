@@ -40,6 +40,7 @@
       "end": "Späteste Startzeit"
     },
     "language": {
+      "all": "Alle Sprachen",
       "label": "Sprache",
       "empty": "Keine Sprachen verfügbar"
     }

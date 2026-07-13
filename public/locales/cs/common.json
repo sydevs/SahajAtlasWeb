@@ -40,6 +40,7 @@
       "end": "Nejpozdější čas začátku"
     },
     "language": {
+      "all": "Všechny jazyky",
       "label": "Jazyk",
       "empty": "Nejsou dostupné žádné jazyky"
     }

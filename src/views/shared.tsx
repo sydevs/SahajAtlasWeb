@@ -3,7 +3,7 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList } from 'react'
 
 import { createContext, useCallback, useContext, useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -11,10 +11,11 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button, IconButton } from '@/components/atoms/Button'
-import { CloseIcon, ListIcon } from '@/components/atoms/Icons'
+import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
-import { resolvePath } from '@/lib/shape'
+import { useSearchState } from '@/config/store'
+import { activeFilterCount, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
 // use it for their close / list-toggle buttons, so those act on the ONE persistent
@@ -68,6 +69,39 @@ export function CollapseToggle() {
       onClick={toggle}
     >
       {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
+    </IconButton>
+  )
+}
+
+// The event-filters trigger in CountriesView/SearchView headers: opens the filter
+// drawer by navigating to `<current>/filters` (root → `/filters`, `/search` →
+// `/search/filters`), preserving the search query so closing returns to the same
+// search. Shows an active-filter count badge; renders the same IconButton chrome as
+// the close/list controls so the header reads as one set of buttons.
+export function FilterButton() {
+  const { t } = useTranslation('common')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const count = useSearchState((state) => activeFilterCount(state))
+
+  const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
+  const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
+
+  return (
+    <IconButton
+      aria-label={label}
+      className="relative"
+      onClick={() => navigate({ pathname: to, search: location.search })}
+    >
+      <FilterIcon size={20} />
+      {count > 0 && (
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-[10px] font-semibold leading-none text-primary-foreground"
+        >
+          {count}
+        </span>
+      )}
     </IconButton>
   )
 }

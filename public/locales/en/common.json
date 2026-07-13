@@ -33,6 +33,7 @@
       "end": "Latest start time"
     },
     "language": {
+      "all": "All languages",
       "label": "Language",
       "empty": "No languages available"
     }

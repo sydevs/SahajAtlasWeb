@@ -14,8 +14,8 @@ export default {
   title: 'Molecules',
 } satisfies StoryDefault
 
-// Seed the map's `['geojson']` cache (the panel reads language options from it)
-// with a few distinct language sets, so the Language group has options to show.
+// Seed the map's `['geojson']` cache (the form reads language options from it)
+// with a few distinct language sets, so the Language dropdown has options to show.
 const LANGUAGE_SETS = [['en'], ['fr'], ['hi', 'en'], ['de']]
 
 const mockGeojson: Geojson = {
@@ -27,7 +27,7 @@ const mockGeojson: Geojson = {
   })),
 }
 
-/** SearchFilters — the drawer-header filter button + panel. Click it to open. */
+/** SearchFilters — the event-filters form, as rendered inside the FilterView drawer. */
 export const SearchFiltersStory: Story = () => {
   const queryClient = useQueryClient()
 
@@ -38,10 +38,10 @@ export const SearchFiltersStory: Story = () => {
   return (
     <StoryWrapper>
       <StorySection
-        description="A popover on desktop, a bottom-sheet dialog below md. Resize the preview to compare. The trigger shows a badge with the active-filter count."
-        title="Event filters"
+        description="Format / Frequency / Day-of-week / Time-of-day (two-handle range) / Language (multi-select dropdown). Writes to the shared useSearchState filter slice."
+        title="Event filters form"
       >
-        <div className="flex justify-end">
+        <div className="max-w-sm rounded-lg border border-divider p-4">
           <SearchFilters />
         </div>
       </StorySection>

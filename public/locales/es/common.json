@@ -40,6 +40,7 @@
       "end": "Hora de inicio más tardía"
     },
     "language": {
+      "all": "Todos los idiomas",
       "label": "Idioma",
       "empty": "No hay idiomas disponibles"
     }

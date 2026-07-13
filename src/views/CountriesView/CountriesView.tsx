@@ -4,14 +4,14 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, RegionCard, SearchFilters } from '@/components/molecules'
+import { List, RegionCard } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { validateWebUrl } from '@/lib/url'
-import { CollapseToggle, SearchField, useFrameOnTop } from '@/views/shared'
+import { CollapseToggle, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 
 // The base view (route `/`): the global country list, with the geocoder + a
 // stacked-list toggle in its header. Rendered as inner content of the persistent
@@ -46,7 +46,7 @@ export function CountriesView() {
       )}
       <DrawerHeader>
         <SearchField />
-        <SearchFilters />
+        <FilterButton />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>

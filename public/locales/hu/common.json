@@ -40,6 +40,7 @@
       "end": "Legkésőbbi kezdési idő"
     },
     "language": {
+      "all": "Minden nyelv",
       "label": "Nyelv",
       "empty": "Nincsenek elérhető nyelvek"
     }
