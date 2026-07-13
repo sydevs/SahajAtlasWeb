@@ -47,7 +47,6 @@
       "empty": "Keine Sprachen verfügbar"
     },
     "apply": "Anwenden",
-    "apply_count": "Anwenden (%{total})",
     "no_results": "Keine Veranstaltungen entsprechen deinen Filtern.",
     "no_events": "Keine Veranstaltungen gefunden.",
     "remove": "%{label} entfernen"

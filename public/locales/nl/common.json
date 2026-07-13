@@ -47,7 +47,6 @@
       "empty": "Geen talen beschikbaar"
     },
     "apply": "Toepassen",
-    "apply_count": "Toepassen (%{total})",
     "no_results": "Geen evenementen komen overeen met je filters.",
     "no_events": "Geen evenementen gevonden.",
     "remove": "%{label} verwijderen"

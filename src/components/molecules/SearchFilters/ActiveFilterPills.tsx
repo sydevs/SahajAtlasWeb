@@ -97,6 +97,7 @@ export function ActiveFilterPills() {
         <Chip
           key={pill.key}
           closeLabel={t('filters.remove', { label: pill.label })}
+          color="default"
           radius="full"
           onClose={pill.onRemove}
         >

@@ -40,7 +40,6 @@
       "empty": "No languages available"
     },
     "apply": "Apply",
-    "apply_count": "Apply (%{total})",
     "no_results": "No events match your filters.",
     "no_events": "No events found.",
     "remove": "Remove %{label}"
