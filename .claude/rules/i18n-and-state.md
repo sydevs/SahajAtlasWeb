@@ -18,6 +18,14 @@ alwaysApply: false
 - **Interpolation uses Ruby-style delimiters** `%{var}` (prefix `%{`, suffix `}`),
   not the i18next default `{{var}}` — these JSON files are shared with a Rails
   backend. Match that syntax in both code and locale files.
+- **`count` is a reserved plural trigger — don't use it for a plain number.**
+  Passing an option named `count` to `t()` activates i18next pluralization: it
+  resolves `key_one` / `key_other` (not the base key), and with `debug: true`
+  logs a missing-key warning when those forms don't exist. For a non-plural
+  interpolated number (e.g. a result count in a button), name the variable
+  anything else — `t('x', { total })` with `%{total}` — or build the string in
+  code. Only pass `count` when the key genuinely has `_one`/`_other` forms (see
+  `locations.description_one` / `venues.description_one`).
 - Locale is detected from the `locale` query param (`lookupQuerystring: 'locale'`)
   and can be overridden by the widget's `locale` prop or the client's
   `client.locale` (see `App.tsx`). Read the active locale with `useLocale()`,
