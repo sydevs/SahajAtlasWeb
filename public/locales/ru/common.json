@@ -17,6 +17,7 @@
   "filters": {
     "title": "Фильтры",
     "clear": "Сбросить все",
+    "clear_one": "Сбросить",
     "any_time": "Любое время",
     "format": {
       "label": "Формат",

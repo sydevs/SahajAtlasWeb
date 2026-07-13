@@ -17,6 +17,7 @@
   "filters": {
     "title": "Filtros",
     "clear": "Borrar todo",
+    "clear_one": "Borrar",
     "any_time": "Cualquier hora",
     "format": {
       "label": "Formato",

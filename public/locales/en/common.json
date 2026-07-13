@@ -10,6 +10,7 @@
   "filters": {
     "title": "Filters",
     "clear": "Clear all",
+    "clear_one": "Clear",
     "any_time": "Any time",
     "format": {
       "label": "Format",

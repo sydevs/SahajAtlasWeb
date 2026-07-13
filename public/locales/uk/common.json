@@ -17,6 +17,7 @@
   "filters": {
     "title": "Фільтри",
     "clear": "Очистити все",
+    "clear_one": "Очистити",
     "any_time": "Будь-який час",
     "format": {
       "label": "Формат",

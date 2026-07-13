@@ -17,6 +17,7 @@
   "filters": {
     "title": "Filtros",
     "clear": "Limpar tudo",
+    "clear_one": "Limpar",
     "any_time": "Qualquer horário",
     "format": {
       "label": "Formato",

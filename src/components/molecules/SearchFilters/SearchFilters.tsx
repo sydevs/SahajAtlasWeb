@@ -44,20 +44,38 @@ function formatHour(locale: string, hour: number): string {
 }
 
 // A labelled filter group — a heading (with an optional right-aligned hint, e.g.
-// the time readout) above its control.
+// the time readout) above its control. When the filter is `active`, a small
+// "Clear" link after the label resets just that filter via `onClear`.
 function FilterGroup({
   label,
   hint,
+  active,
+  onClear,
   children,
 }: {
   label: string
   hint?: string
+  active?: boolean
+  onClear?: () => void
   children: ReactNode
 }) {
+  const { t } = useTranslation('common')
+
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-sm font-medium text-foreground">{label}</span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm font-medium text-foreground">{label}</span>
+          {active && onClear && (
+            <button
+              className="text-xs font-medium text-primary-11 hover:underline"
+              type="button"
+              onClick={onClear}
+            >
+              {t('filters.clear_one')}
+            </button>
+          )}
+        </div>
         {hint && <span className="text-xs text-gray-11">{hint}</span>}
       </div>
       {children}
@@ -87,6 +105,7 @@ export function SearchFilters() {
     setTimeOfDay,
     setDaysOfWeek,
     toggleLanguage,
+    setLanguages,
   } = useSearchState()
 
   const { data: geojson } = useQuery({
@@ -96,15 +115,15 @@ export function SearchFilters() {
   })
 
   // Mon-first weekday pills; luxon's `Info.weekdays` is 1 (Mon)–7 (Sun), matching
-  // the store's day encoding, so the value is the index + 1.
-  const weekdays = useMemo(
-    () =>
-      Info.weekdays('short', { locale }).map((label, index) => ({
-        value: String(index + 1),
-        label,
-      })),
-    [locale],
-  )
+  // the store's day encoding, so the value is the index + 1. `short` (3-char)
+  // labels fit one line at the reduced pill size; the full name is the accessible
+  // label.
+  const weekdays = useMemo(() => {
+    const short = Info.weekdays('short', { locale })
+    const long = Info.weekdays('long', { locale })
+
+    return short.map((label, index) => ({ value: String(index + 1), label, full: long[index] }))
+  }, [locale])
 
   // The distinct language codes present in the feed, labelled + sorted per locale.
   const languageOptions = useMemo(() => {
@@ -144,7 +163,11 @@ export function SearchFilters() {
 
   return (
     <div className="flex flex-col gap-5">
-      <FilterGroup label={t('filters.format.label')}>
+      <FilterGroup
+        active={format !== 'any'}
+        label={t('filters.format.label')}
+        onClear={() => setFormat('any')}
+      >
         <ToggleGroup
           joined
           ariaLabel={t('filters.format.label')}
@@ -160,7 +183,11 @@ export function SearchFilters() {
         </ToggleGroup>
       </FilterGroup>
 
-      <FilterGroup label={t('filters.cadence.label')}>
+      <FilterGroup
+        active={cadence !== 'any'}
+        label={t('filters.cadence.label')}
+        onClear={() => setCadence('any')}
+      >
         <ToggleGroup
           joined
           ariaLabel={t('filters.cadence.label')}
@@ -176,7 +203,11 @@ export function SearchFilters() {
         </ToggleGroup>
       </FilterGroup>
 
-      <FilterGroup label={t('filters.days.label')}>
+      <FilterGroup
+        active={daysOfWeek.length > 0}
+        label={t('filters.days.label')}
+        onClear={() => setDaysOfWeek([])}
+      >
         <ToggleGroup
           ariaLabel={t('filters.days.label')}
           type="multiple"
@@ -184,7 +215,7 @@ export function SearchFilters() {
           onValueChange={(value) => setDaysOfWeek(value.map(Number))}
         >
           {weekdays.map((day) => (
-            <ToggleGroupItem key={day.value} value={day.value}>
+            <ToggleGroupItem key={day.value} ariaLabel={day.full} value={day.value}>
               {day.label}
             </ToggleGroupItem>
           ))}
@@ -192,12 +223,14 @@ export function SearchFilters() {
       </FilterGroup>
 
       <FilterGroup
+        active={timeActive}
         hint={
           timeActive
             ? `${formatHour(locale, timeDraft[0])} – ${formatHour(locale, timeDraft[1])}`
             : t('filters.any_time')
         }
         label={t('filters.time.label')}
+        onClear={() => setTimeOfDay([TIME_MIN, TIME_MAX])}
       >
         <div className="px-1 pt-1">
           <Slider
@@ -213,7 +246,11 @@ export function SearchFilters() {
         </div>
       </FilterGroup>
 
-      <FilterGroup label={t('filters.language.label')}>
+      <FilterGroup
+        active={languages.length > 0}
+        label={t('filters.language.label')}
+        onClear={() => setLanguages([])}
+      >
         {languageOptions.length === 0 ? (
           <p className="text-sm text-gray-11">{t('filters.language.empty')}</p>
         ) : (

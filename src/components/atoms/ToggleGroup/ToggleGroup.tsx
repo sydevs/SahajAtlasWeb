@@ -10,17 +10,15 @@ import { tv } from 'tailwind-variants'
 const toggleGroup = tv({
   slots: {
     root: 'inline-flex items-center',
-    item: 'relative inline-flex h-9 min-w-9 select-none items-center justify-center border border-gray-6 bg-background px-3 text-sm font-medium text-gray-11 outline-none transition-colors hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
+    item: 'relative inline-flex h-8 min-w-8 select-none items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 outline-none transition-colors hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
   },
   variants: {
     joined: {
       false: { root: 'flex-wrap gap-1', item: 'rounded' },
-      // Segmented: full-width equal parts, flush with overlapping (collapsed)
-      // borders, only the outer corners rounded. Wraps within a part rather than
-      // overflowing, so long labels in verbose locales stay contained.
+      // Segmented: natural-width items in a single row, flush with overlapping
+      // (collapsed) borders, only the outer corners rounded.
       true: {
-        root: 'w-full',
-        item: '-ml-px h-auto min-h-9 flex-1 whitespace-normal rounded-none px-2 py-1 leading-tight first:ml-0 first:rounded-l last:rounded-r',
+        item: '-ml-px rounded-none first:ml-0 first:rounded-l last:rounded-r',
       },
     },
   },

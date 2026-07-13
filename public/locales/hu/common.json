@@ -17,6 +17,7 @@
   "filters": {
     "title": "Szűrők",
     "clear": "Összes törlése",
+    "clear_one": "Törlés",
     "any_time": "Bármikor",
     "format": {
       "label": "Forma",

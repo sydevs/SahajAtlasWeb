@@ -17,6 +17,7 @@
   "filters": {
     "title": "Filter",
     "clear": "Alle zurücksetzen",
+    "clear_one": "Zurücksetzen",
     "any_time": "Jederzeit",
     "format": {
       "label": "Format",

@@ -17,6 +17,7 @@
   "filters": {
     "title": "Filters",
     "clear": "Alles wissen",
+    "clear_one": "Wissen",
     "any_time": "Elk tijdstip",
     "format": {
       "label": "Vorm",

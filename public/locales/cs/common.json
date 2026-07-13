@@ -17,6 +17,7 @@
   "filters": {
     "title": "Filtry",
     "clear": "Vymazat vše",
+    "clear_one": "Vymazat",
     "any_time": "Kdykoli",
     "format": {
       "label": "Formát",
