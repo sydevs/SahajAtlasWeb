@@ -29,7 +29,7 @@ export interface DynamicEventsListProps {
 }
 
 function calculateOrder(event: EventSlim) {
-  let order = event.distance || 100
+  let order = event.distance ?? 100
   const online = isOnline(event)
   const languageCode = event.languages[0] ?? ''
   const next = nextOccurrence(event)
@@ -83,17 +83,31 @@ export function DynamicEventsList({
       <ActiveFilterPills
         nearby={nearbyActive && onShowAll ? { km: NEARBY_KM, onClear: onShowAll } : undefined}
       />
-      {shown.length === 0 ? <EmptyResults /> : <EventsList events={shown} />}
+      {shown.length === 0 ? (
+        <EmptyResults nearbyKm={nearbyActive ? NEARBY_KM : undefined} />
+      ) : (
+        <EventsList events={shown} />
+      )}
     </>
   )
 }
 
-// Shown when no events match — with a "clear all filters" action when active
-// filters are the reason the list is empty.
-function EmptyResults() {
+// Shown when no events match. When the distance cap (not the filters) is what
+// emptied the list, say so — the "< N km" pill above is how the user reveals the
+// far events. Otherwise offer a "clear all filters" action when filters are the
+// reason.
+function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
   const active = useSearchState((state) => hasActiveFilters(state))
   const clearFilters = useSearchState((state) => state.clearFilters)
+
+  if (nearbyKm !== undefined) {
+    return (
+      <div className="p-4">
+        <Alert color="default" description={t('filters.no_nearby', { km: nearbyKm })} />
+      </div>
+    )
+  }
 
   return (
     <div className="p-4">

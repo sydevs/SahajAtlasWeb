@@ -43,7 +43,8 @@
     "no_results": "No events match your filters.",
     "no_events": "No events found.",
     "remove": "Remove %{label}",
-    "nearby": "< %{km} km"
+    "nearby": "< %{km} km",
+    "no_nearby": "No events within %{km} km."
   },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",

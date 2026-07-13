@@ -50,7 +50,8 @@
     "no_results": "Egyetlen esemény sem felel meg a szűrőidnek.",
     "no_events": "Nem található esemény.",
     "remove": "%{label} eltávolítása",
-    "nearby": "< %{km} km"
+    "nearby": "< %{km} km",
+    "no_nearby": "Nincs esemény %{km} km-en belül."
   },
   "search_placeholder": "Események keresése a közelben…"
 }

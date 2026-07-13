@@ -50,7 +50,8 @@
     "no_results": "Geen evenementen komen overeen met je filters.",
     "no_events": "Geen evenementen gevonden.",
     "remove": "%{label} verwijderen",
-    "nearby": "< %{km} km"
+    "nearby": "< %{km} km",
+    "no_nearby": "Geen evenementen binnen %{km} km."
   },
   "search_placeholder": "Zoek evenementen in de buurt van…"
 }

@@ -50,7 +50,8 @@
     "no_results": "Ningún evento coincide con tus filtros.",
     "no_events": "No se encontraron eventos.",
     "remove": "Quitar %{label}",
-    "nearby": "< %{km} km"
+    "nearby": "< %{km} km",
+    "no_nearby": "Ningún evento en un radio de %{km} km."
   },
   "search_placeholder": "Buscar eventos cerca de…"
 }
