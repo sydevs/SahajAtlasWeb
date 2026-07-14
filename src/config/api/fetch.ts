@@ -233,11 +233,10 @@ const getCountries = async (): Promise<RegionListItem[]> => {
     .sort(byEventCountDesc)
 }
 
-// One fetcher for every region level. Parents (`country`/`region`) list child
-// regions with ≥ 2 located events as cards and promote a single-event child's one
-// event into the list; leaves (`city`/`center`) list their located events. Every
-// level rolls up the placeless online events under it. Path/webUrl come from the
-// server; bounds/center/counts are derived from the feed.
+// One fetcher for every region level. Parents (`country`/`region`) list their
+// child regions as cards; leaves (`city`/`center`) list their located events.
+// Every level rolls up the placeless online events under it. Path/webUrl come
+// from the server; bounds/center/counts are derived from the feed.
 const getRegion = async (slug: string): Promise<Region> => {
   // The region read and the feed are independent — load them in parallel.
   const [doc, geojson] = await Promise.all([getRegionDoc(slug), loadGeojson()])
@@ -256,23 +255,20 @@ const getRegion = async (slug: string): Promise<Region> => {
     children.map((child) => child.id),
   )
 
-  // ≥ 2 located events → a card (badge = located count); exactly 1 → promoted into
-  // the list below; 0 located (online-only / empty child) → no card.
-  const carded: RegionListItem[] = []
-  const promoted: IndexedFeature[] = []
+  // Any child with ≥ 1 located event renders a card (badge = located count); an
+  // online-only / empty child gets none — its online events still roll up below.
+  const subregions: RegionListItem[] = []
 
   for (const child of children) {
-    const located = byChild.get(child.id) ?? []
+    const located = byChild.get(child.id)?.length ?? 0
 
-    if (located.length >= 2) carded.push(toListItem(child, located.length))
-    else if (located.length === 1) promoted.push(located[0])
+    if (located > 0) subregions.push(toListItem(child, located))
   }
-  const subregions = carded.sort(byEventCountDesc)
+  subregions.sort(byEventCountDesc)
 
   // Nest each event under *this* region's path so navigating to it keeps the full
   // region ancestry in the URL (an event's own webPath is flat / often null, which
-  // would otherwise stack it straight on the country list) — and so a promoted
-  // event's dismissal returns here, not to the skipped single-event child.
+  // would otherwise stack it straight on the country list).
   const nest = (indexed: IndexedFeature): EventSlim => {
     const slim = toSlim(indexed.feature)
 
@@ -294,8 +290,9 @@ const getRegion = async (slug: string): Promise<Region> => {
     parentPath: parentOf(path),
     webUrl: doc.webUrl,
     subregions,
-    // Located only: promoted single-event children + events directly under the region.
-    events: [...promoted, ...direct].map(nest),
+    // Located events directly under this region (a leaf's own events; parents
+    // usually have none — a child's events are reached through the child's card).
+    events: direct.map(nest),
     // Placeless online events under the region, soonest next occurrence first.
     onlineEvents: online.map(nest).sort(byNextOccurrence),
   })

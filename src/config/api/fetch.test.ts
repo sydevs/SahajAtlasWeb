@@ -201,7 +201,7 @@ describe('getRegion (unified hierarchy derivation)', () => {
     return { data: { type: 'FeatureCollection', features: countryFeed } }
   }
 
-  it('cards ≥2-event children, promotes single-event children, rolls up online', async () => {
+  it('cards every child with a located event and rolls up online', async () => {
     get.mockImplementation((url: string, config?: never) =>
       Promise.resolve(countryRoute(url, config)),
     )
@@ -217,18 +217,16 @@ describe('getRegion (unified hierarchy derivation)', () => {
     // eventCount stays total (online included) — an online-only subtree still renders.
     expect(region.eventCount).toBe(5)
 
-    // Only Antwerpen (2 located) is carded, badge = located count; Brussels (1) and
-    // Ghent (online-only) are not.
-    expect(region.subregions).toHaveLength(1)
-    expect(region.subregions[0]).toMatchObject({
-      slug: 'antwerpen',
-      eventCount: 2,
-      path: '/belgium/antwerpen',
-    })
+    // Antwerpen (2 located) and Brussels (1 located) each card with a located-only
+    // badge, busiest first; Ghent (online-only) gets no card.
+    expect(region.subregions.map((child) => [child.slug, child.eventCount])).toEqual([
+      ['antwerpen', 2],
+      ['brussels', 1],
+    ])
+    expect(region.subregions[0].path).toBe('/belgium/antwerpen')
 
-    // Brussels' single event is promoted into the list, nested under *this* region.
-    expect(region.events).toHaveLength(1)
-    expect(region.events[0]).toMatchObject({ id: 3, eventType: 'offline', path: '/belgium/3' })
+    // No promotion: a country lists no events inline (child events live on child cards).
+    expect(region.events).toHaveLength(0)
 
     // Both online events roll up (Ghent + Antwerpen), soonest next occurrence first.
     expect(region.onlineEvents.map((event) => event.id)).toEqual([5, 4])
