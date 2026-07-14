@@ -250,6 +250,23 @@ describe('getRegion (region-tree derivation)', () => {
     await expect(api.getRegion('atlantis')).rejects.toThrow('Region not found')
   })
 
+  it('404s a region with no events under it (located or online)', async () => {
+    const empty = [
+      {
+        id: 7,
+        slug: 'empty-land',
+        level: 'country',
+        name: 'Emptyland',
+        parent: null,
+        webPath: '/empty-land',
+      },
+    ]
+
+    get.mockImplementation((url: string) => Promise.resolve(route(url, [], empty)))
+
+    await expect(api.getRegion('empty-land')).rejects.toThrow('no events')
+  })
+
   it('splits a leaf city into located events and an online roll-up', async () => {
     const city = {
       id: 470,

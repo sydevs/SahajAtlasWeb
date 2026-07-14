@@ -271,6 +271,14 @@ const getRegion = async (slug: string): Promise<Region> => {
   if (!node) throw new Error(`Region not found: ${slug}`)
 
   const events = indexFeatures(geojson, index)
+
+  // A region with no events under it (located or online) isn't a destination — 404
+  // it (the nearest ErrorBoundary renders the not-found state) rather than render an
+  // empty page. Mirrors getCountries hiding 0-event countries from the home list.
+  const eventCount = countUnder(events, node.id)
+
+  if (eventCount === 0) throw new Error(`Region has no events: ${slug}`)
+
   const path = regionRoute(node)
   const isParent = node.level === 'country' || node.level === 'region'
   const bounds = boundsUnder(events, node.id)
@@ -312,7 +320,7 @@ const getRegion = async (slug: string): Promise<Region> => {
     subtitle: node.subtitle,
     countryCode: node.level === 'country' ? countryCodeOf(node) : undefined,
     // Total (located + online), so a subtree holding only online events still renders.
-    eventCount: countUnder(events, node.id),
+    eventCount,
     bounds,
     center: bounds ? centerOfBounds(bounds) : null,
     path,
