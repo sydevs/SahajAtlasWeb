@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
@@ -20,10 +20,16 @@ export function EventCard({ event }: EventCardProps) {
   const { locale, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
 
-  // Highlight this event's pin while the card is hovered/focused (no camera move);
-  // the cleanup clears it if the card unmounts mid-hover (e.g. clicking through to
-  // the event before the pointer leaves), so no stale highlight survives.
-  useEffect(() => () => highlightEvent(null), [highlightEvent])
+  // Highlight this event's pin while the card is hovered/focused (no camera move).
+  // The unmount cleanup clears any lingering highlight when the card unmounts
+  // mid-hover (e.g. clicking through before the pointer leaves). Call through a ref
+  // so the effect is mount-once (`[]`): `highlightEvent`'s identity can change (a
+  // breakpoint-driven map-padding update rebuilds the controller), and depending on
+  // it would re-run the cleanup mid-hover and wipe the live highlight.
+  const highlightRef = useRef(highlightEvent)
+
+  highlightRef.current = highlightEvent
+  useEffect(() => () => highlightRef.current(null), [])
 
   const online = isOnline(event)
   const schedule = event.schedule
