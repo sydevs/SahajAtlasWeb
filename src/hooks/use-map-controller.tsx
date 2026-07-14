@@ -1,4 +1,4 @@
-import type { Event, Region } from '@/types'
+import type { Event, EventSlim, Region } from '@/types'
 
 import { type ReactNode, createContext, useContext, useEffect, useMemo } from 'react'
 import { bboxPolygon } from '@turf/bbox-polygon'
@@ -19,6 +19,8 @@ export type MapController = {
   frameRegion: (region: Region) => void
   /** Frame an event: select its point and move to it (online events zoom out). */
   frameEvent: (event: Event) => void
+  /** Emphasize an event's pin without moving the camera (card hover); null clears it. */
+  highlightEvent: (event: EventSlim | null) => void
   /** Frame the search view: fit a bbox, move to a geocoded centre, or reset. */
   frameSearch: (opts: {
     bbox?: [number, number, number, number]
@@ -34,6 +36,7 @@ const NOOP: MapController = {
   hasMap: false,
   frameRegion: () => {},
   frameEvent: () => {},
+  highlightEvent: () => {},
   frameSearch: () => {},
   reset: () => {},
   clearSelection: () => {},
@@ -50,6 +53,19 @@ const LEFT_DRAWER_PX = 352
 const MOBILE_PEEK_PX = 128
 const MAP_MARGIN = 20
 
+// The map point an event emphasizes: its stored coordinates, tagged `approximate`
+// for online events (softer area sprite + a wider zoom). Null when the event has
+// no coordinates — nothing to frame or highlight. Shared so frameEvent (commits it
+// to `selection` + moves the camera) and highlightEvent (sets `hover` only) derive
+// the point identically.
+const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType'>) => {
+  const { latitude, longitude } = event.address ?? {}
+
+  if (latitude == null || longitude == null) return null
+
+  return { latitude, longitude, approximate: isOnline(event) }
+}
+
 /** No map present (map=false): a controller of the same shape that does nothing. */
 export function NoopMapControllerProvider({ children }: { children: ReactNode }) {
   return <MapControllerContext.Provider value={NOOP}>{children}</MapControllerContext.Provider>
@@ -60,6 +76,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   const { moveMap, fitBounds } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
+  const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
   const { isMd } = useBreakpoint('md')
 
@@ -88,13 +105,15 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         }
       },
       frameEvent(event) {
-        const { latitude, longitude } = event.address ?? {}
-        const online = isOnline(event)
+        const point = eventPoint(event)
 
-        if (latitude != null && longitude != null) {
-          setSelection({ latitude, longitude, approximate: online })
-          moveMap({ center: [longitude, latitude], zoom: online ? 7 : 15 })
+        if (point) {
+          setSelection(point)
+          moveMap({ center: [point.longitude, point.latitude], zoom: point.approximate ? 7 : 15 })
         }
+      },
+      highlightEvent(event) {
+        setHover(event ? eventPoint(event) : null)
       },
       frameSearch({ bbox, center }) {
         setBoundary(undefined)
@@ -111,7 +130,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setBoundary(undefined)
       },
     }),
-    [moveMap, fitBounds, setSelection, setBoundary],
+    [moveMap, fitBounds, setSelection, setHover, setBoundary],
   )
 
   return (

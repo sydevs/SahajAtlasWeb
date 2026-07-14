@@ -3,6 +3,7 @@ import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
   Layer,
+  LayerProps,
   MapMouseEvent,
   Source,
 } from 'react-map-gl'
@@ -15,10 +16,12 @@ import {
   selectedPointLayer,
   unclusteredPointLayer,
   selectedAreaLayer,
+  hoveredPointLayer,
+  hoveredAreaLayer,
   boundsLayer,
 } from './layers'
 
-import { useViewState } from '@/config/store'
+import { useViewState, type MapPoint } from '@/config/store'
 import { useEventFilters } from '@/hooks/use-filters'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -52,15 +55,49 @@ const MAP_WORLDVIEWS: Record<string, string> = {
 const DEBUG_BOUNDARY = false
 const DEBUG_PADDING = false
 
+// A single emphasized point — the committed `selection` or the transient card
+// `hover` — as its own GeoJSON source, so the sprite shows even when the base pin
+// is inside a cluster. `approximate` picks the softer area sprite over the pin.
+function PointSource({
+  id,
+  point,
+  pointLayer,
+  areaLayer,
+}: {
+  id: string
+  point: MapPoint
+  pointLayer: LayerProps
+  areaLayer: LayerProps
+}) {
+  return (
+    <Source
+      data={{
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
+          },
+        ],
+      }}
+      id={id}
+      type="geojson"
+    >
+      <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+    </Source>
+  )
+}
+
 export function Mapbox() {
   let navigate = useNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
-  const { zoom, latitude, longitude, setViewState, selection, boundary } = useViewState(
+  const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
     useShallow((s) => ({
       zoom: s.zoom,
       latitude: s.latitude,
       longitude: s.longitude,
       selection: s.selection,
+      hover: s.hover,
       boundary: s.boundary,
       setViewState: s.setViewState,
     })),
@@ -132,6 +169,12 @@ export function Mapbox() {
     <ReactMapGL
       reuseMaps
       attributionControl={false}
+      // Symbols (pins, clusters, the selection + hover highlights) appear
+      // instantly instead of Mapbox's default ~300ms icon fade-in — the card-hover
+      // highlight must track the pointer immediately. fadeDuration is a global map
+      // option (no per-layer control), so this also removes the fade on the base
+      // pins/clusters and the selection pin.
+      fadeDuration={0}
       id="mapbox"
       interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
       // @ts-ignore - Language is a valid property
@@ -170,24 +213,20 @@ export function Mapbox() {
         </Source>
       )}
       {selection && (
-        <Source
-          data={{
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [selection.longitude, selection.latitude],
-                },
-              },
-            ],
-          }}
+        <PointSource
+          areaLayer={selectedAreaLayer}
           id="selection"
-          type="geojson"
-        >
-          <Layer {...(selection.approximate ? selectedAreaLayer : selectedPointLayer)} />
-        </Source>
+          point={selection}
+          pointLayer={selectedPointLayer}
+        />
+      )}
+      {hover && (
+        <PointSource
+          areaLayer={hoveredAreaLayer}
+          id="hover"
+          point={hover}
+          pointLayer={hoveredPointLayer}
+        />
       )}
       <GeolocateControl />
     </ReactMapGL>
