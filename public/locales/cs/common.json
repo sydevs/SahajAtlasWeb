@@ -54,5 +54,10 @@
     "no_nearby": "Žádné události do %{km} km."
   },
   "search_placeholder": "Hledat události poblíž…",
-  "online_classes": "Online kurzy"
+  "online_classes": "Online kurzy",
+  "nearby_prompt": {
+    "title": "Akce poblíž: %{city}?",
+    "subtitle": "Na základě vaší přibližné polohy",
+    "dismiss": "Skrýt"
+  }
 }

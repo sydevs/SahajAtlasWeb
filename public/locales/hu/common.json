@@ -54,5 +54,10 @@
     "no_nearby": "Nincs esemény %{km} km-en belül."
   },
   "search_placeholder": "Események keresése a közelben…",
-  "online_classes": "Online órák"
+  "online_classes": "Online órák",
+  "nearby_prompt": {
+    "title": "Események %{city} közelében?",
+    "subtitle": "A hozzávetőleges tartózkodási helyed alapján",
+    "dismiss": "Elrejtés"
+  }
 }

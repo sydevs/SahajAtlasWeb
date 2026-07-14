@@ -54,5 +54,10 @@
     "no_nearby": "Ningún evento en un radio de %{km} km."
   },
   "search_placeholder": "Buscar eventos cerca de…",
-  "online_classes": "Clases en línea"
+  "online_classes": "Clases en línea",
+  "nearby_prompt": {
+    "title": "¿Eventos cerca de %{city}?",
+    "subtitle": "Según tu ubicación aproximada",
+    "dismiss": "Descartar"
+  }
 }

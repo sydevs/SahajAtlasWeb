@@ -54,5 +54,10 @@
     "no_nearby": "Geen evenementen binnen %{km} km."
   },
   "search_placeholder": "Zoek evenementen in de buurt van…",
-  "online_classes": "Online lessen"
+  "online_classes": "Online lessen",
+  "nearby_prompt": {
+    "title": "Evenementen in de buurt van %{city}?",
+    "subtitle": "Op basis van je geschatte locatie",
+    "dismiss": "Sluiten"
+  }
 }

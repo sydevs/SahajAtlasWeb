@@ -54,5 +54,10 @@
     "no_nearby": "Keine Veranstaltungen innerhalb von %{km} km."
   },
   "search_placeholder": "Veranstaltungen suchen in …",
-  "online_classes": "Online-Kurse"
+  "online_classes": "Online-Kurse",
+  "nearby_prompt": {
+    "title": "Veranstaltungen in der Nähe von %{city}?",
+    "subtitle": "Basierend auf deinem ungefähren Standort",
+    "dismiss": "Ausblenden"
+  }
 }
