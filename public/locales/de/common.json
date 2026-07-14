@@ -53,5 +53,6 @@
     "nearby": "< %{km} km",
     "no_nearby": "Keine Veranstaltungen innerhalb von %{km} km."
   },
-  "search_placeholder": "Veranstaltungen suchen in …"
+  "search_placeholder": "Veranstaltungen suchen in …",
+  "online_classes": "Online-Kurse"
 }

@@ -122,12 +122,17 @@ BODY_FILE=$(mktemp -t pr-body.XXXXXX).md
   ```bash
   gh pr create --title "<conventional commit title>" --body-file "$BODY_FILE" --base main
   ```
-- **PR exists** → **refresh** its description so it reflects the final diff + verification
-  (Adjust-phase commits may have changed the story since it was opened):
+- **PR exists** → **refresh** its **title and description** so they reflect the final diff +
+  verification, not the state when it was first opened. Re-derive both from the **current**
+  `origin/main...HEAD` — Adjust-phase commits since the last push often change the story (a
+  scope shift, a reverted or newly-added sub-feature, fresh verification), so don't reuse the
+  originals:
   ```bash
-  gh pr edit <pr> --body-file "$BODY_FILE"
+  gh pr edit <pr> --title "<conventional commit title, re-derived>" --body-file "$BODY_FILE"
   ```
-  Never leave a stale description from an earlier state.
+  Update the title whenever the branch no longer matches it (a feature dropped or added since
+  the last push); keep it only if it's still accurate. Never leave a stale title or description
+  from an earlier state.
 
 ### 7. Watch CI and fix (capped)
 
@@ -166,7 +171,7 @@ test:run + build + ladle:build); the **Smoke** job runs separately against the C
   subagent**, never inline in the main thread.
 - **One** code-review pass — no redundant second review.
 - **Always** use `--body-file` (a `mktemp` path) for `gh pr create` / `gh pr edit`; always refresh a
-  stale PR body.
+  stale PR **title and** body to match the current `origin/main...HEAD`.
 - **Cap** the CI fix-loop at 3 iterations, then hand back to the user.
 
 ## References

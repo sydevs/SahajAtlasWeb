@@ -24,6 +24,8 @@ export { List } from './List'
 
 export { RegionCard } from './RegionCard'
 export type { RegionCardProps } from './RegionCard'
+export { OnlineClassesCard } from './OnlineClassesCard'
+export type { OnlineClassesCardProps } from './OnlineClassesCard'
 
 export { EventCard } from './EventCard'
 export type { EventCardProps } from './EventCard'

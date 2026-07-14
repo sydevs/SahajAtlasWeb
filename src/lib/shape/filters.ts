@@ -5,10 +5,10 @@ import { DateTime } from 'luxon'
 import { eventTimeZone } from './event'
 
 /**
- * The event-filter model, shared verbatim by the SearchFilters panel, the
- * `useSearchState` store, the events list, and the map. `matchesFilters` is the
- * single predicate both the list and the map apply, so a filtered list and the
- * filtered pins/clusters always agree.
+ * The event-filter model, shared by the SearchFilters panel, the URL filter codec
+ * (`filtersToParams`/`filtersFromParams`), the events list, and the map.
+ * `matchesFilters` is the single predicate both the list and the map apply, so a
+ * filtered list and the filtered pins/clusters always agree.
  *
  * All fields have a "no restriction" default (`DEFAULT_FILTERS`); with every
  * field at its default, `matchesFilters` passes every event.
@@ -160,3 +160,62 @@ export const filtersKey = (filters: EventFilters): string =>
     daysOfWeek: [...filters.daysOfWeek].sort((a, b) => a - b),
     languages: [...filters.languages].sort(),
   })
+
+// ── URL serialization (the query params ARE the applied filters) ────────────────
+// The filters live in the URL so a filtered view is linkable/shareable. One compact
+// key per group; a default (unrestricted) group is omitted so links stay clean.
+
+const FILTER_PARAM_KEYS = ['format', 'cadence', 'days', 'time', 'langs'] as const
+const CADENCES: readonly string[] = ['once', 'DAILY', 'WEEKLY', 'MONTHLY']
+
+const parseDays = (value: string | null): number[] =>
+  value
+    ? [...new Set(value.split(',').map(Number))]
+        .filter((day) => Number.isInteger(day) && day >= 1 && day <= 7)
+        .sort((a, b) => a - b)
+    : []
+
+const parseTime = (value: string | null): [number, number] => {
+  const [earliest, latest] = (value ?? '').split(',').map(Number)
+  const valid =
+    Number.isFinite(earliest) &&
+    Number.isFinite(latest) &&
+    earliest >= TIME_MIN &&
+    latest <= TIME_MAX &&
+    earliest <= latest
+
+  return valid ? [earliest, latest] : [TIME_MIN, TIME_MAX]
+}
+
+/** The applied filters decoded from a URL query — each group falls back to its default. */
+export const filtersFromParams = (params: URLSearchParams): EventFilters => {
+  const format = params.get('format')
+  const cadence = params.get('cadence')
+  const langs = params.get('langs')
+
+  return {
+    format: format === 'online' || format === 'offline' ? format : 'any',
+    cadence: CADENCES.includes(cadence ?? '') ? (cadence as EventCadence) : 'any',
+    daysOfWeek: parseDays(params.get('days')),
+    timeOfDay: parseTime(params.get('time')),
+    // Cap the list like the other groups are bounded — a hand-crafted URL can't
+    // balloon it (values only feed `matchesFilters` includes + re-serialization).
+    languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort().slice(0, 50) : [],
+  }
+}
+
+/** Encode `filters` into a copy of `base`, preserving non-filter params (`q`/`center`/…). */
+export const filtersToParams = (filters: EventFilters, base?: URLSearchParams): URLSearchParams => {
+  const params = new URLSearchParams(base)
+
+  FILTER_PARAM_KEYS.forEach((key) => params.delete(key))
+  if (filters.format !== 'any') params.set('format', filters.format)
+  if (filters.cadence !== 'any') params.set('cadence', filters.cadence)
+  if (filters.daysOfWeek.length > 0) {
+    params.set('days', [...filters.daysOfWeek].sort((a, b) => a - b).join(','))
+  }
+  if (isTimeRestricted(filters.timeOfDay)) params.set('time', filters.timeOfDay.join(','))
+  if (filters.languages.length > 0) params.set('langs', [...filters.languages].sort().join(','))
+
+  return params
+}

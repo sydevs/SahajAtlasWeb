@@ -35,7 +35,19 @@ export function MapSearch({ onSelect }: SearchProps) {
       value={searchQuery}
       onChange={(query) => {
         setSearchQuery(query)
-        setSearchParams({ q: query })
+        // Merge `q` into the existing query so the active filters (and bbox/center)
+        // survive typing — they live only in the URL now. `replace` so per-keystroke
+        // edits don't stack history.
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev)
+
+            next.set('q', query)
+
+            return next
+          },
+          { replace: true },
+        )
       }}
       onRetrieve={onSelect}
     />

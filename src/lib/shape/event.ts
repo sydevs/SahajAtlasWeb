@@ -16,6 +16,19 @@ export const nextOccurrence = (event: EventLike): Date | undefined =>
   event.schedule?.upcomingDates?.[0]
 
 /**
+ * Comparator ordering events by soonest next occurrence, undated last — used to
+ * sequence the online roll-up (placeless events have no map order to inherit).
+ * Two undated events compare equal (guarding the `Infinity - Infinity = NaN` an
+ * unguarded subtraction would return, which is an invalid `Array.sort` result).
+ */
+export const byNextOccurrence = (a: EventLike, b: EventLike): number => {
+  const ta = nextOccurrence(a)?.getTime() ?? Infinity
+  const tb = nextOccurrence(b)?.getTime() ?? Infinity
+
+  return ta === tb ? 0 : ta - tb
+}
+
+/**
  * The timezone to display an event's times in: the viewer's local zone for
  * online events, otherwise the event's own zone (UTC as a last resort).
  */

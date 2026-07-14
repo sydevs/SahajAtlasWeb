@@ -18,7 +18,8 @@ import {
   boundsLayer,
 } from './layers'
 
-import { useEventFilters, useViewState } from '@/config/store'
+import { useViewState } from '@/config/store'
+import { useEventFilters } from '@/hooks/use-filters'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { hasActiveFilters, matchesFilters, safePath } from '@/lib/shape'

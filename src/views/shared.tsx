@@ -3,7 +3,7 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList } from 'react'
 
 import { createContext, useCallback, useContext, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -14,8 +14,8 @@ import { Button, IconButton } from '@/components/atoms/Button'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
-import { useSearchState } from '@/config/store'
-import { activeFilterCount, resolvePath } from '@/lib/shape'
+import { useEventFilters } from '@/hooks/use-filters'
+import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
 // use it for their close / list-toggle buttons, so those act on the ONE persistent
@@ -82,7 +82,7 @@ export function FilterButton() {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
-  const count = useSearchState((state) => activeFilterCount(state))
+  const count = activeFilterCount(useEventFilters())
 
   const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
@@ -112,10 +112,13 @@ export function FilterButton() {
 // used to live in the removed SearchBar.
 export function SearchField() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      const params = new URLSearchParams()
+      // Preserve the active filters (URL-only now) while resetting the searched
+      // location — searching a new place shouldn't silently clear the filters.
+      const params = filtersToParams(filtersFromParams(searchParams))
 
       params.set('q', value.properties.full_address ?? '')
       if (value.properties.bbox) params.set('bbox', value.properties.bbox.toString())
@@ -125,7 +128,7 @@ export function SearchField() {
       )
       navigate(`/search?${params.toString()}`)
     },
-    [navigate],
+    [navigate, searchParams],
   )
 
   return (

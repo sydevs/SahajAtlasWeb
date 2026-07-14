@@ -2,18 +2,22 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventCard, List, RegionCard } from '@/components/molecules'
+import { EventCard, List, OnlineClassesCard, RegionCard } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
+import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { CloseButton, useFrameOnTop } from '@/views/shared'
 
-// A region at any level (route `<region-path>`): one list of child regions then
-// child events (plain concatenation, no section headers). Frames the map to the
-// region's bounds when it's the top of the stack. No canonicalization redirect —
-// the URL stays where the user navigated; the canonical tag is standalone-only.
+// A region at any level (route `<region-path>`): child-region cards then this
+// region's located events. A parent with sub-regions leads with an "Online Classes"
+// card (only when online events roll up) that opens their own drawer
+// (`<region-path>/online`), keeping the list a clean set of places; a leaf lists its
+// online events inline, after the located ones. Frames the map to the region's bounds
+// when it's the top of the stack. No canonicalization redirect — the URL stays where
+// the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
@@ -29,6 +33,9 @@ export function RegionView({ slug }: { slug: string }) {
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined
   const canonicalUrl = validateWebUrl(region.webUrl)
+  // Parents (with sub-region cards) surface their online roll-up behind a dedicated
+  // "Online Classes" card; a leaf lists its online events inline, as before.
+  const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
 
   return (
     <>
@@ -47,9 +54,19 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <List>
+          {/* On a parent, the online roll-up opens in its own drawer via this card,
+              keeping the list below a clean set of places. */}
+          {showOnlineCard && (
+            <OnlineClassesCard
+              count={region.onlineEvents.length}
+              href={childRoute(region.path, 'online')}
+            />
+          )}
+          {/* Region ids and event ids come from independent sequences but share one
+              List — namespace the keys so they can't collide. */}
           {region.subregions.map((child) => (
             <RegionCard
-              key={child.id}
+              key={`region-${child.id}`}
               count={child.eventCount}
               href={child.path}
               label={child.name}
@@ -57,8 +74,13 @@ export function RegionView({ slug }: { slug: string }) {
             />
           ))}
           {region.events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={`event-${event.id}`} event={event} />
           ))}
+          {/* A leaf has no card — its online events list inline, after the located ones. */}
+          {!showOnlineCard &&
+            region.onlineEvents.map((event) => (
+              <EventCard key={`online-${event.id}`} event={event} />
+            ))}
         </List>
       </DrawerBody>
     </>

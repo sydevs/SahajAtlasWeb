@@ -4,7 +4,9 @@ import { DateTime } from 'luxon'
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
+  filtersFromParams,
   filtersKey,
+  filtersToParams,
   hasActiveFilters,
   matchesFilters,
   type EventFilters,
@@ -214,5 +216,49 @@ describe('filtersKey', () => {
 
   it('differs when a filter differs', () => {
     expect(filtersKey(DEFAULT_FILTERS)).not.toBe(filtersKey(withFilters({ format: 'online' })))
+  })
+})
+
+describe('URL serialization', () => {
+  const active: EventFilters = {
+    format: 'online',
+    cadence: 'WEEKLY',
+    daysOfWeek: [1, 3, 5],
+    timeOfDay: [9, 17],
+    languages: ['en', 'fr'],
+  }
+
+  it('round-trips an active filter set through the query', () => {
+    expect(filtersFromParams(filtersToParams(active))).toEqual(active)
+  })
+
+  it('omits default (unrestricted) groups so links stay clean', () => {
+    expect(filtersToParams(DEFAULT_FILTERS).toString()).toBe('')
+    expect(filtersToParams(withFilters({ format: 'online' })).toString()).toBe('format=online')
+  })
+
+  it('preserves non-filter params and clears stale filter params in the base', () => {
+    const base = new URLSearchParams('format=online&days=1,2&q=paris&center=2.3,48.8')
+    const params = filtersToParams(withFilters({ format: 'offline' }), base)
+
+    expect(params.get('format')).toBe('offline') // rewritten
+    expect(params.has('days')).toBe(false) // stale filter param dropped
+    expect(params.get('q')).toBe('paris') // non-filter param kept
+    expect(params.get('center')).toBe('2.3,48.8')
+  })
+
+  it('falls back to defaults for missing or malformed params', () => {
+    expect(filtersFromParams(new URLSearchParams())).toEqual(DEFAULT_FILTERS)
+    // Unknown format/cadence, out-of-range days, reversed time → each group defaults.
+    const junk = new URLSearchParams('format=hybrid&cadence=YEARLY&days=0,8,foo&time=20,4')
+
+    expect(filtersFromParams(junk)).toEqual(DEFAULT_FILTERS)
+  })
+
+  it('de-dupes and sorts the day and language lists', () => {
+    const filters = filtersFromParams(new URLSearchParams('days=5,1,3,3&langs=fr,en,fr'))
+
+    expect(filters.daysOfWeek).toEqual([1, 3, 5])
+    expect(filters.languages).toEqual(['en', 'fr'])
   })
 })
