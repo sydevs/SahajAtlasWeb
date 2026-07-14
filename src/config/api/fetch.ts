@@ -1,5 +1,6 @@
 import type {
   Event,
+  EventDoc,
   EventSlim,
   GeoFeature,
   Geojson,
@@ -322,6 +323,21 @@ const getEvents = async (
 
 // ── Single event detail ─────────────────────────────────────────────────────────
 
+/**
+ * Shape a parsed event doc into the view-model `Event`: resolve image URLs at the data
+ * boundary (SahajCloud serves relative URLs in dev; a null url — a file-less image —
+ * stays null and the UI skips it) and derive a safe `path` from `webPath`. Exported so
+ * live preview (issue #40) reuses the exact same shaping on docs pushed in over the
+ * postMessage stream, not only fetched ones.
+ */
+export const shapeEventDoc = (event: EventDoc): Event => ({
+  ...event,
+  images: event.images.map((image) =>
+    image.url ? { ...image, url: resolveImageUrl(image.url) } : image,
+  ),
+  path: safePath(event.webPath) ?? `/${event.id}`,
+})
+
 const getEvent = async (id: number): Promise<Event> => {
   const response = await client.get(`/events/${id}`, {
     params: {
@@ -355,18 +371,7 @@ const getEvent = async (id: number): Promise<Event> => {
     },
   })
 
-  const event = EventDocSchema.parse(response.data)
-
-  return {
-    ...event,
-    // Resolve image URLs at the data boundary so every consumer gets a ready-to-use
-    // absolute URL (SahajCloud serves relative image URLs in dev) — the same kind of
-    // wire-quirk shaping as `path` below. Null urls stay null; the UI skips them.
-    images: event.images.map((image) =>
-      image.url ? { ...image, url: resolveImageUrl(image.url) } : image,
-    ),
-    path: safePath(event.webPath) ?? `/${event.id}`,
-  }
+  return shapeEventDoc(EventDocSchema.parse(response.data))
 }
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────

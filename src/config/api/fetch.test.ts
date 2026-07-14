@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
 import { toSahajLocale } from './client'
-import api from './fetch'
+import api, { shapeEventDoc } from './fetch'
 
 import preview from '@/config/preview'
 import { queryClient } from '@/config/query-client'
+import { EventDocSchema } from '@/types'
 
 // The shared axios client attaches auth + locale to *every* request via one
 // interceptor (so individual fetchers don't). We mock axios to capture that
@@ -333,5 +334,43 @@ describe('getEvent', () => {
     // Null stays null (the UI skips it); the boundary maps, it doesn't filter.
     expect(event.images[1].url).toBeNull()
     expect(event.images).toHaveLength(2)
+  })
+})
+
+describe('shapeEventDoc', () => {
+  const parse = (overrides: Record<string, unknown> = {}) =>
+    EventDocSchema.parse({
+      id: 13,
+      title: 'Voronezh Class',
+      eventType: 'offline',
+      languages: ['ru'],
+      registrationMode: 'sahaj-atlas',
+      region: { id: 5, slug: 'voronezh', level: 'city' },
+      ...overrides,
+    })
+
+  it('derives path from a safe site-relative webPath', () => {
+    expect(shapeEventDoc(parse({ webPath: '/russia/voronezh/13' })).path).toBe(
+      '/russia/voronezh/13',
+    )
+  })
+
+  it('falls back to /:id when webPath is missing or unsafe', () => {
+    expect(shapeEventDoc(parse()).path).toBe('/13')
+    expect(shapeEventDoc(parse({ webPath: 'https://evil.example' })).path).toBe('/13')
+  })
+
+  it('resolves relative image urls at the boundary, leaving null urls null', () => {
+    const shaped = shapeEventDoc(
+      parse({
+        images: [
+          { id: 2, filename: 'pic.jpg', url: '/api/images/file/pic.jpg', alt: 'Hall' },
+          { id: 3, url: null, alt: 'no file' },
+        ],
+      }),
+    )
+
+    expect(shaped.images[0].url).toMatch(/^https?:\/\/.*\/api\/images\/file\/pic\.jpg$/)
+    expect(shaped.images[1].url).toBeNull()
   })
 })
