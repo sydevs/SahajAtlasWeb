@@ -47,8 +47,34 @@ describe('fetchIpLocation', () => {
     expect(await fetchIpLocation()).toBeNull()
   })
 
-  it('returns null when the request throws (network / CSP block)', async () => {
+  it('returns null when the request throws (network / CSP block / timeout)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('blocked')))
+
+    expect(await fetchIpLocation()).toBeNull()
+  })
+
+  it('returns null for out-of-range coordinates (hostile response)', async () => {
+    mockFetch({ ...VALID, latitude: 999 })
+
+    expect(await fetchIpLocation()).toBeNull()
+  })
+
+  it('returns null for an over-long city (bounded at the trust boundary)', async () => {
+    mockFetch({ ...VALID, city: 'x'.repeat(101) })
+
+    expect(await fetchIpLocation()).toBeNull()
+  })
+
+  it('returns null when the body is not valid JSON (json() throws)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new SyntaxError('Unexpected token')
+        },
+      }),
+    )
 
     expect(await fetchIpLocation()).toBeNull()
   })

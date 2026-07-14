@@ -14,7 +14,12 @@ const IP_LOCATION_ENDPOINT = 'https://ipwho.is/'
 // Query treats every outcome as a success and won't retry a blocked lookup.
 export async function fetchIpLocation(): Promise<IpLocation | null> {
   try {
-    const response = await fetch(IP_LOCATION_ENDPOINT)
+    const response = await fetch(IP_LOCATION_ENDPOINT, {
+      // Don't leak the embedding host's origin to the third party, and don't let a
+      // slow/hanging response hold the request open — the catch maps abort → null.
+      referrerPolicy: 'no-referrer',
+      signal: AbortSignal.timeout(5000),
+    })
 
     if (!response.ok) return null
 
