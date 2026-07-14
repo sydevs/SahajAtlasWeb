@@ -103,6 +103,12 @@ derive from the cached dict + feed, client-side.
 
 ## Residuals / follow-ups (the shipping build)
 
+- **Generalize the locale-in-key invariant.** Each locale-dependent query appends
+  `sahajLocale` at its call site (five of them). The original bug was a *forgotten*
+  `locale` segment, so the shipping build should collapse these into query-key
+  factories — the pattern `clientQuery` (`config/api/index.ts`) already uses — e.g.
+  `regionQuery(slug, locale)` / `eventQuery(id, locale)`, so a locale-dependent key
+  can't be constructed without its locale.
 - **`countryCode` from slug (#556).** SahajCloud#556 is merged, but **the local dev
   seed still serves name-slugs (`belgium`) + `legacyData.countryCode` (`BE`)**.
   `countryCodeOf` derives from the slug **first** and falls back to `legacyData` — so
@@ -111,8 +117,6 @@ derive from the cached dict + feed, client-side.
   `fetch.ts`" lands then).
 - **Stale times.** `['regions']` gets a 30-min stale window (slower cadence than the
   5-min feed). Tune against real cache-hit telemetry.
-- **`BreadcrumbSchema`** is now unused by the feed path; it can be retired from
-  `region-ref.ts` in a cleanup pass (kept as an optional field for now).
 - The `['event-titles']` join sources titles from `/api/events` (same collection as
   the geojson feed — id parity confirmed). If the two ever diverge, source titles from
   the geojson endpoint with a title-only select.

@@ -85,8 +85,8 @@ const FEED_SELECT = {
 
 // Every region at every level in one read. Ancestry, child lists, counts, and the
 // 0-event gate all derive from this dict client-side — replacing the per-navigation
-// `getRegionDoc`/`getChildRegions`/`getCountries` region reads. Region names /
-// breadcrumbs are locale-agnostic, so this is cached once regardless of language.
+// `getRegionDoc`/`getChildRegions` reads and getCountries' own `/regions` read.
+// Region names are locale-agnostic, so this is cached once regardless of language.
 // `legacyData` is transitional (see `countryCodeOf`).
 const REGIONS_SELECT = {
   slug: true,

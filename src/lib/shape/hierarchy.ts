@@ -34,41 +34,35 @@ export type RegionTreeNode = {
   parent?: number | null
 }
 
-/** O(1) lookups over the wholesale region list: by id, by slug, and by parent. */
+/** Id + slug lookups over the wholesale region list (children derive via `childrenOf`). */
 export type RegionIndex<T extends RegionTreeNode> = {
   byId: Map<number, T>
   bySlug: Map<string, T>
-  childrenByParent: Map<number, T[]>
 }
 
 /**
- * Builds the id/slug/parent lookup maps for a region tree in one pass. Slugs are
- * globally unique across levels, so `bySlug` is unambiguous. Children keep their
- * incoming order (the wholesale read sorts by name).
+ * Builds the id + slug lookup maps for a region tree in one pass. Slugs are
+ * globally unique across levels, so `bySlug` is unambiguous.
  */
 export const indexRegions = <T extends RegionTreeNode>(nodes: T[]): RegionIndex<T> => {
   const byId = new Map<number, T>()
   const bySlug = new Map<string, T>()
-  const childrenByParent = new Map<number, T[]>()
 
   for (const node of nodes) {
     byId.set(node.id, node)
     bySlug.set(node.slug, node)
-
-    if (node.parent != null) {
-      const siblings = childrenByParent.get(node.parent)
-
-      if (siblings) siblings.push(node)
-      else childrenByParent.set(node.parent, [node])
-    }
   }
 
-  return { byId, bySlug, childrenByParent }
+  return { byId, bySlug }
 }
 
-/** A region's direct children (empty for a leaf), in the index's name-sorted order. */
+/**
+ * A region's direct children (empty for a leaf), in the index's name-sorted order.
+ * Only the region view reads this (once per navigation), so a filter beats
+ * precomputing a parent→children map that `getCountries` would build and never read.
+ */
 export const childrenOf = <T extends RegionTreeNode>(index: RegionIndex<T>, id: number): T[] =>
-  index.childrenByParent.get(id) ?? []
+  [...index.byId.values()].filter((node) => node.parent === id)
 
 /**
  * A region's full ancestry ids, self-inclusive (self → parent → … → country),

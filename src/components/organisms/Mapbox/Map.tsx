@@ -58,9 +58,9 @@ const MAP_WORLDVIEWS: Record<string, string> = {
 // agnostic feed's card fields (address/schedule/languages/region) never reach Mapbox.
 // Confirms the spike finding: map-source leanness is a client-side trim, not a reason
 // for a separate lean feed query.
-const toMapSource = (feed: Geojson): FeatureCollection<Geometry | null> => ({
+const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry | null> => ({
   type: 'FeatureCollection',
-  features: feed.features.map((feature) => ({
+  features: features.map((feature) => ({
     type: 'Feature',
     geometry: feature.geometry,
     properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
@@ -97,9 +97,9 @@ export function Mapbox() {
   })
 
   // Filter the feed before it feeds the clustering source, so cluster counts
-  // reflect the filters (a layer-level `filter` would leave stale counts). Only
-  // recomputes when the feed or the filters change — not on pan/zoom — and reuses
-  // the feed as-is when nothing is filtered (the common case).
+  // reflect the filters (a layer-level `filter` would leave stale counts), then trim
+  // to a geometry-only source. Recomputes only when the feed or filters change — not
+  // on pan/zoom — so the Mapbox source identity stays stable across camera moves.
   const filtered = useMemo(() => {
     if (!data) return undefined
 
@@ -107,7 +107,7 @@ export function Mapbox() {
       ? data.features.filter((f) => matchesFilters(f.properties, filters))
       : data.features
 
-    return toMapSource({ ...data, features })
+    return toMapSource(features)
   }, [data, filters])
 
   const selectFeature = useCallback(

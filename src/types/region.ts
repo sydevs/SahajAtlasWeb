@@ -4,8 +4,8 @@ import { EventSlimSchema } from './event'
 import { RegionLevelSchema } from './region-ref'
 
 // Re-export the low-level refs so `@/types` consumers still reach them here.
-export { RegionLevelSchema, BreadcrumbSchema, RegionRefSchema } from './region-ref'
-export type { RegionLevel, Breadcrumb, RegionRef } from './region-ref'
+export { RegionLevelSchema, RegionRefSchema } from './region-ref'
+export type { RegionLevel, RegionRef } from './region-ref'
 
 // Shared geo primitives for derived view-models.
 export const BoundsSchema = z.tuple([z.number(), z.number(), z.number(), z.number()])
