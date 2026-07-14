@@ -10,10 +10,9 @@ import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape
 // with `useEventFilters`; mutate the /search flow's filters with `useSetFilters`.
 
 /**
- * Applied filters parsed from the URL query. `useSearchParams` memoizes its result
- * on `location.search`, and the map camera lives in zustand (pan/zoom never touches
- * the URL), so this identity is stable across the map's hot path and only
- * re-derives when the query actually changes.
+ * Applied filters parsed from the URL query. Re-derives on any query change
+ * (including `?q`/`?bbox`/`?center`/`?all`), but that's off the map's true hot path:
+ * pan/zoom writes the camera to zustand, never the URL, so those don't churn this.
  */
 export const useEventFilters = (): EventFilters => {
   const [searchParams] = useSearchParams()
@@ -22,27 +21,28 @@ export const useEventFilters = (): EventFilters => {
 }
 
 /**
- * In-place filter setters that rewrite the current URL's filter params while
- * preserving the rest (`q`/`bbox`/`center`/`all`). Used by the results' quick-edit
- * pills; `setFilters` commits a whole set. `replace` so tweaking a filter doesn't
- * stack a history entry per keystroke.
+ * Filter setters that rewrite the current URL's filter params while preserving the
+ * rest (`q`/`bbox`/`center`/`all`). Used by the results' quick-edit pills; `setFilters`
+ * commits a whole set. `replace` so tweaking a filter doesn't stack a history entry.
  */
 export const useSetFilters = () => {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const current = filtersFromParams(searchParams)
+  const [, setSearchParams] = useSearchParams()
 
-  const setFilters = (filters: EventFilters) =>
-    setSearchParams((prev) => filtersToParams(filters, new URLSearchParams(prev)), {
-      replace: true,
-    })
+  // Read the *current* filters from `prev` inside the updater (not a render-time
+  // snapshot), so a concurrent change can't be clobbered.
+  const update = (change: (filters: EventFilters) => EventFilters) =>
+    setSearchParams(
+      (prev) => filtersToParams(change(filtersFromParams(prev)), new URLSearchParams(prev)),
+      { replace: true },
+    )
 
   return {
-    setFilters,
-    setFormat: (format: EventFormat) => setFilters({ ...current, format }),
-    setCadence: (cadence: EventCadence) => setFilters({ ...current, cadence }),
-    setTimeOfDay: (timeOfDay: [number, number]) => setFilters({ ...current, timeOfDay }),
-    setDaysOfWeek: (daysOfWeek: number[]) => setFilters({ ...current, daysOfWeek }),
-    setLanguages: (languages: string[]) => setFilters({ ...current, languages }),
-    clearFilters: () => setFilters(DEFAULT_FILTERS),
+    setFilters: (filters: EventFilters) => update(() => filters),
+    setFormat: (format: EventFormat) => update((filters) => ({ ...filters, format })),
+    setCadence: (cadence: EventCadence) => update((filters) => ({ ...filters, cadence })),
+    setTimeOfDay: (timeOfDay: [number, number]) => update((filters) => ({ ...filters, timeOfDay })),
+    setDaysOfWeek: (daysOfWeek: number[]) => update((filters) => ({ ...filters, daysOfWeek })),
+    setLanguages: (languages: string[]) => update((filters) => ({ ...filters, languages })),
+    clearFilters: () => update(() => DEFAULT_FILTERS),
   }
 }

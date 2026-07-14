@@ -198,7 +198,9 @@ export const filtersFromParams = (params: URLSearchParams): EventFilters => {
     cadence: CADENCES.includes(cadence ?? '') ? (cadence as EventCadence) : 'any',
     daysOfWeek: parseDays(params.get('days')),
     timeOfDay: parseTime(params.get('time')),
-    languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort() : [],
+    // Cap the list like the other groups are bounded — a hand-crafted URL can't
+    // balloon it (values only feed `matchesFilters` includes + re-serialization).
+    languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort().slice(0, 50) : [],
   }
 }
 

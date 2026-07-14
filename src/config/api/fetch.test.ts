@@ -137,7 +137,7 @@ describe('getRegion (unified hierarchy derivation)', () => {
   })
 
   // Belgium(28), a country with three city children: Antwerpen(473) [2 located →
-  // carded], Brussels(470) [1 located → promoted], Ghent(475) [1 online → no card].
+  // carded], Brussels(470) [1 located → carded], Ghent(475) [1 online → no card].
   const country = {
     id: 28,
     slug: 'belgium',
