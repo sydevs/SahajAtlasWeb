@@ -169,6 +169,12 @@ export function Mapbox() {
     <ReactMapGL
       reuseMaps
       attributionControl={false}
+      // Symbols (pins, clusters, the selection + hover highlights) appear
+      // instantly instead of Mapbox's default ~300ms icon fade-in — the card-hover
+      // highlight must track the pointer immediately. fadeDuration is a global map
+      // option (no per-layer control), so this also removes the fade on the base
+      // pins/clusters and the selection pin.
+      fadeDuration={0}
       id="mapbox"
       interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
       // @ts-ignore - Language is a valid property
