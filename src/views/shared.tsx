@@ -15,6 +15,7 @@ import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useLocale } from '@/hooks/use-locale'
 import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -152,13 +153,14 @@ export function useFrameOnTop(frame: () => void, deps: DependencyList) {
 // RegistrationView and ShareView both resolve an event from its route path and
 // suspense-fetch it — shared here so the resolvePath + queryKey convention stays
 // in one place. (EventView, one level up in the stack, already fetches the same
-// event; TanStack Query's `['event', id]` cache serves this call from that
+// event; TanStack Query's `['event', id, locale]` cache serves this call from that
 // fetch, not a fresh network round trip.) `resolveStack` derives `eventPath` from
 // the raw preceding URL segment without checking it's actually an event — a
 // hand-typed `/india/register` would otherwise reach here as a region path — so
 // bail out before firing a request for a non-existent `NaN` id; the nearest
 // ErrorBoundary (DrawerErrorFallback) renders the not-found state instead.
 export function useEventFromPath(eventPath: string) {
+  const { locale } = useLocale()
   const resolved = resolvePath(eventPath)
 
   if (resolved?.kind !== 'event') {
@@ -166,7 +168,7 @@ export function useEventFromPath(eventPath: string) {
   }
 
   return useSuspenseQuery({
-    queryKey: ['event', resolved.id],
+    queryKey: ['event', resolved.id, locale],
     queryFn: () => api.getEvent(resolved.id),
   })
 }

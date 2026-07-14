@@ -1,3 +1,6 @@
+import type { FeatureCollection, Geometry } from 'geojson'
+import type { Geojson } from '@/types'
+
 import { useCallback, useMemo } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
@@ -51,6 +54,21 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   te: 'IN', // Telugu
   default: 'US', // Default
 }
+
+// Mapbox renders geometry and injects its own cluster properties; the click handler
+// needs only `id` + `webPath`. Strip every other feature property before handing the
+// collection to the vector source, so the map holds a lean geometry source — the
+// agnostic feed's card fields (address/schedule/languages/region) never reach Mapbox.
+// Confirms the spike finding: map-source leanness is a client-side trim, not a reason
+// for a separate lean feed query.
+const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry | null> => ({
+  type: 'FeatureCollection',
+  features: features.map((feature) => ({
+    type: 'Feature',
+    geometry: feature.geometry,
+    properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
+  })),
+})
 
 const DEBUG_BOUNDARY = false
 const DEBUG_PADDING = false
@@ -116,18 +134,18 @@ export function Mapbox() {
   })
 
   // Filter the feed before it feeds the clustering source, so cluster counts
-  // reflect the filters (a layer-level `filter` would leave stale counts). Only
-  // recomputes when the feed or the filters change — not on pan/zoom — and reuses
-  // the feed as-is when nothing is filtered (the common case).
+  // reflect the filters (a layer-level `filter` would leave stale counts), then trim
+  // to a geometry-only source. Recomputes only when the feed or filters change — not
+  // on pan/zoom — so the Mapbox source identity stays stable across camera moves.
   const filtered = useMemo(() => {
-    if (!data || !hasActiveFilters(filters)) return data
+    if (!data) return undefined
 
     const today = todayISO()
+    const features = hasActiveFilters(filters)
+      ? data.features.filter((f) => matchesFilters(f.properties, filters, today))
+      : data.features
 
-    return {
-      ...data,
-      features: data.features.filter((f) => matchesFilters(f.properties, filters, today)),
-    }
+    return toMapSource(features)
   }, [data, filters])
 
   const selectFeature = useCallback(

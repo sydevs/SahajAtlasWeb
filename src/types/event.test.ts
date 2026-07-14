@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
 
-import { EventDocSchema, EventSchema, EventSlimSchema, FeedEventSchema } from './event'
+import {
+  AgnosticFeedEventSchema,
+  EventDocSchema,
+  EventSchema,
+  EventSlimSchema,
+  EventTitleSchema,
+  FeedEventSchema,
+} from './event'
 
 import { mockEvent, mockEventSlim, mockEventSlimList } from '@/mocks/events'
 
@@ -48,6 +55,32 @@ describe('FeedEventSchema', () => {
 
     expect(parsed.id).toBe(mockEventSlim.id)
     expect('path' in parsed).toBe(false)
+  })
+})
+
+describe('AgnosticFeedEventSchema', () => {
+  it('parses agnostic feed properties and strips the localized title', () => {
+    const parsed = AgnosticFeedEventSchema.parse({
+      id: 1,
+      title: 'stripped',
+      eventType: 'offline',
+      languages: ['en'],
+      region: { id: 9, slug: 'brussels', level: 'city' },
+    })
+
+    expect('title' in parsed).toBe(false)
+    expect(parsed.eventType).toBe('offline')
+    expect(parsed.region.slug).toBe('brussels')
+  })
+})
+
+describe('EventTitleSchema', () => {
+  it('parses an id→title sliver row', () => {
+    expect(EventTitleSchema.parse({ id: 5, title: 'Class' })).toEqual({ id: 5, title: 'Class' })
+  })
+
+  it('tolerates a null title so one bad row cannot fail the whole titles read', () => {
+    expect(EventTitleSchema.parse({ id: 6, title: null }).title).toBeNull()
   })
 })
 

@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest'
 
-import { RegionDocSchema, RegionListItemSchema, RegionSchema } from './region'
+import { RegionListItemSchema, RegionNodeSchema, RegionSchema } from './region'
 
 import { mockEventSlim, mockEventSlimList, mockEventSlimOnline } from '@/mocks/events'
 
-const regionDoc = {
-  id: 28,
-  slug: 'belgium',
-  level: 'country',
-  name: 'Belgium',
-  breadcrumbs: [{ doc: 28 }],
-  webPath: '/belgium',
-  webUrl: 'https://atlas.example/belgium',
+const regionNode = {
+  id: 473,
+  slug: 'antwerpen',
+  level: 'city',
+  name: 'Antwerpen',
+  parent: 28,
+  webPath: '/belgium/antwerpen',
+  webUrl: 'https://atlas.example/belgium/antwerpen',
   legacyData: { countryCode: 'BE' },
 }
 
@@ -59,24 +59,24 @@ const venue = {
   onlineEvents: [],
 }
 
-describe('RegionDocSchema', () => {
-  it('parses a raw region read with its webPath + ISO code', () => {
-    const parsed = RegionDocSchema.parse(regionDoc)
+describe('RegionNodeSchema', () => {
+  it('parses a wholesale region node with its parent link + webPath', () => {
+    const parsed = RegionNodeSchema.parse(regionNode)
 
-    expect(parsed.level).toBe('country')
-    expect(parsed.webPath).toBe('/belgium')
+    expect(parsed.level).toBe('city')
+    expect(parsed.parent).toBe(28)
+    expect(parsed.webPath).toBe('/belgium/antwerpen')
     expect(parsed.legacyData?.countryCode).toBe('BE')
-    expect(parsed.breadcrumbs?.[0].doc).toBe(28)
   })
 
-  it('accepts an object breadcrumb doc ({ id })', () => {
-    const parsed = RegionDocSchema.parse({ ...regionDoc, breadcrumbs: [{ doc: { id: 28 } }] })
+  it('accepts a country root with a null parent', () => {
+    const parsed = RegionNodeSchema.parse({ ...regionNode, parent: null, level: 'country' })
 
-    expect(parsed.breadcrumbs?.[0].doc).toEqual({ id: 28 })
+    expect(parsed.parent).toBeNull()
   })
 
   it('rejects an unknown level', () => {
-    expect(() => RegionDocSchema.parse({ ...regionDoc, level: 'planet' })).toThrow()
+    expect(() => RegionNodeSchema.parse({ ...regionNode, level: 'planet' })).toThrow()
   })
 })
 

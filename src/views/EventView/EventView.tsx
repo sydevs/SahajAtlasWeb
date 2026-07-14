@@ -5,6 +5,7 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { EventMetadata } from '@/components/molecules'
 import { Spinner } from '@/components/atoms/Spinner'
 import api from '@/config/api'
+import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { CloseButton, useFrameOnTop } from '@/views/shared'
@@ -21,9 +22,10 @@ const EventDetails = lazy(() =>
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
+  const { locale } = useLocale()
 
   const { data: event } = useSuspenseQuery({
-    queryKey: ['event', id],
+    queryKey: ['event', id, locale],
     queryFn: () => api.getEvent(id),
   })
 
