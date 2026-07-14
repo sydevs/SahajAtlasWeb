@@ -3,17 +3,24 @@ import { Feature } from 'geojson'
 
 // ===== VIEW STATE ===== //
 
+// A point the map emphasizes with a sprite: the committed `selection` (from
+// frameEvent) and the transient `hover` (from highlightEvent) share this shape.
+// `approximate` swaps the crisp pin for the softer area sprite (online events).
+export type MapPoint = { latitude: number; longitude: number; approximate: boolean }
+
 type ViewState = {
   zoom: number
   latitude: number
   longitude: number
-  selection?: { latitude: number; longitude: number; approximate: boolean } | null
+  selection?: MapPoint | null
+  hover?: MapPoint | null
   boundary?: Feature
 }
 
 type ViewAction = {
   setViewState: (viewState: ViewState) => void
   setSelection: (selection: ViewState['selection']) => void
+  setHover: (hover: ViewState['hover']) => void
   setBoundary: (bounds: ViewState['boundary']) => void
 }
 
@@ -22,8 +29,10 @@ export const useViewState = create<ViewState & ViewAction>((set) => ({
   longitude: 0,
   zoom: 0,
   selection: null,
+  hover: null,
   setViewState: (viewState) => set(() => ({ ...viewState })),
   setSelection: (selection: ViewState['selection']) => set(() => ({ selection })),
+  setHover: (hover: ViewState['hover']) => set(() => ({ hover })),
   setBoundary: (boundary: ViewState['boundary']) => set(() => ({ boundary })),
 }))
 

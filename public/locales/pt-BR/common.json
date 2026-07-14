@@ -51,7 +51,15 @@
     "no_events": "Nenhum evento encontrado.",
     "remove": "Remover %{label}",
     "nearby": "< %{km} km",
-    "no_nearby": "Nenhum evento num raio de %{km} km."
+    "no_nearby": "Nenhum evento num raio de %{km} km.",
+    "dates": {
+      "label": "Data",
+      "from": "De",
+      "to": "Até",
+      "pill_from": "A partir de %{date}",
+      "pill_until": "Até %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Buscar eventos perto de…",
   "online_classes": "Aulas on-line"

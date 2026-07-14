@@ -51,7 +51,15 @@
     "no_events": "События не найдены.",
     "remove": "Удалить %{label}",
     "nearby": "< %{km} km",
-    "no_nearby": "Нет событий в радиусе %{km} км."
+    "no_nearby": "Нет событий в радиусе %{km} км.",
+    "dates": {
+      "label": "Дата",
+      "from": "С",
+      "to": "По",
+      "pill_from": "С %{date}",
+      "pill_until": "До %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Искать события рядом с…",
   "online_classes": "Онлайн-занятия"

@@ -51,7 +51,15 @@
     "no_events": "Nebyly nalezeny žádné události.",
     "remove": "Odebrat %{label}",
     "nearby": "< %{km} km",
-    "no_nearby": "Žádné události do %{km} km."
+    "no_nearby": "Žádné události do %{km} km.",
+    "dates": {
+      "label": "Datum",
+      "from": "Od",
+      "to": "Do",
+      "pill_from": "Od %{date}",
+      "pill_until": "Do %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Hledat události poblíž…",
   "online_classes": "Online kurzy"

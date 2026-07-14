@@ -51,7 +51,15 @@
     "no_events": "Keine Veranstaltungen gefunden.",
     "remove": "%{label} entfernen",
     "nearby": "< %{km} km",
-    "no_nearby": "Keine Veranstaltungen innerhalb von %{km} km."
+    "no_nearby": "Keine Veranstaltungen innerhalb von %{km} km.",
+    "dates": {
+      "label": "Datum",
+      "from": "Von",
+      "to": "Bis",
+      "pill_from": "Ab %{date}",
+      "pill_until": "Bis %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Veranstaltungen suchen in …",
   "online_classes": "Online-Kurse"

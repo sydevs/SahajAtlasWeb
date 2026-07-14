@@ -30,6 +30,7 @@ import {
   partitionUnder,
   resolveImageUrl,
   safePath,
+  todayISO,
 } from '@/lib/shape'
 import {
   ClientSchema,
@@ -350,8 +351,10 @@ const getEvents = async (
   // nearest N. Shares the exact predicate the map applies. (The rendered sets can
   // still differ: online events carry no map geometry, and this list is capped at
   // NEAREST_LIMIT while the map is not.)
+  const today = todayISO()
+
   return geojson.features
-    .filter((feature) => matchesFilters(feature.properties, filters))
+    .filter((feature) => matchesFilters(feature.properties, filters, today))
     .map((feature) => toSlim(feature, titles.get(feature.properties.id), from))
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     .slice(0, NEAREST_LIMIT)

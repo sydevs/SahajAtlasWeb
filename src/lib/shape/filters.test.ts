@@ -185,6 +185,93 @@ describe('matchesFilters — day and time evaluated together', () => {
   })
 })
 
+describe('matchesFilters — date range (in the event zone)', () => {
+  // A fixed "today" so the lower-bound floor is deterministic (occurrences are later).
+  const TODAY = '2026-07-14'
+  const jul20 = at('Asia/Kolkata', '2026-07-20T09:30') // Mon 20 Jul, 09:30 IST
+  const on20th = event({ zone: 'Asia/Kolkata', occurrences: [jul20] })
+  const inRange = (start: string | null, end: string | null) =>
+    matchesFilters(on20th, withFilters({ dateRange: { start, end } }), TODAY)
+
+  it('matches when an occurrence lands in the window (inclusive)', () => {
+    expect(inRange('2026-07-20', '2026-07-27')).toBe(true)
+    expect(inRange('2026-07-20', '2026-07-20')).toBe(true)
+  })
+
+  it('excludes when the occurrence falls outside the window', () => {
+    expect(inRange('2026-07-21', '2026-07-27')).toBe(false)
+    expect(inRange(null, '2026-07-19')).toBe(false)
+  })
+
+  it('honours an open bound (from-only / until-only)', () => {
+    expect(inRange('2026-07-01', null)).toBe(true)
+    expect(inRange('2026-07-21', null)).toBe(false)
+    expect(inRange(null, '2026-07-31')).toBe(true)
+  })
+
+  it('floors an open lower bound at today — no occurrence before today matches', () => {
+    const past = at('Asia/Kolkata', '2026-07-10T09:30') // before TODAY
+    const evt = event({ zone: 'Asia/Kolkata', occurrences: [past] })
+    const untilEnd = (start: string | null, end: string | null) =>
+      matchesFilters(evt, withFilters({ dateRange: { start, end } }), TODAY)
+
+    // Open "until Y": the floor (today) excludes the past occurrence…
+    expect(untilEnd(null, '2026-07-31')).toBe(false)
+    // …but an explicit earlier start opts back into it.
+    expect(untilEnd('2026-07-01', '2026-07-31')).toBe(true)
+  })
+
+  it('excludes events with no occurrences while a date filter is active', () => {
+    const noOccurrences = event({ occurrences: [] })
+
+    expect(
+      matchesFilters(noOccurrences, withFilters({ dateRange: { start: '2026-07-20', end: null } })),
+    ).toBe(false)
+  })
+
+  it('reads the calendar date in the event zone, not UTC', () => {
+    // 02:00 on 20 Jul in Kolkata (UTC+5:30) is still 19 Jul in UTC — the event-zone date wins.
+    const early = at('Asia/Kolkata', '2026-07-20T02:00')
+    const evt = event({ zone: 'Asia/Kolkata', occurrences: [early] })
+    const on = (start: string, end: string) =>
+      matchesFilters(evt, withFilters({ dateRange: { start, end } }))
+
+    expect(on('2026-07-20', '2026-07-20')).toBe(true)
+    expect(on('2026-07-19', '2026-07-19')).toBe(false)
+  })
+
+  it('evaluates online events in the viewer zone, and null-tz as UTC', () => {
+    const localZone = DateTime.local().zoneName ?? 'UTC'
+    const online = event({
+      eventType: 'online',
+      zone: null,
+      occurrences: [at(localZone, '2026-07-20T12:00')],
+    })
+    const utc = event({ zone: null, occurrences: [at('UTC', '2026-07-20T12:00')] })
+    const only20th = { dateRange: { start: '2026-07-20', end: '2026-07-20' } }
+
+    expect(matchesFilters(online, withFilters(only20th))).toBe(true)
+    expect(matchesFilters(utc, withFilters(only20th))).toBe(true)
+  })
+
+  it('combines with time per occurrence (dates from different occurrences do not merge)', () => {
+    const monMorning = at('Asia/Kolkata', '2026-07-20T09:30') // Mon 09:30
+    const wedEvening = at('Asia/Kolkata', '2026-07-22T19:00') // Wed 19:00
+    const twoOccurrences = event({ zone: 'Asia/Kolkata', occurrences: [monMorning, wedEvening] })
+    const matches = (overrides: Partial<EventFilters>) =>
+      matchesFilters(twoOccurrences, withFilters(overrides))
+
+    // The 22nd is only in the evening; the morning occurrence is the 20th — no overlap.
+    expect(
+      matches({ dateRange: { start: '2026-07-22', end: '2026-07-22' }, timeOfDay: [9, 12] }),
+    ).toBe(false)
+    // The 20th morning occurrence satisfies both.
+    expect(
+      matches({ dateRange: { start: '2026-07-20', end: '2026-07-20' }, timeOfDay: [9, 12] }),
+    ).toBe(true)
+  })
+})
+
 describe('hasActiveFilters / activeFilterCount', () => {
   it('is zero/false for the defaults', () => {
     expect(hasActiveFilters(DEFAULT_FILTERS)).toBe(false)
@@ -198,9 +285,10 @@ describe('hasActiveFilters / activeFilterCount', () => {
       daysOfWeek: [1, 2],
       languages: ['en'],
       timeOfDay: [9, 17],
+      dateRange: { start: '2026-07-20', end: '2026-07-27' },
     })
 
-    expect(activeFilterCount(filters)).toBe(5)
+    expect(activeFilterCount(filters)).toBe(6)
     expect(hasActiveFilters(filters)).toBe(true)
     expect(hasActiveFilters(withFilters({ languages: ['fr'] }))).toBe(true)
   })
@@ -216,6 +304,9 @@ describe('filtersKey', () => {
 
   it('differs when a filter differs', () => {
     expect(filtersKey(DEFAULT_FILTERS)).not.toBe(filtersKey(withFilters({ format: 'online' })))
+    expect(filtersKey(DEFAULT_FILTERS)).not.toBe(
+      filtersKey(withFilters({ dateRange: { start: '2026-07-20', end: null } })),
+    )
   })
 })
 
@@ -226,6 +317,7 @@ describe('URL serialization', () => {
     daysOfWeek: [1, 3, 5],
     timeOfDay: [9, 17],
     languages: ['en', 'fr'],
+    dateRange: { start: null, end: null },
   }
 
   it('round-trips an active filter set through the query', () => {
@@ -260,5 +352,58 @@ describe('URL serialization', () => {
 
     expect(filters.daysOfWeek).toEqual([1, 3, 5])
     expect(filters.languages).toEqual(['en', 'fr'])
+  })
+})
+
+describe('date-range URL codec', () => {
+  const iso = (dt: DateTime): string => dt.toISODate() ?? ''
+  const today = DateTime.now().startOf('day')
+  const inStart = iso(today.plus({ days: 10 }))
+  const inEnd = iso(today.plus({ days: 20 }))
+
+  it('round-trips a two-sided range within the window', () => {
+    const params = filtersToParams(withFilters({ dateRange: { start: inStart, end: inEnd } }))
+
+    expect(params.get('dates')).toBe(`${inStart},${inEnd}`)
+    expect(filtersFromParams(params).dateRange).toEqual({ start: inStart, end: inEnd })
+  })
+
+  it('round-trips an open bound (from-only / until-only)', () => {
+    const fromOnly = filtersToParams(withFilters({ dateRange: { start: inStart, end: null } }))
+
+    expect(fromOnly.get('dates')).toBe(`${inStart},`)
+    expect(filtersFromParams(fromOnly).dateRange).toEqual({ start: inStart, end: null })
+
+    const untilOnly = filtersToParams(withFilters({ dateRange: { start: null, end: inEnd } }))
+
+    expect(untilOnly.get('dates')).toBe(`,${inEnd}`)
+    expect(filtersFromParams(untilOnly).dateRange).toEqual({ start: null, end: inEnd })
+  })
+
+  it('omits the param for an unrestricted range', () => {
+    expect(filtersToParams(DEFAULT_FILTERS).has('dates')).toBe(false)
+  })
+
+  it('clamps a past start and a too-far end into the window', () => {
+    const params = new URLSearchParams(`dates=2020-01-01,${iso(today.plus({ months: 18 }))}`)
+
+    expect(filtersFromParams(params).dateRange).toEqual({
+      start: iso(today),
+      end: iso(today.plus({ months: 12 })),
+    })
+  })
+
+  it('drops a reversed range', () => {
+    const params = new URLSearchParams(`dates=${inEnd},${inStart}`)
+
+    expect(filtersFromParams(params).dateRange).toEqual({ start: null, end: null })
+  })
+
+  it('ignores malformed or non-canonical dates', () => {
+    const empty = { start: null, end: null }
+
+    expect(filtersFromParams(new URLSearchParams('dates=foo,bar')).dateRange).toEqual(empty)
+    expect(filtersFromParams(new URLSearchParams('dates=2026-13-40,')).dateRange).toEqual(empty)
+    expect(filtersFromParams(new URLSearchParams('dates=2026-7-6,')).dateRange).toEqual(empty)
   })
 })
