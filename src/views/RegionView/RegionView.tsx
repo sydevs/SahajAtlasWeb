@@ -13,12 +13,13 @@ import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { CloseButton, useFrameOnTop } from '@/views/shared'
 
-// A region at any level (route `<region-path>`): a leading "Online Classes" card
-// (only when placeless online events roll up under the region) that opens their own
-// drawer (`<region-path>/online`), then the child-region cards, then this region's
-// own located events — so the list stays a clean set of places. Frames the map to
-// the region's bounds when it's the top of the stack. No canonicalization redirect —
-// the URL stays where the user navigated; the canonical tag is standalone-only.
+// A region at any level (route `<region-path>`): child-region cards then this
+// region's located events. A parent with sub-regions leads with an "Online Classes"
+// card (only when online events roll up) that opens their own drawer
+// (`<region-path>/online`), keeping the list a clean set of places; a leaf lists its
+// online events inline, after the located ones. Frames the map to the region's bounds
+// when it's the top of the stack. No canonicalization redirect — the URL stays where
+// the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
@@ -35,6 +36,9 @@ export function RegionView({ slug }: { slug: string }) {
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined
   const canonicalUrl = validateWebUrl(region.webUrl)
+  // Parents (with sub-region cards) surface their online roll-up behind a dedicated
+  // "Online Classes" card; a leaf lists its online events inline, as before.
+  const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
 
   return (
     <>
@@ -53,15 +57,15 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <List>
-          {/* Placeless online classes rolled up under this region open in their own
-              drawer, so the list below stays a clean set of places. */}
-          {region.onlineEvents.length > 0 && (
+          {/* On a parent, the online roll-up opens in its own drawer via this card,
+              keeping the list below a clean set of places. */}
+          {showOnlineCard && (
             <RegionCard
               count={region.onlineEvents.length}
               href={childRoute(region.path, 'online')}
               label={t('online_classes')}
             >
-              <MonitorIcon className="mr-3 shrink-0 text-2xl text-primary" />
+              <MonitorIcon className="mr-3 shrink-0 text-2xl" />
             </RegionCard>
           )}
           {/* Region ids and event ids come from independent sequences but share one
@@ -78,6 +82,11 @@ export function RegionView({ slug }: { slug: string }) {
           {region.events.map((event) => (
             <EventCard key={`event-${event.id}`} event={event} />
           ))}
+          {/* A leaf has no card — its online events list inline, after the located ones. */}
+          {!showOnlineCard &&
+            region.onlineEvents.map((event) => (
+              <EventCard key={`online-${event.id}`} event={event} />
+            ))}
         </List>
       </DrawerBody>
     </>
