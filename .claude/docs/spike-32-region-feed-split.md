@@ -114,9 +114,19 @@ derive from the cached dict + feed, client-side.
   `countryCodeOf` derives from the slug **first** and falls back to `legacyData` — so
   flags work in both worlds today. Once the seed reflects #556, drop `legacyData` from
   the `['regions']` select and the fallback (criterion #4's "no `legacyData` in
-  `fetch.ts`" lands then).
+  `fetch.ts`" lands then). The wholesale read still selects `legacyData: true`
+  transitionally (Payload can't sub-select that json field, so the full legacy blob
+  rides the wire) — but the zod boundary strips it to `countryCode` (no
+  `.passthrough()`), so only that reaches the public `['regions']` cache. Dropping the
+  select removes the wire exposure too.
 - **Stale times.** `['regions']` gets a 30-min stale window (slower cadence than the
   5-min feed). Tune against real cache-hit telemetry.
 - The `['event-titles']` join sources titles from `/api/events` (same collection as
-  the geojson feed — id parity confirmed). If the two ever diverge, source titles from
-  the geojson endpoint with a title-only select.
+  the geojson feed — id parity confirmed at runtime, and it relies on the API key's
+  read being published-gated like the feed). If the two ever diverge, source titles
+  from the geojson endpoint with a title-only select.
+- **Ancestry assumes every referenced region is in the dict.** Event ancestry walks
+  the wholesale `['regions']` tree from the event's direct region id, so an event whose
+  region is absent from `/api/regions` (e.g. a future publish-gated region with a
+  published event) would under-count under its ancestors. Regions aren't publish-gated
+  today (the wholesale read has no `where`); revisit if that changes.

@@ -27,7 +27,10 @@ export const RegionNodeSchema = z.object({
   parent: z.number().nullish(),
   webPath: z.string().nullish(),
   webUrl: z.string().nullish(),
-  legacyData: z.object({ countryCode: z.string().nullish() }).passthrough().nullish(),
+  // Only `countryCode` is kept — the rest of the legacy blob (osmId/legacyId/…) is
+  // stripped at this boundary (no `.passthrough()`) so it never reaches the public
+  // `['regions']` cache. The whole field goes once the seed reflects SahajCloud#556.
+  legacyData: z.object({ countryCode: z.string().nullish() }).nullish(),
 })
 export type RegionNode = z.infer<typeof RegionNodeSchema>
 

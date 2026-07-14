@@ -78,6 +78,10 @@ describe('EventTitleSchema', () => {
   it('parses an id→title sliver row', () => {
     expect(EventTitleSchema.parse({ id: 5, title: 'Class' })).toEqual({ id: 5, title: 'Class' })
   })
+
+  it('tolerates a null title so one bad row cannot fail the whole titles read', () => {
+    expect(EventTitleSchema.parse({ id: 6, title: null }).title).toBeNull()
+  })
 })
 
 describe('EventSchema', () => {

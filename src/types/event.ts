@@ -103,7 +103,9 @@ export type FeedEvent = z.infer<typeof FeedEventSchema>
 
 // The per-locale id→title sliver from `GET /api/events` (select `title` only), kept
 // separate from the feed so a language switch refetches only this (~5% of the feed).
-export const EventTitleSchema = z.object({ id: z.number(), title: z.string() })
+// `title` is tolerant: a single event with a null localized title degrades to a
+// blank card (coalesced in `getEventTitles`) rather than failing the whole read.
+export const EventTitleSchema = z.object({ id: z.number(), title: z.string().nullish() })
 export type EventTitle = z.infer<typeof EventTitleSchema>
 
 // Derived list/map view-model: a feed event plus its route and (when sorting by

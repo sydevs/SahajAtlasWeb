@@ -154,7 +154,7 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
   return new Map(
     EventTitleSchema.array()
       .parse(response.data.docs)
-      .map((doc) => [doc.id, doc.title]),
+      .map((doc) => [doc.id, doc.title ?? '']),
   )
 }
 

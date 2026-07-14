@@ -267,6 +267,31 @@ describe('getRegion (region-tree derivation)', () => {
     await expect(api.getRegion('empty-land')).rejects.toThrow('no events')
   })
 
+  it('renders an online-only region (rolls up, does NOT 404)', async () => {
+    const onlineTree = [
+      {
+        id: 5,
+        slug: 'onlyonline',
+        level: 'country',
+        name: 'OnlyOnline',
+        parent: null,
+        webPath: '/onlyonline',
+      },
+    ]
+    const onlineFeed = [
+      feature({ id: 20, regionId: 5, slug: 'onlyonline', eventType: 'online', next: '2026-09-01' }),
+    ]
+
+    get.mockImplementation((url: string) => Promise.resolve(route(url, onlineFeed, onlineTree)))
+
+    const region = await api.getRegion('onlyonline')
+
+    // Online events count toward eventCount, so the subtree isn't "empty" — it renders.
+    expect(region.eventCount).toBe(1)
+    expect(region.events).toHaveLength(0)
+    expect(region.onlineEvents.map((event) => event.id)).toEqual([20])
+  })
+
   it('splits a leaf city into located events and an online roll-up', async () => {
     const city = {
       id: 470,
