@@ -20,6 +20,8 @@ import {
   TIME_MAX,
   TIME_MIN,
   TIME_STEP,
+  dateWindow,
+  isDateRestricted,
   isTimeRestricted,
 } from '@/lib/shape'
 
@@ -69,6 +71,50 @@ function FilterGroup({
   )
 }
 
+// Clamp a typed date into [min, max]. A native date input enforces min/max in its
+// calendar UI but not for keyboard entry, so clamp on change — this keeps the draft
+// (and its live "Apply (N)" count) in step with what the URL codec accepts, and
+// keeps the From/To pair from being typed into a reversed range.
+const clampDate = (value: string, min: string, max: string): string => {
+  if (value < min) return min
+  if (value > max) return max
+
+  return value
+}
+
+// One labelled date bound (From / To) — a native date input scoped to the picker
+// window. Module-private like `FilterGroup`; both bounds share it so the input
+// styling lives in one place.
+function DateBound({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string
+  value: string
+  min: string
+  max: string
+  onChange: (value: string | null) => void
+}) {
+  return (
+    <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
+      {label}
+      <input
+        className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
+        max={max}
+        min={min}
+        type="date"
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value ? clampDate(event.target.value, min, max) : null)
+        }
+      />
+    </label>
+  )
+}
+
 export type SearchFiltersProps = {
   /** The (draft) filter values the form edits. */
   value: EventFilters
@@ -87,7 +133,7 @@ export type SearchFiltersProps = {
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence } = value
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = value
 
   // Patch one or more fields of the current draft.
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
@@ -136,6 +182,9 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   )
   const languageTriggerLabel =
     selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
+  // The date picker is bounded to today … today + 12 months (the same window the URL
+  // codec clamps to). Computed once per render — cheap and always current.
+  const { min: dateMin, max: dateMax } = dateWindow()
 
   return (
     <div className="flex flex-col gap-5">
@@ -218,6 +267,29 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             value={timeDraft}
             onValueChange={(next) => setTimeDraft([next[0], next[1]])}
             onValueCommit={(next) => patch({ timeOfDay: [next[0], next[1]] })}
+          />
+        </div>
+      </FilterGroup>
+
+      <FilterGroup
+        active={isDateRestricted(dateRange)}
+        label={t('filters.dates.label')}
+        onClear={() => patch({ dateRange: { start: null, end: null } })}
+      >
+        <div className="flex items-end gap-2">
+          <DateBound
+            label={t('filters.dates.from')}
+            max={dateRange.end ?? dateMax}
+            min={dateMin}
+            value={dateRange.start ?? ''}
+            onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
+          />
+          <DateBound
+            label={t('filters.dates.to')}
+            max={dateMax}
+            min={dateRange.start ?? dateMin}
+            value={dateRange.end ?? ''}
+            onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
           />
         </div>
       </FilterGroup>
