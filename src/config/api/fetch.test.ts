@@ -77,7 +77,6 @@ describe('getGeojson', () => {
             geometry: { type: 'Point', coordinates: [4.35, 50.85] },
             properties: {
               id: 1,
-              title: 'Class',
               eventType: 'offline',
               languages: ['en'],
               region: { id: 9, slug: 'brussels', level: 'city' },
@@ -121,7 +120,6 @@ describe('getRegion (region-tree derivation)', () => {
     geometry: coordinates ? { type: 'Point', coordinates } : null,
     properties: {
       id,
-      title: `Event ${id}`,
       eventType,
       languages: ['nl'],
       region: { id: regionId, slug, level: 'city' },
@@ -182,11 +180,18 @@ describe('getRegion (region-tree derivation)', () => {
     }),
   ]
 
-  // getRegion makes exactly two reads now: the wholesale region tree + the feed.
-  const route = (url: string, feed = countryFeed, nodes: unknown[] = tree) =>
-    url === '/regions'
-      ? { data: { docs: nodes } }
-      : { data: { type: 'FeatureCollection', features: feed } }
+  // getRegion makes three reads now: the wholesale region tree, the agnostic feed,
+  // and the per-locale titles sliver (id→title from /events) joined back by id.
+  const route = (url: string, feed = countryFeed, nodes: unknown[] = tree) => {
+    if (url === '/regions') return { data: { docs: nodes } }
+    if (url === '/events') {
+      const docs = feed.map((f) => ({ id: f.properties.id, title: `Event ${f.properties.id}` }))
+
+      return { data: { docs } }
+    }
+
+    return { data: { type: 'FeatureCollection', features: feed } }
+  }
 
   it('cards every child with a located event and rolls up online', async () => {
     get.mockImplementation((url: string) => Promise.resolve(route(url)))
@@ -223,6 +228,7 @@ describe('getRegion (region-tree derivation)', () => {
     const isoTree = [
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
     ]
+
     get.mockImplementation((url: string) =>
       Promise.resolve(
         route(
@@ -269,6 +275,8 @@ describe('getRegion (region-tree derivation)', () => {
     // Located event stays in `events` (feed order), nested under the city path.
     expect(region.events.map((event) => event.id)).toEqual([10])
     expect(region.events[0]).toMatchObject({ eventType: 'offline', path: '/belgium/brussels/10' })
+    // The localized title is joined in from the per-locale titles sliver, by id.
+    expect(region.events[0].title).toBe('Event 10')
     // The online event rolls up instead of interleaving.
     expect(region.onlineEvents.map((event) => event.id)).toEqual([11])
     expect(region.onlineEvents[0].eventType).toBe('online')

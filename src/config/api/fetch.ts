@@ -10,8 +10,9 @@ import type {
 import type { EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
-import client from './client'
+import client, { toSahajLocale } from './client'
 
+import i18n from '@/config/i18n'
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
@@ -34,6 +35,7 @@ import {
   ClientSchema,
   EventDocSchema,
   EventSlimSchema,
+  EventTitleSchema,
   GeojsonSchema,
   RegionListItemSchema,
   RegionNodeSchema,
@@ -43,18 +45,18 @@ import {
 // Most we return from a "near here" search, ordered by distance.
 const NEAREST_LIMIT = 50
 
-// The region fields populated into the geojson feed + event reads. Ancestry now
-// comes from the wholesale regions dict (parent links), so `breadcrumbs` is no
-// longer read here — it rides along until the feed goes agnostic; slug/name drive
-// display, and the canonical route is the server `webPath`.
+// The region fields populated into the geojson feed + event reads. Ancestry comes
+// from the wholesale regions dict (parent links), so no `breadcrumbs` here (they
+// were ~20% of the feed); slug/name drive display, the route is the server `webPath`.
 const REGION_POPULATE = {
-  regions: { slug: true, name: true, level: true, subtitle: true, breadcrumbs: true },
+  regions: { slug: true, name: true, level: true, subtitle: true },
 }
 
-// The event fields the geojson feed selects (must mirror FeedEventSchema). `webPath`
-// is the server-computed canonical route, so map/list items navigate to it directly.
+// The event fields the (locale-agnostic) geojson feed selects — must mirror
+// AgnosticFeedEventSchema. `title` is the one localized field, so it is NOT selected
+// here; it's joined in per-locale from the titles sliver (see loadEventTitles).
+// `webPath` is the server-computed canonical route, navigated to directly.
 const FEED_SELECT = {
-  title: true,
   eventType: true,
   languages: true,
   address: {
@@ -115,7 +117,7 @@ const loadRegions = (): Promise<RegionNode[]> =>
     staleTime: REGIONS_STALE_TIME,
   })
 
-// ── GeoJSON feed (single source of geometry + counts) ──────────────────────────
+// ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
   const response = await client.get('/events/geojson', {
@@ -125,15 +127,43 @@ const getGeojson = async (): Promise<Geojson> => {
   return GeojsonSchema.parse(response.data)
 }
 
-// The hierarchy/events fetchers all need the same feed. Read it through the
-// shared React Query cache (the key the map also uses) so it's fetched + parsed
-// once per stale window rather than on every navigation.
+// The hierarchy/events fetchers all need the same feed. Read it through the shared
+// React Query cache (the key the map also uses) so it's fetched + parsed once per
+// stale window rather than on every navigation. It's locale-agnostic, so `['geojson']`
+// carries no locale — a language switch doesn't refetch it, only the titles sliver.
 const loadGeojson = (): Promise<Geojson> =>
   // fetchQuery (not ensureQueryData) so a feed older than the stale window is
   // refetched rather than served indefinitely from cache.
   queryClient.fetchQuery({
     queryKey: ['geojson'],
     queryFn: getGeojson,
+    staleTime: GEOJSON_STALE_TIME,
+  })
+
+// ── Per-locale event titles (the one localized field, split off the feed) ───────
+
+// `title` is the only localized field on an event card, so it's read on its own —
+// a lean id→title map from `GET /api/events` — instead of riding the whole feed.
+// Keyed by locale so a language switch refetches just this (~5% of the feed weight)
+// while the agnostic feed + region tree stay cached.
+const getEventTitles = async (): Promise<Map<number, string>> => {
+  const response = await client.get('/events', {
+    params: { depth: 0, pagination: false, select: { title: true } },
+  })
+
+  return new Map(
+    EventTitleSchema.array()
+      .parse(response.data.docs)
+      .map((doc) => [doc.id, doc.title]),
+  )
+}
+
+const loadEventTitles = (): Promise<Map<number, string>> =>
+  queryClient.fetchQuery({
+    // The interceptor sends the resolved locale; key by the same mapped code so a
+    // language switch re-keys (and pt-BR/en-US collapse onto their SahajCloud bucket).
+    queryKey: ['event-titles', toSahajLocale(i18n.resolvedLanguage)],
+    queryFn: getEventTitles,
     staleTime: GEOJSON_STALE_TIME,
   })
 
@@ -154,11 +184,14 @@ const indexFeatures = (geojson: Geojson, regions: RegionIndex<RegionNode>): Inde
     ancestorIds: ancestorIds(regions, feature.properties.region.id),
   }))
 
-// The feed carries the canonical `webPath`; fall back to a flat `/id` (still
-// resolvable via the terminal segment) only if it's ever absent.
-const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
+// Build a list/map item from an agnostic feed feature, joining its localized `title`
+// (from the per-locale titles map — `''` if a title is somehow missing, so a data
+// gap can't fail the parse). The feed carries the canonical `webPath`; fall back to
+// a flat `/id` only if it's ever absent.
+const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position): EventSlim =>
   EventSlimSchema.parse({
     ...feature.properties,
+    title: title ?? '',
     path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
     distance: from && feature.geometry ? distanceKm(from, feature.geometry.coordinates) : undefined,
   })
@@ -197,7 +230,8 @@ const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount 
 // ── Hierarchy fetchers (region tree + geojson-derived counts/bounds) ────────────
 
 // Home/search country list — level=country regions with counts + ISO code, both
-// derived from the cached region tree + feed (no dedicated /regions read).
+// derived from the cached region tree + feed (no dedicated /regions read, and no
+// titles — a country card shows no event title, so this stays locale-agnostic).
 const getCountries = async (): Promise<RegionListItem[]> => {
   const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
   const index = indexRegions(regions)
@@ -223,9 +257,14 @@ const getCountries = async (): Promise<RegionListItem[]> => {
 // One fetcher for every region level. Parents (`country`/`region`) list their
 // child regions as cards; leaves (`city`/`center`) list their located events.
 // Every level rolls up the placeless online events under it. Node/children/
-// ancestry come from the cached region tree; bounds/center/counts from the feed.
+// ancestry come from the cached region tree; bounds/center/counts from the feed;
+// event titles from the per-locale titles map, joined by id.
 const getRegion = async (slug: string): Promise<Region> => {
-  const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
+  const [regions, geojson, titles] = await Promise.all([
+    loadRegions(),
+    loadGeojson(),
+    loadEventTitles(),
+  ])
   const index = indexRegions(regions)
   const node = index.bySlug.get(slug)
 
@@ -260,7 +299,7 @@ const getRegion = async (slug: string): Promise<Region> => {
   // region ancestry in the URL (an event's own webPath is flat / often null, which
   // would otherwise stack it straight on the country list).
   const nest = (indexed: IndexedFeature): EventSlim => {
-    const slim = toSlim(indexed.feature)
+    const slim = toSlim(indexed.feature, titles.get(indexed.feature.properties.id))
 
     return { ...slim, path: childRoute(path, slim.id) }
   }
@@ -295,7 +334,7 @@ const getEvents = async (
   longitude: number,
   filters: EventFilters = DEFAULT_FILTERS,
 ): Promise<EventSlim[]> => {
-  const geojson = await loadGeojson()
+  const [geojson, titles] = await Promise.all([loadGeojson(), loadEventTitles()])
   const from: Position = [longitude, latitude]
 
   // Filter the whole feed *before* the nearest-N slice, so a restrictive filter
@@ -305,7 +344,7 @@ const getEvents = async (
   // NEAREST_LIMIT while the map is not.)
   return geojson.features
     .filter((feature) => matchesFilters(feature.properties, filters))
-    .map((feature) => toSlim(feature, from))
+    .map((feature) => toSlim(feature, titles.get(feature.properties.id), from))
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     .slice(0, NEAREST_LIMIT)
 }
