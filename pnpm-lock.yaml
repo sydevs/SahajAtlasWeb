@@ -25,9 +25,6 @@ importers:
       '@mapbox/search-js-react':
         specifier: 1.0.0-beta.24
         version: 1.0.0-beta.24(mapbox-gl@3.9.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@payloadcms/live-preview-react':
-        specifier: ^3.86.0
-        version: 3.86.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@r2wc/react-to-web-component':
         specifier: ^2.0.4
         version: 2.0.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -760,15 +757,6 @@ packages:
 
   '@oxc-project/types@0.139.0':
     resolution: {integrity: sha512-r9gHphtCs+1M7J0pw6Sn/hh/Wpa/iQrOOkrNAlVLF/gHq+/CJmHIWKKUUhdWjcD6CIa8idarspCsASiXCXvFUw==}
-
-  '@payloadcms/live-preview-react@3.86.0':
-    resolution: {integrity: sha512-xsepFDuyw+0yYKUWFxAPl1xaUA6JXDU4rsPItMJJWYOYuwVy/5ZSkZAz5m/itoXbLkczDsq7gJbvnr2BnysrEw==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.1 || ^19.1.2 || ^19.2.1
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.1 || ^19.1.2 || ^19.2.1
-
-  '@payloadcms/live-preview@3.86.0':
-    resolution: {integrity: sha512-JjLFRCRKgKmDD+lUoXUaaovwpsoeTlwFTXOnCJfV9PMKeZodet1oVlezKNlg1U+Ygq+tI5NOAzEVRtXykfVmtg==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -5357,14 +5345,6 @@ snapshots:
   '@open-draft/until@2.1.0': {}
 
   '@oxc-project/types@0.139.0': {}
-
-  '@payloadcms/live-preview-react@3.86.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@payloadcms/live-preview': 3.86.0
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
-  '@payloadcms/live-preview@3.86.0': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true

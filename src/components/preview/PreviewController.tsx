@@ -1,20 +1,79 @@
 import type { EventDoc, Region, RegionDoc } from '@/types'
 
 import { useEffect, useRef } from 'react'
-import { useLivePreview } from '@payloadcms/live-preview-react'
 import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
 import api from '@/config/api'
 import { regionRoute, shapeEventDoc } from '@/config/api/fetch'
 import preview from '@/config/preview'
-import { allowedPreviewPaths, mergePreviewData, shouldBlockPreviewLink } from '@/lib/preview'
+import { allowedPreviewPaths, shouldBlockPreviewLink } from '@/lib/preview'
 import { isCanonicalPath, safePath } from '@/lib/shape'
-import { EventDocSchema } from '@/types'
+import { EventDocSchema, RegionDocSchema } from '@/types'
 
-// The CMS admin posts live doc updates from the SahajCloud origin; the hook validates
-// message origins against it and re-populates changed relations there.
-const SERVER_URL = import.meta.env.VITE_SAHAJCLOUD_URL
+// The CMS admin posts live edits from the SahajCloud origin; every message is checked
+// against it. (A trailing path/slash on the env value is tolerated via `.origin`.)
+const SERVER_ORIGIN = new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin
+
+/**
+ * Minimal PayloadCMS live-preview transport (replacing @payloadcms/live-preview-react):
+ * announce `ready` to the admin iframe, then hand each incoming form-state doc to
+ * `onDoc`. Origin-locked to the CMS. We deliberately don't use the library's credentialed
+ * cookie-auth relation re-population — the controller re-populates each edit through the
+ * CMS with our own API-key + secret (`populatePreviewDoc`), which works over plain CORS.
+ */
+function usePreviewMessages(onDoc: (data: Record<string, unknown>, locale?: string) => void): void {
+  // Keep the latest callback without re-subscribing the listener each render.
+  const latest = useRef(onDoc)
+
+  latest.current = onDoc
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== SERVER_ORIGIN) return
+      const message = event.data
+
+      if (message?.type !== 'payload-live-preview' || !message.data) return
+
+      latest.current(message.data, message.locale)
+    }
+
+    window.addEventListener('message', onMessage)
+    // Announce readiness to the admin (iframe parent, or popup opener).
+    ;(window.opener || window.parent)?.postMessage(
+      { type: 'payload-live-preview', ready: true },
+      SERVER_ORIGIN,
+    )
+
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+}
+
+/**
+ * Route lock: keep the preview pinned to the previewed doc. If navigation lands
+ * outside the allowed set — a dismissed drawer stranding on a parent, a button-driven
+ * route change — snap back to `previewPath`. This is the single navigation authority:
+ * from the `/preview` boot route (never in the allowed set) it performs the initial hop
+ * to the doc, then keeps the preview pinned. Being conditional, re-running on an already-
+ * allowed path is a no-op — so it never fights a legit register/share drawer, even as
+ * react-router recreates `navigate` on each navigation (an unconditional boot effect
+ * with `navigate` in its deps would snap register/share straight back).
+ */
+function usePreviewRouteLock(previewPath: string, collection: 'events' | 'regions'): void {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    // Compare decoded: `pathname` is percent-encoded for accented slugs (e.g.
+    // `/li%C3%A8ge/...`) while the allowed set is decoded (built from webPath), so a raw
+    // `includes` would miss and snap every accented-slug preview back on each navigation.
+    const allowed = allowedPreviewPaths(previewPath, collection)
+
+    if (!allowed.some((path) => isCanonicalPath(pathname, path))) {
+      navigate(previewPath, { replace: true })
+    }
+  }, [pathname, previewPath, collection, navigate])
+}
 
 /**
  * Capture-phase link guard: inert every `<a>` in the preview except a same-page
@@ -45,58 +104,34 @@ function usePreviewLinkGuard(): void {
   }, [])
 }
 
-/**
- * Route lock: keep the preview pinned to the previewed doc. If navigation lands
- * outside the allowed set — a dismissed drawer stranding on a parent, a button-driven
- * route change — snap back to `previewPath`. This is the single navigation authority:
- * from the `/preview` boot route (never in the allowed set) it performs the initial hop
- * to the doc, then keeps the preview pinned. Being conditional, re-running on an already-
- * allowed path is a no-op — so it never fights a legit register/share drawer, even as
- * react-router recreates `navigate` on each navigation (an unconditional boot effect
- * with `navigate` in its deps would snap register/share straight back).
- */
-function usePreviewRouteLock(previewPath: string, collection: 'events' | 'regions'): void {
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
-
-  useEffect(() => {
-    // Compare decoded: `pathname` is percent-encoded for accented slugs (e.g.
-    // `/li%C3%A8ge/...`) while the allowed set is decoded (built from webPath), so a raw
-    // `includes` would miss and snap every accented-slug preview back on each navigation.
-    const allowed = allowedPreviewPaths(previewPath, collection)
-
-    if (!allowed.some((path) => isCanonicalPath(pathname, path))) {
-      navigate(previewPath, { replace: true })
-    }
-  }, [pathname, previewPath, collection, navigate])
-}
-
 // ── Event preview ────────────────────────────────────────────────────────────────
 
 function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
   const queryClient = useQueryClient()
-  const lastGood = useRef(initialDoc)
-
-  const { data: liveDoc } = useLivePreview<EventDoc>({
-    initialData: initialDoc,
-    serverURL: SERVER_URL,
-    depth: 1,
-  })
 
   const previewPath = safePath(initialDoc.webPath) ?? `/${initialDoc.id}`
 
-  // Live: merge each incoming doc onto the last good one (keeping collapsed relations),
-  // re-shape, and inject into the drawer's cache. safeParse keeps the last good doc
-  // when a mid-edit form state is transiently invalid. Runs on mount too (liveDoc
-  // starts as initialDoc), seeding the cache before the route lock's boot hop lands.
+  // Seed the drawer cache from the initial fetched doc.
   useEffect(() => {
-    const parsed = EventDocSchema.safeParse(mergePreviewData(lastGood.current, liveDoc))
+    queryClient.setQueryData(['event', initialDoc.id], shapeEventDoc(initialDoc))
+  }, [initialDoc, queryClient])
 
-    if (!parsed.success) return
+  // Live: push each edit through the CMS populate endpoint (relations + computed fields
+  // like upcomingDates resolved server-side with our auth), then shape + inject. On an
+  // invalid mid-edit state or a hiccup we simply skip, leaving the cache on its last
+  // good doc.
+  usePreviewMessages((data, locale) => {
+    api
+      .populatePreviewDoc('events', initialDoc.id, data, locale)
+      .then((doc) => {
+        const parsed = EventDocSchema.safeParse(doc)
 
-    lastGood.current = parsed.data
-    queryClient.setQueryData(['event', parsed.data.id], shapeEventDoc(parsed.data))
-  }, [liveDoc, queryClient])
+        if (parsed.success) {
+          queryClient.setQueryData(['event', parsed.data.id], shapeEventDoc(parsed.data))
+        }
+      })
+      .catch(() => undefined)
+  })
 
   // The route lock performs the initial /preview -> event hop, then pins it — the normal
   // resolveStack / DrawerStack machinery renders map + drawer from the seeded cache.
@@ -119,30 +154,31 @@ function EventPreview({ id }: { id: number }) {
 function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
   const queryClient = useQueryClient()
 
-  const { data: liveDoc } = useLivePreview<RegionDoc>({
-    initialData: initialDoc,
-    serverURL: SERVER_URL,
-    depth: 1,
-  })
-
   const { slug } = initialDoc
   const previewPath = regionRoute(initialDoc)
 
-  // Live: regions have no drafts, so only editable scalars can change — overlay them
-  // onto the cached shaped Region (counts/bounds/lists are geojson-derived and can't
-  // move from a form edit). Skips until the region read has populated the cache.
-  useEffect(() => {
-    const cached = queryClient.getQueryData<Region>(['region', slug])
+  // Live: regions have no drafts, so only editable scalars change — re-populate the edit
+  // (for a validated RegionDoc) and overlay name/subtitle/level onto the cached shaped
+  // Region. Counts/bounds/lists are geojson-derived and can't move from a form edit;
+  // skips until the region read has populated the cache.
+  usePreviewMessages((data, locale) => {
+    api
+      .populatePreviewDoc('regions', initialDoc.id, data, locale)
+      .then((doc) => {
+        const parsed = RegionDocSchema.safeParse(doc)
+        const cached = queryClient.getQueryData<Region>(['region', slug])
 
-    if (!cached) return
-
-    queryClient.setQueryData<Region>(['region', slug], {
-      ...cached,
-      name: liveDoc.name ?? cached.name,
-      subtitle: liveDoc.subtitle,
-      level: liveDoc.level,
-    })
-  }, [liveDoc, slug, queryClient])
+        if (parsed.success && cached) {
+          queryClient.setQueryData<Region>(['region', slug], {
+            ...cached,
+            name: parsed.data.name ?? cached.name,
+            subtitle: parsed.data.subtitle,
+            level: parsed.data.level,
+          })
+        }
+      })
+      .catch(() => undefined)
+  })
 
   // The route lock performs the initial /preview -> region hop (the normal getRegion(slug)
   // then fills ['region', slug]) and pins it thereafter.

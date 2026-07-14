@@ -424,6 +424,28 @@ const getClient = async () => {
   return ClientSchema.parse(user)
 }
 
+// ── Live-preview populate (issue #40) ────────────────────────────────────────────
+
+// Render an unsaved edit: push the admin's form-state doc through Payload's populate
+// endpoint (a GET via method-override, so it resolves relations + computed fields like
+// upcomingDates without saving), authed with our API-key + preview secret via the shared
+// interceptor. Returns the raw doc; the caller parses it. Plain (non-credentialed) CORS —
+// no admin-cookie round-trip, so #575's header allow-list is all the CMS needs.
+const populatePreviewDoc = async (
+  collection: 'events' | 'regions',
+  id: number,
+  data: unknown,
+  locale?: string,
+): Promise<unknown> => {
+  const response = await client.post(
+    `/${collection}/${id}`,
+    { data, depth: 1, flattenLocales: false, ...(locale ? { locale } : {}) },
+    { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
+  )
+
+  return response.data
+}
+
 export default {
   getGeojson,
   getCountries,
@@ -432,5 +454,6 @@ export default {
   getRegionDocById,
   getEvent,
   getEventDoc,
+  populatePreviewDoc,
   getClient,
 }
