@@ -64,6 +64,7 @@ export function readPreviewParams(pathname: string, search: string): PreviewSess
  */
 export function capturePreview(): boolean {
   const parsed = readPreviewParams(window.location.pathname, window.location.search)
+
   if (!parsed) return false
 
   Object.assign(preview, parsed)

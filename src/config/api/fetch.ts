@@ -160,6 +160,28 @@ const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
   return RegionDocSchema.parse(doc)
 }
 
+// Region by id — the live-preview boot (issue #40) reads the doc directly (the CMS
+// passes an id, not a slug) to derive its canonical path and seed the scalar overlay.
+// Payload's findByID returns the doc itself, not a `docs` list.
+const getRegionDocById = async (id: number): Promise<RegionDoc> => {
+  const response = await client.get(`/regions/${id}`, {
+    params: {
+      depth: 1,
+      select: {
+        slug: true,
+        name: true,
+        level: true,
+        subtitle: true,
+        legacyData: true,
+        webPath: true,
+        webUrl: true,
+      },
+    },
+  })
+
+  return RegionDocSchema.parse(response.data)
+}
+
 const getChildRegions = async (parentId: number): Promise<RegionDoc[]> => {
   const response = await client.get('/regions', {
     params: {
@@ -338,7 +360,7 @@ export const shapeEventDoc = (event: EventDoc): Event => ({
   path: safePath(event.webPath) ?? `/${event.id}`,
 })
 
-const getEvent = async (id: number): Promise<Event> => {
+const getEventDoc = async (id: number): Promise<EventDoc> => {
   const response = await client.get(`/events/${id}`, {
     params: {
       depth: 1,
@@ -371,8 +393,12 @@ const getEvent = async (id: number): Promise<Event> => {
     },
   })
 
-  return shapeEventDoc(EventDocSchema.parse(response.data))
+  return EventDocSchema.parse(response.data)
 }
+
+// Raw fetch stays split out so live preview (issue #40) can seed `useLivePreview`
+// with — and merge live messages against — the unshaped doc, then shape for injection.
+const getEvent = async (id: number): Promise<Event> => shapeEventDoc(await getEventDoc(id))
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────
 
@@ -407,6 +433,8 @@ export default {
   getCountries,
   getEvents,
   getRegion,
+  getRegionDocById,
   getEvent,
+  getEventDoc,
   getClient,
 }
