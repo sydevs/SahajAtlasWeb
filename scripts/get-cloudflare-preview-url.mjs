@@ -29,7 +29,7 @@ const token = process.env.GITHUB_TOKEN
 const repo = process.env.GITHUB_REPOSITORY
 const sha = process.env.PR_HEAD_SHA
 const prNumber = process.env.PR_NUMBER
-const project = process.env.CF_PROJECT || 'syatlas' // *.pages.dev subdomain
+const project = process.env.CF_PROJECT || 'sahajatlas.pages.dev' // the app's *.pages.dev host (not the -design playground)
 
 const TIMEOUT_MS = 6 * 60_000 // give Cloudflare time to build + post the URL
 const POLL_MS = 15_000
@@ -44,7 +44,9 @@ function fail(msg) {
 }
 
 function emit(url) {
-  console.log(url ? `Found preview URL: ${url}` : 'No preview URL found — smoke specs will be skipped.')
+  console.log(
+    url ? `Found preview URL: ${url}` : 'No preview URL found — smoke specs will be skipped.',
+  )
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `preview_url=${url}\n`)
   }
@@ -62,10 +64,12 @@ async function gh(path) {
   return res.json()
 }
 
-// Prefer a URL that mentions the project slug; otherwise take the first match.
+// Only accept a URL for the configured project. Two Pages projects deploy per PR
+// (the app + the `-design` Ladle playground), so a plain "first *.pages.dev"
+// fallback would smoke-test the wrong deploy — return null (keep polling, then
+// skip) rather than guess.
 function pick(urls) {
-  if (!urls.length) return null
-  return urls.find((u) => u.includes(project)) || urls[0]
+  return urls.find((u) => u.includes(project)) || null
 }
 
 async function discover() {

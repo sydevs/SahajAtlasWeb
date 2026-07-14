@@ -51,7 +51,7 @@ const setNested = (obj, value) => {
     node = node[segment]
   }
 
-  node[segments.at(-1)] = value
+  node[segments[segments.length - 1]] = value
 }
 
 const locales = readdirSync(LOCALES_DIR, { withFileTypes: true })
