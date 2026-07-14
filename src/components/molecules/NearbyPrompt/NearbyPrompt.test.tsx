@@ -10,7 +10,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
-        'nearby_prompt.title': `Looking for events near ${opts?.city}?`,
+        'nearby_prompt.title': `Looking for classes near ${opts?.city}?`,
         'nearby_prompt.dismiss': 'Dismiss',
       })[key] ?? key,
   }),
@@ -24,7 +24,7 @@ describe('NearbyPrompt', () => {
       <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
     )
 
-    expect(html).toContain('Looking for events near Paris?')
+    expect(html).toContain('Looking for classes near Paris?')
     expect(html).not.toContain('your location')
   })
 
@@ -34,7 +34,7 @@ describe('NearbyPrompt', () => {
     )
 
     expect(html).toContain('<button')
-    expect(html).toContain('Looking for events near Berlin?')
+    expect(html).toContain('Looking for classes near Berlin?')
   })
 
   it('gives the dismiss control an accessible label', () => {

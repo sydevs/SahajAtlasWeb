@@ -56,7 +56,7 @@
   "search_placeholder": "Zoek evenementen in de buurt van…",
   "online_classes": "Online lessen",
   "nearby_prompt": {
-    "title": "Op zoek naar evenementen in de buurt van %{city}?",
+    "title": "Op zoek naar lessen in de buurt van %{city}?",
     "dismiss": "Sluiten"
   }
 }

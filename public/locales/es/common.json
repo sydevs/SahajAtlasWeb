@@ -56,7 +56,7 @@
   "search_placeholder": "Buscar eventos cerca de…",
   "online_classes": "Clases en línea",
   "nearby_prompt": {
-    "title": "¿Buscas eventos cerca de %{city}?",
+    "title": "¿Buscas clases cerca de %{city}?",
     "dismiss": "Descartar"
   }
 }
