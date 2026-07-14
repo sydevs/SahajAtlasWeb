@@ -1,20 +1,26 @@
 import { type ReactNode } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
 
+import { IconButton } from '@/components/atoms/Button'
+import { CloseIcon } from '@/components/atoms/Icons'
+
 // A status banner replacing NextUI's Alert, on the Radix-semantic tokens. `flat`
 // is a soft tint, `bordered`/`faded` add an outline; `color` selects the ramp
 // (danger stays the fixed status red, never brand-tinted).
 const alert = tv({
   slots: {
-    base: 'flex items-start gap-3 rounded p-3',
+    base: 'flex gap-3 rounded p-3',
     iconWrapper: 'shrink-0',
     content: 'min-w-0 flex-1',
     title: 'text-sm font-medium',
     description: 'text-sm opacity-90',
+    close: '-mr-1 shrink-0',
   },
   variants: {
     color: { primary: '', secondary: '', default: '', danger: '' },
     variant: { flat: '', bordered: 'border', faded: 'border' },
+    // Top-align a two-line alert; vertically centre a single line of text.
+    align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
   },
   compoundVariants: [
     { color: 'primary', variant: 'flat', class: { base: 'bg-primary-3 text-primary-11' } },
@@ -46,7 +52,7 @@ const alert = tv({
       class: { base: 'border-danger-6 bg-danger-2 text-danger-11' },
     },
   ],
-  defaultVariants: { color: 'default', variant: 'flat' },
+  defaultVariants: { color: 'default', variant: 'flat', align: 'start' },
 })
 
 // A round info/alert glyph used when no custom icon is supplied.
@@ -69,6 +75,10 @@ export type AlertProps = VariantProps<typeof alert> & {
   description?: ReactNode
   icon?: ReactNode
   hideIcon?: boolean
+  /** When set, renders a trailing dismiss button that calls this on click. */
+  onClose?: () => void
+  /** Accessible label for the dismiss button (required for a meaningful `onClose`). */
+  closeLabel?: string
   children?: ReactNode
   className?: string
 }
@@ -80,10 +90,16 @@ export function Alert({
   description,
   icon,
   hideIcon,
+  onClose,
+  closeLabel = 'Close',
   children,
   className,
 }: AlertProps) {
-  const slots = alert({ color, variant })
+  // Vertically centre the icon (and dismiss button) when the alert is a single line
+  // of text — exactly one of title/description and no extra children; a taller
+  // two-line alert top-aligns instead.
+  const centered = !children && Boolean(title) !== Boolean(description)
+  const slots = alert({ color, variant, align: centered ? 'center' : 'start' })
 
   return (
     <div className={slots.base({ className })} role="alert">
@@ -93,6 +109,11 @@ export function Alert({
         {description && <div className={slots.description()}>{description}</div>}
         {children}
       </div>
+      {onClose && (
+        <IconButton aria-label={closeLabel} className={slots.close()} onClick={onClose}>
+          <CloseIcon size={16} />
+        </IconButton>
+      )}
     </div>
   )
 }
