@@ -5,15 +5,14 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { MonitorIcon } from '@/components/atoms/Icons'
-import { List, RegionCard } from '@/components/molecules'
+import { List, OnlineClassesCard, RegionCard } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, filtersToParams } from '@/lib/shape'
+import { DEFAULT_FILTERS, filtersToParams, isOnline } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { CollapseToggle, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 
@@ -42,8 +41,7 @@ export function CountriesView() {
     staleTime: GEOJSON_STALE_TIME,
   })
   const onlineCount = useMemo(
-    () =>
-      geojson?.features.filter((feature) => feature.properties.eventType === 'online').length ?? 0,
+    () => geojson?.features.filter((feature) => isOnline(feature.properties)).length ?? 0,
     [geojson],
   )
   const onlineSearch = `/search?${filtersToParams({ ...DEFAULT_FILTERS, format: 'online' }).toString()}`
@@ -72,11 +70,7 @@ export function CountriesView() {
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
-          {onlineCount > 0 && (
-            <RegionCard count={onlineCount} href={onlineSearch} label={t('online_classes')}>
-              <MonitorIcon className="mr-3 shrink-0 text-2xl" />
-            </RegionCard>
-          )}
+          {onlineCount > 0 && <OnlineClassesCard count={onlineCount} href={onlineSearch} />}
           {countries.map((country) => (
             <RegionCard
               key={country.id}

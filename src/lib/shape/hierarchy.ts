@@ -69,7 +69,7 @@ export type RegionPartition<T> = {
  * O(events) pass — replacing a per-child `countUnder` (O(children × events)):
  *
  * - `byChild` — located events keyed by the direct child (`childIds`) whose
- *   subtree holds them; a child with ≥ 2 renders a card, exactly 1 is promoted.
+ *   subtree holds them (the caller cards a child from its bucket size).
  * - `direct` — located events hanging off the region itself (for a childless
  *   leaf, `childIds: []`, this is every located event under it).
  * - `online` — every online event under the region, surfaced via the roll-up.

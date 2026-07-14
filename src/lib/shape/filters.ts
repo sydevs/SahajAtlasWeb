@@ -5,10 +5,10 @@ import { DateTime } from 'luxon'
 import { eventTimeZone } from './event'
 
 /**
- * The event-filter model, shared verbatim by the SearchFilters panel, the
- * `useSearchState` store, the events list, and the map. `matchesFilters` is the
- * single predicate both the list and the map apply, so a filtered list and the
- * filtered pins/clusters always agree.
+ * The event-filter model, shared by the SearchFilters panel, the URL filter codec
+ * (`filtersToParams`/`filtersFromParams`), the events list, and the map.
+ * `matchesFilters` is the single predicate both the list and the map apply, so a
+ * filtered list and the filtered pins/clusters always agree.
  *
  * All fields have a "no restriction" default (`DEFAULT_FILTERS`); with every
  * field at its default, `matchesFilters` passes every event.

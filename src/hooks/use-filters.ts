@@ -1,6 +1,6 @@
 import type { EventCadence, EventFilters, EventFormat } from '@/lib/shape'
 
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape'
@@ -10,17 +10,15 @@ import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape
 // with `useEventFilters`; mutate the /search flow's filters with `useSetFilters`.
 
 /**
- * Applied filters parsed from the URL query. Memoized on the *filter-only* query so
- * the identity is stable while the filters are unchanged — the map's hot path
- * depends on this (a `?q`/`?all`/`?center` edit must not churn the filters object).
+ * Applied filters parsed from the URL query. `useSearchParams` memoizes its result
+ * on `location.search`, and the map camera lives in zustand (pan/zoom never touches
+ * the URL), so this identity is stable across the map's hot path and only
+ * re-derives when the query actually changes.
  */
 export const useEventFilters = (): EventFilters => {
   const [searchParams] = useSearchParams()
-  // Canonical filter-only query: round-tripping drops unrelated params and normalizes
-  // order, so the string only changes when a filter value actually changes.
-  const query = filtersToParams(filtersFromParams(searchParams)).toString()
 
-  return useMemo(() => filtersFromParams(new URLSearchParams(query)), [query])
+  return useMemo(() => filtersFromParams(searchParams), [searchParams])
 }
 
 /**
@@ -33,13 +31,10 @@ export const useSetFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const current = filtersFromParams(searchParams)
 
-  const setFilters = useCallback(
-    (filters: EventFilters) =>
-      setSearchParams((prev) => filtersToParams(filters, new URLSearchParams(prev)), {
-        replace: true,
-      }),
-    [setSearchParams],
-  )
+  const setFilters = (filters: EventFilters) =>
+    setSearchParams((prev) => filtersToParams(filters, new URLSearchParams(prev)), {
+      replace: true,
+    })
 
   return {
     setFilters,

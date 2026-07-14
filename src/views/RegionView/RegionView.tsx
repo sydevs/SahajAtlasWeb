@@ -1,10 +1,8 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
-import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventCard, List, RegionCard } from '@/components/molecules'
-import { MonitorIcon } from '@/components/atoms/Icons'
+import { EventCard, List, OnlineClassesCard, RegionCard } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -21,7 +19,6 @@ import { CloseButton, useFrameOnTop } from '@/views/shared'
 // when it's the top of the stack. No canonicalization redirect — the URL stays where
 // the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
-  const { t } = useTranslation('common')
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -60,13 +57,10 @@ export function RegionView({ slug }: { slug: string }) {
           {/* On a parent, the online roll-up opens in its own drawer via this card,
               keeping the list below a clean set of places. */}
           {showOnlineCard && (
-            <RegionCard
+            <OnlineClassesCard
               count={region.onlineEvents.length}
               href={childRoute(region.path, 'online')}
-              label={t('online_classes')}
-            >
-              <MonitorIcon className="mr-3 shrink-0 text-2xl" />
-            </RegionCard>
+            />
           )}
           {/* Region ids and event ids come from independent sequences but share one
               List — namespace the keys so they can't collide. */}

@@ -6,7 +6,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { ActiveFilterPills } from './ActiveFilterPills'
 
-import { DEFAULT_FILTERS, filtersToParams } from '@/lib/shape'
+import { filtersToParams } from '@/lib/shape'
 
 export default {
   title: 'Molecules',
@@ -15,7 +15,6 @@ export default {
 // A mix of active filters, seeded into the URL query — the filters' source of truth,
 // which the pills read via useEventFilters. A local MemoryRouter carries it.
 const seededSearch = `/search?${filtersToParams({
-  ...DEFAULT_FILTERS,
   format: 'online',
   cadence: 'WEEKLY',
   daysOfWeek: [1, 3, 5],
