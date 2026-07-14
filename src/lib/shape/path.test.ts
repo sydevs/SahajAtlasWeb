@@ -151,6 +151,10 @@ describe('resolveStack', () => {
     ])
   })
 
+  it('skips the /preview boot route (no drawer — PreviewController navigates on)', () => {
+    expect(resolveStack('/preview')).toEqual([])
+  })
+
   it('decodes a region slug but keeps the path encoded (matches the address bar)', () => {
     expect(resolveStack('/belgium/li%C3%A8ge')).toEqual([
       { kind: 'region', slug: 'belgium', path: '/belgium' },
