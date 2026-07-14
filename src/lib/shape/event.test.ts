@@ -53,6 +53,11 @@ describe('byNextOccurrence', () => {
       noSchedule,
     ])
   })
+
+  it('treats two undated events as equal (no NaN)', () => {
+    // Infinity - Infinity would be NaN — an invalid sort comparator result.
+    expect(byNextOccurrence(noSchedule, noSchedule)).toBe(0)
+  })
 })
 
 describe('eventTimeZone', () => {
