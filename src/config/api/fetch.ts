@@ -21,6 +21,7 @@ import {
   countUnder,
   childRoute,
   DEFAULT_FILTERS,
+  isOnline,
   matchesFilters,
   parentOf,
   partitionUnder,
@@ -108,7 +109,7 @@ const indexFeatures = (geojson: Geojson): IndexedFeature[] =>
     point: feature.geometry?.coordinates ?? null,
     // Online belongs to no place: classified by eventType, never geometry (a
     // coordinate-less *offline* event still counts as located).
-    online: feature.properties.eventType === 'online',
+    online: isOnline(feature.properties),
     ancestorIds: [
       ...new Set([
         feature.properties.region.id,
@@ -257,16 +258,16 @@ const getRegion = async (slug: string): Promise<Region> => {
 
   // ≥ 2 located events → a card (badge = located count); exactly 1 → promoted into
   // the list below; 0 located (online-only / empty child) → no card.
-  const subregions = children
-    .map((child) => ({ child, located: byChild.get(child.id) ?? [] }))
-    .filter(({ located }) => located.length >= 2)
-    .map(({ child, located }) => toListItem(child, located.length))
-    .sort(byEventCountDesc)
+  const carded: RegionListItem[] = []
+  const promoted: IndexedFeature[] = []
 
-  const promoted = children
-    .map((child) => byChild.get(child.id) ?? [])
-    .filter((located) => located.length === 1)
-    .map(([event]) => event)
+  for (const child of children) {
+    const located = byChild.get(child.id) ?? []
+
+    if (located.length >= 2) carded.push(toListItem(child, located.length))
+    else if (located.length === 1) promoted.push(located[0])
+  }
+  const subregions = carded.sort(byEventCountDesc)
 
   // Nest each event under *this* region's path so navigating to it keeps the full
   // region ancestry in the URL (an event's own webPath is flat / often null, which

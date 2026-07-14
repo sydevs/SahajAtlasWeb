@@ -109,7 +109,6 @@ describe('getRegion (unified hierarchy derivation)', () => {
     breadcrumbs,
     eventType = 'offline',
     coordinates,
-    webPath,
     next,
   }: {
     id: number
@@ -118,7 +117,6 @@ describe('getRegion (unified hierarchy derivation)', () => {
     breadcrumbs: number[]
     eventType?: 'offline' | 'online'
     coordinates?: [number, number]
-    webPath?: string
     next?: string
   }) => ({
     type: 'Feature',
@@ -128,7 +126,6 @@ describe('getRegion (unified hierarchy derivation)', () => {
       title: `Event ${id}`,
       eventType,
       languages: ['nl'],
-      webPath,
       region: {
         id: regionId,
         slug,
