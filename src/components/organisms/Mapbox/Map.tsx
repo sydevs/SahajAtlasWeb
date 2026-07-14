@@ -1,3 +1,6 @@
+import type { FeatureCollection, Geometry } from 'geojson'
+import type { Geojson } from '@/types'
+
 import { useCallback, useMemo } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
@@ -49,6 +52,21 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
+// Mapbox renders geometry and injects its own cluster properties; the click handler
+// needs only `id` + `webPath`. Strip every other feature property before handing the
+// collection to the vector source, so the map holds a lean geometry source — the
+// agnostic feed's card fields (address/schedule/languages/region) never reach Mapbox.
+// Confirms the spike finding: map-source leanness is a client-side trim, not a reason
+// for a separate lean feed query.
+const toMapSource = (feed: Geojson): FeatureCollection<Geometry | null> => ({
+  type: 'FeatureCollection',
+  features: feed.features.map((feature) => ({
+    type: 'Feature',
+    geometry: feature.geometry,
+    properties: { id: feature.properties.id, webPath: feature.properties.webPath ?? null },
+  })),
+})
+
 const DEBUG_BOUNDARY = false
 const DEBUG_PADDING = false
 
@@ -83,9 +101,13 @@ export function Mapbox() {
   // recomputes when the feed or the filters change — not on pan/zoom — and reuses
   // the feed as-is when nothing is filtered (the common case).
   const filtered = useMemo(() => {
-    if (!data || !hasActiveFilters(filters)) return data
+    if (!data) return undefined
 
-    return { ...data, features: data.features.filter((f) => matchesFilters(f.properties, filters)) }
+    const features = hasActiveFilters(filters)
+      ? data.features.filter((f) => matchesFilters(f.properties, filters))
+      : data.features
+
+    return toMapSource({ ...data, features })
   }, [data, filters])
 
   const selectFeature = useCallback(
