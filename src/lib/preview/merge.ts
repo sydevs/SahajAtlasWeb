@@ -33,6 +33,10 @@ function mergeRecursive(
   const result: Record<string, unknown> = { ...base }
 
   for (const key of Object.keys(overlay)) {
+    // Never copy prototype-polluting keys off a wire payload (belt-and-suspenders: the
+    // overlay is origin-validated CMS output and re-validated by zod downstream).
+    if (key === '__proto__' || key === 'constructor') continue
+
     const overlayValue = overlay[key]
     const baseValue = base[key]
 

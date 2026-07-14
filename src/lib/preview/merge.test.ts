@@ -49,4 +49,13 @@ describe('mergePreviewData', () => {
       schedule: { start: '11', end: '10' },
     })
   })
+
+  it('ignores prototype-polluting keys in the overlay', () => {
+    const base = { title: 'A' }
+    // JSON.parse makes __proto__ a real own key (an object literal would set the prototype).
+    const overlay = JSON.parse('{ "title": "B", "__proto__": { "polluted": true } }')
+
+    expect(mergePreviewData(base, overlay)).toEqual({ title: 'B' })
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+  })
 })
