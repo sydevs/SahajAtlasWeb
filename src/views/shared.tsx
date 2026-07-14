@@ -241,14 +241,18 @@ const markNearbyDismissed = () => {
 // ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
 // centred on the guess — preserving the active URL filters exactly as SearchField
 // does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
-// rather than the pinpoint zoom it uses for a bare centre. Dismissal (× or accept)
-// is session-scoped.
+// rather than the pinpoint zoom it uses for a bare centre. Hidden (and the lookup
+// skipped) when a place search is already active. Dismissal (× or accept) is
+// session-scoped.
 export function NearbySuggestion() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [dismissed, setDismissed] = useState(readNearbyDismissed)
-  // Skip the IP lookup entirely once dismissed — no third-party ping on reload.
-  const ipLocation = useIpLocation(!dismissed)
+  // Don't suggest a nearby search when a place search is already active (SearchView
+  // with a ?center/?q); skip the lookup too. Also skip it once dismissed — no
+  // third-party ping on reload.
+  const hasActiveSearch = searchParams.has('center') || searchParams.has('q')
+  const ipLocation = useIpLocation(!dismissed && !hasActiveSearch)
 
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
@@ -276,7 +280,9 @@ export function NearbySuggestion() {
     setDismissed(true)
   }, [])
 
-  if (!ipLocation || dismissed) return null
+  // Check `hasActiveSearch` explicitly: a cached IP result outlives the `enabled`
+  // gate flip, so the render guard must exclude the active-search case too.
+  if (!ipLocation || dismissed || hasActiveSearch) return null
 
   return <NearbyPrompt city={ipLocation.city} onDismiss={handleDismiss} onSelect={handleSelect} />
 }
