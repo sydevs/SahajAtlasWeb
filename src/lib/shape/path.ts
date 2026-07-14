@@ -80,16 +80,17 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 }
 
 /**
- * Words that are never a region slug. `search` / `register` / `share` are our own
- * routed views (a CMS region slug can never silently shadow them — the guard);
- * `events` / `areas` / `regions` / `venues` are legacy URL prefixes that carry no
- * drawer of their own. Kept lowercase; matched case-insensitively.
+ * Words that are never a region slug. `search` / `filters` / `register` / `share` /
+ * `online` are our own routed views (a CMS region slug can never silently shadow them
+ * — the guard); `events` / `areas` / `regions` / `venues` are legacy URL prefixes that
+ * carry no drawer of their own. Kept lowercase; matched case-insensitively.
  */
 export const RESERVED_SLUGS = new Set([
   'search',
   'filters',
   'register',
   'share',
+  'online',
   'events',
   'areas',
   'regions',
@@ -104,6 +105,7 @@ export type StackEntry =
   | { kind: 'event'; id: number; path: string }
   | { kind: 'register'; eventPath: string; path: string }
   | { kind: 'share'; eventPath: string; path: string }
+  | { kind: 'online'; regionSlug: string; path: string }
 
 /**
  * The full ancestor chain for a pathname — one entry per meaningful segment, in
@@ -128,6 +130,8 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     else if (word === 'filters') entries.push({ kind: 'filters', path })
     else if (word === 'register') entries.push({ kind: 'register', eventPath: parentPath, path })
     else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
+    else if (word === 'online')
+      entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
     else if (RESERVED_SLUGS.has(word))
       return // legacy prefix (events/areas/…) — no drawer
     else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })

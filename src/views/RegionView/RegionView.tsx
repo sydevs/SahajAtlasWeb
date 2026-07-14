@@ -1,22 +1,26 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
+import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventCard, List, RegionCard } from '@/components/molecules'
+import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
+import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { CloseButton, useFrameOnTop } from '@/views/shared'
 
-// A region at any level (route `<region-path>`): one list of child-region cards,
-// then this region's located events, then the placeless online events rolled up
-// under it (plain concatenation, no section headers — EventCard differentiates
-// online). Frames the map to the region's bounds when it's the top of the stack.
-// No canonicalization redirect — the URL stays where the user navigated; the
-// canonical tag is standalone-only.
+// A region at any level (route `<region-path>`): a leading "Online Classes" card
+// (only when placeless online events roll up under the region) that opens their own
+// drawer (`<region-path>/online`), then the child-region cards, then this region's
+// own located events — so the list stays a clean set of places. Frames the map to
+// the region's bounds when it's the top of the stack. No canonicalization redirect —
+// the URL stays where the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
+  const { t } = useTranslation('common')
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -49,8 +53,19 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <List>
-          {/* Region ids and event ids come from independent sequences, so all three
-              maps land in one List — namespace the keys so they can't collide. */}
+          {/* Placeless online classes rolled up under this region open in their own
+              drawer, so the list below stays a clean set of places. */}
+          {region.onlineEvents.length > 0 && (
+            <RegionCard
+              count={region.onlineEvents.length}
+              href={childRoute(region.path, 'online')}
+              label={t('online_classes')}
+            >
+              <MonitorIcon className="mr-3 shrink-0 text-2xl text-primary" />
+            </RegionCard>
+          )}
+          {/* Region ids and event ids come from independent sequences but share one
+              List — namespace the keys so they can't collide. */}
           {region.subregions.map((child) => (
             <RegionCard
               key={`region-${child.id}`}
@@ -62,10 +77,6 @@ export function RegionView({ slug }: { slug: string }) {
           ))}
           {region.events.map((event) => (
             <EventCard key={`event-${event.id}`} event={event} />
-          ))}
-          {/* Placeless online events under this region, rolled up at the end. */}
-          {region.onlineEvents.map((event) => (
-            <EventCard key={`online-${event.id}`} event={event} />
           ))}
         </List>
       </DrawerBody>

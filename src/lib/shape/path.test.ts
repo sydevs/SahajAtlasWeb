@@ -130,6 +130,20 @@ describe('resolveStack', () => {
     ])
   })
 
+  it('owns /…/online, carrying the parent region slug', () => {
+    expect(resolveStack('/canada/ontario/online')).toEqual([
+      { kind: 'region', slug: 'canada', path: '/canada' },
+      { kind: 'region', slug: 'ontario', path: '/canada/ontario' },
+      { kind: 'online', regionSlug: 'ontario', path: '/canada/ontario/online' },
+    ])
+    // An event opened from the online drawer nests under it.
+    expect(resolveStack('/canada/ontario/online/507').at(-1)).toEqual({
+      kind: 'event',
+      id: 507,
+      path: '/canada/ontario/online/507',
+    })
+  })
+
   it('skips legacy prefixes so a legacy URL is just its terminal entity', () => {
     expect(resolveStack('/events/507')).toEqual([{ kind: 'event', id: 507, path: '/events/507' }])
     expect(resolveStack('/areas/antwerpen')).toEqual([

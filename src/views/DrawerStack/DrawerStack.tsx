@@ -24,6 +24,7 @@ import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
+import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
 import { ShareView } from '@/views/ShareView/ShareView'
@@ -62,6 +63,8 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
       return <FilterView />
     case 'region':
       return <RegionView slug={entry.slug} />
+    case 'online':
+      return <OnlineView path={entry.path} regionSlug={entry.regionSlug} />
     case 'event':
       return <EventView basePath={entry.path} id={entry.id} />
     case 'register':
