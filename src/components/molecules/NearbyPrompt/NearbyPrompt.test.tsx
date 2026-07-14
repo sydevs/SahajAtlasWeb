@@ -11,7 +11,6 @@ vi.mock('react-i18next', () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
         'nearby_prompt.title': `Events near ${opts?.city}?`,
-        'nearby_prompt.subtitle': 'Based on your approximate location',
         'nearby_prompt.dismiss': 'Dismiss',
       })[key] ?? key,
   }),
@@ -26,11 +25,10 @@ describe('NearbyPrompt', () => {
     )
 
     expect(html).toContain('Events near Paris?')
-    expect(html).toContain('approximate location')
     expect(html).not.toContain('your location')
   })
 
-  it('renders the suggestion as a real button (keyboard accessible)', () => {
+  it('renders the suggestion text as a real button (keyboard accessible)', () => {
     const html = renderToStaticMarkup(
       <NearbyPrompt city="Berlin" onDismiss={noop} onSelect={noop} />,
     )
@@ -45,5 +43,14 @@ describe('NearbyPrompt', () => {
     )
 
     expect(html).toContain('aria-label="Dismiss"')
+  })
+
+  it('uses the primary tint and vertically centres its single line', () => {
+    const html = renderToStaticMarkup(
+      <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
+    )
+
+    expect(html).toContain('bg-primary-3')
+    expect(html).toContain('items-center')
   })
 })

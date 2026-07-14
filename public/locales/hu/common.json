@@ -57,7 +57,6 @@
   "online_classes": "Online órák",
   "nearby_prompt": {
     "title": "Események %{city} közelében?",
-    "subtitle": "A hozzávetőleges tartózkodási helyed alapján",
     "dismiss": "Elrejtés"
   }
 }

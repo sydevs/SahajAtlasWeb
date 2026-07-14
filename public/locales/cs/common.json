@@ -57,7 +57,6 @@
   "online_classes": "Online kurzy",
   "nearby_prompt": {
     "title": "Akce poblíž: %{city}?",
-    "subtitle": "Na základě vaší přibližné polohy",
     "dismiss": "Skrýt"
   }
 }

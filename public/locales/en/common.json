@@ -71,7 +71,6 @@
   "online_classes": "Online Classes",
   "nearby_prompt": {
     "title": "Events near %{city}?",
-    "subtitle": "Based on your approximate location",
     "dismiss": "Dismiss"
   }
 }

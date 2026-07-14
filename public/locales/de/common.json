@@ -57,7 +57,6 @@
   "online_classes": "Online-Kurse",
   "nearby_prompt": {
     "title": "Veranstaltungen in der Nähe von %{city}?",
-    "subtitle": "Basierend auf deinem ungefähren Standort",
     "dismiss": "Ausblenden"
   }
 }

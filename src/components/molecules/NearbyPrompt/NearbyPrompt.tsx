@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@/components/atoms/Button'
-import { CloseIcon, LocationIcon } from '@/components/atoms/Icons'
+import { Alert } from '@/components/atoms/Alert'
+import { LocationIcon } from '@/components/atoms/Icons'
 
 export type NearbyPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
@@ -14,13 +14,9 @@ export type NearbyPromptProps = {
 
 /**
  * The dismissible "events near you" suggestion shown above the list on the
- * top-level views. The whole tinted card is one button into the distance-ranked
- * search; the corner × dismisses it. Framed as a *guess* — the copy says
- * "approximate location", never "your location".
- *
- * Deliberately NOT the `Alert` atom: this is a passive suggestion, not a status
- * message, so it borrows Alert's `secondary` tint tokens but avoids Alert's
- * assertive `role="alert"` live region (which would interrupt a screen reader).
+ * top-level views: a single-line, primary-tinted `Alert` whose text is a button
+ * into the distance-ranked search, with the Alert's × dismissing it for the
+ * session. Framed as a *guess* — "Events near %{city}?", never "your location".
  * Presentational only — the IP lookup, session-scoped dismissal, and navigation
  * live in `NearbySuggestion` (src/views/shared.tsx).
  */
@@ -28,25 +24,21 @@ export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
   const { t } = useTranslation('common')
 
   return (
-    <div className="relative mb-3">
-      <button
-        className="flex w-full items-start gap-3 rounded bg-secondary-3 p-3 pr-10 text-left text-secondary-11 transition-colors hover:bg-secondary-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        type="button"
-        onClick={onSelect}
-      >
-        <LocationIcon className="mt-0.5 shrink-0" size={20} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium">{t('nearby_prompt.title', { city })}</span>
-          <span className="block text-sm opacity-90">{t('nearby_prompt.subtitle')}</span>
-        </span>
-      </button>
-      <IconButton
-        aria-label={t('nearby_prompt.dismiss')}
-        className="absolute right-1 top-1"
-        onClick={onDismiss}
-      >
-        <CloseIcon size={16} />
-      </IconButton>
-    </div>
+    <Alert
+      className="mb-3"
+      closeLabel={t('nearby_prompt.dismiss')}
+      color="primary"
+      icon={<LocationIcon size={20} />}
+      title={
+        <button
+          className="w-full text-left hover:underline focus:outline-none focus-visible:underline"
+          type="button"
+          onClick={onSelect}
+        >
+          {t('nearby_prompt.title', { city })}
+        </button>
+      }
+      onClose={onDismiss}
+    />
   )
 }
