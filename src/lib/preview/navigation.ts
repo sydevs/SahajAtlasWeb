@@ -28,6 +28,8 @@ export function allowedPreviewPaths(
   collection: 'events' | 'regions',
 ): string[] {
   if (collection === 'events') {
+    // The event's over-drawers — mirrors the register/share entries resolveStack
+    // appends (src/lib/shape/path.ts). Keep in sync if an event gains another.
     return [previewPath, `${previewPath}/register`, `${previewPath}/share`]
   }
 

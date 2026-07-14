@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
 import api from '@/config/api'
-import { shapeEventDoc } from '@/config/api/fetch'
+import { regionRoute, shapeEventDoc } from '@/config/api/fetch'
 import preview from '@/config/preview'
 import { allowedPreviewPaths, mergePreviewData, shouldBlockPreviewLink } from '@/lib/preview'
 import { safePath } from '@/lib/shape'
@@ -121,7 +121,7 @@ function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
   })
 
   const { slug } = initialDoc
-  const previewPath = safePath(initialDoc.webPath) ?? `/${slug}`
+  const previewPath = regionRoute(initialDoc)
 
   // Live: regions have no drafts, so only editable scalars can change — overlay them
   // onto the cached shaped Region (counts/bounds/lists are geojson-derived and can't

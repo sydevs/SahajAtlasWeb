@@ -133,7 +133,19 @@ const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
 // The canonical route (`webPath`) is server-computed and virtual, so no depth /
 // breadcrumb populate is needed. Slugs are globally unique, so no `level` filter —
 // the level comes from the doc. Falls back to a flat `/slug` if webPath is absent.
-const regionRoute = (doc: RegionDoc): string => safePath(doc.webPath) ?? `/${doc.slug}`
+export const regionRoute = (doc: RegionDoc): string => safePath(doc.webPath) ?? `/${doc.slug}`
+
+// Scalar fields both raw region reads (by-slug and by-id) select — shared so the two
+// can't drift.
+const REGION_DOC_SELECT = {
+  slug: true,
+  name: true,
+  level: true,
+  subtitle: true,
+  legacyData: true,
+  webPath: true,
+  webUrl: true,
+}
 
 const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
   const response = await client.get('/regions', {
@@ -141,15 +153,7 @@ const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
       where: { slug: { equals: slug } },
       depth: 1,
       limit: 1,
-      select: {
-        slug: true,
-        name: true,
-        level: true,
-        subtitle: true,
-        legacyData: true,
-        webPath: true,
-        webUrl: true,
-      },
+      select: REGION_DOC_SELECT,
     },
   })
 
@@ -167,15 +171,7 @@ const getRegionDocById = async (id: number): Promise<RegionDoc> => {
   const response = await client.get(`/regions/${id}`, {
     params: {
       depth: 1,
-      select: {
-        slug: true,
-        name: true,
-        level: true,
-        subtitle: true,
-        legacyData: true,
-        webPath: true,
-        webUrl: true,
-      },
+      select: REGION_DOC_SELECT,
     },
   })
 
