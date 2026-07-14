@@ -221,9 +221,7 @@ const NEARBY_RADIUS_KM = 25
 // accessors degrade to "not dismissed" rather than crashing the suggestion.
 const readNearbyDismissed = () => {
   try {
-    return (
-      typeof sessionStorage !== 'undefined' && sessionStorage.getItem(NEARBY_DISMISS_KEY) === '1'
-    )
+    return sessionStorage.getItem(NEARBY_DISMISS_KEY) === '1'
   } catch {
     return false
   }
@@ -231,7 +229,7 @@ const readNearbyDismissed = () => {
 
 const markNearbyDismissed = () => {
   try {
-    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(NEARBY_DISMISS_KEY, '1')
+    sessionStorage.setItem(NEARBY_DISMISS_KEY, '1')
   } catch {
     // Dismissal just won't persist where sessionStorage is unavailable — acceptable.
   }
@@ -248,8 +246,9 @@ const markNearbyDismissed = () => {
 export function NearbySuggestion() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const ipLocation = useIpLocation()
   const [dismissed, setDismissed] = useState(readNearbyDismissed)
+  // Skip the IP lookup entirely once dismissed — no third-party ping on reload.
+  const ipLocation = useIpLocation(!dismissed)
 
   const handleSelect = useCallback(() => {
     if (!ipLocation) return

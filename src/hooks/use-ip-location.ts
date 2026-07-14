@@ -28,15 +28,17 @@ export async function fetchIpLocation(): Promise<IpLocation | null> {
 
 // One passive lookup per session — `staleTime`/`gcTime: Infinity` keep the single
 // result cached and shared across the top-level views, so it never refetches.
-// Returns the location or `null` (still loading, or failed); a `null` result means
-// the nearby suggestion simply doesn't render.
-export function useIpLocation(): IpLocation | null {
+// Pass `enabled: false` to skip the lookup entirely (e.g. the suggestion is already
+// dismissed) so a dismissed session never pings the third-party service. Returns the
+// location or `null` (loading, disabled, or failed) — a `null` result means the
+// nearby suggestion simply doesn't render.
+export function useIpLocation(enabled = true): IpLocation | null {
   const { data } = useQuery({
     queryKey: ['ip-location'],
     queryFn: fetchIpLocation,
+    enabled,
     staleTime: Infinity,
     gcTime: Infinity,
-    retry: false,
   })
 
   return data ?? null

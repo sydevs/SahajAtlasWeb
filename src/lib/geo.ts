@@ -5,7 +5,8 @@ import { circle } from '@turf/circle'
 import { distance } from '@turf/distance'
 
 /**
- * Geometry helpers for deriving region geometry from the GeoJSON event feed.
+ * Geometry helpers for the map: deriving region geometry from the GeoJSON event
+ * feed, plus framing a point that carries no bounds of its own.
  *
  * SahajCloud regions resolved from Mapbox carry no stored lat/lng/bounds (those
  * fields are only set for manually-entered locations), so the map's bounding
