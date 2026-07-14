@@ -9,7 +9,7 @@ import { Alert } from '@/components/atoms/Alert'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import { filtersKey, hasActiveFilters, isOnline, nextOccurrence } from '@/lib/shape'
-import { useEventFilters, useSearchState } from '@/config/store'
+import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import api from '@/config/api'
 import i18n from '@/config/i18n'
 
@@ -98,8 +98,8 @@ export function DynamicEventsList({
 // reason.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
-  const active = useSearchState((state) => hasActiveFilters(state))
-  const clearFilters = useSearchState((state) => state.clearFilters)
+  const active = hasActiveFilters(useEventFilters())
+  const { clearFilters } = useSetFilters()
 
   if (nearbyKm !== undefined) {
     return (

@@ -8,23 +8,29 @@ import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/molecules'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useEventFilters, useSearchState } from '@/config/store'
-import { DEFAULT_FILTERS, filtersKey, hasActiveFilters, matchesFilters } from '@/lib/shape'
+import { useEventFilters } from '@/hooks/use-filters'
+import {
+  DEFAULT_FILTERS,
+  filtersKey,
+  filtersToParams,
+  hasActiveFilters,
+  matchesFilters,
+} from '@/lib/shape'
 import { CloseButton } from '@/views/shared'
 
 // The event-filters drawer (route `/filters`, or `/search/filters` when stacked
 // over a search). A normal drawer view — standard header + close chrome and the
 // usual stacking. Filters are NOT applied live: the form edits a local draft.
 // "Apply (N)" (shown only when the draft differs from what's applied) commits the
-// draft to the store — which drives the list + map — and closes the drawer,
-// showing how many events the draft matches. "Clear all" resets everything AND
-// applies + closes. The per-filter clears inside the form stay draft-only.
+// draft into the /search query — the single source of truth that drives the list +
+// map — and closes the drawer, showing how many events the draft matches. "Clear
+// all" resets everything AND applies + closes. The per-filter clears inside the
+// form stay draft-only.
 export function FilterView() {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
   const applied = useEventFilters()
-  const setFilters = useSearchState((state) => state.setFilters)
 
   // Start from the applied filters; discarded on close unless the user applies.
   const [draft, setDraft] = useState(applied)
@@ -47,12 +53,14 @@ export function FilterView() {
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
 
-  // Applying/clearing always shows the results: go to /search (preserving any
-  // search query), even when the drawer was opened over the country list — the
-  // point of applying is to see the filtered events, not return to the countries.
+  // Applying/clearing always shows the results: go to /search with the filters
+  // written into the query (preserving any existing q/bbox/center), even when the
+  // drawer was opened over the country list — the point of applying is to see the
+  // filtered events, not return to the countries.
   const commit = (filters: typeof draft) => {
-    setFilters(filters)
-    navigate({ pathname: '/search', search: location.search })
+    const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
+
+    navigate({ pathname: '/search', search })
   }
 
   return (

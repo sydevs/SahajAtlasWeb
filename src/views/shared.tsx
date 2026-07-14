@@ -14,7 +14,7 @@ import { Button, IconButton } from '@/components/atoms/Button'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
-import { useSearchState } from '@/config/store'
+import { useEventFilters } from '@/hooks/use-filters'
 import { activeFilterCount, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -82,7 +82,7 @@ export function FilterButton() {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
-  const count = useSearchState((state) => activeFilterCount(state))
+  const count = activeFilterCount(useEventFilters())
 
   const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`

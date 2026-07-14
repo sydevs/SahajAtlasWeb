@@ -3,7 +3,7 @@ import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Chip } from '@/components/atoms/Chip'
-import { useSearchState } from '@/config/store'
+import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
 import { TIME_MAX, TIME_MIN, isTimeRestricted } from '@/lib/shape'
@@ -26,18 +26,8 @@ export type ActiveFilterPillsProps = {
 export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const {
-    format,
-    timeOfDay,
-    daysOfWeek,
-    languages,
-    cadence,
-    setFormat,
-    setCadence,
-    setTimeOfDay,
-    setDaysOfWeek,
-    setLanguages,
-  } = useSearchState()
+  const { format, timeOfDay, daysOfWeek, languages, cadence } = useEventFilters()
+  const { setFormat, setCadence, setTimeOfDay, setDaysOfWeek, setLanguages } = useSetFilters()
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
 
