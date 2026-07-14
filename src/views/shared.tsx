@@ -160,7 +160,7 @@ export function useFrameOnTop(frame: () => void, deps: DependencyList) {
 // bail out before firing a request for a non-existent `NaN` id; the nearest
 // ErrorBoundary (DrawerErrorFallback) renders the not-found state instead.
 export function useEventFromPath(eventPath: string) {
-  const { sahajLocale } = useLocale()
+  const { locale } = useLocale()
   const resolved = resolvePath(eventPath)
 
   if (resolved?.kind !== 'event') {
@@ -168,7 +168,7 @@ export function useEventFromPath(eventPath: string) {
   }
 
   return useSuspenseQuery({
-    queryKey: ['event', resolved.id, sahajLocale],
+    queryKey: ['event', resolved.id, locale],
     queryFn: () => api.getEvent(resolved.id),
   })
 }

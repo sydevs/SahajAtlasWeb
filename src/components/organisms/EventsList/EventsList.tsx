@@ -54,18 +54,12 @@ export function DynamicEventsList({
   // list and the map agree. The key includes the filters, so applying a new set
   // refetches (filters are edited in the FilterView drawer, not here).
   const filters = useEventFilters()
-  const { sahajLocale } = useLocale()
+  const { locale } = useLocale()
 
   const { data: events } = useSuspenseQuery({
     // Latitude/longitude are rounded to reduce re-fetching when the map moves; the
     // locale keys the (localized) titles the list shows, so a switch refetches.
-    queryKey: [
-      'events',
-      latitude.toFixed(2),
-      longitude.toFixed(2),
-      filtersKey(filters),
-      sahajLocale,
-    ],
+    queryKey: ['events', latitude.toFixed(2), longitude.toFixed(2), filtersKey(filters), locale],
     queryFn: () =>
       api.getEvents(latitude, longitude, filters).then((data) =>
         // Decorate-sort-undecorate: compute each event's order once (it builds

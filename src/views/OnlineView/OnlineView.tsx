@@ -17,11 +17,11 @@ import { CloseButton, useFrameOnTop } from '@/views/shared'
 // drawer's own route, so each event nests under it (dismissing an event returns here).
 export function OnlineView({ regionSlug, path }: { regionSlug: string; path: string }) {
   const { t } = useTranslation('common')
-  const { regionNames, sahajLocale } = useLocale()
+  const { regionNames, locale } = useLocale()
   const { frameRegion } = useMapController()
 
   const { data: region } = useSuspenseQuery({
-    queryKey: ['region', regionSlug, sahajLocale],
+    queryKey: ['region', regionSlug, locale],
     queryFn: () => api.getRegion(regionSlug),
   })
 

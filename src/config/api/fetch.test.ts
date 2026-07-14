@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
-import { toSahajLocale } from './client'
 import api from './fetch'
 
 import { queryClient } from '@/config/query-client'
@@ -52,17 +51,6 @@ describe('api request interceptor', () => {
     atlasAuth.apiKey = null
 
     expect(interceptor({ headers: {} }).headers['Authorization']).toBeUndefined()
-  })
-})
-
-describe('toSahajLocale', () => {
-  it('maps i18next codes to SahajCloud locale codes', () => {
-    expect(toSahajLocale('fr')).toBe('fr')
-    expect(toSahajLocale('pt-BR')).toBe('pt-br')
-    expect(toSahajLocale('pt')).toBe('pt-br')
-    expect(toSahajLocale('en-US')).toBe('en')
-    expect(toSahajLocale('xx')).toBe('en')
-    expect(toSahajLocale(undefined)).toBe('en')
   })
 })
 

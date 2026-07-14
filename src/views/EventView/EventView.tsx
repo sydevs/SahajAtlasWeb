@@ -22,10 +22,10 @@ const EventDetails = lazy(() =>
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
-  const { sahajLocale } = useLocale()
+  const { locale } = useLocale()
 
   const { data: event } = useSuspenseQuery({
-    queryKey: ['event', id, sahajLocale],
+    queryKey: ['event', id, locale],
     queryFn: () => api.getEvent(id),
   })
 

@@ -10,7 +10,7 @@ import type {
 import type { EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
-import client, { toSahajLocale } from './client'
+import client from './client'
 
 import i18n from '@/config/i18n'
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
@@ -160,9 +160,9 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
   queryClient.fetchQuery({
-    // The interceptor sends the resolved locale; key by the same mapped code so a
-    // language switch re-keys (and pt-BR/en-US collapse onto their SahajCloud bucket).
-    queryKey: ['event-titles', toSahajLocale(i18n.resolvedLanguage)],
+    // The interceptor sends the resolved locale; key by the same value so a language
+    // switch re-keys the titles sliver (the agnostic feed + regions stay cached).
+    queryKey: ['event-titles', i18n.resolvedLanguage || 'en'],
     queryFn: getEventTitles,
     staleTime: GEOJSON_STALE_TIME,
   })

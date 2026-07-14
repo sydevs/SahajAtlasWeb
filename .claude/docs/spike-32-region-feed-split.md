@@ -103,12 +103,14 @@ derive from the cached dict + feed, client-side.
 
 ## Residuals / follow-ups (the shipping build)
 
-- **Generalize the locale-in-key invariant.** Each locale-dependent query appends
-  `sahajLocale` at its call site (five of them). The original bug was a *forgotten*
-  `locale` segment, so the shipping build should collapse these into query-key
-  factories — the pattern `clientQuery` (`config/api/index.ts`) already uses — e.g.
-  `regionQuery(slug, locale)` / `eventQuery(id, locale)`, so a locale-dependent key
-  can't be constructed without its locale.
+- **Locale handling simplified (done in this branch).** The client-side locale remap
+  (`toSahajLocale` + `SAHAJCLOUD_LOCALES`) is removed: the interceptor sends
+  `i18n.resolvedLanguage` directly and every locale-dependent query keys by plain
+  `locale`, since the widget's language codes match SahajCloud's 1:1 (SahajCloud falls
+  back to its default for any it doesn't recognize — verified on both `/api/regions`
+  and `/events/geojson`). Alignment is now a **policy**: a UI language SahajCloud lacks
+  is added there (sydevs/SahajCloud#578 for `hu`/`nl`), not remapped here. A query-key
+  factory (à la `clientQuery`) is still a nice DRY-up, but no longer a correctness net.
 - **`countryCode` from slug (#556).** SahajCloud#556 is merged, but **the local dev
   seed still serves name-slugs (`belgium`) + `legacyData.countryCode` (`BE`)**.
   `countryCodeOf` derives from the slug **first** and falls back to `legacyData` — so
