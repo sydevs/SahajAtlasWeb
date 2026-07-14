@@ -76,18 +76,18 @@ export const isTimeRestricted = (timeOfDay: [number, number]): boolean =>
 export const isDateRestricted = (dateRange: DateRange): boolean =>
   dateRange.start !== null || dateRange.end !== null
 
+/** Today (the viewer's local zone) as `yyyy-MM-dd` — the floor for upcoming occurrences. */
+export const todayISO = (): string => DateTime.now().startOf('day').toISODate() ?? ''
+
 /**
  * The selectable date window — today through today + `DATE_WINDOW_MONTHS`, as
  * `yyyy-MM-dd` in the viewer's local zone. It bounds the picker inputs and clamps
  * the URL codec, so a hand-crafted link can't select outside the window.
  */
 export const dateWindow = (): { min: string; max: string } => {
-  const today = DateTime.now().startOf('day')
+  const min = todayISO()
 
-  return {
-    min: today.toISODate() ?? '',
-    max: today.plus({ months: DATE_WINDOW_MONTHS }).toISODate() ?? '',
-  }
+  return { min, max: DateTime.fromISO(min).plus({ months: DATE_WINDOW_MONTHS }).toISODate() ?? '' }
 }
 
 /** The subset of an event `matchesFilters` needs — so it works for `FeedEvent`, `EventSlim`, and `Event`. */
@@ -104,6 +104,10 @@ type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
  *   Monday-morning and a Wednesday-evening occurrence don't combine to satisfy
  *   "Wednesday morning", nor a Jul-20 and a Jul-27 occurrence to satisfy a
  *   single-day range.
+ * - The date range floors at `today` (the passed-in day, else the viewer's): no
+ *   upcoming occurrence predates today, so an open-ended "until Y" can't surface a
+ *   stale or timezone-shifted past occurrence, and a set start is already clamped
+ *   to >= today by the codec.
  * - Each occurrence is read in the **event's own frame** via `eventTimeZone`
  *   (the viewer's zone for online events, UTC when `firstDate_tz` is null — the
  *   same fallback the display path uses, so a null-tz occurrence is read as UTC
@@ -111,7 +115,11 @@ type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
  * - When a day, time, or date filter is active, an event with no `upcomingDates`
  *   is excluded (its occurrences can't be verified).
  */
-export function matchesFilters(event: FilterableEvent, filters: EventFilters): boolean {
+export function matchesFilters(
+  event: FilterableEvent,
+  filters: EventFilters,
+  today?: string,
+): boolean {
   if (filters.format !== 'any' && event.eventType !== filters.format) return false
 
   if (
@@ -146,6 +154,9 @@ export function matchesFilters(event: FilterableEvent, filters: EventFilters): b
     const zone = eventTimeZone(event)
     const [earliest, latest] = filters.timeOfDay
     const { start, end } = filters.dateRange
+    // Floor the lower bound at today, so an open-ended "until Y" range never matches
+    // a past occurrence; a set start is already >= today, so this is just `start`.
+    const from = dateActive ? (start ?? today ?? todayISO()) : ''
 
     const matches = occurrences.some((occurrence) => {
       const local = DateTime.fromJSDate(occurrence, { zone })
@@ -161,7 +172,7 @@ export function matchesFilters(event: FilterableEvent, filters: EventFilters): b
         // fixed-width, so lexicographic order is chronological.
         const date = local.toISODate() ?? ''
 
-        if (start && date < start) return false
+        if (date < from) return false
         if (end && date > end) return false
       }
 

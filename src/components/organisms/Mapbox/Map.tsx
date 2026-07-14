@@ -22,7 +22,7 @@ import { useViewState } from '@/config/store'
 import { useEventFilters } from '@/hooks/use-filters'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { hasActiveFilters, matchesFilters, safePath } from '@/lib/shape'
+import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import { useMapbox } from '@/hooks/use-mapbox'
@@ -85,7 +85,12 @@ export function Mapbox() {
   const filtered = useMemo(() => {
     if (!data || !hasActiveFilters(filters)) return data
 
-    return { ...data, features: data.features.filter((f) => matchesFilters(f.properties, filters)) }
+    const today = todayISO()
+
+    return {
+      ...data,
+      features: data.features.filter((f) => matchesFilters(f.properties, filters, today)),
+    }
   }, [data, filters])
 
   const selectFeature = useCallback(

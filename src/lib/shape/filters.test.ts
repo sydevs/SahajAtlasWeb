@@ -186,10 +186,12 @@ describe('matchesFilters — day and time evaluated together', () => {
 })
 
 describe('matchesFilters — date range (in the event zone)', () => {
+  // A fixed "today" so the lower-bound floor is deterministic (occurrences are later).
+  const TODAY = '2026-07-14'
   const jul20 = at('Asia/Kolkata', '2026-07-20T09:30') // Mon 20 Jul, 09:30 IST
   const on20th = event({ zone: 'Asia/Kolkata', occurrences: [jul20] })
   const inRange = (start: string | null, end: string | null) =>
-    matchesFilters(on20th, withFilters({ dateRange: { start, end } }))
+    matchesFilters(on20th, withFilters({ dateRange: { start, end } }), TODAY)
 
   it('matches when an occurrence lands in the window (inclusive)', () => {
     expect(inRange('2026-07-20', '2026-07-27')).toBe(true)
@@ -205,6 +207,18 @@ describe('matchesFilters — date range (in the event zone)', () => {
     expect(inRange('2026-07-01', null)).toBe(true)
     expect(inRange('2026-07-21', null)).toBe(false)
     expect(inRange(null, '2026-07-31')).toBe(true)
+  })
+
+  it('floors an open lower bound at today — no occurrence before today matches', () => {
+    const past = at('Asia/Kolkata', '2026-07-10T09:30') // before TODAY
+    const evt = event({ zone: 'Asia/Kolkata', occurrences: [past] })
+    const untilEnd = (start: string | null, end: string | null) =>
+      matchesFilters(evt, withFilters({ dateRange: { start, end } }), TODAY)
+
+    // Open "until Y": the floor (today) excludes the past occurrence…
+    expect(untilEnd(null, '2026-07-31')).toBe(false)
+    // …but an explicit earlier start opts back into it.
+    expect(untilEnd('2026-07-01', '2026-07-31')).toBe(true)
   })
 
   it('excludes events with no occurrences while a date filter is active', () => {
