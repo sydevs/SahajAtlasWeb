@@ -7,7 +7,7 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
 import api from '@/config/api'
 import { shapeEventDoc } from '@/config/api/fetch'
-import preview, { PREVIEW_PATH } from '@/config/preview'
+import preview from '@/config/preview'
 import { allowedPreviewPaths, mergePreviewData, shouldBlockPreviewLink } from '@/lib/preview'
 import { safePath } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
@@ -48,15 +48,18 @@ function usePreviewLinkGuard(): void {
 /**
  * Route lock: keep the preview pinned to the previewed doc. If navigation lands
  * outside the allowed set — a dismissed drawer stranding on a parent, a button-driven
- * route change — snap back to `previewPath`. `/preview` itself is skipped: the boot
- * effect owns that first transition.
+ * route change — snap back to `previewPath`. This is the single navigation authority:
+ * from the `/preview` boot route (never in the allowed set) it performs the initial hop
+ * to the doc, then keeps the preview pinned. Being conditional, re-running on an already-
+ * allowed path is a no-op — so it never fights a legit register/share drawer, even as
+ * react-router recreates `navigate` on each navigation (an unconditional boot effect
+ * with `navigate` in its deps would snap register/share straight back).
  */
 function usePreviewRouteLock(previewPath: string, collection: 'events' | 'regions'): void {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
   useEffect(() => {
-    if (pathname === PREVIEW_PATH) return
     if (!allowedPreviewPaths(previewPath, collection).includes(pathname)) {
       navigate(previewPath, { replace: true })
     }
@@ -67,7 +70,6 @@ function usePreviewRouteLock(previewPath: string, collection: 'events' | 'region
 
 function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const lastGood = useRef(initialDoc)
 
   const { data: liveDoc } = useLivePreview<EventDoc>({
@@ -81,7 +83,7 @@ function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
   // Live: merge each incoming doc onto the last good one (keeping collapsed relations),
   // re-shape, and inject into the drawer's cache. safeParse keeps the last good doc
   // when a mid-edit form state is transiently invalid. Runs on mount too (liveDoc
-  // starts as initialDoc), which seeds the cache before the boot navigation lands.
+  // starts as initialDoc), seeding the cache before the route lock's boot hop lands.
   useEffect(() => {
     const parsed = EventDocSchema.safeParse(mergePreviewData(lastGood.current, liveDoc))
 
@@ -91,12 +93,8 @@ function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
     queryClient.setQueryData(['event', parsed.data.id], shapeEventDoc(parsed.data))
   }, [liveDoc, queryClient])
 
-  // Boot once: navigate to the event's canonical path — the normal resolveStack /
-  // DrawerStack machinery then renders map + drawer from the seeded cache.
-  useEffect(() => {
-    navigate(previewPath, { replace: true })
-  }, [previewPath, navigate])
-
+  // The route lock performs the initial /preview -> event hop, then pins it — the normal
+  // resolveStack / DrawerStack machinery renders map + drawer from the seeded cache.
   usePreviewRouteLock(previewPath, 'events')
 
   return null
@@ -115,7 +113,6 @@ function EventPreview({ id }: { id: number }) {
 
 function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
 
   const { data: liveDoc } = useLivePreview<RegionDoc>({
     initialData: initialDoc,
@@ -125,11 +122,6 @@ function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
 
   const { slug } = initialDoc
   const previewPath = safePath(initialDoc.webPath) ?? `/${slug}`
-
-  // Boot once: navigate to the region; the normal getRegion(slug) fills ['region', slug].
-  useEffect(() => {
-    navigate(previewPath, { replace: true })
-  }, [previewPath, navigate])
 
   // Live: regions have no drafts, so only editable scalars can change — overlay them
   // onto the cached shaped Region (counts/bounds/lists are geojson-derived and can't
@@ -147,6 +139,8 @@ function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
     })
   }, [liveDoc, slug, queryClient])
 
+  // The route lock performs the initial /preview -> region hop (the normal getRegion(slug)
+  // then fills ['region', slug]) and pins it thereafter.
   usePreviewRouteLock(previewPath, 'regions')
 
   return null
