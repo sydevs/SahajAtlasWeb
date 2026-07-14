@@ -38,6 +38,10 @@ type AppProps = {
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
+  // SahajCloud live-preview mode (default false). Set only by the /preview boot
+  // (main.tsx); lazy-mounts <PreviewController> and inerts navigation — zero cost
+  // to normal standalone/embedded use.
+  preview?: boolean
 }
 
 export default function App({
@@ -47,6 +51,7 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
+  preview = false,
 }: AppProps) {
   return (
     <Providers>
@@ -57,6 +62,7 @@ export default function App({
               apiKey={apiKey}
               defaultLocale={defaultLocale}
               hasMap={hasMap}
+              preview={preview}
               standalone={standalone}
             />
           </ErrorBoundary>
@@ -73,9 +79,10 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
+  preview: boolean
 }
 
-function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) {
+function AppShell({ apiKey, defaultLocale, standalone, hasMap, preview }: AppShellProps) {
   if (!apiKey) throw new Error('Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
@@ -128,7 +135,7 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
   }, [location.pathname, fathomEnabled, primaryDomain])
 
   return (
-    <WidgetModeContext.Provider value={{ standalone, hasMap }}>
+    <WidgetModeContext.Provider value={{ standalone, hasMap, preview }}>
       <Helmet>
         <meta content={locale} property="og:locale" />
       </Helmet>
