@@ -31,7 +31,7 @@ event hierarchy.
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
 | Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash |
 | Data           | **TanStack Query** + `axios` (`src/config/api/`), **zod**-validated responses |
-| State          | **zustand** stores (`src/config/store.ts`) |
+| State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
 | i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |
 | Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
 | Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async` |
@@ -91,7 +91,7 @@ src/
   views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Region/Event/Registration/Share
   config/
     api/              # axios client + zod-parsed fetchers (fetch.ts, mutate.ts, auth.ts)
-    store.ts          # zustand stores (view / search / registration-draft)
+    store.ts          # zustand stores (view / registration-draft; filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
     site.ts, responsive.ts
@@ -107,9 +107,10 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response
   through a zod schema from `src/types/`. Keep that contract — see
   `.claude/rules/data-layer.md`.
-- **State**: zustand stores are the single source of truth for map view and
-  search filters. Read with `useShallow` selectors in hot paths (the map). See
-  `.claude/rules/i18n-and-state.md`.
+- **State**: zustand stores (`src/config/store.ts`) are the single source of truth
+  for the map view + registration draft; **search filters live in the URL query**
+  (`useEventFilters`/`useSetFilters` in `src/hooks/use-filters.ts`). Read stores with
+  `useShallow` selectors in hot paths (the map). See `.claude/rules/i18n-and-state.md`.
 - **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
   `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open
   drawers; `DrawerStack` renders RootView (base) + one nested vaul drawer per

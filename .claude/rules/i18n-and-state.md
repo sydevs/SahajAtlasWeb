@@ -3,6 +3,7 @@ description: i18next localization and zustand state-store conventions.
 globs:
   - "src/config/i18n.ts"
   - "src/config/store.ts"
+  - "src/hooks/use-filters.ts"
   - "src/hooks/use-locale.ts"
   - "public/locales/**"
 alwaysApply: false
@@ -34,23 +35,36 @@ alwaysApply: false
   `supportedLanguages` in `i18n.ts`, and check `MAP_WORLDVIEWS` in
   `src/components/mapbox/map.tsx` for whether a worldview is needed.
 - Locale JSON under `public/locales/` is hand-maintained — keep keys in sync
-  across languages; `en` is the `fallbackLng`.
+  across languages; `en` is the `fallbackLng`. Add a key across every locale with
+  `pnpm i18n:add <dotted.key> '<{lng:value}>' [ns]` (`scripts/add-locale-key.mjs`).
+- **A new locale key needs a full page reload in dev**, not just HMR: HMR reloads
+  the component but not i18next's already-fetched in-memory translations, so the key
+  renders as its raw name (e.g. `online_classes`) until you reload. A raw key showing
+  right after `pnpm i18n:add` is almost always this, **not** a missing/mis-namespaced key.
 
 ## zustand stores (`src/config/store.ts`)
 
-Three stores, each the single source of truth for its slice:
+Two stores, each the single source of truth for its slice:
 
 - **`useViewState`** — map camera (`zoom/latitude/longitude`), current
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`
   selector — keep that pattern when consuming multiple fields so components only
   re-render on the fields they use.
-- **`useSearchState`** — search filters (`onlineOnly`).
 - **`useRegistrationDraft`** — in-progress RegistrationView form values, hoisted
   out of the form so the md-crossing drawer remount can't drop a half-filled form.
 
-Navigation is **not** a store: the drawer stack is a pure function of the URL
-(`resolveStack` in `src/lib/shape/path.ts`); dismissing a drawer is
-`navigate(parentPath)`. Camera control goes through the `MapController` seam
+Two slices are **URL-derived, not stores** — the URL query is their single source
+of truth, so both are linkable/shareable:
+
+- **Search filters** — read with `useEventFilters`, mutate with `useSetFilters`
+  (`src/hooks/use-filters.ts`); serialized by `filtersToParams` / `filtersFromParams`
+  (`src/lib/shape/filters.ts`). The map, the results list, the active-filter pills,
+  and the FilterButton badge all read the same URL. (There is no `useSearchState`
+  store — filters used to live in zustand.)
+- **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
+  in `src/lib/shape/path.ts`); dismissing a drawer is `navigate(parentPath)`.
+
+Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.
 
 Conventions:
