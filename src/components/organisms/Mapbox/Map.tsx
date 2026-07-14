@@ -3,6 +3,7 @@ import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
   Layer,
+  LayerProps,
   MapMouseEvent,
   Source,
 } from 'react-map-gl'
@@ -20,7 +21,7 @@ import {
   boundsLayer,
 } from './layers'
 
-import { useViewState } from '@/config/store'
+import { useViewState, type MapPoint } from '@/config/store'
 import { useEventFilters } from '@/hooks/use-filters'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -53,6 +54,39 @@ const MAP_WORLDVIEWS: Record<string, string> = {
 
 const DEBUG_BOUNDARY = false
 const DEBUG_PADDING = false
+
+// A single emphasized point — the committed `selection` or the transient card
+// `hover` — as its own GeoJSON source, so the sprite shows even when the base pin
+// is inside a cluster. `approximate` picks the softer area sprite over the pin.
+function PointSource({
+  id,
+  point,
+  pointLayer,
+  areaLayer,
+}: {
+  id: string
+  point: MapPoint
+  pointLayer: LayerProps
+  areaLayer: LayerProps
+}) {
+  return (
+    <Source
+      data={{
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
+          },
+        ],
+      }}
+      id={id}
+      type="geojson"
+    >
+      <Layer {...(point.approximate ? areaLayer : pointLayer)} />
+    </Source>
+  )
+}
 
 export function Mapbox() {
   let navigate = useNavigate()
@@ -173,44 +207,20 @@ export function Mapbox() {
         </Source>
       )}
       {selection && (
-        <Source
-          data={{
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [selection.longitude, selection.latitude],
-                },
-              },
-            ],
-          }}
+        <PointSource
+          areaLayer={selectedAreaLayer}
           id="selection"
-          type="geojson"
-        >
-          <Layer {...(selection.approximate ? selectedAreaLayer : selectedPointLayer)} />
-        </Source>
+          point={selection}
+          pointLayer={selectedPointLayer}
+        />
       )}
       {hover && (
-        <Source
-          data={{
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [hover.longitude, hover.latitude],
-                },
-              },
-            ],
-          }}
+        <PointSource
+          areaLayer={hoveredAreaLayer}
           id="hover"
-          type="geojson"
-        >
-          <Layer {...(hover.approximate ? hoveredAreaLayer : hoveredPointLayer)} />
-        </Source>
+          point={hover}
+          pointLayer={hoveredPointLayer}
+        />
       )}
       <GeolocateControl />
     </ReactMapGL>

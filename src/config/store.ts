@@ -6,7 +6,7 @@ import { Feature } from 'geojson'
 // A point the map emphasizes with a sprite: the committed `selection` (from
 // frameEvent) and the transient `hover` (from highlightEvent) share this shape.
 // `approximate` swaps the crisp pin for the softer area sprite (online events).
-type MapPoint = { latitude: number; longitude: number; approximate: boolean }
+export type MapPoint = { latitude: number; longitude: number; approximate: boolean }
 
 type ViewState = {
   zoom: number
