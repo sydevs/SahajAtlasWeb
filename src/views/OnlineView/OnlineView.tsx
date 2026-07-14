@@ -12,16 +12,16 @@ import { CloseButton, useFrameOnTop } from '@/views/shared'
 // The online-classes drawer (route `<region-path>/online`): the placeless online
 // events rolled up under a region, listed on their own so the region page's list
 // stays a clean set of places. Reuses the parent region's already-cached data
-// (`['region', slug]`, so navigating here is usually a cache hit) and frames the
+// (`['region', slug, locale]`, so navigating here is usually a cache hit) and frames the
 // map to that region — online events have no location of their own. `path` is this
 // drawer's own route, so each event nests under it (dismissing an event returns here).
 export function OnlineView({ regionSlug, path }: { regionSlug: string; path: string }) {
   const { t } = useTranslation('common')
-  const { regionNames } = useLocale()
+  const { regionNames, sahajLocale } = useLocale()
   const { frameRegion } = useMapController()
 
   const { data: region } = useSuspenseQuery({
-    queryKey: ['region', regionSlug],
+    queryKey: ['region', regionSlug, sahajLocale],
     queryFn: () => api.getRegion(regionSlug),
   })
 

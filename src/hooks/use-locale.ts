@@ -4,6 +4,8 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { toSahajLocale } from '@/config/api/client'
+
 export function useLocale() {
   const { i18n } = useTranslation()
 
@@ -45,6 +47,10 @@ export function useLocale() {
   return {
     locale,
     languageCode: locale.split('-')[0],
+    // The SahajCloud locale bucket the server localizes to (what the interceptor
+    // sends). Locale-dependent query keys use this so a language switch re-keys and
+    // pt-BR/en-US collapse onto their canonical bucket.
+    sahajLocale: toSahajLocale(locale),
     languageNames,
     languageLabel,
     regionNames,

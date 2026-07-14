@@ -10,6 +10,7 @@ import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import { filtersKey, hasActiveFilters, isOnline, nextOccurrence } from '@/lib/shape'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
+import { useLocale } from '@/hooks/use-locale'
 import api from '@/config/api'
 import i18n from '@/config/i18n'
 
@@ -53,10 +54,18 @@ export function DynamicEventsList({
   // list and the map agree. The key includes the filters, so applying a new set
   // refetches (filters are edited in the FilterView drawer, not here).
   const filters = useEventFilters()
+  const { sahajLocale } = useLocale()
 
   const { data: events } = useSuspenseQuery({
-    // Latitude/longitude are rounded to reduce re-fetching when the map moves.
-    queryKey: ['events', latitude.toFixed(2), longitude.toFixed(2), filtersKey(filters)],
+    // Latitude/longitude are rounded to reduce re-fetching when the map moves; the
+    // locale keys the (localized) titles the list shows, so a switch refetches.
+    queryKey: [
+      'events',
+      latitude.toFixed(2),
+      longitude.toFixed(2),
+      filtersKey(filters),
+      sahajLocale,
+    ],
     queryFn: () =>
       api.getEvents(latitude, longitude, filters).then((data) =>
         // Decorate-sort-undecorate: compute each event's order once (it builds
