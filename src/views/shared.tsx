@@ -2,7 +2,7 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList } from 'react'
 
-import { createContext, useCallback, useContext, useEffect } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -12,9 +12,12 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button, IconButton } from '@/components/atoms/Button'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
+import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useIpLocation } from '@/hooks/use-ip-location'
+import { approxBounds } from '@/lib/geo'
 import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -204,4 +207,74 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
       </Button>
     </DrawerBody>
   )
+}
+
+// One session-scoped flag: dismissing the nearby suggestion (× or clicking through)
+// hides it for the rest of the browser session; it reappears on a fresh visit.
+const NEARBY_DISMISS_KEY = 'sahajAtlas.nearbyPromptDismissed'
+
+// A city-sized radius (km) so the suggested search frames a neighbourhood, not the
+// pinpoint the IP guess resolves to.
+const NEARBY_RADIUS_KM = 25
+
+// sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
+// accessors degrade to "not dismissed" rather than crashing the suggestion.
+const readNearbyDismissed = () => {
+  try {
+    return (
+      typeof sessionStorage !== 'undefined' && sessionStorage.getItem(NEARBY_DISMISS_KEY) === '1'
+    )
+  } catch {
+    return false
+  }
+}
+
+const markNearbyDismissed = () => {
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(NEARBY_DISMISS_KEY, '1')
+  } catch {
+    // Dismissal just won't persist where sessionStorage is unavailable — acceptable.
+  }
+}
+
+// The single shared wiring for the IP-geolocation nearby suggestion, rendered above
+// the list on CountriesView / RegionView / SearchView so the behaviour isn't
+// triplicated. Reads the passive IP location (one lookup per session; fails silently
+// ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
+// centred on the guess — preserving the active URL filters exactly as SearchField
+// does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
+// rather than the pinpoint zoom it uses for a bare centre. Dismissal (× or accept)
+// is session-scoped.
+export function NearbySuggestion() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const ipLocation = useIpLocation()
+  const [dismissed, setDismissed] = useState(readNearbyDismissed)
+
+  const handleSelect = useCallback(() => {
+    if (!ipLocation) return
+
+    // Preserve the active filters (URL-only) while resetting the searched location —
+    // mirrors SearchField; searching shouldn't silently clear the filters.
+    const params = filtersToParams(filtersFromParams(searchParams))
+
+    params.set('q', `${ipLocation.city}, ${ipLocation.country}`)
+    params.set('center', `${ipLocation.longitude},${ipLocation.latitude}`)
+    params.set(
+      'bbox',
+      approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM).toString(),
+    )
+
+    markNearbyDismissed()
+    navigate(`/search?${params.toString()}`)
+  }, [ipLocation, navigate, searchParams])
+
+  const handleDismiss = useCallback(() => {
+    markNearbyDismissed()
+    setDismissed(true)
+  }, [])
+
+  if (!ipLocation || dismissed) return null
+
+  return <NearbyPrompt city={ipLocation.city} onDismiss={handleDismiss} onSelect={handleSelect} />
 }

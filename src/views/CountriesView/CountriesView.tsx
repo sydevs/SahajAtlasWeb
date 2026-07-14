@@ -14,7 +14,13 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { DEFAULT_FILTERS, filtersToParams, isOnline } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import { CollapseToggle, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
+import {
+  CollapseToggle,
+  FilterButton,
+  NearbySuggestion,
+  SearchField,
+  useFrameOnTop,
+} from '@/views/shared'
 
 // The base view (route `/`): a leading "Online Classes" entry (into the
 // online-filtered search) then the global country list, with the geocoder + a
@@ -67,6 +73,7 @@ export function CountriesView() {
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
+        <NearbySuggestion />
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
