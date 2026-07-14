@@ -53,7 +53,7 @@ export function RegionView({ slug }: { slug: string }) {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion />
+        <NearbySuggestion regionCenter={region.center} />
         <List>
           {/* On a parent, the online roll-up opens in its own drawer via this card,
               keeping the list below a clean set of places. */}
