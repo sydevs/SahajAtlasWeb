@@ -20,6 +20,8 @@ import {
   TIME_MAX,
   TIME_MIN,
   TIME_STEP,
+  dateWindow,
+  isDateRestricted,
   isTimeRestricted,
 } from '@/lib/shape'
 
@@ -87,7 +89,7 @@ export type SearchFiltersProps = {
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence } = value
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = value
 
   // Patch one or more fields of the current draft.
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
@@ -136,6 +138,9 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   )
   const languageTriggerLabel =
     selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
+  // The date picker is bounded to today … today + 12 months (the same window the URL
+  // codec clamps to). Computed once per render — cheap and always current.
+  const { min: dateMin, max: dateMax } = dateWindow()
 
   return (
     <div className="flex flex-col gap-5">
@@ -219,6 +224,41 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             onValueChange={(next) => setTimeDraft([next[0], next[1]])}
             onValueCommit={(next) => patch({ timeOfDay: [next[0], next[1]] })}
           />
+        </div>
+      </FilterGroup>
+
+      <FilterGroup
+        active={isDateRestricted(dateRange)}
+        label={t('filters.dates.label')}
+        onClear={() => patch({ dateRange: { start: null, end: null } })}
+      >
+        <div className="flex items-end gap-2">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
+            {t('filters.dates.from')}
+            <input
+              className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
+              max={dateRange.end ?? dateMax}
+              min={dateMin}
+              type="date"
+              value={dateRange.start ?? ''}
+              onChange={(event) =>
+                patch({ dateRange: { ...dateRange, start: event.target.value || null } })
+              }
+            />
+          </label>
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
+            {t('filters.dates.to')}
+            <input
+              className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
+              max={dateMax}
+              min={dateRange.start ?? dateMin}
+              type="date"
+              value={dateRange.end ?? ''}
+              onChange={(event) =>
+                patch({ dateRange: { ...dateRange, end: event.target.value || null } })
+              }
+            />
+          </label>
         </div>
       </FilterGroup>
 

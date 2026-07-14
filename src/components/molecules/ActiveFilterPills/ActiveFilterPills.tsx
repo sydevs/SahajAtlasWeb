@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
-import { Info } from 'luxon'
+import { DateTime, Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Chip } from '@/components/atoms/Chip'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
-import { TIME_MAX, TIME_MIN, isTimeRestricted } from '@/lib/shape'
+import { TIME_MAX, TIME_MIN, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 export type ActiveFilterPillsProps = {
   /**
@@ -26,8 +26,9 @@ export type ActiveFilterPillsProps = {
 export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence } = useEventFilters()
-  const { setFormat, setCadence, setTimeOfDay, setDaysOfWeek, setLanguages } = useSetFilters()
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = useEventFilters()
+  const { setFormat, setCadence, setTimeOfDay, setDaysOfWeek, setLanguages, setDateRange } =
+    useSetFilters()
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
 
@@ -74,6 +75,18 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
       label: languages.map(languageLabel).join(', '),
       onRemove: () => setLanguages([]),
     })
+  }
+  if (isDateRestricted(dateRange)) {
+    const fmt = (iso: string) =>
+      DateTime.fromISO(iso).setLocale(locale).toLocaleString(DateTime.DATE_MED)
+    const { start, end } = dateRange
+    let label = ''
+
+    if (start && end) label = t('filters.dates.pill_range', { start: fmt(start), end: fmt(end) })
+    else if (start) label = t('filters.dates.pill_from', { date: fmt(start) })
+    else if (end) label = t('filters.dates.pill_until', { date: fmt(end) })
+
+    pills.push({ key: 'dates', label, onRemove: () => setDateRange({ start: null, end: null }) })
   }
 
   if (pills.length === 0) return null
