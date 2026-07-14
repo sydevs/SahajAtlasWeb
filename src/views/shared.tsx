@@ -265,6 +265,9 @@ export function NearbySuggestion() {
     )
 
     markNearbyDismissed()
+    // Also hide it immediately: accepting from /search → /search is a same-pathname
+    // nav, so NearbySuggestion doesn't remount to re-read the session flag on its own.
+    setDismissed(true)
     navigate(`/search?${params.toString()}`)
   }, [ipLocation, navigate, searchParams])
 
