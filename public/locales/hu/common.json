@@ -51,7 +51,15 @@
     "no_events": "Nem található esemény.",
     "remove": "%{label} eltávolítása",
     "nearby": "< %{km} km",
-    "no_nearby": "Nincs esemény %{km} km-en belül."
+    "no_nearby": "Nincs esemény %{km} km-en belül.",
+    "dates": {
+      "label": "Dátum",
+      "from": "Ettől",
+      "to": "Eddig",
+      "pill_from": "Ettől: %{date}",
+      "pill_until": "Eddig: %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Események keresése a közelben…",
   "online_classes": "Online órák"
