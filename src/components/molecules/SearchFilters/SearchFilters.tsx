@@ -71,6 +71,37 @@ function FilterGroup({
   )
 }
 
+// One labelled date bound (From / To) — a native date input scoped to the picker
+// window. Module-private like `FilterGroup`; both bounds share it so the input
+// styling lives in one place.
+function DateBound({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string
+  value: string
+  min: string
+  max: string
+  onChange: (value: string | null) => void
+}) {
+  return (
+    <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
+      {label}
+      <input
+        className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
+        max={max}
+        min={min}
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value || null)}
+      />
+    </label>
+  )
+}
+
 export type SearchFiltersProps = {
   /** The (draft) filter values the form edits. */
   value: EventFilters
@@ -233,32 +264,20 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         onClear={() => patch({ dateRange: { start: null, end: null } })}
       >
         <div className="flex items-end gap-2">
-          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
-            {t('filters.dates.from')}
-            <input
-              className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
-              max={dateRange.end ?? dateMax}
-              min={dateMin}
-              type="date"
-              value={dateRange.start ?? ''}
-              onChange={(event) =>
-                patch({ dateRange: { ...dateRange, start: event.target.value || null } })
-              }
-            />
-          </label>
-          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
-            {t('filters.dates.to')}
-            <input
-              className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
-              max={dateMax}
-              min={dateRange.start ?? dateMin}
-              type="date"
-              value={dateRange.end ?? ''}
-              onChange={(event) =>
-                patch({ dateRange: { ...dateRange, end: event.target.value || null } })
-              }
-            />
-          </label>
+          <DateBound
+            label={t('filters.dates.from')}
+            max={dateRange.end ?? dateMax}
+            min={dateMin}
+            value={dateRange.start ?? ''}
+            onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
+          />
+          <DateBound
+            label={t('filters.dates.to')}
+            max={dateMax}
+            min={dateRange.start ?? dateMin}
+            value={dateRange.end ?? ''}
+            onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
+          />
         </div>
       </FilterGroup>
 

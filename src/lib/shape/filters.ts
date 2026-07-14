@@ -203,7 +203,7 @@ export const filtersKey = (filters: EventFilters): string =>
     timeOfDay: filters.timeOfDay,
     daysOfWeek: [...filters.daysOfWeek].sort((a, b) => a - b),
     languages: [...filters.languages].sort(),
-    dateRange: [filters.dateRange.start, filters.dateRange.end],
+    dateRange: filters.dateRange,
   })
 
 // ── URL serialization (the query params ARE the applied filters) ────────────────
