@@ -4,6 +4,7 @@ import atlasAuth from './auth'
 import { toSahajLocale } from './client'
 import api from './fetch'
 
+import preview from '@/config/preview'
 import { queryClient } from '@/config/query-client'
 
 // The shared axios client attaches auth + locale to *every* request via one
@@ -25,6 +26,9 @@ const interceptor = use.mock.calls[0][0] as (req: AxiosRequest) => AxiosRequest
 
 beforeEach(() => {
   get.mockReset()
+  // Reset the shared preview singleton so only tests that opt in see preview mode.
+  preview.active = false
+  preview.secret = null
   // loadGeojson caches through the shared QueryClient — clear it so each test
   // re-reads the mocked feed rather than a previous test's cached one.
   queryClient.clear()
@@ -52,6 +56,28 @@ describe('api request interceptor', () => {
     atlasAuth.apiKey = null
 
     expect(interceptor({ headers: {} }).headers['Authorization']).toBeUndefined()
+  })
+
+  it('forwards the preview secret header and draft=true for an active preview session', () => {
+    atlasAuth.apiKey = 'k'
+    preview.active = true
+    preview.secret = 'preview-secret-value'
+
+    const request = interceptor({ headers: {}, params: { depth: 1 } })
+
+    expect(request.headers['x-sahajcloud-preview-secret']).toBe('preview-secret-value')
+    expect(request.params).toMatchObject({ depth: 1, draft: true, locale: 'fr' })
+  })
+
+  it('does not forward draft/secret when the session carries no secret', () => {
+    atlasAuth.apiKey = 'k'
+    preview.active = true
+    preview.secret = null
+
+    const request = interceptor({ headers: {} })
+
+    expect(request.headers['x-sahajcloud-preview-secret']).toBeUndefined()
+    expect(request.params?.draft).toBeUndefined()
   })
 })
 

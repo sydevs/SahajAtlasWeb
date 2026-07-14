@@ -4,6 +4,7 @@ import qs from 'qs'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
+import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
 
 // SahajCloud's 16 localization codes. The widget's i18next language is mapped to
 // the closest of these for the `locale` query param (the geojson endpoint
@@ -56,6 +57,15 @@ client.interceptors.request.use((request) => {
   }
 
   request.params = { ...request.params, locale: toSahajLocale(i18n.resolvedLanguage) }
+
+  // Live preview (issue #40): unlock draft docs and bypass the CMS read cache by
+  // forwarding the preview secret + `draft=true`. Published-only reads ignore `draft`
+  // harmlessly. Gated on an active session with a secret, so normal traffic is
+  // untouched and the secret never rides a non-preview request.
+  if (preview.active && preview.secret) {
+    request.headers[PREVIEW_SECRET_HEADER] = preview.secret
+    request.params.draft = true
+  }
 
   return request
 })

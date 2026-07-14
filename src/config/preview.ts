@@ -30,6 +30,13 @@ const preview: PreviewSession = {
 export const PREVIEW_PATH = '/preview'
 
 /**
+ * Header carrying the live-preview secret to SahajCloud. Must match the CMS's
+ * `PREVIEW_SECRET_HEADER` (`src/lib/utilities/previewSecret.ts`): a request bearing the
+ * valid secret unlocks drafts and is exempt from the client `select`/`populate` gate.
+ */
+export const PREVIEW_SECRET_HEADER = 'x-sahajcloud-preview-secret'
+
+/**
  * Parse a boot location into a preview session, or `null` when it isn't the `/preview`
  * route. Pure (no `window`, no mutation) so it's unit-testable in the node lane. An
  * unknown/absent `collection` yields a `null` collection — handled downstream as an
