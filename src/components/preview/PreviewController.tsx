@@ -9,7 +9,7 @@ import api from '@/config/api'
 import { regionRoute, shapeEventDoc } from '@/config/api/fetch'
 import preview from '@/config/preview'
 import { allowedPreviewPaths, mergePreviewData, shouldBlockPreviewLink } from '@/lib/preview'
-import { safePath } from '@/lib/shape'
+import { isCanonicalPath, safePath } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
 
 // The CMS admin posts live doc updates from the SahajCloud origin; the hook validates
@@ -60,7 +60,12 @@ function usePreviewRouteLock(previewPath: string, collection: 'events' | 'region
   const { pathname } = useLocation()
 
   useEffect(() => {
-    if (!allowedPreviewPaths(previewPath, collection).includes(pathname)) {
+    // Compare decoded: `pathname` is percent-encoded for accented slugs (e.g.
+    // `/li%C3%A8ge/...`) while the allowed set is decoded (built from webPath), so a raw
+    // `includes` would miss and snap every accented-slug preview back on each navigation.
+    const allowed = allowedPreviewPaths(previewPath, collection)
+
+    if (!allowed.some((path) => isCanonicalPath(pathname, path))) {
       navigate(previewPath, { replace: true })
     }
   }, [pathname, previewPath, collection, navigate])
@@ -168,12 +173,28 @@ function PreviewFallback() {
 }
 
 /**
+ * Pin event/region query freshness while previewing. The controller seeds and live-
+ * overlays ['event', id] / ['region', slug] via setQueryData; without this the global
+ * staleTime of 0 lets a drawer's suspense query background-refetch on remount (e.g. after
+ * closing register/share) and stomp unsaved live edits with the last-saved doc.
+ */
+function usePinnedPreviewQueries(): void {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    queryClient.setQueryDefaults(['event'], { staleTime: Infinity })
+    queryClient.setQueryDefaults(['region'], { staleTime: Infinity })
+  }, [queryClient])
+}
+
+/**
  * Live-preview controller (issue #40). Mounted only in preview mode (lazy, from
  * AppShell), it renders no drawer of its own — it drives the drawer cache + map camera
  * from the live doc and inerts navigation. Dispatches on the previewed collection.
  */
 export function PreviewController() {
   usePreviewLinkGuard()
+  usePinnedPreviewQueries()
 
   const id = preview.id ? Number(preview.id) : NaN
 
