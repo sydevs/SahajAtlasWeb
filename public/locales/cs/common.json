@@ -53,5 +53,6 @@
     "nearby": "< %{km} km",
     "no_nearby": "Žádné události do %{km} km."
   },
-  "search_placeholder": "Hledat události poblíž…"
+  "search_placeholder": "Hledat události poblíž…",
+  "online_classes": "Online kurzy"
 }

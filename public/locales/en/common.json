@@ -67,5 +67,6 @@
     "description_other": "%{count} free meditation classes at %{venue}",
     "title": "Free Meditation Classes at %{venue}"
   },
-  "search_placeholder": "Search for events near…"
+  "search_placeholder": "Search for events near…",
+  "online_classes": "Online Classes"
 }
