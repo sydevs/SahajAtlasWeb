@@ -1,0 +1,49 @@
+import { renderToStaticMarkup } from 'react-dom/server'
+import { describe, it, expect, vi } from 'vitest'
+
+import { NearbyPrompt } from './NearbyPrompt'
+
+// Mock the i18n boundary (react-i18next) so the SSR markup asserts on real copy —
+// including the Ruby-style %{city} interpolation — without booting i18next. Node
+// lane, no jsdom (see .claude/rules/tests.md).
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: { city?: string }) =>
+      ({
+        'nearby_prompt.title': `Events near ${opts?.city}?`,
+        'nearby_prompt.subtitle': 'Based on your approximate location',
+        'nearby_prompt.dismiss': 'Dismiss',
+      })[key] ?? key,
+  }),
+}))
+
+const noop = () => {}
+
+describe('NearbyPrompt', () => {
+  it('frames the guessed city as a suggestion, not a definitive location', () => {
+    const html = renderToStaticMarkup(
+      <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
+    )
+
+    expect(html).toContain('Events near Paris?')
+    expect(html).toContain('approximate location')
+    expect(html).not.toContain('your location')
+  })
+
+  it('renders the suggestion as a real button (keyboard accessible)', () => {
+    const html = renderToStaticMarkup(
+      <NearbyPrompt city="Berlin" onDismiss={noop} onSelect={noop} />,
+    )
+
+    expect(html).toContain('<button')
+    expect(html).toContain('Events near Berlin?')
+  })
+
+  it('gives the dismiss control an accessible label', () => {
+    const html = renderToStaticMarkup(
+      <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
+    )
+
+    expect(html).toContain('aria-label="Dismiss"')
+  })
+})
