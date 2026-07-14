@@ -18,6 +18,8 @@ export default defineConfig({
     include: ['**/*.{test,spec}.{ts,tsx}'],
     // Co-located specs live under src/; smoke specs hit the network and run via
     // their own config — keep them (and build output) out of the unit lane.
-    exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**'],
+    // `.claude/worktrees` holds gitignored git worktrees (each a full checkout with
+    // its own node_modules) — never scan those, or the lane runs duplicate/foreign specs.
+    exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**', '.claude/worktrees/**'],
   },
 })
