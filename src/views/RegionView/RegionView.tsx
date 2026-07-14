@@ -49,9 +49,11 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <List>
+          {/* Region ids and event ids come from independent sequences, so all three
+              maps land in one List — namespace the keys so they can't collide. */}
           {region.subregions.map((child) => (
             <RegionCard
-              key={child.id}
+              key={`region-${child.id}`}
               count={child.eventCount}
               href={child.path}
               label={child.name}
@@ -59,11 +61,11 @@ export function RegionView({ slug }: { slug: string }) {
             />
           ))}
           {region.events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={`event-${event.id}`} event={event} />
           ))}
           {/* Placeless online events under this region, rolled up at the end. */}
           {region.onlineEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={`online-${event.id}`} event={event} />
           ))}
         </List>
       </DrawerBody>
