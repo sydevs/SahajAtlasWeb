@@ -58,6 +58,22 @@ export const Default: Story = () => (
       <Alert hideIcon color="primary" description="An inline notice with no icon." title="Note" />
     </StorySection>
 
+    <StorySection
+      description="`sm` slims the padding for compact inline prompts; `onClose` adds a dismiss button, and a single-line alert vertically centres its icon and ×."
+      title="Small & dismissible"
+    >
+      <div className="flex max-w-sm flex-col gap-3">
+        <Alert color="primary" description="Default padding, two lines." title="Medium (default)" />
+        <Alert
+          closeLabel="Dismiss"
+          color="primary"
+          size="sm"
+          title="Small, single line, dismissible"
+          onClose={() => {}}
+        />
+      </div>
+    </StorySection>
+
     <div />
   </StoryWrapper>
 )

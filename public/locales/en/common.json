@@ -70,7 +70,7 @@
   "search_placeholder": "Search for events near…",
   "online_classes": "Online Classes",
   "nearby_prompt": {
-    "title": "Events near %{city}?",
+    "title": "Looking for events near %{city}?",
     "dismiss": "Dismiss"
   }
 }

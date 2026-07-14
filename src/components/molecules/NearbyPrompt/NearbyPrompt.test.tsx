@@ -10,7 +10,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
-        'nearby_prompt.title': `Events near ${opts?.city}?`,
+        'nearby_prompt.title': `Looking for events near ${opts?.city}?`,
         'nearby_prompt.dismiss': 'Dismiss',
       })[key] ?? key,
   }),
@@ -24,7 +24,7 @@ describe('NearbyPrompt', () => {
       <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
     )
 
-    expect(html).toContain('Events near Paris?')
+    expect(html).toContain('Looking for events near Paris?')
     expect(html).not.toContain('your location')
   })
 
@@ -34,7 +34,7 @@ describe('NearbyPrompt', () => {
     )
 
     expect(html).toContain('<button')
-    expect(html).toContain('Events near Berlin?')
+    expect(html).toContain('Looking for events near Berlin?')
   })
 
   it('gives the dismiss control an accessible label', () => {
@@ -45,12 +45,13 @@ describe('NearbyPrompt', () => {
     expect(html).toContain('aria-label="Dismiss"')
   })
 
-  it('uses the primary tint and vertically centres its single line', () => {
+  it('is a slim, primary-tinted, vertically-centred single line', () => {
     const html = renderToStaticMarkup(
       <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
     )
 
     expect(html).toContain('bg-primary-3')
     expect(html).toContain('items-center')
+    expect(html).toContain('p-2')
   })
 })

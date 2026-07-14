@@ -21,6 +21,8 @@ const alert = tv({
     variant: { flat: '', bordered: 'border', faded: 'border' },
     // Top-align a two-line alert; vertically centre a single line of text.
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
+    // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.
+    size: { md: '', sm: { base: 'gap-2 p-2' } },
   },
   compoundVariants: [
     { color: 'primary', variant: 'flat', class: { base: 'bg-primary-3 text-primary-11' } },
@@ -52,7 +54,7 @@ const alert = tv({
       class: { base: 'border-danger-6 bg-danger-2 text-danger-11' },
     },
   ],
-  defaultVariants: { color: 'default', variant: 'flat', align: 'start' },
+  defaultVariants: { color: 'default', variant: 'flat', align: 'start', size: 'md' },
 })
 
 // A round info/alert glyph used when no custom icon is supplied.
@@ -86,6 +88,7 @@ export type AlertProps = VariantProps<typeof alert> & {
 export function Alert({
   color,
   variant,
+  size,
   title,
   description,
   icon,
@@ -99,7 +102,7 @@ export function Alert({
   // of text — exactly one of title/description and no extra children; a taller
   // two-line alert top-aligns instead.
   const centered = !children && Boolean(title) !== Boolean(description)
-  const slots = alert({ color, variant, align: centered ? 'center' : 'start' })
+  const slots = alert({ color, variant, size, align: centered ? 'center' : 'start' })
 
   return (
     <div className={slots.base({ className })} role="alert">

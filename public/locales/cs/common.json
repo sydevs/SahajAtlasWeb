@@ -56,7 +56,7 @@
   "search_placeholder": "Hledat události poblíž…",
   "online_classes": "Online kurzy",
   "nearby_prompt": {
-    "title": "Akce poblíž: %{city}?",
+    "title": "Hledáte akce poblíž: %{city}?",
     "dismiss": "Skrýt"
   }
 }

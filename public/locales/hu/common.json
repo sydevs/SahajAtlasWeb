@@ -56,7 +56,7 @@
   "search_placeholder": "Események keresése a közelben…",
   "online_classes": "Online órák",
   "nearby_prompt": {
-    "title": "Események %{city} közelében?",
+    "title": "Eseményeket keresel %{city} közelében?",
     "dismiss": "Elrejtés"
   }
 }
