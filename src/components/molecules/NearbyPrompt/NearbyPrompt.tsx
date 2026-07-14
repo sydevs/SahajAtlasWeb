@@ -31,8 +31,8 @@ export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
     <div className="relative mb-3">
       <button
         className="flex w-full items-start gap-3 rounded bg-secondary-3 p-3 pr-10 text-left text-secondary-11 transition-colors hover:bg-secondary-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        onClick={onSelect}
         type="button"
+        onClick={onSelect}
       >
         <LocationIcon className="mt-0.5 shrink-0" size={20} />
         <span className="min-w-0 flex-1">

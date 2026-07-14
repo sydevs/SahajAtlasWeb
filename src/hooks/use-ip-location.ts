@@ -15,6 +15,7 @@ const IP_LOCATION_ENDPOINT = 'https://ipwho.is/'
 export async function fetchIpLocation(): Promise<IpLocation | null> {
   try {
     const response = await fetch(IP_LOCATION_ENDPOINT)
+
     if (!response.ok) return null
 
     const parsed = IpLocationSchema.safeParse(await response.json())
