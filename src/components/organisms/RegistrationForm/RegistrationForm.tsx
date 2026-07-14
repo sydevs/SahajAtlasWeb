@@ -19,7 +19,7 @@ import { Checkbox } from '@/components/atoms/Checkbox'
 import { Select, SelectItem } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
-import { useWidgetMode } from '@/config/mode'
+import preview from '@/config/preview'
 import { useRegistrationDraft } from '@/config/store'
 import { Registration, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
@@ -57,7 +57,7 @@ export function RegistrationForm({
   const { t } = useTranslation('events')
   // In live preview the event is a draft — previewing must never create a real
   // registration, so the submit is disabled and mutate() is short-circuited.
-  const { preview } = useWidgetMode()
+  const isPreview = preview.active
 
   // Restore any in-progress values for this event once, so a drawer remount (e.g.
   // the md-crossing direction remount) can't drop a half-filled form.
@@ -99,7 +99,7 @@ export function RegistrationForm({
     <form
       className="mx-auto flex w-full max-w-md flex-col gap-3"
       onSubmit={handleSubmit((data) => {
-        if (!preview) mutation.mutate(data)
+        if (!isPreview) mutation.mutate(data)
       })}
     >
       {submitted ? (
@@ -152,7 +152,7 @@ export function RegistrationForm({
             </Button>
             <Button
               color="primary"
-              disabled={preview}
+              disabled={isPreview}
               isLoading={mutation.isPending}
               type="submit"
               variant="flat"

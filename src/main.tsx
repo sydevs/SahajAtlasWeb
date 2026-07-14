@@ -21,13 +21,13 @@ const hasMap = searchParams.get('map') !== '0' && searchParams.get('map') !== 'f
 // (BrowserRouter snapshots window.location on mount). No-op on every other route, so
 // normal standalone use is unaffected. `key`/`map` above are read first, off the
 // original URL, so scrubbing the query string doesn't drop them.
-const preview = capturePreview()
+capturePreview()
 
 // Restore the persisted (or default) theme before first paint to avoid a flash.
 initTheme()
 
 ReactDOM.createRoot(document.getElementById('syatlas')!).render(
   <BrowserRouter>
-    <App standalone apiKey={atlasAuth.apiKey} hasMap={hasMap} preview={preview} />
+    <App standalone apiKey={atlasAuth.apiKey} hasMap={hasMap} />
   </BrowserRouter>,
 )

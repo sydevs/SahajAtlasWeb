@@ -6,19 +6,15 @@ import { createContext, useContext } from 'react'
 //    advertised in the standalone build — the widget's hash URLs are not canonical.
 //  - `hasMap`: whether a Mapbox canvas renders (default true). map=false omits the
 //    whole map subtree; the MapController is then a no-op.
-//  - `preview`: SahajCloud live-preview mode (issue #40). Set only by the /preview
-//    boot (main.tsx); lazy-mounts <PreviewController> and inerts navigation so the
-//    admin can preview draft events/regions. Default false — zero cost otherwise.
+//
+// Live preview (issue #40) is NOT a mode axis: it's boot session-state (only ever the
+// standalone /preview iframe, never the web-component), held in the config/preview.ts
+// singleton and read directly where needed — like config/api/auth.ts.
 export type WidgetMode = {
   standalone: boolean
   hasMap: boolean
-  preview: boolean
 }
 
-export const WidgetModeContext = createContext<WidgetMode>({
-  standalone: false,
-  hasMap: true,
-  preview: false,
-})
+export const WidgetModeContext = createContext<WidgetMode>({ standalone: false, hasMap: true })
 
 export const useWidgetMode = () => useContext(WidgetModeContext)

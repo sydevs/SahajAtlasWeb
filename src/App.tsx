@@ -18,6 +18,7 @@ import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import { Mapbox } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
+import preview from '@/config/preview'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 import '@/config/i18n'
@@ -44,10 +45,6 @@ type AppProps = {
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
-  // SahajCloud live-preview mode (default false). Set only by the /preview boot
-  // (main.tsx); lazy-mounts <PreviewController> and inerts navigation — zero cost
-  // to normal standalone/embedded use.
-  preview?: boolean
 }
 
 export default function App({
@@ -57,7 +54,6 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
-  preview = false,
 }: AppProps) {
   return (
     <Providers>
@@ -68,7 +64,6 @@ export default function App({
               apiKey={apiKey}
               defaultLocale={defaultLocale}
               hasMap={hasMap}
-              preview={preview}
               standalone={standalone}
             />
           </ErrorBoundary>
@@ -85,10 +80,9 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
-  preview: boolean
 }
 
-function AppShell({ apiKey, defaultLocale, standalone, hasMap, preview }: AppShellProps) {
+function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) {
   if (!apiKey) throw new Error('Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
@@ -141,11 +135,11 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, preview }: AppShe
   }, [location.pathname, fathomEnabled, primaryDomain])
 
   return (
-    <WidgetModeContext.Provider value={{ standalone, hasMap, preview }}>
+    <WidgetModeContext.Provider value={{ standalone, hasMap }}>
       <Helmet>
         <meta content={locale} property="og:locale" />
       </Helmet>
-      {preview && (
+      {preview.active && (
         <Suspense fallback={null}>
           <PreviewController />
         </Suspense>
