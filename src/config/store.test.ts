@@ -17,6 +17,7 @@ describe('useViewState', () => {
       longitude: 0,
       zoom: 0,
       selection: null,
+      hover: null,
       boundary: undefined,
     })
   })
@@ -41,5 +42,19 @@ describe('useViewState', () => {
 
     expect(state.selection).toEqual({ latitude: 1, longitude: 2, approximate: true })
     expect(state.boundary).toBe(boundary)
+  })
+
+  it('setHover stores a transient highlight independently of the selection', () => {
+    useViewState.getState().setSelection({ latitude: 1, longitude: 2, approximate: false })
+    useViewState.getState().setHover({ latitude: 3, longitude: 4, approximate: true })
+
+    const state = useViewState.getState()
+
+    // hover is its own slice — setting it leaves the committed selection untouched.
+    expect(state.hover).toEqual({ latitude: 3, longitude: 4, approximate: true })
+    expect(state.selection).toEqual({ latitude: 1, longitude: 2, approximate: false })
+
+    useViewState.getState().setHover(null)
+    expect(useViewState.getState().hover).toBeNull()
   })
 })

@@ -15,6 +15,8 @@ import {
   selectedPointLayer,
   unclusteredPointLayer,
   selectedAreaLayer,
+  hoveredPointLayer,
+  hoveredAreaLayer,
   boundsLayer,
 } from './layers'
 
@@ -55,12 +57,13 @@ const DEBUG_PADDING = false
 export function Mapbox() {
   let navigate = useNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
-  const { zoom, latitude, longitude, setViewState, selection, boundary } = useViewState(
+  const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
     useShallow((s) => ({
       zoom: s.zoom,
       latitude: s.latitude,
       longitude: s.longitude,
       selection: s.selection,
+      hover: s.hover,
       boundary: s.boundary,
       setViewState: s.setViewState,
     })),
@@ -187,6 +190,26 @@ export function Mapbox() {
           type="geojson"
         >
           <Layer {...(selection.approximate ? selectedAreaLayer : selectedPointLayer)} />
+        </Source>
+      )}
+      {hover && (
+        <Source
+          data={{
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [hover.longitude, hover.latitude],
+                },
+              },
+            ],
+          }}
+          id="hover"
+          type="geojson"
+        >
+          <Layer {...(hover.approximate ? hoveredAreaLayer : hoveredPointLayer)} />
         </Source>
       )}
       <GeolocateControl />

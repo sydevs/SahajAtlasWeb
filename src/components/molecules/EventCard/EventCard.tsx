@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
 import { eventTimeZone, isOnline, nextOccurrence } from '@/lib/shape'
 import { EventTime } from '@/components/molecules/EventTime'
 import { EventSoonChip } from '@/components/molecules/EventSoon'
@@ -17,6 +18,12 @@ export interface EventCardProps {
 export function EventCard({ event }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageNames } = useLocale()
+  const { highlightEvent } = useMapController()
+
+  // Highlight this event's pin while the card is hovered/focused (no camera move);
+  // the cleanup clears it if the card unmounts mid-hover (e.g. clicking through to
+  // the event before the pointer leaves), so no stale highlight survives.
+  useEffect(() => () => highlightEvent(null), [highlightEvent])
 
   const online = isOnline(event)
   const schedule = event.schedule
@@ -40,6 +47,10 @@ export function EventCard({ event }: EventCardProps) {
     <Link
       className="block px-6 text-inherit transition-colors hover:bg-primary-2 dark:hover:bg-gray-3"
       href={event.path}
+      onBlur={() => highlightEvent(null)}
+      onFocus={() => highlightEvent(event)}
+      onMouseEnter={() => highlightEvent(event)}
+      onMouseLeave={() => highlightEvent(null)}
     >
       <li key={event.id} className="flex-center-y py-5 border-b border-divider min-h-36">
         <div className="flex flex-grow flex-col gap-1 self-stretch">

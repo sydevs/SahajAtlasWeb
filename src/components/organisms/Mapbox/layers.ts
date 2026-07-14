@@ -61,6 +61,40 @@ export const selectedAreaLayer: LayerProps = {
   },
 }
 
+// Card-hover highlight (issue #44). Reuses the `selected` / `cluster-selected`
+// sprites — larger and slightly translucent so the hovered pin "pops" above the
+// base points without a Mapbox style change (a dedicated hover sprite can land
+// with #17). Fed by the `hover` source (not `selection`) and never added to
+// `interactiveLayerIds`, so the highlight is purely visual.
+export const hoveredPointLayer: LayerProps = {
+  id: 'hovered-point',
+  type: 'symbol',
+  source: 'hover',
+  layout: {
+    'icon-anchor': 'bottom',
+    'icon-size': 1,
+    'icon-ignore-placement': true,
+    'icon-image': 'selected',
+  },
+  paint: {
+    'icon-opacity': 0.9,
+  },
+}
+
+export const hoveredAreaLayer: LayerProps = {
+  id: 'hovered-area',
+  type: 'symbol',
+  source: 'hover',
+  layout: {
+    'icon-size': 1.4,
+    'icon-ignore-placement': true,
+    'icon-image': 'cluster-selected',
+  },
+  paint: {
+    'icon-opacity': 0.7,
+  },
+}
+
 export const boundsLayer: LayerProps = {
   id: 'selected-bounds',
   type: 'line',
