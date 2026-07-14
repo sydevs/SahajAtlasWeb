@@ -71,6 +71,17 @@ function FilterGroup({
   )
 }
 
+// Clamp a typed date into [min, max]. A native date input enforces min/max in its
+// calendar UI but not for keyboard entry, so clamp on change — this keeps the draft
+// (and its live "Apply (N)" count) in step with what the URL codec accepts, and
+// keeps the From/To pair from being typed into a reversed range.
+const clampDate = (value: string, min: string, max: string): string => {
+  if (value < min) return min
+  if (value > max) return max
+
+  return value
+}
+
 // One labelled date bound (From / To) — a native date input scoped to the picker
 // window. Module-private like `FilterGroup`; both bounds share it so the input
 // styling lives in one place.
@@ -96,7 +107,9 @@ function DateBound({
         min={min}
         type="date"
         value={value}
-        onChange={(event) => onChange(event.target.value || null)}
+        onChange={(event) =>
+          onChange(event.target.value ? clampDate(event.target.value, min, max) : null)
+        }
       />
     </label>
   )
