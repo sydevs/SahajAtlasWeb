@@ -3,10 +3,10 @@ import type { BBox, Position } from 'geojson'
 import { boundsOfPoints } from '@/lib/geo'
 
 /**
- * Derives hierarchy aggregates (event counts, bounding boxes) from the GeoJSON
- * event feed. SahajCloud regions carry no `eventCount`/`bounds`, so each
- * country/region/area/venue's totals are computed from the events that fall
- * under it — matched by the event region's `breadcrumbs` ancestry.
+ * The region-tree + event-aggregation layer over the GeoJSON feed. SahajCloud
+ * regions carry no `eventCount`/`bounds`, so each country/region/area/venue's
+ * totals are computed from the events under it — matched by walking the region
+ * tree's `parent` links (the wholesale regions dict), see `ancestorIds`.
  */
 
 /** A geolocated event reduced to what hierarchy aggregation needs. */
@@ -24,19 +24,74 @@ export type GeoEvent = {
   online: boolean
 }
 
-type Breadcrumb = { doc?: number | { id: number } | null }
+// ── Region tree (over the wholesale regions dict) ───────────────────────────────
+
+/** The minimal region-node shape the tree index needs (a subset of `RegionNode`). */
+export type RegionTreeNode = {
+  id: number
+  slug: string
+  /** Parent region id; `null`/absent for a country root. */
+  parent?: number | null
+}
+
+/** O(1) lookups over the wholesale region list: by id, by slug, and by parent. */
+export type RegionIndex<T extends RegionTreeNode> = {
+  byId: Map<number, T>
+  bySlug: Map<string, T>
+  childrenByParent: Map<number, T[]>
+}
 
 /**
- * The region-id ancestry encoded in a populated region's `breadcrumbs`
- * (country → … → self). At `depth=1` each `doc` is a numeric id; deeper
- * populations may inline the region object, so both are handled.
+ * Builds the id/slug/parent lookup maps for a region tree in one pass. Slugs are
+ * globally unique across levels, so `bySlug` is unambiguous. Children keep their
+ * incoming order (the wholesale read sorts by name).
  */
-export const ancestorIdsFromBreadcrumbs = (
-  breadcrumbs: Breadcrumb[] | null | undefined,
-): number[] =>
-  (breadcrumbs ?? [])
-    .map((crumb) => (typeof crumb.doc === 'number' ? crumb.doc : (crumb.doc?.id ?? null)))
-    .filter((id): id is number => id !== null)
+export const indexRegions = <T extends RegionTreeNode>(nodes: T[]): RegionIndex<T> => {
+  const byId = new Map<number, T>()
+  const bySlug = new Map<string, T>()
+  const childrenByParent = new Map<number, T[]>()
+
+  for (const node of nodes) {
+    byId.set(node.id, node)
+    bySlug.set(node.slug, node)
+
+    if (node.parent != null) {
+      const siblings = childrenByParent.get(node.parent)
+
+      if (siblings) siblings.push(node)
+      else childrenByParent.set(node.parent, [node])
+    }
+  }
+
+  return { byId, bySlug, childrenByParent }
+}
+
+/** A region's direct children (empty for a leaf), in the index's name-sorted order. */
+export const childrenOf = <T extends RegionTreeNode>(index: RegionIndex<T>, id: number): T[] =>
+  index.childrenByParent.get(id) ?? []
+
+/**
+ * A region's full ancestry ids, self-inclusive (self → parent → … → country),
+ * walked up the `parent` links. Replaces the feed's `breadcrumbs` chain now that
+ * the wholesale regions dict carries every parent link. A `seen` guard stops a
+ * malformed cycle from looping forever.
+ */
+export const ancestorIds = <T extends RegionTreeNode>(
+  index: RegionIndex<T>,
+  id: number,
+): number[] => {
+  const chain: number[] = []
+  const seen = new Set<number>()
+  let current: number | null | undefined = id
+
+  while (current != null && !seen.has(current)) {
+    seen.add(current)
+    chain.push(current)
+    current = index.byId.get(current)?.parent
+  }
+
+  return chain
+}
 
 /** Events whose ancestry includes `regionId` (i.e. that fall under that region). */
 export const eventsUnder = <T extends GeoEvent>(events: T[], regionId: number): T[] =>

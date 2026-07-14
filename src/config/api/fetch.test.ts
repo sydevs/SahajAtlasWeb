@@ -99,14 +99,13 @@ describe('getGeojson', () => {
   })
 })
 
-describe('getRegion (unified hierarchy derivation)', () => {
-  // One geojson feature; `region` carries the breadcrumb ancestry the split reads,
+describe('getRegion (region-tree derivation)', () => {
+  // One geojson feature; ancestry is walked from the regions dict via `region.id`,
   // geometry is null for online events, `next` seeds the roll-up ordering.
   const feature = ({
     id,
     regionId,
     slug,
-    breadcrumbs,
     eventType = 'offline',
     coordinates,
     next,
@@ -114,7 +113,6 @@ describe('getRegion (unified hierarchy derivation)', () => {
     id: number
     regionId: number
     slug: string
-    breadcrumbs: number[]
     eventType?: 'offline' | 'online'
     coordinates?: [number, number]
     next?: string
@@ -126,59 +124,52 @@ describe('getRegion (unified hierarchy derivation)', () => {
       title: `Event ${id}`,
       eventType,
       languages: ['nl'],
-      region: {
-        id: regionId,
-        slug,
-        level: 'city',
-        breadcrumbs: breadcrumbs.map((doc) => ({ doc })),
-      },
+      region: { id: regionId, slug, level: 'city' },
       schedule: next ? { firstDate: '2026-01-01T00:00:00Z', upcomingDates: [next] } : undefined,
     },
   })
 
   // Belgium(28), a country with three city children: Antwerpen(473) [2 located →
   // carded], Brussels(470) [1 located → carded], Ghent(475) [1 online → no card].
-  const country = {
-    id: 28,
-    slug: 'belgium',
-    level: 'country',
-    name: 'Belgium',
-    webPath: '/belgium',
-    webUrl: 'https://atlas.example/belgium',
-    legacyData: { countryCode: 'BE' },
-  }
-  const children = [
-    { id: 473, slug: 'antwerpen', level: 'city', name: 'Antwerpen', webPath: '/belgium/antwerpen' },
-    { id: 470, slug: 'brussels', level: 'city', name: 'Brussels', webPath: '/belgium/brussels' },
-    { id: 475, slug: 'ghent', level: 'city', name: 'Ghent', webPath: '/belgium/ghent' },
+  // The wholesale /regions read returns the whole tree with each node's parent link;
+  // ancestry is walked from those links, not the feed.
+  const tree = [
+    {
+      id: 28,
+      slug: 'belgium',
+      level: 'country',
+      name: 'Belgium',
+      parent: null,
+      webPath: '/belgium',
+      webUrl: 'https://atlas.example/belgium',
+      legacyData: { countryCode: 'BE' },
+    },
+    {
+      id: 473,
+      slug: 'antwerpen',
+      level: 'city',
+      name: 'Antwerpen',
+      parent: 28,
+      webPath: '/belgium/antwerpen',
+    },
+    {
+      id: 470,
+      slug: 'brussels',
+      level: 'city',
+      name: 'Brussels',
+      parent: 28,
+      webPath: '/belgium/brussels',
+    },
+    { id: 475, slug: 'ghent', level: 'city', name: 'Ghent', parent: 28, webPath: '/belgium/ghent' },
   ]
   const countryFeed = [
-    feature({
-      id: 1,
-      regionId: 473,
-      slug: 'antwerpen',
-      breadcrumbs: [28, 473],
-      coordinates: [4.4, 51.2],
-    }),
-    feature({
-      id: 2,
-      regionId: 473,
-      slug: 'antwerpen',
-      breadcrumbs: [28, 473],
-      coordinates: [4.41, 51.21],
-    }),
-    feature({
-      id: 3,
-      regionId: 470,
-      slug: 'brussels',
-      breadcrumbs: [28, 470],
-      coordinates: [4.35, 50.85],
-    }),
+    feature({ id: 1, regionId: 473, slug: 'antwerpen', coordinates: [4.4, 51.2] }),
+    feature({ id: 2, regionId: 473, slug: 'antwerpen', coordinates: [4.41, 51.21] }),
+    feature({ id: 3, regionId: 470, slug: 'brussels', coordinates: [4.35, 50.85] }),
     feature({
       id: 4,
       regionId: 475,
       slug: 'ghent',
-      breadcrumbs: [28, 475],
       eventType: 'online',
       next: '2026-08-01T00:00:00Z',
     }),
@@ -186,29 +177,24 @@ describe('getRegion (unified hierarchy derivation)', () => {
       id: 5,
       regionId: 473,
       slug: 'antwerpen',
-      breadcrumbs: [28, 473],
       eventType: 'online',
       next: '2026-07-20T00:00:00Z',
     }),
   ]
 
-  const countryRoute = (url: string, config?: { params?: { where?: Record<string, unknown> } }) => {
-    const where = config?.params?.where
-
-    if (url === '/regions' && where?.slug) return { data: { docs: [country] } }
-    if (url === '/regions' && where?.parent) return { data: { docs: children } }
-
-    return { data: { type: 'FeatureCollection', features: countryFeed } }
-  }
+  // getRegion makes exactly two reads now: the wholesale region tree + the feed.
+  const route = (url: string, feed = countryFeed, nodes: unknown[] = tree) =>
+    url === '/regions'
+      ? { data: { docs: nodes } }
+      : { data: { type: 'FeatureCollection', features: feed } }
 
   it('cards every child with a located event and rolls up online', async () => {
-    get.mockImplementation((url: string, config?: never) =>
-      Promise.resolve(countryRoute(url, config)),
-    )
+    get.mockImplementation((url: string) => Promise.resolve(route(url)))
 
     const region = await api.getRegion('belgium')
 
-    // Core derivations: level, ISO code, path, canonical URL, bounds of located events.
+    // Core derivations: level, ISO code (slug 'belgium' → legacyData fallback), path,
+    // canonical URL, bounds of located events.
     expect(region.level).toBe('country')
     expect(region.countryCode).toBe('BE')
     expect(region.path).toBe('/belgium')
@@ -233,6 +219,31 @@ describe('getRegion (unified hierarchy derivation)', () => {
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
 
+  it('derives a country code from an ISO slug (post-#556), with no legacyData', async () => {
+    const isoTree = [
+      { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
+    ]
+    get.mockImplementation((url: string) =>
+      Promise.resolve(
+        route(
+          url,
+          [feature({ id: 1, regionId: 9, slug: 'de', coordinates: [13.4, 52.5] })],
+          isoTree,
+        ),
+      ),
+    )
+
+    const region = await api.getRegion('de')
+
+    expect(region.countryCode).toBe('de')
+  })
+
+  it('throws when the slug is not in the region tree', async () => {
+    get.mockImplementation((url: string) => Promise.resolve(route(url)))
+
+    await expect(api.getRegion('atlantis')).rejects.toThrow('Region not found')
+  })
+
   it('splits a leaf city into located events and an online roll-up', async () => {
     const city = {
       id: 470,
@@ -240,31 +251,16 @@ describe('getRegion (unified hierarchy derivation)', () => {
       level: 'city',
       name: 'Brussels',
       subtitle: 'Capital',
+      parent: 28,
       webPath: '/belgium/brussels',
       webUrl: 'https://atlas.example/belgium/brussels',
     }
     const leafFeed = [
-      feature({
-        id: 10,
-        regionId: 470,
-        slug: 'brussels',
-        breadcrumbs: [28, 470],
-        coordinates: [4.35, 50.85],
-      }),
-      feature({
-        id: 11,
-        regionId: 470,
-        slug: 'brussels',
-        breadcrumbs: [28, 470],
-        eventType: 'online',
-      }),
+      feature({ id: 10, regionId: 470, slug: 'brussels', coordinates: [4.35, 50.85] }),
+      feature({ id: 11, regionId: 470, slug: 'brussels', eventType: 'online' }),
     ]
-    const leafRoute = (url: string, config?: { params?: { where?: Record<string, unknown> } }) =>
-      url === '/regions' && config?.params?.where?.slug
-        ? { data: { docs: [city] } }
-        : { data: { type: 'FeatureCollection', features: leafFeed } }
 
-    get.mockImplementation((url: string, config?: never) => Promise.resolve(leafRoute(url, config)))
+    get.mockImplementation((url: string) => Promise.resolve(route(url, leafFeed, [city])))
 
     const region = await api.getRegion('brussels')
 
