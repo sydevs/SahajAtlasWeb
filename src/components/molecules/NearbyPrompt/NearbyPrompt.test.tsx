@@ -48,13 +48,14 @@ describe('NearbyPrompt', () => {
     expect(html).not.toContain('role="alert"')
   })
 
-  it('is a slim, primary-tinted, vertically-centred single line', () => {
+  it('is a primary-tinted, header-aligned, vertically-centred single line', () => {
     const html = renderToStaticMarkup(
       <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
     )
 
     expect(html).toContain('bg-primary-3')
     expect(html).toContain('items-center')
-    expect(html).toContain('p-2')
+    // Horizontal padding brought in line with the drawer header (px-4).
+    expect(html).toContain('px-4')
   })
 })

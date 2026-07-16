@@ -24,9 +24,11 @@ export type NearbyPromptProps = {
 export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
   const { t } = useTranslation('common')
 
+  // `px-4` matches the drawer header's horizontal padding so the prompt's icon/text
+  // line up with the header content; the slim `sm` size keeps the vertical padding.
   return (
     <Alert
-      className="mb-3"
+      className="mb-3 px-4"
       closeLabel={t('nearby_prompt.dismiss')}
       color="primary"
       icon={<LocationIcon size={18} />}
