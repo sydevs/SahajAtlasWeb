@@ -11,9 +11,8 @@ import type {
 import type { EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
-import sdk, { requestJson, validateSDKResponse } from './client'
+import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
-import i18n from '@/config/i18n'
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
@@ -186,9 +185,10 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
   queryClient.fetchQuery({
-    // Every request sends the resolved locale (applyRequestContext); key by the same
-    // value so a language switch re-keys the titles sliver (feed + regions stay cached).
-    queryKey: ['event-titles', i18n.resolvedLanguage || 'en'],
+    // Every request sends the resolved locale (activeLocale, via applyRequestContext);
+    // key by that same value so a language switch re-keys the titles sliver (feed +
+    // regions stay cached) and the key can't drift from the locale actually sent.
+    queryKey: ['event-titles', activeLocale()],
     queryFn: getEventTitles,
     staleTime: GEOJSON_STALE_TIME,
   })

@@ -13,7 +13,8 @@ import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
 // Typed as the CMS locale union at the boundary (a runtime value outside the union is
 // caught by that server-side fallback). Alignment is a policy: a UI language SahajCloud
 // lacks is added there (e.g. sydevs/SahajCloud#578), not remapped here.
-const activeLocale = (): Config['locale'] => (i18n.resolvedLanguage || 'en') as Config['locale']
+export const activeLocale = (): Config['locale'] =>
+  (i18n.resolvedLanguage || 'en') as Config['locale']
 
 /**
  * The cross-cutting request context applied to every SahajCloud request — the SDK

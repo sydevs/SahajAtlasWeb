@@ -26,7 +26,6 @@ vi.mock('@payloadcms/sdk', () => ({
     findByID = sdk.findByID
     request = sdk.request
   },
-  PayloadSDKError: class PayloadSDKError extends Error {},
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 
