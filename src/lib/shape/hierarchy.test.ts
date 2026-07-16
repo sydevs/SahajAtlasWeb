@@ -3,10 +3,12 @@ import type { GeoEvent } from './hierarchy'
 import { describe, it, expect } from 'vitest'
 
 import {
-  ancestorIdsFromBreadcrumbs,
+  ancestorIds,
   boundsUnder,
+  childrenOf,
   countUnder,
   eventsUnder,
+  indexRegions,
   partitionUnder,
 } from './hierarchy'
 
@@ -17,16 +19,50 @@ const events: GeoEvent[] = [
   { point: null, ancestorIds: [28, 470], online: true }, // online event under Brussels
 ]
 
-describe('ancestorIdsFromBreadcrumbs', () => {
-  it('extracts numeric doc ids in order', () => {
-    expect(ancestorIdsFromBreadcrumbs([{ doc: 28 }, { doc: 470 }, { doc: 513 }])).toEqual([
-      28, 470, 513,
-    ])
+// Belgium(28) → Antwerpen(473); Belgium(28) → Brussels(470) → venue(513).
+const regionTree = [
+  { id: 28, slug: 'belgium', parent: null },
+  { id: 473, slug: 'antwerpen', parent: 28 },
+  { id: 470, slug: 'brussels', parent: 28 },
+  { id: 513, slug: 'town-hall', parent: 470 },
+]
+
+describe('indexRegions / childrenOf', () => {
+  it('indexes nodes by id and slug', () => {
+    const index = indexRegions(regionTree)
+
+    expect(index.byId.get(473)?.slug).toBe('antwerpen')
+    expect(index.bySlug.get('brussels')?.id).toBe(470)
   })
 
-  it('handles populated doc objects and skips nulls', () => {
-    expect(ancestorIdsFromBreadcrumbs([{ doc: { id: 28 } }, { doc: null }])).toEqual([28])
-    expect(ancestorIdsFromBreadcrumbs(null)).toEqual([])
+  it('lists direct children, and none for a leaf', () => {
+    const index = indexRegions(regionTree)
+
+    expect(childrenOf(index, 28).map((child) => child.id)).toEqual([473, 470])
+    expect(childrenOf(index, 470).map((child) => child.id)).toEqual([513])
+    expect(childrenOf(index, 513)).toEqual([])
+  })
+})
+
+describe('ancestorIds', () => {
+  it('walks parent links to a self-inclusive leaf→country chain', () => {
+    const index = indexRegions(regionTree)
+
+    expect(ancestorIds(index, 513)).toEqual([513, 470, 28])
+    expect(ancestorIds(index, 28)).toEqual([28])
+  })
+
+  it('returns just the id when the region is not in the tree', () => {
+    expect(ancestorIds(indexRegions(regionTree), 999)).toEqual([999])
+  })
+
+  it('stops on a malformed parent cycle', () => {
+    const cyclic = indexRegions([
+      { id: 1, slug: 'a', parent: 2 },
+      { id: 2, slug: 'b', parent: 1 },
+    ])
+
+    expect(ancestorIds(cyclic, 1)).toEqual([1, 2])
   })
 })
 

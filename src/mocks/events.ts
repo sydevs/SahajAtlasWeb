@@ -14,16 +14,14 @@ export const mockEventImages: EventImage[] = [
   },
 ]
 
-// A city (Cambridge) under the UK — the region-optional shape. Breadcrumbs carry
-// the ancestor ids (for count aggregation); the canonical route is the server
-// `webPath`.
+// A city (Cambridge) under the UK. The feed no longer carries breadcrumbs (ancestry
+// comes from the wholesale regions dict); the canonical route is the server `webPath`.
 const mockRegion: RegionRef = {
   id: 8001,
   slug: 'cambridge',
   level: 'city',
   name: 'Cambridge',
   subtitle: null,
-  breadcrumbs: [{ doc: 44 }, { doc: 8001 }],
   webPath: '/united-kingdom/cambridge',
   webUrl: 'https://atlas.example/united-kingdom/cambridge',
 }

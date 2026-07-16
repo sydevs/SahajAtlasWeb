@@ -1,23 +1,38 @@
 import z from 'zod'
 
 import { EventSlimSchema } from './event'
-import { RegionLevelSchema, RegionRefSchema } from './region-ref'
+import { RegionLevelSchema } from './region-ref'
 
 // Re-export the low-level refs so `@/types` consumers still reach them here.
-export { RegionLevelSchema, BreadcrumbSchema, RegionRefSchema } from './region-ref'
-export type { RegionLevel, Breadcrumb, RegionRef } from './region-ref'
+export { RegionLevelSchema, RegionRefSchema } from './region-ref'
+export type { RegionLevel, RegionRef } from './region-ref'
 
 // Shared geo primitives for derived view-models.
 export const BoundsSchema = z.tuple([z.number(), z.number(), z.number(), z.number()])
 export const PositionSchema = z.tuple([z.number(), z.number()])
 
-// Raw region document from `GET /api/regions`. `webPath`/`webUrl` (from RegionRef)
-// are the server-computed canonical route; the ISO country code survives only on
-// legacyData (used for flags + localized country names).
-export const RegionDocSchema = RegionRefSchema.extend({
-  legacyData: z.object({ countryCode: z.string().nullish() }).passthrough().nullish(),
+// One node of the wholesale region tree from `GET /api/regions` (depth 0, every
+// level, read once). `parent` is the parent region's id — null for a country root —
+// and the widget walks these links client-side for ancestry + child lists, which
+// replaces the per-navigation region reads. `webPath`/`webUrl` are the
+// server-computed canonical route. `legacyData` is transitional: `countryCode`
+// derives from the slug first (post-SahajCloud#556 the country slug *is* the ISO
+// code), falling back to this until the backend seed reflects that migration.
+export const RegionNodeSchema = z.object({
+  id: z.number(),
+  slug: z.string(),
+  name: z.string().nullish(),
+  subtitle: z.string().nullish(),
+  level: RegionLevelSchema,
+  parent: z.number().nullish(),
+  webPath: z.string().nullish(),
+  webUrl: z.string().nullish(),
+  // Only `countryCode` is kept — the rest of the legacy blob (osmId/legacyId/…) is
+  // stripped at this boundary (no `.passthrough()`) so it never reaches the public
+  // `['regions']` cache. The whole field goes once the seed reflects SahajCloud#556.
+  legacyData: z.object({ countryCode: z.string().nullish() }).nullish(),
 })
-export type RegionDoc = z.infer<typeof RegionDocSchema>
+export type RegionNode = z.infer<typeof RegionNodeSchema>
 
 // Derived list item for a region shown under a parent (country/region page) or in
 // the home country list. `countryCode` is set only for countries (drives the flag

@@ -9,7 +9,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import { CloseButton, useFrameOnTop } from '@/views/shared'
+import { CloseButton, NearbySuggestion, useFrameOnTop } from '@/views/shared'
 
 // A region at any level (route `<region-path>`): child-region cards then this
 // region's located events. A parent with sub-regions leads with an "Online Classes"
@@ -19,12 +19,12 @@ import { CloseButton, useFrameOnTop } from '@/views/shared'
 // when it's the top of the stack. No canonicalization redirect — the URL stays where
 // the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
-  const { regionNames } = useLocale()
+  const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
 
   const { data: region } = useSuspenseQuery({
-    queryKey: ['region', slug],
+    queryKey: ['region', slug, locale],
     queryFn: () => api.getRegion(slug),
   })
 
@@ -53,6 +53,7 @@ export function RegionView({ slug }: { slug: string }) {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
+        <NearbySuggestion regionCenter={region.center} />
         <List>
           {/* On a parent, the online roll-up opens in its own drawer via this card,
               keeping the list below a clean set of places. */}

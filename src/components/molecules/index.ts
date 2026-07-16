@@ -46,3 +46,8 @@ export type { EventSoonChipProps } from './EventSoon'
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
+
+// NearbyPrompt — the dismissible IP-geolocation "events near you" suggestion shown
+// above the list on the top-level views (wired by NearbySuggestion in views/shared).
+export { NearbyPrompt } from './NearbyPrompt'
+export type { NearbyPromptProps } from './NearbyPrompt'

@@ -77,11 +77,14 @@ const SafeUrlSchema = z
   .nullish()
   .catch(null)
 
-// Raw event as it appears in a geojson feature's `properties` (the fields the
-// feed `select`s). Map points + list items are built from this.
-export const FeedEventSchema = z.object({
+// Raw event as it appears in a geojson feature's `properties`, MINUS the one
+// localized field. Everything here — schedule, address, languages, region ref,
+// route — is identical in every locale, so the feed is fetched + cached once
+// (`['geojson']`, no locale) and the localized `title` is joined back in by id from
+// a per-locale titles sliver (`EventTitleSchema`). Map points build from this
+// directly; list items add the joined title (see `EventSlimSchema`).
+export const AgnosticFeedEventSchema = z.object({
   id: z.number(),
-  title: z.string(),
   eventType: EventTypeSchema,
   languages: z.array(z.string()),
   address: EventAddressSchema.nullish(),
@@ -91,7 +94,19 @@ export const FeedEventSchema = z.object({
   // navigate to it directly.
   webPath: z.string().nullish(),
 })
+export type AgnosticFeedEvent = z.infer<typeof AgnosticFeedEventSchema>
+
+// The agnostic feed event with its localized `title` joined back in (by id) — the
+// shape map/list view-models build on. `title` is the ONLY localized feed field.
+export const FeedEventSchema = AgnosticFeedEventSchema.extend({ title: z.string() })
 export type FeedEvent = z.infer<typeof FeedEventSchema>
+
+// The per-locale id→title sliver from `GET /api/events` (select `title` only), kept
+// separate from the feed so a language switch refetches only this (~5% of the feed).
+// `title` is tolerant: a single event with a null localized title degrades to a
+// blank card (coalesced in `getEventTitles`) rather than failing the whole read.
+export const EventTitleSchema = z.object({ id: z.number(), title: z.string().nullish() })
+export type EventTitle = z.infer<typeof EventTitleSchema>
 
 // Derived list/map view-model: a feed event plus its route and (when sorting by
 // proximity) the distance from the search point in kilometres.

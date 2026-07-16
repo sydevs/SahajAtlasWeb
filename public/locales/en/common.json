@@ -44,7 +44,15 @@
     "no_events": "No events found.",
     "remove": "Remove %{label}",
     "nearby": "< %{km} km",
-    "no_nearby": "No events within %{km} km."
+    "no_nearby": "No events within %{km} km.",
+    "dates": {
+      "label": "Date",
+      "from": "From",
+      "to": "To",
+      "pill_from": "From %{date}",
+      "pill_until": "Until %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",
@@ -68,5 +76,9 @@
     "title": "Free Meditation Classes at %{venue}"
   },
   "search_placeholder": "Search for events near…",
-  "online_classes": "Online Classes"
+  "online_classes": "Online Classes",
+  "nearby_prompt": {
+    "title": "Looking for classes near %{city}?",
+    "dismiss": "Dismiss"
+  }
 }

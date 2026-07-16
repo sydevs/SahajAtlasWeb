@@ -15,6 +15,7 @@ import {
   filtersToParams,
   hasActiveFilters,
   matchesFilters,
+  todayISO,
 } from '@/lib/shape'
 import { CloseButton } from '@/views/shared'
 
@@ -47,7 +48,9 @@ export function FilterView() {
     if (!geojson) return undefined
     if (!hasActiveFilters(draft)) return geojson.features.length
 
-    return geojson.features.filter((feature) => matchesFilters(feature.properties, draft)).length
+    const today = todayISO()
+
+    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today)).length
   }, [geojson, draft])
 
   const hasChanges = filtersKey(draft) !== filtersKey(applied)

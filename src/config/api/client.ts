@@ -6,41 +6,8 @@ import atlasAuth from './auth'
 import i18n from '@/config/i18n'
 import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
 
-// SahajCloud's 16 localization codes. The widget's i18next language is mapped to
-// the closest of these for the `locale` query param (the geojson endpoint
-// rejects unknown codes); pt-* collapses to pt-br, anything else falls back to en.
-const SAHAJCLOUD_LOCALES = new Set([
-  'en',
-  'es',
-  'de',
-  'it',
-  'fr',
-  'ru',
-  'ro',
-  'cs',
-  'uk',
-  'el',
-  'hy',
-  'pl',
-  'pt-br',
-  'fa',
-  'bg',
-  'tr',
-])
-
-export const toSahajLocale = (lng?: string): string => {
-  if (!lng) return 'en'
-  const lower = lng.toLowerCase()
-
-  if (SAHAJCLOUD_LOCALES.has(lower)) return lower
-  if (lower.startsWith('pt')) return 'pt-br'
-  const base = lower.split('-')[0]
-
-  return SAHAJCLOUD_LOCALES.has(base) ? base : 'en'
-}
-
 // One shared SahajCloud REST client. The interceptor attaches the client API key
-// and the mapped locale to every request — fetchers/mutations never re-attach them.
+// and the active locale to every request — fetchers/mutations never re-attach them.
 const client = axios.create({
   baseURL: `${import.meta.env.VITE_SAHAJCLOUD_URL}/api`,
   headers: {
@@ -56,7 +23,11 @@ client.interceptors.request.use((request) => {
     request.headers['Authorization'] = `clients API-Key ${atlasAuth.apiKey}`
   }
 
-  request.params = { ...request.params, locale: toSahajLocale(i18n.resolvedLanguage) }
+  // The widget's language codes match SahajCloud's locale codes 1:1, so send the
+  // resolved language straight through (SahajCloud falls back to its default for any
+  // it doesn't recognize — verified). Alignment is a policy: a UI language SahajCloud
+  // lacks is added there (e.g. sydevs/SahajCloud#578 for hu/nl), not remapped here.
+  request.params = { ...request.params, locale: i18n.resolvedLanguage || 'en' }
 
   // Live preview (issue #40): unlock draft docs and bypass the CMS read cache by
   // forwarding the preview secret + `draft=true`. Published-only reads ignore `draft`

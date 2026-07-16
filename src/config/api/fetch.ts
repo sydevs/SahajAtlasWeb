@@ -5,54 +5,60 @@ import type {
   GeoFeature,
   Geojson,
   Region,
-  RegionDoc,
   RegionListItem,
+  RegionNode,
 } from '@/types'
-import type { EventFilters, GeoEvent } from '@/lib/shape'
+import type { EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
 import client from './client'
 
-import { GEOJSON_STALE_TIME, queryClient } from '@/config/query-client'
+import i18n from '@/config/i18n'
+import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
-  ancestorIdsFromBreadcrumbs,
+  ancestorIds,
   boundsUnder,
   byNextOccurrence,
   countUnder,
   childRoute,
+  childrenOf,
   DEFAULT_FILTERS,
+  indexRegions,
   isOnline,
   matchesFilters,
   parentOf,
   partitionUnder,
   resolveImageUrl,
   safePath,
+  todayISO,
 } from '@/lib/shape'
 import {
   ClientSchema,
   EventDocSchema,
   EventSlimSchema,
+  EventTitleSchema,
   GeojsonSchema,
-  RegionDocSchema,
   RegionListItemSchema,
+  RegionNodeSchema,
   RegionSchema,
 } from '@/types'
 
 // Most we return from a "near here" search, ordered by distance.
 const NEAREST_LIMIT = 50
 
-// The region fields populated into the geojson feed + event reads. `breadcrumbs`
-// carries the ancestor `id`s used to aggregate event counts/bounds under a region
-// (slug/name drive display); the canonical route comes from `webPath`, not these.
+// The region fields populated into the geojson feed + event reads. Ancestry comes
+// from the wholesale regions dict (parent links), so no `breadcrumbs` here (they
+// were ~20% of the feed); slug/name drive display, the route is the server `webPath`.
 const REGION_POPULATE = {
-  regions: { slug: true, name: true, level: true, subtitle: true, breadcrumbs: true },
+  regions: { slug: true, name: true, level: true, subtitle: true },
 }
 
-// The event fields the geojson feed selects (must mirror FeedEventSchema). `webPath`
-// is the server-computed canonical route, so map/list items navigate to it directly.
+// The event fields the (locale-agnostic) geojson feed selects — must mirror
+// AgnosticFeedEventSchema. `title` is the one localized field, so it is NOT selected
+// here; it's joined in per-locale from the titles sliver (see loadEventTitles).
+// `webPath` is the server-computed canonical route, navigated to directly.
 const FEED_SELECT = {
-  title: true,
   eventType: true,
   languages: true,
   address: {
@@ -77,7 +83,53 @@ const FEED_SELECT = {
   webPath: true,
 }
 
-// ── GeoJSON feed (single source of geometry + counts) ──────────────────────────
+// ── Wholesale region tree (agnostic, cache-once) ────────────────────────────────
+
+// Every region at every level in one read. Ancestry, child lists, counts, and the
+// 0-event gate all derive from this dict client-side — replacing the per-navigation
+// `getRegionDoc`/`getChildRegions` reads and getCountries' own `/regions` read.
+// Region names are locale-agnostic, so this is cached once regardless of language.
+// `legacyData` is transitional (see `countryCodeOf`).
+const REGIONS_SELECT = {
+  slug: true,
+  name: true,
+  subtitle: true,
+  level: true,
+  parent: true,
+  webPath: true,
+  webUrl: true,
+  legacyData: true,
+}
+
+const getRegions = async (): Promise<RegionNode[]> => {
+  const response = await client.get('/regions', {
+    params: { depth: 0, pagination: false, sort: 'name', select: REGIONS_SELECT },
+  })
+
+  return RegionNodeSchema.array().parse(response.data.docs)
+}
+
+// Read the region tree through the shared React Query cache so the whole app
+// fetches + parses it once per (long) stale window rather than on every
+// navigation. `fetchQuery` (not `ensureQueryData`) refetches a stale tree.
+const loadRegions = (): Promise<RegionNode[]> =>
+  queryClient.fetchQuery({
+    queryKey: ['regions'],
+    queryFn: getRegions,
+    staleTime: REGIONS_STALE_TIME,
+  })
+
+// One region by id from the wholesale tree — the live-preview boot (issue #40) gets an
+// id, not a slug, so it looks the node up rather than adding a per-region read.
+const getRegionNodeById = async (id: number): Promise<RegionNode> => {
+  const node = (await loadRegions()).find((region) => region.id === id)
+
+  if (!node) throw new Error(`Region not found: ${id}`)
+
+  return node
+}
+
+// ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
   const response = await client.get('/events/geojson', {
@@ -87,9 +139,10 @@ const getGeojson = async (): Promise<Geojson> => {
   return GeojsonSchema.parse(response.data)
 }
 
-// The hierarchy/events fetchers all need the same feed. Read it through the
-// shared React Query cache (the key the map also uses) so it's fetched + parsed
-// once per stale window rather than on every navigation.
+// The hierarchy/events fetchers all need the same feed. Read it through the shared
+// React Query cache (the key the map also uses) so it's fetched + parsed once per
+// stale window rather than on every navigation. It's locale-agnostic, so `['geojson']`
+// carries no locale — a language switch doesn't refetch it, only the titles sliver.
 const loadGeojson = (): Promise<Geojson> =>
   // fetchQuery (not ensureQueryData) so a feed older than the stale window is
   // refetched rather than served indefinitely from cache.
@@ -99,153 +152,115 @@ const loadGeojson = (): Promise<Geojson> =>
     staleTime: GEOJSON_STALE_TIME,
   })
 
-// A feature paired with its region ancestry (direct region + breadcrumb chain).
+// ── Per-locale event titles (the one localized field, split off the feed) ───────
+
+// `title` is the only localized field on an event card, so it's read on its own —
+// a lean id→title map from `GET /api/events` — instead of riding the whole feed.
+// Keyed by locale so a language switch refetches just this (~5% of the feed weight)
+// while the agnostic feed + region tree stay cached.
+const getEventTitles = async (): Promise<Map<number, string>> => {
+  const response = await client.get('/events', {
+    params: { depth: 0, pagination: false, select: { title: true } },
+  })
+
+  return new Map(
+    EventTitleSchema.array()
+      .parse(response.data.docs)
+      .map((doc) => [doc.id, doc.title ?? '']),
+  )
+}
+
+const loadEventTitles = (): Promise<Map<number, string>> =>
+  queryClient.fetchQuery({
+    // The interceptor sends the resolved locale; key by the same value so a language
+    // switch re-keys the titles sliver (the agnostic feed + regions stay cached).
+    queryKey: ['event-titles', i18n.resolvedLanguage || 'en'],
+    queryFn: getEventTitles,
+    staleTime: GEOJSON_STALE_TIME,
+  })
+
+// A feature paired with its region ancestry (direct region + full parent chain).
 // `GeoEvent`-compatible, so the hierarchy helpers can aggregate over it while the
 // `feature` rides along for building the event list — computed once per feature.
 type IndexedFeature = GeoEvent & { feature: GeoFeature }
 
-const indexFeatures = (geojson: Geojson): IndexedFeature[] =>
+const indexFeatures = (geojson: Geojson, regions: RegionIndex<RegionNode>): IndexedFeature[] =>
   geojson.features.map((feature) => ({
     feature,
     point: feature.geometry?.coordinates ?? null,
     // Online belongs to no place: classified by eventType, never geometry (a
     // coordinate-less *offline* event still counts as located).
     online: isOnline(feature.properties),
-    ancestorIds: [
-      ...new Set([
-        feature.properties.region.id,
-        ...ancestorIdsFromBreadcrumbs(feature.properties.region.breadcrumbs),
-      ]),
-    ],
+    // Full ancestry (self → … → country) walked up the region tree from the
+    // event's direct region id — no breadcrumbs needed on the feed.
+    ancestorIds: ancestorIds(regions, feature.properties.region.id),
   }))
 
-// The feed carries the canonical `webPath`; fall back to a flat `/id` (still
-// resolvable via the terminal segment) only if it's ever absent.
-const toSlim = (feature: GeoFeature, from?: Position): EventSlim =>
+// Build a list/map item from an agnostic feed feature, joining its localized `title`
+// (from the per-locale titles map — `''` if a title is somehow missing, so a data
+// gap can't fail the parse). The feed carries the canonical `webPath`; fall back to
+// a flat `/id` only if it's ever absent.
+const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position): EventSlim =>
   EventSlimSchema.parse({
     ...feature.properties,
+    title: title ?? '',
     path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
     distance: from && feature.geometry ? distanceKm(from, feature.geometry.coordinates) : undefined,
   })
 
-// ── Raw region reads ───────────────────────────────────────────────────────────
+// ── Region-tree derivation (routes, ISO code, list items) ───────────────────────
 
-// The canonical route (`webPath`) is server-computed and virtual, so no depth /
-// breadcrumb populate is needed. Slugs are globally unique, so no `level` filter —
-// the level comes from the doc. Falls back to a flat `/slug` if webPath is absent.
-export const regionRoute = (doc: RegionDoc): string => safePath(doc.webPath) ?? `/${doc.slug}`
+// The canonical route (`webPath`) is server-computed; fall back to a flat `/slug`.
+// Exported so the live-preview controller (issue #40) reuses the exact route derivation.
+export const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
 
-// Scalar fields both raw region reads (by-slug and by-id) select — shared so the two
-// can't drift.
-const REGION_DOC_SELECT = {
-  slug: true,
-  name: true,
-  level: true,
-  subtitle: true,
-  legacyData: true,
-  webPath: true,
-  webUrl: true,
-}
+// ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
+// the country slug *is* the code, so derive it from the slug first; fall back to
+// the pre-migration `legacyData.countryCode` (transitional — drop once the backend
+// seed reflects #556). Guard the shape so a malformed value can't throw in
+// `Intl.DisplayNames` / `CircleFlag` downstream.
+const isoCountryCode = (value: string | null | undefined): string | undefined =>
+  typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value : undefined
 
-const getRegionDoc = async (slug: string): Promise<RegionDoc> => {
-  const response = await client.get('/regions', {
-    params: {
-      where: { slug: { equals: slug } },
-      depth: 1,
-      limit: 1,
-      select: REGION_DOC_SELECT,
-    },
-  })
+const countryCodeOf = (node: RegionNode): string | undefined =>
+  isoCountryCode(node.slug) ?? isoCountryCode(node.legacyData?.countryCode)
 
-  const doc = response.data?.docs?.[0]
-
-  if (!doc) throw new Error(`Region not found: ${slug}`)
-
-  return RegionDocSchema.parse(doc)
-}
-
-// Region by id — the live-preview boot (issue #40) reads the doc directly (the CMS
-// passes an id, not a slug) to derive its canonical path and seed the scalar overlay.
-// Payload's findByID returns the doc itself, not a `docs` list.
-const getRegionDocById = async (id: number): Promise<RegionDoc> => {
-  const response = await client.get(`/regions/${id}`, {
-    params: {
-      depth: 1,
-      select: REGION_DOC_SELECT,
-    },
-  })
-
-  return RegionDocSchema.parse(response.data)
-}
-
-const getChildRegions = async (parentId: number): Promise<RegionDoc[]> => {
-  const response = await client.get('/regions', {
-    params: {
-      where: { parent: { equals: parentId } },
-      depth: 0,
-      limit: 1000,
-      sort: 'name',
-      select: { slug: true, name: true, level: true, subtitle: true, webPath: true },
-    },
-  })
-
-  return RegionDocSchema.array().parse(response.data.docs)
-}
-
-// ISO alpha-2 country code (drives the flag + localized name) survives on
-// legacyData. Validate the shape so a malformed value can't throw in
-// `Intl.DisplayNames`/`CircleFlag` downstream.
-const countryCodeOf = (doc: RegionDoc): string | undefined => {
-  const code = doc.legacyData?.countryCode
-
-  return typeof code === 'string' && /^[A-Za-z]{2}$/.test(code) ? code : undefined
-}
-
-const toListItem = (doc: RegionDoc, eventCount: number): RegionListItem =>
+const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
   RegionListItemSchema.parse({
-    id: doc.id,
-    slug: doc.slug,
-    level: doc.level,
-    name: doc.name ?? doc.slug,
-    subtitle: doc.subtitle,
+    id: node.id,
+    slug: node.slug,
+    level: node.level,
+    name: node.name ?? node.slug,
+    subtitle: node.subtitle,
     eventCount,
-    path: regionRoute(doc),
+    path: regionRoute(node),
   })
 
 // Busiest first — order a region list by event count, descending. A stable sort
 // keeps equal counts in the incoming (server) order.
 const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount - a.eventCount
 
-// ── Hierarchy fetchers (raw region + geojson-derived counts/bounds) ─────────────
+// ── Hierarchy fetchers (region tree + geojson-derived counts/bounds) ────────────
 
-// Home/search country list — level=country regions with counts + ISO code.
+// Home/search country list — level=country regions with counts + ISO code, both
+// derived from the cached region tree + feed (no dedicated /regions read, and no
+// titles — a country card shows no event title, so this stays locale-agnostic).
 const getCountries = async (): Promise<RegionListItem[]> => {
-  const [geojson, response] = await Promise.all([
-    loadGeojson(),
-    client.get('/regions', {
-      params: {
-        where: { level: { equals: 'country' } },
-        depth: 0,
-        limit: 1000,
-        sort: 'name',
-        select: { slug: true, name: true, level: true, legacyData: true, webPath: true },
-      },
-    }),
-  ])
+  const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
+  const index = indexRegions(regions)
+  const events = indexFeatures(geojson, index)
 
-  const events = indexFeatures(geojson)
-
-  return RegionDocSchema.array()
-    .parse(response.data.docs)
-    .map((doc) =>
+  return regions
+    .filter((node) => node.level === 'country')
+    .map((node) =>
       RegionListItemSchema.parse({
-        id: doc.id,
-        slug: doc.slug,
-        level: doc.level,
-        name: doc.name ?? doc.slug,
-        countryCode: countryCodeOf(doc),
-        eventCount: countUnder(events, doc.id),
-        path: regionRoute(doc),
+        id: node.id,
+        slug: node.slug,
+        level: node.level,
+        name: node.name ?? node.slug,
+        countryCode: countryCodeOf(node),
+        eventCount: countUnder(events, node.id),
+        path: regionRoute(node),
       }),
     )
     .filter((country) => country.eventCount > 0)
@@ -254,23 +269,39 @@ const getCountries = async (): Promise<RegionListItem[]> => {
 
 // One fetcher for every region level. Parents (`country`/`region`) list their
 // child regions as cards; leaves (`city`/`center`) list their located events.
-// Every level rolls up the placeless online events under it. Path/webUrl come
-// from the server; bounds/center/counts are derived from the feed.
+// Every level rolls up the placeless online events under it. Node/children/
+// ancestry come from the cached region tree; bounds/center/counts from the feed;
+// event titles from the per-locale titles map, joined by id.
 const getRegion = async (slug: string): Promise<Region> => {
-  // The region read and the feed are independent — load them in parallel.
-  const [doc, geojson] = await Promise.all([getRegionDoc(slug), loadGeojson()])
-  const events = indexFeatures(geojson)
+  const [regions, geojson, titles] = await Promise.all([
+    loadRegions(),
+    loadGeojson(),
+    loadEventTitles(),
+  ])
+  const index = indexRegions(regions)
+  const node = index.bySlug.get(slug)
 
-  const path = regionRoute(doc)
-  const isParent = doc.level === 'country' || doc.level === 'region'
-  const bounds = boundsUnder(events, doc.id)
+  if (!node) throw new Error(`Region not found: ${slug}`)
+
+  const events = indexFeatures(geojson, index)
+
+  // A region with no events under it (located or online) isn't a destination — 404
+  // it (the nearest ErrorBoundary renders the not-found state) rather than render an
+  // empty page. Mirrors getCountries hiding 0-event countries from the home list.
+  const eventCount = countUnder(events, node.id)
+
+  if (eventCount === 0) throw new Error(`Region has no events: ${slug}`)
+
+  const path = regionRoute(node)
+  const isParent = node.level === 'country' || node.level === 'region'
+  const bounds = boundsUnder(events, node.id)
 
   // Parents split their located events across child regions; a leaf has no children,
   // so every located event lands in `direct`. Online events roll up at every level.
-  const children = isParent ? await getChildRegions(doc.id) : []
+  const children = isParent ? childrenOf(index, node.id) : []
   const { byChild, direct, online } = partitionUnder(
     events,
-    doc.id,
+    node.id,
     children.map((child) => child.id),
   )
 
@@ -289,25 +320,25 @@ const getRegion = async (slug: string): Promise<Region> => {
   // region ancestry in the URL (an event's own webPath is flat / often null, which
   // would otherwise stack it straight on the country list).
   const nest = (indexed: IndexedFeature): EventSlim => {
-    const slim = toSlim(indexed.feature)
+    const slim = toSlim(indexed.feature, titles.get(indexed.feature.properties.id))
 
     return { ...slim, path: childRoute(path, slim.id) }
   }
 
   return RegionSchema.parse({
-    id: doc.id,
-    slug: doc.slug,
-    name: doc.name ?? doc.slug,
-    level: doc.level,
-    subtitle: doc.subtitle,
-    countryCode: doc.level === 'country' ? countryCodeOf(doc) : undefined,
+    id: node.id,
+    slug: node.slug,
+    name: node.name ?? node.slug,
+    level: node.level,
+    subtitle: node.subtitle,
+    countryCode: node.level === 'country' ? countryCodeOf(node) : undefined,
     // Total (located + online), so a subtree holding only online events still renders.
-    eventCount: countUnder(events, doc.id),
+    eventCount,
     bounds,
     center: bounds ? centerOfBounds(bounds) : null,
     path,
     parentPath: parentOf(path),
-    webUrl: doc.webUrl,
+    webUrl: node.webUrl,
     subregions,
     // Located events directly under this region (a leaf's own events; parents
     // usually have none — a child's events are reached through the child's card).
@@ -324,7 +355,7 @@ const getEvents = async (
   longitude: number,
   filters: EventFilters = DEFAULT_FILTERS,
 ): Promise<EventSlim[]> => {
-  const geojson = await loadGeojson()
+  const [geojson, titles] = await Promise.all([loadGeojson(), loadEventTitles()])
   const from: Position = [longitude, latitude]
 
   // Filter the whole feed *before* the nearest-N slice, so a restrictive filter
@@ -332,9 +363,11 @@ const getEvents = async (
   // nearest N. Shares the exact predicate the map applies. (The rendered sets can
   // still differ: online events carry no map geometry, and this list is capped at
   // NEAREST_LIMIT while the map is not.)
+  const today = todayISO()
+
   return geojson.features
-    .filter((feature) => matchesFilters(feature.properties, filters))
-    .map((feature) => toSlim(feature, from))
+    .filter((feature) => matchesFilters(feature.properties, filters, today))
+    .map((feature) => toSlim(feature, titles.get(feature.properties.id), from))
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     .slice(0, NEAREST_LIMIT)
 }
@@ -451,7 +484,7 @@ export default {
   getCountries,
   getEvents,
   getRegion,
-  getRegionDocById,
+  getRegionNodeById,
   getEvent,
   getEventDoc,
   populatePreviewDoc,

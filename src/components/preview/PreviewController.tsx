@@ -1,4 +1,4 @@
-import type { EventDoc, Region, RegionDoc } from '@/types'
+import type { EventDoc, Region, RegionNode } from '@/types'
 
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -9,7 +9,7 @@ import { regionRoute, shapeEventDoc } from '@/config/api/fetch'
 import preview from '@/config/preview'
 import { allowedPreviewPaths, shouldBlockPreviewLink } from '@/lib/preview'
 import { isCanonicalPath, safePath } from '@/lib/shape'
-import { EventDocSchema, RegionDocSchema } from '@/types'
+import { EventDocSchema, RegionNodeSchema } from '@/types'
 
 // The CMS admin posts live edits from the SahajCloud origin; every message is checked
 // against it. (A trailing path/slash on the env value is tolerated via `.origin`.)
@@ -151,21 +151,21 @@ function EventPreview({ id }: { id: number }) {
 
 // ── Region preview ───────────────────────────────────────────────────────────────
 
-function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
+function RegionLivePreview({ initialDoc }: { initialDoc: RegionNode }) {
   const queryClient = useQueryClient()
 
   const { slug } = initialDoc
   const previewPath = regionRoute(initialDoc)
 
   // Live: regions have no drafts, so only editable scalars change — re-populate the edit
-  // (for a validated RegionDoc) and overlay name/subtitle/level onto the cached shaped
+  // (for a validated RegionNode) and overlay name/subtitle/level onto the cached shaped
   // Region. Counts/bounds/lists are geojson-derived and can't move from a form edit;
   // skips until the region read has populated the cache.
   usePreviewMessages((data, locale) => {
     api
       .populatePreviewDoc('regions', initialDoc.id, data, locale)
       .then((doc) => {
-        const parsed = RegionDocSchema.safeParse(doc)
+        const parsed = RegionNodeSchema.safeParse(doc)
         const cached = queryClient.getQueryData<Region>(['region', slug])
 
         if (parsed.success && cached) {
@@ -190,7 +190,7 @@ function RegionLivePreview({ initialDoc }: { initialDoc: RegionDoc }) {
 function RegionPreview({ id }: { id: number }) {
   const { data: doc } = useSuspenseQuery({
     queryKey: ['preview-region-doc', id],
-    queryFn: () => api.getRegionDocById(id),
+    queryFn: () => api.getRegionNodeById(id),
   })
 
   return <RegionLivePreview initialDoc={doc} />

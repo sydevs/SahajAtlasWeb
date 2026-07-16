@@ -1,10 +1,12 @@
 import type { BBox, FeatureCollection, Point, Position } from 'geojson'
 
 import { bbox } from '@turf/bbox'
+import { circle } from '@turf/circle'
 import { distance } from '@turf/distance'
 
 /**
- * Geometry helpers for deriving region geometry from the GeoJSON event feed.
+ * Geometry helpers for the map: deriving region geometry from the GeoJSON event
+ * feed, plus framing a point that carries no bounds of its own.
  *
  * SahajCloud regions resolved from Mapbox carry no stored lat/lng/bounds (those
  * fields are only set for manually-entered locations), so the map's bounding
@@ -37,3 +39,12 @@ export const centerOfBounds = (b: BBox): Position => [(b[0] + b[2]) / 2, (b[1] +
 /** Great-circle distance in kilometres between two `[longitude, latitude]` points. */
 export const distanceKm = (from: Position, to: Position): number =>
   distance(from, to, { units: 'kilometers' })
+
+/**
+ * Approximate bounding box `[west, south, east, north]` of `radiusKm` around a
+ * `[longitude, latitude]` point — a synthesized city-sized area for framing a
+ * point that carries no real bounds (e.g. an IP-geolocation guess), so the map
+ * fits a neighbourhood rather than zooming to a pinpoint.
+ */
+export const approxBounds = (center: Position, radiusKm: number): BBox =>
+  bbox(circle(center, radiusKm, { units: 'kilometers' }))
