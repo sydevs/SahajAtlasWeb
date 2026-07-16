@@ -205,6 +205,7 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
       <Alert
+        align="start"
         className="max-w-xs"
         color="danger"
         description={error?.message ?? t('error.generic')}
