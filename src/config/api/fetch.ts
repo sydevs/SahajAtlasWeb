@@ -1,5 +1,6 @@
 import type {
   Event,
+  EventDoc,
   EventSlim,
   GeoFeature,
   Geojson,
@@ -118,6 +119,16 @@ const loadRegions = (): Promise<RegionNode[]> =>
     staleTime: REGIONS_STALE_TIME,
   })
 
+// One region by id from the wholesale tree — the live-preview boot (issue #40) gets an
+// id, not a slug, so it looks the node up rather than adding a per-region read.
+const getRegionNodeById = async (id: number): Promise<RegionNode> => {
+  const node = (await loadRegions()).find((region) => region.id === id)
+
+  if (!node) throw new Error(`Region not found: ${id}`)
+
+  return node
+}
+
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
@@ -200,7 +211,8 @@ const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position)
 // ── Region-tree derivation (routes, ISO code, list items) ───────────────────────
 
 // The canonical route (`webPath`) is server-computed; fall back to a flat `/slug`.
-const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
+// Exported so the live-preview controller (issue #40) reuses the exact route derivation.
+export const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
 
 // ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
 // the country slug *is* the code, so derive it from the slug first; fall back to
@@ -362,7 +374,22 @@ const getEvents = async (
 
 // ── Single event detail ─────────────────────────────────────────────────────────
 
-const getEvent = async (id: number): Promise<Event> => {
+/**
+ * Shape a parsed event doc into the view-model `Event`: resolve image URLs at the data
+ * boundary (SahajCloud serves relative URLs in dev; a null url — a file-less image —
+ * stays null and the UI skips it) and derive a safe `path` from `webPath`. Exported so
+ * live preview (issue #40) reuses the exact same shaping on docs pushed in over the
+ * postMessage stream, not only fetched ones.
+ */
+export const shapeEventDoc = (event: EventDoc): Event => ({
+  ...event,
+  images: event.images.map((image) =>
+    image.url ? { ...image, url: resolveImageUrl(image.url) } : image,
+  ),
+  path: safePath(event.webPath) ?? `/${event.id}`,
+})
+
+const getEventDoc = async (id: number): Promise<EventDoc> => {
   const response = await client.get(`/events/${id}`, {
     params: {
       depth: 1,
@@ -395,19 +422,12 @@ const getEvent = async (id: number): Promise<Event> => {
     },
   })
 
-  const event = EventDocSchema.parse(response.data)
-
-  return {
-    ...event,
-    // Resolve image URLs at the data boundary so every consumer gets a ready-to-use
-    // absolute URL (SahajCloud serves relative image URLs in dev) — the same kind of
-    // wire-quirk shaping as `path` below. Null urls stay null; the UI skips them.
-    images: event.images.map((image) =>
-      image.url ? { ...image, url: resolveImageUrl(image.url) } : image,
-    ),
-    path: safePath(event.webPath) ?? `/${event.id}`,
-  }
+  return EventDocSchema.parse(response.data)
 }
+
+// Raw fetch stays split out so live preview (issue #40) can seed `useLivePreview`
+// with — and merge live messages against — the unshaped doc, then shape for injection.
+const getEvent = async (id: number): Promise<Event> => shapeEventDoc(await getEventDoc(id))
 
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────
 
@@ -437,11 +457,36 @@ const getClient = async () => {
   return ClientSchema.parse(user)
 }
 
+// ── Live-preview populate (issue #40) ────────────────────────────────────────────
+
+// Render an unsaved edit: push the admin's form-state doc through Payload's populate
+// endpoint (a GET via method-override, so it resolves relations + computed fields like
+// upcomingDates without saving), authed with our API-key + preview secret via the shared
+// interceptor. Returns the raw doc; the caller parses it. Plain (non-credentialed) CORS —
+// no admin-cookie round-trip, so #575's header allow-list is all the CMS needs.
+const populatePreviewDoc = async (
+  collection: 'events' | 'regions',
+  id: number,
+  data: unknown,
+  locale?: string,
+): Promise<unknown> => {
+  const response = await client.post(
+    `/${collection}/${id}`,
+    { data, depth: 1, flattenLocales: false, ...(locale ? { locale } : {}) },
+    { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
+  )
+
+  return response.data
+}
+
 export default {
   getGeojson,
   getCountries,
   getEvents,
   getRegion,
+  getRegionNodeById,
   getEvent,
+  getEventDoc,
+  populatePreviewDoc,
   getClient,
 }

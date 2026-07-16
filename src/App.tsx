@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 
-import { type RefObject, Suspense, useEffect, useMemo, useRef } from 'react'
+import { type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
@@ -18,10 +18,17 @@ import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import { Mapbox } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
+import preview from '@/config/preview'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
+
+// Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
+// the controller land in their own chunk — zero cost to normal standalone/embedded use.
+const PreviewController = lazy(() =>
+  import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
+)
 
 // ===== APP ===== //
 
@@ -132,6 +139,11 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
       <Helmet>
         <meta content={locale} property="og:locale" />
       </Helmet>
+      {preview.active && (
+        <Suspense fallback={null}>
+          <PreviewController />
+        </Suspense>
+      )}
       {hasMap ? (
         <MapProvider>
           {/* Inline fixed/inset so the map always fills the viewport behind the

@@ -4,6 +4,7 @@ import qs from 'qs'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
+import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
 
 // One shared SahajCloud REST client. The interceptor attaches the client API key
 // and the active locale to every request — fetchers/mutations never re-attach them.
@@ -27,6 +28,15 @@ client.interceptors.request.use((request) => {
   // it doesn't recognize — verified). Alignment is a policy: a UI language SahajCloud
   // lacks is added there (e.g. sydevs/SahajCloud#578 for hu/nl), not remapped here.
   request.params = { ...request.params, locale: i18n.resolvedLanguage || 'en' }
+
+  // Live preview (issue #40): unlock draft docs and bypass the CMS read cache by
+  // forwarding the preview secret + `draft=true`. Published-only reads ignore `draft`
+  // harmlessly. Gated on an active session with a secret, so normal traffic is
+  // untouched and the secret never rides a non-preview request.
+  if (preview.active && preview.secret) {
+    request.headers[PREVIEW_SECRET_HEADER] = preview.secret
+    request.params.draft = true
+  }
 
   return request
 })

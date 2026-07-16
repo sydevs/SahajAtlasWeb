@@ -82,8 +82,10 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 /**
  * Words that are never a region slug. `search` / `filters` / `register` / `share` /
  * `online` are our own routed views (a CMS region slug can never silently shadow them
- * — the guard); `events` / `areas` / `regions` / `venues` are legacy URL prefixes that
- * carry no drawer of their own. Kept lowercase; matched case-insensitively.
+ * — the guard); `preview` is the live-preview boot route (issue #40 — captured in
+ * `main.tsx`, carries no drawer of its own); `events` / `areas` / `regions` / `venues`
+ * are legacy URL prefixes that carry no drawer of their own. Kept lowercase; matched
+ * case-insensitively.
  */
 export const RESERVED_SLUGS = new Set([
   'search',
@@ -91,6 +93,7 @@ export const RESERVED_SLUGS = new Set([
   'register',
   'share',
   'online',
+  'preview',
   'events',
   'areas',
   'regions',
