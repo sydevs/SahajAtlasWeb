@@ -54,7 +54,7 @@ const alert = tv({
       class: { base: 'border-danger-6 bg-danger-2 text-danger-11' },
     },
   ],
-  defaultVariants: { color: 'default', variant: 'flat', align: 'start', size: 'md' },
+  defaultVariants: { color: 'default', variant: 'flat', size: 'md' },
 })
 
 // A round info/alert glyph used when no custom icon is supplied.
@@ -81,6 +81,12 @@ export type AlertProps = VariantProps<typeof alert> & {
   onClose?: () => void
   /** Accessible label for the dismiss button (required for a meaningful `onClose`). */
   closeLabel?: string
+  /**
+   * Live-region role: `'alert'` (assertive — the default, for status/error banners)
+   * or `'status'` (polite — for a passive suggestion that shouldn't interrupt a
+   * screen reader).
+   */
+  role?: 'alert' | 'status'
   children?: ReactNode
   className?: string
 }
@@ -89,23 +95,25 @@ export function Alert({
   color,
   variant,
   size,
+  align,
   title,
   description,
   icon,
   hideIcon,
   onClose,
   closeLabel = 'Close',
+  role = 'alert',
   children,
   className,
 }: AlertProps) {
-  // Vertically centre the icon (and dismiss button) when the alert is a single line
-  // of text — exactly one of title/description and no extra children; a taller
-  // two-line alert top-aligns instead.
-  const centered = !children && Boolean(title) !== Boolean(description)
-  const slots = alert({ color, variant, size, align: centered ? 'center' : 'start' })
+  // Default to vertically centring the icon (and dismiss button) when the alert is a
+  // single line of text — exactly one of title/description and no extra children; a
+  // taller two-line alert top-aligns. A caller can override via `align`.
+  const autoAlign = !children && Boolean(title) !== Boolean(description) ? 'center' : 'start'
+  const slots = alert({ color, variant, size, align: align ?? autoAlign })
 
   return (
-    <div className={slots.base({ className })} role="alert">
+    <div className={slots.base({ className })} role={role}>
       {!hideIcon && <span className={slots.iconWrapper()}>{icon ?? <DefaultIcon />}</span>}
       <div className={slots.content()}>
         {title && <div className={slots.title()}>{title}</div>}

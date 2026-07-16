@@ -37,12 +37,15 @@ describe('NearbyPrompt', () => {
     expect(html).toContain('Looking for classes near Berlin?')
   })
 
-  it('gives the dismiss control an accessible label', () => {
+  it('is a polite status with an accessible dismiss label — not an assertive alert', () => {
     const html = renderToStaticMarkup(
       <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
     )
 
     expect(html).toContain('aria-label="Dismiss"')
+    // A passive suggestion shouldn't interrupt a screen reader.
+    expect(html).toContain('role="status"')
+    expect(html).not.toContain('role="alert"')
   })
 
   it('is a slim, primary-tinted, vertically-centred single line', () => {

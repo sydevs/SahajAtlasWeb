@@ -16,10 +16,10 @@ export type NearbyPromptProps = {
  * The dismissible "events near you" suggestion shown above the list on the
  * top-level views: a single-line, primary-tinted `Alert` whose text is a button
  * into the distance-ranked search, with the Alert's × dismissing it for the
- * session. Framed as a *guess* — "Looking for classes near %{city}?", never "your
- * location". Presentational only — the IP lookup, session-scoped dismissal, and
- * navigation
- * live in `NearbySuggestion` (src/views/shared.tsx).
+ * session. Announced politely (`role="status"`), not as an assertive alert — it's a
+ * passive guess. Framed as a *guess* — "Looking for classes near %{city}?", never
+ * "your location". Presentational only — the IP lookup, session-scoped dismissal,
+ * and navigation live in `NearbySuggestion` (src/views/shared.tsx).
  */
 export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
   const { t } = useTranslation('common')
@@ -30,6 +30,7 @@ export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
       closeLabel={t('nearby_prompt.dismiss')}
       color="primary"
       icon={<LocationIcon size={18} />}
+      role="status"
       size="sm"
       title={
         <button
