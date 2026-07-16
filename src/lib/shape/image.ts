@@ -4,8 +4,8 @@
 // origin, so resolve it against the SahajCloud origin; an already-absolute URL
 // passes through untouched (`new URL` ignores the base when the input is absolute).
 //
-// Prefix with the origin — not the axios baseURL — because the URL already carries
-// `/api/…` and the client baseURL is `${origin}/api`, which would double the `/api`.
+// Prefix with the origin — not the client's API baseURL — because the URL already
+// carries `/api/…` and the client baseURL is `${origin}/api`, which would double `/api`.
 //
 // Returns null — rather than throwing or passing a raw value through — when the
 // url can't be resolved to an http(s) URL: an empty/misconfigured origin (which
