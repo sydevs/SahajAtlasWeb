@@ -8,15 +8,16 @@ export default { title: 'Molecules' } satisfies StoryDefault
 
 /**
  * NearbyPrompt — the dismissible IP-geolocation suggestion shown above the list on
- * the top-level views. A single-line, primary-tinted `Alert` whose text is a button
- * into the distance-ranked nearby search; the × dismisses it for the session. The
- * copy frames the location as an approximate guess, never a definitive "your
- * location".
+ * the top-level views ("Looking for classes near %{city}?"). A slim, primary-tinted
+ * `Alert` whose text is a button into the distance-ranked nearby search; the small ×
+ * dismisses it for the session. Announced politely (`role="status"`), and its
+ * horizontal padding lines up with the drawer header. Framed as an approximate
+ * guess, never a definitive "your location".
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The text is a button (into the nearby search); the × dismisses it. One line, primary tint."
+      description="The text is a button (into the nearby search); the small × dismisses it. One slim, primary-tinted line, padded to align with the drawer header."
       title="Nearby suggestion"
     >
       <div className="flex max-w-sm flex-col gap-4">

@@ -21,7 +21,12 @@ export default {
 const colors = ['primary', 'secondary', 'default', 'danger'] as const
 const variants = ['flat', 'bordered', 'faded'] as const
 
-/** Alert — a status banner on the Radix-semantic tokens (danger stays the fixed status red). */
+/**
+ * Alert — a status banner on the Radix-semantic tokens (danger stays the fixed
+ * status red). Supports `size` (`sm`), a dismiss button (`onClose`), single-line
+ * auto-centring with an `align` override, and a `role` (assertive `alert` / polite
+ * `status`).
+ */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection description="Colour × variant." title="Variants">
@@ -59,17 +64,44 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="`sm` slims the padding for compact inline prompts; `onClose` adds a dismiss button, and a single-line alert vertically centres its icon and ×."
-      title="Small & dismissible"
+      description="`sm` slims the padding + gap for compact inline prompts."
+      title="Sizes"
     >
       <div className="flex max-w-sm flex-col gap-3">
-        <Alert color="primary" description="Default padding, two lines." title="Medium (default)" />
+        <Alert color="primary" description="Default padding." title="Medium (default)" />
+        <Alert color="primary" description="Tighter padding and gap." size="sm" title="Small" />
+      </div>
+    </StorySection>
+
+    <StorySection description="`onClose` adds a small, subtle dismiss ×." title="Dismissible">
+      <div className="max-w-sm">
         <Alert
           closeLabel="Dismiss"
           color="primary"
-          size="sm"
-          title="Small, single line, dismissible"
+          title="A dismissible single-line alert"
           onClose={() => {}}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="One field auto-centres the icon (and ×) — visible when it wraps; two fields top-align so the icon sits with the first line. Pass `align` to override."
+      title="Alignment"
+    >
+      <div className="flex max-w-xs flex-col gap-3">
+        <Alert
+          color="default"
+          description="A single, longer field that wraps onto two or three lines — with one field the icon auto-centres against the block."
+        />
+        <Alert
+          align="start"
+          color="default"
+          description="The same wrapping field, but align=start pins the icon to the first line instead."
+        />
+        <Alert
+          color="default"
+          description="With two fields the icon top-aligns with the first line by default."
+          title="Title + description"
         />
       </div>
     </StorySection>
