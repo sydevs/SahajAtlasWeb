@@ -20,6 +20,7 @@ const seededSearch = `/search?${filtersToParams({
   daysOfWeek: [1, 3, 5],
   timeOfDay: [9, 17],
   languages: ['en', 'fr'],
+  dateRange: { start: null, end: null },
 }).toString()}`
 
 /** ActiveFilterPills — the applied filters as removable pills (one per filter type). */

@@ -44,7 +44,15 @@
     "no_events": "No events found.",
     "remove": "Remove %{label}",
     "nearby": "< %{km} km",
-    "no_nearby": "No events within %{km} km."
+    "no_nearby": "No events within %{km} km.",
+    "dates": {
+      "label": "Date",
+      "from": "From",
+      "to": "To",
+      "pill_from": "From %{date}",
+      "pill_until": "Until %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "free_meditation_class": "Free Meditation Class",
   "free_meditation_classes": "Free Meditation Classes",

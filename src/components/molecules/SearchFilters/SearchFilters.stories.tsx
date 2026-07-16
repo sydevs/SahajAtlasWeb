@@ -24,7 +24,16 @@ const mockGeojson: Geojson = {
   features: mockEventSlimList.map((slim, index) => ({
     type: 'Feature',
     geometry: null,
-    properties: { ...slim, languages: LANGUAGE_SETS[index % LANGUAGE_SETS.length] },
+    // The feed is locale-agnostic (no `title`); the form only reads `languages` off it.
+    properties: {
+      id: slim.id,
+      eventType: slim.eventType,
+      languages: LANGUAGE_SETS[index % LANGUAGE_SETS.length],
+      address: slim.address,
+      schedule: slim.schedule,
+      region: slim.region,
+      webPath: slim.webPath,
+    },
   })),
 }
 

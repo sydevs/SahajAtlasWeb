@@ -51,7 +51,15 @@
     "no_events": "Geen evenementen gevonden.",
     "remove": "%{label} verwijderen",
     "nearby": "< %{km} km",
-    "no_nearby": "Geen evenementen binnen %{km} km."
+    "no_nearby": "Geen evenementen binnen %{km} km.",
+    "dates": {
+      "label": "Datum",
+      "from": "Van",
+      "to": "Tot",
+      "pill_from": "Vanaf %{date}",
+      "pill_until": "Tot %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Zoek evenementen in de buurt van…",
   "online_classes": "Online lessen",

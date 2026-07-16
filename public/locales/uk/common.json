@@ -51,7 +51,15 @@
     "no_events": "Події не знайдено.",
     "remove": "Видалити %{label}",
     "nearby": "< %{km} km",
-    "no_nearby": "Немає подій у радіусі %{km} км."
+    "no_nearby": "Немає подій у радіусі %{km} км.",
+    "dates": {
+      "label": "Дата",
+      "from": "Від",
+      "to": "До",
+      "pill_from": "Від %{date}",
+      "pill_until": "До %{date}",
+      "pill_range": "%{start} – %{end}"
+    }
   },
   "search_placeholder": "Шукати події поблизу…",
   "online_classes": "Онлайн-заняття",

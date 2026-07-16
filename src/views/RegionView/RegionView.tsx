@@ -19,12 +19,12 @@ import { CloseButton, NearbySuggestion, useFrameOnTop } from '@/views/shared'
 // when it's the top of the stack. No canonicalization redirect — the URL stays where
 // the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
-  const { regionNames } = useLocale()
+  const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
 
   const { data: region } = useSuspenseQuery({
-    queryKey: ['region', slug],
+    queryKey: ['region', slug, locale],
     queryFn: () => api.getRegion(slug),
   })
 
