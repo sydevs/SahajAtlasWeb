@@ -18,7 +18,13 @@ import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
-import { approxBounds, distanceKm } from '@/lib/geo'
+import { approxBounds } from '@/lib/geo'
+import {
+  hasActivePlaceSearch,
+  markNearbyDismissed,
+  readNearbyDismissed,
+  shouldShowNearbyPrompt,
+} from '@/lib/nearby'
 import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -210,39 +216,9 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   )
 }
 
-// One session-scoped flag: dismissing the nearby suggestion (× or clicking through)
-// hides it for the rest of the browser session; it reappears on a fresh visit.
-const NEARBY_DISMISS_KEY = 'sahajAtlas.nearbyPromptDismissed'
-
 // A city-sized radius (km) so the suggested search frames a neighbourhood, not the
 // pinpoint the IP guess resolves to.
 const NEARBY_RADIUS_KM = 25
-
-// Only suggest when a located class is within this radius (km) of the guess — a
-// tight "genuinely near" bound so the prompt never leads to an empty search.
-const NEARBY_MAX_KM = 100
-
-// Treat a region as the user's own "local" region when its centre sits within this
-// radius (km) of the guess — a metro region's centre is near you, a country's isn't.
-const LOCAL_REGION_KM = 100
-
-// sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
-// accessors degrade to "not dismissed" rather than crashing the suggestion.
-const readNearbyDismissed = () => {
-  try {
-    return sessionStorage.getItem(NEARBY_DISMISS_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-const markNearbyDismissed = () => {
-  try {
-    sessionStorage.setItem(NEARBY_DISMISS_KEY, '1')
-  } catch {
-    // Dismissal just won't persist where sessionStorage is unavailable — acceptable.
-  }
-}
 
 // The single shared wiring for the IP-geolocation nearby suggestion, rendered above
 // the list on CountriesView / RegionView / SearchView so the behaviour isn't
@@ -250,20 +226,17 @@ const markNearbyDismissed = () => {
 // ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
 // centred on the guess — preserving the active URL filters exactly as SearchField
 // does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
-// rather than the pinpoint zoom it uses for a bare centre. Hidden when: a place
-// search is already active (lookup skipped); no located class is within
-// NEARBY_MAX_KM of the guess; or the user is already viewing a region local to it
-// (its centre within LOCAL_REGION_KM — `regionCenter`, passed by RegionView).
-// Dismissal (× or accept) is session-scoped.
+// rather than the pinpoint zoom it uses for a bare centre. `shouldShowNearbyPrompt`
+// (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions; dismissal
+// (× or accept) is session-scoped.
 export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, number] | null }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [dismissed, setDismissed] = useState(readNearbyDismissed)
-  // Don't suggest a nearby search when a place search is already active (SearchView
-  // with a ?center/?q); skip the lookup too. Also skip it once dismissed — no
-  // third-party ping on reload.
-  const hasActiveSearch = searchParams.has('center') || searchParams.has('q')
-  const ipLocation = useIpLocation(!dismissed && !hasActiveSearch)
+  // Skip the passive lookup when it couldn't be shown anyway — dismissed, or a place
+  // search is already active — so those cases never ping the third-party service.
+  const activeSearch = hasActivePlaceSearch(searchParams)
+  const ipLocation = useIpLocation(!dismissed && !activeSearch)
 
   // The cached event feed powers the "is anything actually near?" guard.
   const { data: geojson } = useQuery({
@@ -272,25 +245,11 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  // Only suggest when a located class is genuinely near the guess — otherwise the
-  // prompt promises "classes near %{city}" that lead to an empty search. Online
-  // classes carry no geometry, so they're naturally excluded.
-  const hasNearbyClasses = useMemo(() => {
-    if (!ipLocation || !geojson) return false
-    const from = [ipLocation.longitude, ipLocation.latitude]
-
-    return geojson.features.some(
-      (feature) =>
-        feature.geometry != null && distanceKm(from, feature.geometry.coordinates) <= NEARBY_MAX_KM,
-    )
-  }, [ipLocation, geojson])
-
-  // Redundant when the user is already viewing a region local to their guess — its
-  // centre (of its located classes) sits within LOCAL_REGION_KM of the guess.
-  const viewingLocalRegion =
-    !!regionCenter &&
-    !!ipLocation &&
-    distanceKm([ipLocation.longitude, ipLocation.latitude], regionCenter) <= LOCAL_REGION_KM
+  const show = useMemo(
+    () =>
+      shouldShowNearbyPrompt({ guess: ipLocation, dismissed, activeSearch, geojson, regionCenter }),
+    [ipLocation, dismissed, activeSearch, geojson, regionCenter],
+  )
 
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
@@ -318,11 +277,8 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
     setDismissed(true)
   }, [])
 
-  // Check the non-lookup guards explicitly: a cached IP result outlives the `enabled`
-  // flip, so the render must re-exclude the active-search and redundant cases.
-  if (!ipLocation || dismissed || hasActiveSearch || !hasNearbyClasses || viewingLocalRegion) {
-    return null
-  }
+  // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
+  if (!ipLocation || !show) return null
 
   return <NearbyPrompt city={ipLocation.city} onDismiss={handleDismiss} onSelect={handleSelect} />
 }
