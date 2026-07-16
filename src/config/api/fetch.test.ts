@@ -1,61 +1,83 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
+import { applyRequestContext } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import preview from '@/config/preview'
 import { queryClient } from '@/config/query-client'
 import { EventDocSchema } from '@/types'
 
-// The shared axios client attaches auth + locale to *every* request via one
-// interceptor (so individual fetchers don't). We mock axios to capture that
-// interceptor and the `get` method, and mock i18n so importing the client
-// doesn't boot the real HTTP backend / language detector.
+// We mock @payloadcms/sdk at the boundary (mirrors mocking axios before). The
+// PayloadSDK constructor returns a stub whose find/findByID/request the fetchers call;
+// the cross-cutting auth + locale + preview logic lives in `applyRequestContext`, tested
+// directly (no network round-trip). i18n is mocked so importing the client doesn't boot
+// the real HTTP backend / language detector.
 //
-// vi.hoisted runs before the hoisted vi.mock factories, so `use`/`get` are
-// already spies when client.ts calls interceptors.request.use(...).
-const { use, get } = vi.hoisted(() => ({ use: vi.fn(), get: vi.fn() }))
+// vi.hoisted runs before the hoisted vi.mock factory, so `sdk` is already spied when
+// client.ts calls `new PayloadSDK(...)`.
+const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
-vi.mock('axios', () => ({
-  default: { create: () => ({ interceptors: { request: { use } }, get }) },
+vi.mock('@payloadcms/sdk', () => ({
+  // A class so `new PayloadSDK(...)` in client.ts constructs cleanly; each instance's
+  // methods point at the shared hoisted spies the tests drive.
+  PayloadSDK: class {
+    find = sdk.find
+    findByID = sdk.findByID
+    request = sdk.request
+  },
+  PayloadSDKError: class PayloadSDKError extends Error {},
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 
-type AxiosRequest = { headers: Record<string, string>; params?: Record<string, unknown> }
-const interceptor = use.mock.calls[0][0] as (req: AxiosRequest) => AxiosRequest
+// A stubbed SDK Response: `sdk.request` resolves to a Response; `requestJson` reads `.json()`.
+const jsonResponse = (data: unknown) => ({ json: async () => data })
 
 beforeEach(() => {
-  get.mockReset()
+  sdk.find.mockReset()
+  sdk.findByID.mockReset()
+  sdk.request.mockReset()
   // Reset the shared preview singleton so only tests that opt in see preview mode.
   preview.active = false
   preview.secret = null
-  // loadGeojson caches through the shared QueryClient — clear it so each test
-  // re-reads the mocked feed rather than a previous test's cached one.
+  // loadRegions/loadGeojson/loadEventTitles cache through the shared QueryClient — clear
+  // it so each test re-reads the mocked data rather than a previous test's cached one.
   queryClient.clear()
 })
 
-describe('api request interceptor', () => {
+describe('applyRequestContext (auth + locale + preview on every request)', () => {
+  // The interceptor mutates a URL + Headers in place; build a fresh pair and apply it.
+  const context = (href = 'https://cloud.example/api/regions') => {
+    const url = new URL(href)
+    const headers = new Headers()
+
+    applyRequestContext(url, headers)
+
+    return { url, headers }
+  }
+
   it('attaches the clients API-Key and resolved locale to every request', () => {
     atlasAuth.apiKey = 'test-key-123'
 
-    const request = interceptor({ headers: {} })
+    const { url, headers } = context()
 
-    expect(request.headers['Authorization']).toBe('clients API-Key test-key-123')
-    expect(request.params?.locale).toBe('fr')
+    expect(headers.get('Authorization')).toBe('clients API-Key test-key-123')
+    expect(url.searchParams.get('locale')).toBe('fr')
   })
 
-  it('preserves existing query params while adding the locale', () => {
+  it('adds the locale without dropping existing query params', () => {
     atlasAuth.apiKey = 'k'
 
-    const request = interceptor({ headers: {}, params: { depth: 1 } })
+    const { url } = context('https://cloud.example/api/regions?depth=1')
 
-    expect(request.params).toMatchObject({ depth: 1, locale: 'fr' })
+    expect(url.searchParams.get('depth')).toBe('1')
+    expect(url.searchParams.get('locale')).toBe('fr')
   })
 
   it('omits the Authorization header when no api key is set', () => {
     atlasAuth.apiKey = null
 
-    expect(interceptor({ headers: {} }).headers['Authorization']).toBeUndefined()
+    expect(context().headers.get('Authorization')).toBeNull()
   })
 
   it('forwards the preview secret header and draft=true for an active preview session', () => {
@@ -63,10 +85,11 @@ describe('api request interceptor', () => {
     preview.active = true
     preview.secret = 'preview-secret'
 
-    const request = interceptor({ headers: {}, params: { depth: 1 } })
+    const { url, headers } = context()
 
-    expect(request.headers['x-sahajcloud-preview-secret']).toBe('preview-secret')
-    expect(request.params).toMatchObject({ depth: 1, draft: true, locale: 'fr' })
+    expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-secret')
+    expect(url.searchParams.get('draft')).toBe('true')
+    expect(url.searchParams.get('locale')).toBe('fr')
   })
 
   it('does not forward draft/secret when the session carries no secret', () => {
@@ -74,17 +97,17 @@ describe('api request interceptor', () => {
     preview.active = true
     preview.secret = null
 
-    const request = interceptor({ headers: {} })
+    const { url, headers } = context()
 
-    expect(request.headers['x-sahajcloud-preview-secret']).toBeUndefined()
-    expect(request.params?.draft).toBeUndefined()
+    expect(headers.get('x-sahajcloud-preview-secret')).toBeNull()
+    expect(url.searchParams.get('draft')).toBeNull()
   })
 })
 
 describe('getGeojson', () => {
-  it('reads the feed with a required select + populate and parses the FeatureCollection', async () => {
-    get.mockResolvedValue({
-      data: {
+  it('reads the feed via the raw request helper with select + populate and parses it', async () => {
+    sdk.request.mockResolvedValue(
+      jsonResponse({
         type: 'FeatureCollection',
         features: [
           {
@@ -98,17 +121,17 @@ describe('getGeojson', () => {
             },
           },
         ],
-      },
-    })
+      }),
+    )
 
     const geojson = await api.getGeojson()
 
-    const [path, config] = get.mock.calls[0] as [string, { params: Record<string, unknown> }]
+    const [options] = sdk.request.mock.calls[0] as [{ path: string; args: Record<string, unknown> }]
 
-    expect(path).toBe('/events/geojson')
-    expect(config.params.select).toBeTruthy()
-    expect(config.params.populate).toBeTruthy()
-    expect(config.params.pagination).toBe(false)
+    expect(options.path).toBe('/events/geojson')
+    expect(options.args.select).toBeTruthy()
+    expect(options.args.populate).toBeTruthy()
+    expect(options.args.pagination).toBe(false)
     expect(geojson.features[0].properties.region.slug).toBe('brussels')
   })
 })
@@ -144,7 +167,7 @@ describe('getRegion (region-tree derivation)', () => {
 
   // Belgium(28), a country with three city children: Antwerpen(473) [2 located →
   // carded], Brussels(470) [1 located → carded], Ghent(475) [1 online → no card].
-  // The wholesale /regions read returns the whole tree with each node's parent link;
+  // The wholesale regions read returns the whole tree with each node's parent link;
   // ancestry is walked from those links, not the feed.
   const tree = [
     {
@@ -195,21 +218,22 @@ describe('getRegion (region-tree derivation)', () => {
     }),
   ]
 
-  // getRegion makes three reads now: the wholesale region tree, the agnostic feed,
-  // and the per-locale titles sliver (id→title from /events) joined back by id.
-  const route = (url: string, feed = countryFeed, nodes: unknown[] = tree) => {
-    if (url === '/regions') return { data: { docs: nodes } }
-    if (url === '/events') {
+  // getRegion makes three reads: the wholesale region tree (sdk.find on `regions`), the
+  // agnostic feed (sdk.request on /events/geojson), and the per-locale titles sliver
+  // (sdk.find on `events`, id→title) joined back by id. Dispatch the SDK stubs by which.
+  const mockBackend = (feed = countryFeed, nodes: unknown[] = tree) => {
+    sdk.find.mockImplementation((options: { collection: string }) => {
+      if (options.collection === 'regions') return Promise.resolve({ docs: nodes })
+
       const docs = feed.map((f) => ({ id: f.properties.id, title: `Event ${f.properties.id}` }))
 
-      return { data: { docs } }
-    }
-
-    return { data: { type: 'FeatureCollection', features: feed } }
+      return Promise.resolve({ docs })
+    })
+    sdk.request.mockResolvedValue(jsonResponse({ type: 'FeatureCollection', features: feed }))
   }
 
   it('cards every child with a located event and rolls up online', async () => {
-    get.mockImplementation((url: string) => Promise.resolve(route(url)))
+    mockBackend()
 
     const region = await api.getRegion('belgium')
 
@@ -244,15 +268,7 @@ describe('getRegion (region-tree derivation)', () => {
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
     ]
 
-    get.mockImplementation((url: string) =>
-      Promise.resolve(
-        route(
-          url,
-          [feature({ id: 1, regionId: 9, slug: 'de', coordinates: [13.4, 52.5] })],
-          isoTree,
-        ),
-      ),
-    )
+    mockBackend([feature({ id: 1, regionId: 9, slug: 'de', coordinates: [13.4, 52.5] })], isoTree)
 
     const region = await api.getRegion('de')
 
@@ -260,7 +276,7 @@ describe('getRegion (region-tree derivation)', () => {
   })
 
   it('throws when the slug is not in the region tree', async () => {
-    get.mockImplementation((url: string) => Promise.resolve(route(url)))
+    mockBackend()
 
     await expect(api.getRegion('atlantis')).rejects.toThrow('Region not found')
   })
@@ -277,7 +293,7 @@ describe('getRegion (region-tree derivation)', () => {
       },
     ]
 
-    get.mockImplementation((url: string) => Promise.resolve(route(url, [], empty)))
+    mockBackend([], empty)
 
     await expect(api.getRegion('empty-land')).rejects.toThrow('no events')
   })
@@ -297,7 +313,7 @@ describe('getRegion (region-tree derivation)', () => {
       feature({ id: 20, regionId: 5, slug: 'onlyonline', eventType: 'online', next: '2026-09-01' }),
     ]
 
-    get.mockImplementation((url: string) => Promise.resolve(route(url, onlineFeed, onlineTree)))
+    mockBackend(onlineFeed, onlineTree)
 
     const region = await api.getRegion('onlyonline')
 
@@ -323,7 +339,7 @@ describe('getRegion (region-tree derivation)', () => {
       feature({ id: 11, regionId: 470, slug: 'brussels', eventType: 'online' }),
     ]
 
-    get.mockImplementation((url: string) => Promise.resolve(route(url, leafFeed, [city])))
+    mockBackend(leafFeed, [city])
 
     const region = await api.getRegion('brussels')
 
@@ -358,7 +374,8 @@ describe('getEvent', () => {
   }
 
   it('resolves relative image URLs against the origin, leaving null urls null', async () => {
-    get.mockResolvedValue({ data: rawEvent })
+    // findByID returns the doc directly (no axios `.data` envelope).
+    sdk.findByID.mockResolvedValue(rawEvent)
 
     const event = await api.getEvent(13)
 
