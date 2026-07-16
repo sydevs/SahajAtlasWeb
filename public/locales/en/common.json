@@ -76,5 +76,9 @@
     "title": "Free Meditation Classes at %{venue}"
   },
   "search_placeholder": "Search for events near…",
-  "online_classes": "Online Classes"
+  "online_classes": "Online Classes",
+  "nearby_prompt": {
+    "title": "Looking for classes near %{city}?",
+    "dismiss": "Dismiss"
+  }
 }

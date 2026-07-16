@@ -62,5 +62,9 @@
     }
   },
   "search_placeholder": "Buscar eventos perto de…",
-  "online_classes": "Aulas on-line"
+  "online_classes": "Aulas on-line",
+  "nearby_prompt": {
+    "title": "Procurando aulas perto de %{city}?",
+    "dismiss": "Dispensar"
+  }
 }

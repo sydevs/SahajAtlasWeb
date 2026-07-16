@@ -62,5 +62,9 @@
     }
   },
   "search_placeholder": "Hledat události poblíž…",
-  "online_classes": "Online kurzy"
+  "online_classes": "Online kurzy",
+  "nearby_prompt": {
+    "title": "Hledáte kurzy poblíž: %{city}?",
+    "dismiss": "Skrýt"
+  }
 }

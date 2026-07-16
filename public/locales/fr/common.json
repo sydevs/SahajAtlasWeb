@@ -62,5 +62,9 @@
     }
   },
   "search_placeholder": "Rechercher des événements près de…",
-  "online_classes": "Cours en ligne"
+  "online_classes": "Cours en ligne",
+  "nearby_prompt": {
+    "title": "Vous cherchez des cours près de %{city} ?",
+    "dismiss": "Ignorer"
+  }
 }

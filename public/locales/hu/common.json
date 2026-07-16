@@ -62,5 +62,9 @@
     }
   },
   "search_placeholder": "Események keresése a közelben…",
-  "online_classes": "Online órák"
+  "online_classes": "Online órák",
+  "nearby_prompt": {
+    "title": "Órákat keresel %{city} közelében?",
+    "dismiss": "Elrejtés"
+  }
 }

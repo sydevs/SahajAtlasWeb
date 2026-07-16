@@ -5,7 +5,13 @@ import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { CloseButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
+import {
+  CloseButton,
+  FilterButton,
+  NearbySuggestion,
+  SearchField,
+  useFrameOnTop,
+} from '@/views/shared'
 
 const parsePair = (value: string | null): [number, number] | undefined => {
   if (!value) return undefined
@@ -74,6 +80,7 @@ export function SearchView() {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
+        <NearbySuggestion />
         <DynamicEventsList
           hasSearchCenter={center !== undefined}
           latitude={latitude}

@@ -2,20 +2,30 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList } from 'react'
 
-import { createContext, useCallback, useContext, useEffect } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button, IconButton } from '@/components/atoms/Button'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
+import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
+import { approxBounds } from '@/lib/geo'
+import {
+  hasActivePlaceSearch,
+  markNearbyDismissed,
+  readNearbyDismissed,
+  shouldShowNearbyPrompt,
+} from '@/lib/nearby'
 import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -197,6 +207,7 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
       <Alert
+        align="start"
         className="max-w-xs"
         color="danger"
         description={error?.message ?? t('error.generic')}
@@ -206,4 +217,71 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
       </Button>
     </DrawerBody>
   )
+}
+
+// A city-sized radius (km) so the suggested search frames a neighbourhood, not the
+// pinpoint the IP guess resolves to.
+const NEARBY_RADIUS_KM = 25
+
+// The single shared wiring for the IP-geolocation nearby suggestion, rendered above
+// the list on CountriesView / RegionView / SearchView so the behaviour isn't
+// triplicated. Reads the passive IP location (one lookup per session; fails silently
+// ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
+// centred on the guess — preserving the active URL filters exactly as SearchField
+// does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
+// rather than the pinpoint zoom it uses for a bare centre. `shouldShowNearbyPrompt`
+// (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions; dismissal
+// (× or accept) is session-scoped.
+export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, number] | null }) {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [dismissed, setDismissed] = useState(readNearbyDismissed)
+  // Skip the passive lookup when it couldn't be shown anyway — dismissed, or a place
+  // search is already active — so those cases never ping the third-party service.
+  const activeSearch = hasActivePlaceSearch(searchParams)
+  const ipLocation = useIpLocation(!dismissed && !activeSearch)
+
+  // The cached event feed powers the "is anything actually near?" guard.
+  const { data: geojson } = useQuery({
+    queryKey: ['geojson'],
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+  })
+
+  const show = useMemo(
+    () =>
+      shouldShowNearbyPrompt({ guess: ipLocation, dismissed, activeSearch, geojson, regionCenter }),
+    [ipLocation, dismissed, activeSearch, geojson, regionCenter],
+  )
+
+  const handleSelect = useCallback(() => {
+    if (!ipLocation) return
+
+    // Preserve the active filters (URL-only) while resetting the searched location —
+    // mirrors SearchField; searching shouldn't silently clear the filters.
+    const params = filtersToParams(filtersFromParams(searchParams))
+
+    params.set('q', `${ipLocation.city}, ${ipLocation.country}`)
+    params.set('center', `${ipLocation.longitude},${ipLocation.latitude}`)
+    params.set(
+      'bbox',
+      approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM).toString(),
+    )
+
+    markNearbyDismissed()
+    // Also hide it immediately: accepting from /search → /search is a same-pathname
+    // nav, so NearbySuggestion doesn't remount to re-read the session flag on its own.
+    setDismissed(true)
+    navigate(`/search?${params.toString()}`)
+  }, [ipLocation, navigate, searchParams])
+
+  const handleDismiss = useCallback(() => {
+    markNearbyDismissed()
+    setDismissed(true)
+  }, [])
+
+  // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
+  if (!ipLocation || !show) return null
+
+  return <NearbyPrompt city={ipLocation.city} onDismiss={handleDismiss} onSelect={handleSelect} />
 }

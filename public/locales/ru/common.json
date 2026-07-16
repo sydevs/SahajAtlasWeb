@@ -62,5 +62,9 @@
     }
   },
   "search_placeholder": "Искать события рядом с…",
-  "online_classes": "Онлайн-занятия"
+  "online_classes": "Онлайн-занятия",
+  "nearby_prompt": {
+    "title": "Ищете занятия рядом: %{city}?",
+    "dismiss": "Скрыть"
+  }
 }
