@@ -36,7 +36,7 @@ export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
       size="sm"
       title={
         <button
-          className="w-full text-left hover:underline focus:outline-none focus-visible:underline"
+          className="w-full text-start hover:underline focus:outline-none focus-visible:underline"
           type="button"
           onClick={onSelect}
         >

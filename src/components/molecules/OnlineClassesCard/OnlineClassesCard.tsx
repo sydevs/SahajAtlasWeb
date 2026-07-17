@@ -17,7 +17,7 @@ export function OnlineClassesCard({ count, href }: OnlineClassesCardProps) {
 
   return (
     <RegionCard count={count} href={href} label={t('online_classes')}>
-      <MonitorIcon className="mr-3 shrink-0 text-2xl" />
+      <MonitorIcon className="me-3 shrink-0 text-2xl" />
     </RegionCard>
   )
 }

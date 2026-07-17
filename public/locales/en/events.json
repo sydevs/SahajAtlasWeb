@@ -77,7 +77,6 @@
   "recurrence": {
     "daily": "Every Day",
     "daily_n": "Every %{interval} days",
-    "monthly": "Monthly",
     "monthly_1st": "1st %{weekday} of every month",
     "monthly_2nd": "2nd %{weekday} of every month",
     "monthly_3rd": "3rd %{weekday} of every month",
@@ -85,7 +84,6 @@
     "monthly_date": "On day %{day} of every month",
     "monthly_last": "Last %{weekday} of every month",
     "null": "Contact host for timings",
-    "weekly": "Every %{weekday}",
     "weekly_1": "Every %{weekday}",
     "weekly_2": "Every 2nd %{weekday}",
     "weekly_multi": "Every %{weekdays}",

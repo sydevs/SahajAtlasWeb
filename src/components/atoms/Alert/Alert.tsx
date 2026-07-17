@@ -14,7 +14,7 @@ const alert = tv({
     content: 'min-w-0 flex-1',
     title: 'text-sm font-medium',
     description: 'text-sm opacity-90',
-    close: '-mr-1 shrink-0 opacity-60 hover:opacity-100',
+    close: '-me-1 shrink-0 opacity-60 hover:opacity-100',
   },
   variants: {
     color: { primary: '', secondary: '', default: '', danger: '' },

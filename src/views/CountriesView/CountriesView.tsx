@@ -87,7 +87,7 @@ export function CountriesView() {
             >
               {country.countryCode && (
                 <CircleFlag
-                  className="mr-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
+                  className="me-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
                   countryCode={country.countryCode.toLocaleLowerCase()}
                 />
               )}

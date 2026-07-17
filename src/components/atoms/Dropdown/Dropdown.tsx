@@ -105,7 +105,7 @@ export type DropdownItemProps =
 const dropdownItem = tv({
   // `w-full text-left` keep the <button> variant reading as a full-width menu
   // row (buttons are otherwise inline + centered) and a no-op for the <a>.
-  base: 'block w-full text-left font-medium text-foreground transition-colors hover:bg-gray-3',
+  base: 'block w-full text-start font-medium text-foreground transition-colors hover:bg-gray-3',
   variants: {
     size: {
       sm: 'px-4 py-2.5 text-sm',

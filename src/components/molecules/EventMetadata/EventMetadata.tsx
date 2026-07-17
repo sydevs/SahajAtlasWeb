@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 
 import { useLocale } from '@/hooks/use-locale'
-import { isOnline, lexicalToText, nextOccurrence } from '@/lib/shape'
+import { isOnline, lexicalToText, resolveEventDisplay } from '@/lib/shape'
 import { Event } from '@/types'
 
 export type EventMetadataProps = {
@@ -18,7 +18,12 @@ export function EventMetadata({ event }: EventMetadataProps) {
   const url = event.webUrl ?? ''
   const languageCode = event.languages[0] ?? locale
   const description = lexicalToText(event.description) || 'Free meditation class'
-  const startDate = (nextOccurrence(event) ?? event.schedule?.firstDate)?.toISOString()
+  // SEO reads the same resolver as the UI (issue #52): the rolled next
+  // occurrence (not a stale [0]), a status that matches what renders, and
+  // availability that will track fullness once the CMS exposes it.
+  const display = resolveEventDisplay(event)
+  const startDate =
+    (display.next ?? display.firstSession)?.toISO() ?? event.schedule?.firstDate.toISOString()
   const image = event.images.find((img) => img.url)?.url ?? undefined
 
   const schema: EventSchema = {
@@ -28,14 +33,17 @@ export function EventMetadata({ event }: EventMetadataProps) {
     description,
     startDate,
     image,
-    eventStatus: 'https://schema.org/EventScheduled',
+    // Dateless/inactive events have no schedulable date — EventPostponed is the
+    // closest truthful status; everything else stays scheduled (an ended event
+    // simply carries a past startDate).
+    eventStatus: `https://schema.org/${display.status === 'inactive' ? 'EventPostponed' : 'EventScheduled'}`,
     eventAttendanceMode: `https://schema.org/${online ? 'OnlineEventAttendanceMode' : 'OfflineEventAttendanceMode'}`,
     offers: {
       '@type': 'Offer',
       url,
       price: 0,
       priceCurrency: 'USD',
-      availability: 'https://schema.org/InStock',
+      availability: `https://schema.org/${display.full ? 'SoldOut' : 'InStock'}`,
       validFrom: startDate,
     },
     organizer: {

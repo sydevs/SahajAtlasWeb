@@ -96,6 +96,9 @@ function PeekStrip({
   label: string
   onClick: () => void
 }) {
+  // TODO(rtl, #52 WS8): the strip geometry (inline left/right + the framer x
+  // offsets below) is direction-sensitive — mirror alongside the Drawer atom's
+  // `left` variant when an RTL locale ships.
   const isLeft = direction === 'left'
   const style: CSSProperties = { position: 'fixed', zIndex }
   let className: string

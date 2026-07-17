@@ -83,7 +83,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
               // Tapping the address MAY re-centre the map pin, but never leaves
               // the panel — styled as plain text, not a link.
               <button
-                className="text-left font-medium text-foreground"
+                className="text-start font-medium text-foreground"
                 type="button"
                 onClick={() => frameEvent(event)}
               >

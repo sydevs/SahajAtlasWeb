@@ -29,7 +29,7 @@ export function CopyField({ value }: { value: string }) {
   return (
     <button
       aria-label="Copy link"
-      className={`w-full select-all truncate rounded px-3 py-2 text-left text-sm text-secondary-11 transition-colors ${
+      className={`w-full select-all truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors ${
         copied ? 'bg-secondary-5' : 'bg-secondary-3'
       }`}
       title={value}

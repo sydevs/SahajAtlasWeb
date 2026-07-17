@@ -150,7 +150,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                   Google Calendar
                 </Link>
                 <button
-                  className="text-left text-sm font-medium text-foreground hover:text-primary-11"
+                  className="text-start text-sm font-medium text-foreground hover:text-primary-11"
                   type="button"
                   onClick={() => downloadIcs(event, whereLine)}
                 >

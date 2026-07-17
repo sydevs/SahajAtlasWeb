@@ -21,7 +21,7 @@ export function RegionCard({ label, subtitle, count, href, children }: RegionCar
           <div>{label}</div>
           {subtitle && <div className="text-md font-light mt-0.5">{subtitle}</div>}
         </div>
-        <div className="text-right mr-1">{count}</div>
+        <div className="text-end me-1">{count}</div>
         <RightArrowIcon className="text-xl" />
       </li>
     </Link>

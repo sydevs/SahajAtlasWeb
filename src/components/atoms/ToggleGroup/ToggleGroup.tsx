@@ -18,7 +18,7 @@ const toggleGroup = tv({
       // Segmented: natural-width items in a single row, flush with overlapping
       // (collapsed) borders, only the outer corners rounded.
       true: {
-        item: '-ml-px rounded-none first:ml-0 first:rounded-l last:rounded-r',
+        item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
       },
     },
   },
