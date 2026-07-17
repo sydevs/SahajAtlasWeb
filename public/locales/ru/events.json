@@ -1,4 +1,12 @@
 {
+  "actions": {
+    "add_calendar": "В календарь",
+    "contact": "Связаться",
+    "copy": "Копировать",
+    "directions": "Маршрут",
+    "download_ics": "Скачать файл .ics",
+    "share": "Поделиться"
+  },
   "details": {
     "contact_for_timing": "Свяжитесь с организатором, чтобы узнать время",
     "contact_host": "Связаться с организатором",
@@ -14,6 +22,42 @@
     "tel": "тел: %{phoneNumber}",
     "view_photo": "Посмотреть фото"
   },
+  "display": {
+    "all_events_free": "Все мероприятия бесплатны",
+    "chip_ended": "Завершено",
+    "chip_free": "Бесплатно",
+    "chip_full": "Мест нет",
+    "chip_started": "Идёт с %{date}",
+    "chip_starts": "Начало: %{date}",
+    "chip_today": "Сегодня",
+    "contact_to_join_full": "Свяжитесь с организатором, чтобы всё же участвовать",
+    "contact_to_join_late": "Свяжитесь с организатором, чтобы присоединиться позже",
+    "event_ended": "Это мероприятие завершилось",
+    "event_full": "Свободных мест нет",
+    "first_session": "Первое занятие: %{date}",
+    "hosted_from": "Онлайн-мероприятие · %{region}",
+    "local_time": "(местное время)",
+    "next_session": "Следующее занятие: %{date}",
+    "on_sahaj_atlas": "на Sahaj Atlas",
+    "online_joining_note": "Данные для подключения придут после регистрации",
+    "origin_time": "%{time} (%{city})",
+    "registration_closed": "Регистрация закрыта",
+    "registration_required": "Требуется регистрация",
+    "see_nearby": "Показать мероприятия рядом",
+    "sessions_count_few": "%{count} занятия",
+    "sessions_count_many": "%{count} занятий",
+    "sessions_count_one": "%{count} занятие",
+    "sessions_count_other": "%{count} занятия",
+    "started_on": "Идёт с %{date}",
+    "type_class": "Занятия",
+    "type_class_daily": "Ежедневные занятия",
+    "type_class_fortnightly": "Занятия раз в две недели",
+    "type_class_monthly": "Ежемесячные занятия",
+    "type_class_weekly": "Еженедельные занятия",
+    "type_course": "Курс",
+    "type_oneoff": "Разовое мероприятие",
+    "your_time": "(ваше время)"
+  },
   "errors": {
     "email": "Введите действительный адрес электронной почты",
     "name": "Введите свое полное имя",
@@ -27,14 +71,18 @@
   },
   "recurrence": {
     "daily": "Каждый день",
+    "daily_n": "Каждые %{interval} дн.",
     "monthly_1st": "1-й %{weekday} каждого месяца",
     "monthly_2nd": "2-й %{weekday} каждого месяца",
     "monthly_3rd": "3-й %{weekday} каждого месяца",
     "monthly_4th": "4-й %{weekday} каждого месяца",
+    "monthly_date": "Ежемесячно, %{day}-го числа",
     "monthly_last": "Последний %{weekday} каждого месяца",
     "null": "Contact host for timings",
     "weekly_1": "Каждый %{weekday}",
-    "weekly_2": "Каждый второй %{weekday}"
+    "weekly_2": "Каждый второй %{weekday}",
+    "weekly_multi": "Еженедельно: %{weekdays}",
+    "weekly_n": "Раз в %{interval} нед.: %{weekday}"
   },
   "registration": {
     "cancel": "Отмена",

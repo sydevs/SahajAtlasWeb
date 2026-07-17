@@ -1,4 +1,12 @@
 {
+  "actions": {
+    "add_calendar": "До календаря",
+    "contact": "Зв'язатися",
+    "copy": "Копіювати",
+    "directions": "Маршрут",
+    "download_ics": "Завантажити файл .ics",
+    "share": "Поділитися"
+  },
   "details": {
     "contact_for_timing": "Зв'яжіться з господарем для уточнення часу",
     "contact_host": "Зв'яжіться з господарем",
@@ -14,6 +22,42 @@
     "tel": "тел: %{phoneNumber}",
     "view_photo": "Переглянути фото"
   },
+  "display": {
+    "all_events_free": "Усі заходи безкоштовні",
+    "chip_ended": "Завершено",
+    "chip_free": "Безкоштовно",
+    "chip_full": "Місць немає",
+    "chip_started": "Триває з %{date}",
+    "chip_starts": "Початок: %{date}",
+    "chip_today": "Сьогодні",
+    "contact_to_join_full": "Зв'яжіться з організатором, щоб узяти участь",
+    "contact_to_join_late": "Зв'яжіться з організатором, щоб приєднатися пізніше",
+    "event_ended": "Цей захід завершився",
+    "event_full": "Вільних місць немає",
+    "first_session": "Перше заняття: %{date}",
+    "hosted_from": "Онлайн-захід · %{region}",
+    "local_time": "(місцевий час)",
+    "next_session": "Наступне заняття: %{date}",
+    "on_sahaj_atlas": "на Sahaj Atlas",
+    "online_joining_note": "Дані для підключення надійдуть після реєстрації",
+    "origin_time": "%{time} (%{city})",
+    "registration_closed": "Реєстрацію закрито",
+    "registration_required": "Потрібна реєстрація",
+    "see_nearby": "Переглянути заходи поруч",
+    "sessions_count_few": "%{count} заняття",
+    "sessions_count_many": "%{count} занять",
+    "sessions_count_one": "%{count} заняття",
+    "sessions_count_other": "%{count} заняття",
+    "started_on": "Триває з %{date}",
+    "type_class": "Заняття",
+    "type_class_daily": "Щоденні заняття",
+    "type_class_fortnightly": "Заняття раз на два тижні",
+    "type_class_monthly": "Щомісячні заняття",
+    "type_class_weekly": "Щотижневі заняття",
+    "type_course": "Курс",
+    "type_oneoff": "Разовий захід",
+    "your_time": "(ваш час)"
+  },
   "errors": {
     "email": "Введіть дійсну електронну адресу",
     "name": "Введіть своє повне ім'я",
@@ -27,14 +71,18 @@
   },
   "recurrence": {
     "daily": "Кожен день",
+    "daily_n": "Кожні %{interval} дн.",
     "monthly_1st": "1-й %{weekday} кожного місяця",
     "monthly_2nd": "2-й %{weekday} кожного місяця",
     "monthly_3rd": "3-й %{weekday} кожного місяця",
     "monthly_4th": "4-й %{weekday} кожного місяця",
+    "monthly_date": "Щомісяця, %{day}-го числа",
     "monthly_last": "Останній %{weekday} кожного місяця",
     "null": "Contact host for timings",
     "weekly_1": "Кожен %{weekday}",
-    "weekly_2": "Кожен 2-й %{weekday}"
+    "weekly_2": "Кожен 2-й %{weekday}",
+    "weekly_multi": "Щотижня: %{weekdays}",
+    "weekly_n": "Раз на %{interval} тиж.: %{weekday}"
   },
   "registration": {
     "cancel": "Скасувати",

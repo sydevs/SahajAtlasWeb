@@ -1,4 +1,12 @@
 {
+  "actions": {
+    "add_calendar": "Zum Kalender",
+    "contact": "Kontakt",
+    "copy": "Kopieren",
+    "directions": "Route",
+    "download_ics": ".ics-Datei herunterladen",
+    "share": "Teilen"
+  },
   "details": {
     "contact_for_timing": "Kontaktieren Sie den Gastgeber für die Zeiten",
     "contact_host": "Kontaktieren Sie den Gastgeber",
@@ -14,6 +22,40 @@
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Foto ansehen"
   },
+  "display": {
+    "all_events_free": "Alle Veranstaltungen sind kostenlos",
+    "chip_ended": "Beendet",
+    "chip_free": "Kostenlos",
+    "chip_full": "Ausgebucht",
+    "chip_started": "Begonnen am %{date}",
+    "chip_starts": "Beginnt am %{date}",
+    "chip_today": "Heute",
+    "contact_to_join_full": "Kontaktieren Sie den Gastgeber, um dennoch teilzunehmen",
+    "contact_to_join_late": "Kontaktieren Sie den Gastgeber für einen späteren Einstieg",
+    "event_ended": "Diese Veranstaltung ist beendet",
+    "event_full": "Diese Veranstaltung ist ausgebucht",
+    "first_session": "Erster Termin: %{date}",
+    "hosted_from": "Online-Veranstaltung · aus %{region}",
+    "local_time": "(Ortszeit)",
+    "next_session": "Nächster Termin: %{date}",
+    "on_sahaj_atlas": "auf Sahaj Atlas",
+    "online_joining_note": "Die Zugangsdaten erhalten Sie nach der Anmeldung",
+    "origin_time": "%{time} in %{city}",
+    "registration_closed": "Anmeldung geschlossen",
+    "registration_required": "Anmeldung erforderlich",
+    "see_nearby": "Veranstaltungen in der Nähe ansehen",
+    "sessions_count_one": "%{count} Termin",
+    "sessions_count_other": "%{count} Termine",
+    "started_on": "Begonnen am %{date}",
+    "type_class": "Kurs",
+    "type_class_daily": "Täglicher Kurs",
+    "type_class_fortnightly": "Kurs alle zwei Wochen",
+    "type_class_monthly": "Monatlicher Kurs",
+    "type_class_weekly": "Wöchentlicher Kurs",
+    "type_course": "Kursreihe",
+    "type_oneoff": "Einmalige Veranstaltung",
+    "your_time": "(Ihre Zeit)"
+  },
   "errors": {
     "email": "Geben Sie eine gültige E-Mail-Adresse ein",
     "name": "Geben Sie Ihren vollständigen Namen ein",
@@ -27,14 +69,18 @@
   },
   "recurrence": {
     "daily": "Täglich",
+    "daily_n": "Alle %{interval} Tage",
     "monthly_1st": "1. %{weekday} jedes Monats",
     "monthly_2nd": "2. %{weekday} jedes Monats",
     "monthly_3rd": "3. %{weekday} jedes Monats",
     "monthly_4th": "4. %{weekday} jedes Monats",
+    "monthly_date": "Monatlich am %{day}.",
     "monthly_last": "Letzter %{weekday} jedes Monats",
     "null": "Contact host for timings",
     "weekly_1": "Jeden %{weekday}",
-    "weekly_2": "Jeden 2. %{weekday}"
+    "weekly_2": "Jeden 2. %{weekday}",
+    "weekly_multi": "Jeden %{weekdays}",
+    "weekly_n": "Alle %{interval} Wochen am %{weekday}"
   },
   "registration": {
     "cancel": "Stornieren",

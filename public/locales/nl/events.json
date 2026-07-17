@@ -1,4 +1,12 @@
 {
+  "actions": {
+    "add_calendar": "In agenda",
+    "contact": "Contact",
+    "copy": "Kopiëren",
+    "directions": "Route",
+    "download_ics": ".ics-bestand downloaden",
+    "share": "Delen"
+  },
   "details": {
     "contact_for_timing": "Neem contact op met de gastheer voor de tijden",
     "contact_host": "Neem contact op met de gastheer",
@@ -14,6 +22,40 @@
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Foto bekijken"
   },
+  "display": {
+    "all_events_free": "Alle evenementen zijn gratis",
+    "chip_ended": "Afgelopen",
+    "chip_free": "Gratis",
+    "chip_full": "Vol",
+    "chip_started": "Gestart %{date}",
+    "chip_starts": "Start %{date}",
+    "chip_today": "Vandaag",
+    "contact_to_join_full": "Neem contact op met de organisator om toch mee te doen",
+    "contact_to_join_late": "Neem contact op met de organisator om later in te stromen",
+    "event_ended": "Dit evenement is afgelopen",
+    "event_full": "Dit evenement is vol",
+    "first_session": "Eerste les: %{date}",
+    "hosted_from": "Online evenement · vanuit %{region}",
+    "local_time": "(lokale tijd)",
+    "next_session": "Volgende les: %{date}",
+    "on_sahaj_atlas": "op Sahaj Atlas",
+    "online_joining_note": "De deelnamegegevens ontvang je na aanmelding",
+    "origin_time": "%{time} in %{city}",
+    "registration_closed": "Aanmelden gesloten",
+    "registration_required": "Aanmelden verplicht",
+    "see_nearby": "Bekijk evenementen in de buurt",
+    "sessions_count_one": "%{count} les",
+    "sessions_count_other": "%{count} lessen",
+    "started_on": "Gestart op %{date}",
+    "type_class": "Les",
+    "type_class_daily": "Dagelijkse les",
+    "type_class_fortnightly": "Tweewekelijkse les",
+    "type_class_monthly": "Maandelijkse les",
+    "type_class_weekly": "Wekelijkse les",
+    "type_course": "Cursus",
+    "type_oneoff": "Eenmalig evenement",
+    "your_time": "(jouw tijd)"
+  },
   "errors": {
     "email": "Voer een geldig e-mailadres in",
     "name": "Voer uw volledige naam in",
@@ -27,14 +69,18 @@
   },
   "recurrence": {
     "daily": "Elke dag",
+    "daily_n": "Elke %{interval} dagen",
     "monthly_1st": "1e %{weekday} van elke maand",
     "monthly_2nd": "2e %{weekday} van elke maand",
     "monthly_3rd": "3e %{weekday} van elke maand",
     "monthly_4th": "4e %{weekday} van elke maand",
+    "monthly_date": "Maandelijks op dag %{day}",
     "monthly_last": "Laatste %{weekday} van elke maand",
     "null": "Contact host for timings",
     "weekly_1": "Elke %{weekday}",
-    "weekly_2": "Elke 2e %{weekday}"
+    "weekly_2": "Elke 2e %{weekday}",
+    "weekly_multi": "Elke %{weekdays}",
+    "weekly_n": "Elke %{interval} weken op %{weekday}"
   },
   "registration": {
     "cancel": "Annuleren",
