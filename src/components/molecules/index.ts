@@ -16,6 +16,11 @@ export type { ActiveFilterPillsProps } from './ActiveFilterPills'
 
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
+// ActionRow / ActionCircle — the labelled tonal-circle secondary actions under
+// an event's Register CTA (Directions / Add to calendar / Contact / Share).
+export { ActionRow, ActionCircle } from './ActionRow'
+export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+
 // DetailRow — a generic labelled icon row; the event detail cards build on it.
 export { DetailRow } from './DetailRow'
 export type { DetailRowProps, DetailRowBox } from './DetailRow'

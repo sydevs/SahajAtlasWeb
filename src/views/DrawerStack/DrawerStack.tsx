@@ -167,10 +167,14 @@ export function DrawerStack() {
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
 
-  // Mirror the active sheet's live top onto the peek strips every frame, so they
-  // track a drag without waiting for the snap to settle (map + mobile only).
+  // Mirror the active sheet's live top onto the peek strips AND the sheet
+  // itself every frame, so both track a drag without waiting for the snap to
+  // settle (map + mobile only). The sheet-side copy is what pins EventView's
+  // sticky register bar to the viewport edge — inside the transformed sheet,
+  // `position: fixed` resolves against the sheet, so the bar offsets by the
+  // live top instead (issue #52, WS4).
   useEffect(() => {
-    if (!hasMap || direction !== 'bottom' || parentPaths.length === 0) return
+    if (!hasMap || direction !== 'bottom') return
     let raf = 0
     let last = Number.NaN
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
@@ -180,12 +184,13 @@ export function DrawerStack() {
       sheet ??= document.querySelector<HTMLElement>('[data-vaul-drawer]')
       const el = stripsRef.current
 
-      if (sheet && el) {
+      if (sheet) {
         const top = sheet.getBoundingClientRect().top
 
         if (top !== last) {
           last = top
-          el.style.setProperty('--sy-sheet-top', `${top}px`)
+          sheet.style.setProperty('--sy-sheet-top', `${top}px`)
+          el?.style.setProperty('--sy-sheet-top', `${top}px`)
         }
       }
       raf = requestAnimationFrame(tick)
@@ -194,7 +199,7 @@ export function DrawerStack() {
     raf = requestAnimationFrame(tick)
 
     return () => cancelAnimationFrame(raf)
-  }, [hasMap, direction, parentPaths.length])
+  }, [hasMap, direction])
 
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both

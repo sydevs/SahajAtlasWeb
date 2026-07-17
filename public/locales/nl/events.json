@@ -55,7 +55,8 @@
     "type_course": "Cursus",
     "type_oneoff": "Eenmalig evenement",
     "your_time": "(jouw tijd)",
-    "distance_from_search": "%{distance} van de gezochte locatie"
+    "distance_from_search": "%{distance} van de gezochte locatie",
+    "about": "Over"
   },
   "errors": {
     "email": "Voer een geldig e-mailadres in",

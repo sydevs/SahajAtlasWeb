@@ -82,6 +82,19 @@ export const ListIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon paths={['M3 5h18v2H3zM3 11h18v2H3zM3 17h18v2H3z']} view="0 0 24 24" {...props} />
 )
 
+// Directional (the arrow points along the reading direction) — mirrors under
+// RTL via the built-in `rtl:` class; see the mirroring policy in index.tsx.
+export const DirectionsIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon
+    className="rtl:-scale-x-100"
+    paths={[
+      'M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z',
+    ]}
+    view="0 0 24 24"
+    {...props}
+  />
+)
+
 export const FilterIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
     paths={[

@@ -1,28 +1,39 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { EventMetadata } from '@/components/molecules'
+// Leaf-file imports (not the folder index): the index re-exports EventDetails,
+// and importing it statically here would pull the lazy-loaded panel chunk
+// (DOMPurify + action wiring) back into the main bundle.
+import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
+import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { Spinner } from '@/components/atoms/Spinner'
 import api from '@/config/api'
+import { useIsDesktop } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { CloseButton, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
 
-// EventDetails pulls in DOMPurify + the detail cards; keep it out of the main
-// chunk (as pages/event.tsx used to) by lazy-loading it here.
+// EventDetails pulls in DOMPurify + the action-row wiring; keep it out of the
+// main chunk (as pages/event.tsx used to) by lazy-loading it here.
 const EventDetails = lazy(() =>
   import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
 )
 
-// A single event (route `<event-path>`). No header — the drawer is the chrome — so
-// a floating close control returns up the stack. Frames + selects the event on the
-// map when it's the top of the stack, and clears the selection on unmount.
+// A single event (route `<event-path>`). The header (title + chips + timing) is
+// the mobile sheet's 80px peek payload and stays pinned above the scrolling
+// body. On the mobile map sheet, Register lives in a sticky bottom bar pinned
+// to the viewport edge (via the live `--sy-sheet-top` mirror) so scrolling the
+// description can never hide the KPI (issue #52, WS4); elsewhere it renders
+// inline in the panel order.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
-  const { standalone } = useWidgetMode()
+  const { standalone, hasMap } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
   const { locale } = useLocale()
+  const isDesktop = useIsDesktop()
+  const { collapsed } = useDrawerControl()
 
   const { data: event } = useSuspenseQuery({
     queryKey: ['event', id, locale],
@@ -33,17 +44,32 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
 
   useEffect(() => () => clearSelection(), [clearSelection])
 
+  // The snap-ladder bottom sheet is the one surface where in-flow content can
+  // scroll the CTA away — pin Register there; keep it inline everywhere else.
+  const stickyRegister = hasMap && !isDesktop
+
   return (
     <>
       {/* SEO (title, canonical, JSON-LD) is only meaningful for the crawlable
           standalone build; the embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <CloseButton className="absolute right-2 top-2 z-10 bg-background/80" />
+      <EventHeader event={event} trailing={<CloseButton />} />
       <DrawerBody>
         <Suspense fallback={<Spinner className="mx-auto my-16" />}>
-          <EventDetails basePath={basePath} event={event} />
+          <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
+          {/* Keep the last content clear of the pinned register bar. */}
+          {stickyRegister && <div aria-hidden className="h-24" />}
         </Suspense>
       </DrawerBody>
+      {stickyRegister && (
+        <DrawerFooter
+          className={`absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background px-4 py-3 transition-transform ${
+            collapsed ? 'translate-y-full opacity-0' : ''
+          }`}
+        >
+          <EventRegisterBar basePath={basePath} event={event} />
+        </DrawerFooter>
+      )}
     </>
   )
 }

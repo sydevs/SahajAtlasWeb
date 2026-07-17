@@ -1,2 +1,6 @@
 export { EventDetails } from './EventDetails'
 export type { EventDetailsProps } from './EventDetails'
+export { EventHeader } from './EventHeader'
+export type { EventHeaderProps } from './EventHeader'
+export { EventRegisterBar, nearbyPath } from './EventRegister'
+export type { EventRegisterBarProps } from './EventRegister'

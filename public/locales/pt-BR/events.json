@@ -55,7 +55,8 @@
     "type_course": "Curso",
     "type_oneoff": "Evento único",
     "your_time": "(seu horário)",
-    "distance_from_search": "%{distance} do local pesquisado"
+    "distance_from_search": "%{distance} do local pesquisado",
+    "about": "Sobre"
   },
   "errors": {
     "email": "Insira um e-mail válido",

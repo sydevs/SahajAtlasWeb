@@ -55,7 +55,8 @@
     "type_course": "Stage",
     "type_oneoff": "Événement unique",
     "your_time": "(votre heure)",
-    "distance_from_search": "%{distance} du lieu recherché"
+    "distance_from_search": "%{distance} du lieu recherché",
+    "about": "À propos"
   },
   "errors": {
     "email": "Entrez un email valide",
