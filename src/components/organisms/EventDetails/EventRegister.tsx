@@ -59,12 +59,12 @@ export function EventRegisterBar({ event, basePath, className }: EventRegisterBa
     // action; ended/full states message here with the nearby escape hatch.
     if (display.status === 'inactive') return null
 
+    // The ended message lives in the facts block; the register slot only adds
+    // the escape hatch (and, for full events — whose facts stay normal — the
+    // full message + contact helper).
     return (
       <div className={`flex flex-col items-center gap-1 text-center ${className ?? ''}`}>
         {display.full && <p className="text-sm text-gray-11">{t('display.event_full')}</p>}
-        {display.status === 'ended' && (
-          <p className="text-sm text-gray-11">{t('display.event_ended')}</p>
-        )}
         <SeeNearbyLink basePath={basePath} event={event} />
         {contactHelper && <p className="text-xs text-gray-11">{contactHelper}</p>}
       </div>
