@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -30,6 +31,13 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
 
   const regionName = (region.countryCode && regionNames.of(region.countryCode)) || region.name
 
+  // Stable card identities: a fresh spread per render would defeat the per-card
+  // useEventDisplay memo (each card would re-run the resolver every render).
+  const events = useMemo(
+    () => region.onlineEvents.map((event) => ({ ...event, path: childRoute(path, event.id) })),
+    [region.onlineEvents, path],
+  )
+
   return (
     <>
       <DrawerHeader className="justify-between">
@@ -43,8 +51,8 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
       </DrawerHeader>
       <DrawerBody>
         <List>
-          {region.onlineEvents.map((event) => (
-            <EventCard key={event.id} event={{ ...event, path: childRoute(path, event.id) }} />
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} />
           ))}
         </List>
       </DrawerBody>

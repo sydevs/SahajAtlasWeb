@@ -42,6 +42,26 @@ export const byNextOccurrence = (a: EventLike, b: EventLike): number => {
 export const eventTimeZone = (event: EventLike): string =>
   isOnline(event) ? (DateTime.local().zoneName ?? 'UTC') : (event.schedule?.firstDate_tz ?? 'UTC')
 
+// ── Schedule time primitives (shared with the calendar export in lib/ics.ts) ──
+
+/** The schedule's own IANA zone (UTC when the CMS stored none). */
+export const scheduleTimeZone = (schedule: EventSchedule): string => schedule.firstDate_tz ?? 'UTC'
+
+/** The series' first session as an instant in the schedule's own zone. */
+export const scheduleStart = (schedule: EventSchedule): DateTime =>
+  DateTime.fromJSDate(schedule.firstDate).setZone(scheduleTimeZone(schedule))
+
+/** `start` moved to the same-day "HH:MM" `endTime`, or null when unset/malformed
+ *  — the ONE place the endTime wire format is parsed. */
+export const withEndTime = (
+  start: DateTime,
+  endTime: string | null | undefined,
+): DateTime | null => {
+  const [hour, minute] = (endTime ?? '').split(':').map(Number)
+
+  return Number.isFinite(hour) && Number.isFinite(minute) ? start.set({ hour, minute }) : null
+}
+
 // ── Shared display resolver (issue #52) ─────────────────────────────────────────
 //
 // Every event surface (panel, list card, form/share headers, calendar export,
@@ -110,13 +130,8 @@ const toDateTime = (value: Date | DateTime): DateTime =>
 /** End of an occurrence that starts at `start` (event-zone): the same-day
  *  `endTime` when set, else end-of-day — so a session never flips to "over"
  *  mid-way just because it has no stored end time. */
-const occurrenceEnd = (start: DateTime, endTime: string | null | undefined): DateTime => {
-  const [hour, minute] = (endTime ?? '').split(':').map(Number)
-
-  return Number.isFinite(hour) && Number.isFinite(minute)
-    ? start.set({ hour, minute })
-    : start.endOf('day')
-}
+const occurrenceEnd = (start: DateTime, endTime: string | null | undefined): DateTime =>
+  withEndTime(start, endTime) ?? start.endOf('day')
 
 const terminalDisplay = (
   base: Pick<EventDisplay, 'online' | 'kind' | 'full'>,
@@ -172,7 +187,7 @@ export function resolveEventDisplay(
   if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact)
 
   const endTime = schedule.endTime
-  const firstStart = DateTime.fromJSDate(schedule.firstDate).setZone(eventTz)
+  const firstStart = scheduleStart(schedule)
 
   // Occurrence instants in the event's zone. `upcomingDates` is precomputed
   // server-side (exclusions applied); fall back to `firstDate` itself when the
@@ -217,10 +232,7 @@ export function resolveEventDisplay(
   // Distinct display-zone weekdays across the upcoming occurrences, capped at the
   // authored pattern size (weekly) or one (other patterns). Wednesday 19:30 in
   // Prague IS Thursday 04:30 in Sydney — labels come from instants, not pattern.
-  const weekdayTarget = Math.min(
-    recurrence === 'WEEKLY' ? (schedule.weekdays?.length ?? 1) || 1 : 1,
-    7,
-  )
+  const weekdayTarget = recurrence === 'WEEKLY' ? schedule.weekdays?.length || 1 : 1
   const weekdayInstants: DateTime[] = []
   const seenWeekdays = new Set<number>()
 

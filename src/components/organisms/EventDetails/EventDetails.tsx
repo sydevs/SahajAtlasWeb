@@ -43,7 +43,7 @@ export type EventDetailsProps = {
 export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
   const { t } = useTranslation('events')
   const { frameEvent } = useMapController()
-  const { display, recurrenceLine, whenLine, timeRange, timeHint, originNote, whereLine } =
+  const { display, recurrenceLine, whenLine, timeLine, originNote, whereLine } =
     useEventDisplay(event)
 
   const descriptionHtml = lexicalToHtml(event.description)
@@ -63,9 +63,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
 
   // The authoritative session line: "Next session: Wed, 22 Jul · 19:30 – 20:45
   // (your time) · 19:30 (Prague)". Terminal states carry their message instead.
-  const sessionLine = [whenLine, [timeRange, timeHint].filter(Boolean).join(' '), originNote]
-    .filter(Boolean)
-    .join(' · ')
+  const sessionLine = [whenLine, timeLine, originNote].filter(Boolean).join(' · ')
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-10 pt-2 md:px-8">

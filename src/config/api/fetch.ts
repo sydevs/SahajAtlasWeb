@@ -73,8 +73,10 @@ const FEED_SELECT = {
     latitude: true,
     longitude: true,
   },
-  // The full structured recurrence pattern rides the feed (verified pass-through,
-  // issue #52) so cards derive type/status exactly as the panel does.
+  // The structured recurrence fields the resolver/cards read ride the feed
+  // (verified pass-through, issue #52) so cards derive type/status exactly as
+  // the panel does. Calendar-export-only fields (monthDay, weekdayOfMonth,
+  // untilDate, exclusions) stay off the feed — the export runs on the full doc.
   schedule: {
     firstDate: true,
     firstDate_tz: true,
@@ -83,13 +85,9 @@ const FEED_SELECT = {
     interval: true,
     weekdays: true,
     monthlyMode: true,
-    monthDay: true,
     weekNumber: true,
-    weekdayOfMonth: true,
     endingType: true,
     count: true,
-    untilDate: true,
-    exclusions: true,
     upcomingDates: true,
     icalRule: true,
   },

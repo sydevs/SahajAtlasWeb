@@ -31,6 +31,8 @@ export type EventDisplayStrings = {
   timeRange: string | null
   /** "(your time)" / "(local time)" — load-bearing for converted times. */
   timeHint: string | null
+  /** `timeRange` with its hint attached — the composition every surface shows. */
+  timeLine: string | null
   /** Online only: the origin-zone time, e.g. "19:30 (Prague)". */
   originNote: string | null
   /** One-line location: hosted-from for online, street + city for physical. */
@@ -40,6 +42,10 @@ export type EventDisplayStrings = {
   microcopy: string[]
   /** Contact-dependent helper for closed/full states, or null. */
   contactHelper: string | null
+  /** The one message for a non-open registration (full/ended/closed/inactive),
+   *  or null when registration is open — deep-linked register routes and the
+   *  register slot read this instead of re-deriving state→copy. */
+  blockedMessage: string | null
 }
 
 const WEEK_NUMBER_KEYS = {
@@ -167,6 +173,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       timeRange && display.timeHint
         ? t(display.timeHint === 'viewer' ? 'display.your_time' : 'display.local_time')
         : null
+    const timeLine = timeRange ? [timeRange, timeHint].filter(Boolean).join(' ') : null
     const originCity =
       event.address?.city ??
       event.region?.name ??
@@ -206,6 +213,17 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
           ? t('display.contact_to_join_late')
           : null
 
+    // One state→copy mapping for every surface that blocks registration.
+    const blockedMessage = full
+      ? t('display.event_full')
+      : display.status === 'ended'
+        ? t('display.event_ended')
+        : display.registration === 'closed'
+          ? t('display.registration_closed')
+          : display.registration === 'hidden'
+            ? t('details.contact_for_timing')
+            : null
+
     return {
       display,
       typeLabel,
@@ -214,11 +232,13 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       whenLine,
       timeRange,
       timeHint,
+      timeLine,
       originNote,
       whereLine,
       registerLabel,
       microcopy,
       contactHelper,
+      blockedMessage,
     }
   }, [event, locale, t])
 }

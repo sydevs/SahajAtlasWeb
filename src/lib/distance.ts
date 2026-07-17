@@ -10,13 +10,27 @@ const KM_PER_MILE = 1.609344
 
 export const usesMiles = (locale: string): boolean => MILE_LOCALES.has(locale.toLowerCase())
 
-const format = (locale: string, value: number, unit: string, maximumFractionDigits: number) =>
-  new Intl.NumberFormat(locale, {
-    style: 'unit',
-    unit,
-    unitDisplay: 'short',
-    maximumFractionDigits,
-  }).format(value)
+// Intl.NumberFormat construction is the expensive part (~0.1 ms) and this runs
+// per card in a 50-row results list — cache formatters per locale/unit/digits
+// (the same pattern luxon uses for its Intl objects).
+const formatters = new Map<string, Intl.NumberFormat>()
+
+const format = (locale: string, value: number, unit: string, maximumFractionDigits: number) => {
+  const key = `${locale}|${unit}|${maximumFractionDigits}`
+  let formatter = formatters.get(key)
+
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'unit',
+      unit,
+      unitDisplay: 'short',
+      maximumFractionDigits,
+    })
+    formatters.set(key, formatter)
+  }
+
+  return formatter.format(value)
+}
 
 export function formatDistance(km: number, locale: string): string {
   if (usesMiles(locale)) {

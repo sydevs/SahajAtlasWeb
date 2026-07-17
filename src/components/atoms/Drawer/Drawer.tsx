@@ -199,10 +199,33 @@ export function DrawerBody({ children, className }: { children: ReactNode; class
   return <div className={slots.body({ className })}>{children}</div>
 }
 
-export function DrawerFooter({ children, className }: { children: ReactNode; className?: string }) {
+export function DrawerFooter({
+  children,
+  className,
+  sticky = false,
+}: {
+  children: ReactNode
+  className?: string
+  /**
+   * Pin the footer to the VIEWPORT bottom edge of a snap-point bottom sheet.
+   * The sheet is a full-height translated panel, so `fixed` would resolve
+   * against it — instead the footer offsets by the sheet's live top,
+   * mirrored every frame onto `--sy-sheet-top` by DrawerStack. Content
+   * scrolls under it; give the body matching bottom padding.
+   */
+  sticky?: boolean
+}) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.footer({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.footer({
+        className: `${sticky ? 'absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+      })}
+    >
+      {children}
+    </div>
+  )
 }
 
 /** Wraps a control so activating it closes the drawer (vaul `Close`). */

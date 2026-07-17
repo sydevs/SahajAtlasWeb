@@ -1,5 +1,6 @@
 import { Event as EventSchema } from 'schema-dts'
 import { Helmet } from 'react-helmet-async'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useLocale } from '@/hooks/use-locale'
@@ -21,7 +22,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
   // SEO reads the same resolver as the UI (issue #52): the rolled next
   // occurrence (not a stale [0]), a status that matches what renders, and
   // availability that will track fullness once the CMS exposes it.
-  const display = resolveEventDisplay(event)
+  const display = useMemo(() => resolveEventDisplay(event), [event])
   const startDate =
     (display.next ?? display.firstSession)?.toISO() ?? event.schedule?.firstDate.toISOString()
   const image = event.images.find((img) => img.url)?.url ?? undefined

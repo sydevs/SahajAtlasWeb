@@ -177,7 +177,9 @@ export function DrawerStack() {
   // `position: fixed` resolves against the sheet, so the bar offsets by the
   // live top instead (issue #52, WS4).
   useEffect(() => {
-    if (!hasMap || direction !== 'bottom') return
+    // Gate the rAF loop to stacked views (root has no strips and no sticky bar
+    // — EventView, the bar's only host, always stacks above the root).
+    if (!hasMap || direction !== 'bottom' || parentPaths.length === 0) return
     let raf = 0
     let last = Number.NaN
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
@@ -202,7 +204,7 @@ export function DrawerStack() {
     raf = requestAnimationFrame(tick)
 
     return () => cancelAnimationFrame(raf)
-  }, [hasMap, direction])
+  }, [hasMap, direction, parentPaths.length])
 
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both

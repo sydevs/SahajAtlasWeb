@@ -54,6 +54,14 @@ export const safePath = (path: string | null | undefined): string | undefined =>
 export const isCanonicalPath = (pathname: string, target: string): boolean =>
   safeDecode(pathname) === target
 
+/**
+ * The distance-ranked search route, optionally centred on a point. Owns the
+ * `?center=lng,lat` wire format together with its consumers (SearchView's
+ * `parsePair`, the filter serializers) so producers never hand-roll it.
+ */
+export const searchPath = (center?: [number, number]): string =>
+  center ? `/search?center=${center[0]},${center[1]}` : '/search'
+
 /** What an incoming pathname resolves to, keyed off its terminal segment. */
 export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
 

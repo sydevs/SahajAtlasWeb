@@ -4,7 +4,7 @@ import { useRef } from 'react'
 
 import App from './App'
 import atlasAuth from './config/api/auth'
-import { localeDirection } from './config/i18n-options'
+import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { safePath } from './lib/shape'
@@ -76,7 +76,7 @@ export default function Widget({
       <div
         ref={themeRootRef}
         className={getInitialTheme()}
-        dir={localeDirection(activeLocale)}
+        dir={i18n.dir(activeLocale)}
         style={{ display: 'contents' }}
       >
         <App

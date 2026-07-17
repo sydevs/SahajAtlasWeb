@@ -55,6 +55,7 @@ export function DynamicEventsList({
   // refetches (filters are edited in the FilterView drawer, not here).
   const filters = useEventFilters()
   const { locale } = useLocale()
+  const { t } = useTranslation('events')
 
   const { data: events } = useSuspenseQuery({
     // Latitude/longitude are rounded to reduce re-fetching when the map moves; the
@@ -86,6 +87,10 @@ export function DynamicEventsList({
       <ActiveFilterPills
         nearby={nearbyActive && onShowAll ? { km: NEARBY_KM, onClear: onShowAll } : undefined}
       />
+      {/* One free-line per list — cards carry no Free chips (issue #52). */}
+      {shown.length > 0 && (
+        <div className="px-6 pt-2 text-xs text-gray-11">{t('display.all_events_free')}</div>
+      )}
       {shown.length === 0 ? (
         <EmptyResults nearbyKm={nearbyActive ? NEARBY_KM : undefined} />
       ) : (

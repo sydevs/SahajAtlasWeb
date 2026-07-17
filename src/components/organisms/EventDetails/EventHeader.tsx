@@ -11,8 +11,6 @@ export type EventHeaderProps = {
   event: Event
   /** Trailing header control (the drawer close button). */
   trailing?: ReactNode
-  /** Free is shown on the panel/form/share headers, off list cards. */
-  showFree?: boolean
 }
 
 /**
@@ -21,9 +19,9 @@ export type EventHeaderProps = {
  * drawer body so the mobile sheet's 80px peek shows exactly this triage
  * payload (issue #52, WS4) — and the title stays pinned while content scrolls.
  */
-export function EventHeader({ event, trailing, showFree = true }: EventHeaderProps) {
+export function EventHeader({ event, trailing }: EventHeaderProps) {
   const { t } = useTranslation('events')
-  const { languageNames } = useLocale()
+  const { languageLabel } = useLocale()
   const { display, typeLabel, statusChip, recurrenceLine, whenLine, timeRange } =
     useEventDisplay(event)
 
@@ -44,12 +42,12 @@ export function EventHeader({ event, trailing, showFree = true }: EventHeaderPro
           timing visible; overflow scrolls sideways. */}
       <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
         <Chip color="default">{typeLabel}</Chip>
-        {showFree && <Chip color="primary">{t('display.chip_free')}</Chip>}
+        <Chip color="primary">{t('display.chip_free')}</Chip>
         {statusChip && <Chip color="secondary">{statusChip}</Chip>}
         {display.online && <Chip color="default">{t('details.online')}</Chip>}
         {event.languages.map((code) => (
           <Chip key={code} color="secondary" variant="light">
-            {languageNames.of(code) ?? code}
+            {languageLabel(code)}
           </Chip>
         ))}
       </div>

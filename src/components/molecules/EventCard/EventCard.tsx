@@ -28,18 +28,10 @@ export interface EventCardProps {
  */
 export function EventCard({ event, variant = 'title' }: EventCardProps) {
   const { t } = useTranslation('events')
-  const { locale, languageNames } = useLocale()
+  const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
-  const {
-    display,
-    typeLabel,
-    statusChip,
-    recurrenceLine,
-    whenLine,
-    timeRange,
-    timeHint,
-    whereLine,
-  } = useEventDisplay(event)
+  const { display, typeLabel, statusChip, recurrenceLine, whenLine, timeLine, whereLine } =
+    useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -54,7 +46,7 @@ export function EventCard({ event, variant = 'title' }: EventCardProps) {
 
   const online = display.online
   const languageCode = event.languages[0] ?? ''
-  const showLanguage = languageCode && languageCode.split('-')[0] !== locale.split('-')[0]
+  const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
 
   // The bold slot: what differentiates the card within THIS list. Region-grouped
   // lists bold the venue (a center's name) or street; mixed lists bold the title.
@@ -68,23 +60,17 @@ export function EventCard({ event, variant = 'title' }: EventCardProps) {
 
   // Line 2: type · recurrence · time (converted + labelled for online events);
   // dateless/terminal events carry their when-line instead of a time.
-  const timePart = timeRange ? [timeRange, timeHint].filter(Boolean).join(' ') : null
-  const line2 = (display.next ? [typeLabel, recurrenceLine, timePart] : [typeLabel, whenLine])
+  const line2 = (display.next ? [typeLabel, recurrenceLine, timeLine] : [typeLabel, whenLine])
     .filter(Boolean)
     .join(' · ')
 
-  // Line 3: the street (the group header already states the city on place
-  // lists), the fuller street+city on mixed lists, or the hosted-from line.
+  // Line 3: the street only on place lists (the group header already states the
+  // city), the hook's full where-line on mixed lists and for hosted-from.
   let place: string | null
 
-  if (online) place = whereLine
-  else if (variant === 'place')
+  if (variant === 'place' && !online)
     place = event.address?.street && event.address.street !== bold ? event.address.street : null
-  else
-    place =
-      [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-      event.region.name ||
-      null
+  else place = whereLine || null
 
   // Distance from the SEARCHED location (not GPS) — shown whenever defined,
   // right-aligned so distances form a scannable column. Online events have none.

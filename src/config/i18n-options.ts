@@ -16,12 +16,5 @@ export const i18nSharedOptions = {
   },
 }
 
-// Right-to-left language codes the ecosystem may ship (Arabic is on the
-// roadmap — issue #52 WS8). Every currently supported locale is LTR; this map
-// drives the `dir` attribute on the widget theme root so RTL "just works" when
-// such a locale lands.
-const RTL_LANGUAGES = new Set(['ar', 'fa', 'he', 'ur'])
-
-/** The text direction for a locale — feeds the widget root's `dir` attribute. */
-export const localeDirection = (locale: string): 'ltr' | 'rtl' =>
-  RTL_LANGUAGES.has(locale.split('-')[0].toLowerCase()) ? 'rtl' : 'ltr'
+// NB: the widget theme root's `dir` attribute derives from `i18n.dir(locale)`
+// (i18next's maintained RTL list) in Widget.tsx — no hand-rolled RTL set here.

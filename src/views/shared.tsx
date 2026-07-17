@@ -199,12 +199,10 @@ export function useEventFromPath(eventPath: string) {
 export function EventSummary({ event }: { event: Event }) {
   const { t } = useTranslation('events')
   const { standalone, hasMap } = useWidgetMode()
-  const { typeLabel, statusChip, whenLine, timeRange, timeHint, whereLine } = useEventDisplay(event)
+  const { typeLabel, statusChip, whenLine, timeLine, whereLine } = useEventDisplay(event)
 
   const embedded = !standalone && !hasMap
-  const when = [whenLine, [timeRange, timeHint].filter(Boolean).join(' ')]
-    .filter(Boolean)
-    .join(' · ')
+  const when = [whenLine, timeLine].filter(Boolean).join(' · ')
 
   return (
     <div className="mx-auto mb-4 w-full max-w-md border-b border-divider pb-4">

@@ -38,7 +38,7 @@ export function RegistrationView({
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
-  const { display, contactHelper } = useEventDisplay(event)
+  const { display, contactHelper, blockedMessage } = useEventDisplay(event)
 
   useFrameOnTop(() => frameEvent(event), [event, frameEvent])
 
@@ -48,14 +48,6 @@ export function RegistrationView({
   // first session instead of offering every upcoming occurrence.
   const upcomingDates = event.schedule?.upcomingDates ?? []
   const selectableDates = display.kind === 'course' ? upcomingDates.slice(0, 1) : upcomingDates
-
-  const blockedMessage = display.full
-    ? t('display.event_full')
-    : display.status === 'ended'
-      ? t('display.event_ended')
-      : display.registration === 'closed'
-        ? t('display.registration_closed')
-        : t('details.contact_for_timing')
 
   return (
     <>

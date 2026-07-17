@@ -63,9 +63,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter
-          className={`absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background px-4 py-3 transition-transform ${
-            collapsed ? 'translate-y-full opacity-0' : ''
-          }`}
+          sticky
+          className={`px-4 py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
           <EventRegisterBar basePath={basePath} event={event} />
         </DrawerFooter>

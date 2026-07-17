@@ -2,6 +2,8 @@ import type { EventSchedule, Weekday } from '@/types'
 
 import { DateTime } from 'luxon'
 
+import { scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
+
 /**
  * Hand-rolled iCalendar (RFC 5545) export — no runtime dependency; the bundle is
  * public (issue #52). The export carries the REAL recurrence: `DTSTART;TZID` in
@@ -34,10 +36,10 @@ const WEEKDAY_TO_LUXON: Record<Weekday, number> = {
   SU: 7,
 }
 
-const eventZone = (schedule: EventSchedule): string => schedule.firstDate_tz ?? 'UTC'
-
-const seriesStart = (schedule: EventSchedule): DateTime =>
-  DateTime.fromJSDate(schedule.firstDate).setZone(eventZone(schedule))
+// Schedule time primitives are shared with the display resolver (shape/event.ts)
+// so the endTime wire format and zone fallback live in exactly one place.
+const eventZone = scheduleTimeZone
+const seriesStart = scheduleStart
 
 /** RFC 5545 "floating local" stamp — combined with TZID on the property. */
 const localStamp = (dt: DateTime): string => dt.toFormat("yyyyMMdd'T'HHmmss")
@@ -45,11 +47,8 @@ const localStamp = (dt: DateTime): string => dt.toFormat("yyyyMMdd'T'HHmmss")
 const utcStamp = (dt: DateTime): string => dt.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'")
 
 /** Same-day end of an occurrence, when the schedule has an `endTime`. */
-const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime | null => {
-  const [hour, minute] = (schedule.endTime ?? '').split(':').map(Number)
-
-  return Number.isFinite(hour) && Number.isFinite(minute) ? start.set({ hour, minute }) : null
-}
+const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime | null =>
+  withEndTime(start, schedule.endTime)
 
 /**
  * The RRULE for a schedule, or null for a one-off. Reads only the fields the
