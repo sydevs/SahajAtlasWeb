@@ -26,7 +26,7 @@ MCP servers are declared in `.mcp.json` (project root) and enabled per-user in
 
 - Transport: HTTP (`https://docs.mcp.cloudflare.com/mcp`).
 - Search Cloudflare docs (Pages, Workers, redirects, build settings). This app
-  deploys to **Cloudflare Pages** (project `atlas-legacy`), so reach for this
+  deploys to **Cloudflare Pages** (projects `sahajatlas` + `sahajatlas-design`), so reach for this
   instead of `WebFetch` when answering Cloudflare deployment / `_redirects` /
   build-config questions.
 
