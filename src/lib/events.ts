@@ -37,22 +37,6 @@ export function isSoon(nextDate: DateTime, online: boolean) {
 }
 
 /**
- * Luxon-formatted timezone strings for a given time, used to label and annotate
- * a timezone chip:
- *
- * - `abbreviation` — short name shown on the chip (e.g. `GMT+1`)
- * - `name` — long, localized name for the tooltip (e.g. `British Summer Time`)
- * - `offset` — UTC offset for the tooltip (e.g. `+1`)
- */
-export function formatTimeZone(time: DateTime) {
-  return {
-    abbreviation: time.toFormat('ZZZZ'),
-    name: time.toFormat('ZZZZZ'),
-    offset: time.toFormat('Z'),
-  }
-}
-
-/**
  * A 0–24h value rendered in the given locale's short time format (e.g. "9:30 AM").
  * 24 wraps to midnight so an upper bound reads as a time rather than "24:00".
  * Shared by the filter form and the active-filter pills for the time-of-day label.

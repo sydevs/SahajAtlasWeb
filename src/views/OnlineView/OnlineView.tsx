@@ -17,6 +17,7 @@ import { CloseButton, useFrameOnTop } from '@/views/shared'
 // drawer's own route, so each event nests under it (dismissing an event returns here).
 export function OnlineView({ regionSlug, path }: { regionSlug: string; path: string }) {
   const { t } = useTranslation('common')
+  const { t: tEvents } = useTranslation('events')
   const { regionNames, locale } = useLocale()
   const { frameRegion } = useMapController()
 
@@ -35,6 +36,8 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         <div className="min-w-0">
           <div className="truncate text-lg font-bold">{t('online_classes')}</div>
           <div className="truncate text-sm text-gray-11">{regionName}</div>
+          {/* One free-line per list — no Free chips on the cards (issue #52). */}
+          <div className="truncate text-xs text-gray-11">{tEvents('display.all_events_free')}</div>
         </div>
         <CloseButton />
       </DrawerHeader>

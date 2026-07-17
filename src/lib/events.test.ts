@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { isSoon, formatTimeZone } from './events'
+import { isSoon } from './events'
 
 describe('isSoon', () => {
   it('is true for an online event within the next hour', () => {
@@ -23,18 +23,5 @@ describe('isSoon', () => {
   it('is false for a date in the past', () => {
     expect(isSoon(DateTime.now().minus({ minutes: 30 }), true)).toBe(false)
     expect(isSoon(DateTime.now().minus({ days: 1 }), false)).toBe(false)
-  })
-})
-
-describe('formatTimeZone', () => {
-  it('returns the UTC offset, abbreviation, and name for a zoned time', () => {
-    const time = DateTime.fromISO('2026-07-04T09:30', { zone: 'Europe/London' })
-    const { abbreviation, name, offset } = formatTimeZone(time)
-
-    // July → British Summer Time, +1. The luxon `Z` offset is stable across ICU
-    // builds; the localized abbreviation/name only need to be non-empty.
-    expect(offset).toBe('+1')
-    expect(abbreviation).not.toHaveLength(0)
-    expect(name).not.toHaveLength(0)
   })
 })

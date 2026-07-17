@@ -21,10 +21,6 @@ export { LoadingFallback, ErrorFallback } from './Fallbacks'
 export { ActionRow, ActionCircle } from './ActionRow'
 export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 
-// DetailRow — a generic labelled icon row; the event detail cards build on it.
-export { DetailRow } from './DetailRow'
-export type { DetailRowProps, DetailRowBox } from './DetailRow'
-
 export { List } from './List'
 
 export { RegionCard } from './RegionCard'
@@ -35,19 +31,14 @@ export type { OnlineClassesCardProps } from './OnlineClassesCard'
 export { EventCard } from './EventCard'
 export type { EventCardProps } from './EventCard'
 
-export { EventTime } from './EventTime'
-export type { EventTimeProps } from './EventTime'
-
 // ShareContent — the copyable URL + social-links block, reused by the ShareView
-// drawer and the registration "thank you" screen.
-export { ShareContent } from './ShareContent'
+// drawer and the registration "thank you" screen. CopyField also serves the
+// event panel's desktop contact popover.
+export { ShareContent, CopyField } from './ShareContent'
 export type { ShareContentProps } from './ShareContent'
 
 export { ImageCarousel } from './ImageCarousel'
 export type { Slide } from './ImageCarousel'
-
-export { EventSoonChip } from './EventSoon'
-export type { EventSoonChipProps } from './EventSoon'
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'

@@ -1,24 +1,45 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { DateTime } from 'luxon'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { eventTimeZone, isOnline, nextOccurrence } from '@/lib/shape'
-import { EventTime } from '@/components/molecules/EventTime'
-import { EventSoonChip } from '@/components/molecules/EventSoon'
+import { formatDistance } from '@/lib'
 import { Link } from '@/components/atoms/Link'
 import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
 export interface EventCardProps {
   event: EventSlim
+  /**
+   * Which field differentiates within the current list grouping (issue #52):
+   * `place` (region-grouped leaf lists) bolds the venue/locality and demotes
+   * the type to line 2; `title` (mixed search/online lists) bolds the title.
+   */
+  variant?: 'place' | 'title'
 }
 
-export function EventCard({ event }: EventCardProps) {
+/**
+ * The three-line list card: differentiator + status chip, then
+ * type · recurrence · time, then the address with the distance right-aligned —
+ * a vertically scannable column across the list. The whole card is tappable
+ * (press state, no chevron); the Link wrapper stays hookable for map-pin
+ * highlight (#44).
+ */
+export function EventCard({ event, variant = 'title' }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
+  const {
+    display,
+    typeLabel,
+    statusChip,
+    recurrenceLine,
+    whenLine,
+    timeRange,
+    timeHint,
+    whereLine,
+  } = useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -31,71 +52,86 @@ export function EventCard({ event }: EventCardProps) {
   highlightRef.current = highlightEvent
   useEffect(() => () => highlightRef.current(null), [])
 
-  const online = isOnline(event)
-  const schedule = event.schedule
-  const recurrence = schedule?.recurrenceType
-  const next = nextOccurrence(event)
+  const online = display.online
   const languageCode = event.languages[0] ?? ''
-  const timeZone = eventTimeZone(event)
+  const showLanguage = languageCode && languageCode.split('-')[0] !== locale.split('-')[0]
 
-  const nextDate = useMemo(
-    () => (next ? DateTime.fromJSDate(next).setLocale(locale) : null),
-    [next, locale],
-  )
+  // The bold slot: what differentiates the card within THIS list. Region-grouped
+  // lists bold the venue (a center's name) or street; mixed lists bold the title.
+  const bold =
+    variant === 'place'
+      ? ((event.region.level === 'center' ? event.region.name : null) ??
+        event.address?.street ??
+        event.address?.city ??
+        event.title)
+      : event.title
 
-  const cityLabel = event.address?.city ?? event.region.name ?? event.region.slug
-  const addressLine =
-    [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-    event.region.name ||
-    event.region.slug
+  // Line 2: type · recurrence · time (converted + labelled for online events);
+  // dateless/terminal events carry their when-line instead of a time.
+  const timePart = timeRange ? [timeRange, timeHint].filter(Boolean).join(' ') : null
+  const line2 = (display.next ? [typeLabel, recurrenceLine, timePart] : [typeLabel, whenLine])
+    .filter(Boolean)
+    .join(' · ')
+
+  // Line 3: the street (the group header already states the city on place
+  // lists), the fuller street+city on mixed lists, or the hosted-from line.
+  let place: string | null
+
+  if (online) place = whereLine
+  else if (variant === 'place')
+    place = event.address?.street && event.address.street !== bold ? event.address.street : null
+  else
+    place =
+      [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
+      event.region.name ||
+      null
+
+  // Distance from the SEARCHED location (not GPS) — shown whenever defined,
+  // right-aligned so distances form a scannable column. Online events have none.
+  const distance =
+    !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
+  const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
 
   return (
     <Link
-      className="block px-6 text-inherit transition-colors hover:bg-primary-2 dark:hover:bg-gray-3"
+      className="block px-6 text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4"
       href={event.path}
       onBlur={() => highlightEvent(null)}
       onFocus={() => highlightEvent(event)}
       onMouseEnter={() => highlightEvent(event)}
       onMouseLeave={() => highlightEvent(null)}
     >
-      <li key={event.id} className="flex-center-y py-5 border-b border-divider min-h-36">
-        <div className="flex flex-grow flex-col gap-1 self-stretch">
-          <div className="font-semibold text-lg leading-tight">{event.title}</div>
-          <div className="text-sm leading-tight">
-            {online ? t('details.hosted_from', { city: cityLabel }) : addressLine}
-          </div>
-          <div className="text-xs uppercase">
-            {recurrence
-              ? t(`recurrence.${recurrence.toLowerCase()}`, {
-                  weekday: nextDate?.toLocaleString({ weekday: 'long' }) ?? '',
-                })
-              : t('details.contact_for_timing')}
-          </div>
-          {recurrence && nextDate && (
-            <div className="text-xs text-gray-11">
-              <EventTime
-                delay={500}
-                endTime={schedule?.endTime}
-                nextDate={nextDate}
-                showTimeZone={online}
-                timeZone={timeZone}
-              />
-            </div>
-          )}
-          <div className="flex items-center mt-1 gap-1">
-            {next && <EventSoonChip firstDate={next} online={online} />}
-            {online && <Chip>{t('details.online')}</Chip>}
-            {languageCode && languageCode.split('-')[0] !== locale.split('-')[0] && (
-              <Chip color="secondary">{languageNames.of(languageCode)}</Chip>
+      <li key={event.id} className="flex flex-col gap-1 border-b border-divider py-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="line-clamp-1 font-semibold leading-tight">{bold}</div>
+          <div className="flex shrink-0 items-center gap-1">
+            {showLanguage && (
+              <Chip color="secondary" size="sm">
+                {languageNames.of(languageCode)}
+              </Chip>
             )}
-            {event.distance && event.distance > 10 && (
-              <div className="text-primary font-medium text-sm">
-                {event.distance.toLocaleString(locale, { maximumFractionDigits: 0 })}{' '}
-                {t('details.km')}
-              </div>
+            {statusChip && (
+              <Chip color="primary" size="sm">
+                {statusChip}
+              </Chip>
             )}
           </div>
         </div>
+        <div className="text-sm leading-tight text-gray-11">{line2}</div>
+        {(place || distance) && (
+          <div className="flex items-baseline justify-between gap-2 text-sm leading-tight">
+            <div className="min-w-0 truncate">{place}</div>
+            {distance && (
+              <span
+                aria-label={distanceLabel}
+                className="shrink-0 font-medium tabular-nums text-primary"
+                title={distanceLabel}
+              >
+                {distance}
+              </span>
+            )}
+          </div>
+        )}
       </li>
     </Link>
   )

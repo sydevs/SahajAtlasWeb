@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
+import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventCard, List, OnlineClassesCard, RegionCard } from '@/components/molecules'
@@ -19,6 +20,7 @@ import { CloseButton, NearbySuggestion, useFrameOnTop } from '@/views/shared'
 // when it's the top of the stack. No canonicalization redirect — the URL stays where
 // the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
+  const { t } = useTranslation('events')
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -36,6 +38,8 @@ export function RegionView({ slug }: { slug: string }) {
   // Parents (with sub-region cards) surface their online roll-up behind a dedicated
   // "Online Classes" card; a leaf lists its online events inline, as before.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
+  const hasEventList =
+    region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
 
   return (
     <>
@@ -49,6 +53,11 @@ export function RegionView({ slug }: { slug: string }) {
         <div className="min-w-0">
           <div className="truncate text-lg font-bold">{header}</div>
           {subheader && <div className="truncate text-sm text-gray-11">{subheader}</div>}
+          {/* One free-line per list — no Free chip repeats on the cards below
+              (identical chips on every card carry zero information; issue #52). */}
+          {hasEventList && (
+            <div className="truncate text-xs text-gray-11">{t('display.all_events_free')}</div>
+          )}
         </div>
         <CloseButton />
       </DrawerHeader>
@@ -74,10 +83,12 @@ export function RegionView({ slug }: { slug: string }) {
               subtitle={child.subtitle}
             />
           ))}
+          {/* Region-grouped list: the venue/locality is the differentiator. */}
           {region.events.map((event) => (
-            <EventCard key={`event-${event.id}`} event={event} />
+            <EventCard key={`event-${event.id}`} event={event} variant="place" />
           ))}
-          {/* A leaf has no card — its online events list inline, after the located ones. */}
+          {/* A leaf has no card — its online events list inline, after the located
+              ones. Placeless, so the title stays the bold slot. */}
           {!showOnlineCard &&
             region.onlineEvents.map((event) => (
               <EventCard key={`online-${event.id}`} event={event} />
