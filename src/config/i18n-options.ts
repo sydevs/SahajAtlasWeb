@@ -15,3 +15,13 @@ export const i18nSharedOptions = {
     suffix: '}',
   },
 }
+
+// Right-to-left language codes the ecosystem may ship (Arabic is on the
+// roadmap — issue #52 WS8). Every currently supported locale is LTR; this map
+// drives the `dir` attribute on the widget theme root so RTL "just works" when
+// such a locale lands.
+const RTL_LANGUAGES = new Set(['ar', 'fa', 'he', 'ur'])
+
+/** The text direction for a locale — feeds the widget root's `dir` attribute. */
+export const localeDirection = (locale: string): 'ltr' | 'rtl' =>
+  RTL_LANGUAGES.has(locale.split('-')[0].toLowerCase()) ? 'rtl' : 'ltr'

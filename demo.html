@@ -14,5 +14,27 @@
     </header>
     <!-- Full map (default). Add map="false" to render content-only (no map canvas). -->
     <sahaj-atlas api-key="1cf076ab-9497-4696-95a3-cfd71334bbbc" locale="fr"></sahaj-atlas>
+
+    <!--
+      Embedded event/registration form: the same element in map="false" mode,
+      booted directly on an event (or `<event-path>/register`) route via
+      base-path. The event/register headers are self-sufficient (title, when,
+      where, Free, an "on Sahaj Atlas" backlink) — no map or list chrome exists
+      in this mode. A hash route the visitor already navigated to wins over
+      base-path.
+
+        <sahaj-atlas
+          api-key="…"
+          map="false"
+          base-path="/507/register"
+        ></sahaj-atlas>
+
+      Style-scoping caveat (honest limits): the widget is deliberately
+      shadow-DOM-free — its theme is scoped to a wrapper div and its CSS is
+      injected by JS — so "no style inheritance from the host page" is
+      approximate, not a hard guarantee. Aggressive host CSS (e.g. global
+      `button { … }` rules) can still bleed in; a hard boundary would need
+      shadow DOM, which conflicts with the widget's portal/drawer architecture.
+    -->
   </body>
 </html>

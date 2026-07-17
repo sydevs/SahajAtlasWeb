@@ -4,7 +4,10 @@ import { useRef } from 'react'
 
 import App from './App'
 import atlasAuth from './config/api/auth'
+import { localeDirection } from './config/i18n-options'
+import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
+import { safePath } from './lib/shape'
 
 // Implementation of embeddable Widget
 // Demo in: demo.html
@@ -30,6 +33,7 @@ export default function Widget({
   apiKey,
   locale,
   map,
+  basePath,
   primaryColor,
   secondaryColor,
   backgroundColor,
@@ -43,8 +47,16 @@ export default function Widget({
   // Don't call i18n.changeLanguage here in the render body — it re-fired on every
   // render and clobbered a language the user picked from the settings menu.
 
-  if (!window.location.hash) {
-    window.location.hash = HASH_BASE
+  // Boot on the host-declared initial route (e.g. an event or register path for
+  // an embedded form — issue #52 WS7) when the hash carries no route yet; a
+  // hash the visitor already navigated always wins. `safePath` rejects anything
+  // but a site-relative path.
+  if (
+    !window.location.hash ||
+    window.location.hash === `#${HASH_BASE}` ||
+    window.location.hash === `#${HASH_BASE}/`
+  ) {
+    window.location.hash = `${HASH_BASE}${safePath(basePath) ?? ''}`
   }
 
   const hasMap = map !== 'false' && map !== '0'
@@ -52,14 +64,21 @@ export default function Widget({
   // The widget scopes its theme to this wrapper so it never mutates the host
   // page's <html>. Set the initial light/dark class synchronously to avoid a
   // flash; BrandTheme adopts the wrapper as the theme root + paints the brand
-  // palette once mounted.
+  // palette once mounted. `dir` derives from the ACTIVE locale (reactively) so
+  // every descendant — and Tailwind's rtl: variants — follow text direction.
   const themeRootRef = useRef<HTMLDivElement>(null)
+  const { locale: activeLocale } = useLocale()
 
   return (
     <HashRouter basename={HASH_BASE}>
       {/* display:contents keeps the wrapper out of the layout while still
           carrying the theme class + brand CSS vars down to every descendant. */}
-      <div ref={themeRootRef} className={getInitialTheme()} style={{ display: 'contents' }}>
+      <div
+        ref={themeRootRef}
+        className={getInitialTheme()}
+        dir={localeDirection(activeLocale)}
+        style={{ display: 'contents' }}
+      >
         <App
           apiKey={apiKey}
           brand={{ primary: primaryColor, secondary: secondaryColor, background: backgroundColor }}
@@ -79,6 +98,7 @@ customElements.define(
       apiKey: 'string',
       locale: 'string',
       map: 'string',
+      basePath: 'string',
       primaryColor: 'string',
       secondaryColor: 'string',
       backgroundColor: 'string',

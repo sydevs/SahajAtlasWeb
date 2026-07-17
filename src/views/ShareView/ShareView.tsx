@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ShareContent } from '@/components/molecules'
 import { useMapController } from '@/hooks/use-map-controller'
-import { CloseButton, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, EventSummary, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // Share links for an event (route `<event-path>/share`). Reached by the event's
-// Share CTA and deep-linkable. Closing returns to the event.
+// Share CTA and deep-linkable — so it repeats the compact resolver summary
+// (title · chips · when · where) above the share block: a direct-link visitor
+// sees what they're sharing without any other Atlas chrome (issue #52).
 export function ShareView({ eventPath }: { eventPath: string }) {
   const { t } = useTranslation('events')
   const { frameEvent } = useMapController()
@@ -22,6 +24,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
+        <EventSummary event={event} />
         <ShareContent label={event.title} url={event.webUrl ?? ''} />
       </DrawerBody>
     </>

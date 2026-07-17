@@ -11,15 +11,20 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button, IconButton } from '@/components/atoms/Button'
+import { Chip } from '@/components/atoms/Chip'
+import { Link } from '@/components/atoms/Link'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
+import { useWidgetMode } from '@/config/mode'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { approxBounds } from '@/lib/geo'
+import { Event } from '@/types'
 import {
   hasActivePlaceSearch,
   markNearbyDismissed,
@@ -183,6 +188,60 @@ export function useEventFromPath(eventPath: string) {
   })
 }
 
+/**
+ * The compact event summary repeated on the registration + share drawers:
+ * title · key chips (type · Free · status) · one-line when · one-line where —
+ * the same resolver strings as every other surface (issue #52). In an embed
+ * (map-less, non-standalone) no Atlas chrome exists around the drawer, so the
+ * summary is self-sufficient and carries a small "on Sahaj Atlas" backlink.
+ * A view sub-component, deliberately not a design-system export.
+ */
+export function EventSummary({ event }: { event: Event }) {
+  const { t } = useTranslation('events')
+  const { standalone, hasMap } = useWidgetMode()
+  const { typeLabel, statusChip, whenLine, timeRange, timeHint, whereLine } = useEventDisplay(event)
+
+  const embedded = !standalone && !hasMap
+  const when = [whenLine, [timeRange, timeHint].filter(Boolean).join(' ')]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <div className="mx-auto mb-4 w-full max-w-md border-b border-divider pb-4">
+      <div className="text-lg font-semibold leading-tight">{event.title}</div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+        <Chip color="default" size="sm">
+          {typeLabel}
+        </Chip>
+        <Chip color="primary" size="sm">
+          {t('display.chip_free')}
+        </Chip>
+        {statusChip && (
+          <Chip color="secondary" size="sm">
+            {statusChip}
+          </Chip>
+        )}
+      </div>
+      <div className="mt-1 text-sm text-gray-11">{when}</div>
+      {whereLine && <div className="mt-0.5 text-sm text-gray-11">{whereLine}</div>}
+      {embedded &&
+        (event.webUrl ? (
+          <Link
+            className="mt-1 text-xs text-primary-11"
+            href={event.webUrl}
+            isExternal={true}
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            {t('display.on_sahaj_atlas')}
+          </Link>
+        ) : (
+          <div className="mt-1 text-xs text-gray-11">{t('display.on_sahaj_atlas')}</div>
+        ))}
+    </div>
+  )
+}
+
 // Suspense fallback for a view whose data is still loading. Renders only the sheet's
 // inner body (a spinner) — the persistent DrawerContent supplies the sheet chrome —
 // so loading doesn't remount or re-animate the drawer. Mirrors the top-level
@@ -203,6 +262,7 @@ export function DrawerLoading() {
 // (molecules/Fallbacks): an Alert, plus a retry since resetErrorBoundary is available.
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
+  const { t: tEvents } = useTranslation('events')
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
@@ -215,6 +275,11 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
       <Button variant="flat" onClick={resetErrorBoundary}>
         {t('error.retry')}
       </Button>
+      {/* A dead direct link (e.g. a finished event the CMS no longer serves)
+          still offers a way back into live inventory (issue #52). */}
+      <Link className="text-sm font-medium text-primary-11" href="/search">
+        {tEvents('display.see_nearby')}
+      </Link>
     </DrawerBody>
   )
 }

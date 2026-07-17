@@ -1,14 +1,13 @@
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { DateTime } from 'luxon'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
-import { useLocale } from '@/hooks/use-locale'
-import { isOnline, nextOccurrence } from '@/lib/shape'
+import { isOnline } from '@/lib/shape'
 import { Event } from '@/types'
-import { CloseButton, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import { CloseButton, EventSummary, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field).
 function enabledQuestions(event: Event): string[] {
@@ -21,42 +20,12 @@ function enabledQuestions(event: Event): string[] {
     .map(([key]) => key)
 }
 
-// A compact summary of the event being registered for — title, location, and
-// recurrence — shown above the form so the core details stay in view while filling it.
-function EventSummary({ event }: { event: Event }) {
-  const { t } = useTranslation('events')
-  const { locale } = useLocale()
-
-  const online = isOnline(event)
-  const next = nextOccurrence(event)
-  const recurrence = event.schedule?.recurrenceType
-  const nextDate = next ? DateTime.fromJSDate(next).setLocale(locale) : null
-
-  const address = online
-    ? t('details.hosted_from', {
-        city: event.address?.city ?? event.region.name ?? event.region.slug,
-      })
-    : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-      event.region.name ||
-      event.region.slug
-
-  return (
-    <div className="mx-auto mb-4 w-full max-w-md border-b border-divider pb-4">
-      <div className="text-lg font-semibold leading-tight">{event.title}</div>
-      <div className="mt-1 text-sm text-gray-11">{address}</div>
-      <div className="mt-1 text-xs uppercase text-gray-11">
-        {recurrence
-          ? t(`recurrence.${recurrence.toLowerCase()}`, {
-              weekday: nextDate?.toLocaleString({ weekday: 'long' }) ?? '',
-            })
-          : t('details.contact_for_timing')}
-      </div>
-    </div>
-  )
-}
-
 // The registration form for an event (route `<event-path>/register`). Reached by
-// the event's Register CTA and deep-linkable. Closing returns to the event.
+// the event's Register CTA and deep-linkable — so the resolver gates it: a
+// closed/ended/full/inactive event renders its state message, never an
+// operative form. (Client-side gating is cosmetic until the CMS enforces it
+// server-side — SahajCloud#577; POST /register currently only checks
+// published/visible.)
 export function RegistrationView({
   eventPath,
   parentPath,
@@ -69,8 +38,24 @@ export function RegistrationView({
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
+  const { display, contactHelper } = useEventDisplay(event)
 
   useFrameOnTop(() => frameEvent(event), [event, frameEvent])
+
+  const open = display.registration === 'open'
+
+  // Course registration binds to the FULL run — lock the starting date to the
+  // first session instead of offering every upcoming occurrence.
+  const upcomingDates = event.schedule?.upcomingDates ?? []
+  const selectableDates = display.kind === 'course' ? upcomingDates.slice(0, 1) : upcomingDates
+
+  const blockedMessage = display.full
+    ? t('display.event_full')
+    : display.status === 'ended'
+      ? t('display.event_ended')
+      : display.registration === 'closed'
+        ? t('display.registration_closed')
+        : t('details.contact_for_timing')
 
   return (
     <>
@@ -82,15 +67,22 @@ export function RegistrationView({
       </DrawerHeader>
       <DrawerBody className="p-4">
         <EventSummary event={event} />
-        <RegistrationForm
-          eventId={event.id}
-          eventTitle={event.title}
-          eventUrl={event.webUrl ?? ''}
-          isOnline={isOnline(event)}
-          questions={enabledQuestions(event)}
-          upcomingDates={event.schedule?.upcomingDates ?? []}
-          onClose={() => navigate(parentPath)}
-        />
+        {open ? (
+          <RegistrationForm
+            eventId={event.id}
+            eventTitle={event.title}
+            eventUrl={event.webUrl ?? ''}
+            isOnline={isOnline(event)}
+            questions={enabledQuestions(event)}
+            upcomingDates={selectableDates}
+            onClose={() => navigate(parentPath)}
+          />
+        ) : (
+          <div className="mx-auto flex w-full max-w-md flex-col items-center gap-2 py-6 text-center">
+            <p className="text-sm text-gray-11">{blockedMessage}</p>
+            {contactHelper && <p className="text-xs text-gray-11">{contactHelper}</p>}
+          </div>
+        )}
       </DrawerBody>
     </>
   )
