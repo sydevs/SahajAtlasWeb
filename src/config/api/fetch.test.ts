@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
-import { applyRequestContext } from './client'
+import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import preview from '@/config/preview'
@@ -100,6 +100,34 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
 
     expect(headers.get('x-sahajcloud-preview-secret')).toBeNull()
     expect(url.searchParams.get('draft')).toBeNull()
+  })
+
+  // The end-to-end seam: interceptFetch parses the URL the SDK already serialized
+  // (bracket-encoded select/populate) and layers auth + locale on top. Drives the real
+  // wrapper against a spied global fetch to prove the injected params don't clobber the
+  // SDK's, and vice-versa — the one thing the pure-function tests above can't cover.
+  it('adds locale + auth without dropping the SDK-serialized select/depth params', async () => {
+    atlasAuth.apiKey = 'k'
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }))
+
+    await interceptFetch('https://cloud.example/api/events?select%5Btitle%5D=true&depth=0', {
+      method: 'GET',
+      headers: {},
+    })
+
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0]
+
+    fetchSpy.mockRestore()
+    const url = new URL(calledUrl.toString())
+
+    // The SDK's bracket-serialized params survive the `new URL` round-trip …
+    expect(url.searchParams.get('select[title]')).toBe('true')
+    expect(url.searchParams.get('depth')).toBe('0')
+    // … and the interceptor layers its own locale + auth on top.
+    expect(url.searchParams.get('locale')).toBe('fr')
+    expect(new Headers(calledInit?.headers).get('Authorization')).toBe('clients API-Key k')
   })
 })
 

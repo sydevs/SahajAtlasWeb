@@ -45,7 +45,7 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
 // network, so auth/locale/preview attach in ONE place and the fetchers never re-attach
 // them. The SDK always calls this with a fully-built URL string + RequestInit (see
 // `PayloadSDK.request`), so parsing `input` as a URL is safe.
-const interceptFetch: typeof fetch = (input, init) => {
+export const interceptFetch: typeof fetch = (input, init) => {
   const url = new URL(input.toString())
   const headers = new Headers(init?.headers)
 
