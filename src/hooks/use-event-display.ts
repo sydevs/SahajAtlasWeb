@@ -64,6 +64,11 @@ const WEEK_NUMBER_KEYS = {
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
+  // The resolver reads the wall clock; a stable event identity (TanStack
+  // structural sharing) would otherwise freeze "Today"/open-vs-closed for as
+  // long as a surface stays mounted. A minute bucket in the deps lets any
+  // re-render past a minute boundary pick up fresh state without a ticker.
+  const minute = Math.floor(Date.now() / 60_000)
 
   return useMemo(() => {
     const display = resolveEventDisplay(event)
@@ -105,8 +110,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (full) statusChip = t('display.chip_full')
     else if (status === 'today') statusChip = t('display.chip_today')
-    else if (status === 'upcoming' && chipDate)
-      statusChip = t('display.chip_starts', { date: shortDate(chipDate) })
+    // Upcoming announces the occurrence that's actually coming (`next`) — under
+    // firstDate/upcomingDates drift, firstSession can be a stale past instant.
+    else if (status === 'upcoming' && next)
+      statusChip = t('display.chip_starts', { date: shortDate(next) })
     else if (status === 'started' && chipDate)
       statusChip = t('display.chip_started', { date: shortDate(chipDate) })
     else if (status === 'ended') statusChip = t('display.chip_ended')
@@ -240,5 +247,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       contactHelper,
       blockedMessage,
     }
-  }, [event, locale, t])
+  }, [event, locale, t, minute])
 }

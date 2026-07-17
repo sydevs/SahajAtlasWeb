@@ -25,7 +25,9 @@ export function ShareView({ eventPath }: { eventPath: string }) {
       </DrawerHeader>
       <DrawerBody className="p-4">
         <EventSummary event={event} />
-        <ShareContent label={event.title} url={event.webUrl ?? ''} />
+        {/* A null webUrl (unpublished canonical) falls back to the current URL
+            so the copy field / share links never carry an empty string. */}
+        <ShareContent label={event.title} url={event.webUrl ?? window.location.href} />
       </DrawerBody>
     </>
   )

@@ -22,13 +22,14 @@ export type EventHeaderProps = {
 export function EventHeader({ event, trailing }: EventHeaderProps) {
   const { t } = useTranslation('events')
   const { languageLabel } = useLocale()
-  const { display, typeLabel, statusChip, recurrenceLine, whenLine, timeRange } =
+  const { display, typeLabel, statusChip, recurrenceLine, whenLine, timeLine } =
     useEventDisplay(event)
 
   // One compact line for the peek: the recurrence pattern (or the one-off /
-  // terminal when-line) plus the time range. The authoritative next-session
-  // detail lives in the facts block below.
-  const timing = [recurrenceLine ?? whenLine, timeRange].filter(Boolean).join(' · ')
+  // terminal when-line) plus the time WITH its conversion hint — "(your time)"
+  // is load-bearing, and the peek may be all a mobile visitor sees. The
+  // authoritative next-session detail lives in the facts block below.
+  const timing = [recurrenceLine ?? whenLine, timeLine].filter(Boolean).join(' · ')
 
   return (
     <div className="flex shrink-0 flex-col gap-1.5 px-4 pb-2 pt-1 md:px-8 md:pt-4">

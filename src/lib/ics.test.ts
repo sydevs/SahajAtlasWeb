@@ -87,6 +87,20 @@ describe('buildRrule', () => {
     ).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260826T215959Z')
   })
 
+  it('until-day survives zones west of the stored midnight stamp', () => {
+    // A date-only value stored as midnight UTC read in New York (UTC-4) must
+    // still mean Aug 26 — naively it lands on Aug 25 and drops the last session.
+    const ny = buildRrule({
+      ...weekly,
+      firstDate_tz: 'America/New_York',
+      endingType: 'until',
+      untilDate: new Date('2026-08-26T00:00:00Z'),
+    })
+
+    // End of Aug 26 in New York (EDT, UTC-4) is 03:59:59Z on the 27th.
+    expect(ny).toBe('FREQ=WEEKLY;BYDAY=WE;UNTIL=20260827T035959Z')
+  })
+
   it('ignores stale ending fields the discriminator does not select', () => {
     // The CMS form leaves `count` populated on until-ended schedules.
     expect(
@@ -161,6 +175,21 @@ describe('exclusionDates', () => {
     expect(exclusionDates(schedule).map((d) => d.toFormat('yyyy-MM-dd'))).toEqual(['2026-07-08'])
   })
 
+  it('exclusion days survive zones west of the stored midnight stamp', () => {
+    // Wednesday series in New York; the excluded day is stored as midnight UTC.
+    // Naively that instant is Tuesday evening in NY and no EXDATE would match.
+    const ny: EventSchedule = {
+      ...weekly,
+      firstDate: new Date('2026-07-01T23:30:00Z'), // Wed 19:30 EDT
+      firstDate_tz: 'America/New_York',
+      exclusions: [{ startDate: new Date('2026-07-08T00:00:00Z') }],
+    }
+
+    expect(exclusionDates(ny).map((d) => d.toFormat('yyyy-MM-dd HH:mm'))).toEqual([
+      '2026-07-08 19:30',
+    ])
+  })
+
   it('monthly by-weekday exclusions match the nth weekday only', () => {
     const monthly: EventSchedule = {
       ...weekly,
@@ -224,6 +253,48 @@ describe('buildEventIcs', () => {
     expect(ics).toContain('\\nline two\\, with\\;')
     // Folded continuation lines start with a single space.
     expect(ics).toMatch(/\r\n [^\r\n]/)
+  })
+
+  it('folds by UTF-8 octets and never splits a multi-byte character', () => {
+    // Cyrillic is 2 bytes/char in UTF-8 — code-unit folding would emit ~148-octet
+    // lines; and a code-point boundary must never fall inside a character.
+    const ics = buildEventIcs({ ...input, description: 'д'.repeat(120) }, { now: NOW })
+    const encoder = new TextEncoder()
+
+    for (const line of ics.split('\r\n')) {
+      expect(encoder.encode(line).length).toBeLessThanOrEqual(75)
+    }
+    // Unfolding restores the original text intact (no split characters).
+    expect(ics.replace(/\r\n /g, '')).toContain('д'.repeat(120))
+  })
+
+  it('strips CR/LF from the URL line (line-injection guard)', () => {
+    const ics = buildEventIcs(
+      { ...input, url: 'https://atlas.example/42\r\nATTENDEE:mailto:x@y.z' },
+      { now: NOW },
+    )
+
+    // The CRLF is gone, so the payload stays inert inside the URL value — no
+    // line of the file starts with the injected property.
+    expect(ics.split('\r\n').some((line) => line.startsWith('ATTENDEE'))).toBe(false)
+    expect(ics).toContain('URL:https://atlas.example/42ATTENDEE')
+  })
+
+  it('anchors a one-off at its next upcoming occurrence (rescheduling drift)', () => {
+    const ics = buildEventIcs(
+      {
+        ...input,
+        schedule: {
+          ...weekly,
+          recurrenceType: null,
+          upcomingDates: [new Date('2026-07-15T17:30:00Z')],
+        },
+      },
+      { now: NOW },
+    )
+
+    // firstDate says 1 Jul, but the real (rescheduled) occurrence is 15 Jul.
+    expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260715T193000')
   })
 })
 

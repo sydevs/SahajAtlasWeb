@@ -14,6 +14,15 @@ import { Event } from '@/types'
 
 const DOMPurify = createDOMPurify(window)
 
+// ADD_ATTR keeps host-authored `target` links working; force the safe rel on
+// them so a `target="_blank"` in prose can never reverse-tabnab via
+// window.opener (belt-and-braces — modern browsers imply noopener).
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A' && node.getAttribute('target')) {
+    node.setAttribute('rel', 'noopener noreferrer')
+  }
+})
+
 // One plain-text fact line with its icon-set icon. Facts are never actions:
 // nothing here looks like a button or navigates (issue #52 design grammar).
 function FactLine({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {

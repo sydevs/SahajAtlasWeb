@@ -50,13 +50,21 @@ export default function Widget({
   // Boot on the host-declared initial route (e.g. an event or register path for
   // an embedded form — issue #52 WS7) when the hash carries no route yet; a
   // hash the visitor already navigated always wins. `safePath` rejects anything
-  // but a site-relative path.
-  if (
-    !window.location.hash ||
-    window.location.hash === `#${HASH_BASE}` ||
-    window.location.hash === `#${HASH_BASE}/`
-  ) {
-    window.location.hash = `${HASH_BASE}${safePath(basePath) ?? ''}`
+  // but a site-relative path. Guarded to the FIRST render: the root hash
+  // (`#!/`) recurs whenever the visitor navigates back home, and Widget
+  // re-renders reactively (locale changes) — re-running this would teleport
+  // them back to basePath.
+  const booted = useRef(false)
+
+  if (!booted.current) {
+    booted.current = true
+    if (
+      !window.location.hash ||
+      window.location.hash === `#${HASH_BASE}` ||
+      window.location.hash === `#${HASH_BASE}/`
+    ) {
+      window.location.hash = `${HASH_BASE}${safePath(basePath) ?? ''}`
+    }
   }
 
   const hasMap = map !== 'false' && map !== '0'

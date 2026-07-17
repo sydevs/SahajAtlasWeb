@@ -37,12 +37,14 @@ export type ActionCircleProps = {
   href?: string
   /** Open `href` in a new tab with the safe rel. */
   external?: boolean
-}
+} & React.HTMLAttributes<HTMLElement>
 
 /** One labelled tonal-circle action. Forwarded ref targets the interactive
- *  element so popovers (contact, add-to-calendar) can anchor to it. */
+ *  element so popovers (contact, add-to-calendar) can anchor to it; rest props
+ *  spread onto it LAST so a popover trigger's interaction/aria props
+ *  (floating-ui `getReferenceProps()`) reach the element intact. */
 export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function ActionCircle(
-  { icon, label, emphasized = false, onClick, href, external = false },
+  { icon, label, emphasized = false, onClick, href, external = false, ...rest },
   ref,
 ) {
   const styles = actionCircle({ emphasized })
@@ -63,6 +65,7 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
         rel={external ? 'noopener noreferrer' : undefined}
         target={external ? '_blank' : undefined}
         onClick={onClick}
+        {...rest}
       >
         {content}
       </a>
@@ -75,6 +78,7 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
       className={`group ${styles.base()}`}
       type="button"
       onClick={onClick}
+      {...rest}
     >
       {content}
     </button>

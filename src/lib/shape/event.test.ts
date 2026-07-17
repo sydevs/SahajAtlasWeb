@@ -357,6 +357,35 @@ describe('resolveEventDisplay: edge cases', () => {
     expect(resolveEventDisplay(openEnded, at('2026-07-16T00:30:00')).status).toBe('running')
   })
 
+  it('an endTime past midnight rolls to the next day (end never precedes start)', () => {
+    // 23:00 session "ending" 00:30 means 00:30 TOMORROW — noon on event day must
+    // not treat it as already finished.
+    const lateNight = {
+      eventType: 'offline' as const,
+      schedule: {
+        ...weeklySchedule,
+        firstDate: new Date('2026-07-15T21:00:00Z'), // 23:00 Prague
+        endTime: '00:30',
+        upcomingDates: [new Date('2026-07-15T21:00:00Z')],
+      },
+    }
+
+    expect(resolveEventDisplay(lateNight, at('2026-07-15T12:00:00')).status).toBe('today')
+    // Still live at 00:15 the next calendar day.
+    expect(resolveEventDisplay(lateNight, at('2026-07-16T00:15:00')).status).toBe('today')
+  })
+
+  it('degrades a malformed timezone to UTC instead of invalid DateTimes', () => {
+    const malformed = {
+      eventType: 'offline' as const,
+      schedule: { ...weeklySchedule, firstDate_tz: 'Not/AZone\r\nINJECTED' },
+    }
+    const display = resolveEventDisplay(malformed, at('2026-07-14T10:00:00', 'UTC'))
+
+    expect(display.next?.isValid).toBe(true)
+    expect(display.next?.zoneName).toBe('UTC')
+  })
+
   it('online live actions omit directions; physical live actions lead with it', () => {
     const withContact = { ...weeklyClass, contactPhone: '+420 123' }
 

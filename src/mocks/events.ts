@@ -40,14 +40,16 @@ export const mockEventSlim: EventSlim = {
     latitude: 52.2053,
     longitude: 0.1218,
   },
+  // Far-future Saturdays: stories resolve live states (running/upcoming) from
+  // the wall clock, so near-term dates would silently rot into "ended" previews.
   schedule: {
-    firstDate: new Date('2026-01-10T09:30:00Z'),
+    firstDate: new Date('2033-01-08T09:30:00Z'),
     firstDate_tz: 'Europe/London',
     endTime: '11:00',
     recurrenceType: 'WEEKLY',
     interval: 1,
     weekdays: ['SA'],
-    upcomingDates: [new Date('2026-07-04T09:30:00Z'), new Date('2026-07-11T09:30:00Z')],
+    upcomingDates: [new Date('2033-07-02T09:30:00Z'), new Date('2033-07-09T09:30:00Z')],
   },
   region: mockRegion,
   path: '/united-kingdom/cambridge/101',

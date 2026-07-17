@@ -1,6 +1,6 @@
 import type { EventSchedule, EventType } from '@/types'
 
-import { DateTime } from 'luxon'
+import { DateTime, IANAZone } from 'luxon'
 
 /**
  * Derivations shared by the event components, so the raw SahajCloud field shapes
@@ -40,26 +40,41 @@ export const byNextOccurrence = (a: EventLike, b: EventLike): number => {
  * online events, otherwise the event's own zone (UTC as a last resort).
  */
 export const eventTimeZone = (event: EventLike): string =>
-  isOnline(event) ? (DateTime.local().zoneName ?? 'UTC') : (event.schedule?.firstDate_tz ?? 'UTC')
+  isOnline(event)
+    ? (DateTime.local().zoneName ?? 'UTC')
+    : event.schedule
+      ? scheduleTimeZone(event.schedule)
+      : 'UTC'
 
 // ── Schedule time primitives (shared with the calendar export in lib/ics.ts) ──
 
-/** The schedule's own IANA zone (UTC when the CMS stored none). */
-export const scheduleTimeZone = (schedule: EventSchedule): string => schedule.firstDate_tz ?? 'UTC'
+/** The schedule's own IANA zone — validated so a malformed CMS value degrades
+ *  to UTC instead of yielding invalid DateTimes (and so the raw string can
+ *  never reach the calendar export's TZID lines — content injection). */
+export const scheduleTimeZone = (schedule: EventSchedule): string =>
+  schedule.firstDate_tz && IANAZone.isValidZone(schedule.firstDate_tz)
+    ? schedule.firstDate_tz
+    : 'UTC'
 
 /** The series' first session as an instant in the schedule's own zone. */
 export const scheduleStart = (schedule: EventSchedule): DateTime =>
   DateTime.fromJSDate(schedule.firstDate).setZone(scheduleTimeZone(schedule))
 
-/** `start` moved to the same-day "HH:MM" `endTime`, or null when unset/malformed
- *  — the ONE place the endTime wire format is parsed. */
+/** `start` moved to the "HH:MM" `endTime`, or null when unset/malformed — the
+ *  ONE place the endTime wire format is parsed. An end at-or-before the start
+ *  wall-clock rolls to the next day (a 23:00–00:30 session ends tomorrow, and
+ *  bad data can never produce an end before its start). */
 export const withEndTime = (
   start: DateTime,
   endTime: string | null | undefined,
 ): DateTime | null => {
   const [hour, minute] = (endTime ?? '').split(':').map(Number)
 
-  return Number.isFinite(hour) && Number.isFinite(minute) ? start.set({ hour, minute }) : null
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+
+  const end = start.set({ hour, minute })
+
+  return end >= start ? end : end.plus({ days: 1 })
 }
 
 // ── Shared display resolver (issue #52) ─────────────────────────────────────────
@@ -173,7 +188,7 @@ export function resolveEventDisplay(
   const online = isOnline(event)
   const schedule = event.schedule
   const viewerTz = options.viewerTz ?? DateTime.local().zoneName ?? 'UTC'
-  const eventTz = schedule?.firstDate_tz ?? 'UTC'
+  const eventTz = schedule ? scheduleTimeZone(schedule) : 'UTC'
   const displayZone = online ? viewerTz : eventTz
   const now = toDateTime(options.now ?? DateTime.now())
   const hasContact = Boolean(event.contactPhone)

@@ -31,6 +31,9 @@ export type RegistrationFormProps = {
   isOnline: boolean
   eventTitle: string
   eventUrl: string
+  /** Zone the starting-date options render in — the event's own zone for
+   *  physical events, the viewer's for online (issue #52 time contract). */
+  timeZone?: string
   /** Optional close callback; the footer also closes the enclosing Modal via ModalClose. */
   onClose?: () => void
 }
@@ -47,6 +50,7 @@ export type RegistrationFormProps = {
 export function RegistrationForm({
   eventId,
   upcomingDates,
+  timeZone,
   questions,
   isOnline,
   eventTitle,
@@ -115,6 +119,7 @@ export function RegistrationForm({
             errors={errors}
             questions={questions}
             register={register}
+            timeZone={timeZone}
             upcomingDates={upcomingDates}
           />
 
@@ -244,6 +249,7 @@ function LabeledTextarea({
 
 type RegistrationFieldsProps = {
   upcomingDates: Date[]
+  timeZone?: string
   questions: string[]
   register: UseFormRegister<Registration>
   control: Control<Registration>
@@ -252,6 +258,7 @@ type RegistrationFieldsProps = {
 
 function RegistrationFields({
   upcomingDates,
+  timeZone,
   questions,
   register,
   control,
@@ -283,7 +290,9 @@ function RegistrationFields({
               onValueChange={field.onChange}
             >
               {upcomingDates.map((date) => {
-                const dateTime = DateTime.fromJSDate(date).setLocale(locale)
+                const dateTime = DateTime.fromJSDate(date)
+                  .setZone(timeZone ?? 'local')
+                  .setLocale(locale)
 
                 return (
                   <SelectItem

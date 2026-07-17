@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
-import { isOnline } from '@/lib/shape'
+import { eventTimeZone, isOnline } from '@/lib/shape'
 import { Event } from '@/types'
 import { CloseButton, EventSummary, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
@@ -23,7 +24,8 @@ function enabledQuestions(event: Event): string[] {
 // The registration form for an event (route `<event-path>/register`). Reached by
 // the event's Register CTA and deep-linkable — so the resolver gates it: a
 // closed/ended/full/inactive event renders its state message, never an
-// operative form. (Client-side gating is cosmetic until the CMS enforces it
+// operative form, and an external-mode event renders the link-out CTA, never
+// the native form. (Client-side gating is cosmetic until the CMS enforces it
 // server-side — SahajCloud#577; POST /register currently only checks
 // published/visible.)
 export function RegistrationView({
@@ -43,11 +45,23 @@ export function RegistrationView({
   useFrameOnTop(() => frameEvent(event), [event, frameEvent])
 
   const open = display.registration === 'open'
+  // Registration for an external event never happens on Atlas — a deep link
+  // here gets the same link-out CTA (or closed state) as the event panel.
+  const external = event.registrationMode === 'external'
 
-  // Course registration binds to the FULL run — lock the starting date to the
-  // first session instead of offering every upcoming occurrence.
-  const upcomingDates = event.schedule?.upcomingDates ?? []
-  const selectableDates = display.kind === 'course' ? upcomingDates.slice(0, 1) : upcomingDates
+  // Selectable starting dates roll past finished occurrences exactly like the
+  // resolver's `next` (data cached pre-session would otherwise preselect a
+  // session that already ended), falling back to the resolved next occurrence
+  // when the precomputed list is empty. Courses bind to the FULL run — locked
+  // to the first session.
+  const nextMillis = display.next?.toMillis() ?? Number.POSITIVE_INFINITY
+  let futureDates = (event.schedule?.upcomingDates ?? []).filter(
+    (date) => date.getTime() >= nextMillis,
+  )
+
+  if (futureDates.length === 0 && display.next) futureDates = [display.next.toJSDate()]
+
+  const selectableDates = display.kind === 'course' ? futureDates.slice(0, 1) : futureDates
 
   return (
     <>
@@ -59,16 +73,21 @@ export function RegistrationView({
       </DrawerHeader>
       <DrawerBody className="p-4">
         <EventSummary event={event} />
-        {open ? (
+        {open && !external ? (
           <RegistrationForm
             eventId={event.id}
             eventTitle={event.title}
             eventUrl={event.webUrl ?? ''}
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
+            timeZone={eventTimeZone(event)}
             upcomingDates={selectableDates}
             onClose={() => navigate(parentPath)}
           />
+        ) : external ? (
+          <div className="mx-auto w-full max-w-md py-4">
+            <EventRegisterBar basePath={parentPath} event={event} />
+          </div>
         ) : (
           <div className="mx-auto flex w-full max-w-md flex-col items-center gap-2 py-6 text-center">
             <p className="text-sm text-gray-11">{blockedMessage}</p>

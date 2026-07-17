@@ -7,8 +7,12 @@ import { EventMetadata } from '@/components/molecules'
 // and importing it statically here would pull the lazy-loaded panel chunk
 // (DOMPurify + action wiring) back into the main bundle.
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
-import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
+import {
+  EventRegisterBar,
+  hasRegisterSlot,
+} from '@/components/organisms/EventDetails/EventRegister'
 import { Spinner } from '@/components/atoms/Spinner'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import api from '@/config/api'
 import { useIsDesktop } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
@@ -46,7 +50,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
 
   // The snap-ladder bottom sheet is the one surface where in-flow content can
   // scroll the CTA away — pin Register there; keep it inline everywhere else.
-  const stickyRegister = hasMap && !isDesktop
+  // Never pin an empty bar (inactive events render no register slot at all).
+  const { display } = useEventDisplay(event)
+  const stickyRegister = hasMap && !isDesktop && hasRegisterSlot(event, display)
 
   return (
     <>
