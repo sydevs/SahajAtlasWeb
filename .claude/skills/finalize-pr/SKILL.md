@@ -1,6 +1,6 @@
 ---
 name: finalize-pr
-description: Finalize the current branch's PR — simplify, a single code-review, conditional security-review, the lean gate, push, create or refresh the PR, then watch CI and fix failures. User-invoked; also run by /implement-issue as its finalize step. Does not run unless explicitly triggered.
+description: Finalize the current branch's PR — simplify, a single code-review, conditional security-review, the lean gate, a documentation-sync commit, push, create or refresh the PR, then watch CI and fix failures. User-invoked; also run by /implement-issue as its finalize step. Does not run unless explicitly triggered.
 disable-model-invocation: true
 effort: max
 allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Task
@@ -9,7 +9,7 @@ allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Task
 # Finalize PR
 
 The reusable **ship pipeline**: take the current branch's accumulated local commits and ship them —
-simplify → code-review → conditional security-review → lean gate → push → open/refresh the PR → get
+simplify → code-review → conditional security-review → lean gate → update docs → push → open/refresh the PR → get
 CI green → report.
 
 This is **phase 3** of the PR workflow (Implement → Adjust → **Finalize**) documented in `CLAUDE.md`.
@@ -94,10 +94,29 @@ git diff origin/main...HEAD -- src | grep -E '^\+' | grep -E 'dangerouslySetInne
 .claude/skills/pr-prep/check.sh          # lint + typecheck + test:run — the canonical lean gate
 ```
 
-Fix and re-run on failure. CI (step 7) is the real gate — it adds the production build; don't
+Fix and re-run on failure. CI (step 8) is the real gate — it adds the production build; don't
 reproduce that locally unless debugging a red run (`pr-prep/check.sh --full` adds `pnpm build`).
 
-### 5. Push
+### 5. Update documentation
+
+Sync the documentation the branch's changes affect, committed as the **final
+commit before pushing** (docs ship with the code, not in a follow-up PR). Sweep
+the branch diff (`origin/main...HEAD`) for what changed and update:
+
+- **`CLAUDE.md`** + **`.claude/docs/*`** — architecture, deploy, environment,
+  data-layer, or workflow facts the diff alters.
+- **`.claude/rules/*`** — the path-scoped rule for any subsystem the diff touched
+  (map, components, data-layer, i18n/state, tests).
+- **`DESIGN_SYSTEM.md` / `STORYBOOK.md`** for component/story conventions; setup
+  docs / `README` for new commands, env vars, or scripts.
+- Inline examples (e.g. `demo.html`) and JSDoc/comments referencing anything the
+  diff renamed, removed, or re-flagged — grep the diff for stale references.
+
+Commit it on its own (`docs: <what changed>`). If the update touched lintable
+files, re-run the lean gate (step 4). If the branch genuinely affects no docs,
+say so in the report (step 9) rather than skipping silently.
+
+### 6. Push
 
 ```bash
 git push -u origin HEAD     # -u sets upstream on the first push; plain `git push` thereafter
@@ -105,7 +124,7 @@ git push -u origin HEAD     # -u sets upstream on the first push; plain `git pus
 
 Never force-push `main` or any shared branch; never `--no-verify`.
 
-### 6. Open or refresh the PR
+### 7. Open or refresh the PR
 
 ```bash
 gh pr view --json number,url 2>/dev/null   # does a PR already exist for this branch?
@@ -134,7 +153,7 @@ BODY_FILE=$(mktemp -t pr-body.XXXXXX).md
   the last push); keep it only if it's still accurate. Never leave a stale title or description
   from an earlier state.
 
-### 7. Watch CI and fix (capped)
+### 8. Watch CI and fix (capped)
 
 ```bash
 gh pr checks <pr-or-branch> --watch
@@ -152,7 +171,7 @@ test:run + build + ladle:build); the **Smoke** job runs separately against the C
 - A failure **pre-existing on `main`** (not caused by this branch) → fix it in this PR and note it,
   per `.claude/skills/pr-prep/SKILL.md`.
 
-### 8. Report
+### 9. Report
 
 - PR URL + final CI status (green, or the capped-out summary).
 - Dismissed review findings (with the one-line reasons).
@@ -170,6 +189,9 @@ test:run + build + ladle:build); the **Smoke** job runs separately against the C
 - **Always** run `/code-review` (and the conditional security review) via a **dispatched Task
   subagent**, never inline in the main thread.
 - **One** code-review pass — no redundant second review.
+- **Always** commit a **documentation sync as the final commit before pushing** (step 5) — update
+  `CLAUDE.md`, `.claude/docs/*`, `.claude/rules/*`, and any example the diff affects; or state in the
+  report that no docs are affected.
 - **Always** use `--body-file` (a `mktemp` path) for `gh pr create` / `gh pr edit`; always refresh a
   stale PR **title and** body to match the current `origin/main...HEAD`.
 - **Cap** the CI fix-loop at 3 iterations, then hand back to the user.
