@@ -54,7 +54,8 @@
     "type_class_weekly": "Heti foglalkozás",
     "type_course": "Tanfolyam",
     "type_oneoff": "Egyszeri esemény",
-    "your_time": "(saját idő szerint)"
+    "your_time": "(saját idő szerint)",
+    "distance_from_search": "%{distance} a keresett helytől"
   },
   "errors": {
     "email": "Enter a valid email",

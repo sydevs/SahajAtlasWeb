@@ -54,7 +54,8 @@
     "type_class_weekly": "Weekly class",
     "type_course": "Course",
     "type_oneoff": "One-off event",
-    "your_time": "(your time)"
+    "your_time": "(your time)",
+    "distance_from_search": "%{distance} from the searched location"
   },
   "errors": {
     "email": "Enter a valid email",

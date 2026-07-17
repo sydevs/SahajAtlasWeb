@@ -56,7 +56,8 @@
     "type_class_weekly": "Týdenní lekce",
     "type_course": "Kurz",
     "type_oneoff": "Jednorázová akce",
-    "your_time": "(váš čas)"
+    "your_time": "(váš čas)",
+    "distance_from_search": "%{distance} od hledaného místa"
   },
   "errors": {
     "email": "Zadejte platný e-mail",

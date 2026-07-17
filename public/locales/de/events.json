@@ -54,7 +54,8 @@
     "type_class_weekly": "Wöchentlicher Kurs",
     "type_course": "Kursreihe",
     "type_oneoff": "Einmalige Veranstaltung",
-    "your_time": "(Ihre Zeit)"
+    "your_time": "(Ihre Zeit)",
+    "distance_from_search": "%{distance} vom gesuchten Ort"
   },
   "errors": {
     "email": "Geben Sie eine gültige E-Mail-Adresse ein",

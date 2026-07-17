@@ -54,7 +54,8 @@
     "type_class_weekly": "Cours hebdomadaire",
     "type_course": "Stage",
     "type_oneoff": "Événement unique",
-    "your_time": "(votre heure)"
+    "your_time": "(votre heure)",
+    "distance_from_search": "%{distance} du lieu recherché"
   },
   "errors": {
     "email": "Entrez un email valide",
