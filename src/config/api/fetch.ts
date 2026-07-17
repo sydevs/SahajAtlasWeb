@@ -62,6 +62,7 @@ const REGION_POPULATE = {
 const FEED_SELECT = {
   eventType: true,
   languages: true,
+  inactive: true,
   address: {
     street: true,
     room: true,
@@ -72,11 +73,23 @@ const FEED_SELECT = {
     latitude: true,
     longitude: true,
   },
+  // The full structured recurrence pattern rides the feed (verified pass-through,
+  // issue #52) so cards derive type/status exactly as the panel does.
   schedule: {
     firstDate: true,
     firstDate_tz: true,
     endTime: true,
     recurrenceType: true,
+    interval: true,
+    weekdays: true,
+    monthlyMode: true,
+    monthDay: true,
+    weekNumber: true,
+    weekdayOfMonth: true,
+    endingType: true,
+    count: true,
+    untilDate: true,
+    exclusions: true,
     upcomingDates: true,
     icalRule: true,
   },
@@ -411,11 +424,13 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
       collection: 'events',
       id,
       depth: 1,
+      // No `onlineUrl` — Atlas never shows a join link (delivery is CMS-side,
+      // post-registration; issue #52).
       select: {
         title: true,
         eventType: true,
         languages: true,
-        onlineUrl: true,
+        inactive: true,
         address: true,
         schedule: true,
         description: true,

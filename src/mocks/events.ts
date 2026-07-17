@@ -45,6 +45,8 @@ export const mockEventSlim: EventSlim = {
     firstDate_tz: 'Europe/London',
     endTime: '11:00',
     recurrenceType: 'WEEKLY',
+    interval: 1,
+    weekdays: ['SA'],
     upcomingDates: [new Date('2026-07-04T09:30:00Z'), new Date('2026-07-11T09:30:00Z')],
   },
   region: mockRegion,
@@ -82,7 +84,7 @@ export const mockEvent: Event = {
   title: 'Saturday Morning Meditation',
   eventType: 'offline',
   languages: ['en'],
-  onlineUrl: null,
+  inactive: false,
   address: mockEventSlim.address,
   schedule: mockEventSlim.schedule,
   description: {

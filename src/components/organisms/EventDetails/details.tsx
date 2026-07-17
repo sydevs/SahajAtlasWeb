@@ -2,22 +2,12 @@ import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { useMemo } from 'react'
 
-import { SocialIcon, CallIcon, LocationIcon } from '@/components/atoms/Icons'
+import { CallIcon, LocationIcon } from '@/components/atoms/Icons'
 import { DetailRow } from '@/components/molecules/DetailRow'
 import { EventTime } from '@/components/molecules/EventTime'
 import { Event } from '@/types'
 import { isOnline, nextOccurrence } from '@/lib/shape'
 import { useLocale } from '@/hooks/use-locale'
-
-// Detect the meeting platform from an online event's join URL (for its icon).
-function detectPlatform(url?: string | null): 'zoom' | 'google_meet' | 'youtube' | undefined {
-  if (!url) return undefined
-  if (/zoom\./i.test(url)) return 'zoom'
-  if (/meet\.google\./i.test(url)) return 'google_meet'
-  if (/youtu\.?be/i.test(url)) return 'youtube'
-
-  return undefined
-}
 
 // A Google Maps directions link from the event's coordinates (or address text).
 function directionsUrl(event: Event): string | undefined {
@@ -132,18 +122,15 @@ export function EventLocationDetails({ event }: { event: Event }) {
       .join(', ')
   }
 
-  const platform = detectPlatform(event.onlineUrl)
-
+  // No join link for online events — joining details are delivered CMS-side
+  // after registration (issue #52), so the location row is informational only.
   return (
     <DetailRow
-      box={{
-        kind: 'icon',
-        icon: platform ? <SocialIcon platform={platform} size={24} /> : <LocationIcon />,
-      }}
+      box={{ kind: 'icon', icon: <LocationIcon /> }}
       content={subtitle}
       isExternal={true}
       title={title}
-      url={online ? (event.onlineUrl ?? undefined) : directionsUrl(event)}
+      url={online ? undefined : directionsUrl(event)}
     />
   )
 }
