@@ -11,9 +11,8 @@ import type {
 import type { EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
-import client from './client'
+import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
-import i18n from '@/config/i18n'
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
@@ -50,9 +49,11 @@ const NEAREST_LIMIT = 50
 // The region fields populated into the geojson feed + event reads. Ancestry comes
 // from the wholesale regions dict (parent links), so no `breadcrumbs` here (they
 // were ~20% of the feed); slug/name drive display, the route is the server `webPath`.
+// `as const` keeps the `true`s literal so the object satisfies the SDK's generated
+// `RegionsSelect` (a widened `boolean` isn't assignable to its `true` fields).
 const REGION_POPULATE = {
   regions: { slug: true, name: true, level: true, subtitle: true },
-}
+} as const
 
 // The event fields the (locale-agnostic) geojson feed selects — must mirror
 // AgnosticFeedEventSchema. `title` is the one localized field, so it is NOT selected
@@ -99,14 +100,21 @@ const REGIONS_SELECT = {
   webPath: true,
   webUrl: true,
   legacyData: true,
-}
+} as const
 
 const getRegions = async (): Promise<RegionNode[]> => {
-  const response = await client.get('/regions', {
-    params: { depth: 0, pagination: false, sort: 'name', select: REGIONS_SELECT },
-  })
+  const { docs } = validateSDKResponse(
+    await sdk.find({
+      collection: 'regions',
+      depth: 0,
+      pagination: false,
+      sort: 'name',
+      select: REGIONS_SELECT,
+    }),
+    'regions',
+  )
 
-  return RegionNodeSchema.array().parse(response.data.docs)
+  return RegionNodeSchema.array().parse(docs)
 }
 
 // Read the region tree through the shared React Query cache so the whole app
@@ -132,11 +140,15 @@ const getRegionNodeById = async (id: number): Promise<RegionNode> => {
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
-  const response = await client.get('/events/geojson', {
-    params: { depth: 1, pagination: false, select: FEED_SELECT, populate: REGION_POPULATE },
+  // A custom (non-CRUD) endpoint, so it goes through the SDK's raw `request` helper
+  // rather than `sdk.find`; `select`/`populate` ride the query string as before.
+  const data = await requestJson({
+    method: 'GET',
+    path: '/events/geojson',
+    args: { depth: 1, pagination: false, select: FEED_SELECT, populate: REGION_POPULATE },
   })
 
-  return GeojsonSchema.parse(response.data)
+  return GeojsonSchema.parse(data)
 }
 
 // The hierarchy/events fetchers all need the same feed. Read it through the shared
@@ -159,22 +171,24 @@ const loadGeojson = (): Promise<Geojson> =>
 // Keyed by locale so a language switch refetches just this (~5% of the feed weight)
 // while the agnostic feed + region tree stay cached.
 const getEventTitles = async (): Promise<Map<number, string>> => {
-  const response = await client.get('/events', {
-    params: { depth: 0, pagination: false, select: { title: true } },
-  })
+  const { docs } = validateSDKResponse(
+    await sdk.find({ collection: 'events', depth: 0, pagination: false, select: { title: true } }),
+    'event titles',
+  )
 
   return new Map(
     EventTitleSchema.array()
-      .parse(response.data.docs)
+      .parse(docs)
       .map((doc) => [doc.id, doc.title ?? '']),
   )
 }
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
   queryClient.fetchQuery({
-    // The interceptor sends the resolved locale; key by the same value so a language
-    // switch re-keys the titles sliver (the agnostic feed + regions stay cached).
-    queryKey: ['event-titles', i18n.resolvedLanguage || 'en'],
+    // Every request sends the resolved locale (activeLocale, via applyRequestContext);
+    // key by that same value so a language switch re-keys the titles sliver (feed +
+    // regions stay cached) and the key can't drift from the locale actually sent.
+    queryKey: ['event-titles', activeLocale()],
     queryFn: getEventTitles,
     staleTime: GEOJSON_STALE_TIME,
   })
@@ -390,8 +404,12 @@ export const shapeEventDoc = (event: EventDoc): Event => ({
 })
 
 const getEventDoc = async (id: number): Promise<EventDoc> => {
-  const response = await client.get(`/events/${id}`, {
-    params: {
+  // No `disableErrors`, so a missing/failed read throws (→ ErrorBoundary), as the
+  // axios 404 did; `validateSDKResponse` also narrows away the nullable return.
+  const doc = validateSDKResponse(
+    await sdk.findByID({
+      collection: 'events',
+      id,
       depth: 1,
       select: {
         title: true,
@@ -419,10 +437,11 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         // on this collection (Cloudflare Images flexible variants replaced sizes).
         images: { url: true, filename: true, alt: true },
       },
-    },
-  })
+    }),
+    `event ${id}`,
+  )
 
-  return EventDocSchema.parse(response.data)
+  return EventDocSchema.parse(doc)
 }
 
 // Raw fetch stays split out so live preview (issue #40) can seed `useLivePreview`
@@ -432,8 +451,14 @@ const getEvent = async (id: number): Promise<Event> => shapeEventDoc(await getEv
 // ── Widget bootstrap (client config + atlas-wide defaults) ───────────────────────
 
 const getClient = async () => {
-  const response = await client.get('/clients/me', {
-    params: {
+  // Read via the raw `request` helper, not `sdk.me()`: SahajCloud requires an explicit
+  // `select` on every client read, and the bare `me()` sends no select/populate/depth.
+  // (The trade-off is that this one `select` isn't compile-checked — the endpoint isn't
+  // a typed collection read — but the runtime gate is still satisfied.)
+  const { user } = await requestJson<{ user?: unknown }>({
+    method: 'GET',
+    path: '/clients/me',
+    args: {
       depth: 1,
       select: {
         name: true,
@@ -449,8 +474,6 @@ const getClient = async () => {
       populate: { regions: { slug: true, name: true, level: true, webPath: true, webUrl: true } },
     },
   })
-
-  const user = response.data?.user
 
   if (!user) throw new Error('Not authenticated as an Atlas client')
 
@@ -469,15 +492,13 @@ const populatePreviewDoc = async (
   id: number,
   data: unknown,
   locale?: string,
-): Promise<unknown> => {
-  const response = await client.post(
-    `/${collection}/${id}`,
-    { data, depth: 1, flattenLocales: false, ...(locale ? { locale } : {}) },
-    { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
-  )
-
-  return response.data
-}
+): Promise<unknown> =>
+  requestJson({
+    method: 'POST',
+    path: `/${collection}/${id}`,
+    json: { data, depth: 1, flattenLocales: false, ...(locale ? { locale } : {}) },
+    init: { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
+  })
 
 export default {
   getGeojson,

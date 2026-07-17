@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { IpLocationSchema, type IpLocation } from '@/types'
 
 // A free, keyless IP-geolocation lookup. Deliberately a bare `fetch`, NOT the
-// shared axios client (src/config/api/client.ts): that interceptor attaches the
-// SahajCloud `Authorization: clients API-Key …` and `locale` to every request, and
+// shared SahajCloud client (src/config/api/client.ts): `applyRequestContext` attaches
+// the SahajCloud `Authorization: clients API-Key …` and `locale` to every request, and
 // sending those to a third-party host would leak the client API key.
 const IP_LOCATION_ENDPOINT = 'https://ipwho.is/'
 

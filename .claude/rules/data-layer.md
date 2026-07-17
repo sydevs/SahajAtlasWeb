@@ -1,28 +1,40 @@
 ---
-description: API/data layer — axios client, zod-validated fetchers, TanStack Query.
+description: API/data layer — typed PayloadSDK client, zod-validated fetchers, TanStack Query.
 globs:
   - "src/config/api/**/*.ts"
   - "src/types/**/*.ts"
 alwaysApply: false
 ---
 
-# Data layer (axios + zod + TanStack Query → SahajCloud)
+# Data layer (@payloadcms/sdk + zod + TanStack Query → SahajCloud)
 
 The widget reads **SahajCloud** (PayloadCMS v3, REST-only) as a third-party,
-API-key client. We talk to it over plain `axios` + `zod` — no Payload SDK, no new
-runtime deps (the bundle is public). `src/types/payload/` holds the synced
-`payload-types.ts` + endpoint `response-types.ts` (run `pnpm types:cms`) as
-supplementary compile-time types — keep zod schemas aligned with them.
+API-key client. We talk to it through **`@payloadcms/sdk`** (`PayloadSDK<Config>`, a
+fetch-based client typed against our synced `payload-types.ts`) + **`zod`**. The SDK's
+`payload` dependency is **types-only** — its dist imports only `qs-esm` at runtime — so
+only the SDK + `qs-esm` reach the public bundle (this replaced `axios` + `qs`; see #41).
+`src/types/payload/` holds the synced `payload-types.ts` + endpoint `response-types.ts`
+(run `pnpm types:cms`) — the SDK's compile-time source of truth; keep the zod schemas
+aligned with them.
 
-## The shared axios client (`src/config/api/client.ts`)
+## The shared SDK client (`src/config/api/client.ts`)
 
-- **One** shared `axios` instance, `baseURL = ${VITE_SAHAJCLOUD_URL}/api`, used by
-  both `fetch.ts` and `mutate.ts`.
-- A request interceptor attaches `Authorization: clients API-Key <atlasAuth.apiKey>`
-  and a SahajCloud `locale` param (mapped from i18next via `toSahajLocale`) to
-  **every** request. Don't re-attach auth/locale per call.
-- Query params are serialized with `qs` (bracket notation) so Payload's nested
-  `select` / `populate` / `where` objects encode correctly.
+- **One** shared `PayloadSDK<Config>`, `baseURL = ${VITE_SAHAJCLOUD_URL}/api`, used by
+  both `fetch.ts` and `mutate.ts`. `<Config>` type-checks every `find` / `findByID`
+  `select` / `populate` / `where` against the generated CMS types (extracted select
+  objects need `as const` to keep their `true` literals).
+- The SDK is given a custom `fetch` that runs **`applyRequestContext`** on **every**
+  request — the single-interceptor equivalent of the old axios setup. It attaches
+  `Authorization: clients API-Key <atlasAuth.apiKey>` + a SahajCloud `locale` param (the
+  resolved i18next language, sent straight through — the widget's codes match 1:1) to
+  every request, and the live-preview secret header + `draft=true` during a preview
+  session (#40). Auth is **late-bound** in the fetch wrapper (the apiKey is set after
+  module load), not baked into `baseInit`. Don't re-attach auth/locale per call.
+- Collection reads use `sdk.find` / `sdk.findByID` (typed; the SDK serializes nested
+  `select` / `populate` / `where` via `qs-esm`). Custom (non-CRUD) endpoints go through
+  the **`requestJson`** helper over `sdk.request` (raw `Response` → parsed JSON).
+  **`validateSDKResponse`** guards payloadcms/payload#14495 (the SDK can resolve
+  `undefined` on error) so a failure still throws to the ErrorBoundary.
 - The API key is set once from the widget's `apiKey` prop (`auth.ts`, wired in
   `Widget.tsx`). Never hardcode a key.
 
@@ -36,10 +48,11 @@ supplementary compile-time types — keep zod schemas aligned with them.
 
 ## Fetchers = raw reads + client-derived shaping
 
-SahajCloud exposes only raw collection reads plus two custom endpoints
-(`GET /api/events/geojson`, `POST /api/events/:id/register`). It does **not**
-provide `eventCount`, `bounds`, region geometry, `path`, `distance`, or HTML
-descriptions — those are derived client-side:
+SahajCloud exposes only raw collection reads (via `sdk.find` / `sdk.findByID`) plus
+custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the
+live-preview populate) reached through `requestJson`. It does **not** provide
+`eventCount`, `bounds`, region geometry, `path`, `distance`, or HTML descriptions —
+those are derived client-side:
 
 - **`getGeojson`** → `/events/geojson` (the single source of map points, counts,
   and geometry). Parsed through `GeojsonSchema`; feature `properties` is a
@@ -54,8 +67,9 @@ descriptions — those are derived client-side:
 - **`getEvent`** → raw `/api/events/:id` (depth 1, region + images populated).
   The Lexical `description` is serialized to HTML client-side
   (`src/lib/shape/lexical.ts`) and rendered through DOMPurify in `EventPanel`.
-- **`getClient`** → `/api/clients/me` (API-key self-read: locale, theme colors,
-  home `region`). **`getAtlasConfig`** → `sy-atlas-config` global (map defaults).
+- **`getClient`** → `/api/clients/me` via the raw `request` helper — the bare
+  `sdk.me()` can't carry the required `select` — an API-key self-read of locale, theme
+  colors, home `region`. **`getAtlasConfig`** → `sy-atlas-config` global (map defaults).
 
 Every fetcher parses through a zod schema from `src/types/` (raw `*DocSchema` /
 `FeedEventSchema` / `GeojsonSchema` for the wire, the derived view-model schemas
@@ -71,9 +85,9 @@ change should surface as a parse error, not a deep runtime crash.
 
 ## Consuming data — TanStack Query only
 
-- Components fetch via `useQuery` / `useSuspenseQuery`, never by calling the axios
+- Components fetch via `useQuery` / `useSuspenseQuery`, never by calling the SDK
   fetcher directly in an effect.
-- Endpoints that key off locale: the interceptor sends the resolved locale, so
+- Endpoints that key off locale: `applyRequestContext` sends the resolved locale, so
   switching language refetches when the locale is part of the query key or the
   resolved language varies the data.
 
@@ -82,3 +96,6 @@ change should surface as a parse error, not a deep runtime crash.
 - Network/parse failures bubble to the `react-error-boundary` `<ErrorBoundary>`
   in `App.tsx` (`ErrorFallback`). Suspense queries show `LoadingFallback`. Don't
   swallow errors in fetchers — let them propagate so the boundary renders.
+- `sdk.request` throws a `PayloadSDKError` on a non-2xx, and `validateSDKResponse`
+  throws on an undefined/null SDK result (payloadcms/payload#14495), so both a failed
+  request and a silent-undefined reach the boundary — preserving the axios-era contract.

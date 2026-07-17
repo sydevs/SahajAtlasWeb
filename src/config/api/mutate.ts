@@ -2,7 +2,7 @@ import type { Registration } from '@/types'
 
 import z from 'zod'
 
-import client from './client'
+import { requestJson } from './client'
 
 // Confirmation returned by `POST /api/events/:id/register` (EventRegistrationResponse).
 const RegistrationResponseSchema = z.object({
@@ -16,15 +16,21 @@ const createRegistration = async (
   eventId: number,
   data: Registration,
 ): Promise<RegistrationResponse> => {
-  const response = await client.post(`/events/${eventId}/register`, {
-    email: data.email,
-    name: data.name,
-    startingAt: data.startingAt.toISOString(),
-    questions: data.questions,
-    subscribe: data.subscribe,
+  // A custom (non-CRUD) endpoint → the SDK's raw `request` helper. `request` throws a
+  // PayloadSDKError on a non-2xx, so a failed registration still rejects to the caller.
+  const response = await requestJson({
+    method: 'POST',
+    path: `/events/${eventId}/register`,
+    json: {
+      email: data.email,
+      name: data.name,
+      startingAt: data.startingAt.toISOString(),
+      questions: data.questions,
+      subscribe: data.subscribe,
+    },
   })
 
-  return RegistrationResponseSchema.parse(response.data)
+  return RegistrationResponseSchema.parse(response)
 }
 
 export default {
