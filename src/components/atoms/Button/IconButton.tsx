@@ -12,9 +12,22 @@ const iconButton = tv({
 
 export type IconButtonProps = ComponentProps<'button'>
 
+// These sit on the vaul bottom sheet, which is draggable across its whole
+// surface (handleOnly is off on mobile). Without `data-vaul-no-drag` vaul
+// treats a tap that includes any micro-movement as a drag and swallows the
+// click, so the close/list/filter controls fire only intermittently — opt them
+// out of drag detection so every tap registers. Inert outside vaul.
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { className, type = 'button', ...props },
   ref,
 ) {
-  return <button ref={ref} className={iconButton({ className })} type={type} {...props} />
+  return (
+    <button
+      ref={ref}
+      data-vaul-no-drag
+      className={iconButton({ className })}
+      type={type}
+      {...props}
+    />
+  )
 })

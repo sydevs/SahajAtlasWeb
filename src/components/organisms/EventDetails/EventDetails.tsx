@@ -7,7 +7,7 @@ import { EventRegisterBar } from './EventRegister'
 
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { Summary, type SummaryItem } from '@/components/molecules/Summary'
-import { CalendarIcon, LocationIcon } from '@/components/atoms/Icons'
+import { CalendarIcon, LocationIcon, MonitorIcon } from '@/components/atoms/Icons'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { lexicalToHtml } from '@/lib/shape'
@@ -42,7 +42,8 @@ export type EventDetailsProps = {
 export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
   const { t } = useTranslation('events')
   const { frameEvent } = useMapController()
-  const { display, recurrenceLine, whereLine } = useEventDisplay(event)
+  const { display, recurrenceLine, whenLine, timeLine, originNote, whereLine } =
+    useEventDisplay(event)
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -59,15 +60,27 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
     [event.images],
   )
 
-  // The when/where facts. The header above carries the timing line (pattern ·
-  // time, or the terminal/one-off when-line), so the calendar fact renders only
-  // the recurrence pattern — repeating the when-line here would double it.
+  // The authoritative when line: "Next session: Wed, 22 Jul · 19:30 – 20:45
+  // (your time) · 19:30 in Prague". Terminal states carry their message here.
+  const sessionLine = [whenLine, timeLine, originNote].filter(Boolean).join(' · ')
+
+  // The when/where facts. The calendar fact leads with the recurrence pattern
+  // (muted) over the authoritative session line; the location fact uses a screen
+  // icon for online events (no venue to point at).
   const facts: SummaryItem[] = [
-    ...(recurrenceLine ? [{ icon: <CalendarIcon size={20} />, text: recurrenceLine }] : []),
+    {
+      icon: <CalendarIcon size={20} />,
+      text: (
+        <>
+          {recurrenceLine && <div className="font-normal text-gray-11">{recurrenceLine}</div>}
+          <div>{sessionLine}</div>
+        </>
+      ),
+    },
     ...(whereLine
       ? [
           {
-            icon: <LocationIcon size={20} />,
+            icon: display.online ? <MonitorIcon size={20} /> : <LocationIcon size={20} />,
             text: display.online ? (
               whereLine
             ) : (

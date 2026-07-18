@@ -10,24 +10,21 @@ import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 /**
- * EventCard — the three-line list row (issue #52): title + status chip, then
- * type (only when it says more than the default weekly class) · recurrence ·
- * start time, then the address with the distance right-aligned. Online events
- * carry "Online" in the distance slot and a hosted-from place line.
+ * EventCard — the list card (issue #52): title, then recurrence · start time,
+ * then the address with the distance right-aligned, then a chip row (language ·
+ * status) at the bottom. Online events carry "Online" in the distance slot and
+ * a hosted-from place line.
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection
-      description="A weekly class — the default shape, so no type label on line 2."
-      title="Weekly class"
-    >
+    <StorySection description="A weekly class with a long title." title="Weekly class">
       <div className="max-w-md">
         <EventCard event={mockEventSlim} />
       </div>
     </StorySection>
 
     <StorySection
-      description="Non-default types (courses, one-offs) state themselves on line 2."
+      description="A course — no type label on the card; the status chip sits at the bottom."
       title="Course"
     >
       <div className="max-w-md">

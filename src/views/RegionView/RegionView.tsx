@@ -33,15 +33,19 @@ export function RegionView({ slug }: { slug: string }) {
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
-  // "All events are free" is the subtitle FALLBACK: stated once per list in the
-  // header (no Free chip repeats on cards — identical chips carry zero
-  // information), unless a city's own subtitle takes the slot.
-  const subheader =
-    (region.level === 'city' ? region.subtitle : undefined) ?? t('display.all_events_free')
   const canonicalUrl = validateWebUrl(region.webUrl)
   // Parents (with sub-region cards) surface their online roll-up behind a dedicated
   // "Online Classes" card; a leaf lists its online events inline, as before.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
+  // Whether this view actually shows event cards (vs. only child-region cards).
+  const hasEventList =
+    region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
+  // "All events are free" is the subtitle FALLBACK — stated once per list (no
+  // Free chip repeats on cards) but only where events are actually listed;
+  // a city's own subtitle takes the slot when present.
+  const subheader =
+    (region.level === 'city' ? region.subtitle : undefined) ??
+    (hasEventList ? t('display.all_events_free') : undefined)
 
   return (
     <>
@@ -54,7 +58,7 @@ export function RegionView({ slug }: { slug: string }) {
       <DrawerHeader className="justify-between">
         <div className="min-w-0">
           <div className="truncate text-lg font-bold">{header}</div>
-          <div className="truncate text-sm text-gray-11">{subheader}</div>
+          {subheader && <div className="truncate text-sm text-gray-11">{subheader}</div>}
         </div>
         <CloseButton />
       </DrawerHeader>

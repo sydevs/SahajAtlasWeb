@@ -58,7 +58,7 @@
     "type_oneoff": "Jednorázová akce",
     "your_time": "(váš čas)",
     "distance_from_search": "%{distance} od hledaného místa",
-    "about": "O akci"
+    "about": "O této lekci"
   },
   "errors": {
     "email": "Zadejte platný e-mail",

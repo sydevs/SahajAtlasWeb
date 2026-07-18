@@ -58,7 +58,7 @@
     "type_oneoff": "Разовий захід",
     "your_time": "(ваш час)",
     "distance_from_search": "%{distance} від шуканого місця",
-    "about": "Опис"
+    "about": "Про це заняття"
   },
   "errors": {
     "email": "Введіть дійсну електронну адресу",

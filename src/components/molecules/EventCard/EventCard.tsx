@@ -14,27 +14,18 @@ export interface EventCardProps {
 }
 
 /**
- * The three-line list card: title + status chip, then type (when it says more
- * than the default weekly class) · recurrence · start time, then the address
- * with the distance right-aligned — a vertically scannable column across the
- * list; online events carry "Online" in that slot instead. The whole card is
- * tappable (press state, no chevron); the Link wrapper stays hookable for
- * map-pin highlight (#44).
+ * The list card: title, then recurrence · start time, then the address with the
+ * distance right-aligned (a vertically scannable column; online events carry
+ * "Online" in that slot), then a chip row (language · status) at the bottom so
+ * the title gets the full width. The whole card is tappable (press state, no
+ * chevron); the Link wrapper stays hookable for map-pin highlight (#44).
  */
 export function EventCard({ event }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
-  const {
-    display,
-    typeLabel,
-    statusChip,
-    recurrenceLine,
-    whenLine,
-    startTime,
-    timeHint,
-    originCity,
-  } = useEventDisplay(event)
+  const { display, statusChip, recurrenceLine, whenLine, startTime, timeHint, originCity } =
+    useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -51,26 +42,13 @@ export function EventCard({ event }: EventCardProps) {
   const languageCode = event.languages[0] ?? ''
   const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
 
-  // The weekly class is the default shape — its type label carries no
-  // information on a card, so only other types (course, one-off, monthly…) show.
-  const isWeeklyClass =
-    display.kind === 'class' &&
-    event.schedule?.recurrenceType === 'WEEKLY' &&
-    (event.schedule?.interval ?? 1) === 1
-
-  // Line 2: [type] · recurrence · start time — compact: no end time, no
+  // Line 2: recurrence · start time — compact: no type, no end time, no
   // "(local time)"; the converted online time keeps its load-bearing hint.
   // Dateless/terminal events carry their when-line instead of a time.
   const timePart = startTime
     ? [startTime, online ? timeHint : null].filter(Boolean).join(' ')
     : null
-  const line2 = (
-    display.next
-      ? [isWeeklyClass ? null : typeLabel, recurrenceLine, timePart]
-      : [isWeeklyClass ? null : typeLabel, whenLine]
-  )
-    .filter(Boolean)
-    .join(' · ')
+  const line2 = (display.next ? [recurrenceLine, timePart] : [whenLine]).filter(Boolean).join(' · ')
 
   // Line 3: the address, or the hosted-from place for online events ("Online"
   // moves to the distance slot, so the prefix would be redundant).
@@ -98,21 +76,7 @@ export function EventCard({ event }: EventCardProps) {
       onMouseLeave={() => highlightEvent(null)}
     >
       <li key={event.id} className="flex flex-col gap-1 border-b border-divider py-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="line-clamp-1 font-semibold leading-tight">{event.title}</div>
-          <div className="flex shrink-0 items-center gap-1">
-            {showLanguage && (
-              <Chip color="secondary" size="sm">
-                {languageNames.of(languageCode)}
-              </Chip>
-            )}
-            {statusChip && (
-              <Chip color="primary" size="sm">
-                {statusChip}
-              </Chip>
-            )}
-          </div>
-        </div>
+        <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
         <div className="text-sm leading-tight text-gray-11">{line2}</div>
         {(place || slot) && (
           <div className="flex items-baseline justify-between gap-2 text-sm leading-tight">
@@ -125,6 +89,20 @@ export function EventCard({ event }: EventCardProps) {
               >
                 {slot}
               </span>
+            )}
+          </div>
+        )}
+        {(showLanguage || statusChip) && (
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            {showLanguage && (
+              <Chip color="secondary" size="sm">
+                {languageNames.of(languageCode)}
+              </Chip>
+            )}
+            {statusChip && (
+              <Chip color="primary" size="sm">
+                {statusChip}
+              </Chip>
             )}
           </div>
         )}

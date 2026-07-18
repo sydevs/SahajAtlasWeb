@@ -56,7 +56,7 @@
     "type_oneoff": "Evento único",
     "your_time": "(tu hora)",
     "distance_from_search": "%{distance} desde el lugar buscado",
-    "about": "Acerca de"
+    "about": "Acerca de esta clase"
   },
   "errors": {
     "email": "Introduce un correo electrónico válido",

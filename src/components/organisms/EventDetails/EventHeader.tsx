@@ -14,22 +14,16 @@ export type EventHeaderProps = {
 }
 
 /**
- * The event surface header: title, the chip row (type · Free · status ·
- * languages), and the one-line pattern/time summary. Rendered OUTSIDE the
- * drawer body so the mobile sheet's 80px peek shows exactly this triage
- * payload (issue #52, WS4) — and the title stays pinned while content scrolls.
+ * The event surface header: title and the chip row (type · Free · status ·
+ * online · languages). Rendered OUTSIDE the drawer body so the mobile sheet's
+ * 80px peek shows exactly this triage payload (issue #52, WS4) — and the title
+ * stays pinned while content scrolls. The when/where facts live in the panel
+ * body below.
  */
 export function EventHeader({ event, trailing }: EventHeaderProps) {
   const { t } = useTranslation('events')
   const { languageLabel } = useLocale()
-  const { display, typeLabel, statusChip, recurrenceLine, whenLine, timeLine } =
-    useEventDisplay(event)
-
-  // One compact line for the peek: the recurrence pattern (or the one-off /
-  // terminal when-line) plus the time WITH its conversion hint — "(your time)"
-  // is load-bearing, and the peek may be all a mobile visitor sees. The
-  // authoritative next-session detail lives in the facts block below.
-  const timing = [recurrenceLine ?? whenLine, timeLine].filter(Boolean).join(' · ')
+  const { display, typeLabel, statusChip } = useEventDisplay(event)
 
   return (
     <div className="flex shrink-0 flex-col gap-1.5 px-4 pb-2 pt-1 md:px-8 md:pt-4">
@@ -51,7 +45,6 @@ export function EventHeader({ event, trailing }: EventHeaderProps) {
           </Chip>
         ))}
       </div>
-      {timing && <div className="truncate text-sm text-gray-11">{timing}</div>}
     </div>
   )
 }

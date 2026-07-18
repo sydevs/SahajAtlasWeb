@@ -56,7 +56,7 @@
     "type_oneoff": "Événement unique",
     "your_time": "(votre heure)",
     "distance_from_search": "%{distance} du lieu recherché",
-    "about": "À propos"
+    "about": "À propos de ce cours"
   },
   "errors": {
     "email": "Entrez un email valide",
