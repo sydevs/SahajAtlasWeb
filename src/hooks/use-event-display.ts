@@ -27,6 +27,12 @@ export type EventDisplayStrings = {
   recurrenceLine: string | null
   /** The authoritative next/first-session (or terminal) line. */
   whenLine: string
+  /** Primary timing line: the repeat pattern (or one-off/terminal when-line)
+   *  with the time appended — "Every Saturday · 9:00 AM – 11:00 AM". */
+  timingTitle: string
+  /** Secondary timing line: the concrete next date ("Next session: Sat, 5 Jul"),
+   *  or null for one-off/terminal states where the title already says it all. */
+  timingDetail: string | null
   /** "19:30 – 20:45" in the display zone; null in terminal states. */
   timeRange: string | null
   /** "(your time)" / "(local time)" — load-bearing for converted times. */
@@ -195,6 +201,20 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       ? t('display.origin_time', { time: time(origin), city: originCity })
       : null
 
+    // ── Timing summary (time on the pattern line; the next date drops below) ──
+    const timeSuffix = [timeLine, originNote].filter(Boolean).join(' · ')
+    let timingTitle: string
+    let timingDetail: string | null
+
+    if (recurrenceLine) {
+      timingTitle = [recurrenceLine, timeSuffix].filter(Boolean).join(' · ')
+      timingDetail = next ? whenLine : null
+    } else {
+      // One-off / terminal: the when-line is the date (or the state message).
+      timingTitle = [whenLine, next ? timeSuffix : null].filter(Boolean).join(' · ')
+      timingDetail = null
+    }
+
     // ── Where ──
     const whereLine = display.online
       ? t('display.hosted_from', { region: originCity })
@@ -242,6 +262,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       statusChip,
       recurrenceLine,
       whenLine,
+      timingTitle,
+      timingDetail,
       timeRange,
       timeHint,
       timeLine,

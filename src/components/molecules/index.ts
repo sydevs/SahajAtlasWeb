@@ -25,6 +25,11 @@ export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 export { Summary } from './Summary'
 export type { SummaryProps, SummaryItem } from './Summary'
 
+// EventFacts — the shared calendar/location Summary for an event, used by the
+// panel, the list card, and the share/registration summaries.
+export { EventFacts } from './EventFacts'
+export type { EventFactsProps } from './EventFacts'
+
 export { List } from './List'
 
 export { RegionCard } from './RegionCard'

@@ -15,6 +15,13 @@ import { defineConfig } from 'vite'
 const srcDir = fileURLToPath(new URL('../src', import.meta.url))
 
 export default defineConfig({
+  // Give Ladle its OWN dep-optimization cache. Ladle force-includes react/
+  // react-dom + its own deps in optimizeDeps, so its `configHash` differs from
+  // `pnpm dev`'s — and under rolldown-vite (Vite 8) whichever server boots
+  // second re-optimizes and rewrites the shared `node_modules/.vite` deps,
+  // leaving the browser mixing react/react-dom chunks from two passes
+  // ("require_react is not a function"). A separate cacheDir isolates the two.
+  cacheDir: 'node_modules/.vite-ladle',
   resolve: {
     alias: [{ find: /^@\//, replacement: `${srcDir}/` }],
   },

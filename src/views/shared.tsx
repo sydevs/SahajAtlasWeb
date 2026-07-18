@@ -11,15 +11,13 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button, IconButton } from '@/components/atoms/Button'
-import { Chip } from '@/components/atoms/Chip'
 import { Link } from '@/components/atoms/Link'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
-import { NearbyPrompt } from '@/components/molecules'
+import { EventFacts, NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useEventDisplay } from '@/hooks/use-event-display'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
@@ -199,36 +197,17 @@ export function useEventFromPath(eventPath: string) {
 export function EventSummary({ event }: { event: Event }) {
   const { t } = useTranslation('events')
   const { standalone, hasMap } = useWidgetMode()
-  const { display, typeLabel, statusChip, whenLine, timeLine, whereLine } = useEventDisplay(event)
 
   const embedded = !standalone && !hasMap
-  const when = [whenLine, timeLine].filter(Boolean).join(' · ')
 
   return (
     <div className="mx-auto mb-4 w-full max-w-md border-b border-divider pb-4">
       <div className="text-lg font-semibold leading-tight">{event.title}</div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-1">
-        <Chip color="default" size="sm">
-          {typeLabel}
-        </Chip>
-        {/* Free is a registration fact — irrelevant once the event has ended. */}
-        {display.status !== 'ended' && (
-          <Chip color="primary" size="sm">
-            {t('display.chip_free')}
-          </Chip>
-        )}
-        {statusChip && (
-          <Chip color="secondary" size="sm">
-            {statusChip}
-          </Chip>
-        )}
-      </div>
-      <div className="mt-1 text-sm text-gray-11">{when}</div>
-      {whereLine && <div className="mt-0.5 text-sm text-gray-11">{whereLine}</div>}
+      <EventFacts className="mt-2" event={event} />
       {embedded &&
         (event.webUrl ? (
           <Link
-            className="mt-1 text-xs text-primary-11"
+            className="mt-2 text-xs text-primary-11"
             href={event.webUrl}
             isExternal={true}
             rel="noreferrer noopener"
@@ -237,7 +216,7 @@ export function EventSummary({ event }: { event: Event }) {
             {t('display.on_sahaj_atlas')}
           </Link>
         ) : (
-          <div className="mt-1 text-xs text-gray-11">{t('display.on_sahaj_atlas')}</div>
+          <div className="mt-2 text-xs text-gray-11">{t('display.on_sahaj_atlas')}</div>
         ))}
     </div>
   )

@@ -30,7 +30,12 @@ function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) 
   const navigate = useNavigate()
 
   return (
-    <Button color="primary" variant="flat" onClick={() => navigate(nearbyPath(event, basePath))}>
+    <Button
+      className="w-full"
+      color="primary"
+      variant="flat"
+      onClick={() => navigate(nearbyPath(event, basePath))}
+    >
       {t('display.see_nearby')}
     </Button>
   )
