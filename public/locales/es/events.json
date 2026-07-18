@@ -23,6 +23,7 @@
     "view_photo": "Ver foto"
   },
   "display": {
+    "about": "Acerca de esta clase",
     "all_events_free": "Todos los eventos son gratuitos",
     "chip_ended": "Finalizado",
     "chip_free": "Gratis",
@@ -32,13 +33,15 @@
     "chip_today": "Hoy",
     "contact_to_join_full": "Contacta al anfitrión para unirte igualmente",
     "contact_to_join_late": "Contacta al anfitrión para unirte más tarde",
+    "distance_from_search": "%{distance} desde el lugar buscado",
     "event_ended": "Este evento ha finalizado",
     "event_full": "Este evento está completo",
     "first_session": "Primera sesión: %{date}",
-    "hosted_from": "Evento en línea · desde %{region}",
+    "hosted_from": "Alojado desde %{city}",
     "local_time": "(hora local)",
     "next_session": "Próxima sesión: %{date}",
     "on_sahaj_atlas": "en Sahaj Atlas",
+    "online": "En línea",
     "online_joining_note": "Los datos de acceso llegan tras inscribirte",
     "origin_time": "%{time} en %{city}",
     "registration_closed": "Inscripción cerrada",
@@ -54,9 +57,7 @@
     "type_class_weekly": "Clase semanal",
     "type_course": "Curso",
     "type_oneoff": "Evento único",
-    "your_time": "(tu hora)",
-    "distance_from_search": "%{distance} desde el lugar buscado",
-    "about": "Acerca de esta clase"
+    "your_time": "(tu hora)"
   },
   "errors": {
     "email": "Introduce un correo electrónico válido",

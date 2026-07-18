@@ -11,33 +11,45 @@ export type EventFactsProps = {
 
 /**
  * The shared event when/where fact block: a calendar line (the repeat pattern +
- * time, with the next date muted below) and a location line (a screen icon for
- * online, else the address). One place so the panel, list card, and the
- * share/registration summaries never diverge (issue #52). Ended events drop the
- * location — there's no live venue left to point at. Facts are plain text: the
- * address is never a control (the map is already framed on the open event).
+ * event-local time, with the next date muted below) and a location line (the
+ * address, or "Hosted from …" with the viewer's local time faded below for
+ * online events). One place so the panel, list card, and share/registration
+ * summaries never diverge (issue #52). Ended events drop the location. The
+ * compact card variant shows the start time only (no end).
  */
 export function EventFacts({ event, variant, className }: EventFactsProps) {
-  const { display, timingTitle, timingDetail, whereLine } = useEventDisplay(event)
-  // Icons match the text height in the compact card; roomier in the panel.
-  const iconSize = variant === 'compact' ? 16 : 20
+  const {
+    display,
+    recurrenceLine,
+    whenLine,
+    eventTimeRange,
+    eventStartTime,
+    whereLine,
+    whereSubtext,
+  } = useEventDisplay(event)
 
-  const items: SummaryItem[] = [
-    {
-      icon: <CalendarIcon size={iconSize} />,
-      text: (
-        <>
-          <div>{timingTitle}</div>
-          {timingDetail && <div className="font-normal text-gray-11">{timingDetail}</div>}
-        </>
-      ),
-    },
-  ]
+  const time = variant === 'compact' ? eventStartTime : eventTimeRange
+
+  // Calendar fact: the repeat pattern + time on the primary line, the concrete
+  // next date muted below. One-off/terminal states put the when-line up top.
+  const calendar: SummaryItem = recurrenceLine
+    ? {
+        icon: CalendarIcon,
+        text: [recurrenceLine, time].filter(Boolean).join(' · '),
+        subtext: display.next ? whenLine : undefined,
+      }
+    : {
+        icon: CalendarIcon,
+        text: [whenLine, display.next ? time : null].filter(Boolean).join(' · '),
+      }
+
+  const items: SummaryItem[] = [calendar]
 
   if (whereLine && display.status !== 'ended') {
     items.push({
-      icon: display.online ? <MonitorIcon size={iconSize} /> : <LocationIcon size={iconSize} />,
+      icon: display.online ? MonitorIcon : LocationIcon,
       text: whereLine,
+      subtext: display.online ? (whereSubtext ?? undefined) : undefined,
     })
   }
 

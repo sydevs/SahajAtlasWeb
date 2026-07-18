@@ -23,6 +23,7 @@
     "view_photo": "View photo"
   },
   "display": {
+    "about": "About this class",
     "all_events_free": "All events are free",
     "chip_ended": "Ended",
     "chip_free": "Free",
@@ -32,13 +33,15 @@
     "chip_today": "Today",
     "contact_to_join_full": "Contact the host to join anyway",
     "contact_to_join_late": "Contact the host to join late",
+    "distance_from_search": "%{distance} from the searched location",
     "event_ended": "This event has ended",
     "event_full": "This event is full",
     "first_session": "First session: %{date}",
-    "hosted_from": "Online event · hosted from %{region}",
+    "hosted_from": "Hosted from %{city}",
     "local_time": "(local time)",
     "next_session": "Next session: %{date}",
     "on_sahaj_atlas": "on Sahaj Atlas",
+    "online": "Online",
     "online_joining_note": "Joining details arrive after you register",
     "origin_time": "%{time} in %{city}",
     "registration_closed": "Registration closed",
@@ -54,9 +57,7 @@
     "type_class_weekly": "Weekly class",
     "type_course": "Course",
     "type_oneoff": "One-off event",
-    "your_time": "(your time)",
-    "distance_from_search": "%{distance} from the searched location",
-    "about": "About this class"
+    "your_time": "(your time)"
   },
   "errors": {
     "email": "Enter a valid email",

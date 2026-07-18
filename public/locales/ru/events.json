@@ -23,6 +23,7 @@
     "view_photo": "Посмотреть фото"
   },
   "display": {
+    "about": "Об этом занятии",
     "all_events_free": "Все мероприятия бесплатны",
     "chip_ended": "Завершено",
     "chip_free": "Бесплатно",
@@ -32,13 +33,15 @@
     "chip_today": "Сегодня",
     "contact_to_join_full": "Свяжитесь с организатором, чтобы всё же участвовать",
     "contact_to_join_late": "Свяжитесь с организатором, чтобы присоединиться позже",
+    "distance_from_search": "%{distance} от искомого места",
     "event_ended": "Это мероприятие завершилось",
     "event_full": "Свободных мест нет",
     "first_session": "Первое занятие: %{date}",
-    "hosted_from": "Онлайн-мероприятие · %{region}",
+    "hosted_from": "Ведущий из %{city}",
     "local_time": "(местное время)",
     "next_session": "Следующее занятие: %{date}",
     "on_sahaj_atlas": "на Sahaj Atlas",
+    "online": "Онлайн",
     "online_joining_note": "Данные для подключения придут после регистрации",
     "origin_time": "%{time} (%{city})",
     "registration_closed": "Регистрация закрыта",
@@ -56,9 +59,7 @@
     "type_class_weekly": "Еженедельные занятия",
     "type_course": "Курс",
     "type_oneoff": "Разовое мероприятие",
-    "your_time": "(ваше время)",
-    "distance_from_search": "%{distance} от искомого места",
-    "about": "Об этом занятии"
+    "your_time": "(ваше время)"
   },
   "errors": {
     "email": "Введите действительный адрес электронной почты",

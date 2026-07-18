@@ -28,7 +28,7 @@ export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
   // line up with the header content; the slim `sm` size keeps the vertical padding.
   return (
     <Alert
-      className="mb-3 px-4"
+      className="px-4"
       closeLabel={t('nearby_prompt.dismiss')}
       color="primary"
       icon={<LocationIcon size={18} />}

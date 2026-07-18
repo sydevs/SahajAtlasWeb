@@ -27,26 +27,16 @@ export type EventDisplayStrings = {
   recurrenceLine: string | null
   /** The authoritative next/first-session (or terminal) line. */
   whenLine: string
-  /** Primary timing line: the repeat pattern (or one-off/terminal when-line)
-   *  with the time appended — "Every Saturday · 9:00 AM – 11:00 AM". */
-  timingTitle: string
-  /** Secondary timing line: the concrete next date ("Next session: Sat, 5 Jul"),
-   *  or null for one-off/terminal states where the title already says it all. */
-  timingDetail: string | null
-  /** "19:30 – 20:45" in the display zone; null in terminal states. */
-  timeRange: string | null
-  /** "(your time)" / "(local time)" — load-bearing for converted times. */
-  timeHint: string | null
-  /** `timeRange` with its hint attached — the composition every surface shows. */
-  timeLine: string | null
-  /** Start time only ("19:30"), display zone — the compact-card time. */
-  startTime: string | null
-  /** Online only: the origin-zone time, e.g. "19:30 (Prague)". */
-  originNote: string | null
-  /** The hosted-from place (city ?? region ?? tz city) — feeds hosted-from copy. */
-  originCity: string
+  /** The next occurrence's start–end in the EVENT's own local time, unlabelled
+   *  ("7:30 PM – 8:30 PM"). Null in terminal states. */
+  eventTimeRange: string | null
+  /** The next occurrence's start only, event-local ("7:30 PM") — compact card. */
+  eventStartTime: string | null
   /** One-line location: hosted-from for online, street + city for physical. */
   whereLine: string
+  /** Online only: the next occurrence in the VIEWER's local time, faded below the
+   *  where line ("Thu, 4:00 AM"). Null for physical events. */
+  whereSubtext: string | null
   registerLabel: string
   /** Under-button microcopy, in render order (closed set — issue #52). */
   microcopy: string[]
@@ -180,47 +170,41 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         .join(' · ')
     else whenLine = t('display.next_session', { date: next ? date(next) : '' })
 
-    // ── Times (never converted for physical events; converted-with-hint online) ──
-    const timeRange = next
-      ? schedule?.endTime && nextEnd
-        ? `${time(next)} – ${time(nextEnd)}`
-        : time(next)
+    // ── Times: ALWAYS the event's own local time, unlabelled (issue #52 drops
+    // the local-vs-your-time labels). For online, `origin` is the event-local
+    // instant; `next` is the viewer-local one (used for the where-line hint). ──
+    const eventStart = display.online ? origin : next
+    const eventEnd =
+      eventStart && nextEnd ? nextEnd.setZone(eventStart.zoneName ?? undefined) : null
+    const eventStartTime = eventStart ? time(eventStart) : null
+    const eventTimeRange = eventStart
+      ? schedule?.endTime && eventEnd
+        ? `${time(eventStart)} – ${time(eventEnd)}`
+        : time(eventStart)
       : null
-    const timeHint =
-      timeRange && display.timeHint
-        ? t(display.timeHint === 'viewer' ? 'display.your_time' : 'display.local_time')
-        : null
-    const timeLine = timeRange ? [timeRange, timeHint].filter(Boolean).join(' ') : null
-    const startTime = next ? time(next) : null
+
     const originCity =
       event.address?.city ??
       event.region?.name ??
       origin?.zoneName?.split('/').pop()?.replace(/_/g, ' ') ??
       ''
-    const originNote = origin
-      ? t('display.origin_time', { time: time(origin), city: originCity })
-      : null
-
-    // ── Timing summary (time on the pattern line; the next date drops below) ──
-    const timeSuffix = [timeLine, originNote].filter(Boolean).join(' · ')
-    let timingTitle: string
-    let timingDetail: string | null
-
-    if (recurrenceLine) {
-      timingTitle = [recurrenceLine, timeSuffix].filter(Boolean).join(' · ')
-      timingDetail = next ? whenLine : null
-    } else {
-      // One-off / terminal: the when-line is the date (or the state message).
-      timingTitle = [whenLine, next ? timeSuffix : null].filter(Boolean).join(' · ')
-      timingDetail = null
-    }
 
     // ── Where ──
     const whereLine = display.online
-      ? t('display.hosted_from', { region: originCity })
+      ? t('display.hosted_from', { city: originCity })
       : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
         event.region?.name ||
         ''
+    // Online only: the viewer's local time (a faded conversion under the where
+    // line). Weekday + time, since online events cross the date line by zone.
+    const whereSubtext =
+      display.online && next
+        ? next.setLocale(locale).toLocaleString({
+            weekday: 'short',
+            hour: 'numeric',
+            minute: '2-digit',
+          })
+        : null
 
     // ── Register slot ──
     const registerLabel = t(
@@ -262,15 +246,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       statusChip,
       recurrenceLine,
       whenLine,
-      timingTitle,
-      timingDetail,
-      timeRange,
-      timeHint,
-      timeLine,
-      startTime,
-      originNote,
-      originCity,
+      eventTimeRange,
+      eventStartTime,
       whereLine,
+      whereSubtext,
       registerLabel,
       microcopy,
       contactHelper,

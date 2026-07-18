@@ -23,6 +23,7 @@
     "view_photo": "Fénykép megtekintése"
   },
   "display": {
+    "about": "Erről a foglalkozásról",
     "all_events_free": "Minden esemény ingyenes",
     "chip_ended": "Véget ért",
     "chip_free": "Ingyenes",
@@ -32,13 +33,15 @@
     "chip_today": "Ma",
     "contact_to_join_full": "A részvételhez keresse a szervezőt",
     "contact_to_join_late": "Későbbi csatlakozáshoz keresse a szervezőt",
+    "distance_from_search": "%{distance} a keresett helytől",
     "event_ended": "Ez az esemény véget ért",
     "event_full": "Ez az esemény betelt",
     "first_session": "Első alkalom: %{date}",
-    "hosted_from": "Online esemény · %{region}",
+    "hosted_from": "Hosted from %{city}",
     "local_time": "(helyi idő)",
     "next_session": "Következő alkalom: %{date}",
     "on_sahaj_atlas": "a Sahaj Atlason",
+    "online": "Online",
     "online_joining_note": "A csatlakozási adatokat regisztráció után kapja meg",
     "origin_time": "%{time} (%{city})",
     "registration_closed": "A regisztráció lezárult",
@@ -54,9 +57,7 @@
     "type_class_weekly": "Heti foglalkozás",
     "type_course": "Tanfolyam",
     "type_oneoff": "Egyszeri esemény",
-    "your_time": "(saját idő szerint)",
-    "distance_from_search": "%{distance} a keresett helytől",
-    "about": "Erről a foglalkozásról"
+    "your_time": "(saját idő szerint)"
   },
   "errors": {
     "email": "Enter a valid email",

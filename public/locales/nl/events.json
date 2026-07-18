@@ -23,6 +23,7 @@
     "view_photo": "Foto bekijken"
   },
   "display": {
+    "about": "Over deze les",
     "all_events_free": "Alle evenementen zijn gratis",
     "chip_ended": "Afgelopen",
     "chip_free": "Gratis",
@@ -32,13 +33,15 @@
     "chip_today": "Vandaag",
     "contact_to_join_full": "Neem contact op met de organisator om toch mee te doen",
     "contact_to_join_late": "Neem contact op met de organisator om later in te stromen",
+    "distance_from_search": "%{distance} van de gezochte locatie",
     "event_ended": "Dit evenement is afgelopen",
     "event_full": "Dit evenement is vol",
     "first_session": "Eerste les: %{date}",
-    "hosted_from": "Online evenement · vanuit %{region}",
+    "hosted_from": "Gehost vanuit %{city}",
     "local_time": "(lokale tijd)",
     "next_session": "Volgende les: %{date}",
     "on_sahaj_atlas": "op Sahaj Atlas",
+    "online": "Online",
     "online_joining_note": "De deelnamegegevens ontvang je na aanmelding",
     "origin_time": "%{time} in %{city}",
     "registration_closed": "Aanmelden gesloten",
@@ -54,9 +57,7 @@
     "type_class_weekly": "Wekelijkse les",
     "type_course": "Cursus",
     "type_oneoff": "Eenmalig evenement",
-    "your_time": "(jouw tijd)",
-    "distance_from_search": "%{distance} van de gezochte locatie",
-    "about": "Over deze les"
+    "your_time": "(jouw tijd)"
   },
   "errors": {
     "email": "Voer een geldig e-mailadres in",

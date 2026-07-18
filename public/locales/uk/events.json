@@ -23,6 +23,7 @@
     "view_photo": "Переглянути фото"
   },
   "display": {
+    "about": "Про це заняття",
     "all_events_free": "Усі заходи безкоштовні",
     "chip_ended": "Завершено",
     "chip_free": "Безкоштовно",
@@ -32,13 +33,15 @@
     "chip_today": "Сьогодні",
     "contact_to_join_full": "Зв'яжіться з організатором, щоб узяти участь",
     "contact_to_join_late": "Зв'яжіться з організатором, щоб приєднатися пізніше",
+    "distance_from_search": "%{distance} від шуканого місця",
     "event_ended": "Цей захід завершився",
     "event_full": "Вільних місць немає",
     "first_session": "Перше заняття: %{date}",
-    "hosted_from": "Онлайн-захід · %{region}",
+    "hosted_from": "Організовано з %{city}",
     "local_time": "(місцевий час)",
     "next_session": "Наступне заняття: %{date}",
     "on_sahaj_atlas": "на Sahaj Atlas",
+    "online": "Онлайн",
     "online_joining_note": "Дані для підключення надійдуть після реєстрації",
     "origin_time": "%{time} (%{city})",
     "registration_closed": "Реєстрацію закрито",
@@ -56,9 +59,7 @@
     "type_class_weekly": "Щотижневі заняття",
     "type_course": "Курс",
     "type_oneoff": "Разовий захід",
-    "your_time": "(ваш час)",
-    "distance_from_search": "%{distance} від шуканого місця",
-    "about": "Про це заняття"
+    "your_time": "(ваш час)"
   },
   "errors": {
     "email": "Введіть дійсну електронну адресу",

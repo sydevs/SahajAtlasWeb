@@ -4,13 +4,15 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { Summary } from './Summary'
 
-import { CalendarIcon, LocationIcon, CallIcon } from '@/components/atoms/Icons'
+import { CalendarIcon, LocationIcon, MonitorIcon } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
 /**
- * Summary — a stack of icon + plain-text fact lines, used for the event panel's
- * when/where block. Facts are never actions: nothing looks like a button.
+ * Summary — a stack of icon + plain-text fact lines. Each item is an icon
+ * component, a required primary `text`, and an optional faded `subtext`. Facts
+ * are never actions: nothing looks like a button. Summary owns the icon
+ * sizing/colour per variant.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -18,22 +20,30 @@ export const Default: Story = () => (
       <div className="max-w-md">
         <Summary
           items={[
-            { icon: <CalendarIcon size={20} />, text: 'Every Wednesday' },
-            { icon: <LocationIcon size={20} />, text: '5 Market St, Cambridge' },
+            {
+              icon: CalendarIcon,
+              text: 'Every Wednesday · 6:00 PM – 7:30 PM',
+              subtext: 'Next session: Wed, 22 Jul',
+            },
+            { icon: LocationIcon, text: '5 Market St, Cambridge' },
           ]}
         />
       </div>
     </StorySection>
 
-    <StorySection description="Lines wrap; icons stay aligned to the first line." title="Long text">
-      <div className="max-w-56">
+    <StorySection
+      description="Online — the where line carries a faded time conversion."
+      title="Online"
+    >
+      <div className="max-w-md">
         <Summary
           items={[
             {
-              icon: <CalendarIcon size={20} />,
-              text: 'First session: Sat, 2 Jul · 10:30 AM – 12:00 PM (local time)',
+              icon: CalendarIcon,
+              text: 'Every Wednesday · 7:00 PM',
+              subtext: 'Next session: Wed, 22 Jul',
             },
-            { icon: <CallIcon size={20} />, text: 'Contact host for timings' },
+            { icon: MonitorIcon, text: 'Hosted from Prague', subtext: 'Thu, 4:00 AM' },
           ]}
         />
       </div>
@@ -46,8 +56,12 @@ export const Default: Story = () => (
       <div className="max-w-md">
         <Summary
           items={[
-            { icon: <CalendarIcon size={16} />, text: 'Every Wednesday · 6:00 PM – 7:30 PM' },
-            { icon: <LocationIcon size={16} />, text: '5 Market St, Cambridge' },
+            {
+              icon: CalendarIcon,
+              text: 'Every Wednesday · 6:00 PM',
+              subtext: 'Next session: Wed, 22 Jul',
+            },
+            { icon: LocationIcon, text: '5 Market St, Cambridge' },
           ]}
           variant="compact"
         />

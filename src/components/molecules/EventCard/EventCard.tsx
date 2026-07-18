@@ -16,16 +16,17 @@ export interface EventCardProps {
 
 /**
  * The list card: title, the shared EventFacts summary (recurrence · time, then
- * the address / hosted-from line), the "Online" or distance indicator on its own
- * line, then a chip row (language · status) at the bottom. The whole card is
- * tappable (press state, no chevron); the Link wrapper stays hookable for
- * map-pin highlight (#44).
+ * the address / hosted-from line), then a bottom row with the language chip and,
+ * inline to the right, the "Online" or distance indicator. Status is carried by
+ * the facts, so no status chip here. The whole card is tappable (press state, no
+ * chevron); the Link wrapper stays hookable for map-pin highlight (#44). The
+ * divider between cards is drawn by the List, not each card.
  */
 export function EventCard({ event }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
-  const { display, statusChip } = useEventDisplay(event)
+  const { display } = useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -42,12 +43,12 @@ export function EventCard({ event }: EventCardProps) {
   const languageCode = event.languages[0] ?? ''
   const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
 
-  // The indicator, inline (right) with the pills: "Online" for online events,
-  // else the distance from the SEARCHED location (not GPS) when defined.
+  // The indicator, inline (right) with the language chip: "Online" for online
+  // events, else the distance from the SEARCHED location (not GPS) when defined.
   const distance =
     !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
-  const indicator = online ? t('details.online') : distance
+  const indicator = online ? t('display.online') : distance
 
   return (
     <Link
@@ -58,19 +59,14 @@ export function EventCard({ event }: EventCardProps) {
       onMouseEnter={() => highlightEvent(event)}
       onMouseLeave={() => highlightEvent(null)}
     >
-      <li key={event.id} className="flex flex-col gap-1 border-b border-divider py-4">
+      <li key={event.id} className="flex flex-col gap-1 py-4">
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
-        <EventFacts className="my-1" event={event} variant="compact" />
-        {(showLanguage || statusChip || indicator) && (
+        <EventFacts className="mt-1 mb-3" event={event} variant="compact" />
+        {(showLanguage || indicator) && (
           <div className="flex items-center gap-1">
             {showLanguage && (
               <Chip color="secondary" size="sm">
                 {languageNames.of(languageCode)}
-              </Chip>
-            )}
-            {statusChip && (
-              <Chip color="primary" size="sm">
-                {statusChip}
               </Chip>
             )}
             {indicator && (

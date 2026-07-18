@@ -38,7 +38,7 @@ export function EventHeader({ event, trailing }: EventHeaderProps) {
         {/* Free is a registration fact — irrelevant once the event has ended. */}
         {display.status !== 'ended' && <Chip color="primary">{t('display.chip_free')}</Chip>}
         {statusChip && <Chip color="secondary">{statusChip}</Chip>}
-        {display.online && <Chip color="default">{t('details.online')}</Chip>}
+        {display.online && <Chip color="default">{t('display.online')}</Chip>}
         {event.languages.map((code) => (
           <Chip key={code} color="secondary" variant="light">
             {languageLabel(code)}
