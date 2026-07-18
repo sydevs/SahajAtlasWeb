@@ -1,7 +1,7 @@
 ---
 name: implement-issue
 description: Implement and test a GitHub issue end-to-end in an isolated git worktree. Reads the issue, plans the work, implements, validates lint/typecheck/build, opens a PR, then removes the worktree and hands the branch back for local review. User-invoked only — does not run unless explicitly triggered.
-argument-hint: '[issue-number]'
+argument-hint: '[issue-number] [--no-worktree]'
 disable-model-invocation: true
 effort: max
 allowed-tools: Bash(*), Read, Edit, Write, Grep, Glob, Task
@@ -21,6 +21,7 @@ switches the branch into the main checkout for local review.
 
 ```
 /implement-issue 42
+/implement-issue 42 --no-worktree   # work in the current checkout instead
 ```
 
 ## Workflow
@@ -50,8 +51,20 @@ before starting. Don't guess.
 
 Lay out the plan in the conversation before touching code: files to
 create/modify, order of changes, and how you'll verify (typecheck, and visual
-check in the running widget via the Playwright MCP for UI changes). Ask the user
-to confirm. Iterate until aligned.
+check in the running widget via the Playwright MCP for UI changes).
+
+Post the plan, then **proceed immediately** when the issue has clear acceptance
+criteria and the plan follows them — don't idle waiting for a rubber stamp.
+**Pause and ask** only when:
+
+- the issue has **no acceptance criteria** (see step 2), or
+- the **scope is ambiguous** (more than one reasonable reading of "done"), or
+- the plan **deviates from the ticket** (extra scope, a different approach than
+  the issue prescribes), or
+- the work is **destructive** (data loss, deleting files/branches, irreversible
+  migrations or config changes).
+
+In those cases, lay out the options and iterate until aligned before touching code.
 
 **Working with the SahajCloud / Payload API?** If the issue touches the data
 layer (`src/config/api/`, `src/types/`), refresh the synced contract **at the
@@ -75,7 +88,8 @@ fall back in consumers rather than trusting the generated type.
 Work in an **isolated git worktree** by default. Use the **EnterWorktree** tool —
 it branches fresh from `origin/main` under `.claude/worktrees/` and switches the
 session into the worktree. Only run in the current checkout instead if the user
-explicitly says "no worktree" (then branch the old way:
+passes **`--no-worktree`** (or otherwise explicitly says "no worktree" — then
+branch the old way:
 `git fetch origin main && git checkout main && git pull && git checkout -b <type>/<slug>`).
 
 1. `EnterWorktree` with `name` set to the branch slug (see `branch-naming.md`),
@@ -164,7 +178,7 @@ worktree down — the branch's commits are safe on `origin`, so nothing is lost:
    branch, so the tool needs this to proceed). This deletes the worktree dir + its
    local branch and returns the session to the main checkout.
 
-Skip this only if the user opted out of the worktree at step 4.
+Skip this only if the user opted out of the worktree at step 4 (`--no-worktree`).
 
 ### 9. Final summary — required template
 
@@ -200,14 +214,17 @@ changes, and re-runs `/finalize-pr` (which re-pushes + re-runs CI).
   **single** `/code-review` pass (subagent, never inline); no redundant second review
 - **Always** wait for CI to finish and verify green before reporting
 - **Always** work in a worktree by default (EnterWorktree); only skip on explicit
-  user opt-out. Edit files in the worktree, never the main checkout.
+  user opt-out (`--no-worktree`). Edit files in the worktree, never the main checkout.
 - **Always** remove the worktree once the PR is open and CI is green (ExitWorktree),
   after confirming the branch is fully pushed
 - **Always** close with the step 9 final-summary template
 
 ## Edge cases
 
-- **Vague issue** — stop at step 3 and ask; don't invent acceptance criteria.
+- **Vague issue** — a clear ticket auto-proceeds at step 3; stop and ask only on
+  the four triggers listed there (no acceptance criteria, ambiguous scope, the
+  plan deviating from the ticket, or destructive work). Don't invent acceptance
+  criteria.
 - **Existing PR** — `gh pr list --search "in:title <keyword>"` before branching;
   ask whether to extend or open new.
 - **Tests** — a fast node-only unit lane (`pnpm test:run`, co-located
