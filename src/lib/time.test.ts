@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { formatTimeRange } from './time'
+import { formatTimeRange, sameWallClock, zoneCity } from './time'
 
 // All fixtures are built in a fixed zone so the formatter's `timeZone` (taken
 // from the DateTime) is deterministic regardless of the machine's zone.
@@ -55,5 +55,41 @@ describe('formatTimeRange', () => {
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
 
     expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7 PM')
+  })
+})
+
+describe('sameWallClock', () => {
+  // The same instant, viewed from different zones.
+  const instant = '2026-07-04T17:30Z'
+  const inZone = (zone: string) => DateTime.fromISO(instant, { zone })
+
+  it('is true for the same zone', () => {
+    expect(sameWallClock(inZone('Europe/Prague'), inZone('Europe/Prague'))).toBe(true)
+  })
+
+  it('is true for distinct zones that share an offset right now', () => {
+    // Berlin and Paris are both UTC+2 in July — a conversion says nothing.
+    expect(sameWallClock(inZone('Europe/Berlin'), inZone('Europe/Paris'))).toBe(true)
+  })
+
+  it('is false when the offsets differ', () => {
+    expect(sameWallClock(inZone('Europe/Prague'), inZone('America/Vancouver'))).toBe(false)
+  })
+
+  it('is false when either instant is missing', () => {
+    expect(sameWallClock(null, inZone('Europe/Prague'))).toBe(false)
+    expect(sameWallClock(inZone('Europe/Prague'), null)).toBe(false)
+  })
+})
+
+describe('zoneCity', () => {
+  it('takes the city an IANA zone is named for, unescaping underscores', () => {
+    expect(zoneCity('America/Vancouver')).toBe('Vancouver')
+    expect(zoneCity('America/Los_Angeles')).toBe('Los Angeles')
+  })
+
+  it('is empty for a missing zone', () => {
+    expect(zoneCity(null)).toBe('')
+    expect(zoneCity(undefined)).toBe('')
   })
 })

@@ -12,6 +12,12 @@ export const IpLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   city: z.string().min(1).max(100),
+  // The state/province the IP resolves to — coarser than `city`, which the
+  // lookup often reports at neighbourhood level ("Riley Park"). Used to name
+  // the viewer's clock in an online event's time conversion. Optional: not
+  // every response carries one, and a missing region must not fail the parse
+  // (that would take the nearby suggestion down with it).
+  region: z.string().max(100).optional(),
   country: z.string().min(1).max(100),
 })
 

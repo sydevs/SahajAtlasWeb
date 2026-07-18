@@ -5,10 +5,11 @@ import { DateTime } from 'luxon'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useIpLocation } from './use-ip-location'
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay } from '@/lib/shape'
-import { formatTimeRange, zoneCity } from '@/lib/time'
+import { isOnline, resolveEventDisplay } from '@/lib/shape'
+import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
 
 /** What the formatting layer reads on top of the resolver input — the address /
  *  region refs that feed the where/origin strings, when the surface has them. */
@@ -68,6 +69,12 @@ const WEEK_NUMBER_KEYS = {
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
+  // Only ONLINE events name the viewer's place in their converted time, so the
+  // third-party IP lookup is gated on that — a list of in-person events never
+  // pings it. The query is session-cached, so many cards share one lookup.
+  // `region` (state/province), not `city`: the lookup often reports a
+  // neighbourhood, which is far too specific for "what time is it where you are".
+  const viewerRegion = useIpLocation(isOnline(event))?.region
   // The resolver reads the wall clock; a stable event identity (TanStack
   // structural sharing) would otherwise freeze "Today"/open-vs-closed for as
   // long as a surface stays mounted. A minute bucket in the deps lets any
@@ -198,14 +205,17 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         event.region?.name ||
         ''
     // Online only: the viewer's local time, faded under the where line, named
-    // with the city their CLOCK is set to ("10 AM in Vancouver") so the
-    // conversion says whose time it is without a "(your time)" label. The place
-    // comes from the viewer's own timezone — always municipal-level, and exactly
-    // the zone the conversion was computed in. The weekday is carried ONLY when
-    // the conversion lands on a different day; otherwise it's noise.
+    // with their region ("10 AM in British Columbia") so the conversion says
+    // whose clock it is without a "(your time)" label. The weekday is carried
+    // ONLY when the conversion lands on a different day; otherwise it's noise.
+    //
+    // Skipped entirely when the viewer shares the event's offset: the converted
+    // time would just restate the time already shown above it. Comparing the
+    // OFFSET (not the zone id) also catches distinct zones that happen to agree
+    // right now, e.g. Europe/London and Europe/Lisbon in winter.
     let whereSubtext: string | null = null
 
-    if (display.online && next) {
+    if (display.online && next && !sameWallClock(origin, next)) {
       const viewerShiftsDay = Boolean(origin && origin.weekday !== next.weekday)
       const clock = [
         viewerShiftsDay ? next.setLocale(locale).toLocaleString({ weekday: 'short' }) : null,
@@ -213,10 +223,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       ]
         .filter(Boolean)
         .join(' ')
-      const viewerPlace = zoneCity(next.zoneName)
 
-      whereSubtext = viewerPlace
-        ? t('display.time_in_place', { time: clock, city: viewerPlace })
+      whereSubtext = viewerRegion
+        ? t('display.time_in_place', { time: clock, city: viewerRegion })
         : clock
     }
 
@@ -270,5 +279,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       contactHelper,
       blockedMessage,
     }
-  }, [event, locale, t, minute])
+  }, [event, locale, t, minute, viewerRegion])
 }

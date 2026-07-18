@@ -20,6 +20,17 @@ import type { DateTime } from 'luxon'
  * would reintroduce exactly the locale bugs this avoids).
  */
 /**
+ * Whether two instants read as the same wall-clock time — i.e. they share a UTC
+ * offset at that moment, so converting between them changes nothing. Compares
+ * the OFFSET rather than the zone id so it also catches distinct zones that
+ * agree right now (Europe/London and Europe/Lisbon in winter), which is what
+ * matters when deciding whether a "…in <region>" conversion adds any
+ * information.
+ */
+export const sameWallClock = (a: DateTime | null, b: DateTime | null): boolean =>
+  Boolean(a && b && a.offset === b.offset)
+
+/**
  * The city an IANA zone is named for — "America/Vancouver" → "Vancouver".
  *
  * This is deliberately the *timezone's* city rather than a geolocated one: it

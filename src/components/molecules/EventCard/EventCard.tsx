@@ -15,6 +15,11 @@ export interface EventCardProps {
   event: EventSlim
 }
 
+// Below this the distance stops being decision-useful — everything in the
+// searched town is "close", and a line on every card is noise. Compared in km
+// regardless of the unit the locale renders it in.
+const MIN_DISTANCE_KM = 5
+
 /**
  * The list card: title, the shared EventFacts summary (recurrence · time, then
  * the address with its distance faded below — or the online hosted-from line),
@@ -56,7 +61,9 @@ export function EventCard({ event }: EventCardProps) {
   // The precise reference point stays in the accessible label either way.
   const searchedPlace = (searchParams.get('q') ?? '').split(',')[0].trim()
   const distance =
-    !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
+    !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
+      ? formatDistance(event.distance, locale)
+      : null
   const distanceText = distance
     ? searchedPlace
       ? t('display.distance_from_place', { distance, place: searchedPlace })
