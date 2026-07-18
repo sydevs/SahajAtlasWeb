@@ -107,6 +107,8 @@ the branch diff (`origin/main...HEAD`) for what changed and update:
   data-layer, or workflow facts the diff alters.
 - **`.claude/rules/*`** — the path-scoped rule for any subsystem the diff touched
   (map, components, data-layer, i18n/state, tests).
+- **`.claude/skills/*`** — any skill whose workflow the change alters (a renamed
+  script, a changed gate command, a new/removed step in the PR pipeline).
 - **`DESIGN_SYSTEM.md` / `STORYBOOK.md`** for component/story conventions; setup
   docs / `README` for new commands, env vars, or scripts.
 - Inline examples (e.g. `demo.html`) and JSDoc/comments referencing anything the
