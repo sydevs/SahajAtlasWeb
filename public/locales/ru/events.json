@@ -56,7 +56,9 @@
     "type_class_monthly": "Ежемесячные занятия",
     "type_class_weekly": "Еженедельные занятия",
     "type_course": "Курс",
-    "type_oneoff": "Разовое мероприятие"
+    "type_oneoff": "Разовое мероприятие",
+    "time_in_place": "%{time} (%{city})",
+    "distance_away": "в %{distance}"
   },
   "errors": {
     "email": "Введите действительный адрес электронной почты",

@@ -21,35 +21,44 @@ export function MapSearch({ onSelect }: SearchProps) {
   const { t } = useTranslation('common')
 
   return (
-    // @ts-ignore: 'Geocoder' cannot be used as a JSX component.
-    <Geocoder
-      accessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-      // @ts-ignore: Type 'Map$1' is not assignable to type 'Map'.
-      map={mapbox?.getMap()}
-      options={{
-        language: locale, // TOOD: Make sure this switches when locale changes
-        proximity: mapbox?.getCenter(),
-      }}
-      placeholder={t('search_placeholder')}
-      theme={controlTheme}
-      value={searchQuery}
-      onChange={(query) => {
-        setSearchQuery(query)
-        // Merge `q` into the existing query so the active filters (and bbox/center)
-        // survive typing — they live only in the URL now. `replace` so per-keystroke
-        // edits don't stack history.
-        setSearchParams(
-          (prev) => {
-            const next = new URLSearchParams(prev)
+    // The Geocoder permanently reserves ~40px of right padding for its "action"
+    // slot, but the only thing that ever occupies it is the Clear (×) button —
+    // which Mapbox itself hides (`display: none`) while the field is empty. Give
+    // that space back to the placeholder whenever the field is empty;
+    // `:placeholder-shown` stops matching the moment the user types and the ×
+    // appears, so the text never runs under it. (The generated `mbx…--Input`
+    // class carries a per-build hash, so this targets the element, not the class.)
+    <div className="[&_input:placeholder-shown]:!pe-3">
+      {/* @ts-ignore: 'Geocoder' cannot be used as a JSX component. */}
+      <Geocoder
+        accessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
+        // @ts-ignore: Type 'Map$1' is not assignable to type 'Map'.
+        map={mapbox?.getMap()}
+        options={{
+          language: locale, // TOOD: Make sure this switches when locale changes
+          proximity: mapbox?.getCenter(),
+        }}
+        placeholder={t('search_placeholder')}
+        theme={controlTheme}
+        value={searchQuery}
+        onChange={(query) => {
+          setSearchQuery(query)
+          // Merge `q` into the existing query so the active filters (and bbox/center)
+          // survive typing — they live only in the URL now. `replace` so per-keystroke
+          // edits don't stack history.
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev)
 
-            next.set('q', query)
+              next.set('q', query)
 
-            return next
-          },
-          { replace: true },
-        )
-      }}
-      onRetrieve={onSelect}
-    />
+              return next
+            },
+            { replace: true },
+          )
+        }}
+        onRetrieve={onSelect}
+      />
+    </div>
   )
 }

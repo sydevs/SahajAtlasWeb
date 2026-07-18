@@ -54,7 +54,9 @@
     "type_class_monthly": "Monthly class",
     "type_class_weekly": "Weekly class",
     "type_course": "Course",
-    "type_oneoff": "One-off event"
+    "type_oneoff": "One-off event",
+    "time_in_place": "%{time} in %{city}",
+    "distance_away": "%{distance} away"
   },
   "errors": {
     "email": "Enter a valid email",

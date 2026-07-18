@@ -54,7 +54,9 @@
     "type_class_monthly": "Aula mensal",
     "type_class_weekly": "Aula semanal",
     "type_course": "Curso",
-    "type_oneoff": "Evento único"
+    "type_oneoff": "Evento único",
+    "time_in_place": "%{time} em %{city}",
+    "distance_away": "a %{distance}"
   },
   "errors": {
     "email": "Insira um e-mail válido",

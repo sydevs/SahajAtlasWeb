@@ -54,7 +54,9 @@
     "type_class_monthly": "Cours mensuel",
     "type_class_weekly": "Cours hebdomadaire",
     "type_course": "Stage",
-    "type_oneoff": "Événement unique"
+    "type_oneoff": "Événement unique",
+    "time_in_place": "%{time} à %{city}",
+    "distance_away": "à %{distance}"
   },
   "errors": {
     "email": "Entrez un email valide",

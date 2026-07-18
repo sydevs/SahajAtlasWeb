@@ -27,7 +27,7 @@ export function EventCard({ event }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
-  const { display } = useEventDisplay(event)
+  const { display, typeLabel, isDefaultType } = useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -44,8 +44,12 @@ export function EventCard({ event }: EventCardProps) {
   const languageCode = event.languages[0] ?? ''
   const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
 
+  // The type pill names anything that ISN'T the default weekly class.
+  const showType = !isDefaultType
+
   // Distance from the SEARCHED location (not GPS) — faded under the address in
-  // the facts, with the reference point spelled out for assistive tech.
+  // the facts. The visible copy stays short ("3.6 km away"); the full reference
+  // point ("… from the searched location") is spelled out for assistive tech.
   const distance =
     !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
@@ -62,22 +66,29 @@ export function EventCard({ event }: EventCardProps) {
       <li key={event.id} className="flex flex-col gap-1 py-4">
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
         <EventFacts
-          className="mt-1 mb-3"
+          className="my-1"
           distance={
             distance && (
               <span aria-label={distanceLabel} title={distanceLabel}>
-                {distance}
+                {t('display.distance_away', { distance })}
               </span>
             )
           }
           event={event}
           variant="compact"
         />
-        {showLanguage && (
-          <div className="flex items-center gap-1">
-            <Chip color="secondary" size="sm">
-              {languageNames.of(languageCode)}
-            </Chip>
+        {(showType || showLanguage) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {showType && (
+              <Chip color="default" size="sm">
+                {typeLabel}
+              </Chip>
+            )}
+            {showLanguage && (
+              <Chip color="secondary" size="sm">
+                {languageNames.of(languageCode)}
+              </Chip>
+            )}
           </div>
         )}
       </li>

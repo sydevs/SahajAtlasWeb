@@ -54,7 +54,9 @@
     "type_class_monthly": "Maandelijkse les",
     "type_class_weekly": "Wekelijkse les",
     "type_course": "Cursus",
-    "type_oneoff": "Eenmalig evenement"
+    "type_oneoff": "Eenmalig evenement",
+    "time_in_place": "%{time} in %{city}",
+    "distance_away": "%{distance} verderop"
   },
   "errors": {
     "email": "Voer een geldig e-mailadres in",

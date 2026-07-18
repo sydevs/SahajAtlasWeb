@@ -56,7 +56,9 @@
     "type_class_monthly": "Щомісячні заняття",
     "type_class_weekly": "Щотижневі заняття",
     "type_course": "Курс",
-    "type_oneoff": "Разовий захід"
+    "type_oneoff": "Разовий захід",
+    "time_in_place": "%{time} (%{city})",
+    "distance_away": "за %{distance}"
   },
   "errors": {
     "email": "Введіть дійсну електронну адресу",

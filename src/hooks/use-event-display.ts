@@ -5,9 +5,10 @@ import { DateTime } from 'luxon'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useIpLocation } from './use-ip-location'
 import { useLocale } from './use-locale'
 
-import { resolveEventDisplay } from '@/lib/shape'
+import { isOnline, resolveEventDisplay } from '@/lib/shape'
 import { formatTimeRange } from '@/lib/time'
 
 /** What the formatting layer reads on top of the resolver input — the address /
@@ -22,6 +23,9 @@ export type EventDisplayStrings = {
   display: EventDisplay
   /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
   typeLabel: string
+  /** True for a plain weekly class — the default shape, whose `typeLabel` adds
+   *  nothing on a compact surface (the list card skips its type pill). */
+  isDefaultType: boolean
   /** Status chip text, or null when the state shows no chip. */
   statusChip: string | null
   /** Templated recurrence pattern ("Every Wednesday") — approximate, secondary. */
@@ -65,6 +69,10 @@ const WEEK_NUMBER_KEYS = {
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
+  // Only ONLINE events name the viewer's place in their converted time, so the
+  // third-party IP lookup is gated on that — a list of in-person events never
+  // pings it. The query is session-cached, so many cards share one lookup.
+  const viewerPlace = useIpLocation(isOnline(event))?.city
   // The resolver reads the wall clock; a stable event identity (TanStack
   // structural sharing) would otherwise freeze "Today"/open-vs-closed for as
   // long as a surface stays mounted. A minute bucket in the deps lets any
@@ -103,6 +111,11 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       else if (schedule?.recurrenceType === 'MONTHLY') typeLabel = t('display.type_class_monthly')
       else typeLabel = t('display.type_class')
     }
+
+    // The plain weekly class is the default shape — naming it on a compact
+    // surface (the list card's pill) adds nothing, so cards skip it.
+    const isDefaultType =
+      kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
 
     // ── Status chip ──
     const chipDate = firstSession ?? next
@@ -193,19 +206,26 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
         event.region?.name ||
         ''
-    // Online only: the viewer's local time, faded under the where line. The
-    // weekday is carried ONLY when the conversion lands on a different day than
-    // the event's own — otherwise it's noise.
-    const viewerShiftsDay = Boolean(origin && next && origin.weekday !== next.weekday)
-    const whereSubtext =
-      display.online && next
-        ? [
-            viewerShiftsDay ? next.setLocale(locale).toLocaleString({ weekday: 'short' }) : null,
-            formatTimeRange(next, null, locale),
-          ]
-            .filter(Boolean)
-            .join(' ')
-        : null
+    // Online only: the viewer's local time, faded under the where line, named
+    // with their IP-guessed place ("10 AM in Riley Park") so the conversion says
+    // whose clock it is without a "(your time)" label. The weekday is carried
+    // ONLY when the conversion lands on a different day — otherwise it's noise.
+    // Falls back to the bare time when the IP lookup is unavailable/blocked.
+    let whereSubtext: string | null = null
+
+    if (display.online && next) {
+      const viewerShiftsDay = Boolean(origin && origin.weekday !== next.weekday)
+      const clock = [
+        viewerShiftsDay ? next.setLocale(locale).toLocaleString({ weekday: 'short' }) : null,
+        formatTimeRange(next, null, locale),
+      ]
+        .filter(Boolean)
+        .join(' ')
+
+      whereSubtext = viewerPlace
+        ? t('display.time_in_place', { time: clock, city: viewerPlace })
+        : clock
+    }
 
     // ── Register slot ──
     const registerLabel = t(
@@ -244,6 +264,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     return {
       display,
       typeLabel,
+      isDefaultType,
       statusChip,
       recurrenceLine,
       whenLine,
@@ -256,5 +277,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       contactHelper,
       blockedMessage,
     }
-  }, [event, locale, t, minute])
+  }, [event, locale, t, minute, viewerPlace])
 }

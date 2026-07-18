@@ -54,7 +54,9 @@
     "type_class_monthly": "Havi foglalkozás",
     "type_class_weekly": "Heti foglalkozás",
     "type_course": "Tanfolyam",
-    "type_oneoff": "Egyszeri esemény"
+    "type_oneoff": "Egyszeri esemény",
+    "time_in_place": "%{time} (%{city})",
+    "distance_away": "%{distance} távolságra"
   },
   "errors": {
     "email": "Enter a valid email",
