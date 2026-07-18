@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocale } from './use-locale'
 
 import { resolveEventDisplay } from '@/lib/shape'
+import { formatTimeRange } from '@/lib/time'
 
 /** What the formatting layer reads on top of the resolver input — the address /
  *  region refs that feed the where/origin strings, when the surface has them. */
@@ -79,7 +80,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       dt.setLocale(locale).toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
     const shortDate = (dt: DateTime) =>
       dt.setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
-    const time = (dt: DateTime) => dt.setLocale(locale).toLocaleString(DateTime.TIME_SIMPLE)
 
     const sessionsLabel = sessions != null ? t('display.sessions_count', { count: sessions }) : null
 
@@ -176,11 +176,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const eventStart = display.online ? origin : next
     const eventEnd =
       eventStart && nextEnd ? nextEnd.setZone(eventStart.zoneName ?? undefined) : null
-    const eventStartTime = eventStart ? time(eventStart) : null
+    const eventStartTime = eventStart ? formatTimeRange(eventStart, null, locale) : null
     const eventTimeRange = eventStart
-      ? schedule?.endTime && eventEnd
-        ? `${time(eventStart)} – ${time(eventEnd)}`
-        : time(eventStart)
+      ? formatTimeRange(eventStart, schedule?.endTime ? eventEnd : null, locale)
       : null
 
     const originCity =
@@ -191,19 +189,22 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // ── Where ──
     const whereLine = display.online
-      ? t('display.hosted_from', { city: originCity })
+      ? `${t('display.online')} • ${t('display.hosted_from', { city: originCity })}`
       : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
         event.region?.name ||
         ''
-    // Online only: the viewer's local time (a faded conversion under the where
-    // line). Weekday + time, since online events cross the date line by zone.
+    // Online only: the viewer's local time, faded under the where line. The
+    // weekday is carried ONLY when the conversion lands on a different day than
+    // the event's own — otherwise it's noise.
+    const viewerShiftsDay = Boolean(origin && next && origin.weekday !== next.weekday)
     const whereSubtext =
       display.online && next
-        ? next.setLocale(locale).toLocaleString({
-            weekday: 'short',
-            hour: 'numeric',
-            minute: '2-digit',
-          })
+        ? [
+            viewerShiftsDay ? next.setLocale(locale).toLocaleString({ weekday: 'short' }) : null,
+            formatTimeRange(next, null, locale),
+          ]
+            .filter(Boolean)
+            .join(' ')
         : null
 
     // ── Register slot ──

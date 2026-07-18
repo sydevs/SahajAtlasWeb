@@ -38,12 +38,10 @@
     "event_full": "Вільних місць немає",
     "first_session": "Перше заняття: %{date}",
     "hosted_from": "Організовано з %{city}",
-    "local_time": "(місцевий час)",
     "next_session": "Наступне заняття: %{date}",
     "on_sahaj_atlas": "на Sahaj Atlas",
     "online": "Онлайн",
     "online_joining_note": "Дані для підключення надійдуть після реєстрації",
-    "origin_time": "%{time} (%{city})",
     "registration_closed": "Реєстрацію закрито",
     "registration_required": "Потрібна реєстрація",
     "see_nearby": "Переглянути заходи поруч",
@@ -58,8 +56,7 @@
     "type_class_monthly": "Щомісячні заняття",
     "type_class_weekly": "Щотижневі заняття",
     "type_course": "Курс",
-    "type_oneoff": "Разовий захід",
-    "your_time": "(ваш час)"
+    "type_oneoff": "Разовий захід"
   },
   "errors": {
     "email": "Введіть дійсну електронну адресу",

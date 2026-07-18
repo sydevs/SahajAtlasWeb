@@ -38,12 +38,10 @@
     "event_full": "Ez az esemény betelt",
     "first_session": "Első alkalom: %{date}",
     "hosted_from": "Hosted from %{city}",
-    "local_time": "(helyi idő)",
     "next_session": "Következő alkalom: %{date}",
     "on_sahaj_atlas": "a Sahaj Atlason",
     "online": "Online",
     "online_joining_note": "A csatlakozási adatokat regisztráció után kapja meg",
-    "origin_time": "%{time} (%{city})",
     "registration_closed": "A regisztráció lezárult",
     "registration_required": "Regisztráció szükséges",
     "see_nearby": "Közeli események megtekintése",
@@ -56,8 +54,7 @@
     "type_class_monthly": "Havi foglalkozás",
     "type_class_weekly": "Heti foglalkozás",
     "type_course": "Tanfolyam",
-    "type_oneoff": "Egyszeri esemény",
-    "your_time": "(saját idő szerint)"
+    "type_oneoff": "Egyszeri esemény"
   },
   "errors": {
     "email": "Enter a valid email",

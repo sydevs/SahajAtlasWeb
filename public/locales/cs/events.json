@@ -38,12 +38,10 @@
     "event_full": "Tato akce je obsazená",
     "first_session": "První lekce: %{date}",
     "hosted_from": "Hostováno z %{city}",
-    "local_time": "(místní čas)",
     "next_session": "Další lekce: %{date}",
     "on_sahaj_atlas": "na Sahaj Atlas",
     "online": "Online",
     "online_joining_note": "Údaje pro připojení obdržíte po registraci",
-    "origin_time": "%{time} (%{city})",
     "registration_closed": "Registrace uzavřena",
     "registration_required": "Nutná registrace",
     "see_nearby": "Zobrazit akce v okolí",
@@ -58,8 +56,7 @@
     "type_class_monthly": "Měsíční lekce",
     "type_class_weekly": "Týdenní lekce",
     "type_course": "Kurz",
-    "type_oneoff": "Jednorázová akce",
-    "your_time": "(váš čas)"
+    "type_oneoff": "Jednorázová akce"
   },
   "errors": {
     "email": "Zadejte platný e-mail",

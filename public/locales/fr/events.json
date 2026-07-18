@@ -38,12 +38,10 @@
     "event_full": "Cet événement est complet",
     "first_session": "Première séance : %{date}",
     "hosted_from": "Organisé depuis %{city}",
-    "local_time": "(heure locale)",
     "next_session": "Prochaine séance : %{date}",
     "on_sahaj_atlas": "sur Sahaj Atlas",
     "online": "En ligne",
     "online_joining_note": "Les informations de connexion arrivent après votre inscription",
-    "origin_time": "%{time} à %{city}",
     "registration_closed": "Inscriptions closes",
     "registration_required": "Inscription requise",
     "see_nearby": "Voir les événements à proximité",
@@ -56,8 +54,7 @@
     "type_class_monthly": "Cours mensuel",
     "type_class_weekly": "Cours hebdomadaire",
     "type_course": "Stage",
-    "type_oneoff": "Événement unique",
-    "your_time": "(votre heure)"
+    "type_oneoff": "Événement unique"
   },
   "errors": {
     "email": "Entrez un email valide",

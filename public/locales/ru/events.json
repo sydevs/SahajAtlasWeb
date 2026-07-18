@@ -38,12 +38,10 @@
     "event_full": "Свободных мест нет",
     "first_session": "Первое занятие: %{date}",
     "hosted_from": "Ведущий из %{city}",
-    "local_time": "(местное время)",
     "next_session": "Следующее занятие: %{date}",
     "on_sahaj_atlas": "на Sahaj Atlas",
     "online": "Онлайн",
     "online_joining_note": "Данные для подключения придут после регистрации",
-    "origin_time": "%{time} (%{city})",
     "registration_closed": "Регистрация закрыта",
     "registration_required": "Требуется регистрация",
     "see_nearby": "Показать мероприятия рядом",
@@ -58,8 +56,7 @@
     "type_class_monthly": "Ежемесячные занятия",
     "type_class_weekly": "Еженедельные занятия",
     "type_course": "Курс",
-    "type_oneoff": "Разовое мероприятие",
-    "your_time": "(ваше время)"
+    "type_oneoff": "Разовое мероприятие"
   },
   "errors": {
     "email": "Введите действительный адрес электронной почты",

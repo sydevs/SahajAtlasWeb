@@ -30,22 +30,32 @@ export function ImageCarousel({ slides }: { slides: Slide[] }) {
     setOpen(true)
   }
 
+  // Swiper's loop mode clones slides to fake infinite scrolling and needs more
+  // than one slide to do it — with a single image it warns and renders a blank
+  // track. Autoplay/pagination are equally pointless there, so a lone image is
+  // shown as a plain, static slide.
+  const carousel = slides.length > 1
+
   return (
     <>
       <Swiper
-        autoplay={{
-          delay: 4000,
-          disableOnInteraction: false,
-        }}
-        enabled={slides.length > 1}
-        grabCursor={true}
-        loop={true}
+        autoplay={carousel && { delay: 4000, disableOnInteraction: false }}
+        // `w-full`: the carousel is mounted inside a flex row, where an
+        // unsized Swiper root collapses to its content — which, since Swiper
+        // sizes the slides FROM the root, meant a 48px-wide track (just the
+        // slide padding) and an invisible image.
+        className="w-full"
+        enabled={carousel}
+        grabCursor={carousel}
+        loop={carousel}
         modules={[Autoplay, Pagination, A11y, EffectFade]}
-        pagination={{
-          clickable: true,
-          dynamicBullets: true,
-          dynamicMainBullets: 5,
-        }}
+        pagination={
+          carousel && {
+            clickable: true,
+            dynamicBullets: true,
+            dynamicMainBullets: 5,
+          }
+        }
       >
         {slides.map((slide, index) => (
           <SwiperSlide key={slide.src} className="p-6 pb-10">

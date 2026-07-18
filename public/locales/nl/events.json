@@ -38,12 +38,10 @@
     "event_full": "Dit evenement is vol",
     "first_session": "Eerste les: %{date}",
     "hosted_from": "Gehost vanuit %{city}",
-    "local_time": "(lokale tijd)",
     "next_session": "Volgende les: %{date}",
     "on_sahaj_atlas": "op Sahaj Atlas",
     "online": "Online",
     "online_joining_note": "De deelnamegegevens ontvang je na aanmelding",
-    "origin_time": "%{time} in %{city}",
     "registration_closed": "Aanmelden gesloten",
     "registration_required": "Aanmelden verplicht",
     "see_nearby": "Bekijk evenementen in de buurt",
@@ -56,8 +54,7 @@
     "type_class_monthly": "Maandelijkse les",
     "type_class_weekly": "Wekelijkse les",
     "type_course": "Cursus",
-    "type_oneoff": "Eenmalig evenement",
-    "your_time": "(jouw tijd)"
+    "type_oneoff": "Eenmalig evenement"
   },
   "errors": {
     "email": "Voer een geldig e-mailadres in",
