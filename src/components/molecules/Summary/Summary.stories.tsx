@@ -39,6 +39,21 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="The compact variant (list card): tighter spacing, text-coloured icons sized to the text."
+      title="Compact"
+    >
+      <div className="max-w-md">
+        <Summary
+          items={[
+            { icon: <CalendarIcon size={16} />, text: 'Every Wednesday · 6:00 PM – 7:30 PM' },
+            { icon: <LocationIcon size={16} />, text: '5 Market St, Cambridge' },
+          ]}
+          variant="compact"
+        />
+      </div>
+    </StorySection>
+
     <div />
   </StoryWrapper>
 )

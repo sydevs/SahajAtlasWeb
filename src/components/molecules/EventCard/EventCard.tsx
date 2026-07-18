@@ -42,8 +42,8 @@ export function EventCard({ event }: EventCardProps) {
   const languageCode = event.languages[0] ?? ''
   const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
 
-  // The indicator line (before the pills): "Online" for online events, else the
-  // distance from the SEARCHED location (not GPS) when one is defined.
+  // The indicator, inline (right) with the pills: "Online" for online events,
+  // else the distance from the SEARCHED location (not GPS) when defined.
   const distance =
     !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
@@ -58,20 +58,11 @@ export function EventCard({ event }: EventCardProps) {
       onMouseEnter={() => highlightEvent(event)}
       onMouseLeave={() => highlightEvent(null)}
     >
-      <li key={event.id} className="flex flex-col gap-1.5 border-b border-divider py-4">
+      <li key={event.id} className="flex flex-col gap-1 border-b border-divider py-4">
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
-        <EventFacts event={event} />
-        {indicator && (
-          <div
-            aria-label={distanceLabel}
-            className="text-sm font-medium tabular-nums text-primary"
-            title={distanceLabel}
-          >
-            {indicator}
-          </div>
-        )}
-        {(showLanguage || statusChip) && (
-          <div className="flex flex-wrap items-center gap-1">
+        <EventFacts className="my-1" event={event} variant="compact" />
+        {(showLanguage || statusChip || indicator) && (
+          <div className="flex items-center gap-1">
             {showLanguage && (
               <Chip color="secondary" size="sm">
                 {languageNames.of(languageCode)}
@@ -81,6 +72,15 @@ export function EventCard({ event }: EventCardProps) {
               <Chip color="primary" size="sm">
                 {statusChip}
               </Chip>
+            )}
+            {indicator && (
+              <span
+                aria-label={distanceLabel}
+                className="ml-auto shrink-0 text-sm font-medium tabular-nums text-primary"
+                title={distanceLabel}
+              >
+                {indicator}
+              </span>
             )}
           </div>
         )}

@@ -7,7 +7,6 @@ import { EventRegisterBar } from './EventRegister'
 
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { useMapController } from '@/hooks/use-map-controller'
 import { lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
@@ -39,7 +38,6 @@ export type EventDetailsProps = {
  */
 export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
   const { t } = useTranslation('events')
-  const { frameEvent } = useMapController()
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -58,8 +56,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-10 pt-2 md:px-8">
-      {/* Tapping the address re-frames the map (never navigates). */}
-      <EventFacts event={event} onAddressClick={() => frameEvent(event)} />
+      <EventFacts event={event} />
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 
