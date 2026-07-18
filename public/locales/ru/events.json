@@ -58,7 +58,8 @@
     "type_course": "Курс",
     "type_oneoff": "Разовое мероприятие",
     "time_in_place": "%{time} (%{city})",
-    "distance_away": "в %{distance}"
+    "distance_away": "в %{distance}",
+    "distance_from_place": "%{distance} от %{place}"
   },
   "errors": {
     "email": "Введите действительный адрес электронной почты",

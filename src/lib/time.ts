@@ -19,6 +19,21 @@ import type { DateTime } from 'luxon'
  * range isn't expressible through one formatter, and hand-splicing the parts
  * would reintroduce exactly the locale bugs this avoids).
  */
+/**
+ * The city an IANA zone is named for — "America/Vancouver" → "Vancouver".
+ *
+ * This is deliberately the *timezone's* city rather than a geolocated one: it
+ * names the clock the time is being quoted in, it's always municipal-level (IP
+ * geolocation swings between a neighbourhood and a whole province), and it
+ * needs no lookup. The trade-off is that a zone names one representative city
+ * for everyone in it, so a viewer in Munich sees "Berlin".
+ */
+export function zoneCity(zone: string | null | undefined): string {
+  const city = zone?.split('/').pop()
+
+  return city ? city.replace(/_/g, ' ') : ''
+}
+
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {
   // Both endpoints are in the same (event) zone; format the instants in it.
   const timeZone = start.zoneName ?? undefined

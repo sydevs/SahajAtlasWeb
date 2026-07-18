@@ -56,7 +56,8 @@
     "type_course": "Stage",
     "type_oneoff": "Événement unique",
     "time_in_place": "%{time} à %{city}",
-    "distance_away": "à %{distance}"
+    "distance_away": "à %{distance}",
+    "distance_from_place": "%{distance} de %{place}"
   },
   "errors": {
     "email": "Entrez un email valide",

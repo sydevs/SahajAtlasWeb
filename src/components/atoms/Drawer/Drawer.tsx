@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext } from 'react'
+import { type ReactNode, createContext, useContext, useState } from 'react'
 import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 
@@ -195,8 +195,25 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
 
 export function DrawerBody({ children, className }: { children: ReactNode; className?: string }) {
   const { slots } = useDrawerSlots()
+  // Once the body scrolls, its content slides under the (opaque) header and the
+  // two blend into one another. A soft inset shadow along the body's top edge —
+  // shown only when there IS something above the fold — reads as "content
+  // continues up there" without adding a permanent rule. Inset shadows are
+  // painted against the scroll container's own box, so it stays pinned to the
+  // seam while the content moves. Preferred over a hard border: it appears
+  // progressively, and it works on both themes without a second colour token.
+  const [scrolled, setScrolled] = useState(false)
 
-  return <div className={slots.body({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.body({
+        className: `${scrolled ? 'shadow-[inset_0_7px_6px_-7px_rgb(0_0_0/0.25)]' : ''} ${className ?? ''}`,
+      })}
+      onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function DrawerFooter({

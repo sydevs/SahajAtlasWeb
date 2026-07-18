@@ -58,7 +58,8 @@
     "type_course": "Kurz",
     "type_oneoff": "Jednorázová akce",
     "time_in_place": "%{time} (%{city})",
-    "distance_away": "%{distance} daleko"
+    "distance_away": "%{distance} daleko",
+    "distance_from_place": "%{distance} od %{place}"
   },
   "errors": {
     "email": "Zadejte platný e-mail",

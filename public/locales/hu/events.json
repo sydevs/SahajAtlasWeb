@@ -56,7 +56,8 @@
     "type_course": "Tanfolyam",
     "type_oneoff": "Egyszeri esemény",
     "time_in_place": "%{time} (%{city})",
-    "distance_away": "%{distance} távolságra"
+    "distance_away": "%{distance} távolságra",
+    "distance_from_place": "%{distance} innen: %{place}"
   },
   "errors": {
     "email": "Enter a valid email",

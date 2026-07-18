@@ -187,12 +187,17 @@ export function useEventFromPath(eventPath: string) {
 }
 
 /**
- * The compact event summary repeated on the registration + share drawers:
- * title · key chips (type · Free · status) · one-line when · one-line where —
- * the same resolver strings as every other surface (issue #52). In an embed
- * (map-less, non-standalone) no Atlas chrome exists around the drawer, so the
- * summary is self-sufficient and carries a small "on Sahaj Atlas" backlink.
- * A view sub-component, deliberately not a design-system export.
+ * The compact event summary repeated on the registration + share drawers: the
+ * event title over its when/where facts — the same resolver strings as every
+ * other surface (issue #52). In an embed (map-less, non-standalone) no Atlas
+ * chrome exists around the drawer, so the summary is self-sufficient and
+ * carries a small "on Sahaj Atlas" backlink.
+ *
+ * The drawer header above already owns a bold title ("Register for Meditation"),
+ * so this is deliberately NOT a second heading: it sits on a tinted, rounded
+ * surface at body text size, reading as the *object* being acted on rather than
+ * a competing title. The scan order becomes: what am I doing (header) → which
+ * event (this card) → the form. A view sub-component, not a design-system export.
  */
 export function EventSummary({ event }: { event: Event }) {
   const { t } = useTranslation('events')
@@ -201,8 +206,8 @@ export function EventSummary({ event }: { event: Event }) {
   const embedded = !standalone && !hasMap
 
   return (
-    <div className="mx-auto mb-4 w-full max-w-md border-b border-divider pb-4">
-      <div className="text-lg font-semibold leading-tight">{event.title}</div>
+    <div className="mx-auto mb-4 w-full max-w-md rounded-lg border border-divider bg-gray-2 p-3">
+      <div className="text-base font-semibold leading-tight">{event.title}</div>
       <EventFacts className="mt-2" event={event} />
       {embedded &&
         (event.webUrl ? (

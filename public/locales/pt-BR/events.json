@@ -56,7 +56,8 @@
     "type_course": "Curso",
     "type_oneoff": "Evento único",
     "time_in_place": "%{time} em %{city}",
-    "distance_away": "a %{distance}"
+    "distance_away": "a %{distance}",
+    "distance_from_place": "a %{distance} de %{place}"
   },
   "errors": {
     "email": "Insira um e-mail válido",

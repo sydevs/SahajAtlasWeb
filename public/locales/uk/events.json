@@ -58,7 +58,8 @@
     "type_course": "Курс",
     "type_oneoff": "Разовий захід",
     "time_in_place": "%{time} (%{city})",
-    "distance_away": "за %{distance}"
+    "distance_away": "за %{distance}",
+    "distance_from_place": "%{distance} від %{place}"
   },
   "errors": {
     "email": "Введіть дійсну електронну адресу",

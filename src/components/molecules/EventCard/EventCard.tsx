@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -26,6 +27,7 @@ export interface EventCardProps {
 export function EventCard({ event }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
+  const [searchParams] = useSearchParams()
   const { highlightEvent } = useMapController()
   const { display, typeLabel, isDefaultType } = useEventDisplay(event)
 
@@ -47,11 +49,19 @@ export function EventCard({ event }: EventCardProps) {
   // The type pill names anything that ISN'T the default weekly class.
   const showType = !isDefaultType
 
-  // Distance from the SEARCHED location (not GPS) — faded under the address in
-  // the facts. The visible copy stays short ("3.6 km away"); the full reference
-  // point ("… from the searched location") is spelled out for assistive tech.
+  // Distance from the SEARCHED location, never the device's — so name the place
+  // when we know it ("3.6 km from Brussels"); "away" would imply "from you" and
+  // quietly mislead the moment someone searches a city they aren't in. `q` holds
+  // the geocoder's full address, so take its leading part to keep the line short.
+  // The precise reference point stays in the accessible label either way.
+  const searchedPlace = (searchParams.get('q') ?? '').split(',')[0].trim()
   const distance =
     !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
+  const distanceText = distance
+    ? searchedPlace
+      ? t('display.distance_from_place', { distance, place: searchedPlace })
+      : t('display.distance_away', { distance })
+    : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
 
   return (
@@ -68,9 +78,9 @@ export function EventCard({ event }: EventCardProps) {
         <EventFacts
           className="my-1"
           distance={
-            distance && (
+            distanceText && (
               <span aria-label={distanceLabel} title={distanceLabel}>
-                {t('display.distance_away', { distance })}
+                {distanceText}
               </span>
             )
           }
@@ -78,7 +88,7 @@ export function EventCard({ event }: EventCardProps) {
           variant="compact"
         />
         {(showType || showLanguage) && (
-          <div className="mt-2 flex flex-wrap items-center gap-1">
+          <div className="mt-1 flex flex-wrap items-center gap-1">
             {showType && (
               <Chip color="default" size="sm">
                 {typeLabel}
