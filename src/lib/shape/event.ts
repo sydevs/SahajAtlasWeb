@@ -163,11 +163,12 @@ const terminalDisplay = (
   registration: 'hidden',
   timeHint: null,
   weekdayInstants: [],
-  // Ended: share only. Inactive: contact leads (emphasized), plus directions for
-  // a physical venue that still exists, then share.
+  // Ended: nothing to act on — "See nearby events" is the only affordance.
+  // Inactive: contact leads (emphasized), plus directions for a physical venue
+  // that still exists, then share.
   actions:
     status === 'ended'
-      ? ['share']
+      ? []
       : [
           ...(hasContact ? (['contact'] as const) : []),
           ...(base.online ? [] : (['directions'] as const)),

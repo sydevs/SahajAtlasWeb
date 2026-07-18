@@ -39,11 +39,10 @@ export function EventHeader({ event, trailing }: EventHeaderProps) {
         </h1>
         {trailing}
       </div>
-      {/* Single non-wrapping chip line so the 80px peek keeps title + chips +
-          timing visible; overflow scrolls sideways. */}
-      <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
+      <div className="flex flex-wrap items-center gap-1">
         <Chip color="default">{typeLabel}</Chip>
-        <Chip color="primary">{t('display.chip_free')}</Chip>
+        {/* Free is a registration fact — irrelevant once the event has ended. */}
+        {display.status !== 'ended' && <Chip color="primary">{t('display.chip_free')}</Chip>}
         {statusChip && <Chip color="secondary">{statusChip}</Chip>}
         {display.online && <Chip color="default">{t('details.online')}</Chip>}
         {event.languages.map((code) => (

@@ -199,7 +199,7 @@ export function useEventFromPath(eventPath: string) {
 export function EventSummary({ event }: { event: Event }) {
   const { t } = useTranslation('events')
   const { standalone, hasMap } = useWidgetMode()
-  const { typeLabel, statusChip, whenLine, timeLine, whereLine } = useEventDisplay(event)
+  const { display, typeLabel, statusChip, whenLine, timeLine, whereLine } = useEventDisplay(event)
 
   const embedded = !standalone && !hasMap
   const when = [whenLine, timeLine].filter(Boolean).join(' · ')
@@ -211,9 +211,12 @@ export function EventSummary({ event }: { event: Event }) {
         <Chip color="default" size="sm">
           {typeLabel}
         </Chip>
-        <Chip color="primary" size="sm">
-          {t('display.chip_free')}
-        </Chip>
+        {/* Free is a registration fact — irrelevant once the event has ended. */}
+        {display.status !== 'ended' && (
+          <Chip color="primary" size="sm">
+            {t('display.chip_free')}
+          </Chip>
+        )}
         {statusChip && (
           <Chip color="secondary" size="sm">
             {statusChip}
@@ -261,6 +264,7 @@ export function DrawerLoading() {
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
   const { t: tEvents } = useTranslation('events')
+  const navigate = useNavigate()
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
@@ -275,9 +279,9 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
       </Button>
       {/* A dead direct link (e.g. a finished event the CMS no longer serves)
           still offers a way back into live inventory (issue #52). */}
-      <Link className="text-sm font-medium text-primary-11" href="/search">
+      <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
         {tEvents('display.see_nearby')}
-      </Link>
+      </Button>
     </DrawerBody>
   )
 }

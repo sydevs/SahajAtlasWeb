@@ -21,6 +21,10 @@ export { LoadingFallback, ErrorFallback } from './Fallbacks'
 export { ActionRow, ActionCircle } from './ActionRow'
 export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 
+// Summary — icon + plain-text fact lines (the event panel's when/where block).
+export { Summary } from './Summary'
+export type { SummaryProps, SummaryItem } from './Summary'
+
 export { List } from './List'
 
 export { RegionCard } from './RegionCard'

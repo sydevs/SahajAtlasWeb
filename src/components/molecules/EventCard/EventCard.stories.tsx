@@ -10,17 +10,16 @@ import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 /**
- * EventCard — the three-line list row (issue #52): bold differentiator + status
- * chip, then type · recurrence · time, then the address with the distance
- * right-aligned. `variant` picks the bold slot: `title` for mixed search/online
- * lists, `place` for region-grouped lists (the group header states the region,
- * so the venue/street differentiates).
+ * EventCard — the three-line list row (issue #52): title + status chip, then
+ * type (only when it says more than the default weekly class) · recurrence ·
+ * start time, then the address with the distance right-aligned. Online events
+ * carry "Online" in the distance slot and a hosted-from place line.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="Mixed-list variant — the title is the bold slot."
-      title="Search list"
+      description="A weekly class — the default shape, so no type label on line 2."
+      title="Weekly class"
     >
       <div className="max-w-md">
         <EventCard event={mockEventSlim} />
@@ -28,16 +27,23 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Region-grouped variant — the venue/street is the bold slot."
-      title="Region list"
+      description="Non-default types (courses, one-offs) state themselves on line 2."
+      title="Course"
     >
       <div className="max-w-md">
-        <EventCard event={mockEventSlim} variant="place" />
+        <EventCard
+          event={{
+            ...mockEventSlim,
+            id: 110,
+            title: 'Beginners Meditation Course',
+            schedule: { ...mockEventSlim.schedule!, endingType: 'count', count: 8 },
+          }}
+        />
       </div>
     </StorySection>
 
     <StorySection
-      description="Online — hosted-from line, converted time, no distance."
+      description="Online — hosted-from place line; 'Online' sits in the distance slot."
       title="Online"
     >
       <div className="max-w-md">

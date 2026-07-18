@@ -19,7 +19,7 @@ export default {
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'default', 'danger'] as const
-const variants = ['solid', 'flat', 'faded', 'bordered', 'light'] as const
+const variants = ['solid', 'flat', 'faded', 'bordered'] as const
 
 /**
  * Button — a styled control on the Radix-semantic 12-step tokens. Shows the

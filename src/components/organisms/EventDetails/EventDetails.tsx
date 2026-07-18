@@ -6,6 +6,7 @@ import { EventActions } from './EventActions'
 import { EventRegisterBar } from './EventRegister'
 
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
+import { Summary, type SummaryItem } from '@/components/molecules/Summary'
 import { CalendarIcon, LocationIcon } from '@/components/atoms/Icons'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -22,17 +23,6 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('rel', 'noopener noreferrer')
   }
 })
-
-// One plain-text fact line with its icon-set icon. Facts are never actions:
-// nothing here looks like a button or navigates (issue #52 design grammar).
-function FactLine({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-0.5 shrink-0 text-primary">{icon}</span>
-      <div className="min-w-0 text-sm leading-snug">{children}</div>
-    </div>
-  )
-}
 
 export type EventDetailsProps = {
   event: Event
@@ -52,8 +42,7 @@ export type EventDetailsProps = {
 export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
   const { t } = useTranslation('events')
   const { frameEvent } = useMapController()
-  const { display, recurrenceLine, whenLine, timeLine, originNote, whereLine } =
-    useEventDisplay(event)
+  const { display, recurrenceLine, whereLine } = useEventDisplay(event)
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -70,22 +59,17 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
     [event.images],
   )
 
-  // The authoritative session line: "Next session: Wed, 22 Jul · 19:30 – 20:45
-  // (your time) · 19:30 (Prague)". Terminal states carry their message instead.
-  const sessionLine = [whenLine, timeLine, originNote].filter(Boolean).join(' · ')
-
-  return (
-    <div className="flex flex-col gap-4 px-4 pb-10 pt-2 md:px-8">
-      {/* Facts — plain text, icon-set icons, non-navigating. */}
-      <div className="flex flex-col gap-2.5">
-        <FactLine icon={<CalendarIcon size={20} />}>
-          {recurrenceLine && <div className="text-gray-11">{recurrenceLine}</div>}
-          <div className="font-medium">{sessionLine}</div>
-        </FactLine>
-        {whereLine && (
-          <FactLine icon={<LocationIcon size={20} />}>
-            {display.online ? (
-              <div className="font-medium">{whereLine}</div>
+  // The when/where facts. The header above carries the timing line (pattern ·
+  // time, or the terminal/one-off when-line), so the calendar fact renders only
+  // the recurrence pattern — repeating the when-line here would double it.
+  const facts: SummaryItem[] = [
+    ...(recurrenceLine ? [{ icon: <CalendarIcon size={20} />, text: recurrenceLine }] : []),
+    ...(whereLine
+      ? [
+          {
+            icon: <LocationIcon size={20} />,
+            text: display.online ? (
+              whereLine
             ) : (
               // Tapping the address MAY re-centre the map pin, but never leaves
               // the panel — styled as plain text, not a link.
@@ -96,10 +80,15 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
               >
                 {whereLine}
               </button>
-            )}
-          </FactLine>
-        )}
-      </div>
+            ),
+          },
+        ]
+      : []),
+  ]
+
+  return (
+    <div className="flex flex-col gap-4 px-4 pb-10 pt-2 md:px-8">
+      <Summary items={facts} />
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 

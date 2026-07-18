@@ -11,27 +11,30 @@ import { EventSlim } from '@/types'
 
 export interface EventCardProps {
   event: EventSlim
-  /**
-   * Which field differentiates within the current list grouping (issue #52):
-   * `place` (region-grouped leaf lists) bolds the venue/locality and demotes
-   * the type to line 2; `title` (mixed search/online lists) bolds the title.
-   */
-  variant?: 'place' | 'title'
 }
 
 /**
- * The three-line list card: differentiator + status chip, then
- * type · recurrence · time, then the address with the distance right-aligned —
- * a vertically scannable column across the list. The whole card is tappable
- * (press state, no chevron); the Link wrapper stays hookable for map-pin
- * highlight (#44).
+ * The three-line list card: title + status chip, then type (when it says more
+ * than the default weekly class) · recurrence · start time, then the address
+ * with the distance right-aligned — a vertically scannable column across the
+ * list; online events carry "Online" in that slot instead. The whole card is
+ * tappable (press state, no chevron); the Link wrapper stays hookable for
+ * map-pin highlight (#44).
  */
-export function EventCard({ event, variant = 'title' }: EventCardProps) {
+export function EventCard({ event }: EventCardProps) {
   const { t } = useTranslation('events')
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const { highlightEvent } = useMapController()
-  const { display, typeLabel, statusChip, recurrenceLine, whenLine, timeLine, whereLine } =
-    useEventDisplay(event)
+  const {
+    display,
+    typeLabel,
+    statusChip,
+    recurrenceLine,
+    whenLine,
+    startTime,
+    timeHint,
+    originCity,
+  } = useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -48,35 +51,42 @@ export function EventCard({ event, variant = 'title' }: EventCardProps) {
   const languageCode = event.languages[0] ?? ''
   const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
 
-  // The bold slot: what differentiates the card within THIS list. Region-grouped
-  // lists bold the venue (a center's name) or street; mixed lists bold the title.
-  const bold =
-    variant === 'place'
-      ? ((event.region.level === 'center' ? event.region.name : null) ??
-        event.address?.street ??
-        event.address?.city ??
-        event.title)
-      : event.title
+  // The weekly class is the default shape — its type label carries no
+  // information on a card, so only other types (course, one-off, monthly…) show.
+  const isWeeklyClass =
+    display.kind === 'class' &&
+    event.schedule?.recurrenceType === 'WEEKLY' &&
+    (event.schedule?.interval ?? 1) === 1
 
-  // Line 2: type · recurrence · time (converted + labelled for online events);
-  // dateless/terminal events carry their when-line instead of a time.
-  const line2 = (display.next ? [typeLabel, recurrenceLine, timeLine] : [typeLabel, whenLine])
+  // Line 2: [type] · recurrence · start time — compact: no end time, no
+  // "(local time)"; the converted online time keeps its load-bearing hint.
+  // Dateless/terminal events carry their when-line instead of a time.
+  const timePart = startTime
+    ? [startTime, online ? timeHint : null].filter(Boolean).join(' ')
+    : null
+  const line2 = (
+    display.next
+      ? [isWeeklyClass ? null : typeLabel, recurrenceLine, timePart]
+      : [isWeeklyClass ? null : typeLabel, whenLine]
+  )
     .filter(Boolean)
     .join(' · ')
 
-  // Line 3: the street only on place lists (the group header already states the
-  // city), the hook's full where-line on mixed lists and for hosted-from.
-  let place: string | null
-
-  if (variant === 'place' && !online)
-    place = event.address?.street && event.address.street !== bold ? event.address.street : null
-  else place = whereLine || null
+  // Line 3: the address, or the hosted-from place for online events ("Online"
+  // moves to the distance slot, so the prefix would be redundant).
+  const place = online
+    ? t('details.hosted_from', { city: originCity })
+    : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
+      event.region.name ||
+      null
 
   // Distance from the SEARCHED location (not GPS) — shown whenever defined,
-  // right-aligned so distances form a scannable column. Online events have none.
+  // right-aligned so distances form a scannable column. Online events carry
+  // "Online" in the same slot (they have no distance).
   const distance =
     !online && event.distance !== undefined ? formatDistance(event.distance, locale) : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
+  const slot = online ? t('details.online') : distance
 
   return (
     <Link
@@ -89,7 +99,7 @@ export function EventCard({ event, variant = 'title' }: EventCardProps) {
     >
       <li key={event.id} className="flex flex-col gap-1 border-b border-divider py-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="line-clamp-1 font-semibold leading-tight">{bold}</div>
+          <div className="line-clamp-1 font-semibold leading-tight">{event.title}</div>
           <div className="flex shrink-0 items-center gap-1">
             {showLanguage && (
               <Chip color="secondary" size="sm">
@@ -104,16 +114,16 @@ export function EventCard({ event, variant = 'title' }: EventCardProps) {
           </div>
         </div>
         <div className="text-sm leading-tight text-gray-11">{line2}</div>
-        {(place || distance) && (
+        {(place || slot) && (
           <div className="flex items-baseline justify-between gap-2 text-sm leading-tight">
             <div className="min-w-0 truncate">{place}</div>
-            {distance && (
+            {slot && (
               <span
                 aria-label={distanceLabel}
                 className="shrink-0 font-medium tabular-nums text-primary"
                 title={distanceLabel}
               >
-                {distance}
+                {slot}
               </span>
             )}
           </div>

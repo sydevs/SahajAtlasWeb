@@ -94,7 +94,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="An ended one-off (direct links only) — share-only actions + See nearby."
+      description="An ended one-off (direct links only) — no actions; See nearby is the way out."
       title="Ended"
     >
       <Panel event={ended} />

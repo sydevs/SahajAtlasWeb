@@ -33,13 +33,15 @@ export function RegionView({ slug }: { slug: string }) {
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
-  const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined
+  // "All events are free" is the subtitle FALLBACK: stated once per list in the
+  // header (no Free chip repeats on cards — identical chips carry zero
+  // information), unless a city's own subtitle takes the slot.
+  const subheader =
+    (region.level === 'city' ? region.subtitle : undefined) ?? t('display.all_events_free')
   const canonicalUrl = validateWebUrl(region.webUrl)
   // Parents (with sub-region cards) surface their online roll-up behind a dedicated
   // "Online Classes" card; a leaf lists its online events inline, as before.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
-  const hasEventList =
-    region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
 
   return (
     <>
@@ -52,12 +54,7 @@ export function RegionView({ slug }: { slug: string }) {
       <DrawerHeader className="justify-between">
         <div className="min-w-0">
           <div className="truncate text-lg font-bold">{header}</div>
-          {subheader && <div className="truncate text-sm text-gray-11">{subheader}</div>}
-          {/* One free-line per list — no Free chip repeats on the cards below
-              (identical chips on every card carry zero information; issue #52). */}
-          {hasEventList && (
-            <div className="truncate text-xs text-gray-11">{t('display.all_events_free')}</div>
-          )}
+          <div className="truncate text-sm text-gray-11">{subheader}</div>
         </div>
         <CloseButton />
       </DrawerHeader>
@@ -83,12 +80,10 @@ export function RegionView({ slug }: { slug: string }) {
               subtitle={child.subtitle}
             />
           ))}
-          {/* Region-grouped list: the venue/locality is the differentiator. */}
           {region.events.map((event) => (
-            <EventCard key={`event-${event.id}`} event={event} variant="place" />
+            <EventCard key={`event-${event.id}`} event={event} />
           ))}
-          {/* A leaf has no card — its online events list inline, after the located
-              ones. Placeless, so the title stays the bold slot. */}
+          {/* A leaf has no card — its online events list inline, after the located ones. */}
           {!showOnlineCard &&
             region.onlineEvents.map((event) => (
               <EventCard key={`online-${event.id}`} event={event} />

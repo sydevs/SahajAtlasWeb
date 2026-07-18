@@ -4,8 +4,8 @@ import { tv, type VariantProps } from 'tailwind-variants'
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 
 // A styled button replacing NextUI's Button, built on the Radix-semantic 12-step
-// tokens. `variant` picks the surface treatment (solid / soft / faded / outline /
-// ghost) and `color` selects the ramp; the color×variant matrix is spelled out as
+// tokens. `variant` picks the surface treatment (solid / soft / faded / outline)
+// and `color` selects the ramp; the color×variant matrix is spelled out as
 // literal classes so Tailwind's scanner can see every utility.
 const button = tv({
   base: [
@@ -21,7 +21,6 @@ const button = tv({
       flat: '',
       faded: 'border',
       bordered: 'border bg-transparent',
-      light: 'bg-transparent',
     },
     size: {
       sm: 'h-8 px-3 text-sm',
@@ -107,11 +106,6 @@ const button = tv({
       variant: 'bordered',
       class: 'border-danger-7 text-danger-11 hover:bg-danger-3',
     },
-    // light (ghost)
-    { color: 'primary', variant: 'light', class: 'text-primary-11 hover:bg-primary-3' },
-    { color: 'secondary', variant: 'light', class: 'text-secondary-11 hover:bg-secondary-3' },
-    { color: 'default', variant: 'light', class: 'text-gray-12 hover:bg-gray-3' },
-    { color: 'danger', variant: 'light', class: 'text-danger-11 hover:bg-danger-3' },
   ],
   defaultVariants: {
     color: 'default',

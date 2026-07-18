@@ -90,8 +90,9 @@ export type ActionRowProps = {
   className?: string
 }
 
-/** The horizontal action row: scrolls sideways when it overflows on narrow
- *  screens, with an edge fade signalling the cut-off content. */
+/** The horizontal action row: centred while everything fits; scrolls sideways
+ *  when it overflows on narrow screens, with an edge fade signalling the
+ *  cut-off content (centring would clip the leading circle mid-scroll). */
 export function ActionRow({ children, className }: ActionRowProps) {
   const scroller = useRef<HTMLDivElement>(null)
   const [overflowing, setOverflowing] = useState(false)
@@ -118,7 +119,7 @@ export function ActionRow({ children, className }: ActionRowProps) {
       className={`flex gap-2 overflow-x-auto py-1 [scrollbar-width:none] ${
         overflowing
           ? '[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] rtl:[mask-image:linear-gradient(to_left,black_calc(100%-2.5rem),transparent)]'
-          : ''
+          : 'justify-center'
       } ${className ?? ''}`}
     >
       {children}

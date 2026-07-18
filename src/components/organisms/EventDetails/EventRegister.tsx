@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
-import { Link } from '@/components/atoms/Link'
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { parentOf, searchPath } from '@/lib/shape'
@@ -28,11 +27,12 @@ const nearbyPath = (event: Event, basePath: string): string => {
 /** The escape hatch out of terminal states, back into live inventory. */
 function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) {
   const { t } = useTranslation('events')
+  const navigate = useNavigate()
 
   return (
-    <Link className="text-sm font-medium text-primary-11" href={nearbyPath(event, basePath)}>
+    <Button color="primary" variant="flat" onClick={() => navigate(nearbyPath(event, basePath))}>
       {t('display.see_nearby')}
-    </Link>
+    </Button>
   )
 }
 

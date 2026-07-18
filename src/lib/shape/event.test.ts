@@ -203,7 +203,7 @@ describe('resolveEventDisplay: status table', () => {
     expect(resolveEventDisplay(course, at('2026-07-17T12:00:00')).sessions).toBeNull()
   })
 
-  it('Ended — one-off or course with no remaining occurrence; share-only + nearby', () => {
+  it('Ended — one-off or course with no remaining occurrence; nearby only, no actions', () => {
     const oneOff = {
       eventType: 'offline' as const,
       schedule: { ...weeklySchedule, recurrenceType: null, weekdays: null, upcomingDates: [] },
@@ -213,7 +213,7 @@ describe('resolveEventDisplay: status table', () => {
     expect(display.kind).toBe('oneoff')
     expect(display.status).toBe('ended')
     expect(display.registration).toBe('hidden')
-    expect(display.actions).toEqual(['share'])
+    expect(display.actions).toEqual([])
     expect(display.showNearby).toBe(true)
   })
 

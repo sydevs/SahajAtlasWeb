@@ -33,8 +33,12 @@ export type EventDisplayStrings = {
   timeHint: string | null
   /** `timeRange` with its hint attached — the composition every surface shows. */
   timeLine: string | null
+  /** Start time only ("19:30"), display zone — the compact-card time. */
+  startTime: string | null
   /** Online only: the origin-zone time, e.g. "19:30 (Prague)". */
   originNote: string | null
+  /** The hosted-from place (city ?? region ?? tz city) — feeds hosted-from copy. */
+  originCity: string
   /** One-line location: hosted-from for online, street + city for physical. */
   whereLine: string
   registerLabel: string
@@ -181,6 +185,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t(display.timeHint === 'viewer' ? 'display.your_time' : 'display.local_time')
         : null
     const timeLine = timeRange ? [timeRange, timeHint].filter(Boolean).join(' ') : null
+    const startTime = next ? time(next) : null
     const originCity =
       event.address?.city ??
       event.region?.name ??
@@ -240,7 +245,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       timeRange,
       timeHint,
       timeLine,
+      startTime,
       originNote,
+      originCity,
       whereLine,
       registerLabel,
       microcopy,
