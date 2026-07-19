@@ -1,22 +1,9 @@
-import { ReactNode, useState } from 'react'
-import {
-  useFloating,
-  autoUpdate,
-  offset,
-  flip,
-  shift,
-  size,
-  useClick,
-  useDismiss,
-  useRole,
-  useInteractions,
-  FloatingPortal,
-  FloatingFocusManager,
-  type Placement,
-} from '@floating-ui/react'
+import { ReactNode } from 'react'
+import { FloatingPortal, FloatingFocusManager, type Placement } from '@floating-ui/react'
 import { tv } from 'tailwind-variants'
 
 import { overlayContainer } from '@/lib/overlay'
+import { usePopover } from '@/hooks/use-popover'
 
 /** Side of the trigger the panel opens on. */
 export type DropdownSide = 'top' | 'bottom' | 'left' | 'right'
@@ -128,35 +115,13 @@ export function Dropdown({
   className = '',
   fullWidth = false,
 }: DropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const { refs, floatingStyles, context } = useFloating({
-    open: isOpen,
-    onOpenChange: setIsOpen,
-    placement: toPlacement(side, align),
-    whileElementsMounted: autoUpdate,
-    middleware: [
-      offset(8),
-      flip({ padding: 8 }),
-      shift({ padding: 8 }),
-      // Match the panel width to the trigger (e.g. autocomplete under an input).
-      ...(fullWidth
-        ? [
-            size({
-              apply({ rects, elements }) {
-                elements.floating.style.width = `${rects.reference.width}px`
-              },
-            }),
-          ]
-        : []),
-    ],
-  })
-
-  const click = useClick(context)
-  const dismiss = useDismiss(context)
-  const role = useRole(context, { role: roleProp })
-
-  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role])
+  const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
+    {
+      placement: toPlacement(side, align),
+      role: roleProp,
+      matchTriggerWidth: fullWidth,
+    },
+  )
 
   return (
     <>

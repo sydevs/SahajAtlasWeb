@@ -1,16 +1,5 @@
-import { type ReactNode, useState } from 'react'
-import {
-  FloatingPortal,
-  autoUpdate,
-  flip,
-  offset,
-  shift,
-  useClick,
-  useDismiss,
-  useFloating,
-  useInteractions,
-  useRole,
-} from '@floating-ui/react'
+import { type ReactNode } from 'react'
+import { FloatingPortal } from '@floating-ui/react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -26,6 +15,7 @@ import {
 import { Link } from '@/components/atoms/Link'
 import { useIsDesktop } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
+import { usePopover } from '@/hooks/use-popover'
 import { buildEventIcs, buildGoogleCalendarUrl, directionsUrl } from '@/lib'
 import { lexicalToText } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
@@ -41,23 +31,15 @@ function ActionPopover({
   trigger: (ref: (node: HTMLElement | null) => void, props: Record<string, unknown>) => ReactNode
   children: ReactNode
 }) {
-  const [open, setOpen] = useState(false)
-  const { refs, floatingStyles, context } = useFloating({
-    open,
-    onOpenChange: setOpen,
+  const { isOpen, refs, floatingStyles, getReferenceProps, getFloatingProps } = usePopover({
     placement: 'top',
-    whileElementsMounted: autoUpdate,
-    middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
+    role: 'dialog',
   })
-  const click = useClick(context)
-  const dismiss = useDismiss(context)
-  const role = useRole(context, { role: 'dialog' })
-  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role])
 
   return (
     <>
       {trigger(refs.setReference, getReferenceProps())}
-      {open && (
+      {isOpen && (
         <FloatingPortal root={overlayContainer()}>
           <div
             ref={refs.setFloating}

@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/atoms/Checkbox'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Slider } from '@/components/atoms/Slider'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { selectTriggerClass } from '@/components/atoms/Select'
+import { fieldChrome } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -102,7 +102,7 @@ function DateBound({
     <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
       {label}
       <input
-        className="rounded-md border border-gray-7 bg-transparent px-2 py-1.5 text-sm text-foreground"
+        className={fieldChrome({ className: 'px-2' })}
         max={max}
         min={min}
         type="date"
@@ -307,7 +307,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             ariaLabel={t('filters.language.label')}
             role="dialog"
             trigger={
-              <span className={`${selectTriggerClass} border-gray-7`}>
+              <span className={fieldChrome({ trigger: true })}>
                 <span className="truncate">{languageTriggerLabel}</span>
                 <DownArrowIcon className="h-4 w-4 shrink-0 opacity-70" />
               </span>

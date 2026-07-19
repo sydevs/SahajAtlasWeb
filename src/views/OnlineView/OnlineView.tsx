@@ -8,7 +8,7 @@ import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { childRoute } from '@/lib/shape'
-import { CloseButton, useFrameOnTop } from '@/views/shared'
+import { CloseButton, DrawerTitle, useFrameOnTop } from '@/views/shared'
 
 // The online-classes drawer (route `<region-path>/online`): the placeless online
 // events rolled up under a region, listed on their own so the region page's list
@@ -41,12 +41,12 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
   return (
     <>
       <DrawerHeader className="justify-between">
-        <div className="min-w-0">
-          <div className="truncate text-lg font-bold">{t('online_classes')}</div>
-          <div className="truncate text-sm text-gray-11">{regionName}</div>
-          {/* One free-line per list — no Free chips on the cards (issue #52). */}
-          <div className="truncate text-xs text-gray-11">{tEvents('display.all_events_free')}</div>
-        </div>
+        {/* One free-line per list — no Free chips on the cards (issue #52). */}
+        <DrawerTitle
+          note={tEvents('display.all_events_free')}
+          subtitle={regionName}
+          title={t('online_classes')}
+        />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>

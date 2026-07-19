@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ShareContent } from '@/components/molecules'
 import { useMapController } from '@/hooks/use-map-controller'
-import { CloseButton, EventSummary, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import {
+  CloseButton,
+  DrawerTitle,
+  EventSummary,
+  useEventFromPath,
+  useFrameOnTop,
+} from '@/views/shared'
 
 // Share links for an event (route `<event-path>/share`). Reached by the event's
 // Share CTA and deep-linkable — so it repeats the compact resolver summary
@@ -20,7 +26,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   return (
     <>
       <DrawerHeader className="justify-between">
-        <div className="min-w-0 truncate text-lg font-bold">{t('details.share_meditation')}</div>
+        <DrawerTitle title={t('details.share_meditation')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

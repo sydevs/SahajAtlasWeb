@@ -10,7 +10,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import { CloseButton, NearbySuggestion, useFrameOnTop } from '@/views/shared'
+import { CloseButton, DrawerTitle, NearbySuggestion, useFrameOnTop } from '@/views/shared'
 
 // A region at any level (route `<region-path>`): child-region cards then this
 // region's located events. A parent with sub-regions leads with an "Online Classes"
@@ -56,10 +56,7 @@ export function RegionView({ slug }: { slug: string }) {
         </Helmet>
       )}
       <DrawerHeader className="justify-between">
-        <div className="min-w-0">
-          <div className="truncate text-lg font-bold">{header}</div>
-          {subheader && <div className="truncate text-sm text-gray-11">{subheader}</div>}
-        </div>
+        <DrawerTitle subtitle={subheader} title={header} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>

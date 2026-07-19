@@ -1,6 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
-import type { DependencyList } from 'react'
+import type { DependencyList, ReactNode } from 'react'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
@@ -54,6 +54,37 @@ export const useDrawerControl = () => useContext(DrawerControlContext)
 // The close affordance for the drawer views. Dismisses via the control seam (a
 // navigation to the parent) rather than vaul's Close — closing the real drawer made
 // the sheet animate shut and then re-open with the parent, which read as jarring.
+export type DrawerTitleProps = {
+  /** The drawer's visible heading. */
+  title: ReactNode
+  /** Optional muted line under it (region subtitle, event date, …). */
+  subtitle?: ReactNode
+  /**
+   * A smaller standing note below the subtitle (e.g. "All events are free").
+   * Distinct from `subtitle` in rank, not just size: the subtitle says which
+   * thing this drawer is about, the note is a fact that holds for the whole list.
+   */
+  note?: ReactNode
+}
+
+/**
+ * The title block every drawer header opens with. Previously copy-pasted across
+ * five views, which let the weight drift (`font-bold` here vs the event panel's
+ * `font-semibold`) and left all five as plain <div>s — so screen-reader users had
+ * no heading to navigate the drawer content by. Renders a real <h2>: the dialog
+ * itself is named by the sr-only Vaul.Title, so this is the content heading below
+ * it, not a competing label.
+ */
+export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
+  return (
+    <div className="min-w-0">
+      <h2 className="truncate text-lg font-semibold">{title}</h2>
+      {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
+      {note && <div className="truncate text-xs text-gray-11">{note}</div>}
+    </div>
+  )
+}
+
 export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')
   const { dismiss } = useDrawerControl()

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
+import { listRow } from '@/components/molecules/List/List'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -73,7 +74,7 @@ export function EventCard({ event }: EventCardProps) {
 
   return (
     <Link
-      className="block px-6 text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4"
+      className={listRow()}
       href={event.path}
       onBlur={() => highlightEvent(null)}
       onFocus={() => highlightEvent(event)}

@@ -8,7 +8,13 @@ import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { eventTimeZone, isOnline } from '@/lib/shape'
 import { Event } from '@/types'
-import { CloseButton, EventSummary, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import {
+  CloseButton,
+  DrawerTitle,
+  EventSummary,
+  useEventFromPath,
+  useFrameOnTop,
+} from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field).
 function enabledQuestions(event: Event): string[] {
@@ -66,9 +72,7 @@ export function RegistrationView({
   return (
     <>
       <DrawerHeader className="justify-between">
-        <div className="min-w-0 truncate text-lg font-bold">
-          {t('registration.register_meditation')}
-        </div>
+        <DrawerTitle title={t('registration.register_meditation')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

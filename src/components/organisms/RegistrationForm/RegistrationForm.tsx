@@ -11,12 +11,11 @@ import { useMutation } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { type ReactNode, useEffect, useState } from 'react'
-import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
 import { Checkbox } from '@/components/atoms/Checkbox'
-import { Select, SelectItem } from '@/components/atoms/Select'
+import { Select, SelectItem, fieldChrome } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import preview from '@/config/preview'
@@ -172,10 +171,12 @@ export function RegistrationForm({
   )
 }
 
-// Shared field chrome (label + control + error) — single-use compositions kept
-// private to the registration form.
-const FIELD_INPUT =
-  'w-full h-10 rounded-none border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus'
+// Label + control + error, kept private to the registration form. The control's
+// chrome comes from the shared `fieldChrome` recipe so these inputs match the
+// Select and the filter date bounds.
+
+/** `aria-describedby` target for a field's error text — see `Field`. */
+const errorId = (name?: string) => (name ? `${name}-error` : undefined)
 
 function Field({
   label,
@@ -197,7 +198,14 @@ function Field({
         {required && ' *'}
       </label>
       {children}
-      {error && <span className="text-xs text-danger-11">{error}</span>}
+      {/* Carries the id the control points at with aria-describedby, so the
+          error is announced with the field rather than being a red border and
+          a floating sentence a screen reader never connects to it. */}
+      {error && (
+        <span className="text-xs text-danger-11" id={errorId(htmlFor)}>
+          {error}
+        </span>
+      )}
     </div>
   )
 }
@@ -218,7 +226,9 @@ function LabeledInput({
   return (
     <Field error={error} htmlFor={registration.name} label={label} required={required}>
       <input
-        className={clsx(FIELD_INPUT, error ? 'border-danger-7' : 'border-gray-7')}
+        aria-describedby={error ? errorId(registration.name) : undefined}
+        aria-invalid={error ? true : undefined}
+        className={fieldChrome({ isInvalid: Boolean(error) })}
         id={registration.name}
         type={type}
         {...registration}
@@ -239,7 +249,9 @@ function LabeledTextarea({
   return (
     <Field error={error} htmlFor={registration.name} label={label}>
       <textarea
-        className={clsx(FIELD_INPUT, 'h-auto py-2', error ? 'border-danger-7' : 'border-gray-7')}
+        aria-describedby={error ? errorId(registration.name) : undefined}
+        aria-invalid={error ? true : undefined}
+        className={fieldChrome({ isInvalid: Boolean(error), multiline: true })}
         id={registration.name}
         rows={3}
         {...registration}
