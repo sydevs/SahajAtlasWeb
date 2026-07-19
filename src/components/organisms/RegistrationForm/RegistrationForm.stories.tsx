@@ -6,8 +6,6 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { RegistrationForm } from './RegistrationForm'
 
-import { Button } from '@/components/atoms/Button'
-
 export default { title: 'Organisms' } satisfies StoryDefault
 
 const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
@@ -51,19 +49,40 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="External registration links out to the host's page — rendered by EventDetails, shown here for reference."
-      title="External"
+      description="Custom questions from the CMS render as extra fields below the standard ones. The default stories pass none, so this is the only place the question rendering is exercised."
+      title="With questions"
     >
-      <Button
-        color="primary"
-        href="https://example.com/register"
-        rel="noopener noreferrer"
-        target="_blank"
-        variant="flat"
-      >
-        Register now
-      </Button>
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={3}
+          eventTitle="Beginners Course"
+          eventUrl="https://atlas.example/e/3"
+          isOnline={false}
+          questions={['How did you hear about us?', 'Any prior experience with meditation?']}
+          upcomingDates={upcomingDates}
+        />
+      </div>
     </StorySection>
+
+    <StorySection
+      description="Submit the empty form above to see the validation state: a danger border plus error text that is wired to its field with aria-invalid + aria-describedby, so a screen reader announces it with the field rather than as a stray sentence."
+      title="Validation"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          eventId={4}
+          eventTitle="Validation demo"
+          eventUrl="https://atlas.example/e/4"
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    {/* The external-registration CTA is EventRegisterBar's, not the form's — see
+        the "External" section of the Event Details story, which renders the real
+        component rather than a stand-in button. */}
 
     <div />
   </StoryWrapper>

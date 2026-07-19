@@ -21,7 +21,7 @@ const label = (hour: number) => {
 }
 
 /** Slider — a range control (one thumb per value entry) on the brand tokens. */
-export const SliderStory: Story = () => {
+export const Default: Story = () => {
   const [range, setRange] = useState([9, 18])
   const [single, setSingle] = useState([40])
 
@@ -64,4 +64,4 @@ export const SliderStory: Story = () => {
   )
 }
 
-SliderStory.storyName = 'Slider'
+Default.storyName = 'Slider'

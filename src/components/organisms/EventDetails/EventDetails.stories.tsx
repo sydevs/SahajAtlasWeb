@@ -64,6 +64,14 @@ const inactive: Event = {
   inactive: true,
 }
 
+const external: Event = {
+  ...mockEvent,
+  id: 109,
+  title: 'Regional Retreat (external booking)',
+  registrationMode: 'external',
+  externalRegistrationUrl: 'https://example.org/register',
+}
+
 /**
  * EventDetails — the redesigned event panel (issue #52): facts are plain text,
  * Register is the single filled CTA, secondary actions are labelled tonal
@@ -108,11 +116,24 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The Register slot on its own, as the mobile sheet's sticky footer renders it."
+      description="Registration handled off-site: the CTA becomes an external link out to the host's own page rather than opening our drawer."
+      title="External registration"
+    >
+      <Panel event={external} />
+    </StorySection>
+
+    <StorySection
+      description="The Register slot on its own, as the mobile sheet's sticky footer renders it. `registerInline={false}` is what the panel passes when the bar is pinned to the footer instead."
       title="Register bar"
     >
-      <div className="max-w-md border border-divider p-3">
-        <EventRegisterBar basePath="/demo/101" event={mockEvent} />
+      <div className="flex max-w-md flex-col gap-4">
+        <div className="border border-divider p-3">
+          <EventRegisterBar basePath="/demo/101" event={mockEvent} />
+        </div>
+        <div className="border border-divider">
+          <EventHeader event={mockEvent} />
+          <EventDetails basePath="/demo/101" event={mockEvent} registerInline={false} />
+        </div>
       </div>
     </StorySection>
 

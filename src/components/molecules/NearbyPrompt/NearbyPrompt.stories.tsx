@@ -25,6 +25,8 @@ export const Default: Story = () => (
         <NearbyPrompt city="San Cristóbal de La Laguna" onAccept={() => {}} onClose={() => {}} />
       </div>
     </StorySection>
+
+    <div />
   </StoryWrapper>
 )
 

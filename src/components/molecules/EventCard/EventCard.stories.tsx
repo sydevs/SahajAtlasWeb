@@ -49,13 +49,13 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Distances align right so a result list scans as a column."
+      description="Distance reads as a faded subtext under the address. Anything under 5km is suppressed — at that range 'nearby' is more honest than a number — so the first card shows none."
       title="Distances"
     >
       <div className="max-w-md rounded-lg border border-divider overflow-hidden">
         <List>
-          <EventCard event={{ ...mockEventSlim, distance: 0.4 }} />
-          <EventCard event={{ ...mockEventSlim, id: 111, distance: 3.6 }} />
+          <EventCard event={{ ...mockEventSlim, distance: 3.6 }} />
+          <EventCard event={{ ...mockEventSlim, id: 111, distance: 6 }} />
           <EventCard event={{ ...mockEventSlim, id: 112, distance: 128 }} />
         </List>
       </div>

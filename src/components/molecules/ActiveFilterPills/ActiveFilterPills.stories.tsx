@@ -24,7 +24,7 @@ const seededSearch = `/search?${filtersToParams({
 }).toString()}`
 
 /** ActiveFilterPills — the applied filters as removable pills (one per filter type). */
-export const ActiveFilterPillsStory: Story = () => (
+export const Default: Story = () => (
   <MemoryRouter initialEntries={[seededSearch]}>
     <StoryWrapper>
       <StorySection
@@ -39,4 +39,4 @@ export const ActiveFilterPillsStory: Story = () => (
   </MemoryRouter>
 )
 
-ActiveFilterPillsStory.storyName = 'ActiveFilterPills'
+Default.storyName = 'Active Filter Pills'

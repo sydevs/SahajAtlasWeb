@@ -11,7 +11,7 @@ export default {
 } satisfies StoryDefault
 
 /** IconButton — the shared chrome for the drawer header's icon-buttons. */
-export const IconButtonStory: Story = () => (
+export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
       description="Subtle by default, full-contrast on hover — close, list-toggle, and filter render identically side by side."
@@ -34,4 +34,4 @@ export const IconButtonStory: Story = () => (
   </StoryWrapper>
 )
 
-IconButtonStory.storyName = 'IconButton'
+Default.storyName = 'IconButton'

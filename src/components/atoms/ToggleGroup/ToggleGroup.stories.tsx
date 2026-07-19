@@ -13,7 +13,7 @@ export default {
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 /** ToggleGroup — single- or multi-select; separate pills or a joined segmented bar. */
-export const ToggleGroupStory: Story = () => {
+export const Default: Story = () => {
   const [format, setFormat] = useState('any')
   const [days, setDays] = useState<string[]>(['1', '3'])
 
@@ -56,4 +56,4 @@ export const ToggleGroupStory: Story = () => {
   )
 }
 
-ToggleGroupStory.storyName = 'ToggleGroup'
+Default.storyName = 'ToggleGroup'

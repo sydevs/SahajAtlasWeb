@@ -12,8 +12,9 @@ export default { title: 'Molecules' } satisfies StoryDefault
  * ActionRow / ActionCircle — the labelled tonal-circle secondary actions under
  * an event's Register CTA. All circles carry equal weight (emphasis belongs to
  * Register); the one sanctioned `emphasized` case is Contact on an inactive
- * event, which has no Register. The row centres while everything fits and
- * scrolls with an edge fade when it overflows.
+ * event, which has no Register. The whole set always stays on ONE line: the
+ * circles share the row width equally and only the labels narrow, so the row
+ * neither wraps nor scrolls however many actions a state carries.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -55,8 +56,8 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A narrow container scrolls horizontally with an edge fade."
-      title="Overflow"
+      description="Squeezed well below the real panel width: the circles keep their touch target and the labels take the hit, wrapping to two lines rather than the row scrolling."
+      title="Narrow container"
     >
       <div className="w-52 rounded-lg border border-divider p-2">
         <ActionRow>
