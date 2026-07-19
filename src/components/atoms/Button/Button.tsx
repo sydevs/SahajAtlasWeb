@@ -27,7 +27,6 @@ const button = tv({
       md: 'h-10 px-4 text-sm',
       lg: 'h-12 px-6 text-base',
     },
-    isIconOnly: { true: 'px-0 aspect-square', false: '' },
   },
   compoundVariants: [
     // solid
@@ -41,7 +40,9 @@ const button = tv({
       variant: 'solid',
       class: 'bg-secondary-9 text-secondary-foreground hover:bg-secondary-10',
     },
-    { color: 'default', variant: 'solid', class: 'bg-gray-9 text-white hover:bg-gray-10' },
+    // gray-1 rather than a literal white so the pairing follows the ramp in dark
+    // mode too (every other cell in this matrix uses a token).
+    { color: 'default', variant: 'solid', class: 'bg-gray-9 text-gray-1 hover:bg-gray-10' },
     {
       color: 'danger',
       variant: 'solid',
@@ -111,54 +112,35 @@ const button = tv({
     color: 'default',
     variant: 'solid',
     size: 'md',
-    isIconOnly: false,
   },
 })
 
-type ButtonVariants = VariantProps<typeof button>
-
-type ButtonOwnProps = Omit<ButtonVariants, 'isIconOnly'> & {
-  isIconOnly?: boolean
+type ButtonOwnProps = VariantProps<typeof button> & {
   isLoading?: boolean
-  startContent?: ReactNode
-  endContent?: ReactNode
   children?: ReactNode
   className?: string
 }
 
-// Renders a real <button> by default, or an <a> when given an `href` (so a
-// NextUI `as={Link}` link-button becomes a styled anchor). Each arm carries its
-// own element props + keyboard semantics.
+// Renders a real <button> by default, or an <a> when given an `href`. Each arm
+// carries its own element props + keyboard semantics. `disabled` is omitted from
+// the anchor arm on purpose: an <a> has no disabled state, so accepting it would
+// typecheck while shipping a fully clickable link (the attribute is inert on an
+// anchor). A disabled link-button should render as a <button> instead.
 export type ButtonProps =
   | (ButtonOwnProps & Omit<ComponentProps<'button'>, 'color'>)
-  | (ButtonOwnProps & { href: string } & Omit<ComponentProps<'a'>, 'color'>)
+  | (ButtonOwnProps & { href: string } & Omit<ComponentProps<'a'>, 'color' | 'disabled'>)
 
 const SPINNER_SIZE = { sm: 'sm', md: 'sm', lg: 'md' } as const
 
 // forwardRef so Radix `asChild` slots (Dialog.Trigger / Dialog.Close, i.e. the
 // Modal `trigger` and ModalClose) can attach their ref to the underlying element.
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-  function Button(
-    {
-      color,
-      variant,
-      size,
-      isIconOnly,
-      isLoading = false,
-      startContent,
-      endContent,
-      children,
-      className,
-      ...props
-    },
-    ref,
-  ) {
-    const classes = button({ color, variant, size, isIconOnly, className })
+  function Button({ color, variant, size, isLoading = false, children, className, ...props }, ref) {
+    const classes = button({ color, variant, size, className })
     const content = (
       <>
-        {isLoading ? <Spinner color="current" size={SPINNER_SIZE[size ?? 'md']} /> : startContent}
+        {isLoading && <Spinner decorative color="current" size={SPINNER_SIZE[size ?? 'md']} />}
         {children}
-        {!isLoading && endContent}
       </>
     )
 
@@ -168,6 +150,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       return (
         <a
           ref={ref as Ref<HTMLAnchorElement>}
+          aria-busy={isLoading || undefined}
           className={classes}
           href={href}
           rel={rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined)}

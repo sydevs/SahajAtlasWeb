@@ -100,7 +100,8 @@
     "register_now": "Cadastre-se agora",
     "starting_date": "Data de início",
     "submit": "Cadastre-se",
-    "thank_you": "Obrigado por se registrar!"
+    "thank_you": "Obrigado por se registrar!",
+    "error_title": "Algo deu errado"
   },
   "timing": {
     "converted_to": "Convertido para %{timezone} (%{offset})"

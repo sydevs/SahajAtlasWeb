@@ -60,7 +60,12 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection title="Without icon">
-      <Alert hideIcon color="primary" description="An inline notice with no icon." title="Note" />
+      <Alert
+        color="primary"
+        description="An inline notice with no icon."
+        icon={false}
+        title="Note"
+      />
     </StorySection>
 
     <StorySection

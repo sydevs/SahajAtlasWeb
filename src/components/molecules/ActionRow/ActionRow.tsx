@@ -36,11 +36,13 @@ export type ActionCircleProps = {
   label: string
   /** The sanctioned exception: Contact on an inactive event (no Register). */
   emphasized?: boolean
-  onClick?: () => void
   /** Renders an anchor instead of a button (tel:, maps, calendar links). */
   href?: string
   /** Open `href` in a new tab with the safe rel. */
-  external?: boolean
+  isExternal?: boolean
+  // `onClick` deliberately comes from HTMLAttributes below rather than being
+  // re-declared here: a narrower `() => void` would intersect with the DOM
+  // handler type and leave a signature no handler taking the event can satisfy.
 } & React.HTMLAttributes<HTMLElement>
 
 /** One labelled tonal-circle action. Forwarded ref targets the interactive
@@ -48,7 +50,7 @@ export type ActionCircleProps = {
  *  spread onto it LAST so a popover trigger's interaction/aria props
  *  (floating-ui `getReferenceProps()`) reach the element intact. */
 export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function ActionCircle(
-  { icon, label, emphasized = false, onClick, href, external = false, ...rest },
+  { icon, label, emphasized = false, onClick, href, isExternal = false, ...rest },
   ref,
 ) {
   const styles = actionCircle({ emphasized })
@@ -66,8 +68,8 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
         ref={ref as React.Ref<HTMLAnchorElement>}
         className={`group ${styles.base()}`}
         href={href}
-        rel={external ? 'noopener noreferrer' : undefined}
-        target={external ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+        target={isExternal ? '_blank' : undefined}
         onClick={onClick}
         {...rest}
       >

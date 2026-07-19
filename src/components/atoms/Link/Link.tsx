@@ -7,16 +7,16 @@ import { AnchorIcon } from '@/components/atoms/Icons'
 // A styled link replacing NextUI's Link. Internal targets route through
 // react-router's <Link> (client-side, hash-aware); external ones (or any
 // target="_blank") render a plain <a> with a safe rel. An explicit `color` uses
-// Tailwind's `!` modifier so it beats the global `a { color: inherit !important }`
-// rule; `default` (no colour) falls through to that rule and inherits the
-// surrounding text colour.
+// Plain colour utilities: the global `a { color: inherit !important }` reset that
+// once forced `!` modifiers here has been removed (it leaked into host pages), so
+// each variant now just sets its colour directly.
 const link = tv({
   base: 'inline-flex items-center gap-1 outline-none transition-opacity hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus rounded-sm',
   variants: {
     color: {
-      foreground: '!text-foreground',
-      primary: '!text-primary',
-      danger: '!text-danger',
+      foreground: 'text-foreground',
+      primary: 'text-primary',
+      danger: 'text-danger',
       default: 'text-inherit',
     },
     size: {

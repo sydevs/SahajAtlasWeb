@@ -128,7 +128,8 @@ export function RegistrationForm({
               className="mt-4"
               color="secondary"
               description={mutation.error.message}
-              title="Something went wrong"
+              role="alert"
+              title={t('registration.error_title')}
             />
           )}
         </>
@@ -136,10 +137,10 @@ export function RegistrationForm({
 
       {isOnline && (
         <Alert
-          hideIcon
           className="mt-3"
           color="primary"
           description={t('registration.online_notice')}
+          icon={false}
           title={t('registration.online_notice_title')}
           variant="bordered"
         />

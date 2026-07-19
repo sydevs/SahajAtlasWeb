@@ -72,24 +72,26 @@ const DefaultIcon = () => (
   </svg>
 )
 
+/** See `ChipCloseProps` — the dismiss button and its label travel together. */
+type AlertCloseProps =
+  | { onClose: () => void; closeLabel: string }
+  | { onClose?: never; closeLabel?: never }
+
 export type AlertProps = VariantProps<typeof alert> & {
   title?: ReactNode
   description?: ReactNode
-  icon?: ReactNode
-  hideIcon?: boolean
-  /** When set, renders a trailing dismiss button that calls this on click. */
-  onClose?: () => void
-  /** Accessible label for the dismiss button (required for a meaningful `onClose`). */
-  closeLabel?: string
+  /** Custom leading icon, or `false` to render none. */
+  icon?: ReactNode | false
   /**
-   * Live-region role: `'alert'` (assertive — the default, for status/error banners)
-   * or `'status'` (polite — for a passive suggestion that shouldn't interrupt a
-   * screen reader).
+   * Live-region role: `'status'` (polite — the default) or `'alert'` (assertive).
+   * Most alerts are passive — empty-result notices, suggestions — and assertive
+   * announcements interrupt a screen reader mid-sentence, so `'alert'` is opt-in
+   * for genuine errors.
    */
   role?: 'alert' | 'status'
   children?: ReactNode
   className?: string
-}
+} & AlertCloseProps
 
 export function Alert({
   color,
@@ -99,10 +101,9 @@ export function Alert({
   title,
   description,
   icon,
-  hideIcon,
   onClose,
-  closeLabel = 'Close',
-  role = 'alert',
+  closeLabel,
+  role = 'status',
   children,
   className,
 }: AlertProps) {
@@ -114,7 +115,7 @@ export function Alert({
 
   return (
     <div className={slots.base({ className })} role={role}>
-      {!hideIcon && <span className={slots.iconWrapper()}>{icon ?? <DefaultIcon />}</span>}
+      {icon !== false && <span className={slots.iconWrapper()}>{icon ?? <DefaultIcon />}</span>}
       <div className={slots.content()}>
         {title && <div className={slots.title()}>{title}</div>}
         {description && <div className={slots.description()}>{description}</div>}

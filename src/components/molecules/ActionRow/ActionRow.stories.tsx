@@ -24,7 +24,7 @@ export const Default: Story = () => (
       <div className="max-w-md">
         <ActionRow>
           <ActionCircle
-            external
+            isExternal
             href="https://maps.example"
             icon={<DirectionsIcon />}
             label="Directions"
@@ -44,7 +44,7 @@ export const Default: Story = () => (
         <ActionRow>
           <ActionCircle emphasized href="tel:+441234567890" icon={<CallIcon />} label="Contact" />
           <ActionCircle
-            external
+            isExternal
             href="https://maps.example"
             icon={<DirectionsIcon />}
             label="Directions"
@@ -61,7 +61,7 @@ export const Default: Story = () => (
       <div className="w-52 rounded-lg border border-divider p-2">
         <ActionRow>
           <ActionCircle
-            external
+            isExternal
             href="https://maps.example"
             icon={<DirectionsIcon />}
             label="Directions"

@@ -11,7 +11,7 @@ const slider = tv({
     track: 'relative h-1.5 grow rounded-full bg-gray-6',
     range: 'absolute h-full rounded-full bg-primary-9',
     thumb:
-      'block h-4 w-4 rounded-full border border-gray-7 bg-white shadow outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus',
+      'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus',
   },
 })
 

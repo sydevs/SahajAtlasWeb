@@ -100,7 +100,8 @@
     "register_now": "Registreer nu",
     "starting_date": "Startdatum",
     "submit": "Register",
-    "thank_you": "Bedankt voor uw registratie!"
+    "thank_you": "Bedankt voor uw registratie!",
+    "error_title": "Er ging iets mis"
   },
   "timing": {
     "converted_to": "Omgerekend naar %{timezone} (%{offset})"

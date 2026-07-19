@@ -49,15 +49,21 @@ const chip = tv({
   },
 })
 
+/**
+ * The close button and its accessible label travel together: an icon-only button
+ * with no label is invisible to a screen reader, and `jsx-a11y` can't catch it
+ * (the `aria-label` attribute is present, just `undefined`). Modelling the pair
+ * as a union makes the compiler enforce what a doc-comment can only assert.
+ */
+type ChipCloseProps =
+  | { onClose: () => void; closeLabel: string }
+  | { onClose?: never; closeLabel?: never }
+
 export type ChipProps = VariantProps<typeof chip> & {
   children: React.ReactNode
   icon?: React.ReactElement<IconSvgProps>
-  /** When provided, renders a trailing remove/close button. */
-  onClose?: () => void
-  /** Accessible label for the close button (required when `onClose` is set). */
-  closeLabel?: string
   className?: string
-}
+} & ChipCloseProps
 
 export function Chip({
   children,

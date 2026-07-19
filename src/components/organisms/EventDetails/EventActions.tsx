@@ -119,7 +119,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
           ? [
               <ActionCircle
                 key="directions"
-                external
+                isExternal
                 href={mapsUrl}
                 icon={<DirectionsIcon />}
                 label={t('actions.directions')}
@@ -170,7 +170,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
           ? [
               <ActionCircle
                 key="website"
-                external
+                isExternal
                 href={event.website}
                 icon={<WebsiteIcon />}
                 label={t('actions.website')}

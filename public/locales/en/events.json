@@ -106,7 +106,8 @@
     "register_now": "Register Now",
     "starting_date": "Starting date",
     "submit": "Register",
-    "thank_you": "Thank you for registering!"
+    "thank_you": "Thank you for registering!",
+    "error_title": "Something went wrong"
   },
   "timing": {
     "converted_to": "Converted to %{timezone} (%{offset})"
