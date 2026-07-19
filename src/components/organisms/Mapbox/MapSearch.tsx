@@ -9,11 +9,12 @@ import { controlTheme } from './themes'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapbox } from '@/hooks/use-mapbox'
 
-interface SearchProps {
+export interface MapSearchProps {
+  /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
 }
 
-export function MapSearch({ onSelect }: SearchProps) {
+export function MapSearch({ onSelect }: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()

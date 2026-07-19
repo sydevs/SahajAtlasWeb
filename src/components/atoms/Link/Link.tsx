@@ -19,11 +19,8 @@ const link = tv({
       danger: 'text-danger',
       default: 'text-inherit',
     },
-    size: {
-      sm: 'text-sm',
-      md: 'text-md',
-      lg: 'text-lg',
-    },
+    // No `size` variant: a link sizes with the text it sits in. Callers that need
+    // a different size set it on the surrounding block.
   },
   defaultVariants: {
     color: 'default',
@@ -39,29 +36,23 @@ export type LinkProps = Omit<ComponentProps<'a'>, 'color' | 'href'> &
     isExternal?: boolean
     /** Show a trailing "new tab" glyph (external links). */
     showAnchorIcon?: boolean
-    /** Override the trailing glyph. */
-    anchorIcon?: ReactNode
     children?: ReactNode
   }
 
 export function Link({
   href,
   color,
-  size,
   isExternal,
   showAnchorIcon,
-  anchorIcon,
   className,
   target,
   rel,
   children,
   ...props
 }: LinkProps) {
-  const classes = link({ color, size, className })
+  const classes = link({ color, className })
   const external = isExternal || target === '_blank' || /^https?:|^mailto:|^tel:/.test(href)
-  const icon = showAnchorIcon
-    ? (anchorIcon ?? <AnchorIcon className="inline-block h-[1em] w-[1em]" />)
-    : null
+  const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
 
   if (external) {
     return (

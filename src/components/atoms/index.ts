@@ -31,8 +31,8 @@ export {
 } from './Drawer'
 export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
 
-export { Dropdown, DropdownItem } from './Dropdown'
-export type { DropdownProps, DropdownItemProps } from './Dropdown'
+export { Dropdown } from './Dropdown'
+export type { DropdownProps } from './Dropdown'
 
 export { Link } from './Link'
 export type { LinkProps } from './Link'

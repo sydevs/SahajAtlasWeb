@@ -141,6 +141,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 )}
               >
                 <Link
+                  isExternal
                   className="text-sm font-medium text-foreground"
                   href={buildGoogleCalendarUrl({
                     id: event.id,
@@ -149,9 +150,6 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                     location: whereLine || null,
                     url: event.webUrl,
                   })}
-                  isExternal={true}
-                  rel="noreferrer noopener"
-                  target="_blank"
                 >
                   Google Calendar
                 </Link>
