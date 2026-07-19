@@ -107,7 +107,7 @@ function PeekStrip({
     // Match the drawer atom's left variant: flush + square on tablet, floating +
     // rounded at ≥lg — geometry lives in these classes, not inline styles.
     className =
-      'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:left-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -279,7 +279,7 @@ export function DrawerStack() {
               but at the bottom, clear of the header; side="top" opens the menu upward
               from there. z-50 so it sits above the fill-the-container drawer content
               (z-40, and portaled in last) — otherwise a list row intercepts its clicks. */}
-          <SettingsMenu className="absolute bottom-3 left-3 z-50" side="top" />
+          <SettingsMenu className="absolute bottom-3 start-3 z-50" side="top" />
         </div>
       </DrawerControlContext.Provider>
     )
@@ -324,12 +324,14 @@ export function DrawerStack() {
         createPortal(
           <>
             {strips}
-            {/* Top-left, offset past the left drawer on ≥md (flush left-0 on tablet,
-                floating to left-4 at ≥lg) so it never overlaps the panel. On mobile
+            {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
+                floating in by 4 at ≥lg) so it never overlaps the panel. Logical
+                (`start-*`) rather than `left-*`: under RTL the drawer flips to
+                the right edge, and the cog has to travel with it. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
             {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
                 bump the cog to top-4 to line up with the drawer's top edge. */}
-            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+            <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
           </>,
           target,
         )}

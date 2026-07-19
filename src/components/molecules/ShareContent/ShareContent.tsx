@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { tv } from 'tailwind-variants'
 
 import { Link } from '@/components/atoms/Link'
 import {
@@ -9,11 +11,18 @@ import {
   FlipboardIcon,
 } from '@/components/atoms/Icons'
 
+const copyField = tv({
+  base: 'w-full select-all truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors',
+  variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
+  defaultVariants: { copied: false },
+})
+
 // Click-to-copy value field — the custom replacement for NextUI's Snippet
 // (which was rendered with hideSymbol, i.e. select-to-copy). Copies on click
 // with a brief tint flash; the text stays selectable as a fallback. Exported
 // for the event panel's desktop contact popover (issue #52).
 export function CopyField({ value }: { value: string }) {
+  const { t } = useTranslation('common')
   const [copied, setCopied] = useState(false)
 
   const copy = () => {
@@ -27,17 +36,24 @@ export function CopyField({ value }: { value: string }) {
   }
 
   return (
-    <button
-      aria-label="Copy link"
-      className={`w-full select-all truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors ${
-        copied ? 'bg-secondary-5' : 'bg-secondary-3'
-      }`}
-      title={value}
-      type="button"
-      onClick={copy}
-    >
-      {value}
-    </button>
+    <div className="flex flex-col gap-1">
+      <button
+        aria-label={t('share.copy_link')}
+        className={copyField({ copied })}
+        title={value}
+        type="button"
+        onClick={copy}
+      >
+        {value}
+      </button>
+      {/* Success was previously signalled ONLY by a secondary-3 → secondary-5
+          tint — a ~1.15:1 shift that a screen reader can't see at all and that
+          low-vision/monochrome users won't perceive either. The live region
+          announces it and the text confirms it. */}
+      <span aria-live="polite" className="h-4 text-xs text-secondary-11">
+        {copied ? t('share.copied') : ''}
+      </span>
+    </div>
   )
 }
 

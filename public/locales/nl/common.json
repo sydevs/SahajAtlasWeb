@@ -66,5 +66,9 @@
   "nearby_prompt": {
     "title": "Op zoek naar lessen in de buurt van %{city}?",
     "dismiss": "Sluiten"
+  },
+  "share": {
+    "copy_link": "Link kopiëren",
+    "copied": "Gekopieerd"
   }
 }

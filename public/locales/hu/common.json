@@ -66,5 +66,9 @@
   "nearby_prompt": {
     "title": "Órákat keresel %{city} közelében?",
     "dismiss": "Elrejtés"
+  },
+  "share": {
+    "copy_link": "Link másolása",
+    "copied": "Másolva"
   }
 }

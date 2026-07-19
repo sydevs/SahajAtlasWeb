@@ -66,5 +66,9 @@
   "nearby_prompt": {
     "title": "Vous cherchez des cours près de %{city} ?",
     "dismiss": "Ignorer"
+  },
+  "share": {
+    "copy_link": "Copier le lien",
+    "copied": "Copié"
   }
 }

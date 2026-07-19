@@ -15,6 +15,7 @@ export const UpArrowIcon: React.FC<IconSvgProps> = ({ ...props }) => (
 
 export const RightArrowIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
+    flipRtl
     paths={[
       'M11 10l-3.141-3.42c-0.268-0.27-0.268-0.707 0-0.978 0.268-0.27 0.701-0.27 0.969 0l3.83 3.908c0.268 0.271 0.268 0.709 0 0.979l-3.83 3.908c-0.267 0.272-0.701 0.27-0.969 0s-0.268-0.707 0-0.978l3.141-3.419z',
     ]}
@@ -83,10 +84,10 @@ export const ListIcon: React.FC<IconSvgProps> = ({ ...props }) => (
 )
 
 // Directional (the arrow points along the reading direction) — mirrors under
-// RTL via the built-in `rtl:` class; see the mirroring policy in index.tsx.
+// RTL via BaseIcon's `flipRtl`; see the mirroring policy in index.tsx.
 export const DirectionsIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
-    className="rtl:-scale-x-100"
+    flipRtl
     paths={[
       'M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z',
     ]}

@@ -35,10 +35,13 @@ const drawer = tv({
       // Flush to the edge on tablet (md–lg); at ≥lg it floats with a margin so the
       // map shows around it, rounded to match the stacked ancestor panels. The
       // divider border matches those panels too (`full` cancels the float map-less).
-      // TODO(rtl, #52 WS8): the desktop panel is physically anchored left (vaul
-      // `direction` + these inset classes). Under an RTL locale it should anchor
-      // right — deferred until an RTL locale actually ships; DrawerStack picks
-      // the direction, so the flip belongs there + here together.
+      // TODO(rtl, #52 WS8): the remaining RTL gap is vaul's own `direction`
+      // prop, which is physically left/right and drives the drag axis + enter
+      // animation; these inset classes can't fix that alone. DrawerStack picks
+      // the direction, so the flip belongs there + here together, deferred until
+      // an RTL locale actually ships. Everything else is already logical: the
+      // stack's panel/cog positioning uses `start-*`, and directional icons
+      // mirror via BaseIcon's `flipRtl`.
       left: {
         content:
           'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
