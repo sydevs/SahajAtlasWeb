@@ -1,61 +1,71 @@
-# Vite & NextUI Template
+# Sahaj Atlas
 
-This is a template for creating applications using Vite and NextUI (v2).
+A map-based atlas of Sahaja Yoga events and venues, shipped as an embeddable web
+component. Host pages drop in `<sahaj-atlas>` with an API key and get a full
+Mapbox experience with a country → region → area → venue → event hierarchy.
 
-[Try it on CodeSandbox](https://githubbox.com/nextui-org/vite-template)
-
-## Technologies Used
-
-- [Vite](https://vitejs.dev/guide/)
-- [NextUI](https://nextui.org)
-- [Tailwind CSS](https://tailwindcss.com)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org)
-- [Framer Motion](https://www.framer.com/motion)
-
-## How to Use
-
-To clone the project, run the following command:
-
-```bash
-git clone https://github.com/nextui-org/vite-template.git
+```html
+<script type="module" src="https://sahajatlas.pages.dev/sahaj-atlas.js"></script>
+<sahaj-atlas apikey="…"></sahaj-atlas>
 ```
 
-### Install dependencies
+The same build also runs standalone in dev (`index.html` → `src/main.tsx`); the
+embeddable entry is `src/Widget.tsx`, demoed in `demo.html`.
 
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
+## Stack
+
+- [Vite](https://vitejs.dev/guide/) (rolldown) + React 18 + TypeScript (strict)
+- [Radix UI](https://www.radix-ui.com) primitives + [Tailwind CSS](https://tailwindcss.com)
+  and [Tailwind Variants](https://tailwind-variants.org) for the component layer
+- [Mapbox GL](https://docs.mapbox.com/mapbox-gl-js/) via `react-map-gl`, with `@turf/*` for geometry
+- [TanStack Query](https://tanstack.com/query) + [zod](https://zod.dev) over
+  [`@payloadcms/sdk`](https://payloadcms.com) against SahajCloud
+- [vaul](https://vaul.emilkowal.ski) for the drawer stack, `react-router` (HashRouter) for routing
+- [i18next](https://www.i18next.com) with locale JSON served from `public/locales/`
+
+## Getting started
+
+The package manager is **pnpm** (a repo hook blocks npm/yarn):
 
 ```bash
-npm install
+pnpm install
+pnpm dev          # http://localhost:5173
 ```
 
-### Run the development server
+Copy `.env` to `.env.local` and fill in the secrets you need — at minimum a
+Mapbox token and a SahajCloud API key. See
+[`.claude/docs/environment.md`](.claude/docs/environment.md) for the full list.
+
+## Commands
 
 ```bash
-npm run dev
-```
-
-### Setup pnpm (optional)
-
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
-
-```bash
-public-hoist-pattern[]=*@nextui-org/*
-```
-
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
-
-### Testing
-
-```bash
-pnpm test         # fast unit lane (Vitest, watch)
-pnpm test:run     # unit lane, one-shot (CI + pre-PR gate)
+pnpm dev          # Vite dev server
+pnpm build        # typecheck + production build → dist/
+pnpm preview      # serve the production build
+pnpm typecheck    # tsc --noEmit (app + tests/scripts)
+pnpm lint         # eslint, fails on any warning (CI gate)
+pnpm lint:fix     # eslint --fix + Prettier
+pnpm test         # vitest watch (fast unit lane)
+pnpm test:run     # vitest run (CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
+pnpm ladle        # component previews → http://localhost:61000
+pnpm ladle:build  # static Ladle build (CI gate)
 ```
 
-The unit lane is node-only and co-located (`src/**/*.test.ts(x)`). See
-[`.claude/rules/tests.md`](.claude/rules/tests.md) for the testing strategy.
+The unit lane is node-only and co-located (`src/**/*.test.ts(x)`); components are
+asserted through `renderToStaticMarkup` rather than jsdom. See
+[`.claude/rules/tests.md`](.claude/rules/tests.md).
 
-## License
+## Documentation
 
-Licensed under the [MIT license](https://github.com/nextui-org/vite-template/blob/main/LICENSE).
+- [`CLAUDE.md`](CLAUDE.md) — developer guide: layout, conventions, PR workflow
+- [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
+- [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
+- [`.claude/rules/`](.claude/rules/) — path-scoped guidance per subsystem
+- [`.claude/docs/`](.claude/docs/) — architecture, environment, MCP setup
+
+## Deployment
+
+Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app) and
+`sahajatlas-design` (the Ladle playground). See the deployment section of
+[`CLAUDE.md`](CLAUDE.md).

@@ -92,7 +92,7 @@ export const LexicalDocumentSchema = z
   .passthrough()
 export type LexicalDocument = z.infer<typeof LexicalDocumentSchema>
 
-// CMS-authored URLs that get rendered into an `<a href>` (NextUI Link, outside
+// CMS-authored URLs that get rendered into an `<a href>` (our Link atom, outside
 // the DOMPurify path). Reject non-http(s) schemes so a `javascript:`/`data:`
 // value can't reach an href; drop the offending value rather than failing the
 // whole event read.

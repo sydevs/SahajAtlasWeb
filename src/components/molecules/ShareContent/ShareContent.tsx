@@ -17,8 +17,7 @@ const copyField = tv({
   defaultVariants: { copied: false },
 })
 
-// Click-to-copy value field — the custom replacement for NextUI's Snippet
-// (which was rendered with hideSymbol, i.e. select-to-copy). Copies on click
+// Click-to-copy value field. Copies on click
 // with a brief tint flash; the text stays selectable as a fallback. Exported
 // for the event panel's desktop contact popover (issue #52).
 export function CopyField({ value }: { value: string }) {

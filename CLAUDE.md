@@ -27,7 +27,7 @@ event hierarchy.
 | Concern        | Choice |
 | -------------- | ------ |
 | Build tool     | Vite 5 (`vite.config.ts`), SPA, `type: module` |
-| UI             | React 18, **NextUI v2** (`@nextui-org/react`), Tailwind 3 + **tailwind-variants** |
+| UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
 | Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash |
 | Data           | **TanStack Query** + `axios` (`src/config/api/`), **zod**-validated responses |
@@ -81,7 +81,7 @@ src/
   Widget.tsx          # Web-component entry — defines <sahaj-atlas> (map prop), wraps <App>
   App.tsx             # Providers + client bootstrap; renders the map (or not) + DrawerStack
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
-  providers.tsx       # NextUI + React Query + Helmet providers
+  providers.tsx       # React Query + Helmet + theme providers
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
     atoms/            # Primitives: Drawer/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
     molecules/        # Compositions: Toolbar/, List/, RegionCard/, EventCard/, EventTime|Share|Images|Soon/, EventMetadata/, Fallbacks/
@@ -121,7 +121,7 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   `map=false` — so no view branches on whether a map exists. See `.claude/rules/mapbox.md`.
 - **Components**: atomic tiers (`atoms/molecules/organisms`), **PascalCase
   folder-per-component** (`Chip/Chip.tsx` + stories + `index.ts`), named exports,
-  barrel per tier; prefer NextUI built-ins + `tailwind-variants`
+  barrel per tier; prefer the existing atoms + Radix primitives + `tailwind-variants`
   over hand-rolled styled components. See `DESIGN_SYSTEM.md`, `STORYBOOK.md`, and
   `.claude/rules/components.md`. Preview components with `pnpm ladle`.
 - **Tests**: node-only Vitest, co-located `src/**/*.test.ts(x)`; assert

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
  * Unified StorySection component for consistent story structure in Ladle.
  * Ported from WeMeditateWeb for parity — see STORYBOOK.md.
  *
- * Chrome uses NextUI semantic tokens so it stays legible in both themes; the
+ * Chrome uses the semantic tokens so it stays legible in both themes; the
  * canvas theme is driven by Ladle's own toggle (see .ladle/components.tsx).
  *
  * @param title - Section title (renders as h2 for sections, p for subsections)

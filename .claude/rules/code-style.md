@@ -46,7 +46,7 @@ a file manually.
   `config/i18n`) use default exports.
 - **Props types**: name them `<Component>Props` (e.g. `EventItemProps`); fall back
   to a local `Props` only when that name would clash with an imported type (e.g.
-  `Chip` composes NextUI's `ChipProps`).
+  `Chip` composes a Radix primitive's props).
 - zod schemas are `XSchema`; the inferred type is `X` (see `src/types/`).
 
 ## TypeScript
@@ -69,7 +69,7 @@ a file manually.
 
 - Don't use emojis as UI icons. This repo has its own SVG icon components under
   `src/components/atoms/icons/` (`actions`, `socials`, `symbols`, …) — reuse those.
-  NextUI components also accept icon slots.
+  Radix primitives and our atoms accept icon slots.
 
 ## After code changes
 
