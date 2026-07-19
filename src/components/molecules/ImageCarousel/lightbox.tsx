@@ -1,3 +1,5 @@
+import type { Slide } from './ImageCarousel'
+
 import YARLightbox from 'yet-another-react-lightbox'
 import Captions from 'yet-another-react-lightbox/plugins/captions'
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
@@ -25,7 +27,7 @@ export function Lightbox({
   index,
   onClose,
 }: {
-  slides: { src: string; alt?: string; caption?: string }[]
+  slides: Slide[]
   isOpen: boolean
   index: number
   onClose: () => void

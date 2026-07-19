@@ -49,7 +49,7 @@ export const Default: Story = () => {
         snapPoints={isBottom ? SNAP_POINTS : undefined}
         onOpenChange={setOpen}
       >
-        <DrawerContent ariaLabel="Pune">
+        <DrawerContent aria-label="Pune">
           <DrawerHeader>
             <h2 className="text-lg font-semibold">Pune</h2>
           </DrawerHeader>

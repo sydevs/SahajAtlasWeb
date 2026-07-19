@@ -27,7 +27,7 @@ export const Default: Story = () => {
         title="Select"
       >
         <div className="max-w-xs">
-          <Select ariaLabel="Class time" value={value} onValueChange={setValue}>
+          <Select aria-label="Class time" value={value} onValueChange={setValue}>
             {options.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}

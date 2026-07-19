@@ -7,9 +7,9 @@ export type NearbyPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
   city: string
   /** Accept the suggestion — navigate into the distance-ranked nearby search. */
-  onSelect: () => void
+  onAccept: () => void
   /** Dismiss the suggestion for the rest of the session. */
-  onDismiss: () => void
+  onClose: () => void
 }
 
 /**
@@ -21,7 +21,7 @@ export type NearbyPromptProps = {
  * "your location". Presentational only — the IP lookup, session-scoped dismissal,
  * and navigation live in `NearbySuggestion` (src/views/shared.tsx).
  */
-export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
+export function NearbyPrompt({ city, onAccept, onClose }: NearbyPromptProps) {
   const { t } = useTranslation('common')
 
   // `px-4` matches the drawer header's horizontal padding so the prompt's icon/text
@@ -38,12 +38,12 @@ export function NearbyPrompt({ city, onSelect, onDismiss }: NearbyPromptProps) {
         <button
           className="w-full text-start hover:underline focus:outline-none focus-visible:underline"
           type="button"
-          onClick={onSelect}
+          onClick={onAccept}
         >
           {t('nearby_prompt.title', { city })}
         </button>
       }
-      onClose={onDismiss}
+      onClose={onClose}
     />
   )
 }

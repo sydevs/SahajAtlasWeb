@@ -296,7 +296,7 @@ function RegistrationFields({
             label={t('registration.starting_date')}
           >
             <Select
-              ariaLabel={t('registration.starting_date')}
+              aria-label={t('registration.starting_date')}
               isInvalid={!!errors.startingAt}
               value={field.value as unknown as string}
               onBlur={field.onBlur}

@@ -28,7 +28,7 @@ describe('Dropdown', () => {
 
   it('takes its ARIA role from `role` so a dialog panel is announced correctly', () => {
     const html = renderToStaticMarkup(
-      <Dropdown ariaLabel="Filters" role="dialog" trigger={<span>Open</span>}>
+      <Dropdown aria-label="Filters" role="dialog" trigger={<span>Open</span>}>
         <p>Panel content</p>
       </Dropdown>,
     )

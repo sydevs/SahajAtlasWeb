@@ -26,7 +26,7 @@ export const ToggleGroupStory: Story = () => {
         <div className="max-w-xs">
           <ToggleGroup
             joined
-            ariaLabel="Format"
+            aria-label="Format"
             type="single"
             value={format}
             onValueChange={setFormat}
@@ -42,7 +42,7 @@ export const ToggleGroupStory: Story = () => {
         description="Multiple choices as separate pills (the Day-of-week filter)."
         title="Multi-select"
       >
-        <ToggleGroup ariaLabel="Days" type="multiple" value={days} onValueChange={setDays}>
+        <ToggleGroup aria-label="Days" type="multiple" value={days} onValueChange={setDays}>
           {WEEKDAYS.map((day, index) => (
             <ToggleGroupItem key={index} value={String(index + 1)}>
               {day}

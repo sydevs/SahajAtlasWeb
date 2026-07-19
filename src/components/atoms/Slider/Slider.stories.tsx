@@ -33,11 +33,11 @@ export const SliderStory: Story = () => {
       >
         <div className="flex max-w-sm flex-col gap-2">
           <Slider
-            ariaLabel={['Earliest start time', 'Latest start time']}
             max={24}
             min={0}
             minStepsBetweenThumbs={1}
             step={0.5}
+            thumbLabels={['Earliest start time', 'Latest start time']}
             value={range}
             onValueChange={setRange}
           />
@@ -49,13 +49,13 @@ export const SliderStory: Story = () => {
 
       <StorySection description="A single thumb." title="Single value">
         <div className="max-w-sm">
-          <Slider ariaLabel="Volume" value={single} onValueChange={setSingle} />
+          <Slider thumbLabels="Volume" value={single} onValueChange={setSingle} />
         </div>
       </StorySection>
 
       <StorySection description="Disabled." title="Disabled">
         <div className="max-w-sm">
-          <Slider disabled ariaLabel="Disabled" value={[30]} />
+          <Slider disabled thumbLabels="Disabled" value={[30]} />
         </div>
       </StorySection>
 

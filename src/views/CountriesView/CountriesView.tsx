@@ -83,15 +83,16 @@ export function CountriesView() {
               key={country.id}
               count={country.eventCount}
               href={country.path}
+              icon={
+                country.countryCode ? (
+                  <CircleFlag
+                    className="me-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
+                    countryCode={country.countryCode.toLocaleLowerCase()}
+                  />
+                ) : undefined
+              }
               label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
-            >
-              {country.countryCode && (
-                <CircleFlag
-                  className="me-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
-                  countryCode={country.countryCode.toLocaleLowerCase()}
-                />
-              )}
-            </RegionCard>
+            />
           ))}
         </List>
       </DrawerBody>

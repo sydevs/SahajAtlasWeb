@@ -21,10 +21,19 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 })
 
-export type EventDetailsProps = {
+/**
+ * The pair every surface in this folder takes: the event, plus the route it was
+ * reached at. Declared once here (EventDetails, EventActions and EventRegisterBar
+ * all render from the same two values and are always passed them together) so a
+ * change to the contract can't land on only two of the three.
+ */
+export type EventSurfaceProps = {
   event: Event
   /** The event's current route; register/share drawers open at `${basePath}/register|share`. */
   basePath: string
+}
+
+export type EventDetailsProps = EventSurfaceProps & {
   /** Render Register inline (panel order slot 4). The mobile map sheet passes
    *  false and mounts EventRegisterBar in the sticky drawer footer instead. */
   registerInline?: boolean

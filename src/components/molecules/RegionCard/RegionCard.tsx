@@ -7,14 +7,16 @@ export interface RegionCardProps {
   subtitle?: string | null
   count: number
   href: string
-  children?: React.ReactNode
+  /** Leading glyph before the label. Named (not `children`) because its position
+   *  is load-bearing — it renders before the label, not as body content. */
+  icon?: React.ReactNode
 }
 
-export function RegionCard({ label, subtitle, count, href, children }: RegionCardProps) {
+export function RegionCard({ label, subtitle, count, href, icon }: RegionCardProps) {
   return (
     <Link className={listRow()} href={href}>
       <li className="py-4 flex flex-row items-center font-semibold">
-        {children}
+        {icon}
         <div className="text-lg flex-grow">
           <div>{label}</div>
           {subtitle && <div className="text-md font-light mt-0.5">{subtitle}</div>}

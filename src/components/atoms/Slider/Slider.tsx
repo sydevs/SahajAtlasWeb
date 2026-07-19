@@ -26,8 +26,9 @@ export type SliderProps = {
   /** Minimum gap (in steps) the two thumbs must keep between them. */
   minStepsBetweenThumbs?: number
   disabled?: boolean
-  /** Accessible label per thumb — a single string labels every thumb. */
-  ariaLabel?: string | string[]
+  /** Accessible label per thumb — a single string labels every thumb. Not a DOM
+   *  `aria-label`: it fans out to each thumb, so it keeps a distinct name. */
+  thumbLabels?: string | string[]
   className?: string
 }
 
@@ -41,13 +42,14 @@ export function Slider({
   step = 1,
   minStepsBetweenThumbs,
   disabled,
-  ariaLabel,
+  thumbLabels,
   className,
 }: SliderProps) {
   const { root, track, range, thumb } = slider()
   // One thumb per value entry; falls back to a single thumb at the minimum.
   const thumbs = value ?? defaultValue ?? [min]
-  const labelFor = (index: number) => (Array.isArray(ariaLabel) ? ariaLabel[index] : ariaLabel)
+  const labelFor = (index: number) =>
+    Array.isArray(thumbLabels) ? thumbLabels[index] : thumbLabels
 
   return (
     <RadixSlider.Root

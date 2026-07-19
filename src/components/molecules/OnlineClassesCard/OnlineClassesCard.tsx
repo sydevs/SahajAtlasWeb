@@ -16,8 +16,11 @@ export function OnlineClassesCard({ count, href }: OnlineClassesCardProps) {
   const { t } = useTranslation('common')
 
   return (
-    <RegionCard count={count} href={href} label={t('online_classes')}>
-      <MonitorIcon className="me-3 shrink-0 text-2xl" />
-    </RegionCard>
+    <RegionCard
+      count={count}
+      href={href}
+      icon={<MonitorIcon className="me-3 shrink-0 text-2xl" />}
+      label={t('online_classes')}
+    />
   )
 }

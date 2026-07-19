@@ -1,4 +1,5 @@
 import type { EventDisplay } from '@/lib/shape'
+import type { EventSurfaceProps } from './EventDetails'
 
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -41,10 +42,7 @@ function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) 
   )
 }
 
-export type EventRegisterBarProps = {
-  event: Event
-  basePath: string
-}
+export type EventRegisterBarProps = EventSurfaceProps
 
 /** Whether the register slot renders anything for this event — the sticky
  *  mobile footer uses this so it never pins an empty bar. Inactive events have

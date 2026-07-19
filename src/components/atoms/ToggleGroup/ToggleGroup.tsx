@@ -31,7 +31,7 @@ const ToggleGroupContext = createContext<{ joined: boolean }>({ joined: false })
 
 type ToggleGroupBaseProps = {
   disabled?: boolean
-  ariaLabel?: string
+  'aria-label'?: string
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
   className?: string
@@ -58,7 +58,7 @@ export type ToggleGroupProps = ToggleGroupBaseProps &
 
 export function ToggleGroup({
   disabled,
-  ariaLabel,
+  'aria-label': ariaLabel,
   joined = false,
   className,
   children,
@@ -85,7 +85,7 @@ export function ToggleGroup({
 export type ToggleGroupItemProps = {
   value: string
   disabled?: boolean
-  ariaLabel?: string
+  'aria-label'?: string
   className?: string
   children: ReactNode
 }
@@ -93,7 +93,7 @@ export type ToggleGroupItemProps = {
 export function ToggleGroupItem({
   value,
   disabled,
-  ariaLabel,
+  'aria-label': ariaLabel,
   className,
   children,
 }: ToggleGroupItemProps) {

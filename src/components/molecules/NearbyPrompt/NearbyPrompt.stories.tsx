@@ -21,8 +21,8 @@ export const Default: Story = () => (
       title="Nearby suggestion"
     >
       <div className="flex max-w-sm flex-col gap-4">
-        <NearbyPrompt city="Paris" onDismiss={() => {}} onSelect={() => {}} />
-        <NearbyPrompt city="San Cristóbal de La Laguna" onDismiss={() => {}} onSelect={() => {}} />
+        <NearbyPrompt city="Paris" onAccept={() => {}} onClose={() => {}} />
+        <NearbyPrompt city="San Cristóbal de La Laguna" onAccept={() => {}} onClose={() => {}} />
       </div>
     </StorySection>
   </StoryWrapper>

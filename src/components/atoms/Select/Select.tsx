@@ -35,7 +35,7 @@ export type SelectProps = {
   name?: string
   disabled?: boolean
   placeholder?: string
-  ariaLabel?: string
+  'aria-label'?: string
   isInvalid?: boolean
   children: ReactNode
   className?: string
@@ -49,7 +49,7 @@ export function Select({
   name,
   disabled,
   placeholder,
-  ariaLabel,
+  'aria-label': ariaLabel,
   isInvalid,
   children,
   className,

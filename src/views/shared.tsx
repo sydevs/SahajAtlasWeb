@@ -365,5 +365,5 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
   // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
   if (!ipLocation || !show) return null
 
-  return <NearbyPrompt city={ipLocation.city} onDismiss={handleDismiss} onSelect={handleSelect} />
+  return <NearbyPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
 }

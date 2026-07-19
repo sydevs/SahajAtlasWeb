@@ -73,7 +73,7 @@ export const Default: Story = () => (
     >
       <div className="flex flex-wrap gap-4">
         <Dropdown
-          ariaLabel="Filters"
+          aria-label="Filters"
           role="dialog"
           trigger={<span className={triggerClass}>role=&quot;dialog&quot;</span>}
         >
@@ -90,7 +90,7 @@ export const Default: Story = () => (
         <span className="text-sm">Filter</span>
         <Dropdown
           align="end"
-          ariaLabel="Countries"
+          aria-label="Countries"
           role="dialog"
           trigger={
             <span className={triggerClass}>

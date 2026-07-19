@@ -13,7 +13,7 @@ import { overlayContainer } from '@/lib/overlay'
 // DrawerStack renders a SINGLE drawer holding the active (top) view; parent views
 // are simulated as static peek cards behind it, not real nested drawers. Direction
 // is left at ≥md, bottom on mobile; `snapPoints` are the mobile peek/third/full
-// ladder. Map-less, the drawer is `contained` + `full` — absolute and filling the
+// ladder. Map-less, the drawer is `mode="filled"` — absolute and filling the
 // widget container rather than fixed to the viewport.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
@@ -59,26 +59,30 @@ const drawer = tv({
       },
       top: { content: 'inset-x-0 top-0 h-dvh rounded-b-2xl border-b border-divider' },
     },
-    // Map-less: position absolutely within the widget container instead of fixed to
-    // the viewport, so the drawer covers only the content area.
-    contained: {
-      true: { content: '!absolute' },
-      false: {},
-    },
-    // Fill the container instead of anchoring to an edge — the map-less single panel
-    // (still a real vaul root, so the header close button keeps working).
-    full: {
-      true: { content: '!inset-0 !h-full !w-full !max-h-none !max-w-none !rounded-none !pb-0' },
-      false: {},
+    // How the panel relates to its container. These were two independent booleans
+    // (`contained` + `full`), but only two of the four states were ever
+    // representable in practice — DrawerStack always set both together, and
+    // `filled`'s class list is entirely `!important` overrides cancelling the
+    // other one, which is the signature of a variant that wanted to be a mode.
+    mode: {
+      /** Fixed to the viewport, anchored to the `direction` edge (the map layout). */
+      anchored: {},
+      /**
+       * Absolute within the widget container and filling it — the map-less single
+       * panel. Still a real vaul root, so the header close button keeps working.
+       */
+      filled: {
+        content: '!absolute !inset-0 !h-full !w-full !max-h-none !max-w-none !rounded-none !pb-0',
+      },
     },
   },
   compoundVariants: [
     // The bottom sheet shows a drag handle that already spaces the header from the
     // sheet's top edge, so relax the header's top padding for a balanced handle→header
-    // gap. Not when `full` hides the handle (map-less), where the header owns the top.
-    { direction: 'bottom', full: false, class: { header: 'pt-2' } },
+    // gap. Not when `filled` hides the handle (map-less), where the header owns the top.
+    { direction: 'bottom', mode: 'anchored', class: { header: 'pt-2' } },
   ],
-  defaultVariants: { direction: 'bottom', contained: false, full: false },
+  defaultVariants: { direction: 'bottom', mode: 'anchored' },
 })
 
 type DrawerSlots = ReturnType<typeof drawer>
@@ -86,8 +90,8 @@ type DrawerSlots = ReturnType<typeof drawer>
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // A filling contained drawer (map-less) hides the drag handle — nothing to drag.
-  full: boolean
+  // A `filled` drawer (map-less) hides the drag handle — nothing to drag.
+  mode: 'anchored' | 'filled'
   // Portal target for a real drawer (map-less passes the widget container).
   container?: HTMLElement | null
 }
@@ -95,7 +99,7 @@ type DrawerCtx = {
 const DrawerContext = createContext<DrawerCtx>({
   slots: drawer({ direction: 'bottom' }),
   direction: 'bottom',
-  full: false,
+  mode: 'anchored',
 })
 
 const useDrawerSlots = () => useContext(DrawerContext)
@@ -128,15 +132,14 @@ export function Drawer({
   modal = false,
   dismissible = true,
   handleOnly = false,
-  contained = false,
-  full = false,
+  mode = 'anchored',
   snapPoints,
   activeSnapPoint,
   setActiveSnapPoint,
   container,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction, contained, full })
+  const slots = drawer({ direction, mode })
 
   // Pass snap props unconditionally (undefined = no snap points) so the
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
@@ -154,7 +157,7 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', full, container }}>
+    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', mode, container }}>
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
   )
@@ -162,18 +165,23 @@ export function Drawer({
 
 export type DrawerContentProps = {
   /** Accessible name for the dialog (Radix requires one; rendered sr-only). */
-  ariaLabel: string
+  'aria-label': string
   children: ReactNode
   className?: string
-  /** Show the drag handle. Defaults to true for bottom sheets (never when full). */
+  /** Show the drag handle. Defaults to true for bottom sheets (never when filled). */
   handle?: boolean
 }
 
 /** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
-export function DrawerContent({ ariaLabel, children, className, handle }: DrawerContentProps) {
-  const { slots, direction, full, container } = useDrawerSlots()
+export function DrawerContent({
+  'aria-label': ariaLabel,
+  children,
+  className,
+  handle,
+}: DrawerContentProps) {
+  const { slots, direction, mode, container } = useDrawerSlots()
 
-  const showHandle = handle ?? (direction === 'bottom' && !full)
+  const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` = use the default themed root; an explicit `null` opts out.
   const target = container === undefined ? overlayContainer() : container
 

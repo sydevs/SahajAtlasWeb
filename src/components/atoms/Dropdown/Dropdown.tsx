@@ -47,7 +47,7 @@ export interface DropdownProps {
    * Accessible name for the panel. Recommended for `role="dialog"` panels so the
    * popover is announced (e.g. "Audio settings").
    */
-  ariaLabel?: string
+  'aria-label'?: string
   /** Size variant controlling the panel's minimum width */
   size?: 'sm' | 'md' | 'lg'
   /** Additional CSS classes for the trigger wrapper */
@@ -100,7 +100,7 @@ function toPlacement(side: DropdownSide, align: DropdownAlign): Placement {
  * models roving focus and typeahead that this shell deliberately doesn't.
  *
  * @example
- * <Dropdown ariaLabel={t('filters.title')} role="dialog" trigger={<FilterButton />}>
+ * <Dropdown aria-label={t('filters.title')} role="dialog" trigger={<FilterButton />}>
  *   <FilterCheckboxes />
  * </Dropdown>
  */
@@ -110,7 +110,7 @@ export function Dropdown({
   side = 'bottom',
   align = 'start',
   role: roleProp = 'menu',
-  ariaLabel,
+  'aria-label': ariaLabel,
   size: sizeVariant = 'md',
   className = '',
   fullWidth = false,

@@ -195,7 +195,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <ToggleGroup
           joined
-          ariaLabel={t('filters.format.label')}
+          aria-label={t('filters.format.label')}
           type="single"
           value={format}
           onValueChange={(next) => next && patch({ format: next as EventFormat })}
@@ -215,7 +215,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <ToggleGroup
           joined
-          ariaLabel={t('filters.cadence.label')}
+          aria-label={t('filters.cadence.label')}
           type="single"
           value={cadence}
           onValueChange={(next) => next && patch({ cadence: next as EventCadence })}
@@ -234,13 +234,13 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         onClear={() => patch({ daysOfWeek: [] })}
       >
         <ToggleGroup
-          ariaLabel={t('filters.days.label')}
+          aria-label={t('filters.days.label')}
           type="multiple"
           value={daysOfWeek.map(String)}
           onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
         >
           {weekdays.map((day) => (
-            <ToggleGroupItem key={day.value} ariaLabel={day.full} value={day.value}>
+            <ToggleGroupItem key={day.value} aria-label={day.full} value={day.value}>
               {day.label}
             </ToggleGroupItem>
           ))}
@@ -259,11 +259,11 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <div className="px-1 pt-1">
           <Slider
-            ariaLabel={[t('filters.time.start'), t('filters.time.end')]}
             max={TIME_MAX}
             min={TIME_MIN}
             minStepsBetweenThumbs={1}
             step={TIME_STEP}
+            thumbLabels={[t('filters.time.start'), t('filters.time.end')]}
             value={timeDraft}
             onValueChange={(next) => setTimeDraft([next[0], next[1]])}
             onValueCommit={(next) => patch({ timeOfDay: [next[0], next[1]] })}
@@ -304,7 +304,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         ) : (
           <Dropdown
             fullWidth
-            ariaLabel={t('filters.language.label')}
+            aria-label={t('filters.language.label')}
             role="dialog"
             trigger={
               <span className={fieldChrome({ trigger: true })}>

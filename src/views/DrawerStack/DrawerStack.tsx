@@ -228,7 +228,7 @@ export function DrawerStack() {
   )
 
   const sheet = (
-    <DrawerContent ariaLabel={t('free_meditation_classes')}>
+    <DrawerContent aria-label={t('free_meditation_classes')}>
       <AnimatePresence mode="popLayout">
         <motion.div
           key={location.pathname}
@@ -261,8 +261,6 @@ export function DrawerStack() {
         >
           <Drawer
             key={direction}
-            contained
-            full
             open
             container={container}
             direction={direction}
@@ -270,6 +268,7 @@ export function DrawerStack() {
             // Same as the map drawer: the left panel (≥md) has no handle, so
             // handle-only drag makes it undraggable — dismiss is the close button only.
             handleOnly={direction === 'left'}
+            mode="filled"
             onOpenChange={(o) => !o && control.dismiss()}
           >
             {sheet}
