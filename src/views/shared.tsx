@@ -90,7 +90,7 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
  * Button preset, kept here as values rather than a wrapper component so the three
  * provably render identical chrome — the header reads as one set of buttons.
  */
-const HEADER_CONTROL = { variant: 'ghost', shape: 'square', size: 'sm' } as const
+const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')

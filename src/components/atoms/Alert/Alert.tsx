@@ -123,9 +123,9 @@ export function Alert({
       </div>
       {onClose && (
         <Button
+          isIconOnly
           aria-label={closeLabel}
           className={slots.close()}
-          shape="square"
           size="sm"
           variant="ghost"
           onClick={onClose}

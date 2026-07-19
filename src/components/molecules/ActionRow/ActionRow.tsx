@@ -9,7 +9,7 @@ import { controlSurface } from '@/components/atoms/Button'
 // one sanctioned case: an inactive event has no Register, so Contact leads with
 // `variant="solid"`.
 //
-// This is NOT a Button with an icon, which is why it isn't a Button `shape`:
+// This is NOT a Button with an icon, which is why it isn't just a round Button:
 // the label sits INSIDE the hit target (clicking the word activates the action),
 // so the interactive element is the whole column and the tinted circle is an
 // inner span. A Button applies its surface to its own root, so one component
@@ -75,7 +75,8 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
           color,
           variant,
           size,
-          shape: 'circle',
+          radius: 'full',
+          isIconOnly: true,
           class: styles.circle(),
         })}
       >

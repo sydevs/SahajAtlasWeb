@@ -4,11 +4,12 @@ import { tv, type VariantProps } from 'tailwind-variants'
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 
 /**
- * The shared control surface: the colour × variant matrix, the size scale, and
- * the shape. Exported because it skins more than one component — Button applies
- * it to its own root, while ActionCircle applies it to the tinted circle inside
- * its column (see the note in ActionRow). Sharing the recipe is what keeps
- * `color` / `variant` / `size` meaning the same thing everywhere.
+ * The shared control surface: the colour × variant matrix, the size scale, the
+ * corner radius, and the icon-only sizing. Exported because it skins more than
+ * one component — Button applies it to its own root, while ActionCircle applies
+ * it to the tinted circle inside its column (see the note in ActionRow). Sharing
+ * the recipe is what keeps `color` / `variant` / `size` / `radius` meaning the
+ * same thing everywhere.
  *
  * The matrix is spelled out as literal classes so Tailwind's scanner sees every
  * utility — it can't resolve a class built at runtime.
@@ -30,14 +31,21 @@ export const controlSurface = tv({
       md: 'h-10 px-4 text-sm',
       lg: 'h-12 px-6 text-base',
     },
-    shape: {
-      /** Default: a label-bearing pill sized by its content. */
-      rect: 'rounded',
-      /** Icon-only square — width tracks the size scale, no horizontal padding. */
-      square: 'rounded px-0',
-      /** Icon-only circle — the action row's tonal circle. */
-      circle: 'rounded-full px-0',
+    /**
+     * Corner radius, matching the Chip atom's vocabulary: `sm` is the control's
+     * standard corner, `full` is fully round. Independent of what's inside, so a
+     * label button can be a pill and an icon-only one a circle.
+     */
+    radius: {
+      sm: 'rounded',
+      full: 'rounded-full',
     },
+    /**
+     * Drop the horizontal padding and square the width against the size scale —
+     * for a control whose entire content is a glyph. Orthogonal to `radius`:
+     * square icon buttons are `sm`, the action row's circles are `full`.
+     */
+    isIconOnly: { true: 'px-0', false: '' },
   },
   compoundVariants: [
     // solid
@@ -129,16 +137,18 @@ export const controlSurface = tv({
       class: 'text-gray-11 hover:bg-primary-3 hover:text-foreground',
     },
     { color: 'danger', variant: 'ghost', class: 'text-danger-11 hover:bg-danger-3' },
-    // Icon-only shapes are square: width tracks the height from the size scale.
-    { shape: ['square', 'circle'], size: 'sm', class: 'w-8' },
-    { shape: ['square', 'circle'], size: 'md', class: 'w-10' },
-    { shape: ['square', 'circle'], size: 'lg', class: 'w-12' },
+    // Icon-only controls are square: the width tracks the height from the size
+    // scale, so the control stays square (and the circle round) at every size.
+    { isIconOnly: true, size: 'sm', class: 'w-8' },
+    { isIconOnly: true, size: 'md', class: 'w-10' },
+    { isIconOnly: true, size: 'lg', class: 'w-12' },
   ],
   defaultVariants: {
     color: 'default',
     variant: 'solid',
     size: 'md',
-    shape: 'rect',
+    radius: 'sm',
+    isIconOnly: false,
   },
 })
 
@@ -178,10 +188,10 @@ const SPINNER_SIZE = { sm: 'sm', md: 'sm', lg: 'md' } as const
 // rather than leaving each control to remember it.
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   function Button(
-    { color, variant, size, shape, isLoading = false, children, className, ...props },
+    { color, variant, size, radius, isIconOnly, isLoading = false, children, className, ...props },
     ref,
   ) {
-    const classes = button({ color, variant, size, shape, className })
+    const classes = button({ color, variant, size, radius, isIconOnly, className })
     const content = (
       <>
         {isLoading && <Spinner decorative color="current" size={SPINNER_SIZE[size ?? 'md']} />}
