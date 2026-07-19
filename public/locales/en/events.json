@@ -5,7 +5,8 @@
     "copy": "Copy",
     "directions": "Directions",
     "download_ics": "Download .ics file",
-    "share": "Share"
+    "share": "Share",
+    "website": "Website"
   },
   "details": {
     "contact_for_timing": "Contact host for timings",
@@ -41,7 +42,7 @@
     "next_session": "Next session: %{date}",
     "on_sahaj_atlas": "on Sahaj Atlas",
     "online": "Online",
-    "online_joining_note": "Joining details arrive after you register",
+    "online_joining_note": "Meeting link will be sent to you by email",
     "registration_closed": "Registration closed",
     "registration_required": "Registration required",
     "see_nearby": "See nearby events",

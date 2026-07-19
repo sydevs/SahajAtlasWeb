@@ -5,7 +5,8 @@
     "copy": "Copiar",
     "directions": "Cómo llegar",
     "download_ics": "Descargar archivo .ics",
-    "share": "Compartir"
+    "share": "Compartir",
+    "website": "Sitio web"
   },
   "details": {
     "contact_for_timing": "Contacta al anfitrión para conocer los horarios.",
@@ -41,7 +42,7 @@
     "next_session": "Próxima sesión: %{date}",
     "on_sahaj_atlas": "en Sahaj Atlas",
     "online": "En línea",
-    "online_joining_note": "Los datos de acceso llegan tras inscribirte",
+    "online_joining_note": "El enlace de la reunión se te enviará por correo electrónico",
     "registration_closed": "Inscripción cerrada",
     "registration_required": "Inscripción obligatoria",
     "see_nearby": "Ver eventos cercanos",

@@ -5,7 +5,8 @@
     "copy": "Másolás",
     "directions": "Útvonal",
     "download_ics": ".ics fájl letöltése",
-    "share": "Megosztás"
+    "share": "Megosztás",
+    "website": "Weboldal"
   },
   "details": {
     "contact_for_timing": "Contact host for timings",
@@ -41,7 +42,7 @@
     "next_session": "Következő alkalom: %{date}",
     "on_sahaj_atlas": "a Sahaj Atlason",
     "online": "Online",
-    "online_joining_note": "A csatlakozási adatokat regisztráció után kapja meg",
+    "online_joining_note": "A találkozó linkjét e-mailben küldjük el",
     "registration_closed": "A regisztráció lezárult",
     "registration_required": "Regisztráció szükséges",
     "see_nearby": "Közeli események megtekintése",

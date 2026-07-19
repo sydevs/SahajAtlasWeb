@@ -5,7 +5,8 @@
     "copy": "Копіювати",
     "directions": "Маршрут",
     "download_ics": "Завантажити файл .ics",
-    "share": "Поділитися"
+    "share": "Поділитися",
+    "website": "Сайт"
   },
   "details": {
     "contact_for_timing": "Зв'яжіться з господарем для уточнення часу",
@@ -41,7 +42,7 @@
     "next_session": "Наступне заняття: %{date}",
     "on_sahaj_atlas": "на Sahaj Atlas",
     "online": "Онлайн",
-    "online_joining_note": "Дані для підключення надійдуть після реєстрації",
+    "online_joining_note": "Посилання на зустріч надішлемо вам електронною поштою",
     "registration_closed": "Реєстрацію закрито",
     "registration_required": "Потрібна реєстрація",
     "see_nearby": "Переглянути заходи поруч",

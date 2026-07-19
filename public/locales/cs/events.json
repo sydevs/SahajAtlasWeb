@@ -5,7 +5,8 @@
     "copy": "Kopírovat",
     "directions": "Trasa",
     "download_ics": "Stáhnout soubor .ics",
-    "share": "Sdílet"
+    "share": "Sdílet",
+    "website": "Web"
   },
   "details": {
     "contact_for_timing": "Kontaktujte hostitele pro načasování",
@@ -41,7 +42,7 @@
     "next_session": "Další lekce: %{date}",
     "on_sahaj_atlas": "na Sahaj Atlas",
     "online": "Online",
-    "online_joining_note": "Údaje pro připojení obdržíte po registraci",
+    "online_joining_note": "Odkaz na setkání vám pošleme e-mailem",
     "registration_closed": "Registrace uzavřena",
     "registration_required": "Nutná registrace",
     "see_nearby": "Zobrazit akce v okolí",

@@ -5,7 +5,8 @@
     "copy": "Kopiëren",
     "directions": "Route",
     "download_ics": ".ics-bestand downloaden",
-    "share": "Delen"
+    "share": "Delen",
+    "website": "Website"
   },
   "details": {
     "contact_for_timing": "Neem contact op met de gastheer voor de tijden",
@@ -41,7 +42,7 @@
     "next_session": "Volgende les: %{date}",
     "on_sahaj_atlas": "op Sahaj Atlas",
     "online": "Online",
-    "online_joining_note": "De deelnamegegevens ontvang je na aanmelding",
+    "online_joining_note": "De deelnamelink wordt je per e-mail toegestuurd",
     "registration_closed": "Aanmelden gesloten",
     "registration_required": "Aanmelden verplicht",
     "see_nearby": "Bekijk evenementen in de buurt",

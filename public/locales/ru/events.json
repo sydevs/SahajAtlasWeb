@@ -5,7 +5,8 @@
     "copy": "Копировать",
     "directions": "Маршрут",
     "download_ics": "Скачать файл .ics",
-    "share": "Поделиться"
+    "share": "Поделиться",
+    "website": "Сайт"
   },
   "details": {
     "contact_for_timing": "Свяжитесь с организатором, чтобы узнать время",
@@ -41,7 +42,7 @@
     "next_session": "Следующее занятие: %{date}",
     "on_sahaj_atlas": "на Sahaj Atlas",
     "online": "Онлайн",
-    "online_joining_note": "Данные для подключения придут после регистрации",
+    "online_joining_note": "Ссылку на встречу мы пришлём вам по электронной почте",
     "registration_closed": "Регистрация закрыта",
     "registration_required": "Требуется регистрация",
     "see_nearby": "Показать мероприятия рядом",

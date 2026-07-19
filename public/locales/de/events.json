@@ -5,7 +5,8 @@
     "copy": "Kopieren",
     "directions": "Route",
     "download_ics": ".ics-Datei herunterladen",
-    "share": "Teilen"
+    "share": "Teilen",
+    "website": "Webseite"
   },
   "details": {
     "contact_for_timing": "Kontaktieren Sie den Gastgeber für die Zeiten",
@@ -41,7 +42,7 @@
     "next_session": "Nächster Termin: %{date}",
     "on_sahaj_atlas": "auf Sahaj Atlas",
     "online": "Online",
-    "online_joining_note": "Die Zugangsdaten erhalten Sie nach der Anmeldung",
+    "online_joining_note": "Den Meeting-Link erhalten Sie per E-Mail",
     "registration_closed": "Anmeldung geschlossen",
     "registration_required": "Anmeldung erforderlich",
     "see_nearby": "Veranstaltungen in der Nähe ansehen",
