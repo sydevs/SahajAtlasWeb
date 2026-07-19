@@ -18,7 +18,11 @@ export type Slide = {
 // bundle until a photo is opened. Render it inside a <Suspense> boundary.
 const Lightbox = lazy(() => import('./lightbox').then((m) => ({ default: m.Lightbox })))
 
-export function ImageCarousel({ slides }: { slides: Slide[] }) {
+export type ImageCarouselProps = {
+  slides: Slide[]
+}
+
+export function ImageCarousel({ slides }: ImageCarouselProps) {
   const { t } = useTranslation('events')
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)

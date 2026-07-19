@@ -38,14 +38,14 @@ function ItemCheck() {
 // on Radix DropdownMenu (Sub / RadioGroup) — one clean menu with submenu flow —
 // replacing the old footer's LanguageSelector + ThemeSwitch. `className` positions
 // the trigger button.
-export function SettingsMenu({
-  className,
-  side = 'bottom',
-}: {
+export type SettingsMenuProps = {
+  /** Positions the trigger button (the cog floats over the map or the panel). */
   className?: string
   /** Which side the menu opens toward the trigger (bottom for a top cog, top for a bottom cog). */
   side?: DropdownMenu.DropdownMenuContentProps['side']
-}) {
+}
+
+export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) {
   const { t } = useTranslation('common')
   const { locale, setLocale, languageNames } = useLocale()
   const { preference, setPreference } = useThemePreference()

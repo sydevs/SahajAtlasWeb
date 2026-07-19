@@ -3,6 +3,7 @@
 // See DESIGN_SYSTEM.md. Explicit named exports only — each folder surfaces its
 // primary component(s) + `Props` type; single-use internals stay private.
 export { SettingsMenu } from './SettingsMenu'
+export type { SettingsMenuProps } from './SettingsMenu'
 
 // SearchFilters — the controlled event-filters form (Format/Frequency/Day/Time/
 // Language), rendered inside the FilterView drawer.
@@ -47,7 +48,7 @@ export { ShareContent, CopyField } from './ShareContent'
 export type { ShareContentProps } from './ShareContent'
 
 export { ImageCarousel } from './ImageCarousel'
-export type { Slide } from './ImageCarousel'
+export type { ImageCarouselProps, Slide } from './ImageCarousel'
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'

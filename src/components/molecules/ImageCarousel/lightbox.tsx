@@ -21,17 +21,15 @@ import 'yet-another-react-lightbox/plugins/thumbnails.css'
  * and pinch. Thumbnails and the prev/next carousel only matter for multi-slide
  * groups, so they are dropped for a single slide.
  */
-export function Lightbox({
-  slides,
-  isOpen,
-  index,
-  onClose,
-}: {
+export type LightboxProps = {
   slides: Slide[]
   isOpen: boolean
+  /** Which slide to open on. */
   index: number
   onClose: () => void
-}) {
+}
+
+export function Lightbox({ slides, isOpen, index, onClose }: LightboxProps) {
   const single = slides.length <= 1
   const plugins = single ? [Captions, Zoom] : [Captions, Thumbnails, Zoom]
 
