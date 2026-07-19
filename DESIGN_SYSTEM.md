@@ -59,7 +59,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | --------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icons/` (sub-module) | `*Icon`, `Logo`, `SocialIcon`, …                     | SVG primitives; grouped module with its own `index.tsx`. `BaseIcon`'s `flipRtl` marks directional glyphs that mirror under RTL          |
 | `Alert/`              | `Alert`                                              | Status/error banner (`tv()`); `role` defaults to `status`, `alert` is opt-in for genuine errors                                          |
-| `Button/`             | `Button`, `IconButton`                               | `<button>`, or `<a>` when given `href` (that arm omits `disabled` — an anchor has no disabled state)                                     |
+| `Button/`             | `Button`, `controlSurface`                           | The app's one control. `shape` is rect (label) / square / circle — icon-only shapes take their width from the size scale, so there is no separate IconButton. `<button>`, or `<a>` when given `href` (that arm omits `disabled` — an anchor has no disabled state). `controlSurface` is the shared colour × variant recipe |
 | `Checkbox/`           | `Checkbox`                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`); the checkbox appearance backs the registration consent field |
 | `Chip/`               | `Chip`                                               | Pure presentational atom; brand-token styling (`tv()`). `onClose`/`closeLabel` are a union — a close button always has a label          |
 | `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Body`/`Footer`/`Close` | vaul drawer; left ≥md / bottom sheet on mobile, non-modal; portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction |
@@ -83,8 +83,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`           | Generic Swiper carousel (`slides`); folds in the lazy YARL lightbox (own chunk)               |
 | `List/`              | `List`, `listRow`                  | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome + gutter          |
 | `NearbyPrompt/`      | `NearbyPrompt`                     | The IP-geolocated "events near you?" suggestion line                                          |
-| `OnlineClassesCard/` | `OnlineClassesCard`                | The online roll-up entry in a region list (composes `RegionCard`)                             |
-| `RegionCard/`        | `RegionCard`                       | Navigable region row (country → region → area drill-down); `icon` is the leading glyph slot   |
+| `RegionCard/`        | `RegionCard`                       | Every row in a region list: the country → region → area drill-down AND the online-classes entry. `icon` is a fixed slot that sizes/spaces the glyph, so rows align whatever goes in it |
 | `SearchFilters/`     | `SearchFilters`                    | The filter form (format / frequency / day / time / language); fully controlled                |
 | `SettingsMenu/`      | `SettingsMenu`                     | The cog: theme radio group + language submenu, on Radix DropdownMenu (needs Sub/RadioGroup)   |
 | `ShareContent/`      | `ShareContent`, `CopyField`        | Copyable URL + social-links block (reused by the share dialog and the registration thank-you) |
@@ -127,7 +126,7 @@ component barrels.
   one primary + its `Props`):
   1. **`Icons/`** — an icon-set module (keeps a single `export *`).
   2. **`Mapbox/`** — sub-module exposing `Mapbox` + `MapSearch` (layers/themes stay internal).
-  3. **`Button/`** — `Button` + `IconButton` (the icon-only sibling, not a variant).
+  3. **`Button/`** — `Button` + the `controlSurface` recipe it shares with `ActionCircle`.
   4. **`ToggleGroup/`** — the `ToggleGroup` + `ToggleGroupItem` compound.
   5. **`Select/`** — `Select` + `SelectItem`, plus the `fieldChrome` recipe every
      field-like control shares.

@@ -1,41 +1,43 @@
 import { type ReactNode, forwardRef } from 'react'
-import { tv } from 'tailwind-variants'
+import { tv, type VariantProps } from 'tailwind-variants'
+
+import { controlSurface } from '@/components/atoms/Button'
 
 // The labelled tonal-circle action button + its horizontal row (issue #52, WS3):
-// filled tonal circles (light brand tint, icon in brand colour) with a text
-// label below, Google-Maps style. All circles carry equal weight — emphasis
-// belongs exclusively to the Register CTA — except the one sanctioned
-// `emphasized` case: an inactive event has no Register, so Contact leads.
+// a tinted circle with a text label below, Google-Maps style. All circles carry
+// equal weight — emphasis belongs exclusively to the Register CTA — except the
+// one sanctioned case: an inactive event has no Register, so Contact leads with
+// `variant="solid"`.
+//
+// This is NOT a Button with an icon, which is why it isn't a Button `shape`:
+// the label sits INSIDE the hit target (clicking the word activates the action),
+// so the interactive element is the whole column and the tinted circle is an
+// inner span. A Button applies its surface to its own root, so one component
+// couldn't do both without its classes landing on different elements per mode.
+// It shares the surface recipe instead, which is what makes `color` / `variant`
+// / `size` mean the same here as on a Button.
 
 const actionCircle = tv({
   slots: {
     // Every action shares the row equally (`flex-1 basis-0`) so the whole set
-    // fits one line whatever its size — the circle keeps its ≥44px touch target
-    // (h-12 = 48px) while only the label column narrows.
-    base: 'flex min-w-0 flex-1 basis-0 flex-col items-center gap-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
-    circle:
-      'flex-center h-12 w-12 shrink-0 rounded-full transition-colors group-hover:opacity-90 group-active:scale-95',
+    // fits one line whatever its size — the circle keeps its touch target while
+    // only the label column narrows.
+    base: 'group flex min-w-0 flex-1 basis-0 flex-col items-center gap-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
+    circle: 'shrink-0 transition-colors group-hover:opacity-90 group-active:scale-95',
     // Two lines allowed (the i18n budget). Slightly under `text-xs` so the
     // longest single-word labels ("Directions") still fit a five-action row on
     // one line rather than breaking mid-word; `break-words` remains the
     // last-resort for a genuinely oversized translation.
     label: 'line-clamp-2 w-full break-words text-center text-[11px] leading-tight text-foreground',
   },
-  variants: {
-    emphasized: {
-      false: { circle: 'bg-primary-3 text-primary dark:bg-primary-4' },
-      true: { circle: 'bg-primary-9 text-primary-foreground' },
-    },
-  },
-  defaultVariants: { emphasized: false },
 })
+
+type SurfaceVariants = VariantProps<typeof controlSurface>
 
 export type ActionCircleProps = {
   icon: ReactNode
   /** Always-visible text label below the circle — never icon-only (a11y). */
   label: string
-  /** The sanctioned exception: Contact on an inactive event (no Register). */
-  emphasized?: boolean
   /** Renders an anchor instead of a button (tel:, maps, calendar links). */
   href?: string
   /** Open `href` in a new tab with the safe rel. */
@@ -43,21 +45,42 @@ export type ActionCircleProps = {
   // `onClick` deliberately comes from HTMLAttributes below rather than being
   // re-declared here: a narrower `() => void` would intersect with the DOM
   // handler type and leave a signature no handler taking the event can satisfy.
-} & React.HTMLAttributes<HTMLElement>
+} & Pick<SurfaceVariants, 'color' | 'variant' | 'size'> &
+  React.HTMLAttributes<HTMLElement>
 
 /** One labelled tonal-circle action. Forwarded ref targets the interactive
  *  element so popovers (contact, add-to-calendar) can anchor to it; rest props
  *  spread onto it LAST so a popover trigger's interaction/aria props
  *  (floating-ui `getReferenceProps()`) reach the element intact. */
 export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function ActionCircle(
-  { icon, label, emphasized = false, onClick, href, isExternal = false, ...rest },
+  {
+    icon,
+    label,
+    color = 'primary',
+    variant = 'flat',
+    size = 'lg',
+    onClick,
+    href,
+    isExternal = false,
+    ...rest
+  },
   ref,
 ) {
-  const styles = actionCircle({ emphasized })
+  const styles = actionCircle()
 
   const content = (
     <>
-      <span className={styles.circle()}>{icon}</span>
+      <span
+        className={controlSurface({
+          color,
+          variant,
+          size,
+          shape: 'circle',
+          class: styles.circle(),
+        })}
+      >
+        {icon}
+      </span>
       <span className={styles.label()}>{label}</span>
     </>
   )
@@ -66,7 +89,8 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
     return (
       <a
         ref={ref as React.Ref<HTMLAnchorElement>}
-        className={`group ${styles.base()}`}
+        data-vaul-no-drag
+        className={styles.base()}
         href={href}
         rel={isExternal ? 'noopener noreferrer' : undefined}
         target={isExternal ? '_blank' : undefined}
@@ -81,7 +105,8 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
   return (
     <button
       ref={ref as React.Ref<HTMLButtonElement>}
-      className={`group ${styles.base()}`}
+      data-vaul-no-drag
+      className={styles.base()}
       type="button"
       onClick={onClick}
       {...rest}

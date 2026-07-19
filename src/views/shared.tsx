@@ -10,7 +10,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
-import { Button, IconButton } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { EventFacts, NearbyPrompt } from '@/components/molecules'
@@ -85,14 +85,21 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   )
 }
 
+/**
+ * The drawer header's icon controls (close, list-toggle, filter) are all the same
+ * Button preset, kept here as values rather than a wrapper component so the three
+ * provably render identical chrome — the header reads as one set of buttons.
+ */
+const HEADER_CONTROL = { variant: 'ghost', shape: 'square', size: 'sm' } as const
+
 export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')
   const { dismiss } = useDrawerControl()
 
   return (
-    <IconButton aria-label={t('close')} className={className} onClick={dismiss}>
+    <Button {...HEADER_CONTROL} aria-label={t('close')} className={className} onClick={dismiss}>
       <CloseIcon size={20} />
-    </IconButton>
+    </Button>
   )
 }
 
@@ -108,20 +115,21 @@ export function CollapseToggle() {
   // At the peek it's a list toggle (expand the countries list); once opened past the
   // peek it becomes the usual close control (collapse back to the peek).
   return (
-    <IconButton
+    <Button
+      {...HEADER_CONTROL}
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('explore') : t('close')}
       onClick={toggle}
     >
       {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
-    </IconButton>
+    </Button>
   )
 }
 
 // The event-filters trigger in CountriesView/SearchView headers: opens the filter
 // drawer by navigating to `<current>/filters` (root → `/filters`, `/search` →
 // `/search/filters`), preserving the search query so closing returns to the same
-// search. Shows an active-filter count badge; renders the same IconButton chrome as
+// search. Shows an active-filter count badge; renders the same header-control chrome as
 // the close/list controls so the header reads as one set of buttons.
 export function FilterButton() {
   const { t } = useTranslation('common')
@@ -133,7 +141,8 @@ export function FilterButton() {
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
 
   return (
-    <IconButton
+    <Button
+      {...HEADER_CONTROL}
       aria-label={label}
       className="relative"
       onClick={() => navigate({ pathname: to, search: location.search })}
@@ -147,7 +156,7 @@ export function FilterButton() {
           {count}
         </span>
       )}
-    </IconButton>
+    </Button>
   )
 }
 

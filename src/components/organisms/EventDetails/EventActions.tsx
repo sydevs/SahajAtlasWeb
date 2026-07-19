@@ -165,10 +165,10 @@ export function EventActions({ event, basePath }: EventActionsProps) {
           return [
             <ActionCircle
               key="contact"
-              emphasized={display.emphasizeContact}
               href={`tel:${event.contactPhone}`}
               icon={<CallIcon />}
               label={label}
+              variant={display.emphasizeContact ? 'solid' : 'flat'}
             />,
           ]
         }
@@ -179,9 +179,9 @@ export function EventActions({ event, basePath }: EventActionsProps) {
             trigger={(ref, props) => (
               <ActionCircle
                 ref={ref}
-                emphasized={display.emphasizeContact}
                 icon={<CallIcon />}
                 label={label}
+                variant={display.emphasizeContact ? 'solid' : 'flat'}
                 {...props}
               />
             )}

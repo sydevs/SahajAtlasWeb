@@ -3,17 +3,18 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 
-// A styled button replacing NextUI's Button, built on the Radix-semantic 12-step
-// tokens. `variant` picks the surface treatment (solid / soft / faded / outline)
-// and `color` selects the ramp; the color×variant matrix is spelled out as
-// literal classes so Tailwind's scanner can see every utility.
-const button = tv({
-  base: [
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded font-medium',
-    'outline-none transition-[background,color,opacity]',
-    'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
-    'disabled:pointer-events-none disabled:opacity-disabled',
-  ],
+/**
+ * The shared control surface: the colour × variant matrix, the size scale, and
+ * the shape. Exported because it skins more than one component — Button applies
+ * it to its own root, while ActionCircle applies it to the tinted circle inside
+ * its column (see the note in ActionRow). Sharing the recipe is what keeps
+ * `color` / `variant` / `size` meaning the same thing everywhere.
+ *
+ * The matrix is spelled out as literal classes so Tailwind's scanner sees every
+ * utility — it can't resolve a class built at runtime.
+ */
+export const controlSurface = tv({
+  base: 'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[background,color,opacity]',
   variants: {
     color: { primary: '', secondary: '', default: '', danger: '' },
     variant: {
@@ -21,11 +22,21 @@ const button = tv({
       flat: '',
       faded: 'border',
       bordered: 'border bg-transparent',
+      /** No surface until hovered — toolbar//header controls that must recede. */
+      ghost: 'bg-transparent',
     },
     size: {
       sm: 'h-8 px-3 text-sm',
       md: 'h-10 px-4 text-sm',
       lg: 'h-12 px-6 text-base',
+    },
+    shape: {
+      /** Default: a label-bearing pill sized by its content. */
+      rect: 'rounded',
+      /** Icon-only square — width tracks the size scale, no horizontal padding. */
+      square: 'rounded px-0',
+      /** Icon-only circle — the action row's tonal circle. */
+      circle: 'rounded-full px-0',
     },
   },
   compoundVariants: [
@@ -107,12 +118,37 @@ const button = tv({
       variant: 'bordered',
       class: 'border-danger-7 text-danger-11 hover:bg-danger-3',
     },
+    // ghost (surface only on hover)
+    { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
+    { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },
+    // The drawer header's controls: subtle until hovered, then full contrast, so
+    // close / list-toggle / filter read as one set.
+    {
+      color: 'default',
+      variant: 'ghost',
+      class: 'text-gray-11 hover:bg-primary-3 hover:text-foreground',
+    },
+    { color: 'danger', variant: 'ghost', class: 'text-danger-11 hover:bg-danger-3' },
+    // Icon-only shapes are square: width tracks the height from the size scale.
+    { shape: ['square', 'circle'], size: 'sm', class: 'w-8' },
+    { shape: ['square', 'circle'], size: 'md', class: 'w-10' },
+    { shape: ['square', 'circle'], size: 'lg', class: 'w-12' },
   ],
   defaultVariants: {
     color: 'default',
     variant: 'solid',
     size: 'md',
+    shape: 'rect',
   },
+})
+
+const button = tv({
+  extend: controlSurface,
+  base: [
+    'outline-none',
+    'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
+    'disabled:pointer-events-none disabled:opacity-disabled',
+  ],
 })
 
 type ButtonOwnProps = VariantProps<typeof button> & {
@@ -132,11 +168,20 @@ export type ButtonProps =
 
 const SPINNER_SIZE = { sm: 'sm', md: 'sm', lg: 'md' } as const
 
-// forwardRef so Radix `asChild` slots (Dialog.Trigger / Dialog.Close, i.e. the
-// Modal `trigger` and ModalClose) can attach their ref to the underlying element.
+// forwardRef so Radix `asChild` slots (Dialog.Trigger / Dialog.Close) and
+// floating-ui popover triggers can attach their ref to the underlying element.
+//
+// `data-vaul-no-drag` on every button: these sit on the vaul bottom sheet, which
+// is draggable across its whole surface. Without it vaul treats a tap carrying
+// any micro-movement as a drag and swallows the click, so controls fire only
+// intermittently. Inert outside vaul, so it costs nothing to apply universally
+// rather than leaving each control to remember it.
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-  function Button({ color, variant, size, isLoading = false, children, className, ...props }, ref) {
-    const classes = button({ color, variant, size, className })
+  function Button(
+    { color, variant, size, shape, isLoading = false, children, className, ...props },
+    ref,
+  ) {
+    const classes = button({ color, variant, size, shape, className })
     const content = (
       <>
         {isLoading && <Spinner decorative color="current" size={SPINNER_SIZE[size ?? 'md']} />}
@@ -150,6 +195,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       return (
         <a
           ref={ref as Ref<HTMLAnchorElement>}
+          data-vaul-no-drag
           aria-busy={isLoading || undefined}
           className={classes}
           href={href}
@@ -167,6 +213,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
     return (
       <button
         ref={ref as Ref<HTMLButtonElement>}
+        data-vaul-no-drag
         aria-busy={isLoading || undefined}
         className={classes}
         disabled={disabled || isLoading}

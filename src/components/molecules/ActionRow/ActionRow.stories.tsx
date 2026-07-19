@@ -38,12 +38,17 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="An inactive event has no Register, so Contact is the emphasized action."
+      description="An inactive event has no Register, so Contact leads with the solid variant — the same `variant` a Button takes, off the same shared surface recipe."
       title="Emphasized contact"
     >
       <div className="max-w-md">
         <ActionRow>
-          <ActionCircle emphasized href="tel:+441234567890" icon={<CallIcon />} label="Contact" />
+          <ActionCircle
+            href="tel:+441234567890"
+            icon={<CallIcon />}
+            label="Contact"
+            variant="solid"
+          />
           <ActionCircle
             isExternal
             href="https://maps.example"
@@ -51,6 +56,47 @@ export const Default: Story = () => (
             label="Directions"
           />
           <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
+        </ActionRow>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="The circle takes the same colour × variant matrix as Button, so an action can be skinned like any other control. The app uses primary flat (and solid for the one emphasized case)."
+      title="Colors"
+    >
+      <div className="flex max-w-md flex-col gap-3">
+        {(['flat', 'solid', 'faded', 'bordered', 'ghost'] as const).map((variant) => (
+          <ActionRow key={variant}>
+            {(['primary', 'secondary', 'default', 'danger'] as const).map((color) => (
+              <ActionCircle
+                key={color}
+                color={color}
+                icon={<CallIcon />}
+                label={`${variant}/${color}`}
+                variant={variant}
+                onClick={() => {}}
+              />
+            ))}
+          </ActionRow>
+        ))}
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="`size` drives the circle from the shared scale — the app uses lg (48px) so the touch target clears the 44px floor."
+      title="Sizes"
+    >
+      <div className="max-w-md">
+        <ActionRow>
+          {(['sm', 'md', 'lg'] as const).map((size) => (
+            <ActionCircle
+              key={size}
+              icon={<CallIcon />}
+              label={size}
+              size={size}
+              onClick={() => {}}
+            />
+          ))}
         </ActionRow>
       </div>
     </StorySection>

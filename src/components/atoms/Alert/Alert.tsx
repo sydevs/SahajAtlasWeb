@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
 
-import { IconButton } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { CloseIcon } from '@/components/atoms/Icons'
 
 // A status banner replacing NextUI's Alert, on the Radix-semantic tokens. `flat`
@@ -122,9 +122,16 @@ export function Alert({
         {children}
       </div>
       {onClose && (
-        <IconButton aria-label={closeLabel} className={slots.close()} onClick={onClose}>
+        <Button
+          aria-label={closeLabel}
+          className={slots.close()}
+          shape="square"
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
+        >
           <CloseIcon size={14} />
-        </IconButton>
+        </Button>
       )}
     </div>
   )
