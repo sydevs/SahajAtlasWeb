@@ -1,4 +1,4 @@
-import { type ReactNode, forwardRef, useLayoutEffect, useRef, useState } from 'react'
+import { type ReactNode, forwardRef } from 'react'
 import { tv } from 'tailwind-variants'
 
 // The labelled tonal-circle action button + its horizontal row (issue #52, WS3):
@@ -9,13 +9,17 @@ import { tv } from 'tailwind-variants'
 
 const actionCircle = tv({
   slots: {
-    // ≥44px touch target (h-12 = 48px) on every circle.
-    base: 'flex w-16 shrink-0 flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-lg',
+    // Every action shares the row equally (`flex-1 basis-0`) so the whole set
+    // fits one line whatever its size — the circle keeps its ≥44px touch target
+    // (h-12 = 48px) while only the label column narrows.
+    base: 'flex min-w-0 flex-1 basis-0 flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-lg',
     circle:
-      'flex-center h-12 w-12 rounded-full transition-colors group-hover:opacity-90 group-active:scale-95',
-    // Max ~12 chars/line, two lines allowed (i18n budget), then ellipsis —
-    // labels never push the layout.
-    label: 'line-clamp-2 w-full text-center text-xs leading-tight text-foreground',
+      'flex-center h-12 w-12 shrink-0 rounded-full transition-colors group-hover:opacity-90 group-active:scale-95',
+    // Two lines allowed (the i18n budget). Slightly under `text-xs` so the
+    // longest single-word labels ("Directions") still fit a five-action row on
+    // one line rather than breaking mid-word; `break-words` remains the
+    // last-resort for a genuinely oversized translation.
+    label: 'line-clamp-2 w-full break-words text-center text-[11px] leading-tight text-foreground',
   },
   variants: {
     emphasized: {
@@ -90,39 +94,17 @@ export type ActionRowProps = {
   className?: string
 }
 
-/** The horizontal action row: centred while everything fits; scrolls sideways
- *  when it overflows on narrow screens, with an edge fade signalling the
- *  cut-off content (centring would clip the leading circle mid-scroll). */
+/**
+ * The horizontal action row. Every action stays on ONE line: the children share
+ * the width equally and shrink together, so the set neither wraps nor scrolls
+ * however many actions a state carries (up to five: directions, calendar,
+ * website, contact, share). Only the labels narrow — the circles keep their
+ * touch target — so the row degrades by wrapping label text, not by hiding
+ * actions off-screen.
+ */
 export function ActionRow({ children, className }: ActionRowProps) {
-  const scroller = useRef<HTMLDivElement>(null)
-  const [overflowing, setOverflowing] = useState(false)
-
-  // Fade only when there is actually something cut off — measured, not guessed.
-  useLayoutEffect(() => {
-    const el = scroller.current
-
-    if (!el) return
-
-    const measure = () => setOverflowing(el.scrollWidth > el.clientWidth + 1)
-
-    measure()
-    const observer = new ResizeObserver(measure)
-
-    observer.observe(el)
-
-    return () => observer.disconnect()
-  }, [])
-
-  return (
-    <div
-      ref={scroller}
-      className={`flex gap-2 overflow-x-auto py-1 [scrollbar-width:none] ${
-        overflowing
-          ? '[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] rtl:[mask-image:linear-gradient(to_left,black_calc(100%-2.5rem),transparent)]'
-          : 'justify-center'
-      } ${className ?? ''}`}
-    >
-      {children}
-    </div>
-  )
+  // No gap: the columns already separate visually (a 48px circle in a ~58px
+  // column), and spending those pixels on the label instead is what keeps the
+  // longer translations ("Megosztás", "Связаться") on one line at five actions.
+  return <div className={`flex w-full items-start py-1 ${className ?? ''}`}>{children}</div>
 }

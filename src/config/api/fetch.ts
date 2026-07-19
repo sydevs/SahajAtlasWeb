@@ -435,6 +435,7 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         images: true,
         contactPhone: true,
         contactName: true,
+        website: true,
         registrationMode: true,
         externalRegistrationUrl: true,
         registrationLimit: true,

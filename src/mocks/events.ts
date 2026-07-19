@@ -107,6 +107,7 @@ export const mockEvent: Event = {
   images: mockEventImages,
   contactPhone: '+44 20 1234 5678',
   contactName: 'Anna',
+  website: 'https://example.org/cambridge-meditation',
   registrationMode: 'sahaj-atlas',
   externalRegistrationUrl: null,
   registrationLimit: 30,

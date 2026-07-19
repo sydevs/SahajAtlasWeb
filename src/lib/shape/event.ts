@@ -9,11 +9,12 @@ import { DateTime, IANAZone } from 'luxon'
  */
 type EventLike = { eventType: EventType; schedule?: EventSchedule | null }
 
-/** What `resolveEventDisplay` reads. Feed events lack `contactPhone` — the
- *  contact-dependent outputs (action, helpers) simply stay off for them. */
+/** What `resolveEventDisplay` reads. Feed events lack `contactPhone`/`website` —
+ *  the actions and helpers that depend on them simply stay off for them. */
 export type DisplayEventLike = EventLike & {
   inactive?: boolean | null
   contactPhone?: string | null
+  website?: string | null
 }
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
@@ -97,7 +98,7 @@ export type EventStatus =
 
 export type RegistrationState = 'open' | 'closed' | 'hidden'
 
-export type EventActionId = 'directions' | 'calendar' | 'contact' | 'share'
+export type EventActionId = 'directions' | 'calendar' | 'website' | 'contact' | 'share'
 
 export type EventDisplay = {
   online: boolean
@@ -152,6 +153,7 @@ const terminalDisplay = (
   base: Pick<EventDisplay, 'online' | 'kind' | 'full'>,
   status: 'ended' | 'inactive',
   hasContact: boolean,
+  hasWebsite: boolean,
 ): EventDisplay => ({
   ...base,
   status,
@@ -165,13 +167,14 @@ const terminalDisplay = (
   weekdayInstants: [],
   // Ended: nothing to act on — "See nearby events" is the only affordance.
   // Inactive: contact leads (emphasized), plus directions for a physical venue
-  // that still exists, then share.
+  // that still exists and the host's site, then share.
   actions:
     status === 'ended'
       ? []
       : [
           ...(hasContact ? (['contact'] as const) : []),
           ...(base.online ? [] : (['directions'] as const)),
+          ...(hasWebsite ? (['website'] as const) : []),
           'share',
         ],
   emphasizeContact: status === 'inactive' && hasContact,
@@ -193,6 +196,7 @@ export function resolveEventDisplay(
   const displayZone = online ? viewerTz : eventTz
   const now = toDateTime(options.now ?? DateTime.now())
   const hasContact = Boolean(event.contactPhone)
+  const hasWebsite = Boolean(event.website)
 
   const recurrence = schedule?.recurrenceType ?? null
   const kind: EventKind = !recurrence ? 'oneoff' : schedule?.endingType ? 'course' : 'class'
@@ -200,7 +204,7 @@ export function resolveEventDisplay(
   const full = false
   const base = { online, kind, full }
 
-  if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact)
+  if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
 
   const endTime = schedule.endTime
   const firstStart = scheduleStart(schedule)
@@ -223,7 +227,7 @@ export function resolveEventDisplay(
   if (!next) {
     // A class never "ends" — no dates means dateless, so contact the host;
     // one-offs and courses are genuinely over.
-    return terminalDisplay(base, kind === 'class' ? 'inactive' : 'ended', hasContact)
+    return terminalDisplay(base, kind === 'class' ? 'inactive' : 'ended', hasContact, hasWebsite)
   }
 
   const nextDisplay = next.setZone(displayZone)
@@ -265,6 +269,7 @@ export function resolveEventDisplay(
   const actions: EventActionId[] = [
     ...(online ? [] : (['directions'] as const)),
     'calendar',
+    ...(hasWebsite ? (['website'] as const) : []),
     ...(hasContact ? (['contact'] as const) : []),
     'share',
   ]

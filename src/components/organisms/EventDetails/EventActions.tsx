@@ -16,7 +16,13 @@ import { useTranslation } from 'react-i18next'
 
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
-import { CalendarIcon, CallIcon, DirectionsIcon, ShareIcon } from '@/components/atoms/Icons'
+import {
+  CalendarIcon,
+  CallIcon,
+  DirectionsIcon,
+  ShareIcon,
+  WebsiteIcon,
+} from '@/components/atoms/Icons'
 import { Link } from '@/components/atoms/Link'
 import { useIsDesktop } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -157,6 +163,18 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                   {t('actions.download_ics')}
                 </button>
               </ActionPopover>,
+            ]
+          : []
+      case 'website':
+        return event.website
+          ? [
+              <ActionCircle
+                key="website"
+                external
+                href={event.website}
+                icon={<WebsiteIcon />}
+                label={t('actions.website')}
+              />,
             ]
           : []
       case 'contact': {
