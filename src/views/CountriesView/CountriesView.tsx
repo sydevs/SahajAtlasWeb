@@ -5,7 +5,8 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, OnlineClassesCard, RegionCard } from '@/components/molecules'
+import { List, RegionCard } from '@/components/molecules'
+import { MonitorIcon } from '@/components/atoms/Icons'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -77,7 +78,14 @@ export function CountriesView() {
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
-          {onlineCount > 0 && <OnlineClassesCard count={onlineCount} href={onlineSearch} />}
+          {onlineCount > 0 && (
+            <RegionCard
+              count={onlineCount}
+              href={onlineSearch}
+              icon={<MonitorIcon size={24} />}
+              label={t('online_classes')}
+            />
+          )}
           {countries.map((country) => (
             <RegionCard
               key={country.id}
@@ -86,7 +94,7 @@ export function CountriesView() {
               icon={
                 country.countryCode ? (
                   <CircleFlag
-                    className="me-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
+                    className="h-full w-full rounded-full border border-divider bg-divider"
                     countryCode={country.countryCode.toLocaleLowerCase()}
                   />
                 ) : undefined

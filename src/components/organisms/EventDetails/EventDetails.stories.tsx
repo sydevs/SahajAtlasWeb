@@ -9,7 +9,14 @@ import { EventDetails } from './EventDetails'
 import { EventHeader } from './EventHeader'
 import { EventRegisterBar } from './EventRegister'
 
-import { mockEvent } from '@/mocks/events'
+import {
+  mockEvent,
+  mockEventCourse,
+  mockEventEnded,
+  mockEventInactive,
+  mockEventStartedCourse,
+  mockEventToday,
+} from '@/mocks/events'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
@@ -22,46 +29,6 @@ function Panel({ event }: { event: Event }) {
       <EventDetails basePath={`/demo/${event.id}`} event={event} />
     </div>
   )
-}
-
-const course: Event = {
-  ...mockEvent,
-  id: 104,
-  title: 'Beginners Meditation Course',
-  schedule: {
-    ...mockEvent.schedule!,
-    endingType: 'count',
-    count: 8,
-  },
-}
-
-const startedCourse: Event = {
-  ...course,
-  id: 105,
-  schedule: {
-    ...course.schedule!,
-    // First session well in the past → registration closed, "Started" chip.
-    firstDate: new Date('2020-01-04T09:30:00Z'),
-  },
-}
-
-const ended: Event = {
-  ...mockEvent,
-  id: 106,
-  title: 'Summer Retreat Talk',
-  schedule: {
-    ...mockEvent.schedule!,
-    recurrenceType: null,
-    firstDate: new Date('2020-06-01T18:00:00Z'),
-    upcomingDates: [],
-  },
-}
-
-const inactive: Event = {
-  ...mockEvent,
-  id: 107,
-  title: 'Dormant Venue Programme',
-  inactive: true,
 }
 
 const external: Event = {
@@ -90,29 +57,36 @@ export const Default: Story = () => (
       <Panel event={{ ...mockEvent, id: 108, eventType: 'online', languages: ['fr'] }} />
     </StorySection>
 
+    <StorySection
+      description="Next session is later today — its own status chip. Unreachable before the fixtures became clock-relative, since a far-future date always resolved to `upcoming`."
+      title="Today"
+    >
+      <Panel event={mockEventToday} />
+    </StorySection>
+
     <StorySection description="A bounded course before its first session." title="Course">
-      <Panel event={course} />
+      <Panel event={mockEventCourse} />
     </StorySection>
 
     <StorySection
       description="A started course — registration closed, contact-to-join-late helper."
       title="Started course"
     >
-      <Panel event={startedCourse} />
+      <Panel event={mockEventStartedCourse} />
     </StorySection>
 
     <StorySection
       description="An ended one-off (direct links only) — no actions; See nearby is the way out."
       title="Ended"
     >
-      <Panel event={ended} />
+      <Panel event={mockEventEnded} />
     </StorySection>
 
     <StorySection
       description="An inactive event — no Register; Contact is the emphasized action."
       title="Inactive"
     >
-      <Panel event={inactive} />
+      <Panel event={mockEventInactive} />
     </StorySection>
 
     <StorySection

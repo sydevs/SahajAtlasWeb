@@ -26,7 +26,7 @@ export function EventHeader({ event, trailing }: EventHeaderProps) {
   const { display, typeLabel, statusChip } = useEventDisplay(event)
 
   return (
-    <div className="flex shrink-0 flex-col gap-1.5 px-4 pb-2 pt-1 md:px-8 md:pt-4">
+    <div className="flex shrink-0 flex-col gap-1.5 px-6 pb-2 pt-1 md:pt-4">
       <div className="flex items-start justify-between gap-2">
         <h1 className="line-clamp-3 text-lg font-semibold leading-6 tracking-wide">
           {event.title}

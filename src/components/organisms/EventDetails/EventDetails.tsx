@@ -64,7 +64,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
   )
 
   return (
-    <div className="flex flex-col gap-4 px-4 pb-10 pt-2 md:px-8">
+    <div className="flex flex-col gap-4 px-6 pb-10 pt-2">
       <EventFacts event={event} />
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}

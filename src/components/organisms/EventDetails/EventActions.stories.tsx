@@ -16,12 +16,12 @@ const noWebsite: Event = { ...mockEvent, id: 202, website: null }
 const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactName: null }
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
 
-// The drawer panel is ~352px wide with `md:px-8`, so its narrowest content box
-// is ~288px — preview at exactly that, the tightest real case. The row must fit
-// its full action set on one line there without wrapping or scrolling.
+// The drawer panel is ~352px wide with a 24px gutter, so its content box is
+// ~304px — preview at exactly that, the real case. The row must fit its full
+// action set on one line there without wrapping or scrolling.
 function Panel({ event }: { event: Event }) {
   return (
-    <div className="w-[288px] rounded-lg border border-divider py-3">
+    <div className="w-[304px] rounded-lg border border-divider py-3">
       <EventActions basePath={`/demo/${event.id}`} event={event} />
     </div>
   )

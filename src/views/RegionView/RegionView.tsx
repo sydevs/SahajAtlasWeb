@@ -3,7 +3,8 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventCard, List, OnlineClassesCard, RegionCard } from '@/components/molecules'
+import { EventCard, List, RegionCard } from '@/components/molecules'
+import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -21,6 +22,7 @@ import { CloseButton, DrawerTitle, NearbySuggestion, useFrameOnTop } from '@/vie
 // the user navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation('events')
+  const { t: tCommon } = useTranslation('common')
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -65,9 +67,11 @@ export function RegionView({ slug }: { slug: string }) {
           {/* On a parent, the online roll-up opens in its own drawer via this card,
               keeping the list below a clean set of places. */}
           {showOnlineCard && (
-            <OnlineClassesCard
+            <RegionCard
               count={region.onlineEvents.length}
               href={childRoute(region.path, 'online')}
+              icon={<MonitorIcon size={24} />}
+              label={tCommon('online_classes')}
             />
           )}
           {/* Region ids and event ids come from independent sequences but share one
