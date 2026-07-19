@@ -7,7 +7,7 @@ export function LoadingFallback() {
   const { t } = useTranslation('common')
 
   return (
-    <div className="flex-center w-full h-full p-10 bg-background">
+    <div className="flex-center h-full w-full bg-background p-10">
       <Spinner color="secondary" label={t('loading')} />
     </div>
   )
@@ -28,7 +28,7 @@ export function ErrorFallback({ error }: ErrorFallbackProps) {
   const description = error instanceof Error ? error.message : String(error)
 
   return (
-    <div className="flex-center w-full h-full p-10 bg-background">
+    <div className="flex-center h-full w-full bg-background p-10">
       <Alert
         className="max-w-xs"
         color="danger"

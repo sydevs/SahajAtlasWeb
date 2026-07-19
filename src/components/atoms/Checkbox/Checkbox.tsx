@@ -14,7 +14,7 @@ const toggle = tv({
   slots: {
     root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
     thumb:
-      'block rounded-full bg-gray-1 shadow transition-transform will-change-transform translate-x-[2px]',
+      'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform',
   },
   variants: {
     color: {

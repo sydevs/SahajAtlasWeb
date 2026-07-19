@@ -10,9 +10,9 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 const button = tv({
   base: [
     'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded font-medium',
-    'transition-[background,color,opacity] outline-none',
+    'outline-none transition-[background,color,opacity]',
     'focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1',
-    'disabled:opacity-disabled disabled:pointer-events-none',
+    'disabled:pointer-events-none disabled:opacity-disabled',
   ],
   variants: {
     color: { primary: '', secondary: '', default: '', danger: '' },
@@ -73,22 +73,22 @@ const button = tv({
     {
       color: 'primary',
       variant: 'faded',
-      class: 'bg-primary-2 border-primary-6 text-primary-11 hover:bg-primary-3',
+      class: 'border-primary-6 bg-primary-2 text-primary-11 hover:bg-primary-3',
     },
     {
       color: 'secondary',
       variant: 'faded',
-      class: 'bg-secondary-2 border-secondary-6 text-secondary-11 hover:bg-secondary-3',
+      class: 'border-secondary-6 bg-secondary-2 text-secondary-11 hover:bg-secondary-3',
     },
     {
       color: 'default',
       variant: 'faded',
-      class: 'bg-gray-2 border-gray-6 text-gray-12 hover:bg-gray-3',
+      class: 'border-gray-6 bg-gray-2 text-gray-12 hover:bg-gray-3',
     },
     {
       color: 'danger',
       variant: 'faded',
-      class: 'bg-danger-2 border-danger-6 text-danger-11 hover:bg-danger-3',
+      class: 'border-danger-6 bg-danger-2 text-danger-11 hover:bg-danger-3',
     },
     // bordered (outline)
     {

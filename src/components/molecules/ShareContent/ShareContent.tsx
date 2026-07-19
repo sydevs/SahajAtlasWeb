@@ -97,7 +97,7 @@ export function ShareContent({ label, url }: ShareContentProps) {
       <div>
         <CopyField value={url} />
       </div>
-      <div className="flex flex-row gap-4 mt-2 justify-center">
+      <div className="mt-2 flex flex-row justify-center gap-4">
         {socials.map((social, index) => (
           <Link key={index} href={social.url} rel="noopener noreferrer" target="_blank">
             <social.icon size={36} />

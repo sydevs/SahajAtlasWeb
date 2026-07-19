@@ -27,7 +27,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection inContext={true} title="Examples">
-      <div className="max-w-md rounded-lg border border-divider overflow-hidden">
+      <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
           <RegionCard count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
           <RegionCard count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />

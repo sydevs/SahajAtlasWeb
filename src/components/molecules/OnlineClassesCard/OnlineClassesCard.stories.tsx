@@ -15,7 +15,7 @@ export default { title: 'Molecules / List' } satisfies StoryDefault
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection inContext={true} title="Online Classes card">
-      <div className="max-w-md rounded-lg border border-divider overflow-hidden">
+      <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
           <OnlineClassesCard count={28} href="#online" />
         </List>

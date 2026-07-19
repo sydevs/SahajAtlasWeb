@@ -12,7 +12,7 @@ const actionCircle = tv({
     // Every action shares the row equally (`flex-1 basis-0`) so the whole set
     // fits one line whatever its size — the circle keeps its ≥44px touch target
     // (h-12 = 48px) while only the label column narrows.
-    base: 'flex min-w-0 flex-1 basis-0 flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-lg',
+    base: 'flex min-w-0 flex-1 basis-0 flex-col items-center gap-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
     circle:
       'flex-center h-12 w-12 shrink-0 rounded-full transition-colors group-hover:opacity-90 group-active:scale-95',
     // Two lines allowed (the i18n budget). Slightly under `text-xs` so the

@@ -15,13 +15,13 @@ export interface RegionCardProps {
 export function RegionCard({ label, subtitle, count, href, icon }: RegionCardProps) {
   return (
     <Link className={listRow()} href={href}>
-      <li className="py-4 flex flex-row items-center font-semibold">
+      <li className="flex flex-row items-center py-4 font-semibold">
         {icon}
-        <div className="text-lg flex-grow">
+        <div className="flex-grow text-lg">
           <div>{label}</div>
-          {subtitle && <div className="text-md font-light mt-0.5">{subtitle}</div>}
+          {subtitle && <div className="mt-0.5 text-md font-light">{subtitle}</div>}
         </div>
-        <div className="text-end me-1">{count}</div>
+        <div className="me-1 text-end">{count}</div>
         <RightArrowIcon className="text-xl" />
       </li>
     </Link>

@@ -66,7 +66,7 @@ export interface StoryGridRowProps {
 }
 
 export const StoryGridRow = ({ children }: StoryGridRowProps) => (
-  <tr className="block sm:table-row mb-4 sm:mb-0 border-b sm:border-b-0 pb-4 sm:pb-0">
+  <tr className="mb-4 block border-b pb-4 sm:mb-0 sm:table-row sm:border-b-0 sm:pb-0">
     {children}
   </tr>
 )

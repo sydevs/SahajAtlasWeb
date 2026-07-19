@@ -368,7 +368,7 @@ function RegistrationFields({
         )}
       />
 
-      <p className="text-xs text-center">{t('registration.privacy_policy')}</p>
+      <p className="text-center text-xs">{t('registration.privacy_policy')}</p>
     </div>
   )
 }

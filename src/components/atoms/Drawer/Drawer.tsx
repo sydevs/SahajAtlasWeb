@@ -28,7 +28,7 @@ const drawer = tv({
     // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it
     // breathing room from the sheet's rounded top edge but sit it close to the header
     // below, and a grab cursor so the drag affordance reads on pointer devices.
-    handle: '!bg-gray-7 mb-1 mt-2.5 cursor-grab active:cursor-grabbing',
+    handle: 'mb-1 mt-2.5 cursor-grab !bg-gray-7 active:cursor-grabbing',
   },
   variants: {
     direction: {
@@ -72,7 +72,7 @@ const drawer = tv({
        * panel. Still a real vaul root, so the header close button keeps working.
        */
       filled: {
-        content: '!absolute !inset-0 !h-full !w-full !max-h-none !max-w-none !rounded-none !pb-0',
+        content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
       },
     },
   },

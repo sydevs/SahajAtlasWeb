@@ -37,5 +37,5 @@ export type ListProps = {
 // A scrollable list wrapper. The surrounding drawer body is the actual scroll
 // container, so this is a plain styled `<ul>`.
 export function List({ children }: ListProps) {
-  return <ul className={`scroll-p-0 scroll-m-0 overflow-y-auto ${DIVIDER}`}>{children}</ul>
+  return <ul className={`scroll-m-0 scroll-p-0 overflow-y-auto ${DIVIDER}`}>{children}</ul>
 }

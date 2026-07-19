@@ -67,7 +67,7 @@ export function ImageCarousel({ slides }: { slides: Slide[] }) {
             >
               <img
                 alt={slide.alt ?? undefined}
-                className="w-full rounded-lg aspect-[4/3] object-cover"
+                className="aspect-[4/3] w-full rounded-lg object-cover"
                 src={slide.src}
               />
             </button>

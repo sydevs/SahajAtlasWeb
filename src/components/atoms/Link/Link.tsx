@@ -4,14 +4,15 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { AnchorIcon } from '@/components/atoms/Icons'
 
-// A styled link replacing NextUI's Link. Internal targets route through
-// react-router's <Link> (client-side, hash-aware); external ones (or any
-// target="_blank") render a plain <a> with a safe rel. An explicit `color` uses
-// Plain colour utilities: the global `a { color: inherit !important }` reset that
-// once forced `!` modifiers here has been removed (it leaked into host pages), so
-// each variant now just sets its colour directly.
+// The app's link atom. Internal targets route through react-router's <Link>
+// (client-side, hash-aware); external ones (or any target="_blank") render a
+// plain <a> with a safe rel.
+//
+// Each `color` sets a plain colour utility. They were once `!`-modified to beat
+// a global `a { color: inherit !important }` reset, but that rule leaked into
+// host pages and has been removed, so the overrides went with it.
 const link = tv({
-  base: 'inline-flex items-center gap-1 outline-none transition-opacity hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus rounded-sm',
+  base: 'inline-flex items-center gap-1 rounded-sm outline-none transition-opacity hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
   variants: {
     color: {
       foreground: 'text-foreground',

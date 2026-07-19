@@ -83,7 +83,7 @@ export const Provider: GlobalProvider = ({ children }) => {
     <I18nextProvider i18n={storyI18n}>
       <MemoryRouter>
         <Providers>
-          <main ref={wrapperRef} className="min-h-screen p-6 text-foreground bg-background">
+          <main ref={wrapperRef} className="min-h-screen bg-background p-6 text-foreground">
             <select
               aria-label="Brand palette"
               style={{ position: 'fixed', top: 8, right: 8, zIndex: 50 }}

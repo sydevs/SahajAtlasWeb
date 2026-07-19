@@ -103,7 +103,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
                 ADD_ATTR: ['target'],
               }),
             }}
-            className="colored-links normal-nums flex flex-col gap-2 text-sm leading-snug"
+            className="colored-links flex flex-col gap-2 text-sm normal-nums leading-snug"
           />
         </div>
       )}

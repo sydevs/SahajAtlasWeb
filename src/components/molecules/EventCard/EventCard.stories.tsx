@@ -52,7 +52,7 @@ export const Default: Story = () => (
       description="Distance reads as a faded subtext under the address. Anything under 5km is suppressed — at that range 'nearby' is more honest than a number — so the first card shows none."
       title="Distances"
     >
-      <div className="max-w-md rounded-lg border border-divider overflow-hidden">
+      <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
           <EventCard event={{ ...mockEventSlim, distance: 3.6 }} />
           <EventCard event={{ ...mockEventSlim, id: 111, distance: 6 }} />
