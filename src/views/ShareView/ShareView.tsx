@@ -26,7 +26,15 @@ export function ShareView({ eventPath }: { eventPath: string }) {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
-        <ShareContent country={country} label={event.title} url={event.webUrl ?? ''} />
+        {/* A null webUrl (an unpublished/gated event has no canonical link) falls
+            back to the current deep link, so the copy field and native share never
+            carry an empty URL — which the OS share sheet would resolve to the host
+            page rather than the event. */}
+        <ShareContent
+          country={country}
+          label={event.title}
+          url={event.webUrl ?? window.location.href}
+        />
       </DrawerBody>
     </>
   )

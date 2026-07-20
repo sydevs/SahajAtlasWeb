@@ -85,7 +85,7 @@ export function RegistrationView({
         <RegistrationForm
           eventId={event.id}
           eventTitle={event.title}
-          eventUrl={event.webUrl ?? ''}
+          eventUrl={event.webUrl ?? window.location.href}
           isOnline={isOnline(event)}
           questions={enabledQuestions(event)}
           upcomingDates={event.schedule?.upcomingDates ?? []}
