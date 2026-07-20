@@ -14,18 +14,19 @@ import {
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// A region is EITHER a parent (child-region cards + an online roll-up) OR a leaf
-// (its own event gallery, online events inline) — never both. Each example pairs the
-// view's props with the query data it suspends on: RegionView keys on
-// `['region', slug, locale]`, so the seed writes exactly that.
+// A region shows child-region cards AND its own located events together (the mixed
+// shape): a city can hold both venues/centres and free-floating events, and both
+// render in one list. A region with sub-regions leads with an "Online Classes" roll-up
+// card; one without lists its online events inline. Each example pairs the view's props
+// with the query data it suspends on: RegionView keys on `['region', slug, locale]`.
 const EXAMPLES = {
+  Mixed: {
+    slug: mockParentRegion.slug,
+    region: mockParentRegion,
+  },
   Country: {
     slug: mockCountryRegion.slug,
     region: mockCountryRegion,
-  },
-  Parent: {
-    slug: mockParentRegion.slug,
-    region: mockParentRegion,
   },
   'Leaf city': {
     slug: mockLeafRegion.slug,
@@ -40,10 +41,11 @@ const EXAMPLES = {
 type ExampleKey = keyof typeof EXAMPLES
 
 /**
- * RegionView — the drawer screen for a region at any level. A full parent (Country)
- * shows child-region cards led by an "Online Classes" roll-up; a minimal Parent has
- * a single child and no roll-up; a leaf shows its located events with any online ones
- * inline; "Empty" shows the (defensive) no-events state.
+ * RegionView — the drawer screen for a region at any level. "Mixed" shows child-region
+ * cards AND the region's own free-floating events in one list (led by an "Online
+ * Classes" roll-up); "Country" is a large parent whose events all sit under its child
+ * regions; "Leaf city" lists only its own events with online ones inline; "Empty" is
+ * the no-events state (unreachable in the app — getRegion 404s a 0-event region).
  */
 export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
@@ -63,12 +65,12 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
 
 Default.storyName = 'Region'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'Country' }
+Default.args = { example: 'Mixed' }
 Default.argTypes = {
   example: {
     name: 'Example',
     options: Object.keys(EXAMPLES),
     control: { type: 'radio' },
-    defaultValue: 'Country',
+    defaultValue: 'Mixed',
   },
 }

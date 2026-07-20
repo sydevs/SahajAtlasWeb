@@ -32,9 +32,10 @@ export const mockCountries: RegionListItem[] = [
   { id: 9012, slug: 'romania', level: 'country', name: 'Romania', countryCode: 'RO', eventCount: 61, path: '/romania' }, // prettier-ignore
 ]
 
-/** The single child row shown inside the minimal parent region. */
-const parentChild: RegionListItem[] = [
+/** A couple of child rows shown inside the mixed region, alongside its own events. */
+const regionChildren: RegionListItem[] = [
   { id: 8101, slug: 'cambridge', level: 'city', name: 'Cambridge', eventCount: 12, path: '/united-kingdom/cambridgeshire/cambridge' }, // prettier-ignore
+  { id: 8102, slug: 'ely', level: 'city', name: 'Ely', subtitle: 'Cambridgeshire', eventCount: 3, path: '/united-kingdom/cambridgeshire/ely' }, // prettier-ignore
 ]
 
 /** Eight child rows for the full (country) parent — a mix of rows that carry a
@@ -51,10 +52,10 @@ const countrySubregions: RegionListItem[] = [
 ]
 
 /**
- * A minimal parent region: a single child-region card and no online roll-up — the
- * sparsest parent. A region is EITHER a parent (child regions) OR a leaf (events) —
- * the mixed "sub-regions and events together" shape has been retired, so `events`
- * stays empty here.
+ * A mixed region: child-region cards AND its own free-floating located events in one
+ * list, led by an "Online Classes" roll-up card. A region can hold both venues/child
+ * areas and events pinned to the region itself (not to a child), and they render
+ * together — the mixed shape RegionView supports.
  */
 export const mockParentRegion: Region = {
   id: 8001,
@@ -65,15 +66,15 @@ export const mockParentRegion: Region = {
   // Only country-level regions carry a countryCode (RegionView shows the country
   // name for those); a sub-country region leaves it null so its own name shows.
   countryCode: null,
-  eventCount: 12,
+  eventCount: 18,
   bounds: [-0.5, 52.0, 0.5, 52.6],
   center: [0.0, 52.3],
   path: '/united-kingdom/cambridgeshire',
   parentPath: '/united-kingdom',
   webUrl: 'https://atlas.example/united-kingdom/cambridgeshire',
-  subregions: parentChild,
-  events: [],
-  onlineEvents: [],
+  subregions: regionChildren,
+  events: mockEventVariants.filter((event) => event.eventType === 'offline').slice(0, 4),
+  onlineEvents: [mockEventSlimOnline],
 }
 
 /**
