@@ -1,15 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { Event } from '@/types'
 
-// EventActions lives beside the lazy-loaded panel, so import the leaf file
-// rather than the folder index (see organisms/index.ts).
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventActions } from './EventActions'
 
 import { mockEvent } from '@/mocks/events'
 
-export default { title: 'Organisms' } satisfies StoryDefault
+export default { title: 'Molecules' } satisfies StoryDefault
 
 const online: Event = { ...mockEvent, id: 201, eventType: 'online' }
 const noWebsite: Event = { ...mockEvent, id: 202, website: null }

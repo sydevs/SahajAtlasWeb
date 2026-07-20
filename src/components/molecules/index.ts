@@ -39,6 +39,12 @@ export type { RegionCardProps } from './RegionCard'
 export { EventCard } from './EventCard'
 export type { EventCardProps } from './EventCard'
 
+// The secondary action row under an event's Register CTA. A molecule (no data
+// lifecycle of its own — it reads the display resolver, like EventFacts), though
+// it's composed by the EventDetails organism.
+export { EventActions } from './EventActions'
+export type { EventActionsProps } from './EventActions'
+
 // ShareContent — the copyable URL + social-links block, reused by the ShareView
 // drawer and the registration "thank you" screen. CopyField also serves the
 // event panel's desktop contact popover.

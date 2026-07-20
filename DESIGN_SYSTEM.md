@@ -76,6 +76,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | -------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line           |
 | `ActiveFilterPills/` | `ActiveFilterPills`                | Removable pills for the active URL filters                                                    |
+| `EventActions/`      | `EventActions`                     | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
 | `EventCard/`         | `EventCard`                        | Per-event summary card in a list                                                              |
 | `EventFacts/`        | `EventFacts`                       | The shared calendar/location fact block; `variant="compact"` is what result cards use          |
 | `EventMetadata/`     | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
@@ -95,7 +96,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Mapbox/` (sub-module) | `Mapbox`, `MapSearch` (+ `layers.ts`, `themes.ts` helpers) | The Mapbox surface; see [`.claude/rules/mapbox.md`](.claude/rules/mapbox.md)                                                                                                                       |
 | `EventsList/`          | `DynamicEventsList`                                        | Distance-sorted fetch; the presentational `EventsList` is module-private (single-use)                                                                                                              |
-| `EventDetails/`        | `EventDetails`, `EventActions`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — facts → Register → actions → images → About. All take `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded — **not** in the tier barrel |
+| `EventDetails/`        | `EventDetails`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — facts → Register → images → About. Take `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded — **not** in the tier barrel. (The secondary action row is the `EventActions` molecule) |
 | `RegistrationForm/`    | `RegistrationForm`                                         | Form-only, config-driven registration (field chrome is private); rendered in the RegistrationView drawer body. **Not** in the barrel                                                               |
 
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +

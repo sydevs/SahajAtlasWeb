@@ -2,9 +2,9 @@ import createDOMPurify from 'dompurify'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { EventActions } from './EventActions'
 import { EventRegisterBar } from './EventRegister'
 
+import { EventActions } from '@/components/molecules/EventActions'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { lexicalToHtml } from '@/lib/shape'

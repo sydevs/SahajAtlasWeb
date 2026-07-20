@@ -1,5 +1,3 @@
-import type { EventSurfaceProps } from './EventDetails'
-
 import { type ReactNode } from 'react'
 import { FloatingPortal } from '@floating-ui/react'
 import { useNavigate } from 'react-router'
@@ -76,7 +74,11 @@ function downloadIcs(event: Event, location: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export type EventActionsProps = EventSurfaceProps
+export type EventActionsProps = {
+  event: Event
+  /** The event's current route; the share action navigates to `${basePath}/share`. */
+  basePath: string
+}
 
 /**
  * The secondary action row (issue #52, WS3): equal-weight labelled tonal
