@@ -14,7 +14,6 @@ import { type ReactNode, useEffect, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
-import { Checkbox } from '@/components/atoms/Checkbox'
 import { Select, SelectItem, fieldChrome } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
@@ -349,24 +348,6 @@ function RegistrationFields({
           registration={register(`questions.${question}`)}
         />
       ))}
-
-      {/* Opt-in mailing-list consent — a checkbox-appearance toggle, unchecked by
-          default, shown just above the privacy note. */}
-      <Controller
-        control={control}
-        defaultValue={false}
-        name="subscribe"
-        render={({ field }) => (
-          <Checkbox
-            appearance="checkbox"
-            checked={!!field.value}
-            color="primary"
-            onCheckedChange={field.onChange}
-          >
-            {t('registration.mailing_list_consent')}
-          </Checkbox>
-        )}
-      />
 
       <p className="text-center text-xs">{t('registration.privacy_policy')}</p>
     </div>

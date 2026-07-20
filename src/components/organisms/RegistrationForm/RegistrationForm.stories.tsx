@@ -12,15 +12,14 @@ const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18
 
 /**
  * RegistrationForm — the form-only registration component, rendered in the
- * RegistrationView drawer body. It carries the date/name/email fields, an opt-in
- * mailing-list consent checkbox above the privacy note, and the thank-you/share
- * screen on success. External registration (a link out) is handled by
- * EventDetails, not the form.
+ * RegistrationView drawer body. It carries the date/name/email fields, the
+ * privacy note, and the thank-you/share screen on success. External
+ * registration (a link out) is handled by EventDetails, not the form.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The native form as it renders in the drawer body; note the opt-in consent checkbox above the privacy note."
+      description="The native form as it renders in the drawer body: date, name and email fields above the privacy note."
       title="Native"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
