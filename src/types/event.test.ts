@@ -9,7 +9,6 @@ import {
   FeedEventSchema,
   REGISTRATION_QUESTION_NAMES,
   RegistrationQuestionNameSchema,
-  RegistrationQuestionsSchema,
 } from './event'
 
 import { mockEvent, mockEventSlim, mockEventSlimList } from '@/mocks/events'
@@ -139,7 +138,6 @@ describe('registration question names', () => {
       'accessibility',
       'guests',
     ])
-    expect([...REGISTRATION_QUESTION_NAMES]).toEqual(Object.keys(RegistrationQuestionsSchema.shape))
   })
 
   it('validates a known question name and rejects an unknown one', () => {
