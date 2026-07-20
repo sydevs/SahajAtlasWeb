@@ -22,12 +22,9 @@ export { LoadingFallback, ErrorFallback } from './Fallbacks'
 export { ActionRow, ActionCircle } from './ActionRow'
 export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 
-// Summary — icon + plain-text fact lines (the event panel's when/where block).
-export { Summary } from './Summary'
-export type { SummaryProps, SummaryItem } from './Summary'
-
-// EventFacts — the shared calendar/location Summary for an event, used by the
-// panel, the list card, and the share/registration summaries.
+// EventFacts — the shared calendar/location fact block for an event (builds and
+// renders the when/where lines), used by the panel, the list card, and the
+// share/registration summaries.
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
 
