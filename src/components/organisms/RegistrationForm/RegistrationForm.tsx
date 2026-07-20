@@ -23,6 +23,7 @@ import preview from '@/config/preview'
 import { useRegistrationDraft } from '@/config/store'
 import { Registration, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
+import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 export type RegistrationFormProps = {
   eventId: number
@@ -55,6 +56,9 @@ export function RegistrationForm({
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(false)
   const { t } = useTranslation('events')
+  // The viewer's region orders the share targets on the thank-you screen (resolved
+  // here so ShareContent stays a pure, prop-driven molecule).
+  const country = useViewerCountry()
   // In live preview the event is a draft — previewing must never create a real
   // registration, so the submit is disabled and mutate() is short-circuited.
   const isPreview = preview.active
@@ -106,7 +110,7 @@ export function RegistrationForm({
         <div className="flex flex-col gap-3 text-center">
           <p>{t('registration.followup')}</p>
           <div className="mt-2 font-semibold">{t('registration.invite_friend')}</div>
-          <ShareContent label={eventTitle} url={eventUrl} />
+          <ShareContent country={country} label={eventTitle} url={eventUrl} />
         </div>
       ) : (
         <>
