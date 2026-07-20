@@ -37,7 +37,7 @@ const ICONS = [
   { name: 'EventIcon', Icon: EventIcon },
 ] as const
 
-const SOCIAL_PLATFORMS = ['email', 'facebook', 'youtube'] as const
+const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
 
 /**
  * Icons — the app's SVG icon set (actions, symbols, records) plus the
