@@ -7,6 +7,8 @@ import {
   EventSlimSchema,
   EventTitleSchema,
   FeedEventSchema,
+  REGISTRATION_QUESTION_NAMES,
+  RegistrationQuestionNameSchema,
 } from './event'
 
 import { mockEvent, mockEventSlim, mockEventSlimList } from '@/mocks/events'
@@ -121,5 +123,25 @@ describe('EventDocSchema images', () => {
     })
 
     expect(parsed.images[0].url).toBeNull()
+  })
+})
+
+describe('registration question names', () => {
+  // The key set is derived from the synced CMS types; this pins the concrete list so
+  // a `pnpm types:cms` resync that changes SahajCloud's EVENT_REGISTRATION_QUESTIONS
+  // surfaces here (alongside the compile-time `satisfies` guard on the schema).
+  it('exposes the EVENT_REGISTRATION_QUESTIONS key set, in schema order', () => {
+    expect(REGISTRATION_QUESTION_NAMES).toEqual([
+      'priorExperience',
+      'referralSource',
+      'healthInfo',
+      'accessibility',
+      'guests',
+    ])
+  })
+
+  it('validates a known question name and rejects an unknown one', () => {
+    expect(RegistrationQuestionNameSchema.parse('guests')).toBe('guests')
+    expect(() => RegistrationQuestionNameSchema.parse('aspirations')).toThrow()
   })
 })
