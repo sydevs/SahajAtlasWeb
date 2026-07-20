@@ -71,7 +71,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `RegionCard/`    | `RegionCard`                       | Navigable region row (country → region → area drill-down)                                     |
 | `EventCard/`     | `EventCard`                        | Per-event summary card in a list                                                              |
 | `EventTime/`     | `EventTime`                        | Formatted event time range (timezone chip is a private composition)                           |
-| `ShareContent/`  | `ShareContent`                     | Copyable URL + social-links block (reused by the share dialog and the registration thank-you) |
+| `ShareContent/`  | `ShareContent`                     | Copyable URL + region-ordered `react-share` targets with a native Web Share fallback (share dialog + registration thank-you) |
 | `ImageCarousel/` | `ImageCarousel`                    | Generic Swiper carousel (`slides`); folds in the lazy YARL lightbox (own chunk)               |
 | `EventSoon/`     | `EventSoonChip`                    | "Starting soon" chip (the `isSoon` predicate lives in `src/lib`)                              |
 | `EventMetadata/` | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
