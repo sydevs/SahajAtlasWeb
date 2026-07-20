@@ -13,6 +13,12 @@ export const IpLocationSchema = z.object({
   longitude: z.number().min(-180).max(180),
   city: z.string().min(1).max(100),
   country: z.string().min(1).max(100),
+  // ISO alpha-2 country code (e.g. "RU", "JP") used to order an event's share
+  // targets to the viewer's region (see `platformsForCountry`). Optional and
+  // self-healing: `.catch(undefined)` keeps a missing or malformed code from
+  // failing the whole parse — that would also drop the "events near you"
+  // suggestion, which needs only the coordinates + city, not the code.
+  country_code: z.string().length(2).optional().catch(undefined),
 })
 
 export type IpLocation = z.infer<typeof IpLocationSchema>
