@@ -58,7 +58,8 @@
     "type_oneoff": "One-off event",
     "time_in_place": "%{time} in %{city}",
     "distance_away": "%{distance} away",
-    "distance_from_place": "%{distance} from %{place}"
+    "distance_from_place": "%{distance} from %{place}",
+    "all_classes_free": "All classes are free"
   },
   "errors": {
     "email": "Enter a valid email",

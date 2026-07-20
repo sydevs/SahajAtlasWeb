@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventCard, List, RegionCard } from '@/components/molecules'
+import { EventListItem, List, ListItem } from '@/components/molecules'
 import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
@@ -81,7 +81,7 @@ export function RegionView({ slug }: { slug: string }) {
             {/* On a parent, the online roll-up opens in its own drawer via this card,
                 keeping the list below a clean set of places. */}
             {showOnlineCard && (
-              <RegionCard
+              <ListItem
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
                 icon={<MonitorIcon size={24} />}
@@ -91,7 +91,7 @@ export function RegionView({ slug }: { slug: string }) {
             {/* A parent lists its child regions; a leaf lists its events. Region ids
                 and event ids come from independent sequences, so namespace the keys. */}
             {region.subregions.map((child) => (
-              <RegionCard
+              <ListItem
                 key={`region-${child.id}`}
                 count={child.eventCount}
                 href={child.path}
@@ -100,11 +100,13 @@ export function RegionView({ slug }: { slug: string }) {
               />
             ))}
             {!isParent &&
-              region.events.map((event) => <EventCard key={`event-${event.id}`} event={event} />)}
+              region.events.map((event) => (
+                <EventListItem key={`event-${event.id}`} event={event} />
+              ))}
             {/* A leaf's online events list inline, after the located ones. */}
             {!isParent &&
               region.onlineEvents.map((event) => (
-                <EventCard key={`online-${event.id}`} event={event} />
+                <EventListItem key={`online-${event.id}`} event={event} />
               ))}
           </List>
         )}

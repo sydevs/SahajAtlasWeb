@@ -166,14 +166,14 @@ const terminalDisplay = (
   timeHint: null,
   weekdayInstants: [],
   // Ended: nothing to act on — "See nearby events" is the only affordance.
-  // Inactive: contact leads (emphasized), plus directions for a physical venue
-  // that still exists and the host's site, then share.
+  // Inactive: contact leads (emphasized), plus the host's site, then share. No
+  // directions — an inactive venue has no precise location to route to (its where
+  // fact shows only the municipality).
   actions:
     status === 'ended'
       ? []
       : [
           ...(hasContact ? (['contact'] as const) : []),
-          ...(base.online ? [] : (['directions'] as const)),
           ...(hasWebsite ? (['website'] as const) : []),
           'share',
         ],

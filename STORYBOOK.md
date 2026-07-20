@@ -136,7 +136,7 @@ Conventions:
 - **Title** = the component's tier — `'Atoms'`, `'Molecules'`, or `'Organisms'` —
   optionally with a **single** `Tier / Group` subcategory that clusters a closely
   related family under its tier (e.g. `'Molecules / List'` groups `List`,
-  `RegionCard`, and `EventCard`). Keep the tier as the first segment so the story
+  `ListItem`, and `EventListItem`). Keep the tier as the first segment so the story
   still sorts under its folder tier, and don't nest deeper than one group.
   `Default.storyName` = the component name and **must be unique within a title**:
   Ladle keys each story by `title` + `storyName`, so same-title files (all the

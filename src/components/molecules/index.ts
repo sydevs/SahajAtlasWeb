@@ -1,5 +1,5 @@
 // Molecules — small compositions of atoms; data passed in via props.
-// Public import surface: `import { EventCard } from '@/components/molecules'`.
+// Public import surface: `import { EventListItem } from '@/components/molecules'`.
 // See DESIGN_SYSTEM.md. Explicit named exports only — each folder surfaces its
 // primary component(s) + `Props` type; single-use internals stay private.
 export { SettingsMenu } from './SettingsMenu'
@@ -24,17 +24,20 @@ export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 
 // EventFacts — the shared calendar/location fact block for an event (builds and
 // renders the when/where lines), used by the panel, the list card, and the
-// share/registration summaries.
+// share/registration summaries. `EventSummary` is its boxed, titled variant (the
+// event-details card on the share + registration drawers).
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
+export { EventSummary } from './EventFacts'
+export type { EventSummaryProps } from './EventFacts'
 
 export { List } from './List'
 
-export { RegionCard } from './RegionCard'
-export type { RegionCardProps } from './RegionCard'
+export { ListItem } from './ListItem'
+export type { ListItemProps } from './ListItem'
 
-export { EventCard } from './EventCard'
-export type { EventCardProps } from './EventCard'
+export { EventListItem } from './EventListItem'
+export type { EventListItemProps } from './EventListItem'
 
 // The secondary action row under an event's Register CTA. A molecule (no data
 // lifecycle of its own — it reads the display resolver, like EventFacts), though

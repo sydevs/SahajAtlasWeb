@@ -2,7 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { EventCard } from './EventCard'
+import { EventListItem } from './EventListItem'
 
 import { List } from '@/components/molecules/List'
 import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
@@ -10,7 +10,7 @@ import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 /**
- * EventCard — the list card (issue #52): title, then recurrence · start time,
+ * EventListItem — the list card (issue #52): title, then recurrence · start time,
  * then the address with the distance right-aligned, then a chip row (language ·
  * status) at the bottom. Online events carry "Online" in the distance slot and
  * a hosted-from place line.
@@ -19,7 +19,7 @@ export const Default: Story = () => (
   <StoryWrapper>
     <StorySection description="A weekly class with a long title." title="Weekly class">
       <div className="max-w-md">
-        <EventCard event={mockEventSlim} />
+        <EventListItem event={mockEventSlim} />
       </div>
     </StorySection>
 
@@ -28,7 +28,7 @@ export const Default: Story = () => (
       title="Course"
     >
       <div className="max-w-md">
-        <EventCard
+        <EventListItem
           event={{
             ...mockEventSlim,
             id: 110,
@@ -44,7 +44,7 @@ export const Default: Story = () => (
       title="Online"
     >
       <div className="max-w-md">
-        <EventCard event={mockEventSlimOnline} />
+        <EventListItem event={mockEventSlimOnline} />
       </div>
     </StorySection>
 
@@ -54,9 +54,9 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <EventCard event={{ ...mockEventSlim, distance: 3.6 }} />
-          <EventCard event={{ ...mockEventSlim, id: 111, distance: 6 }} />
-          <EventCard event={{ ...mockEventSlim, id: 112, distance: 128 }} />
+          <EventListItem event={{ ...mockEventSlim, distance: 3.6 }} />
+          <EventListItem event={{ ...mockEventSlim, id: 111, distance: 6 }} />
+          <EventListItem event={{ ...mockEventSlim, id: 112, distance: 128 }} />
         </List>
       </div>
     </StorySection>
@@ -66,7 +66,7 @@ export const Default: Story = () => (
       title="Dateless"
     >
       <div className="max-w-md">
-        <EventCard event={{ ...mockEventSlim, id: 113, schedule: null }} />
+        <EventListItem event={{ ...mockEventSlim, id: 113, schedule: null }} />
       </div>
     </StorySection>
 
@@ -74,4 +74,4 @@ export const Default: Story = () => (
   </StoryWrapper>
 )
 
-Default.storyName = 'Event Card'
+Default.storyName = 'Event List Item'

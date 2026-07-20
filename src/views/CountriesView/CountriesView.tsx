@@ -5,7 +5,7 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, RegionCard } from '@/components/molecules'
+import { List, ListItem } from '@/components/molecules'
 import { MonitorIcon } from '@/components/atoms/Icons'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -85,7 +85,7 @@ export function CountriesView() {
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
           {onlineCount > 0 && (
-            <RegionCard
+            <ListItem
               count={onlineCount}
               href={onlineSearch}
               icon={<MonitorIcon size={24} />}
@@ -93,7 +93,7 @@ export function CountriesView() {
             />
           )}
           {sortedCountries.map((country) => (
-            <RegionCard
+            <ListItem
               key={country.id}
               count={country.eventCount}
               href={country.path}

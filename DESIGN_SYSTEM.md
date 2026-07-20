@@ -77,14 +77,14 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line           |
 | `ActiveFilterPills/` | `ActiveFilterPills`                | Removable pills for the active URL filters                                                    |
 | `EventActions/`      | `EventActions`                     | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
-| `EventCard/`         | `EventCard`                        | Per-event summary card in a list                                                              |
+| `EventListItem/`         | `EventListItem`                        | Per-event summary card in a list                                                              |
 | `EventFacts/`        | `EventFacts`                       | The shared calendar/location fact block; `variant="compact"` is what result cards use          |
 | `EventMetadata/`     | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
 | `Fallbacks/`         | `LoadingFallback`, `ErrorFallback` | Suspense / error-boundary fallbacks (compose `Alert`/`Spinner`)                               |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`           | Generic Swiper carousel (`slides`); folds in the lazy YARL lightbox (own chunk)               |
 | `List/`              | `List`, `listRow`                  | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome + gutter          |
 | `NearbyPrompt/`      | `NearbyPrompt`                     | The IP-geolocated "events near you?" suggestion line                                          |
-| `RegionCard/`        | `RegionCard`                       | Every row in a region list: the country → region → area drill-down AND the online-classes entry. `icon` is a fixed slot that sizes/spaces the glyph, so rows align whatever goes in it |
+| `ListItem/`        | `ListItem`                       | Every row in a region list: the country → region → area drill-down AND the online-classes entry. `icon` is a fixed slot that sizes/spaces the glyph, so rows align whatever goes in it |
 | `SearchFilters/`     | `SearchFilters`                    | The filter form (format / frequency / day / time / language); fully controlled                |
 | `SettingsMenu/`      | `SettingsMenu`                     | The cog: theme radio group + language submenu, on Radix DropdownMenu (needs Sub/RadioGroup)   |
 | `ShareContent/`      | `ShareContent`, `CopyField`        | Copyable URL + social-links block (reused by the share dialog and the registration thank-you) |
@@ -155,7 +155,7 @@ component barrels.
   `src/lib/` (`resolveEventDisplay`, the `isSoon` predicate, the time formatters).
   A **single-use** composition stays module-private in its one parent (the
   registration form's `Field`/`LabeledInput`); a **multi-use** one becomes a thin
-  exported molecule (`EventFacts`, used by `EventCard` and the event panel) or a
+  exported molecule (`EventFacts`, used by `EventListItem` and the event panel) or a
   shared recipe (`listRow`, `fieldChrome`).
 - **Code-split exception:** a heavy organism that is lazy-loaded (the event detail
   page lazy-imports `EventView`) is intentionally left _out_ of its tier barrel,

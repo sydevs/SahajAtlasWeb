@@ -2,19 +2,14 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { EventSummary } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { eventTimeZone, isOnline } from '@/lib/shape'
 import { Event } from '@/types'
-import {
-  CloseButton,
-  DrawerTitle,
-  EventSummary,
-  useEventFromPath,
-  useFrameOnTop,
-} from '@/views/shared'
+import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field).
 function enabledQuestions(event: Event): string[] {

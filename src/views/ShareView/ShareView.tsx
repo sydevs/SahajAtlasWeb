@@ -1,15 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { ShareContent } from '@/components/molecules'
+import { EventSummary, ShareContent } from '@/components/molecules'
 import { useMapController } from '@/hooks/use-map-controller'
-import {
-  CloseButton,
-  DrawerTitle,
-  EventSummary,
-  useEventFromPath,
-  useFrameOnTop,
-} from '@/views/shared'
+import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
 // Share links for an event (route `<event-path>/share`). Reached by the event's
 // Share CTA and deep-linkable — so it repeats the compact resolver summary
@@ -31,9 +25,12 @@ export function ShareView({ eventPath }: { eventPath: string }) {
       </DrawerHeader>
       <DrawerBody className="p-4">
         <EventSummary event={event} />
-        {/* A null webUrl (unpublished canonical) falls back to the current URL
-            so the copy field / share links never carry an empty string. */}
-        <ShareContent label={event.title} url={event.webUrl ?? window.location.href} />
+        {/* Match the summary card's width so the share block lines up with it. A null
+            webUrl (unpublished canonical) falls back to the current URL so the copy
+            field / share links never carry an empty string. */}
+        <div className="mx-auto w-full max-w-md">
+          <ShareContent label={event.title} url={event.webUrl ?? window.location.href} />
+        </div>
       </DrawerBody>
     </>
   )

@@ -4,7 +4,7 @@ import { CircleFlag } from 'react-circle-flags'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { RegionCard } from './RegionCard'
+import { ListItem } from './ListItem'
 
 import { List } from '@/components/molecules/List'
 import { MonitorIcon } from '@/components/atoms/Icons'
@@ -14,7 +14,7 @@ export default { title: 'Molecules / List' } satisfies StoryDefault
 const FLAG_CLASS = 'h-full w-full rounded-full border border-divider bg-divider'
 
 /**
- * RegionCard — a single navigable row (optional leading glyph, label, optional
+ * ListItem — a single navigable row (optional leading glyph, label, optional
  * subtitle, count, trailing arrow). It backs every row in a region list: the
  * country → region → area drill-down, and the online-classes entry that belongs
  * to no region at all. The glyph is the only thing that varies, and the card's
@@ -25,11 +25,11 @@ export const Default: Story = () => (
     <StorySection title="Variants">
       <div className="flex max-w-md flex-col gap-6">
         <StorySection title="Minimal" variant="subsection">
-          <RegionCard count={12} href="#area" label="Cambridge" />
+          <ListItem count={12} href="#area" label="Cambridge" />
         </StorySection>
 
         <StorySection title="Maximal" variant="subsection">
-          <RegionCard
+          <ListItem
             count={7}
             href="#area"
             icon={<CircleFlag className={FLAG_CLASS} countryCode="gb" />}
@@ -46,19 +46,19 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <RegionCard
+          <ListItem
             count={41}
             href="#online"
             icon={<MonitorIcon size={24} />}
             label="Online Classes"
           />
-          <RegionCard
+          <ListItem
             count={12}
             href="#country"
             icon={<CircleFlag className={FLAG_CLASS} countryCode="in" />}
             label="India"
           />
-          <RegionCard count={3} href="#country" label="No flag available" />
+          <ListItem count={3} href="#country" label="No flag available" />
         </List>
       </div>
     </StorySection>
@@ -70,25 +70,25 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <RegionCard
+          <ListItem
             count={41}
             href="#online"
             icon={<MonitorIcon size={24} />}
             label="Online Classes"
           />
-          <RegionCard
+          <ListItem
             count={128}
             href="#country"
             icon={<CircleFlag className={FLAG_CLASS} countryCode="in" />}
             label="India"
           />
-          <RegionCard
+          <ListItem
             count={64}
             href="#country"
             icon={<CircleFlag className={FLAG_CLASS} countryCode="gb" />}
             label="United Kingdom"
           />
-          <RegionCard
+          <ListItem
             count={22}
             href="#country"
             icon={<CircleFlag className={FLAG_CLASS} countryCode="it" />}
@@ -105,9 +105,9 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <RegionCard count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
-          <RegionCard count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />
-          <RegionCard count={3} href="#area" label="London" subtitle="Greater London" />
+          <ListItem count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
+          <ListItem count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />
+          <ListItem count={3} href="#area" label="London" subtitle="Greater London" />
         </List>
       </div>
     </StorySection>
@@ -116,4 +116,4 @@ export const Default: Story = () => (
   </StoryWrapper>
 )
 
-Default.storyName = 'Region Card'
+Default.storyName = 'List Item'

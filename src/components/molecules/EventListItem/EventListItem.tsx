@@ -12,7 +12,7 @@ import { Link } from '@/components/atoms/Link'
 import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
-export interface EventCardProps {
+export interface EventListItemProps {
   event: EventSlim
 }
 
@@ -30,7 +30,7 @@ const MIN_DISTANCE_KM = 5
  * hookable for map-pin highlight (#44). The divider between cards is drawn by
  * the List, not each card.
  */
-export function EventCard({ event }: EventCardProps) {
+export function EventListItem({ event }: EventListItemProps) {
   const { t } = useTranslation('events')
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const [searchParams] = useSearchParams()

@@ -40,8 +40,8 @@ export type LinkProps = Omit<ComponentProps<'a'>, 'color' | 'href'> &
     children?: ReactNode
   }
 
-// forwardRef because Link is used as a whole-card hit target (EventCard,
-// RegionCard) — the only atom rendering an interactive element that couldn't be
+// forwardRef because Link is used as a whole-card hit target (EventListItem,
+// ListItem) — the only atom rendering an interactive element that couldn't be
 // reached by a caller needing the DOM node (e.g. to scroll a highlighted card
 // into view).
 export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(

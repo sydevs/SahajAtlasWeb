@@ -4,7 +4,7 @@ import { listRow } from '@/components/molecules/List/List'
 import { Link } from '@/components/atoms/Link'
 import { RightArrowIcon } from '@/components/atoms/Icons'
 
-export interface RegionCardProps {
+export interface ListItemProps {
   label: string
   subtitle?: string | null
   count: number
@@ -23,7 +23,7 @@ export interface RegionCardProps {
  * online-classes entry that belongs to no region. One component for all of them —
  * the only thing that varies is the glyph in the icon slot.
  */
-export function RegionCard({ label, subtitle, count, href, icon }: RegionCardProps) {
+export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) {
   return (
     <Link className={listRow()} href={href}>
       <li className="flex flex-row items-center py-4 font-semibold">

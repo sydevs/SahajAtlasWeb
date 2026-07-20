@@ -15,7 +15,6 @@ export default { title: 'Views' } satisfies StoryDefault
 const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
   'Native form': { event: mockEvent },
   Confirmation: { event: { ...mockEvent, id: 313 }, initialSubmitted: true },
-  Online: { event: { ...mockEvent, id: 311, eventType: 'online' } },
   'External registration': {
     event: {
       ...mockEvent,

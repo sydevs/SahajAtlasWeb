@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Client } from '@/types'
+import type { Client, IpLocation } from '@/types'
 
 import { Suspense, useMemo } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -41,6 +41,19 @@ export { mockEventVariants } from '@/mocks/events'
  *  region bootstrap); no home region, so no canonical link is emitted. */
 const mockClient: Client = { id: 1, name: 'Demo Host', locale: 'en', region: null }
 
+/** A passive IP guess (Cambridge) so the nearby-suggestion prompt renders on the
+ *  views that show it (Countries / Region / Search). Sits where the feed has a
+ *  located class within reach, and far from the country/region the default example
+ *  frames, so `shouldShowNearbyPrompt` resolves true (a region you're already
+ *  viewing locally correctly suppresses it). */
+const mockIpLocation: IpLocation = {
+  latitude: 52.2,
+  longitude: 0.12,
+  city: 'Cambridge',
+  region: 'Cambridgeshire',
+  country: 'United Kingdom',
+}
+
 export type ViewHarnessProps = {
   /** The active use-case key — remounts + re-seeds when it changes. */
   seedKey: string
@@ -57,12 +70,13 @@ export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps)
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
     })
 
-    // Seed the feed, the host-client record, and suppress the IP lookup for every
-    // view, so no story pings the (absent) backend or the third-party geolocation
-    // service; the case's own `seed` layers its view-specific keys on top.
+    // Seed the feed, the host-client record, and a passive IP guess (so the nearby
+    // prompt renders where supported) for every view — no story pings the (absent)
+    // backend or the third-party geolocation service; the case's own `seed` layers
+    // its view-specific keys on top.
     c.setQueryData(['geojson'], mockGeojson)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
-    c.setQueryData(['ip-location'], null)
+    c.setQueryData(['ip-location'], mockIpLocation)
     seed(c)
 
     return c

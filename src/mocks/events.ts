@@ -275,7 +275,7 @@ export const mockEventMinimal: Event = {
 //
 // One EventSlim per distinct card render — recurrence, resolver status, distance,
 // language, and the terminal states — so a single list exercises every branch of
-// EventCard / useEventDisplay at once. Shared across the view-list stories (Region
+// EventListItem / useEventDisplay at once. Shared across the view-list stories (Region
 // / Online / Search) through the story harness so they all preview the same rich
 // set instead of hand-rolling their own short lists.
 

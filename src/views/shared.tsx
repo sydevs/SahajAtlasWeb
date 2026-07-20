@@ -11,18 +11,15 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { Link } from '@/components/atoms/Link'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
-import { EventFacts, NearbyPrompt } from '@/components/molecules'
+import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
-import { useWidgetMode } from '@/config/mode'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { approxBounds } from '@/lib/geo'
-import { Event } from '@/types'
 import {
   hasActivePlaceSearch,
   markNearbyDismissed,
@@ -224,47 +221,6 @@ export function useEventFromPath(eventPath: string) {
     queryKey: ['event', resolved.id, locale],
     queryFn: () => api.getEvent(resolved.id),
   })
-}
-
-/**
- * The compact event summary repeated on the registration + share drawers: the
- * event title over its when/where facts — the same resolver strings as every
- * other surface (issue #52). In an embed (map-less, non-standalone) no Atlas
- * chrome exists around the drawer, so the summary is self-sufficient and
- * carries a small "on Sahaj Atlas" backlink.
- *
- * The drawer header above already owns a bold title ("Register for Meditation"),
- * so this is deliberately NOT a second heading: it sits on a tinted, rounded
- * surface at body text size, reading as the *object* being acted on rather than
- * a competing title. The scan order becomes: what am I doing (header) → which
- * event (this card) → the form. A view sub-component, not a design-system export.
- */
-export function EventSummary({ event }: { event: Event }) {
-  const { t } = useTranslation('events')
-  const { standalone, hasMap } = useWidgetMode()
-
-  const embedded = !standalone && !hasMap
-
-  return (
-    <div className="mx-auto mb-4 w-full max-w-md rounded-lg border border-divider bg-gray-2 p-3">
-      <div className="text-base font-semibold leading-tight">{event.title}</div>
-      <EventFacts className="mt-2" event={event} />
-      {embedded &&
-        (event.webUrl ? (
-          <Link
-            className="mt-2 text-xs text-primary-11"
-            href={event.webUrl}
-            isExternal={true}
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            {t('display.on_sahaj_atlas')}
-          </Link>
-        ) : (
-          <div className="mt-2 text-xs text-gray-11">{t('display.on_sahaj_atlas')}</div>
-        ))}
-    </div>
-  )
 }
 
 // Suspense fallback for a view whose data is still loading. Renders only the sheet's

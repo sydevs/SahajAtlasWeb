@@ -198,12 +198,15 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
 
-    // ── Where ──
+    // ── Where ── An inactive venue has no precise location: show only the
+    // municipality (city / region name), never the street address.
     const whereLine = display.online
       ? `${t('display.online')} • ${t('display.hosted_from', { city: originCity })}`
-      : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-        event.region?.name ||
-        ''
+      : display.status === 'inactive'
+        ? event.address?.city || event.region?.name || ''
+        : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
+          event.region?.name ||
+          ''
     // Online only: the viewer's local time, faded under the where line, named
     // with their region ("10 AM in British Columbia") so the conversion says
     // whose clock it is without a "(your time)" label. The weekday is carried

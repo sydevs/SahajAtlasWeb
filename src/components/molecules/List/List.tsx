@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { tv } from 'tailwind-variants'
 
 // The list row's chrome and its horizontal gutter live here, not in each card.
-// EventCard and RegionCard used to hand-maintain the same class string and had
+// EventListItem and ListItem used to hand-maintain the same class string and had
 // already drifted apart (region rows lost their `active:` press state), while
 // List's divider inset was a third copy of the gutter held in sync by a comment.
 // One recipe, one constant — change the gutter here and the divider follows.

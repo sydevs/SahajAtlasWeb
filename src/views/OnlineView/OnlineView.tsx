@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventCard, List } from '@/components/molecules'
+import { EventListItem, List } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -41,10 +41,10 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
   return (
     <>
       <DrawerHeader className="justify-between">
-        {/* One free-line per list — no Free chips on the cards (issue #52). */}
+        {/* The region name is the subtitle; "All classes are free" only fills in when
+            a region has none (no Free chips on the cards — issue #52). */}
         <DrawerTitle
-          note={tEvents('display.all_events_free')}
-          subtitle={regionName}
+          subtitle={regionName || tEvents('display.all_classes_free')}
           title={t('online_classes')}
         />
         <CloseButton />
@@ -55,7 +55,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         ) : (
           <List>
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventListItem key={event.id} event={event} />
             ))}
           </List>
         )}
