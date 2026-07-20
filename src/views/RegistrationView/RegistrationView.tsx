@@ -87,7 +87,11 @@ export function RegistrationView({
             upcomingDates={selectableDates}
             onClose={() => navigate(parentPath)}
           />
-        ) : external ? (
+        ) : external && !blockedMessage ? (
+          // Only when the external event is actually registerable — a terminal
+          // (inactive / ended / closed) external event has a `blockedMessage` and no
+          // register slot, so it falls through to the state message below rather than
+          // rendering an empty EventRegisterBar (issue #52).
           <div className="mx-auto w-full max-w-md py-4">
             <EventRegisterBar basePath={parentPath} event={event} />
           </div>
