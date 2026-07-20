@@ -40,7 +40,7 @@ export function EventHeader({ event, trailing }: EventHeaderProps) {
         {statusChip && <Chip color="secondary">{statusChip}</Chip>}
         {display.online && <Chip color="default">{t('display.online')}</Chip>}
         {event.languages.map((code) => (
-          <Chip key={code} color="secondary" variant="light">
+          <Chip key={code} color="secondary" variant="ghost">
             {languageLabel(code)}
           </Chip>
         ))}

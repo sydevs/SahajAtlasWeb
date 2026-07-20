@@ -74,8 +74,11 @@ export function Select({
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal container={overlayContainer()}>
+        {/* `position="popper"` exposes `--radix-select-trigger-width`, so the
+            listbox matches the trigger's width rather than sizing to its longest
+            option. */}
         <RadixSelect.Content
-          className="z-50 overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          className="z-50 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
           position="popper"
           sideOffset={4}
         >

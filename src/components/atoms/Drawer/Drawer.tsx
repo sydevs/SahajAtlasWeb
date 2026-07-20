@@ -22,9 +22,15 @@ const drawer = tv({
   slots: {
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
-    header: 'flex shrink-0 items-center gap-2 px-4 pb-2 pt-4',
-    body: 'min-h-0 flex-1 overflow-y-auto',
-    footer: 'mt-auto shrink-0 border-t border-gray-4',
+    // Every content band is capped at `--sy-content-max` (default 32rem) and
+    // centred, so on a wide surface — a map-less embed, a large-mobile bottom
+    // sheet — the views read as a centred column rather than stretching edge to
+    // edge. A no-op on the ~22rem anchored panel, which is already narrower.
+    header:
+      'mx-auto flex w-full max-w-[var(--sy-content-max,32rem)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,32rem)] flex-1 overflow-y-auto',
+    footer:
+      'mx-auto mt-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0 border-t border-gray-4',
     // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it
     // breathing room from the sheet's rounded top edge but sit it close to the header
     // below, and a grab cursor so the drag affordance reads on pointer devices.

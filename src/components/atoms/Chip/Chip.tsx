@@ -6,9 +6,10 @@ import { IconSvgProps } from '@/types'
 
 // A compact, uppercase label — the design system's reference tailwind-variants
 // component (see DESIGN_SYSTEM.md), built directly on the Radix-semantic 12-step
-// tokens. `flat` is a soft tint, `light` is text-only; `emphasis` tunes the content
-// weight; `radius` picks square (`sm`) or pill (`full`) corners. Pass `onClose` to
-// render a trailing remove button (e.g. the active-filter pills).
+// tokens. `flat` is a soft tint, `ghost` is text-only (matching Button's `ghost`);
+// `emphasis` tunes the content weight; `radius` picks square (`sm`) or pill
+// (`full`) corners. Pass `onClose` to render a trailing remove button (e.g. the
+// active-filter pills).
 const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',
@@ -18,7 +19,7 @@ const chip = tv({
   },
   variants: {
     color: { primary: '', secondary: '', default: '' },
-    variant: { flat: '', light: '' },
+    variant: { flat: '', ghost: '' },
     size: {
       sm: { base: 'px-2 py-1 text-xs' },
       md: { base: 'px-2.5 py-1.5 text-sm' },
@@ -36,9 +37,9 @@ const chip = tv({
     { color: 'primary', variant: 'flat', class: { base: 'bg-primary-3 text-primary-11' } },
     { color: 'secondary', variant: 'flat', class: { base: 'bg-secondary-3 text-secondary-11' } },
     { color: 'default', variant: 'flat', class: { base: 'bg-gray-3 text-gray-12' } },
-    { color: 'primary', variant: 'light', class: { base: 'text-primary-11' } },
-    { color: 'secondary', variant: 'light', class: { base: 'text-secondary-11' } },
-    { color: 'default', variant: 'light', class: { base: 'text-gray-12' } },
+    { color: 'primary', variant: 'ghost', class: { base: 'text-primary-11' } },
+    { color: 'secondary', variant: 'ghost', class: { base: 'text-secondary-11' } },
+    { color: 'default', variant: 'ghost', class: { base: 'text-gray-12' } },
   ],
   defaultVariants: {
     color: 'primary',

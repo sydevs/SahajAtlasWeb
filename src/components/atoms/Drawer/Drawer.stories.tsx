@@ -36,6 +36,11 @@ export const Default: Story = () => {
 
   const [open, setOpen] = useState(false)
   const [snap, setSnap] = useState<number | string | null>(SNAP_POINTS[1])
+  // A `filled` drawer portals into whatever `container` it's given and fills it
+  // with `absolute inset-0`. Passing `null` sends it to <body>, so it would fill
+  // the whole viewport — as DrawerStack does, hand it the bounding element so it
+  // stays inside the box.
+  const [filledBox, setFilledBox] = useState<HTMLDivElement | null>(null)
 
   return (
     <StoryWrapper>
@@ -54,8 +59,11 @@ export const Default: Story = () => {
         description='`mode="filled"` is the map-less layout: absolute inside its container rather than fixed to the viewport, filling it, with no drag handle. This is what the widget renders when `map={false}`.'
         title="Filled (map-less)"
       >
-        <div className="relative h-64 w-full overflow-hidden rounded-lg border border-divider">
-          <Drawer container={null} direction="bottom" mode="filled" open={true}>
+        <div
+          ref={setFilledBox}
+          className="relative h-64 w-full overflow-hidden rounded-lg border border-divider"
+        >
+          <Drawer container={filledBox} direction="bottom" mode="filled" open={true}>
             <DrawerContent aria-label="Filled panel">
               <DrawerHeader>
                 <h2 className="text-lg font-semibold">Contained</h2>
