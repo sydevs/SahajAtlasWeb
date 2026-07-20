@@ -62,9 +62,10 @@ export const scheduleStart = (schedule: EventSchedule): DateTime =>
   DateTime.fromJSDate(schedule.firstDate).setZone(scheduleTimeZone(schedule))
 
 /** `start` moved to the "HH:MM" `endTime`, or null when unset/malformed — the
- *  ONE place the endTime wire format is parsed. An end at-or-before the start
- *  wall-clock rolls to the next day (a 23:00–00:30 session ends tomorrow, and
- *  bad data can never produce an end before its start). */
+ *  ONE place the endTime wire format is parsed. An end strictly BEFORE the start
+ *  wall-clock rolls to the next day (a 23:00–00:30 session ends tomorrow); an end
+ *  equal to the start stays same-day (a zero-length occurrence, not a 24h one), so
+ *  bad data can never produce an end before its start. */
 export const withEndTime = (
   start: DateTime,
   endTime: string | null | undefined,

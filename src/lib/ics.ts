@@ -78,9 +78,7 @@ export const buildRrule = (schedule: EventSchedule): string | null => {
     parts.push(`BYDAY=${schedule.weekdays.join(',')}`)
   } else if (type === 'MONTHLY') {
     if (schedule.monthlyMode === 'weekday' && schedule.weekNumber && schedule.weekdayOfMonth) {
-      parts.push(
-        `BYDAY=${schedule.weekNumber === '-1' ? '-1' : schedule.weekNumber}${schedule.weekdayOfMonth}`,
-      )
+      parts.push(`BYDAY=${schedule.weekNumber}${schedule.weekdayOfMonth}`)
     } else {
       parts.push(`BYMONTHDAY=${schedule.monthDay ?? seriesStart(schedule).day}`)
     }
