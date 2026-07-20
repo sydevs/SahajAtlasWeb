@@ -310,6 +310,21 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   )
 }
 
+// The generic "no events" state for the region/online drawers when their list
+// comes back empty. Unreachable in the running app (a 0-event region 404s, and the
+// online roll-up card only links out when there ARE online events), but rendered so
+// a directly-typed URL — or a story's empty case — never shows a blank drawer.
+// Search has its own filter-aware empty state (DynamicEventsList's EmptyResults).
+export function EmptyEventList() {
+  const { t } = useTranslation('common')
+
+  return (
+    <div className="p-4">
+      <Alert color="default" description={t('filters.no_events')} />
+    </div>
+  )
+}
+
 // A city-sized radius (km) so the suggested search frames a neighbourhood, not the
 // pinpoint the IP guess resolves to.
 const NEARBY_RADIUS_KM = 25

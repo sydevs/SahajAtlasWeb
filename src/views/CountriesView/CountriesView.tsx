@@ -38,6 +38,12 @@ export function CountriesView() {
     queryKey: ['countries'],
     queryFn: () => api.getCountries(),
   })
+  // Busiest countries first — the list's display order, owned here so it holds
+  // whatever the source (the live feed, or a seeded story) hands us.
+  const sortedCountries = useMemo(
+    () => [...countries].sort((a, b) => b.eventCount - a.eventCount),
+    [countries],
+  )
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
   // The "Online Classes" entry links to the online-filtered search; its count is
@@ -86,7 +92,7 @@ export function CountriesView() {
               label={t('online_classes')}
             />
           )}
-          {countries.map((country) => (
+          {sortedCountries.map((country) => (
             <RegionCard
               key={country.id}
               count={country.eventCount}

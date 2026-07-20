@@ -8,28 +8,37 @@ import { mockCountries } from '@/mocks/regions'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-const CASES = {
+const EXAMPLES = {
   'All countries': mockCountries,
   'Single country': mockCountries.slice(0, 1),
 } as const
 
-type CaseKey = keyof typeof CASES
+type ExampleKey = keyof typeof EXAMPLES
 
 /**
  * CountriesView — the root screen: the geocoder search + filter, an "Online
- * Classes" entry (its count read from the feed), then the global country list.
+ * Classes" entry (its count read from the feed), then the global country list
+ * (busiest first — the view sorts by event count).
  */
-export const Default: Story<{ case: CaseKey }> = ({ case: key }) => (
+export const Default: Story<{ example: ExampleKey }> = ({ example }) => (
   <ViewHarness
-    seed={(client: QueryClient) => client.setQueryData<RegionListItem[]>(['countries'], CASES[key])}
-    seedKey={key}
+    seed={(client: QueryClient) =>
+      client.setQueryData<RegionListItem[]>(['countries'], EXAMPLES[example])
+    }
+    seedKey={example}
   >
     <CountriesView />
   </ViewHarness>
 )
 
-Default.storyName = 'Countries View'
-Default.args = { case: 'All countries' }
+Default.storyName = 'Countries'
+Default.meta = { width: 'xsmall' }
+Default.args = { example: 'All countries' }
 Default.argTypes = {
-  case: { options: Object.keys(CASES), control: { type: 'select' }, defaultValue: 'All countries' },
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'All countries',
+  },
 }

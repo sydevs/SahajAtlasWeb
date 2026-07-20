@@ -8,7 +8,7 @@ import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { childRoute } from '@/lib/shape'
-import { CloseButton, DrawerTitle, useFrameOnTop } from '@/views/shared'
+import { CloseButton, DrawerTitle, EmptyEventList, useFrameOnTop } from '@/views/shared'
 
 // The online-classes drawer (route `<region-path>/online`): the placeless online
 // events rolled up under a region, listed on their own so the region page's list
@@ -50,11 +50,15 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        <List>
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </List>
+        {events.length === 0 ? (
+          <EmptyEventList />
+        ) : (
+          <List>
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </List>
+        )}
       </DrawerBody>
     </>
   )

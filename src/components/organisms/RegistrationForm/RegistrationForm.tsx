@@ -34,6 +34,9 @@ export type RegistrationFormProps = {
   timeZone?: string
   /** Optional close callback; the footer also closes the enclosing Modal via ModalClose. */
   onClose?: () => void
+  /** Start in the post-submit confirmation state — for previewing that screen in a
+   *  story without a real submission. Defaults to false (the live form). */
+  initialSubmitted?: boolean
 }
 
 /**
@@ -54,8 +57,9 @@ export function RegistrationForm({
   eventTitle,
   eventUrl,
   onClose,
+  initialSubmitted = false,
 }: RegistrationFormProps) {
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation('events')
   // In live preview the event is a draft — previewing must never create a real
   // registration, so the submit is disabled and mutate() is short-circuited.

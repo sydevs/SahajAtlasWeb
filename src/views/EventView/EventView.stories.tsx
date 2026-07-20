@@ -10,21 +10,23 @@ import {
   mockEventCourse,
   mockEventEnded,
   mockEventInactive,
+  mockEventMinimal,
   mockEventToday,
 } from '@/mocks/events'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// EventView keys on `['event', id, locale]`. Each case is one resolver state,
+// EventView keys on `['event', id, locale]`. Each example is one resolver state,
 // reusing the shared event fixtures.
-const CASES: Record<string, Event> = {
+const EXAMPLES: Record<string, Event> = {
   'In person': mockEvent,
+  Minimal: mockEventMinimal,
   Online: { ...mockEvent, id: 301, eventType: 'online', languages: ['fr'] },
   Today: mockEventToday,
   Course: mockEventCourse,
   Ended: mockEventEnded,
   Inactive: mockEventInactive,
-  External: {
+  'External registration': {
     ...mockEvent,
     id: 302,
     registrationMode: 'external',
@@ -32,28 +34,34 @@ const CASES: Record<string, Event> = {
   },
 }
 
-type CaseKey = keyof typeof CASES
+type ExampleKey = keyof typeof EXAMPLES
 
 /**
  * EventView — the full event panel screen (header + facts → Register → actions →
- * images → About). Switch resolver states with the "case" control.
+ * images → About). Switch resolver states with the control.
  */
-export const Default: Story<{ case: CaseKey }> = ({ case: key }) => {
+export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const event = CASES[key]
+  const event = EXAMPLES[example]
 
   return (
     <ViewHarness
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
-      seedKey={key}
+      seedKey={example}
     >
       <EventView basePath={event.path} id={event.id} />
     </ViewHarness>
   )
 }
 
-Default.storyName = 'Event View'
-Default.args = { case: 'In person' }
+Default.storyName = 'Event'
+Default.meta = { width: 'xsmall' }
+Default.args = { example: 'In person' }
 Default.argTypes = {
-  case: { options: Object.keys(CASES), control: { type: 'select' }, defaultValue: 'In person' },
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'In person',
+  },
 }

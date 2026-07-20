@@ -169,6 +169,30 @@ export function Drawer({
   )
 }
 
+/**
+ * Establishes the drawer slot context (the header/body/footer padding for a given
+ * mode + direction) WITHOUT a vaul root — so a view's `Drawer*` subtree can be
+ * previewed outside a real drawer (the story harness) with the SAME chrome the app
+ * renders. The app itself always goes through `<Drawer>`/`<DrawerContent>`; this is
+ * only for rendering the inner content standalone. Defaults to the map-less
+ * `filled` bottom drawer, which is what the harness simulates.
+ */
+export function DrawerSlotsProvider({
+  mode = 'filled',
+  direction = 'bottom',
+  children,
+}: {
+  mode?: 'anchored' | 'filled'
+  direction?: DrawerDirection
+  children: ReactNode
+}) {
+  return (
+    <DrawerContext.Provider value={{ slots: drawer({ direction, mode }), direction, mode }}>
+      {children}
+    </DrawerContext.Provider>
+  )
+}
+
 export type DrawerContentProps = {
   /** Accessible name for the dialog (Radix requires one; rendered sr-only). */
   'aria-label': string

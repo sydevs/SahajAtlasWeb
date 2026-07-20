@@ -275,6 +275,8 @@ const getCountries = async (): Promise<RegionListItem[]> => {
   const index = indexRegions(regions)
   const events = indexFeatures(geojson, index)
 
+  // Ordering is the list's concern, not the feed's — CountriesView sorts by event
+  // count so the display order holds for a seeded story (unsorted mock) too.
   return regions
     .filter((node) => node.level === 'country')
     .map((node) =>
@@ -289,7 +291,6 @@ const getCountries = async (): Promise<RegionListItem[]> => {
       }),
     )
     .filter((country) => country.eventCount > 0)
-    .sort(byEventCountDesc)
 }
 
 // One fetcher for every region level. Parents (`country`/`region`) list their

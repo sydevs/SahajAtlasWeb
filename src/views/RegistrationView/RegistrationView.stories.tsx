@@ -10,41 +10,56 @@ import { mockEvent } from '@/mocks/events'
 export default { title: 'Views' } satisfies StoryDefault
 
 // RegistrationView resolves its event from the path (`useEventFromPath` →
-// `['event', id, locale]`), so each case seeds that key for the path's terminal id.
-const CASES: Record<string, Event> = {
-  'Native form': mockEvent,
-  Online: { ...mockEvent, id: 311, eventType: 'online' },
-  External: {
-    ...mockEvent,
-    id: 312,
-    registrationMode: 'external',
-    externalRegistrationUrl: 'https://example.org/register',
+// `['event', id, locale]`), so each example seeds that key for the path's terminal id.
+// `Confirmation` starts the native form on its post-submit thank-you screen.
+const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
+  'Native form': { event: mockEvent },
+  Confirmation: { event: { ...mockEvent, id: 313 }, initialSubmitted: true },
+  Online: { event: { ...mockEvent, id: 311, eventType: 'online' } },
+  'External registration': {
+    event: {
+      ...mockEvent,
+      id: 312,
+      registrationMode: 'external',
+      externalRegistrationUrl: 'https://example.org/register',
+    },
   },
 }
 
-type CaseKey = keyof typeof CASES
+type ExampleKey = keyof typeof EXAMPLES
 
 /**
  * RegistrationView — the registration drawer screen: the event summary card over
- * the form (or the link-out CTA for an externally-registered event).
+ * the form (or the link-out CTA for an externally-registered event), plus the
+ * post-submit confirmation.
  */
-export const Default: Story<{ case: CaseKey }> = ({ case: key }) => {
+export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const event = CASES[key]
+  const { event, initialSubmitted } = EXAMPLES[example]
   const eventPath = `/demo/${event.id}`
 
   return (
     <ViewHarness
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
-      seedKey={key}
+      seedKey={example}
     >
-      <RegistrationView eventPath={eventPath} parentPath="/demo" />
+      <RegistrationView
+        eventPath={eventPath}
+        initialSubmitted={initialSubmitted}
+        parentPath="/demo"
+      />
     </ViewHarness>
   )
 }
 
-Default.storyName = 'Registration View'
-Default.args = { case: 'Native form' }
+Default.storyName = 'Registration'
+Default.meta = { width: 'xsmall' }
+Default.args = { example: 'Native form' }
 Default.argTypes = {
-  case: { options: Object.keys(CASES), control: { type: 'select' }, defaultValue: 'Native form' },
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'Native form',
+  },
 }

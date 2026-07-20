@@ -37,9 +37,12 @@ function enabledQuestions(event: Event): string[] {
 export function RegistrationView({
   eventPath,
   parentPath,
+  initialSubmitted,
 }: {
   eventPath: string
   parentPath: string
+  /** Preview-only: start the native form on its confirmation screen (see stories). */
+  initialSubmitted?: boolean
 }) {
   const { t } = useTranslation('events')
   const navigate = useNavigate()
@@ -82,6 +85,7 @@ export function RegistrationView({
             eventId={event.id}
             eventTitle={event.title}
             eventUrl={event.webUrl ?? ''}
+            initialSubmitted={initialSubmitted}
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
             timeZone={eventTimeZone(event)}

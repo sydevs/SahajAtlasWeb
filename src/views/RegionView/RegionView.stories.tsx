@@ -5,13 +5,24 @@ import type { Region } from '@/types'
 import { ViewHarness } from '@/views/story-harness'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { useLocale } from '@/hooks/use-locale'
-import { mockLeafRegion, mockMinimalRegion, mockParentRegion } from '@/mocks/regions'
+import {
+  mockCountryRegion,
+  mockLeafRegion,
+  mockMinimalRegion,
+  mockParentRegion,
+} from '@/mocks/regions'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// Each case pairs the view's props with the query data it suspends on. RegionView
-// keys on `['region', slug, locale]`, so the seed writes exactly that.
-const CASES = {
+// A region is EITHER a parent (child-region cards + an online roll-up) OR a leaf
+// (its own event gallery, online events inline) — never both. Each example pairs the
+// view's props with the query data it suspends on: RegionView keys on
+// `['region', slug, locale]`, so the seed writes exactly that.
+const EXAMPLES = {
+  Country: {
+    slug: mockCountryRegion.slug,
+    region: mockCountryRegion,
+  },
   Parent: {
     slug: mockParentRegion.slug,
     region: mockParentRegion,
@@ -20,37 +31,44 @@ const CASES = {
     slug: mockLeafRegion.slug,
     region: mockLeafRegion,
   },
-  'Minimal (no events)': {
+  Empty: {
     slug: mockMinimalRegion.slug,
     region: mockMinimalRegion,
   },
 } as const
 
-type CaseKey = keyof typeof CASES
+type ExampleKey = keyof typeof EXAMPLES
 
 /**
- * RegionView — the drawer screen for a region at any level: child-region cards,
- * this region's located events, and (on a parent) the online-classes roll-up.
- * Switch cases with the "case" control.
+ * RegionView — the drawer screen for a region at any level. A full parent (Country)
+ * shows child-region cards led by an "Online Classes" roll-up; a minimal Parent has
+ * a single child and no roll-up; a leaf shows its located events with any online ones
+ * inline; "Empty" shows the (defensive) no-events state.
  */
-export const Default: Story<{ case: CaseKey }> = ({ case: key }) => {
+export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const c = CASES[key]
+  const c = EXAMPLES[example]
 
   return (
     <ViewHarness
       seed={(client: QueryClient) =>
         client.setQueryData<Region>(['region', c.slug, locale], c.region)
       }
-      seedKey={key}
+      seedKey={example}
     >
       <RegionView slug={c.slug} />
     </ViewHarness>
   )
 }
 
-Default.storyName = 'Region View'
-Default.args = { case: 'Parent' }
+Default.storyName = 'Region'
+Default.meta = { width: 'xsmall' }
+Default.args = { example: 'Country' }
 Default.argTypes = {
-  case: { options: Object.keys(CASES), control: { type: 'select' }, defaultValue: 'Parent' },
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'Country',
+  },
 }

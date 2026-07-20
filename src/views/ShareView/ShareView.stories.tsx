@@ -9,33 +9,39 @@ import { mockEvent } from '@/mocks/events'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-const CASES: Record<string, Event> = {
+const EXAMPLES: Record<string, Event> = {
   'In person': mockEvent,
   Online: { ...mockEvent, id: 321, eventType: 'online', languages: ['fr'] },
 }
 
-type CaseKey = keyof typeof CASES
+type ExampleKey = keyof typeof EXAMPLES
 
 /**
  * ShareView — the share drawer screen: the event summary card over the copyable
  * link + social-share row.
  */
-export const Default: Story<{ case: CaseKey }> = ({ case: key }) => {
+export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const event = CASES[key]
+  const event = EXAMPLES[example]
 
   return (
     <ViewHarness
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
-      seedKey={key}
+      seedKey={example}
     >
       <ShareView eventPath={`/demo/${event.id}`} />
     </ViewHarness>
   )
 }
 
-Default.storyName = 'Share View'
-Default.args = { case: 'In person' }
+Default.storyName = 'Share'
+Default.meta = { width: 'xsmall' }
+Default.args = { example: 'In person' }
 Default.argTypes = {
-  case: { options: Object.keys(CASES), control: { type: 'select' }, defaultValue: 'In person' },
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'In person',
+  },
 }

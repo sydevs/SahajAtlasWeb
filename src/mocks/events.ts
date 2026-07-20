@@ -33,6 +33,17 @@ const weeklyNext = dayAt(4, 9, 30)
 /** Same weekday, three months back: the series is underway, so status is `running`. */
 const weeklyFirst = weeklyNext.minus({ weeks: 13 })
 
+// The evening fixtures (upcoming class / course) start at 6 PM and run 90 minutes,
+// so they end the SAME day — surfaces then show just the times, not a date range.
+// (Inheriting the morning class's "11:00" end made a 6 PM start "finish" at 11 AM
+// the next day: a 17-hour cross-midnight span that rendered as full dates.)
+const EVENING_HOUR = 18
+const eveningEnd = dayAt(0, EVENING_HOUR).plus({ minutes: 90 }).toFormat('HH:mm')
+
+// "Today" starts two hours out (reliably still ahead of the clock) and runs 90
+// minutes, its end derived from that start so it, too, stays a same-day range.
+const todayStart = now.plus({ hours: 2 })
+
 export const mockEventImages: EventImage[] = [
   {
     url: 'https://picsum.photos/seed/atlas-hall/1200/800',
@@ -172,7 +183,8 @@ export const mockEventToday: Event = {
     ...mockEvent.schedule!,
     recurrenceType: 'DAILY',
     weekdays: [],
-    upcomingDates: [now.plus({ hours: 2 }).toJSDate(), now.plus({ days: 1, hours: 2 }).toJSDate()],
+    endTime: todayStart.plus({ minutes: 90 }).toFormat('HH:mm'),
+    upcomingDates: [todayStart.toJSDate(), todayStart.plus({ days: 1 }).toJSDate()],
   },
 }
 
@@ -183,8 +195,9 @@ export const mockEventUpcoming: Event = {
   title: 'New Weekly Class',
   schedule: {
     ...mockEvent.schedule!,
-    firstDate: dayAt(21, 18, 0).toJSDate(),
-    upcomingDates: [dayAt(21, 18, 0).toJSDate(), dayAt(28, 18, 0).toJSDate()],
+    firstDate: dayAt(21, EVENING_HOUR).toJSDate(),
+    endTime: eveningEnd,
+    upcomingDates: [dayAt(21, EVENING_HOUR).toJSDate(), dayAt(28, EVENING_HOUR).toJSDate()],
   },
 }
 
@@ -202,8 +215,8 @@ export const mockEventStartedCourse: Event = {
   id: 124,
   schedule: {
     ...mockEventCourse.schedule!,
-    firstDate: dayAt(-21, 18, 0).toJSDate(),
-    upcomingDates: [dayAt(7, 18, 0).toJSDate()],
+    firstDate: dayAt(-21, EVENING_HOUR).toJSDate(),
+    upcomingDates: [dayAt(7, EVENING_HOUR).toJSDate()],
   },
 }
 
@@ -228,3 +241,103 @@ export const mockEventInactive: Event = {
   title: 'Dormant Venue Programme',
   inactive: true,
 }
+
+/**
+ * The bare minimum for an active in-person event: a schedule, a location, and a
+ * region — nothing optional. No images, description, website, contact details,
+ * registration questions, or cap. Exercises the panel's "everything optional is
+ * absent" layout (only when/where facts + a plain Register).
+ */
+export const mockEventMinimal: Event = {
+  id: 141,
+  title: 'Community Meditation',
+  eventType: 'offline',
+  languages: ['en'],
+  inactive: false,
+  address: { city: 'Cambridge', country: 'GB' },
+  schedule: mockEvent.schedule,
+  description: null,
+  images: [],
+  contactPhone: null,
+  contactName: null,
+  website: null,
+  registrationMode: 'sahaj-atlas',
+  externalRegistrationUrl: null,
+  registrationLimit: null,
+  registrationQuestions: null,
+  region: mockRegion,
+  webPath: null,
+  webUrl: null,
+  path: '/united-kingdom/cambridge/141',
+}
+
+// ── A comprehensive gallery of list-card variants ───────────────────────────────
+//
+// One EventSlim per distinct card render — recurrence, resolver status, distance,
+// language, and the terminal states — so a single list exercises every branch of
+// EventCard / useEventDisplay at once. Shared across the view-list stories (Region
+// / Online / Search) through the story harness so they all preview the same rich
+// set instead of hand-rolling their own short lists.
+
+/** Narrow a full `Event` fixture to the list-card (`EventSlim`) shape, with
+ *  per-case overrides (distance, a distinct route, …). */
+const slimFrom = (event: Event, overrides: Partial<EventSlim> = {}): EventSlim => ({
+  id: event.id,
+  title: event.title,
+  eventType: event.eventType,
+  languages: event.languages,
+  inactive: event.inactive,
+  address: event.address,
+  schedule: event.schedule,
+  region: event.region,
+  webPath: event.webPath,
+  path: event.path,
+  ...overrides,
+})
+
+export const mockEventVariants: EventSlim[] = [
+  // Weekly class already underway, in person, in the UI language — the default shape.
+  mockEventSlim,
+  // Online daily class in another language: screen icon, hosted-from line, language chip.
+  mockEventSlimOnline,
+  // Next session later today → "Today".
+  slimFrom(mockEventToday, { distance: 8, path: '/united-kingdom/cambridge/121' }),
+  // First session still ahead → "Starts <date>".
+  slimFrom(mockEventUpcoming, { distance: 15, path: '/united-kingdom/cambridge/122' }),
+  // A bounded course before it starts (registration open; "Course · N sessions").
+  slimFrom(mockEventCourse, { distance: 30, path: '/united-kingdom/cambridge/123' }),
+  // The same course after its first session → "Started <date>".
+  slimFrom(mockEventStartedCourse, { distance: 45, path: '/united-kingdom/cambridge/124' }),
+  // A one-off whose date has passed → terminal "Ended" (reachable via direct links).
+  slimFrom(mockEventEnded, { path: '/united-kingdom/cambridge/125' }),
+  // A dormant venue (no active schedule) → "Contact host for timings".
+  slimFrom(mockEventInactive, { path: '/united-kingdom/cambridge/126' }),
+  // A weekly class in a language other than the UI's → the language chip shows.
+  {
+    ...mockEventSlim,
+    id: 131,
+    title: 'Mittwoch Meditation',
+    languages: ['de'],
+    distance: 6,
+    path: '/united-kingdom/cambridge/131',
+  },
+  // A physical event beyond the search view's "< 500 km" cap (a distant town).
+  {
+    ...mockEventSlim,
+    id: 132,
+    title: 'Highlands Weekly Class',
+    address: { street: '1 Loch View', city: 'Inverness', country: 'GB' },
+    distance: 850,
+    path: '/united-kingdom/cambridge/132',
+  },
+  // A dateless one-off → "One-off event" · "Contact host for timings".
+  {
+    ...mockEventSlim,
+    id: 133,
+    title: 'Beginners Course',
+    schedule: null,
+    address: { city: 'Oxford', country: 'GB' },
+    distance: 18,
+    path: '/united-kingdom/cambridge/133',
+  },
+]
