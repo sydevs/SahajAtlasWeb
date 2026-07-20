@@ -1,13 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
-import { Link } from '@/components/atoms/Link'
-import {
-  FacebookIcon,
-  EmailIcon,
-  LinkedinIcon,
-  TwitterIcon,
-  FlipboardIcon,
-} from '@/components/atoms/Icons'
+import { PlatformButton } from './platform-buttons'
+
+import { Button } from '@/components/atoms/Button'
+import { ShareIcon } from '@/components/atoms/Icons'
+import { useWebShare } from '@/hooks/use-web-share'
+import { platformsForCountry } from '@/lib/share/platforms'
 
 // Click-to-copy URL field — the custom replacement for NextUI's Snippet (which
 // was rendered with hideSymbol, i.e. select-to-copy). Copies on click with a
@@ -43,51 +42,61 @@ function CopyField({ value }: { value: string }) {
 export type ShareContentProps = {
   label: string
   url: string
+  /**
+   * The viewer's country (ISO alpha-2) — orders the share grid to their region
+   * (`platformsForCountry`). Resolved by the consumer (via `useViewerCountry`) so
+   * this molecule stays pure and SSR-testable. Absent → the default platform set.
+   */
+  country?: string
 }
 
 /**
- * The shareable block: a click-to-copy URL field plus a row of social share
- * links. Generic (label + url) — used both in the event share dialog (composed
- * by EventView) and the registration "thank you" screen.
+ * The shareable block: a click-to-copy URL field plus regionally-ordered share
+ * targets. On a device that supports the Web Share API it leads with a single
+ * "Share…" button opening the native OS sheet (which surfaces the viewer's own
+ * installed apps — the ultimate region filter); everywhere else, or if that
+ * native call is blocked, it falls back to a grid of `react-share` buttons
+ * ordered by `country`. Generic (label + url + optional country): used by the
+ * event share drawer (ShareView) and the registration "thank you" screen.
+ *
+ * `label`/`url` are passed through raw — react-share and the native sheet encode
+ * their own parameters, so the old `encodeURI` here would have double-encoded.
  */
-export function ShareContent({ label, url }: ShareContentProps) {
-  label = encodeURI(label)
-  url = encodeURI(url)
-  const socials = [
-    {
-      url: `mailto:?subject=${label}&body=${url}`,
-      icon: EmailIcon,
-    },
-    {
-      url: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-      icon: FacebookIcon,
-    },
-    {
-      url: `https://x.com/intent/tweet?text=${url}`,
-      icon: TwitterIcon,
-    },
-    {
-      url: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-      icon: LinkedinIcon,
-    },
-    {
-      url: `https://share.flipboard.com/bookmarklet/popout?v=2&title=${label}&url=${url}`,
-      icon: FlipboardIcon,
-    },
-  ]
+export function ShareContent({ label, url, country }: ShareContentProps) {
+  const { t } = useTranslation()
+  const { canShare, share } = useWebShare()
+  // Reveal the grid when there's no native sheet, or after a native attempt is
+  // blocked (host Permissions-Policy) or dismissed — the viewer is never stranded.
+  const [gridRevealed, setGridRevealed] = useState(false)
+  const showGrid = !canShare || gridRevealed
+
+  const platforms = platformsForCountry(country)
+
+  const shareNatively = async () => {
+    if (!(await share({ title: label, url }))) setGridRevealed(true)
+  }
 
   return (
-    <>
-      <div>
-        <CopyField value={url} />
-      </div>
-      <div className="flex flex-row gap-4 mt-2 justify-center">
-        {socials.map((social, index) => (
-          <Link key={index} href={social.url} rel="noopener noreferrer" target="_blank">
-            <social.icon size={36} />
-          </Link>
-        ))}
-      </div>
-    </>
+    <div className="flex flex-col gap-3">
+      <CopyField value={url} />
+
+      {showGrid ? (
+        <div className="flex flex-row flex-wrap justify-center gap-3">
+          {platforms.map((platform) => (
+            <PlatformButton key={platform} platform={platform} title={label} url={url} />
+          ))}
+        </div>
+      ) : (
+        <Button
+          className="w-full"
+          color="primary"
+          startContent={<ShareIcon size={18} />}
+          variant="solid"
+          onClick={shareNatively}
+        >
+          {t('share.native')}
+        </Button>
+      )}
+    </div>
   )
 }

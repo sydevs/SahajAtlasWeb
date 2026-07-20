@@ -66,5 +66,9 @@
   "nearby_prompt": {
     "title": "¿Buscas clases cerca de %{city}?",
     "dismiss": "Descartar"
+  },
+  "share": {
+    "share_on": "Compartir en %{platform}",
+    "native": "Compartir…"
   }
 }

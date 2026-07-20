@@ -80,5 +80,9 @@
   "nearby_prompt": {
     "title": "Looking for classes near %{city}?",
     "dismiss": "Dismiss"
+  },
+  "share": {
+    "share_on": "Share on %{platform}",
+    "native": "Share…"
   }
 }

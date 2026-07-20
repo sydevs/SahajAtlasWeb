@@ -66,5 +66,9 @@
   "nearby_prompt": {
     "title": "Ищете занятия рядом: %{city}?",
     "dismiss": "Скрыть"
+  },
+  "share": {
+    "share_on": "Поделиться в %{platform}",
+    "native": "Поделиться…"
   }
 }

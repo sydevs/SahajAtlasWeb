@@ -37,6 +37,7 @@ describe('useWebShare', () => {
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new DOMException('blocked', 'NotAllowedError'))
+
     vi.stubGlobal('navigator', { share })
     renderToStaticMarkup(<Probe />)
 

@@ -66,5 +66,9 @@
   "nearby_prompt": {
     "title": "Hledáte kurzy poblíž: %{city}?",
     "dismiss": "Skrýt"
+  },
+  "share": {
+    "share_on": "Sdílet na %{platform}",
+    "native": "Sdílet…"
   }
 }
