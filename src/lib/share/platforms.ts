@@ -102,9 +102,10 @@ export const PLATFORMS_BY_COUNTRY: Record<string, PlatformKey[]> = {
  * or absent code, so callers can pass a maybe-undefined code straight through.
  */
 export function platformsForCountry(code?: string | null): PlatformKey[] {
-  const base = code
-    ? (PLATFORMS_BY_COUNTRY[code.toUpperCase()] ?? DEFAULT_PLATFORMS)
-    : DEFAULT_PLATFORMS
+  // Every country list is a non-empty array, so `||` covers all three fallbacks in
+  // one branch — an unknown code, an empty string, and a nullish code all resolve
+  // to the default set.
+  const base = (code && PLATFORMS_BY_COUNTRY[code.toUpperCase()]) || DEFAULT_PLATFORMS
 
   return [...base, 'email']
 }
