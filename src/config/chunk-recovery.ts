@@ -13,6 +13,8 @@ export function installChunkRecovery() {
     if (!armReload()) return
 
     // Prevent Vite from rethrowing the import error — the reload supersedes it.
+    // (The swallowed import resolves undefined, so the ErrorFallback can flash
+    // briefly until the reload lands; accepted over surfacing a dead drawer.)
     event.preventDefault()
     window.location.reload()
   })
@@ -26,7 +28,9 @@ function armReload(): boolean {
     const now = Date.now()
     const last = Number(sessionStorage.getItem(RELOADED_AT_KEY)) || 0
 
-    if (now - last < RELOAD_WINDOW_MS) return false
+    // A stamp in the future (clock stepped backward: NTP, VM resume) must read
+    // as expired, or recovery stays dead until the clock catches up.
+    if (now >= last && now - last < RELOAD_WINDOW_MS) return false
 
     sessionStorage.setItem(RELOADED_AT_KEY, String(now))
 
