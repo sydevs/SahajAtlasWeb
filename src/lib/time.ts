@@ -1,4 +1,4 @@
-import type { DateTime } from 'luxon'
+import { IANAZone, type DateTime } from 'luxon'
 
 /**
  * Concise, locale-correct event times.
@@ -43,6 +43,26 @@ export function zoneCity(zone: string | null | undefined): string {
   const city = zone?.split('/').pop()
 
   return city ? city.replace(/_/g, ' ') : ''
+}
+
+/**
+ * The place name to attach to an online event's converted time, or null for the
+ * safe bare-time form. The clock the time is quoted in is `at`'s own zone (the
+ * viewer's OS zone); the region name comes from a *separate* source (IP
+ * geolocation), so naming it is only honest when its zone shares that clock — i.e.
+ * the same UTC offset at this instant (mirroring `sameWallClock`). When they
+ * disagree (VPN, a traveller on home time, a mislocating IP DB) — or the region /
+ * zone is missing or invalid — return null so the caller shows the bare converted
+ * time with no place, never a region whose local time isn't the one shown (#64).
+ */
+export const reconciledViewerPlace = (
+  region: string | null | undefined,
+  zone: string | null | undefined,
+  at: DateTime,
+): string | null => {
+  if (!region || !zone || !IANAZone.isValidZone(zone)) return null
+
+  return at.setZone(zone).offset === at.offset ? region : null
 }
 
 export function formatTimeRange(start: DateTime, end: DateTime | null, locale: string): string {

@@ -29,6 +29,37 @@ describe('fetchIpLocation', () => {
     })
   })
 
+  it('captures the region and the IP timezone id (dropping the rest of timezone)', async () => {
+    mockFetch({
+      ...VALID,
+      region: 'British Columbia',
+      timezone: { id: 'America/Vancouver', offset: -25200, abbr: 'PDT' },
+    })
+
+    expect(await fetchIpLocation()).toEqual({
+      city: 'Paris',
+      country: 'France',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      region: 'British Columbia',
+      timezone: { id: 'America/Vancouver' },
+    })
+  })
+
+  it('still parses when the timezone object is id-less (#64 safe degrade)', async () => {
+    // An id-less timezone must not fail the whole location parse — it just leaves
+    // nothing to reconcile the region label against, so the time shows bare.
+    mockFetch({ ...VALID, timezone: {} })
+
+    expect(await fetchIpLocation()).toEqual({
+      city: 'Paris',
+      country: 'France',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      timezone: {},
+    })
+  })
+
   it('returns null for a country-only response (empty city)', async () => {
     mockFetch({ ...VALID, city: '' })
 
