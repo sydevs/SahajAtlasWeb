@@ -68,6 +68,8 @@
     "dismiss": "Ausblenden"
   },
   "share": {
+    "share_on": "Auf %{platform} teilen",
+    "native": "Teilen…",
     "copy_link": "Link kopieren",
     "copied": "Kopiert"
   }

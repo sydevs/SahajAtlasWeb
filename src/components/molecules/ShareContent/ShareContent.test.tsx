@@ -1,46 +1,69 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { ShareContent } from './ShareContent'
 
-// Node-only SSR assertions (see `.claude/rules/tests.md`). Mock the i18n boundary
-// so the embedded CopyField's `t()` resolves without booting i18next.
+// Mock the i18n boundary so aria-labels render as real copy — including the
+// %{platform} interpolation — without booting i18next (see NearbyPrompt.test).
+// Node lane, no jsdom (.claude/rules/tests.md). navigator has no `.share` here,
+// so ShareContent renders the grid; the last case stubs it to test the native path.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, opts?: { platform?: string }) =>
+      key === 'share.share_on'
+        ? `Share on ${opts?.platform}`
+        : key === 'share.native'
+          ? 'Share…'
+          : key,
+  }),
 }))
 
-// A URL/title carrying `&` and `?` must be FULLY percent-encoded where it lands as
-// a sharer query-param value, so no character can spill into a new param on the
-// third-party URL — encodeURIComponent, not encodeURI (which leaves `& ? / #` raw).
-const url = 'https://sahaj.test/e?a=1&b=2'
-const label = 'Yoga & Meditation?'
-const encodedUrl = 'https%3A%2F%2Fsahaj.test%2Fe%3Fa%3D1%26b%3D2'
-const encodedLabel = 'Yoga%20%26%20Meditation%3F'
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+// A non-ASCII path so the double-encode regression is observable: encodeURI would
+// have turned "café" into "caf%C3%A9".
+const url = 'https://atlas.example/e/café'
+const label = 'Saturday Morning Meditation'
 
 describe('ShareContent', () => {
-  it('percent-encodes the URL as a query value for every sharer link', () => {
-    const html = renderToStaticMarkup(<ShareContent label={label} url={url} />)
+  it('orders the share grid to the viewer region', () => {
+    const ru = renderToStaticMarkup(<ShareContent country="RU" label={label} url={url} />)
 
-    // `&` → %26 and `?` → %3F inside the value, so nothing appends a stray param.
-    expect(html).toContain(`sharer.php?u=${encodedUrl}`)
-    expect(html).toContain(`intent/tweet?text=${encodedUrl}`)
-    expect(html).toContain(`share-offsite/?url=${encodedUrl}`)
-    expect(html).toContain('%26')
-    expect(html).toContain('%3F')
+    expect(ru).toContain('Share on VK')
+    expect(ru).toContain('Share on OK.ru')
+    expect(ru).not.toContain('Share on LINE')
+
+    const jp = renderToStaticMarkup(<ShareContent country="JP" label={label} url={url} />)
+
+    expect(jp).toContain('Share on LINE')
+    expect(jp).not.toContain('Share on VK')
   })
 
-  it('percent-encodes the title where it is a query value', () => {
+  it('falls back to the default platforms for an unknown or absent country', () => {
     const html = renderToStaticMarkup(<ShareContent label={label} url={url} />)
 
-    expect(html).toContain(`subject=${encodedLabel}`)
-    expect(html).toContain(`title=${encodedLabel}`)
+    // DEFAULT_PLATFORMS leads with WhatsApp and carries no regional-only targets.
+    expect(html).toContain('Share on WhatsApp')
+    expect(html).not.toContain('Share on VK')
+    expect(html).not.toContain('Share on LINE')
   })
 
-  it('leaves no un-encoded scheme/separator that could append a stray param', () => {
+  it('copies the raw URL — react-share encodes internally, so no double-encoding', () => {
     const html = renderToStaticMarkup(<ShareContent label={label} url={url} />)
 
-    // encodeURI would leave these raw in the sharer href; encodeURIComponent doesn't.
-    expect(html).not.toContain('?u=https://')
-    expect(html).not.toContain('text=https://')
+    expect(html).toContain('café')
+    expect(html).not.toContain('caf%C3%A9')
+  })
+
+  it('leads with a single native share button when the Web Share API is available', () => {
+    vi.stubGlobal('navigator', { share: () => Promise.resolve() })
+
+    const html = renderToStaticMarkup(<ShareContent country="RU" label={label} url={url} />)
+
+    // Native-first: one "Share…" button opens the OS sheet — not the platform grid.
+    expect(html).toContain('Share…')
+    expect(html).not.toContain('Share on VK')
   })
 })

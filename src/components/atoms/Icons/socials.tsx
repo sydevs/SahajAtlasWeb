@@ -4,69 +4,6 @@ import { BaseIcon } from './base'
 
 import { IconSvgProps } from '@/types'
 
-export const EmailIcon: React.FC<IconSvgProps> = ({ ...props }) => (
-  <BaseIcon
-    paths={[
-      'M18 2c1.105 0 2 0.895 2 2v0 12c0 1.105-0.895 2-2 2v0h-16c-1.105 0-2-0.895-2-2v0-12c0-1.1 0.9-2 2-2h16zM13.63 11.1l6.37 4.9v-2l-5.12-3.9 5.12-4.1v-2l-10 8-10-8v2l5.12 4.1-5.12 3.9v2l6.37-4.9 3.63 2.9 3.63-2.9z',
-    ]}
-    view="0 0 20 20"
-    {...props}
-  />
-)
-
-export const FacebookIcon: React.FC<IconSvgProps> = ({ ...props }) => (
-  <BaseIcon
-    fill="#4172b8"
-    paths={[
-      'M31.997 15.999c0-8.836-7.163-15.999-15.999-15.999s-15.999 7.163-15.999 15.999c0 7.985 5.851 14.604 13.499 15.804v-11.18h-4.062v-4.625h4.062v-3.525c0-4.010 2.389-6.225 6.043-6.225 1.75 0 3.581 0.312 3.581 0.312v3.937h-2.017c-1.987 0-2.607 1.233-2.607 2.498v3.001h4.437l-0.709 4.625h-3.728v11.18c7.649-1.2 13.499-7.819 13.499-15.804z',
-    ]}
-    view="0 0 32 32"
-    {...props}
-  />
-)
-
-export const FlipboardIcon: React.FC<IconSvgProps> = ({ ...props }) => (
-  <BaseIcon
-    fill="#e12828"
-    paths={['M0 0v32h32v-32h-32zM25.6 12.8h-6.4v6.4h-6.4v6.4h-6.4v-19.2h19.2v6.4z']}
-    view="0 0 32 32"
-    {...props}
-  />
-)
-
-export const LinkedinIcon: React.FC<IconSvgProps> = ({ ...props }) => (
-  <BaseIcon
-    fill="#0077b5"
-    paths={[
-      'M27.263 27.269h-4.739v-7.425c0-1.771-0.036-4.049-2.469-4.049-2.471 0-2.848 1.927-2.848 3.919v7.556h-4.739v-15.269h4.552v2.081h0.061c0.636-1.2 2.183-2.467 4.493-2.467 4.801 0 5.689 3.16 5.689 7.273v8.381zM7.116 9.911c-1.525 0-2.751-1.235-2.751-2.753 0-1.517 1.227-2.751 2.751-2.751 1.52 0 2.752 1.233 2.752 2.751 0 1.519-1.233 2.753-2.752 2.753zM9.492 27.269h-4.752v-15.269h4.752v15.269zM29.633 0h-27.272c-1.305 0-2.361 1.032-2.361 2.305v27.389c0 1.275 1.056 2.305 2.361 2.305h27.268c1.304 0 2.371-1.031 2.371-2.305v-27.389c0-1.273-1.067-2.305-2.371-2.305h0.004z',
-    ]}
-    view="0 0 32 32"
-    {...props}
-  />
-)
-
-export const TwitterIcon: React.FC<IconSvgProps> = ({ ...props }) => (
-  <BaseIcon
-    fill="#1da1f2"
-    paths={[
-      'M31.939 6.092c-1.18 0.519-2.44 0.872-3.767 1.033 1.352-0.815 2.392-2.099 2.884-3.631-1.268 0.74-2.673 1.279-4.169 1.579-1.195-1.279-2.897-2.079-4.788-2.079-3.623 0-6.56 2.937-6.56 6.556 0 0.52 0.060 1.020 0.169 1.499-5.453-0.257-10.287-2.876-13.521-6.835-0.569 0.963-0.888 2.081-0.888 3.3 0 2.28 1.16 4.284 2.917 5.461-1.076-0.035-2.088-0.331-2.971-0.821v0.081c0 3.18 2.257 5.832 5.261 6.436-0.551 0.148-1.132 0.228-1.728 0.228-0.419 0-0.82-0.040-1.221-0.115 0.841 2.604 3.26 4.503 6.139 4.556-2.24 1.759-5.079 2.807-8.136 2.807-0.52 0-1.039-0.031-1.56-0.089 2.919 1.859 6.357 2.945 10.076 2.945 12.072 0 18.665-9.995 18.665-18.648 0-0.279 0-0.56-0.020-0.84 1.281-0.919 2.4-2.080 3.28-3.397l-0.063-0.027z',
-    ]}
-    view="0 0 32 32"
-    {...props}
-  />
-)
-
-export const VkIcon: React.FC<IconSvgProps> = ({ ...props }) => (
-  <BaseIcon
-    fill="#6383a8"
-    paths={[
-      'M15.601 25.028h1.916s0.577-0.063 0.872-0.379c0.28-0.295 0.28-0.84 0.28-0.84s-0.041-2.569 1.159-2.947c1.183-0.375 2.683 2.48 4.281 3.577 1.221 0.839 2.14 0.659 2.14 0.659l4.281-0.059s2.243-0.14 1.183-1.901c-0.081-0.14-0.601-1.3-3.161-3.68-2.683-2.481-2.323-2.081 0.901-6.383 1.959-2.62 2.76-4.221 2.5-4.901-0.221-0.64-1.68-0.481-1.68-0.481l-4.803 0.041s-0.36-0.041-0.62 0.12c-0.26 0.159-0.419 0.521-0.419 0.521s-0.763 2.039-1.781 3.76c-2.164 3.639-3.024 3.839-3.364 3.599-0.805-0.521-0.599-2.107-0.599-3.243 0-3.521 0.539-5-1.041-5.38-0.52-0.121-0.908-0.2-2.247-0.221-1.72-0.019-3.171 0.013-3.993 0.415-0.54 0.271-0.96 0.869-0.719 0.9 0.32 0.040 1.039 0.195 1.419 0.716 0.5 0.675 0.479 2.181 0.479 2.181s0.281 4.155-0.659 4.671c-0.66 0.349-1.54-0.373-3.46-3.675-0.98-1.68-1.721-3.56-1.721-3.56s-0.14-0.341-0.399-0.541c-0.303-0.22-0.743-0.3-0.743-0.3l-4.58 0.040s-0.68 0.021-0.919 0.32c-0.221 0.26-0.021 0.82-0.021 0.82s3.581 8.383 7.643 12.604c3.72 3.869 7.941 3.62 7.941 3.62l-0.067-0.073z',
-    ]}
-    view="0 0 32 32"
-    {...props}
-  />
-)
-
 export const ZoomIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
     paths={[
@@ -97,20 +34,20 @@ export const YoutubeIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   />
 )
 
+// Online-meeting platform glyphs (Zoom / Google Meet / YouTube), resolved by key
+// via SocialIcon. The social-share networks that used to live here (Email /
+// Facebook / Twitter / LinkedIn / VK / Flipboard) were dropped with the
+// react-share migration (#61) — those targets now render react-share's own
+// bundled icons.
 const SOCIAL_ICONS: { [key: string]: React.FC<IconSvgProps> } = {
-  email: EmailIcon,
-  facebook: FacebookIcon,
-  flipboard: FlipboardIcon,
-  linkedin: LinkedinIcon,
-  twitter: TwitterIcon,
-  vk: VkIcon,
   zoom: ZoomIcon,
   google_meet: GoogleMeetIcon,
   youtube: YoutubeIcon,
 }
 
 export function SocialIcon({ platform, ...props }: { platform: string } & IconSvgProps) {
-  const SocialIcon = SOCIAL_ICONS[platform]
+  const Icon = SOCIAL_ICONS[platform]
 
-  return <SocialIcon {...props} />
+  // Unknown platform → render nothing rather than crashing on an undefined element.
+  return Icon ? <Icon {...props} /> : null
 }

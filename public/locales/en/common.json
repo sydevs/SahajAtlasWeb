@@ -82,6 +82,8 @@
     "dismiss": "Dismiss"
   },
   "share": {
+    "share_on": "Share on %{platform}",
+    "native": "Share…",
     "copy_link": "Copy link",
     "copied": "Copied"
   }

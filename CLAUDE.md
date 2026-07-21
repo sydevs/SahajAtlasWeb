@@ -34,7 +34,7 @@ event hierarchy.
 | State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
 | i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |
 | Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
-| Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async` |
+| Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets) |
 | Embedding      | `@r2wc/react-to-web-component` (`src/Widget.tsx`), CSS injected by JS for shadow-free embedding |
 | Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects` |
 

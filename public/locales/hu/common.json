@@ -68,6 +68,8 @@
     "dismiss": "Elrejtés"
   },
   "share": {
+    "share_on": "Megosztás itt: %{platform}",
+    "native": "Megosztás…",
     "copy_link": "Link másolása",
     "copied": "Másolva"
   }

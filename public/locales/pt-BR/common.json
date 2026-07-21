@@ -68,6 +68,8 @@
     "dismiss": "Dispensar"
   },
   "share": {
+    "share_on": "Compartilhar no %{platform}",
+    "native": "Compartilhar…",
     "copy_link": "Copiar link",
     "copied": "Copiado"
   }

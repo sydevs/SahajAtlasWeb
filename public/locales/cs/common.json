@@ -68,6 +68,8 @@
     "dismiss": "Skrýt"
   },
   "share": {
+    "share_on": "Sdílet na %{platform}",
+    "native": "Sdílet…",
     "copy_link": "Kopírovat odkaz",
     "copied": "Zkopírováno"
   }
