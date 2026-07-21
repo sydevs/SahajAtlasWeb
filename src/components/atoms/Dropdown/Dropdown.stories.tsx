@@ -1,8 +1,9 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
+import { Checkbox } from '../Checkbox'
 
-import { Dropdown, DropdownItem } from './Dropdown'
+import { Dropdown } from './Dropdown'
 
 import { LocationIcon, DownArrowIcon } from '@/components/atoms/Icons'
 
@@ -13,17 +14,17 @@ export default {
 const sizes = ['sm', 'md', 'lg'] as const
 
 // A plain styled trigger. The Dropdown wrapper makes it the focusable
-// `role="button"` (NextUI's <Button> swallows the click via react-aria, so it
-// can't drive the dropdown's useClick — the shipping LanguageSelector uses a
-// plain element for the same reason).
+// `role="button"`, so the trigger itself must not be an interactive element
+// (nesting a real <button> inside would give two focus stops for one control).
 const triggerClass =
   'inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-7 px-4 py-2 text-sm font-medium text-foreground'
 
 /**
- * Dropdown — a portaled popover with viewport-aware placement (flip/shift) built
- * on Floating UI. `DropdownItem` renders an `<a>` for links (`href`) and a
- * `<button>` for actions (`onClick`). Panel chrome uses NextUI semantic tokens,
- * so it follows light/dark + the accent theme.
+ * Dropdown — a portaled popover shell with viewport-aware placement (flip/shift)
+ * built on Floating UI. It frames arbitrary content and takes its ARIA role from
+ * `role`; menus with submenus/radio groups use `@radix-ui/react-dropdown-menu`
+ * instead (see SettingsMenu). Panel chrome uses the Radix semantic tokens, so it
+ * follows light/dark + the accent theme.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -40,39 +41,11 @@ export const Default: Story = () => (
                 </span>
               }
             >
-              <DropdownItem href="#" size={size}>
-                Menu item 1
-              </DropdownItem>
-              <DropdownItem href="#" size={size}>
-                Menu item 2
-              </DropdownItem>
-              <DropdownItem href="#" size={size}>
-                Menu item 3
-              </DropdownItem>
+              <div className="p-3 text-sm text-foreground">Panel content ({size})</div>
             </Dropdown>
           </StorySection>
         ))}
       </div>
-    </StorySection>
-
-    <StorySection
-      description="DropdownItem renders an <a> for href links and a <button> for onClick actions."
-      title="Links vs. actions"
-    >
-      <Dropdown
-        trigger={
-          <span className={triggerClass}>
-            <LocationIcon size={18} />
-            Open menu
-          </span>
-        }
-      >
-        <DropdownItem href="#">Link item (anchor)</DropdownItem>
-        <DropdownItem onClick={() => {}}>Action item (button)</DropdownItem>
-        <DropdownItem className="text-primary" onClick={() => {}}>
-          Active action
-        </DropdownItem>
-      </Dropdown>
     </StorySection>
 
     <StorySection
@@ -87,11 +60,28 @@ export const Default: Story = () => (
               side={side}
               trigger={<span className={triggerClass}>Open {side}</span>}
             >
-              <DropdownItem href="#">Menu item 1</DropdownItem>
-              <DropdownItem href="#">Menu item 2</DropdownItem>
+              <div className="p-3 text-sm text-foreground">Opens {side}</div>
             </Dropdown>
           </StorySection>
         ))}
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="`role` drives the ARIA contract. A rich content panel is a dialog and should carry an `ariaLabel` so it is announced."
+      title="Roles"
+    >
+      <div className="flex flex-wrap gap-4">
+        <Dropdown
+          aria-label="Filters"
+          role="dialog"
+          trigger={<span className={triggerClass}>role=&quot;dialog&quot;</span>}
+        >
+          <div className="p-3 text-sm text-foreground">Rich panel content</div>
+        </Dropdown>
+        <Dropdown fullWidth trigger={<span className={triggerClass}>fullWidth</span>}>
+          <div className="p-3 text-sm text-foreground">Panel matches the trigger width</div>
+        </Dropdown>
       </div>
     </StorySection>
 
@@ -100,6 +90,8 @@ export const Default: Story = () => (
         <span className="text-sm">Filter</span>
         <Dropdown
           align="end"
+          aria-label="Countries"
+          role="dialog"
           trigger={
             <span className={triggerClass}>
               <LocationIcon size={18} />
@@ -107,9 +99,10 @@ export const Default: Story = () => (
             </span>
           }
         >
-          <DropdownItem onClick={() => {}}>All countries</DropdownItem>
-          <DropdownItem onClick={() => {}}>India</DropdownItem>
-          <DropdownItem onClick={() => {}}>France</DropdownItem>
+          <div className="flex flex-col gap-2 p-3">
+            <Checkbox appearance="checkbox">India</Checkbox>
+            <Checkbox appearance="checkbox">France</Checkbox>
+          </div>
         </Dropdown>
       </div>
     </StorySection>

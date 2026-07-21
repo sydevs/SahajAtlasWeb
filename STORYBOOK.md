@@ -4,7 +4,7 @@ We preview components in isolation with **[Ladle](https://ladle.dev/)** (a fast,
 Vite-native Storybook alternative). Our setup and story conventions are kept in
 **parity with the sister project [WeMeditateWeb](https://github.com/sydevs/WeMeditateWeb)** —
 same helper components, same story structure, same section vocabulary. Differences
-are only where our stack forces them (NextUI, i18n-over-HTTP, Mapbox).
+are only where our stack forces them (i18n-over-HTTP, Mapbox).
 
 Companion doc: [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — the component taxonomy.
 
@@ -22,13 +22,18 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 | `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, and `viteConfig`.                                                    |
 | `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root).                                                            |
 | `.ladle/i18n.ts`        | Self-contained i18next with the en/fr namespaces bundled (the app loads them over HTTP; Ladle has no backend).              |
-| `.ladle/components.tsx` | The **global decorator**: NextUI + React Query + Helmet (via `src/providers.tsx`) + a `MemoryRouter` + `<I18nextProvider>`. |
+| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet (via `src/providers.tsx`) + a `MemoryRouter` + `<I18nextProvider>`. |
 
-**Theme / canvas.** Matching WeMeditateWeb, the story canvas is **always light**
-so the `StorySection` helper's `gray-900` titles stay legible. Show a component
-on a dark surface with `<StorySection theme="dark">` — it applies the `dark` class
-to its own subtree so NextUI components there render in dark mode. (We do _not_
-map Ladle's theme toggle to the whole canvas.)
+**Theme / canvas.** Ladle's theme toggle drives the **whole canvas**: the
+decorator calls `applyTheme()` with the toggle's state, which stamps the `dark`
+class the way the app does. So every story must read correctly in both light and
+dark — check both before calling a story done, and route colours through the
+semantic tokens (`foreground`, `gray-11`, `primary-9`…) rather than fixed values,
+which is what makes the toggle safe.
+
+There is no per-section theme override: `StorySection` has no `theme` prop. To
+show a component against a specific surface, wrap it in a div with the token
+background you want.
 
 ## Story utility components
 
@@ -54,8 +59,8 @@ export const Default: Story = () => (
 
 One flexible section component (title, optional description, automatic divider).
 
-**Props**: `title` (required), `description?`, `children`, `theme?: 'light'|'dark'`
-(default `light`), `background?: 'none'|'neutral'|'gradient'` (default `none`),
+**Props**: `title` (required), `description?`, `children`,
+`background?: 'none'|'neutral'|'gradient'` (default `none`),
 `variant?: 'section'|'subsection'|'scrollable'` (default `section`),
 `inContext?: boolean` (default `false`).
 
@@ -63,7 +68,6 @@ One flexible section component (title, optional description, automatic divider).
 - `variant="subsection"` → `p` title, no divider (nest within a section; one level only).
 - `variant="scrollable"` → fixed 600px scroll area.
 - `inContext` → "In Context - " prefix + bold top border (use for **Examples**).
-- `theme="dark"` → dark surface; pair with `background="neutral"`/`"gradient"`.
 
 ### StoryGrid (matrices)
 
@@ -132,7 +136,7 @@ Conventions:
 - **Title** = the component's tier — `'Atoms'`, `'Molecules'`, or `'Organisms'` —
   optionally with a **single** `Tier / Group` subcategory that clusters a closely
   related family under its tier (e.g. `'Molecules / List'` groups `List`,
-  `RegionCard`, and `EventCard`). Keep the tier as the first segment so the story
+  `ListItem`, and `EventListItem`). Keep the tier as the first segment so the story
   still sorts under its folder tier, and don't nest deeper than one group.
   `Default.storyName` = the component name and **must be unique within a title**:
   Ladle keys each story by `title` + `storyName`, so same-title files (all the

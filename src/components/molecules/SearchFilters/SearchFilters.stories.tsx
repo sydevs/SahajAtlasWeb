@@ -38,7 +38,7 @@ const mockGeojson: Geojson = {
 }
 
 /** SearchFilters — the event-filters form, as rendered inside the FilterView drawer. */
-export const SearchFiltersStory: Story = () => {
+export const Default: Story = () => {
   const queryClient = useQueryClient()
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
 
@@ -62,4 +62,4 @@ export const SearchFiltersStory: Story = () => {
   )
 }
 
-SearchFiltersStory.storyName = 'SearchFilters'
+Default.storyName = 'Search Filters'

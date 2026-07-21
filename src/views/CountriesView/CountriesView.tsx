@@ -5,7 +5,8 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, OnlineClassesCard, RegionCard } from '@/components/molecules'
+import { List, ListItem } from '@/components/molecules'
+import { MonitorIcon } from '@/components/atoms/Icons'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -37,6 +38,12 @@ export function CountriesView() {
     queryKey: ['countries'],
     queryFn: () => api.getCountries(),
   })
+  // Busiest countries first — the list's display order, owned here so it holds
+  // whatever the source (the live feed, or a seeded story) hands us.
+  const sortedCountries = useMemo(
+    () => [...countries].sort((a, b) => b.eventCount - a.eventCount),
+    [countries],
+  )
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
   // The "Online Classes" entry links to the online-filtered search; its count is
@@ -77,21 +84,29 @@ export function CountriesView() {
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
-          {onlineCount > 0 && <OnlineClassesCard count={onlineCount} href={onlineSearch} />}
-          {countries.map((country) => (
-            <RegionCard
+          {onlineCount > 0 && (
+            <ListItem
+              count={onlineCount}
+              href={onlineSearch}
+              icon={<MonitorIcon size={24} />}
+              label={t('online_classes')}
+            />
+          )}
+          {sortedCountries.map((country) => (
+            <ListItem
               key={country.id}
               count={country.eventCount}
               href={country.path}
+              icon={
+                country.countryCode ? (
+                  <CircleFlag
+                    className="h-full w-full rounded-full border border-divider bg-divider"
+                    countryCode={country.countryCode.toLocaleLowerCase()}
+                  />
+                ) : undefined
+              }
               label={(country.countryCode && regionNames.of(country.countryCode)) || country.name}
-            >
-              {country.countryCode && (
-                <CircleFlag
-                  className="mr-3 h-7 w-7 rounded-full border border-divider bg-divider lg:h-9 lg:w-9"
-                  countryCode={country.countryCode.toLocaleLowerCase()}
-                />
-              )}
-            </RegionCard>
+            />
           ))}
         </List>
       </DrawerBody>

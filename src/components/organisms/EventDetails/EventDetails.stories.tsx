@@ -1,42 +1,113 @@
 import type { Story, StoryDefault } from '@ladle/react'
+import type { Event } from '@/types'
 
 // EventDetails is intentionally not in the organisms barrel (lazy-loaded; see
-// organisms/index.ts), so import it from its co-located file.
+// organisms/index.ts), so import it from its co-located files.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventDetails } from './EventDetails'
+import { EventHeader } from './EventHeader'
+import { EventRegisterBar } from './EventRegister'
 
-import { mockEvent } from '@/mocks/events'
+import {
+  mockEvent,
+  mockEventCourse,
+  mockEventEnded,
+  mockEventInactive,
+  mockEventStartedCourse,
+  mockEventToday,
+} from '@/mocks/events'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
+// Full panel anatomy: header (title · chips · timing) over the body (facts →
+// Register → actions → images → About), as EventView composes them.
+function Panel({ event }: { event: Event }) {
+  return (
+    <div className="max-w-md border border-divider">
+      <EventHeader event={event} />
+      <EventDetails basePath={`/demo/${event.id}`} event={event} />
+    </div>
+  )
+}
+
+const external: Event = {
+  ...mockEvent,
+  id: 109,
+  title: 'Regional Retreat (external booking)',
+  registrationMode: 'external',
+  externalRegistrationUrl: 'https://example.org/register',
+}
+
 /**
- * EventDetails — the reusable event content body (images, description,
- * timing/location/contact cards, register/share CTAs). It has no chrome of its
- * own — the app renders it inside the EventView drawer — so it's shown here
- * unadorned, only width-limited, for an in-person event, an online event, and one
- * with no images. `basePath` is where the register/share drawers would open.
+ * EventDetails — the redesigned event panel (issue #52): facts are plain text,
+ * Register is the single filled CTA, secondary actions are labelled tonal
+ * circles, and host prose sits below the fold under "About".
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection description="A recurring in-person event." title="In Person">
-      <div className="max-w-md">
-        <EventDetails basePath="/demo/507" event={mockEvent} />
-      </div>
+    <StorySection description="A recurring in-person weekly class." title="In Person">
+      <Panel event={mockEvent} />
     </StorySection>
 
-    <StorySection description="An online event in French." title="Online">
-      <div className="max-w-md">
-        <EventDetails
-          basePath="/demo/508"
-          event={{ ...mockEvent, eventType: 'online', languages: ['fr'] }}
-        />
-      </div>
+    <StorySection
+      description="An online event in French — converted times, hosted-from line, no Directions."
+      title="Online"
+    >
+      <Panel event={{ ...mockEvent, id: 108, eventType: 'online', languages: ['fr'] }} />
     </StorySection>
 
-    <StorySection description="An event without images." title="No Images">
-      <div className="max-w-md">
-        <EventDetails basePath="/demo/509" event={{ ...mockEvent, images: [] }} />
+    <StorySection
+      description="Next session is later today — its own status chip. Unreachable before the fixtures became clock-relative, since a far-future date always resolved to `upcoming`."
+      title="Today"
+    >
+      <Panel event={mockEventToday} />
+    </StorySection>
+
+    <StorySection description="A bounded course before its first session." title="Course">
+      <Panel event={mockEventCourse} />
+    </StorySection>
+
+    <StorySection
+      description="A started course — registration closed, contact-to-join-late helper."
+      title="Started course"
+    >
+      <Panel event={mockEventStartedCourse} />
+    </StorySection>
+
+    <StorySection
+      description="An ended one-off (direct links only) — no actions; See nearby is the way out."
+      title="Ended"
+    >
+      <Panel event={mockEventEnded} />
+    </StorySection>
+
+    <StorySection
+      description="An inactive event — no Register; Contact is the emphasized action."
+      title="Inactive"
+    >
+      <Panel event={mockEventInactive} />
+    </StorySection>
+
+    <StorySection
+      description="Registration handled off-site: the CTA becomes an external link out to the host's own page rather than opening our drawer."
+      title="External registration"
+    >
+      <Panel event={external} />
+    </StorySection>
+
+    <StorySection
+      description="The Register slot on its own, as the mobile sheet's sticky footer renders it. `registerInline={false}` is what the panel passes when the bar is pinned to the footer instead."
+      title="Register bar"
+    >
+      <div className="flex max-w-md flex-col gap-4">
+        <div className="border border-divider p-3">
+          <EventRegisterBar basePath="/demo/101" event={mockEvent} />
+        </div>
+        <div className="border border-divider">
+          <EventHeader event={mockEvent} />
+          <EventDetails basePath="/demo/101" event={mockEvent} registerInline={false} />
+        </div>
       </div>
     </StorySection>
 

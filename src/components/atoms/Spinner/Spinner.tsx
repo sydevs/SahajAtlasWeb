@@ -34,13 +34,24 @@ const spinner = tv({
 export type SpinnerProps = VariantProps<typeof spinner> & {
   label?: string
   className?: string
+  /**
+   * Render as pure decoration — no live region, no "Loading" text. Set this when
+   * the spinner sits inside a control that already announces its busy state
+   * (Button carries `aria-busy`), so a screen reader doesn't hear "Loading"
+   * layered over the control's own label.
+   */
+  decorative?: boolean
 }
 
-export function Spinner({ color, size, label, className }: SpinnerProps) {
+export function Spinner({ color, size, label, className, decorative = false }: SpinnerProps) {
   const { base, icon, label: labelClass } = spinner({ color, size })
 
   return (
-    <div aria-live="polite" className={base({ className })} role="status">
+    <div
+      aria-live={decorative ? undefined : 'polite'}
+      className={base({ className })}
+      role={decorative ? undefined : 'status'}
+    >
       <svg aria-hidden="true" className={icon()} fill="none" viewBox="0 0 24 24">
         <circle
           className="opacity-25"
@@ -57,7 +68,7 @@ export function Spinner({ color, size, label, className }: SpinnerProps) {
         />
       </svg>
       {label && <span className={labelClass()}>{label}</span>}
-      {!label && <span className="sr-only">Loading</span>}
+      {!label && !decorative && <span className="sr-only">Loading</span>}
     </div>
   )
 }

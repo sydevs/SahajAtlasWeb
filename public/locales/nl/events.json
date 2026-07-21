@@ -1,4 +1,13 @@
 {
+  "actions": {
+    "add_calendar": "In agenda",
+    "contact": "Contact",
+    "copy": "Kopiëren",
+    "directions": "Route",
+    "download_ics": ".ics-bestand downloaden",
+    "share": "Delen",
+    "website": "Website"
+  },
   "details": {
     "contact_for_timing": "Neem contact op met de gastheer voor de tijden",
     "contact_host": "Neem contact op met de gastheer",
@@ -14,6 +23,43 @@
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Foto bekijken"
   },
+  "display": {
+    "about": "Over deze les",
+    "all_events_free": "Alle evenementen zijn gratis",
+    "chip_ended": "Afgelopen",
+    "chip_free": "Gratis",
+    "chip_full": "Vol",
+    "chip_started": "Gestart %{date}",
+    "chip_starts": "Start %{date}",
+    "chip_today": "Vandaag",
+    "contact_to_join_full": "Neem contact op met de organisator om toch mee te doen",
+    "contact_to_join_late": "Neem contact op met de organisator om later in te stromen",
+    "distance_from_search": "%{distance} van de gezochte locatie",
+    "event_ended": "Dit evenement is afgelopen",
+    "event_full": "Dit evenement is vol",
+    "first_session": "Eerste les: %{date}",
+    "hosted_from": "Gehost vanuit %{city}",
+    "next_session": "Volgende les: %{date}",
+    "on_sahaj_atlas": "op Sahaj Atlas",
+    "online": "Online",
+    "online_joining_note": "De deelnamelink wordt je per e-mail toegestuurd",
+    "registration_closed": "Aanmelden gesloten",
+    "registration_required": "Aanmelden verplicht",
+    "see_nearby": "Bekijk evenementen in de buurt",
+    "sessions_count_one": "%{count} les",
+    "sessions_count_other": "%{count} lessen",
+    "started_on": "Gestart op %{date}",
+    "type_class": "Les",
+    "type_class_daily": "Dagelijkse les",
+    "type_class_fortnightly": "Tweewekelijkse les",
+    "type_class_monthly": "Maandelijkse les",
+    "type_class_weekly": "Wekelijkse les",
+    "type_course": "Cursus",
+    "type_oneoff": "Eenmalig evenement",
+    "time_in_place": "%{time} in %{city}",
+    "distance_away": "%{distance} verderop",
+    "distance_from_place": "%{distance} vanaf %{place}"
+  },
   "errors": {
     "email": "Voer een geldig e-mailadres in",
     "name": "Voer uw volledige naam in",
@@ -27,21 +73,24 @@
   },
   "recurrence": {
     "daily": "Elke dag",
+    "daily_n": "Elke %{interval} dagen",
     "monthly_1st": "1e %{weekday} van elke maand",
     "monthly_2nd": "2e %{weekday} van elke maand",
     "monthly_3rd": "3e %{weekday} van elke maand",
     "monthly_4th": "4e %{weekday} van elke maand",
+    "monthly_date": "Maandelijks op dag %{day}",
     "monthly_last": "Laatste %{weekday} van elke maand",
     "null": "Contact host for timings",
     "weekly_1": "Elke %{weekday}",
-    "weekly_2": "Elke 2e %{weekday}"
+    "weekly_2": "Elke 2e %{weekday}",
+    "weekly_multi": "Elke %{weekdays}",
+    "weekly_n": "Elke %{interval} weken op %{weekday}"
   },
   "registration": {
     "cancel": "Annuleren",
     "email": "Uw e-mail",
     "followup": "U ontvangt binnenkort een e-mailbevestiging",
     "invite_friend": "Nodig een vriend uit",
-    "mailing_list_consent": "Houd me op de hoogte van aankomende evenementen en nieuws.",
     "name": "Jouw naam",
     "okay": "Oké",
     "online_notice": "De link naar deze les wordt naar je gemaild.",
@@ -50,7 +99,8 @@
     "register_now": "Registreer nu",
     "starting_date": "Startdatum",
     "submit": "Register",
-    "thank_you": "Bedankt voor uw registratie!"
+    "thank_you": "Bedankt voor uw registratie!",
+    "error_title": "Er ging iets mis"
   },
   "timing": {
     "converted_to": "Omgerekend naar %{timezone} (%{offset})"

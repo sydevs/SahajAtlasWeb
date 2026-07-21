@@ -14,7 +14,7 @@ const toggle = tv({
   slots: {
     root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
     thumb:
-      'block rounded-full bg-white shadow transition-transform will-change-transform translate-x-[2px]',
+      'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform',
   },
   variants: {
     color: {
@@ -32,16 +32,23 @@ const toggle = tv({
 
 const box = tv({
   slots: {
-    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background text-white outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
     indicator: 'flex items-center justify-center',
   },
   variants: {
+    // The check colour rides with the checked background: `*-foreground` resolves
+    // to the tenant's `--{role}-contrast` (black by default), so a pale brand
+    // palette still gets a legible check — a literal white would vanish on it.
     color: {
-      primary: { root: 'data-[state=checked]:border-primary-9 data-[state=checked]:bg-primary-9' },
-      secondary: {
-        root: 'data-[state=checked]:border-secondary-9 data-[state=checked]:bg-secondary-9',
+      primary: {
+        root: 'data-[state=checked]:border-primary-9 data-[state=checked]:bg-primary-9 data-[state=checked]:text-primary-foreground',
       },
-      default: { root: 'data-[state=checked]:border-gray-9 data-[state=checked]:bg-gray-9' },
+      secondary: {
+        root: 'data-[state=checked]:border-secondary-9 data-[state=checked]:bg-secondary-9 data-[state=checked]:text-secondary-foreground',
+      },
+      default: {
+        root: 'data-[state=checked]:border-gray-9 data-[state=checked]:bg-gray-9 data-[state=checked]:text-gray-1',
+      },
     },
     size: {
       sm: { root: 'h-4 w-4' },

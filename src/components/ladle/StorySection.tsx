@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
  * Unified StorySection component for consistent story structure in Ladle.
  * Ported from WeMeditateWeb for parity — see STORYBOOK.md.
  *
- * Chrome uses NextUI semantic tokens so it stays legible in both themes; the
+ * Chrome uses the semantic tokens so it stays legible in both themes; the
  * canvas theme is driven by Ladle's own toggle (see .ladle/components.tsx).
  *
  * @param title - Section title (renders as h2 for sections, p for subsections)
@@ -81,7 +81,7 @@ export const StorySection = ({
       const scrollBackground = backgroundStyles || 'bg-background'
 
       return (
-        <div className="h-[600px] overflow-y-auto border-4 border-gray-6 -m-6">
+        <div className="-m-6 h-[600px] overflow-y-auto border-4 border-gray-6">
           <div className={`min-h-full px-6 ${scrollBackground}`}>{children}</div>
         </div>
       )
@@ -97,9 +97,9 @@ export const StorySection = ({
   return (
     <>
       <div className={config.wrapperClass}>
-        {inContext && <div className="border-t-4 border-foreground mb-6 pt-8" />}
+        {inContext && <div className="mb-6 border-t-4 border-foreground pt-8" />}
         <TitleTag className={`${config.titleClass} ${titleColor}`}>{displayTitle}</TitleTag>
-        {description && <p className="text-sm text-gray-11 mb-4">{description}</p>}
+        {description && <p className="mb-4 text-sm text-gray-11">{description}</p>}
         {renderContent()}
       </div>
       {config.showDivider && <hr className="border-divider" />}

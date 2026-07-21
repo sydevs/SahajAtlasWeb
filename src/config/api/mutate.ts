@@ -26,7 +26,6 @@ const createRegistration = async (
       name: data.name,
       startingAt: data.startingAt.toISOString(),
       questions: data.questions,
-      subscribe: data.subscribe,
     },
   })
 

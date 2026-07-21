@@ -1,5 +1,5 @@
 ---
-description: React component patterns — NextUI, tailwind-variants, widget context.
+description: React component patterns — Radix primitives, tailwind-variants, widget context.
 globs:
   - "src/components/**/*.tsx"
   - "src/views/**/*.tsx"
@@ -7,27 +7,37 @@ globs:
 alwaysApply: false
 ---
 
-# Components (NextUI + Tailwind)
+# Components (Radix + Tailwind)
 
 > **Taxonomy & conventions live in [`DESIGN_SYSTEM.md`](../../DESIGN_SYSTEM.md)**
 > (atoms / molecules / organisms, named exports + per-tier barrels, props typing,
-> `tailwind-variants`, when-to-wrap-NextUI). Story/preview conventions live in
+> `tailwind-variants`, when-to-wrap-a-primitive). Story/preview conventions live in
 > [`STORYBOOK.md`](../../STORYBOOK.md) (Ladle). Skim those before adding a component.
 
-## Prefer built-ins
+## Prefer the existing atoms, then Radix
 
-Before hand-rolling UI, check **NextUI v2** (`@nextui-org/react`) for an existing
-component (Button, Card, Chip, Dropdown, Modal, Listbox, Spinner, Skeleton…).
-Fewer custom components means less maintenance and a consistent look. Reach for
-a custom component only when no NextUI primitive fits, and place it in the right
-atomic tier (`src/components/atoms|molecules|organisms/`) per `DESIGN_SYSTEM.md`.
+**There is no NextUI in this repo** — it was removed in favour of
+[Radix UI](https://www.radix-ui.com) primitives + `tailwind-variants`. Don't
+reach for `@nextui-org/react`; it isn't a dependency.
+
+Before hand-rolling UI, in this order:
+
+1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip,
+   Drawer, Dropdown, Link, Select, Slider, Spinner, ToggleGroup already exist and
+   carry the app's tokens and focus behaviour.
+2. **Check Radix** for an unstyled primitive to build on (`@radix-ui/react-*` —
+   dialog, select, checkbox, switch, slider, toggle-group, dropdown-menu, label
+   are installed). Radix owns the interaction/ARIA; we own the Tailwind skin.
+3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
+
+Fewer custom components means less maintenance and a consistent look.
 
 ## Styling
 
 - Tailwind 3 utility classes are the default. For components with variants
   (size/color/state), use **`tailwind-variants`** (`tv(...)`) rather than
   ad-hoc `clsx` string concatenation — it's already a dependency and matches the
-  NextUI styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference usage.
+  Radix + Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference usage.
 - `clsx` is fine for simple conditional class joins.
 - Global styles and Tailwind layers live in `src/styles/globals.css`. The
   widget injects its CSS via JS (`vite-plugin-css-injected-by-js`) so it works
@@ -42,7 +52,7 @@ in host pages, **and** runs standalone in dev. Because of that:
   Build links with `react-router` `<Link>` / `useNavigate`, never hardcode `#!`.
 - Don't assume control of `<head>`, global CSS, or the full viewport — the host
   page owns those. Scope styles to the widget's own DOM.
-- Provider stack lives in `src/providers.tsx` (NextUI + React Query + Helmet).
+- Provider stack lives in `src/providers.tsx` (React Query + Helmet + theme).
   Add new context providers there, not scattered across the tree.
 
 ## Structure
@@ -50,7 +60,7 @@ in host pages, **and** runs standalone in dev. Because of that:
 - Components are grouped by atomic tier — `src/components/{atoms,molecules,organisms}/`
   — each component in its own **PascalCase folder** (`Chip/Chip.tsx` + stories +
   `index.ts`), with a barrel `index.ts` per tier (the `Icons/` and `Mapbox/`
-  sub-modules group several files); `src/layouts/` holds templates. App code
+  sub-modules group several files); `src/views/` holds the route screens. App code
   imports from the tier barrels; components import each other by component-folder
   path. See `DESIGN_SYSTEM.md`.
 - **Explicit named exports — no `export *`.** Every component and tier barrel
@@ -69,5 +79,5 @@ in host pages, **and** runs standalone in dev. Because of that:
 ## Accessibility
 
 `jsx-a11y` is enabled. Pair `onClick` on non-button elements with keyboard
-handlers (or use a real `<button>` / NextUI `Button`), and provide `alt`/ARIA
+handlers (or use a real `<button>` / our `Button` atom), and provide `alt`/ARIA
 labels. The lint warns; don't ignore it on interactive elements.

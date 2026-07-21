@@ -15,6 +15,21 @@ import { defineConfig } from 'vite'
 const srcDir = fileURLToPath(new URL('../src', import.meta.url))
 
 export default defineConfig({
+  // Give Ladle its OWN dep-optimization cache. Ladle force-includes react/
+  // react-dom + its own deps in optimizeDeps, so its `configHash` differs from
+  // `pnpm dev`'s — and under rolldown-vite (Vite 8) whichever server boots
+  // second re-optimizes and rewrites the shared `node_modules/.vite` deps,
+  // leaving the browser mixing react/react-dom chunks from two passes
+  // ("require_react is not a function"). A separate cacheDir isolates the two.
+  cacheDir: 'node_modules/.vite-ladle',
+  // Vite serves optimized deps as `immutable, max-age=1yr` under a `?v=` hash
+  // derived from config + lockfile — NOT from content. So the same URL can serve
+  // different bytes across re-optimizations, and a browser that cached a bad
+  // chunk (as happened while the two servers shared a cacheDir) pins it forever:
+  // the page dies on "Invalid hook call" / duplicate React, with nothing in the
+  // server log, and no server-side fix can evict it. `no-cache` still allows 304
+  // revalidation, so the cost is a conditional request, not a re-download.
+  server: { headers: { 'Cache-Control': 'no-cache' } },
   resolve: {
     alias: [{ find: /^@\//, replacement: `${srcDir}/` }],
   },

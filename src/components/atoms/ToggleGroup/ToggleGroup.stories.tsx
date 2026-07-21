@@ -13,7 +13,7 @@ export default {
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 /** ToggleGroup — single- or multi-select; separate pills or a joined segmented bar. */
-export const ToggleGroupStory: Story = () => {
+export const Default: Story = () => {
   const [format, setFormat] = useState('any')
   const [days, setDays] = useState<string[]>(['1', '3'])
 
@@ -26,7 +26,7 @@ export const ToggleGroupStory: Story = () => {
         <div className="max-w-xs">
           <ToggleGroup
             joined
-            ariaLabel="Format"
+            aria-label="Format"
             type="single"
             value={format}
             onValueChange={setFormat}
@@ -42,7 +42,7 @@ export const ToggleGroupStory: Story = () => {
         description="Multiple choices as separate pills (the Day-of-week filter)."
         title="Multi-select"
       >
-        <ToggleGroup ariaLabel="Days" type="multiple" value={days} onValueChange={setDays}>
+        <ToggleGroup aria-label="Days" type="multiple" value={days} onValueChange={setDays}>
           {WEEKDAYS.map((day, index) => (
             <ToggleGroupItem key={index} value={String(index + 1)}>
               {day}
@@ -56,4 +56,4 @@ export const ToggleGroupStory: Story = () => {
   )
 }
 
-ToggleGroupStory.storyName = 'ToggleGroup'
+Default.storyName = 'ToggleGroup'

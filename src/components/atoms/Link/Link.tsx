@@ -1,29 +1,27 @@
-import { type ComponentProps, type ReactNode } from 'react'
+import { type ComponentProps, type ReactNode, forwardRef } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { AnchorIcon } from '@/components/atoms/Icons'
 
-// A styled link replacing NextUI's Link. Internal targets route through
-// react-router's <Link> (client-side, hash-aware); external ones (or any
-// target="_blank") render a plain <a> with a safe rel. An explicit `color` uses
-// Tailwind's `!` modifier so it beats the global `a { color: inherit !important }`
-// rule; `default` (no colour) falls through to that rule and inherits the
-// surrounding text colour.
+// The app's link atom. Internal targets route through react-router's <Link>
+// (client-side, hash-aware); external ones (or any target="_blank") render a
+// plain <a> with a safe rel.
+//
+// Each `color` sets a plain colour utility. They were once `!`-modified to beat
+// a global `a { color: inherit !important }` reset, but that rule leaked into
+// host pages and has been removed, so the overrides went with it.
 const link = tv({
-  base: 'inline-flex items-center gap-1 outline-none transition-opacity hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus rounded-sm',
+  base: 'inline-flex items-center gap-1 rounded-sm outline-none transition-opacity hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
   variants: {
     color: {
-      foreground: '!text-foreground',
-      primary: '!text-primary',
-      danger: '!text-danger',
+      foreground: 'text-foreground',
+      primary: 'text-primary',
+      danger: 'text-danger',
       default: 'text-inherit',
     },
-    size: {
-      sm: 'text-sm',
-      md: 'text-md',
-      lg: 'text-lg',
-    },
+    // No `size` variant: a link sizes with the text it sits in. Callers that need
+    // a different size set it on the surrounding block.
   },
   defaultVariants: {
     color: 'default',
@@ -39,33 +37,25 @@ export type LinkProps = Omit<ComponentProps<'a'>, 'color' | 'href'> &
     isExternal?: boolean
     /** Show a trailing "new tab" glyph (external links). */
     showAnchorIcon?: boolean
-    /** Override the trailing glyph. */
-    anchorIcon?: ReactNode
     children?: ReactNode
   }
 
-export function Link({
-  href,
-  color,
-  size,
-  isExternal,
-  showAnchorIcon,
-  anchorIcon,
-  className,
-  target,
-  rel,
-  children,
-  ...props
-}: LinkProps) {
-  const classes = link({ color, size, className })
+// forwardRef because Link is used as a whole-card hit target (EventListItem,
+// ListItem) — the only atom rendering an interactive element that couldn't be
+// reached by a caller needing the DOM node (e.g. to scroll a highlighted card
+// into view).
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
+  { href, color, isExternal, showAnchorIcon, className, target, rel, children, ...props },
+  ref,
+) {
+  const classes = link({ color, className })
   const external = isExternal || target === '_blank' || /^https?:|^mailto:|^tel:/.test(href)
-  const icon = showAnchorIcon
-    ? (anchorIcon ?? <AnchorIcon className="inline-block h-[1em] w-[1em]" />)
-    : null
+  const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
 
   if (external) {
     return (
       <a
+        ref={ref}
         className={classes}
         href={href}
         rel={rel ?? (target === '_blank' || isExternal ? 'noopener noreferrer' : undefined)}
@@ -79,9 +69,9 @@ export function Link({
   }
 
   return (
-    <RouterLink className={classes} rel={rel} target={target} to={href} {...props}>
+    <RouterLink ref={ref} className={classes} rel={rel} target={target} to={href} {...props}>
       {children}
       {icon}
     </RouterLink>
   )
-}
+})

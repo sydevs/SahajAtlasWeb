@@ -37,7 +37,7 @@ export const Default: Story = () => (
           <StoryGridHeaderRow>
             <StoryGridHeaderCell />
             <StoryGridHeaderCell>flat</StoryGridHeaderCell>
-            <StoryGridHeaderCell>light</StoryGridHeaderCell>
+            <StoryGridHeaderCell>ghost</StoryGridHeaderCell>
           </StoryGridHeaderRow>
         </StoryGridHeader>
         <StoryGridBody>
@@ -50,7 +50,7 @@ export const Default: Story = () => (
                 </Chip>
               </StoryGridCell>
               <StoryGridCell>
-                <Chip color={color} variant="light">
+                <Chip color={color} variant="ghost">
                   online
                 </Chip>
               </StoryGridCell>

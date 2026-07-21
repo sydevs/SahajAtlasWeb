@@ -66,7 +66,7 @@ export interface StoryGridRowProps {
 }
 
 export const StoryGridRow = ({ children }: StoryGridRowProps) => (
-  <tr className="block sm:table-row mb-4 sm:mb-0 border-b sm:border-b-0 pb-4 sm:pb-0">
+  <tr className="mb-4 block border-b pb-4 sm:mb-0 sm:table-row sm:border-b-0 sm:pb-0">
     {children}
   </tr>
 )
@@ -80,7 +80,7 @@ export interface StoryGridCellProps {
 export const StoryGridCell = ({ children, isLabel = false }: StoryGridCellProps) => {
   const className = isLabel
     ? 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold sm:font-medium opacity-60'
-    : 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 text-left sm:text-center'
+    : 'block sm:table-cell px-2 sm:px-3 py-1.5 sm:py-2 text-start sm:text-center'
 
   return (
     <td className={className}>

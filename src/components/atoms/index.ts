@@ -12,8 +12,8 @@ export * from './Icons'
 export { Alert } from './Alert'
 export type { AlertProps } from './Alert'
 
-export { Button, IconButton } from './Button'
-export type { ButtonProps, IconButtonProps } from './Button'
+export { Button, controlSurface } from './Button'
+export type { ButtonProps } from './Button'
 
 export { Checkbox } from './Checkbox'
 export type { CheckboxProps } from './Checkbox'
@@ -31,8 +31,8 @@ export {
 } from './Drawer'
 export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
 
-export { Dropdown, DropdownItem } from './Dropdown'
-export type { DropdownProps, DropdownItemProps } from './Dropdown'
+export { Dropdown } from './Dropdown'
+export type { DropdownProps } from './Dropdown'
 
 export { Link } from './Link'
 export type { LinkProps } from './Link'

@@ -96,6 +96,9 @@ function PeekStrip({
   label: string
   onClick: () => void
 }) {
+  // TODO(rtl, #52 WS8): the strip geometry (inline left/right + the framer x
+  // offsets below) is direction-sensitive — mirror alongside the Drawer atom's
+  // `left` variant when an RTL locale ships.
   const isLeft = direction === 'left'
   const style: CSSProperties = { position: 'fixed', zIndex }
   let className: string
@@ -104,7 +107,7 @@ function PeekStrip({
     // Match the drawer atom's left variant: flush + square on tablet, floating +
     // rounded at ≥lg — geometry lives in these classes, not inline styles.
     className =
-      'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:left-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -167,9 +170,15 @@ export function DrawerStack() {
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
 
-  // Mirror the active sheet's live top onto the peek strips every frame, so they
-  // track a drag without waiting for the snap to settle (map + mobile only).
+  // Mirror the active sheet's live top onto the peek strips AND the sheet
+  // itself every frame, so both track a drag without waiting for the snap to
+  // settle (map + mobile only). The sheet-side copy is what pins EventView's
+  // sticky register bar to the viewport edge — inside the transformed sheet,
+  // `position: fixed` resolves against the sheet, so the bar offsets by the
+  // live top instead (issue #52, WS4).
   useEffect(() => {
+    // Gate the rAF loop to stacked views (root has no strips and no sticky bar
+    // — EventView, the bar's only host, always stacks above the root).
     if (!hasMap || direction !== 'bottom' || parentPaths.length === 0) return
     let raf = 0
     let last = Number.NaN
@@ -180,12 +189,13 @@ export function DrawerStack() {
       sheet ??= document.querySelector<HTMLElement>('[data-vaul-drawer]')
       const el = stripsRef.current
 
-      if (sheet && el) {
+      if (sheet) {
         const top = sheet.getBoundingClientRect().top
 
         if (top !== last) {
           last = top
-          el.style.setProperty('--sy-sheet-top', `${top}px`)
+          sheet.style.setProperty('--sy-sheet-top', `${top}px`)
+          el?.style.setProperty('--sy-sheet-top', `${top}px`)
         }
       }
       raf = requestAnimationFrame(tick)
@@ -218,7 +228,7 @@ export function DrawerStack() {
   )
 
   const sheet = (
-    <DrawerContent ariaLabel={t('free_meditation_classes')}>
+    <DrawerContent aria-label={t('free_meditation_classes')}>
       <AnimatePresence mode="popLayout">
         <motion.div
           key={location.pathname}
@@ -251,8 +261,6 @@ export function DrawerStack() {
         >
           <Drawer
             key={direction}
-            contained
-            full
             open
             container={container}
             direction={direction}
@@ -260,6 +268,7 @@ export function DrawerStack() {
             // Same as the map drawer: the left panel (≥md) has no handle, so
             // handle-only drag makes it undraggable — dismiss is the close button only.
             handleOnly={direction === 'left'}
+            mode="filled"
             onOpenChange={(o) => !o && control.dismiss()}
           >
             {sheet}
@@ -269,7 +278,7 @@ export function DrawerStack() {
               but at the bottom, clear of the header; side="top" opens the menu upward
               from there. z-50 so it sits above the fill-the-container drawer content
               (z-40, and portaled in last) — otherwise a list row intercepts its clicks. */}
-          <SettingsMenu className="absolute bottom-3 left-3 z-50" side="top" />
+          <SettingsMenu className="absolute bottom-3 start-3 z-50" side="top" />
         </div>
       </DrawerControlContext.Provider>
     )
@@ -314,12 +323,14 @@ export function DrawerStack() {
         createPortal(
           <>
             {strips}
-            {/* Top-left, offset past the left drawer on ≥md (flush left-0 on tablet,
-                floating to left-4 at ≥lg) so it never overlaps the panel. On mobile
+            {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
+                floating in by 4 at ≥lg) so it never overlaps the panel. Logical
+                (`start-*`) rather than `left-*`: under RTL the drawer flips to
+                the right edge, and the cog has to travel with it. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
             {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
                 bump the cog to top-4 to line up with the drawer's top edge. */}
-            <SettingsMenu className="fixed left-3 top-3 z-40 md:left-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:left-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+            <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
           </>,
           target,
         )}

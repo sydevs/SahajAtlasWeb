@@ -15,6 +15,7 @@ export const UpArrowIcon: React.FC<IconSvgProps> = ({ ...props }) => (
 
 export const RightArrowIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
+    flipRtl
     paths={[
       'M11 10l-3.141-3.42c-0.268-0.27-0.268-0.707 0-0.978 0.268-0.27 0.701-0.27 0.969 0l3.83 3.908c0.268 0.271 0.268 0.709 0 0.979l-3.83 3.908c-0.267 0.272-0.701 0.27-0.969 0s-0.268-0.707 0-0.978l3.141-3.419z',
     ]}
@@ -80,6 +81,30 @@ export const ExternalIcon: React.FC<IconSvgProps> = ({ ...props }) => (
 
 export const ListIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon paths={['M3 5h18v2H3zM3 11h18v2H3zM3 17h18v2H3z']} view="0 0 24 24" {...props} />
+)
+
+// Directional (the arrow points along the reading direction) — mirrors under
+// RTL via BaseIcon's `flipRtl`; see the mirroring policy in index.tsx.
+export const DirectionsIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon
+    flipRtl
+    paths={[
+      'M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z',
+    ]}
+    view="0 0 24 24"
+    {...props}
+  />
+)
+
+// A globe — the host's own website. Symmetric, so it never mirrors under RTL.
+export const WebsiteIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon
+    paths={[
+      'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 2c.82 0 1.94 1.3 2.6 3.75q.15.57.26 1.2A22 22 0 0 0 12 9c-.98 0-1.9-.02-2.86-.05q.11-.63.26-1.2C10.06 5.3 11.18 4 12 4M8.3 4.62a12 12 0 0 0-.99 2.61q-.15.6-.27 1.26c-1-.13-1.9-.3-2.65-.5a8.03 8.03 0 0 1 3.91-3.37m7.4 0a8.03 8.03 0 0 1 3.91 3.37c-.75.2-1.65.37-2.65.5a13.6 13.6 0 0 0-1.26-3.87M4.06 9.95c.92.24 1.99.43 3.16.57A25 25 0 0 0 7.1 12c0 .5.04 1 .09 1.48-1.17.14-2.24.33-3.16.57A8 8 0 0 1 4 12c0-.7.02-1.38.06-2.05m15.88 0c.04.67.06 1.35.06 2.05 0 .71-.08 1.4-.23 2.05-.92-.24-1.99-.43-3.16-.57.05-.48.09-.97.09-1.48 0-.5-.04-1-.09-1.48 1.17-.14 2.24-.33 3.16-.57M12 11c1.02 0 2 .02 2.93.06.05.3.07.62.07.94 0 .32-.02.63-.07.94A48 48 0 0 0 12 13c-1.02 0-2-.02-2.93-.06A7 7 0 0 1 9 12c0-.32.02-.63.07-.94A48 48 0 0 1 12 11m-4.7 5.53q.12.66.27 1.26c.24.94.58 1.82.99 2.6a8.03 8.03 0 0 1-3.91-3.36c.75-.2 1.65-.37 2.65-.5m9.4 0c1 .13 1.9.3 2.65.5a8.03 8.03 0 0 1-3.91 3.36c.41-.78.75-1.66.99-2.6q.15-.6.27-1.26M12 15c.98 0 1.9.02 2.86.05q-.11.63-.26 1.2C13.94 18.7 12.82 20 12 20s-1.94-1.3-2.6-3.75a19 19 0 0 1-.26-1.2c.96-.03 1.88-.05 2.86-.05',
+    ]}
+    view="0 0 24 24"
+    {...props}
+  />
 )
 
 export const FilterIcon: React.FC<IconSvgProps> = ({ ...props }) => (

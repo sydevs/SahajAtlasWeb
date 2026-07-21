@@ -27,7 +27,36 @@ export const Default: Story = () => {
         title="Select"
       >
         <div className="max-w-xs">
-          <Select ariaLabel="Class time" value={value} onValueChange={setValue}>
+          <Select aria-label="Class time" value={value} onValueChange={setValue}>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`isInvalid` is the registration form's error affordance (paired there with aria-invalid + aria-describedby); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
+        title="States"
+      >
+        <div className="flex max-w-md flex-col gap-3">
+          <Select isInvalid aria-label="Invalid" value={value} onValueChange={setValue}>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </Select>
+          <Select disabled aria-label="Disabled" value={value} onValueChange={setValue}>
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </Select>
+          <Select aria-label="Empty" placeholder="Choose a time…">
             {options.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}

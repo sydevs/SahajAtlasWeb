@@ -1,4 +1,13 @@
 {
+  "actions": {
+    "add_calendar": "Adicionar à agenda",
+    "contact": "Contato",
+    "copy": "Copiar",
+    "directions": "Como chegar",
+    "download_ics": "Baixar arquivo .ics",
+    "share": "Compartilhar",
+    "website": "Site"
+  },
   "details": {
     "contact_for_timing": "Entre em contato com o anfitrião para saber os horários",
     "contact_host": "Entre em contato com o anfitrião",
@@ -14,6 +23,43 @@
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Ver foto"
   },
+  "display": {
+    "about": "Sobre esta aula",
+    "all_events_free": "Todos os eventos são gratuitos",
+    "chip_ended": "Encerrado",
+    "chip_free": "Gratuito",
+    "chip_full": "Lotado",
+    "chip_started": "Começou em %{date}",
+    "chip_starts": "Começa em %{date}",
+    "chip_today": "Hoje",
+    "contact_to_join_full": "Fale com o anfitrião para participar mesmo assim",
+    "contact_to_join_late": "Fale com o anfitrião para entrar depois",
+    "distance_from_search": "%{distance} do local pesquisado",
+    "event_ended": "Este evento foi encerrado",
+    "event_full": "Este evento está lotado",
+    "first_session": "Primeira sessão: %{date}",
+    "hosted_from": "Hospedado em %{city}",
+    "next_session": "Próxima sessão: %{date}",
+    "on_sahaj_atlas": "no Sahaj Atlas",
+    "online": "On-line",
+    "online_joining_note": "O link da reunião será enviado para você por e-mail",
+    "registration_closed": "Inscrições encerradas",
+    "registration_required": "Inscrição obrigatória",
+    "see_nearby": "Ver eventos próximos",
+    "sessions_count_one": "%{count} sessão",
+    "sessions_count_other": "%{count} sessões",
+    "started_on": "Começou em %{date}",
+    "type_class": "Aula",
+    "type_class_daily": "Aula diária",
+    "type_class_fortnightly": "Aula quinzenal",
+    "type_class_monthly": "Aula mensal",
+    "type_class_weekly": "Aula semanal",
+    "type_course": "Curso",
+    "type_oneoff": "Evento único",
+    "time_in_place": "%{time} em %{city}",
+    "distance_away": "a %{distance}",
+    "distance_from_place": "a %{distance} de %{place}"
+  },
   "errors": {
     "email": "Insira um e-mail válido",
     "name": "Digite seu nome completo",
@@ -27,21 +73,24 @@
   },
   "recurrence": {
     "daily": "Diariamente",
+    "daily_n": "A cada %{interval} dias",
     "monthly_1st": "1º %{weekday} de cada mês",
     "monthly_2nd": "2º %{weekday} de cada mês",
     "monthly_3rd": "3º %{weekday} de cada mês",
     "monthly_4th": "4º %{weekday} de cada mês",
+    "monthly_date": "Todo dia %{day} do mês",
     "monthly_last": "Último(a) %{weekday} de cada mês",
     "null": "Contact host for timings",
     "weekly_1": "Todo(a) %{weekday}",
-    "weekly_2": "Todo dia 2nd %{weekday}"
+    "weekly_2": "A cada duas semanas: %{weekday}",
+    "weekly_multi": "Toda %{weekdays}",
+    "weekly_n": "A cada %{interval} semanas: %{weekday}"
   },
   "registration": {
     "cancel": "Cancelar",
     "email": "Seu e-mail",
     "followup": "Você receberá um e-mail de confirmação em breve",
     "invite_friend": "Convide um amigo junto",
-    "mailing_list_consent": "Mantenha-me informado sobre próximos eventos e novidades.",
     "name": "Seu nome",
     "okay": "OK",
     "online_notice": "O link para esta aula será enviado para você por e-mail.",
@@ -50,7 +99,8 @@
     "register_now": "Cadastre-se agora",
     "starting_date": "Data de início",
     "submit": "Cadastre-se",
-    "thank_you": "Obrigado por se registrar!"
+    "thank_you": "Obrigado por se registrar!",
+    "error_title": "Algo deu errado"
   },
   "timing": {
     "converted_to": "Convertido para %{timezone} (%{offset})"

@@ -31,4 +31,11 @@ describe('i18nSharedOptions', () => {
   it('falls back to en for keys missing in the active language', () => {
     expect(i18n.t('onlyEnglish')).toBe('English only')
   })
+
+  it('resolves text direction via i18next (feeds the widget root dir attr)', () => {
+    expect(i18n.dir('en')).toBe('ltr')
+    expect(i18n.dir('pt-BR')).toBe('ltr')
+    expect(i18n.dir('ar')).toBe('rtl')
+    expect(i18n.dir('fa')).toBe('rtl')
+  })
 })

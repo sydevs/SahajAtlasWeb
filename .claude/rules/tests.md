@@ -43,7 +43,7 @@ sneak it in.
   fixtures next to the assertions that use them.
 - **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see
   `src/config/api/fetch.test.ts`): mock `axios` / `@/config/i18n`, not our own
-  logic. Don't test NextUI / react-map-gl / library internals — only *our*
+  logic. Don't test Radix / react-map-gl / library internals — only *our*
   contracts.
 
 ## Type-checking & the edit-loop hook

@@ -1,24 +1,30 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
+import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventCard, List, OnlineClassesCard, RegionCard } from '@/components/molecules'
+import { EventListItem, List, ListItem } from '@/components/molecules'
+import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import { CloseButton, NearbySuggestion, useFrameOnTop } from '@/views/shared'
+import { CloseButton, DrawerTitle, NearbySuggestion, useFrameOnTop } from '@/views/shared'
 
-// A region at any level (route `<region-path>`): child-region cards then this
-// region's located events. A parent with sub-regions leads with an "Online Classes"
-// card (only when online events roll up) that opens their own drawer
-// (`<region-path>/online`), keeping the list a clean set of places; a leaf lists its
-// online events inline, after the located ones. Frames the map to the region's bounds
-// when it's the top of the stack. No canonicalization redirect — the URL stays where
-// the user navigated; the canonical tag is standalone-only.
+// A region at any level (route `<region-path>`): child-region cards then this region's
+// own located events, in ONE mixed list. A city can hold both venue/centre sub-regions
+// and free-floating events (an event pinned to the city rather than to a venue), and
+// both show together. A region whose online events roll up leads with an "Online
+// Classes" card (opening their own `<region-path>/online` drawer), keeping those
+// placeless classes out of the list; a region without that card lists its online events
+// inline, after the located ones. Frames the map to the region's bounds when it's the
+// top of the stack. No canonicalization redirect — the URL stays where the user
+// navigated; the canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
+  const { t } = useTranslation('events')
+  const { t: tCommon } = useTranslation('common')
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -31,11 +37,19 @@ export function RegionView({ slug }: { slug: string }) {
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
-  const subheader = region.level === 'city' ? (region.subtitle ?? undefined) : undefined
   const canonicalUrl = validateWebUrl(region.webUrl)
-  // Parents (with sub-region cards) surface their online roll-up behind a dedicated
-  // "Online Classes" card; a leaf lists its online events inline, as before.
+  // A region with sub-region cards surfaces its online roll-up behind a dedicated
+  // "Online Classes" card; a region without sub-regions lists its online events inline.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
+  // Whether this view actually shows event cards (vs. only child-region cards).
+  const hasEventList =
+    region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
+  // "All events are free" is the subtitle FALLBACK — stated once per list (no
+  // Free chip repeats on cards) but only where events are actually listed;
+  // a city's own subtitle takes the slot when present.
+  const subheader =
+    (region.level === 'city' ? region.subtitle : undefined) ??
+    (hasEventList ? t('display.all_events_free') : undefined)
 
   return (
     <>
@@ -46,27 +60,27 @@ export function RegionView({ slug }: { slug: string }) {
         </Helmet>
       )}
       <DrawerHeader className="justify-between">
-        <div className="min-w-0">
-          <div className="truncate text-lg font-bold">{header}</div>
-          {subheader && <div className="truncate text-sm text-gray-11">{subheader}</div>}
-        </div>
+        <DrawerTitle subtitle={subheader} title={header} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
         <NearbySuggestion regionCenter={region.center} />
         <List>
-          {/* On a parent, the online roll-up opens in its own drawer via this card,
-              keeping the list below a clean set of places. */}
+          {/* On a region with sub-regions, the online roll-up opens in its own drawer
+              via this card, keeping the placeless classes out of the mixed list below. */}
           {showOnlineCard && (
-            <OnlineClassesCard
+            <ListItem
               count={region.onlineEvents.length}
               href={childRoute(region.path, 'online')}
+              icon={<MonitorIcon size={24} />}
+              label={tCommon('online_classes')}
             />
           )}
-          {/* Region ids and event ids come from independent sequences but share one
-              List — namespace the keys so they can't collide. */}
+          {/* Sub-regions (venues/centres, child areas) then this region's own located
+              events, in one list. Region ids and event ids come from independent
+              sequences, so namespace the keys. */}
           {region.subregions.map((child) => (
-            <RegionCard
+            <ListItem
               key={`region-${child.id}`}
               count={child.eventCount}
               href={child.path}
@@ -75,12 +89,13 @@ export function RegionView({ slug }: { slug: string }) {
             />
           ))}
           {region.events.map((event) => (
-            <EventCard key={`event-${event.id}`} event={event} />
+            <EventListItem key={`event-${event.id}`} event={event} />
           ))}
-          {/* A leaf has no card — its online events list inline, after the located ones. */}
+          {/* A region without an online roll-up card lists its online events inline,
+              after the located ones. */}
           {!showOnlineCard &&
             region.onlineEvents.map((event) => (
-              <EventCard key={`online-${event.id}`} event={event} />
+              <EventListItem key={`online-${event.id}`} event={event} />
             ))}
         </List>
       </DrawerBody>

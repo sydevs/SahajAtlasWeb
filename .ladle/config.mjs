@@ -25,5 +25,14 @@ export default {
       enabled: true,
       defaultState: 'light',
     },
+    source: {
+      enabled: false,
+    },
+    ladle: {
+      enabled: false,
+    },
+    rtl: {
+      enabled: false,
+    },
   },
 }

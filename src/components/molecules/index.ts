@@ -1,8 +1,9 @@
 // Molecules — small compositions of atoms; data passed in via props.
-// Public import surface: `import { EventCard } from '@/components/molecules'`.
+// Public import surface: `import { EventListItem } from '@/components/molecules'`.
 // See DESIGN_SYSTEM.md. Explicit named exports only — each folder surfaces its
 // primary component(s) + `Props` type; single-use internals stay private.
 export { SettingsMenu } from './SettingsMenu'
+export type { SettingsMenuProps } from './SettingsMenu'
 
 // SearchFilters — the controlled event-filters form (Format/Frequency/Day/Time/
 // Language), rendered inside the FilterView drawer.
@@ -16,33 +17,42 @@ export type { ActiveFilterPillsProps } from './ActiveFilterPills'
 
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
-// DetailRow — a generic labelled icon row; the event detail cards build on it.
-export { DetailRow } from './DetailRow'
-export type { DetailRowProps, DetailRowBox } from './DetailRow'
+// ActionRow / ActionCircle — the labelled tonal-circle secondary actions under
+// an event's Register CTA (Directions / Add to calendar / Contact / Share).
+export { ActionRow, ActionCircle } from './ActionRow'
+export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+
+// EventFacts — the shared calendar/location fact block for an event (builds and
+// renders the when/where lines), used by the panel, the list card, and the
+// share/registration summaries. `EventSummary` is its boxed, titled variant (the
+// event-details card on the share + registration drawers).
+export { EventFacts } from './EventFacts'
+export type { EventFactsProps } from './EventFacts'
+export { EventSummary } from './EventFacts'
+export type { EventSummaryProps } from './EventFacts'
 
 export { List } from './List'
 
-export { RegionCard } from './RegionCard'
-export type { RegionCardProps } from './RegionCard'
-export { OnlineClassesCard } from './OnlineClassesCard'
-export type { OnlineClassesCardProps } from './OnlineClassesCard'
+export { ListItem } from './ListItem'
+export type { ListItemProps } from './ListItem'
 
-export { EventCard } from './EventCard'
-export type { EventCardProps } from './EventCard'
+export { EventListItem } from './EventListItem'
+export type { EventListItemProps } from './EventListItem'
 
-export { EventTime } from './EventTime'
-export type { EventTimeProps } from './EventTime'
+// The secondary action row under an event's Register CTA. A molecule (no data
+// lifecycle of its own — it reads the display resolver, like EventFacts), though
+// it's composed by the EventDetails organism.
+export { EventActions } from './EventActions'
+export type { EventActionsProps } from './EventActions'
 
 // ShareContent — the copyable URL + social-links block, reused by the ShareView
-// drawer and the registration "thank you" screen.
-export { ShareContent } from './ShareContent'
+// drawer and the registration "thank you" screen. CopyField also serves the
+// event panel's desktop contact popover.
+export { ShareContent, CopyField } from './ShareContent'
 export type { ShareContentProps } from './ShareContent'
 
 export { ImageCarousel } from './ImageCarousel'
-export type { Slide } from './ImageCarousel'
-
-export { EventSoonChip } from './EventSoon'
-export type { EventSoonChipProps } from './EventSoon'
+export type { ImageCarouselProps, Slide } from './ImageCarousel'
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'

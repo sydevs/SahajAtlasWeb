@@ -83,6 +83,8 @@
   },
   "share": {
     "share_on": "Share on %{platform}",
-    "native": "Share…"
+    "native": "Share…",
+    "copy_link": "Copy link",
+    "copied": "Copied"
   }
 }

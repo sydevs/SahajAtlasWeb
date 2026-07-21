@@ -18,7 +18,7 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
                  │
    ┌─────────────┼───────────────────────────────────────────┐
    │ Providers   │  hasMap? <Mapbox> (fixed, full viewport)   │
-   │ (NextUI,    │           + <DrawerStack>  (nested drawers)│
+   │ (Radix,     │           + <DrawerStack>  (nested drawers)│
    │  ReactQuery,│  :        <DrawerStack>  (inline base +    │
    │  Helmet)    │             contained drawers, no map)     │
    └─────────────┴───────────────────────────────────────────┘
@@ -54,7 +54,7 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 | Views       | `src/views/`                        | RootView/SearchView/RegionView/EventView/RegistrationView/ShareView |
 | Map seam    | `src/hooks/use-map-controller.tsx`  | `MapController` (real + no-op); the only place that knows `map` vs map-less |
 | Map         | `src/components/organisms/Mapbox/`  | ReactMapGL, layers, clustering, search |
-| UI          | `src/components/`                   | Atomic components (atoms/molecules/organisms), NextUI/Radix + Tailwind |
+| UI          | `src/components/`                   | Atomic components (atoms/molecules/organisms), Radix + Tailwind |
 | Data        | `src/config/api/`                   | axios client, zod-validated fetchers, mutations |
 | State       | `src/config/store.ts`               | zustand: view / search / registration-draft |
 | i18n        | `src/config/i18n.ts`, `public/locales/` | i18next + HTTP backend |

@@ -18,7 +18,7 @@ const toggleGroup = tv({
       // Segmented: natural-width items in a single row, flush with overlapping
       // (collapsed) borders, only the outer corners rounded.
       true: {
-        item: '-ml-px rounded-none first:ml-0 first:rounded-l last:rounded-r',
+        item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
       },
     },
   },
@@ -31,7 +31,7 @@ const ToggleGroupContext = createContext<{ joined: boolean }>({ joined: false })
 
 type ToggleGroupBaseProps = {
   disabled?: boolean
-  ariaLabel?: string
+  'aria-label'?: string
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
   className?: string
@@ -58,7 +58,7 @@ export type ToggleGroupProps = ToggleGroupBaseProps &
 
 export function ToggleGroup({
   disabled,
-  ariaLabel,
+  'aria-label': ariaLabel,
   joined = false,
   className,
   children,
@@ -85,7 +85,7 @@ export function ToggleGroup({
 export type ToggleGroupItemProps = {
   value: string
   disabled?: boolean
-  ariaLabel?: string
+  'aria-label'?: string
   className?: string
   children: ReactNode
 }
@@ -93,7 +93,7 @@ export type ToggleGroupItemProps = {
 export function ToggleGroupItem({
   value,
   disabled,
-  ariaLabel,
+  'aria-label': ariaLabel,
   className,
   children,
 }: ToggleGroupItemProps) {

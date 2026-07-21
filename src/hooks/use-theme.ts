@@ -1,5 +1,5 @@
 // originally written by @imoaazahmed; reworked to observe a configurable root
-// class so a single theme signal drives NextUI, Tailwind, and the Mapbox basemap.
+// class so a single theme signal drives Tailwind, the Radix tokens, and the Mapbox basemap.
 
 import { useEffect, useSyncExternalStore } from 'react'
 
@@ -10,13 +10,14 @@ const ThemeProps = {
   auto: 'auto',
 } as const
 
-// The *resolved* theme written to the root class (what NextUI/Tailwind/Mapbox read).
+// The *resolved* theme written to the root class (what Tailwind/tokens/Mapbox read).
 type Theme = typeof ThemeProps.light | typeof ThemeProps.dark
 // The user's *preference*: a resolved theme, or 'auto' (follow the system).
 export type ThemePreference = Theme | typeof ThemeProps.auto
 
-// The theme root's class is the single source of truth: NextUI, Tailwind
-// (darkMode: 'class'), and the Mapbox basemap (MAP_STYLES[theme]) all key off
+// The theme root's class is the single source of truth: Tailwind
+// (darkMode: 'class'), the semantic tokens, and the Mapbox basemap
+// (MAP_STYLES[theme]) all key off
 // it. Standalone, the root is the host page's <html>. Embedded, the widget
 // scopes it to its own wrapper (via setThemeRoot) so it never mutates the host
 // page's <html> — its brand vars and theme class stay inside the widget.
@@ -181,7 +182,7 @@ export const initTheme = (defaultTheme: Theme = ThemeProps.light) => {
 
 // ── Hooks ────────────────────────────────────────────────────────────────────────
 
-// The resolved theme (light/dark) read from the root class — what the map/NextUI use.
+// The resolved theme (light/dark) read from the root class — what the map/tokens use.
 export const useTheme = () => {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 

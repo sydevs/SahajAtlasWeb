@@ -4,12 +4,12 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { List } from './List'
 
-import { RegionCard } from '@/components/molecules/RegionCard'
+import { ListItem } from '@/components/molecules/ListItem'
 
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 /**
- * List — a scroll-shadowed `<ul>` container for RegionCard / EventCard rows, as
+ * List — a scroll-shadowed `<ul>` container for ListItem / EventListItem rows, as
  * used inside the RegionView drawer body.
  */
 export const Default: Story = () => (
@@ -17,9 +17,9 @@ export const Default: Story = () => (
     <StorySection title="Basic">
       <div className="max-w-md">
         <List>
-          <RegionCard count={12} href="#area" label="Cambridge" />
-          <RegionCard count={7} href="#area" label="Oxford" />
-          <RegionCard count={3} href="#area" label="London" />
+          <ListItem count={12} href="#area" label="Cambridge" />
+          <ListItem count={7} href="#area" label="Oxford" />
+          <ListItem count={3} href="#area" label="London" />
         </List>
       </div>
     </StorySection>
@@ -27,8 +27,8 @@ export const Default: Story = () => (
     <StorySection title="With Subtitles">
       <div className="max-w-md">
         <List>
-          <RegionCard count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
-          <RegionCard count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />
+          <ListItem count={12} href="#area" label="Cambridge" subtitle="Cambridgeshire" />
+          <ListItem count={7} href="#area" label="Oxford" subtitle="Oxfordshire" />
         </List>
       </div>
     </StorySection>

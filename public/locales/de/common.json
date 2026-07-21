@@ -69,6 +69,8 @@
   },
   "share": {
     "share_on": "Auf %{platform} teilen",
-    "native": "Teilen…"
+    "native": "Teilen…",
+    "copy_link": "Link kopieren",
+    "copied": "Kopiert"
   }
 }

@@ -15,3 +15,6 @@ export const i18nSharedOptions = {
     suffix: '}',
   },
 }
+
+// NB: the widget theme root's `dir` attribute derives from `i18n.dir(locale)`
+// (i18next's maintained RTL list) in Widget.tsx — no hand-rolled RTL set here.
