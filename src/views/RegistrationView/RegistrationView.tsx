@@ -8,18 +8,17 @@ import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { eventTimeZone, isOnline } from '@/lib/shape'
-import { Event } from '@/types'
+import { Event, REGISTRATION_QUESTION_NAMES, RegistrationQuestionName } from '@/types'
 import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
-// The registration questions enabled on this event (each `true` boolean → a field).
-function enabledQuestions(event: Event): string[] {
+// The registration questions enabled on this event (each `true` boolean → a field),
+// as the CMS question names so the form registers `questions.<name>` field paths.
+function enabledQuestions(event: Event): RegistrationQuestionName[] {
   const questions = event.registrationQuestions
 
   if (!questions) return []
 
-  return Object.entries(questions)
-    .filter(([, enabled]) => enabled)
-    .map(([key]) => key)
+  return REGISTRATION_QUESTION_NAMES.filter((name) => questions[name])
 }
 
 // The registration form for an event (route `<event-path>/register`). Reached by

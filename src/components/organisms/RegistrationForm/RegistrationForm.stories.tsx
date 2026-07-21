@@ -57,7 +57,7 @@ export const Default: Story = () => (
           eventTitle="Beginners Course"
           eventUrl="https://atlas.example/e/3"
           isOnline={false}
-          questions={['How did you hear about us?', 'Any prior experience with meditation?']}
+          questions={['referralSource', 'priorExperience']}
           upcomingDates={upcomingDates}
         />
       </div>

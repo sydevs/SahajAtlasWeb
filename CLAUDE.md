@@ -199,3 +199,10 @@ Skills: `.claude/skills/implement-issue/` (phase 1) and
 `.claude/skills/finalize-pr/` (phase 3, also reused by phase 1). The lean gate
 (`/pr-prep`) is `pnpm lint && pnpm typecheck && pnpm test:run`; CI adds the
 production build + `ladle:build` (see `.claude/rules/tests.md`).
+
+This pipeline is **shared with SahajCloud and WeMeditateWeb**. Its canonical spec
+— step lists, shared invariants, and the table of intentional per-repo deltas —
+is `.claude/docs/workflow-parity.md`, kept **byte-identical** in all three repos.
+When a workflow change lands here, port it to the siblings and update all three
+copies. Run **`/sync-workflow`** to audit this repo's skills against the spec and
+report drift (read-only until you approve the fixes).

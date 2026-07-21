@@ -1,3 +1,5 @@
+import type { Event as CmsEvent } from '@/types/payload/payload-types'
+
 import z from 'zod'
 
 import { RegionRefSchema } from './region-ref'
@@ -75,15 +77,34 @@ export const EventImageSchema = z.object({
 })
 export type EventImage = z.infer<typeof EventImageSchema>
 
+// The registration questions a manager can enable per event — SahajCloud's
+// EVENT_REGISTRATION_QUESTIONS contract. The key set is DERIVED from the synced CMS
+// types (`pnpm types:cms`) rather than hardcoded, so it can't drift from the backend.
+export type RegistrationQuestionName = keyof NonNullable<CmsEvent['registrationQuestions']>
+
 // `event.registrationQuestions` — each enabled boolean adds a question to the form.
+// `satisfies Record<RegistrationQuestionName, …>` pins these keys to the CMS field: a
+// `types:cms` resync that adds or drops a question fails the build here until the
+// schema (and the form) are updated to match.
 export const RegistrationQuestionsSchema = z.object({
   priorExperience: z.boolean().nullish(),
   referralSource: z.boolean().nullish(),
   healthInfo: z.boolean().nullish(),
   accessibility: z.boolean().nullish(),
   guests: z.boolean().nullish(),
-})
+} satisfies Record<RegistrationQuestionName, z.ZodTypeAny>)
 export type RegistrationQuestions = z.infer<typeof RegistrationQuestionsSchema>
+
+// Runtime list + enum of the same names — types erase, so the registration-payload
+// validator and the form's enabled-question loop need real values. Derived from the
+// schema shape above, which the `satisfies` keeps in step with the CMS contract, so
+// this stays exhaustive without a second hand-maintained list.
+export const REGISTRATION_QUESTION_NAMES = Object.keys(RegistrationQuestionsSchema.shape) as [
+  RegistrationQuestionName,
+  ...RegistrationQuestionName[],
+]
+
+export const RegistrationQuestionNameSchema = z.enum(REGISTRATION_QUESTION_NAMES)
 
 // Lexical richText document (`event.description`). Validated structurally; the
 // minimal serializer in src/lib/shape/lexical.ts renders/flattens it.

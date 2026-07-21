@@ -19,13 +19,13 @@ import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import preview from '@/config/preview'
 import { useRegistrationDraft } from '@/config/store'
-import { Registration, RegistrationSchema } from '@/types'
+import { Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 
 export type RegistrationFormProps = {
   eventId: number
   upcomingDates: Date[]
-  questions: string[]
+  questions: RegistrationQuestionName[]
   isOnline: boolean
   eventTitle: string
   eventUrl: string
@@ -266,7 +266,7 @@ function LabeledTextarea({
 type RegistrationFieldsProps = {
   upcomingDates: Date[]
   timeZone?: string
-  questions: string[]
+  questions: RegistrationQuestionName[]
   register: UseFormRegister<Registration>
   control: Control<Registration>
   errors: FieldErrors<Registration>
