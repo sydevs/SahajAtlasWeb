@@ -19,7 +19,9 @@ describe('hashed assets', () => {
 
   test.skipIf(skipWithoutPreview)('current chunks serve as JavaScript', async () => {
     const shell = await (await fetchPreview('/')).text()
-    const [chunk] = shell.match(/\/assets\/[\w.-]+\.js/) ?? []
+    // Anchor to a real resource attribute so a stray /assets string in a
+    // comment or inlined JSON can't become the fetched URL.
+    const [, chunk] = shell.match(/(?:src|href)="(\/assets\/[^"]+\.js)"/) ?? []
 
     // The SPA shell always references at least one hashed chunk.
     expect(chunk).toBeTruthy()
