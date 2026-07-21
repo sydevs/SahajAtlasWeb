@@ -27,8 +27,9 @@ const MIN_DISTANCE_KM = 5
  * then the language chip when it differs from the UI language. Status and
  * distance are carried by the facts, so the card adds no chips of its own. The
  * whole card is tappable (press state, no chevron); the Link wrapper stays
- * hookable for map-pin highlight (#44). The divider between cards is drawn by
- * the List, not each card.
+ * hookable for map-pin highlight (#44). The row is an <li> wrapping the Link so
+ * each card is a valid direct child of the List's <ul> (#65). The divider
+ * between cards is drawn by the List, not each card.
  */
 export function EventListItem({ event }: EventListItemProps) {
   const { t } = useTranslation('events')
@@ -73,15 +74,15 @@ export function EventListItem({ event }: EventListItemProps) {
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
 
   return (
-    <Link
-      className={listRow()}
-      href={event.path}
-      onBlur={() => highlightEvent(null)}
-      onFocus={() => highlightEvent(event)}
-      onMouseEnter={() => highlightEvent(event)}
-      onMouseLeave={() => highlightEvent(null)}
-    >
-      <li key={event.id} className="flex flex-col gap-1 py-4">
+    <li>
+      <Link
+        className={listRow({ className: 'flex flex-col gap-1 py-4' })}
+        href={event.path}
+        onBlur={() => highlightEvent(null)}
+        onFocus={() => highlightEvent(event)}
+        onMouseEnter={() => highlightEvent(event)}
+        onMouseLeave={() => highlightEvent(null)}
+      >
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
         <EventFacts
           className="my-1"
@@ -109,7 +110,7 @@ export function EventListItem({ event }: EventListItemProps) {
             )}
           </div>
         )}
-      </li>
-    </Link>
+      </Link>
+    </li>
   )
 }

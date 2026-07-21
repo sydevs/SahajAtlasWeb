@@ -9,8 +9,10 @@ import { tv } from 'tailwind-variants'
 // One recipe, one constant — change the gutter here and the divider follows.
 
 /**
- * A navigable row inside a `List`. Cards spread this onto their own <Link>/<a>
- * so the hover/press feedback and the gutter stay identical across row types.
+ * A navigable row inside a `List`. Cards wrap it in an `<li>` (so each row is a
+ * valid direct child of the `<ul>`) and spread this onto that li's inner
+ * <Link>/<a>, so the hover/press feedback and the gutter stay identical across
+ * row types.
  *
  * The `px-6` here and the `inset-x-6` in DIVIDER below are one decision spelled
  * twice: Tailwind's scanner only sees complete literal class names, so neither
@@ -22,11 +24,11 @@ export const listRow = tv({
 })
 
 // The divider is drawn here (cards carry no border of their own, so mixed
-// region/event lists stay uniform) as a ::before rule on every child EXCEPT the
-// first — so it separates cards without trailing after the last. `inset-x-6`
-// matches `listRow`'s `px-6`, so the line stops short of the edges exactly as the
-// per-card border it replaced did, while each card's hover background still
-// bleeds the full width.
+// region/event lists stay uniform) as a ::before rule on every child `<li>`
+// EXCEPT the first — so it separates cards without trailing after the last.
+// `inset-x-6` matches the inner row's `listRow` `px-6`, so the line stops short of
+// the edges exactly as the per-card border it replaced did, while each card's
+// hover background still bleeds the full width.
 const DIVIDER =
   "[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:inset-x-6 [&>*+*]:before:top-0 [&>*+*]:before:border-t [&>*+*]:before:border-divider [&>*+*]:before:content-['']"
 
