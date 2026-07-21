@@ -9,7 +9,7 @@ import { useIpLocation } from './use-ip-location'
 import { useLocale } from './use-locale'
 
 import { isOnline, resolveEventDisplay } from '@/lib/shape'
-import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
+import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity } from '@/lib/time'
 
 /** What the formatting layer reads on top of the resolver input — the address /
  *  region refs that feed the where/origin strings, when the surface has them. */
@@ -71,10 +71,11 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { locale } = useLocale()
   // Only ONLINE events name the viewer's place in their converted time, so the
   // third-party IP lookup is gated on that — a list of in-person events never
-  // pings it. The query is session-cached, so many cards share one lookup.
-  // `region` (state/province), not `city`: the lookup often reports a
-  // neighbourhood, which is far too specific for "what time is it where you are".
-  const viewerRegion = useIpLocation(isOnline(event))?.region
+  // pings it. The query is session-cached, so many cards share one lookup. The
+  // whole guess is kept (not just `region`) so the label can reconcile the region
+  // name — state/province, not the often-neighbourhood-level `city` — against the
+  // IP's own `timezone` before trusting it (see the where-subtext block below).
+  const viewerIp = useIpLocation(isOnline(event))
   // The resolver reads the wall clock; a stable event identity (TanStack
   // structural sharing) would otherwise freeze "Today"/open-vs-closed for as
   // long as a surface stays mounted. A minute bucket in the deps lets any
@@ -227,8 +228,14 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         .filter(Boolean)
         .join(' ')
 
-      whereSubtext = viewerRegion
-        ? t('display.time_in_place', { time: clock, city: viewerRegion })
+      // The clock is quoted in the viewer's OS zone (`next`); the region name is an
+      // independent guess (IP geolocation). Name the region ONLY when the IP's own
+      // zone shares that offset — otherwise drop it and show the bare time, so the
+      // label can never assert a place whose local clock isn't the one shown (#64).
+      const viewerPlace = reconciledViewerPlace(viewerIp?.region, viewerIp?.timezone?.id, next)
+
+      whereSubtext = viewerPlace
+        ? t('display.time_in_place', { time: clock, city: viewerPlace })
         : clock
     }
 
@@ -282,5 +289,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       contactHelper,
       blockedMessage,
     }
-  }, [event, locale, t, minute, viewerRegion])
+  }, [event, locale, t, minute, viewerIp])
 }
