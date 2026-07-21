@@ -4,4 +4,9 @@
 # index.html and let the client router resolve the route. Vite copies this
 # file from public/ to dist/, where Cloudflare Pages reads it.
 # (Replaces the old vercel.json rewrite — Cloudflare ignores vercel.json.)
+# Missing /assets/* files are carved out of this fallback by the Pages Function
+# functions/assets/[[path]].js — a hashed chunk from a superseded deployment
+# must 404 (browsers reject index.html-as-module with a MIME error, and CDNs
+# would cache the HTML under the asset URL). `_redirects` itself can't express
+# an exclusion or a 404 status, hence the function.
 /*  /index.html  200

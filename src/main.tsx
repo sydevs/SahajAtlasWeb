@@ -3,8 +3,12 @@ import { BrowserRouter } from 'react-router'
 
 import App from './App.tsx'
 import atlasAuth from './config/api/auth'
+import { installChunkRecovery } from './config/chunk-recovery'
 import { capturePreview } from './config/preview'
 import { initTheme } from './hooks/use-theme'
+
+// Reload once if a lazy chunk vanishes mid-session (deploy happened underneath us).
+installChunkRecovery()
 
 const searchParams = new URLSearchParams(window.location.search)
 

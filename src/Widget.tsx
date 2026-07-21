@@ -4,6 +4,7 @@ import { useRef } from 'react'
 
 import App from './App'
 import atlasAuth from './config/api/auth'
+import { installChunkRecovery } from './config/chunk-recovery'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
@@ -12,6 +13,10 @@ import { safePath } from './lib/shape'
 // Implementation of embeddable Widget
 // Demo in: demo.html
 // Based on: https://www.linkedin.com/pulse/converting-react-app-appendable-widget-using-web-mike-rahimi-wssnf/
+
+// embed.js keeps a stable URL but its lazy chunks are hashed per deployment —
+// reload once if one vanishes mid-session (a deploy happened underneath us).
+installChunkRecovery()
 
 const HASH_BASE = '!'
 
