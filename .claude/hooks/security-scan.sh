@@ -70,7 +70,9 @@ block_secret() {
     echo "  → False positive on a known-public value? Add the file to public_embed_files in"
     echo "    .claude/hooks/security-scan.sh."
   } >&2
-  echo "{\"continue\": false, \"reason\": \"Security scan detected a potential secret in $file (pattern /$pattern/). Move real secrets to .env.local or use a VITE_-prefixed token; if it is a known-public value, allowlist the file in .claude/hooks/security-scan.sh.\"}"
+  # Keep the stdout JSON reason free of the raw regex (its backslashes/quotes would
+  # make this invalid JSON); the matched pattern + line are on stderr above.
+  echo "{\"continue\": false, \"reason\": \"Security scan detected a potential secret in $file. Move real secrets to .env.local or use a VITE_-prefixed token; if it is a known-public value, allowlist the file in .claude/hooks/security-scan.sh.\"}"
   exit 2
 }
 
