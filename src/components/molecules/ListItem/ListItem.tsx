@@ -25,8 +25,11 @@ export interface ListItemProps {
  */
 export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) {
   return (
-    <Link className={listRow()} href={href}>
-      <li className="flex flex-row items-center py-4 font-semibold">
+    <li>
+      <Link
+        className={listRow({ className: 'flex flex-row items-center py-4 font-semibold' })}
+        href={href}
+      >
         {icon && (
           <span className="me-3 flex h-7 w-7 shrink-0 items-center justify-center lg:h-9 lg:w-9">
             {icon}
@@ -38,7 +41,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
         </div>
         <div className="me-1 text-end">{count}</div>
         <RightArrowIcon className="text-xl" />
-      </li>
-    </Link>
+      </Link>
+    </li>
   )
 }
