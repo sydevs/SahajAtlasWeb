@@ -5,12 +5,12 @@
 // In the embedded widget this reloads the host page — acceptable, because the
 // widget's route survives in the URL hash.
 
-const RELOADED_AT_KEY = 'sahaj-atlas:chunk-reloaded-at'
+const RELOADED_AT_KEY = 'sahajAtlas.chunkReloadedAt'
 const RELOAD_WINDOW_MS = 60_000
 
 export function installChunkRecovery() {
   window.addEventListener('vite:preloadError', (event) => {
-    if (!armReload(Date.now())) return
+    if (!armReload()) return
 
     // Prevent Vite from rethrowing the import error — the reload supersedes it.
     event.preventDefault()
@@ -21,8 +21,9 @@ export function installChunkRecovery() {
 // At most one reload per window: if reloading didn't heal the session (offline,
 // a CDN still serving stale responses), the next failure propagates to the
 // ErrorBoundary instead of looping.
-function armReload(now: number): boolean {
+function armReload(): boolean {
   try {
+    const now = Date.now()
     const last = Number(sessionStorage.getItem(RELOADED_AT_KEY)) || 0
 
     if (now - last < RELOAD_WINDOW_MS) return false
