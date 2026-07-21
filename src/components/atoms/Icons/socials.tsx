@@ -34,11 +34,11 @@ export const YoutubeIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   />
 )
 
-// Online-meeting platform glyphs, keyed for the event detail row's host/location
-// icon (see `detectPlatform` in EventDetails). The social-share networks that
-// used to live here (Email/Facebook/Twitter/LinkedIn/VK/Flipboard) were dropped
-// with the react-share migration (#61) — those targets now render react-share's
-// own bundled icons.
+// Online-meeting platform glyphs (Zoom / Google Meet / YouTube), resolved by key
+// via SocialIcon. The social-share networks that used to live here (Email /
+// Facebook / Twitter / LinkedIn / VK / Flipboard) were dropped with the
+// react-share migration (#61) — those targets now render react-share's own
+// bundled icons.
 const SOCIAL_ICONS: { [key: string]: React.FC<IconSvgProps> } = {
   zoom: ZoomIcon,
   google_meet: GoogleMeetIcon,
@@ -46,7 +46,8 @@ const SOCIAL_ICONS: { [key: string]: React.FC<IconSvgProps> } = {
 }
 
 export function SocialIcon({ platform, ...props }: { platform: string } & IconSvgProps) {
-  const SocialIcon = SOCIAL_ICONS[platform]
+  const Icon = SOCIAL_ICONS[platform]
 
-  return <SocialIcon {...props} />
+  // Unknown platform → render nothing rather than crashing on an undefined element.
+  return Icon ? <Icon {...props} /> : null
 }
