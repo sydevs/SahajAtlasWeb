@@ -67,27 +67,31 @@ export type ShareContentProps = {
  * by EventView) and the registration "thank you" screen.
  */
 export function ShareContent({ label, url }: ShareContentProps) {
-  label = encodeURI(label)
-  url = encodeURI(url)
+  // The title/URL land as query-param VALUES in each sharer link, so they must be
+  // component-encoded: encodeURIComponent (not encodeURI, which leaves `& ? # /`
+  // intact) so a `&`/`?` in the URL can't append a stray param to the third-party
+  // link. The copy field below shows the plain URL (React escapes it as text).
+  const shareLabel = encodeURIComponent(label)
+  const shareUrl = encodeURIComponent(url)
   const socials = [
     {
-      url: `mailto:?subject=${label}&body=${url}`,
+      url: `mailto:?subject=${shareLabel}&body=${shareUrl}`,
       icon: EmailIcon,
     },
     {
-      url: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      url: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`,
       icon: FacebookIcon,
     },
     {
-      url: `https://x.com/intent/tweet?text=${url}`,
+      url: `https://x.com/intent/tweet?text=${shareUrl}`,
       icon: TwitterIcon,
     },
     {
-      url: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+      url: `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`,
       icon: LinkedinIcon,
     },
     {
-      url: `https://share.flipboard.com/bookmarklet/popout?v=2&title=${label}&url=${url}`,
+      url: `https://share.flipboard.com/bookmarklet/popout?v=2&title=${shareLabel}&url=${shareUrl}`,
       icon: FlipboardIcon,
     },
   ]
