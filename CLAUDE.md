@@ -36,7 +36,7 @@ event hierarchy.
 | Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
 | Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets) |
 | Embedding      | `@r2wc/react-to-web-component` (`src/Widget.tsx`), CSS injected by JS for shadow-free embedding |
-| Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects` |
+| Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects`, missing-asset 404s via `functions/assets/[[path]].js` |
 
 The app is also runnable standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx` (demo in `demo.html`).
@@ -154,11 +154,24 @@ Two **Cloudflare Pages** projects deploy from this repo, both on the current
   `pnpm ladle:build`, served at `sahajatlas-design.pages.dev`.
 
 Build command and output dir are configured in the Cloudflare dashboard, not in
-the repo (there's no `wrangler`/`_routes.json`). The only repo-level deploy file
-is `public/_redirects` (`/* /index.html 200`), which gives the app's standalone
-`BrowserRouter` build its SPA deep-link fallback — Cloudflare Pages reads it from
-`dist/`. (The embeddable widget uses `HashRouter`, so it doesn't depend on the
-fallback; the standalone build does.) CI's smoke lane targets the app project via
+the repo (there's no `wrangler`/`_routes.json`). Two repo-level deploy artifacts:
+
+- `public/_redirects` (`/* /index.html 200`) gives the app's standalone
+  `BrowserRouter` build its SPA deep-link fallback — Cloudflare Pages reads it
+  from `dist/`. (The embeddable widget uses `HashRouter`, so it doesn't depend
+  on the fallback; the standalone build does.)
+- `functions/assets/[[path]].js` — a Pages Function carving `/assets/*` out of
+  that fallback: a hashed chunk from a superseded deployment returns a real,
+  uncacheable 404 instead of index.html-with-200 (which browsers reject as a
+  module MIME error). Pairs with the client-side `vite:preloadError` reload in
+  `src/config/chunk-recovery.ts` (installed by both entries). The root-level
+  `functions/` dir applies to **both** Pages projects (the Ladle build also
+  emits hashed `/assets/*`, where the 404 behavior is equally correct), and the
+  Function runs on **every** `/assets/*` request — Pages can't scope Functions
+  to misses — an accepted quota/latency cost at this traffic level. The smoke
+  spec `tests/smoke/assets.smoke.test.ts` guards it on the preview.
+
+CI's smoke lane targets the app project via
 `CF_PROJECT=sahajatlas.pages.dev` (`.github/workflows/ci.yml`).
 
 There is also an "accent" theme sync via
