@@ -113,21 +113,22 @@
 }
 
 @layer base {
-  :root {
+  /* Scoped to Swiper's own root rather than `:root`. This stylesheet is injected
+     into the HOST document when embedded, so writing these on `:root` would
+     retune any carousel the host page runs. `.swiper` only ever exists inside
+     our own ImageCarousel. */
+  .swiper {
     --swiper-pagination-bottom: 1rem;
     --swiper-pagination-bullet-width: 5rem;
     --swiper-pagination-bullet-height: 1rem;
     --swiper-pagination-bullet-border-radius: 8px;
   }
 
-  main {
-    color: #7b7b7b;
-    @apply lining-nums;
-  }
-
-  a {
-    color: inherit !important;
-  }
+  /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host
+     page — repainting its <main> to a hardcoded grey and forcing `color: inherit
+     !important` onto every anchor on the page. We render no <main> at all, and
+     every <a> we render sets its own colour (see the Link atom's variants), so
+     neither rule bought us anything it wasn't already getting locally. */
 }
 
 @layer components {

@@ -201,7 +201,7 @@ function RegionPreview({ id }: { id: number }) {
 function PreviewFallback() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 text-center">
-      <p className="rounded-medium bg-background/90 px-4 py-3 text-sm text-gray-11 shadow-medium">
+      <p className="rounded-medium shadow-medium bg-background/90 px-4 py-3 text-sm text-gray-11">
         Save this document to preview it.
       </p>
     </div>

@@ -20,27 +20,21 @@ const noop = () => {}
 
 describe('NearbyPrompt', () => {
   it('frames the guessed city as a suggestion, not a definitive location', () => {
-    const html = renderToStaticMarkup(
-      <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
-    )
+    const html = renderToStaticMarkup(<NearbyPrompt city="Paris" onAccept={noop} onClose={noop} />)
 
     expect(html).toContain('Looking for classes near Paris?')
     expect(html).not.toContain('your location')
   })
 
   it('renders the suggestion text as a real button (keyboard accessible)', () => {
-    const html = renderToStaticMarkup(
-      <NearbyPrompt city="Berlin" onDismiss={noop} onSelect={noop} />,
-    )
+    const html = renderToStaticMarkup(<NearbyPrompt city="Berlin" onAccept={noop} onClose={noop} />)
 
     expect(html).toContain('<button')
     expect(html).toContain('Looking for classes near Berlin?')
   })
 
   it('is a polite status with an accessible dismiss label — not an assertive alert', () => {
-    const html = renderToStaticMarkup(
-      <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
-    )
+    const html = renderToStaticMarkup(<NearbyPrompt city="Paris" onAccept={noop} onClose={noop} />)
 
     expect(html).toContain('aria-label="Dismiss"')
     // A passive suggestion shouldn't interrupt a screen reader.
@@ -49,9 +43,7 @@ describe('NearbyPrompt', () => {
   })
 
   it('is a primary-tinted, header-aligned, vertically-centred single line', () => {
-    const html = renderToStaticMarkup(
-      <NearbyPrompt city="Paris" onDismiss={noop} onSelect={noop} />,
-    )
+    const html = renderToStaticMarkup(<NearbyPrompt city="Paris" onAccept={noop} onClose={noop} />)
 
     expect(html).toContain('bg-primary-3')
     expect(html).toContain('items-center')

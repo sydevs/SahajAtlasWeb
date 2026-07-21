@@ -24,11 +24,6 @@ describe('RegistrationSchema', () => {
   it('rejects an invalid email', () => {
     expect(() => RegistrationSchema.parse({ ...base, email: 'not-an-email' })).toThrow()
   })
-
-  it('accepts an optional mailing-list consent flag', () => {
-    expect(RegistrationSchema.parse({ ...base, subscribe: true }).subscribe).toBe(true)
-    expect(RegistrationSchema.parse(base).subscribe).toBeUndefined()
-  })
 })
 
 // The `questions` payload must match SahajCloud's EVENT_REGISTRATION_QUESTIONS

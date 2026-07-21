@@ -7,10 +7,22 @@ import { RegionRefSchema } from './region-ref'
 export const EventTypeSchema = z.enum(['offline', 'online'])
 export type EventType = z.infer<typeof EventTypeSchema>
 
-// SahajCloud recurrence basis (the cadence detail is pre-computed server-side
-// into `upcomingDates`, so the widget only distinguishes the broad type).
+// SahajCloud recurrence basis. Occurrence *instants* are pre-computed server-side
+// into `upcomingDates` (exclusions applied); the structured pattern fields below
+// drive the derived event type, the recurrence label, and the calendar export.
 export const RecurrenceTypeSchema = z.enum(['DAILY', 'WEEKLY', 'MONTHLY'])
 export type RecurrenceType = z.infer<typeof RecurrenceTypeSchema>
+
+export const WeekdaySchema = z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])
+export type Weekday = z.infer<typeof WeekdaySchema>
+
+// A recurring event's skipped window (holiday/seasonal break). `endDate` is
+// nullish — a single skipped occurrence stores only `startDate`.
+export const ScheduleExclusionSchema = z.object({
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().nullish(),
+})
+export type ScheduleExclusion = z.infer<typeof ScheduleExclusionSchema>
 
 // Offline event location (`event.address` group). All fields are nullable; the
 // geojson geometry comes from latitude/longitude when present.
@@ -29,6 +41,10 @@ export type EventAddress = z.infer<typeof EventAddressSchema>
 
 // `event.schedule` group. `upcomingDates` is a virtual field of ISO date strings
 // pre-computed by SahajCloud; `upcomingDates[0]` is the next occurrence.
+// NB: the CMS form leaves stale values in sub-fields its discriminators no longer
+// select (e.g. `count` populated while `endingType` is 'until', or monthly fields
+// on a weekly event) — consumers must only read the fields the discriminators
+// (`recurrenceType` / `monthlyMode` / `endingType`) make meaningful.
 export const EventScheduleSchema = z.object({
   firstDate: z.coerce.date(),
   // IANA tz of firstDate. The collection type marks it required, but the feed
@@ -36,6 +52,16 @@ export const EventScheduleSchema = z.object({
   firstDate_tz: z.string().nullish(),
   endTime: z.string().nullish(), // "HH:MM", same day
   recurrenceType: RecurrenceTypeSchema.nullish(),
+  interval: z.number().nullish(), // repeat every N days/weeks/months
+  weekdays: z.array(WeekdaySchema).nullish(), // WEEKLY only; multi-day is authorable
+  monthlyMode: z.enum(['date', 'weekday']).nullish(),
+  monthDay: z.number().nullish(), // MONTHLY 'date' mode: day of month (1-31)
+  weekNumber: z.enum(['1', '2', '3', '4', '-1']).nullish(), // MONTHLY 'weekday' mode
+  weekdayOfMonth: WeekdaySchema.nullish(), // MONTHLY 'weekday' mode
+  endingType: z.enum(['count', 'until']).nullish(), // set = limited-run course
+  count: z.number().nullish(), // 'count' ending: total sessions
+  untilDate: z.coerce.date().nullish(), // 'until' ending: last possible date
+  exclusions: z.array(ScheduleExclusionSchema).nullish(),
   upcomingDates: z.array(z.coerce.date()).nullish(),
   icalRule: z.string().nullish(),
 })
@@ -87,7 +113,7 @@ export const LexicalDocumentSchema = z
   .passthrough()
 export type LexicalDocument = z.infer<typeof LexicalDocumentSchema>
 
-// CMS-authored URLs that get rendered into an `<a href>` (NextUI Link, outside
+// CMS-authored URLs that get rendered into an `<a href>` (our Link atom, outside
 // the DOMPurify path). Reject non-http(s) schemes so a `javascript:`/`data:`
 // value can't reach an href; drop the offending value rather than failing the
 // whole event read.
@@ -108,6 +134,9 @@ export const AgnosticFeedEventSchema = z.object({
   id: z.number(),
   eventType: EventTypeSchema,
   languages: z.array(z.string()),
+  // Dormant event (no active schedule; CMS requires contact info on it). In the
+  // feed so cards resolve the same inactive state as the panel.
+  inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
   schedule: EventScheduleSchema.nullish(),
   region: RegionRefSchema,
@@ -138,18 +167,24 @@ export const EventSlimSchema = FeedEventSchema.extend({
 export type EventSlim = z.infer<typeof EventSlimSchema>
 
 // Raw full event document from `GET /api/events/:id`.
+// No `onlineUrl` here: joining details are delivered CMS-side after registration,
+// so Atlas never selects or renders a join link (issue #52).
 export const EventDocSchema = z.object({
   id: z.number(),
   title: z.string(),
   eventType: EventTypeSchema,
   languages: z.array(z.string()),
-  onlineUrl: SafeUrlSchema,
+  inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
   schedule: EventScheduleSchema.nullish(),
   description: LexicalDocumentSchema.nullish(),
   images: z.array(EventImageSchema).default([]),
   contactPhone: z.string().nullish(),
   contactName: z.string().nullish(),
+  // The host's own site, surfaced as a secondary action. Runs through
+  // SafeUrlSchema like the other CMS-authored hrefs — a `javascript:`/`data:`
+  // value is dropped rather than failing the whole event read.
+  website: SafeUrlSchema,
   registrationMode: z.enum(['sahaj-atlas', 'external']),
   externalRegistrationUrl: SafeUrlSchema,
   registrationLimit: z.number().nullish(),

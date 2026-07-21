@@ -16,6 +16,14 @@ print width 100**. Don't hand-format against this — the PostToolUse hooks run
 Prettier + `eslint --fix` on every edited file. Run `pnpm lint:fix` to normalize
 a file manually.
 
+**Tailwind class order is automatic.** `prettier-plugin-tailwindcss` sorts every
+class list into the canonical order, including inside `tv()` and `clsx()` calls
+(`tailwindFunctions` in `.prettierrc`). Don't hand-order classes, and don't fight
+the sort in review — with the order fixed, a diff in a class string is a real
+change rather than a reshuffle, which is what makes copy-pasted chrome drifting
+apart visible. Pinned to the `0.6.x` line: `0.8.x` targets Tailwind v4 and throws
+on our v3 setup.
+
 ## Imports
 
 - Use the **`@/` alias** (`@/components/...`, `@/config/...`, `@/types`) instead
@@ -46,7 +54,7 @@ a file manually.
   `config/i18n`) use default exports.
 - **Props types**: name them `<Component>Props` (e.g. `EventItemProps`); fall back
   to a local `Props` only when that name would clash with an imported type (e.g.
-  `Chip` composes NextUI's `ChipProps`).
+  `Chip` composes a Radix primitive's props).
 - zod schemas are `XSchema`; the inferred type is `X` (see `src/types/`).
 
 ## TypeScript
@@ -69,7 +77,7 @@ a file manually.
 
 - Don't use emojis as UI icons. This repo has its own SVG icon components under
   `src/components/atoms/icons/` (`actions`, `socials`, `symbols`, …) — reuse those.
-  NextUI components also accept icon slots.
+  Radix primitives and our atoms accept icon slots.
 
 ## After code changes
 

@@ -2,7 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
-import { EventCard } from '@/components/molecules/EventCard'
+import { EventListItem } from '@/components/molecules/EventListItem'
 import { List } from '@/components/molecules/List'
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { Alert } from '@/components/atoms/Alert'
@@ -140,7 +140,7 @@ export function EventsList({ events }: EventsListProps) {
   return (
     <List>
       {events.map((event) => (
-        <EventCard key={event.id} event={event} />
+        <EventListItem key={event.id} event={event} />
       ))}
     </List>
   )

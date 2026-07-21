@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext } from 'react'
+import { type ReactNode, createContext, useContext, useState } from 'react'
 import { Drawer as Vaul } from 'vaul'
 import { tv, type VariantProps } from 'tailwind-variants'
 
@@ -13,7 +13,7 @@ import { overlayContainer } from '@/lib/overlay'
 // DrawerStack renders a SINGLE drawer holding the active (top) view; parent views
 // are simulated as static peek cards behind it, not real nested drawers. Direction
 // is left at ≥md, bottom on mobile; `snapPoints` are the mobile peek/third/full
-// ladder. Map-less, the drawer is `contained` + `full` — absolute and filling the
+// ladder. Map-less, the drawer is `mode="filled"` — absolute and filling the
 // widget container rather than fixed to the viewport.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
@@ -22,19 +22,32 @@ const drawer = tv({
   slots: {
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
-    header: 'flex shrink-0 items-center gap-2 px-4 pb-2 pt-4',
-    body: 'min-h-0 flex-1 overflow-y-auto',
-    footer: 'mt-auto shrink-0 border-t border-gray-4',
+    // Every content band is capped at `--sy-content-max` (default 32rem) and
+    // centred, so on a wide surface — a map-less embed, a large-mobile bottom
+    // sheet — the views read as a centred column rather than stretching edge to
+    // edge. A no-op on the ~22rem anchored panel, which is already narrower.
+    header:
+      'mx-auto flex w-full max-w-[var(--sy-content-max,32rem)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,32rem)] flex-1 overflow-y-auto',
+    footer:
+      'mx-auto mt-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0 border-t border-gray-4',
     // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it
     // breathing room from the sheet's rounded top edge but sit it close to the header
     // below, and a grab cursor so the drag affordance reads on pointer devices.
-    handle: '!bg-gray-7 mb-1 mt-2.5 cursor-grab active:cursor-grabbing',
+    handle: 'mb-1 mt-2.5 cursor-grab !bg-gray-7 active:cursor-grabbing',
   },
   variants: {
     direction: {
       // Flush to the edge on tablet (md–lg); at ≥lg it floats with a margin so the
       // map shows around it, rounded to match the stacked ancestor panels. The
       // divider border matches those panels too (`full` cancels the float map-less).
+      // TODO(rtl, #52 WS8): the remaining RTL gap is vaul's own `direction`
+      // prop, which is physically left/right and drives the drag axis + enter
+      // animation; these inset classes can't fix that alone. DrawerStack picks
+      // the direction, so the flip belongs there + here together, deferred until
+      // an RTL locale actually ships. Everything else is already logical: the
+      // stack's panel/cog positioning uses `start-*`, and directional icons
+      // mirror via BaseIcon's `flipRtl`.
       left: {
         content:
           'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
@@ -52,26 +65,30 @@ const drawer = tv({
       },
       top: { content: 'inset-x-0 top-0 h-dvh rounded-b-2xl border-b border-divider' },
     },
-    // Map-less: position absolutely within the widget container instead of fixed to
-    // the viewport, so the drawer covers only the content area.
-    contained: {
-      true: { content: '!absolute' },
-      false: {},
-    },
-    // Fill the container instead of anchoring to an edge — the map-less single panel
-    // (still a real vaul root, so the header close button keeps working).
-    full: {
-      true: { content: '!inset-0 !h-full !w-full !max-h-none !max-w-none !rounded-none !pb-0' },
-      false: {},
+    // How the panel relates to its container. These were two independent booleans
+    // (`contained` + `full`), but only two of the four states were ever
+    // representable in practice — DrawerStack always set both together, and
+    // `filled`'s class list is entirely `!important` overrides cancelling the
+    // other one, which is the signature of a variant that wanted to be a mode.
+    mode: {
+      /** Fixed to the viewport, anchored to the `direction` edge (the map layout). */
+      anchored: {},
+      /**
+       * Absolute within the widget container and filling it — the map-less single
+       * panel. Still a real vaul root, so the header close button keeps working.
+       */
+      filled: {
+        content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
+      },
     },
   },
   compoundVariants: [
     // The bottom sheet shows a drag handle that already spaces the header from the
     // sheet's top edge, so relax the header's top padding for a balanced handle→header
-    // gap. Not when `full` hides the handle (map-less), where the header owns the top.
-    { direction: 'bottom', full: false, class: { header: 'pt-2' } },
+    // gap. Not when `filled` hides the handle (map-less), where the header owns the top.
+    { direction: 'bottom', mode: 'anchored', class: { header: 'pt-2' } },
   ],
-  defaultVariants: { direction: 'bottom', contained: false, full: false },
+  defaultVariants: { direction: 'bottom', mode: 'anchored' },
 })
 
 type DrawerSlots = ReturnType<typeof drawer>
@@ -79,8 +96,8 @@ type DrawerSlots = ReturnType<typeof drawer>
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // A filling contained drawer (map-less) hides the drag handle — nothing to drag.
-  full: boolean
+  // A `filled` drawer (map-less) hides the drag handle — nothing to drag.
+  mode: 'anchored' | 'filled'
   // Portal target for a real drawer (map-less passes the widget container).
   container?: HTMLElement | null
 }
@@ -88,7 +105,7 @@ type DrawerCtx = {
 const DrawerContext = createContext<DrawerCtx>({
   slots: drawer({ direction: 'bottom' }),
   direction: 'bottom',
-  full: false,
+  mode: 'anchored',
 })
 
 const useDrawerSlots = () => useContext(DrawerContext)
@@ -121,15 +138,14 @@ export function Drawer({
   modal = false,
   dismissible = true,
   handleOnly = false,
-  contained = false,
-  full = false,
+  mode = 'anchored',
   snapPoints,
   activeSnapPoint,
   setActiveSnapPoint,
   container,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction, contained, full })
+  const slots = drawer({ direction, mode })
 
   // Pass snap props unconditionally (undefined = no snap points) so the
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
@@ -147,26 +163,55 @@ export function Drawer({
   }
 
   return (
-    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', full, container }}>
+    <DrawerContext.Provider value={{ slots, direction: direction ?? 'bottom', mode, container }}>
       <Vaul.Root {...rootProps} />
+    </DrawerContext.Provider>
+  )
+}
+
+/**
+ * Establishes the drawer slot context (the header/body/footer padding for a given
+ * mode + direction) WITHOUT a vaul root — so a view's `Drawer*` subtree can be
+ * previewed outside a real drawer (the story harness) with the SAME chrome the app
+ * renders. The app itself always goes through `<Drawer>`/`<DrawerContent>`; this is
+ * only for rendering the inner content standalone. Defaults to the map-less
+ * `filled` bottom drawer, which is what the harness simulates.
+ */
+export function DrawerSlotsProvider({
+  mode = 'filled',
+  direction = 'bottom',
+  children,
+}: {
+  mode?: 'anchored' | 'filled'
+  direction?: DrawerDirection
+  children: ReactNode
+}) {
+  return (
+    <DrawerContext.Provider value={{ slots: drawer({ direction, mode }), direction, mode }}>
+      {children}
     </DrawerContext.Provider>
   )
 }
 
 export type DrawerContentProps = {
   /** Accessible name for the dialog (Radix requires one; rendered sr-only). */
-  ariaLabel: string
+  'aria-label': string
   children: ReactNode
   className?: string
-  /** Show the drag handle. Defaults to true for bottom sheets (never when full). */
+  /** Show the drag handle. Defaults to true for bottom sheets (never when filled). */
   handle?: boolean
 }
 
 /** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
-export function DrawerContent({ ariaLabel, children, className, handle }: DrawerContentProps) {
-  const { slots, direction, full, container } = useDrawerSlots()
+export function DrawerContent({
+  'aria-label': ariaLabel,
+  children,
+  className,
+  handle,
+}: DrawerContentProps) {
+  const { slots, direction, mode, container } = useDrawerSlots()
 
-  const showHandle = handle ?? (direction === 'bottom' && !full)
+  const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` = use the default themed root; an explicit `null` opts out.
   const target = container === undefined ? overlayContainer() : container
 
@@ -191,14 +236,54 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
 
 export function DrawerBody({ children, className }: { children: ReactNode; className?: string }) {
   const { slots } = useDrawerSlots()
+  // Once the body scrolls, its content slides under the (opaque) header and the
+  // two blend into one another. A soft inset shadow along the body's top edge —
+  // shown only when there IS something above the fold — reads as "content
+  // continues up there" without adding a permanent rule. Inset shadows are
+  // painted against the scroll container's own box, so it stays pinned to the
+  // seam while the content moves. Preferred over a hard border: it appears
+  // progressively, and it works on both themes without a second colour token.
+  const [scrolled, setScrolled] = useState(false)
 
-  return <div className={slots.body({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.body({
+        className: `${scrolled ? 'shadow-[inset_0_7px_6px_-7px_rgb(0_0_0/0.25)]' : ''} ${className ?? ''}`,
+      })}
+      onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+    >
+      {children}
+    </div>
+  )
 }
 
-export function DrawerFooter({ children, className }: { children: ReactNode; className?: string }) {
+export function DrawerFooter({
+  children,
+  className,
+  sticky = false,
+}: {
+  children: ReactNode
+  className?: string
+  /**
+   * Pin the footer to the VIEWPORT bottom edge of a snap-point bottom sheet.
+   * The sheet is a full-height translated panel, so `fixed` would resolve
+   * against it — instead the footer offsets by the sheet's live top,
+   * mirrored every frame onto `--sy-sheet-top` by DrawerStack. Content
+   * scrolls under it; give the body matching bottom padding.
+   */
+  sticky?: boolean
+}) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.footer({ className })}>{children}</div>
+  return (
+    <div
+      className={slots.footer({
+        className: `${sticky ? 'absolute inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+      })}
+    >
+      {children}
+    </div>
+  )
 }
 
 /** Wraps a control so activating it closes the drawer (vaul `Close`). */

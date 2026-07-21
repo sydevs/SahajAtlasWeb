@@ -213,7 +213,7 @@ export function Mapbox() {
     >
       {DEBUG_PADDING && (
         <div
-          className="absolute border-3 border-dashed border-red-700 pointer-events-none"
+          className="pointer-events-none absolute border-4 border-dashed border-danger-9"
           style={padding}
         />
       )}

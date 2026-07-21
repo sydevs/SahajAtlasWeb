@@ -62,6 +62,7 @@ const REGION_POPULATE = {
 const FEED_SELECT = {
   eventType: true,
   languages: true,
+  inactive: true,
   address: {
     street: true,
     room: true,
@@ -72,11 +73,21 @@ const FEED_SELECT = {
     latitude: true,
     longitude: true,
   },
+  // The structured recurrence fields the resolver/cards read ride the feed
+  // (verified pass-through, issue #52) so cards derive type/status exactly as
+  // the panel does. Calendar-export-only fields (monthDay, weekdayOfMonth,
+  // untilDate, exclusions) stay off the feed — the export runs on the full doc.
   schedule: {
     firstDate: true,
     firstDate_tz: true,
     endTime: true,
     recurrenceType: true,
+    interval: true,
+    weekdays: true,
+    monthlyMode: true,
+    weekNumber: true,
+    endingType: true,
+    count: true,
     upcomingDates: true,
     icalRule: true,
   },
@@ -264,6 +275,8 @@ const getCountries = async (): Promise<RegionListItem[]> => {
   const index = indexRegions(regions)
   const events = indexFeatures(geojson, index)
 
+  // Ordering is the list's concern, not the feed's — CountriesView sorts by event
+  // count so the display order holds for a seeded story (unsorted mock) too.
   return regions
     .filter((node) => node.level === 'country')
     .map((node) =>
@@ -278,7 +291,6 @@ const getCountries = async (): Promise<RegionListItem[]> => {
       }),
     )
     .filter((country) => country.eventCount > 0)
-    .sort(byEventCountDesc)
 }
 
 // One fetcher for every region level. Parents (`country`/`region`) list their
@@ -411,17 +423,20 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
       collection: 'events',
       id,
       depth: 1,
+      // No `onlineUrl` — Atlas never shows a join link (delivery is CMS-side,
+      // post-registration; issue #52).
       select: {
         title: true,
         eventType: true,
         languages: true,
-        onlineUrl: true,
+        inactive: true,
         address: true,
         schedule: true,
         description: true,
         images: true,
         contactPhone: true,
         contactName: true,
+        website: true,
         registrationMode: true,
         externalRegistrationUrl: true,
         registrationLimit: true,

@@ -17,7 +17,7 @@ import {
   matchesFilters,
   todayISO,
 } from '@/lib/shape'
-import { CloseButton } from '@/views/shared'
+import { CloseButton, DrawerTitle } from '@/views/shared'
 
 // The event-filters drawer (route `/filters`, or `/search/filters` when stacked
 // over a search). A normal drawer view — standard header + close chrome and the
@@ -69,7 +69,7 @@ export function FilterView() {
   return (
     <>
       <DrawerHeader className="justify-between">
-        <div className="min-w-0 truncate text-lg font-bold">{t('filters.title')}</div>
+        <DrawerTitle title={t('filters.title')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

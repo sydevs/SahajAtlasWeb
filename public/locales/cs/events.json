@@ -1,4 +1,13 @@
 {
+  "actions": {
+    "add_calendar": "Přidat do kalendáře",
+    "contact": "Kontakt",
+    "copy": "Kopírovat",
+    "directions": "Trasa",
+    "download_ics": "Stáhnout soubor .ics",
+    "share": "Sdílet",
+    "website": "Web"
+  },
   "details": {
     "contact_for_timing": "Kontaktujte hostitele pro načasování",
     "contact_host": "Kontaktujte hostitele",
@@ -14,6 +23,45 @@
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Zobrazit fotku"
   },
+  "display": {
+    "about": "O této lekci",
+    "all_events_free": "Všechny akce jsou zdarma",
+    "chip_ended": "Ukončeno",
+    "chip_free": "Zdarma",
+    "chip_full": "Obsazeno",
+    "chip_started": "Zahájeno %{date}",
+    "chip_starts": "Začíná %{date}",
+    "chip_today": "Dnes",
+    "contact_to_join_full": "Kontaktujte pořadatele, pokud se přesto chcete připojit",
+    "contact_to_join_late": "Pro pozdější připojení kontaktujte pořadatele",
+    "distance_from_search": "%{distance} od hledaného místa",
+    "event_ended": "Tato akce již skončila",
+    "event_full": "Tato akce je obsazená",
+    "first_session": "První lekce: %{date}",
+    "hosted_from": "Hostováno z %{city}",
+    "next_session": "Další lekce: %{date}",
+    "on_sahaj_atlas": "na Sahaj Atlas",
+    "online": "Online",
+    "online_joining_note": "Odkaz na setkání vám pošleme e-mailem",
+    "registration_closed": "Registrace uzavřena",
+    "registration_required": "Nutná registrace",
+    "see_nearby": "Zobrazit akce v okolí",
+    "sessions_count_few": "%{count} lekce",
+    "sessions_count_many": "%{count} lekce",
+    "sessions_count_one": "%{count} lekce",
+    "sessions_count_other": "%{count} lekcí",
+    "started_on": "Zahájeno %{date}",
+    "type_class": "Lekce",
+    "type_class_daily": "Denní lekce",
+    "type_class_fortnightly": "Lekce jednou za dva týdny",
+    "type_class_monthly": "Měsíční lekce",
+    "type_class_weekly": "Týdenní lekce",
+    "type_course": "Kurz",
+    "type_oneoff": "Jednorázová akce",
+    "time_in_place": "%{time} (%{city})",
+    "distance_away": "%{distance} daleko",
+    "distance_from_place": "%{distance} od %{place}"
+  },
   "errors": {
     "email": "Zadejte platný e-mail",
     "name": "Zadejte své celé jméno",
@@ -27,21 +75,24 @@
   },
   "recurrence": {
     "daily": "Každý den",
+    "daily_n": "Každých %{interval} dní",
     "monthly_1st": "1. %{weekday} každého měsíce",
     "monthly_2nd": "2. %{weekday} každého měsíce",
     "monthly_3rd": "3. %{weekday} každého měsíce",
     "monthly_4th": "4. %{weekday} každého měsíce",
+    "monthly_date": "Měsíčně %{day}. den",
     "monthly_last": "Poslední %{weekday} každého měsíce",
     "null": "Contact host for timings",
     "weekly_1": "Každý %{weekday}",
-    "weekly_2": "Každý 2. %{weekday}"
+    "weekly_2": "Každý 2. %{weekday}",
+    "weekly_multi": "Týdně: %{weekdays}",
+    "weekly_n": "Každých %{interval} týdnů: %{weekday}"
   },
   "registration": {
     "cancel": "Zrušit",
     "email": "Váš email",
     "followup": "Brzy obdržíte potvrzení e-mailem",
     "invite_friend": "Pozvěte přítele",
-    "mailing_list_consent": "Informujte mě o nadcházejících akcích a novinkách.",
     "name": "Vaše jméno",
     "okay": "Dobře",
     "online_notice": "Odkaz na tento kurz vám bude zaslán e-mailem.",
@@ -50,7 +101,8 @@
     "register_now": "Zaregistrujte se nyní",
     "starting_date": "Datum zahájení",
     "submit": "Rejstřík",
-    "thank_you": "Děkujeme za registraci!"
+    "thank_you": "Děkujeme za registraci!",
+    "error_title": "Něco se pokazilo"
   },
   "timing": {
     "converted_to": "Převedeno na %{timezone} (%{offset})"

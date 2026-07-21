@@ -1,14 +1,28 @@
 import { type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
+import { tv } from 'tailwind-variants'
 
 import { overlayContainer } from '@/lib/overlay'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 
-// Shared trigger chrome for select-style controls — this Select and the filter
-// panel's language multi-select dropdown — so they look and focus identically.
-// The caller adds the border colour (default vs invalid).
-export const selectTriggerClass =
-  'inline-flex h-10 w-full items-center justify-between gap-2 rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled'
+// Shared chrome for every field-like control: this Select's trigger, the filter
+// panel's language multi-select, the registration inputs/textarea, and the date
+// bounds. It was previously three hand-copied strings that had drifted to three
+// different corner radii (`rounded-none` / `rounded` / `rounded-md`) on inputs
+// that stack in the same form, with the date input missing its focus ring
+// entirely. `isInvalid` is a variant here so no caller re-implements the
+// border-colour ternary.
+export const fieldChrome = tv({
+  base: 'w-full rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+  variants: {
+    isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
+    /** A trigger lays its value out against the chevron; a plain input doesn't. */
+    trigger: { true: 'inline-flex h-10 items-center justify-between gap-2', false: 'h-10' },
+    /** Textareas grow with their content instead of holding the 40px field height. */
+    multiline: { true: 'h-auto py-2' },
+  },
+  defaultVariants: { isInvalid: false, trigger: false },
+})
 
 // A select built on @radix-ui/react-select, replacing NextUI's Select. Controlled
 // via value/onValueChange (pair with react-hook-form's Controller for forms).
@@ -21,7 +35,7 @@ export type SelectProps = {
   name?: string
   disabled?: boolean
   placeholder?: string
-  ariaLabel?: string
+  'aria-label'?: string
   isInvalid?: boolean
   children: ReactNode
   className?: string
@@ -35,7 +49,7 @@ export function Select({
   name,
   disabled,
   placeholder,
-  ariaLabel,
+  'aria-label': ariaLabel,
   isInvalid,
   children,
   className,
@@ -50,7 +64,7 @@ export function Select({
     >
       <RadixSelect.Trigger
         aria-label={ariaLabel}
-        className={`${selectTriggerClass} ${isInvalid ? 'border-danger-7' : 'border-gray-7'} ${className ?? ''}`}
+        className={fieldChrome({ isInvalid, trigger: true, className })}
         onBlur={onBlur}
       >
         <RadixSelect.Value placeholder={placeholder} />
@@ -60,8 +74,11 @@ export function Select({
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal container={overlayContainer()}>
+        {/* `position="popper"` exposes `--radix-select-trigger-width`, so the
+            listbox matches the trigger's width rather than sizing to its longest
+            option. */}
         <RadixSelect.Content
-          className="z-50 overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          className="z-50 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
           position="popper"
           sideOffset={4}
         >

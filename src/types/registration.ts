@@ -10,9 +10,6 @@ export const RegistrationSchema = z.object({
   // EVENT_REGISTRATION_QUESTIONS contract and values must be strings — mirroring
   // SahajCloud's server-side validation, which 400s a non-conforming payload.
   questions: z.record(RegistrationQuestionNameSchema, z.string()).optional(),
-  // Opt-in mailing-list consent (unchecked by default). SahajCloud records it as
-  // `mailingListSubscribedAt`; the widget sends it regardless of backend support.
-  subscribe: z.boolean().optional(),
 })
 
 export type Registration = z.infer<typeof RegistrationSchema>

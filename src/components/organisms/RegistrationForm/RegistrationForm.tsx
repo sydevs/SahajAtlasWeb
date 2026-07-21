@@ -11,12 +11,10 @@ import { useMutation } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { type ReactNode, useEffect, useState } from 'react'
-import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
-import { Checkbox } from '@/components/atoms/Checkbox'
-import { Select, SelectItem } from '@/components/atoms/Select'
+import { Select, SelectItem, fieldChrome } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import preview from '@/config/preview'
@@ -31,8 +29,14 @@ export type RegistrationFormProps = {
   isOnline: boolean
   eventTitle: string
   eventUrl: string
+  /** Zone the starting-date options render in — the event's own zone for
+   *  physical events, the viewer's for online (issue #52 time contract). */
+  timeZone?: string
   /** Optional close callback; the footer also closes the enclosing Modal via ModalClose. */
   onClose?: () => void
+  /** Start in the post-submit confirmation state — for previewing that screen in a
+   *  story without a real submission. Defaults to false (the live form). */
+  initialSubmitted?: boolean
 }
 
 /**
@@ -47,13 +51,15 @@ export type RegistrationFormProps = {
 export function RegistrationForm({
   eventId,
   upcomingDates,
+  timeZone,
   questions,
   isOnline,
   eventTitle,
   eventUrl,
   onClose,
+  initialSubmitted = false,
 }: RegistrationFormProps) {
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation('events')
   // In live preview the event is a draft — previewing must never create a real
   // registration, so the submit is disabled and mutate() is short-circuited.
@@ -115,6 +121,7 @@ export function RegistrationForm({
             errors={errors}
             questions={questions}
             register={register}
+            timeZone={timeZone}
             upcomingDates={upcomingDates}
           />
 
@@ -123,7 +130,8 @@ export function RegistrationForm({
               className="mt-4"
               color="secondary"
               description={mutation.error.message}
-              title="Something went wrong"
+              role="alert"
+              title={t('registration.error_title')}
             />
           )}
         </>
@@ -131,10 +139,10 @@ export function RegistrationForm({
 
       {isOnline && (
         <Alert
-          hideIcon
           className="mt-3"
           color="primary"
           description={t('registration.online_notice')}
+          icon={false}
           title={t('registration.online_notice_title')}
           variant="bordered"
         />
@@ -166,10 +174,12 @@ export function RegistrationForm({
   )
 }
 
-// Shared field chrome (label + control + error) — single-use compositions kept
-// private to the registration form.
-const FIELD_INPUT =
-  'w-full h-10 rounded-none border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus'
+// Label + control + error, kept private to the registration form. The control's
+// chrome comes from the shared `fieldChrome` recipe so these inputs match the
+// Select and the filter date bounds.
+
+/** `aria-describedby` target for a field's error text — see `Field`. */
+const errorId = (name?: string) => (name ? `${name}-error` : undefined)
 
 function Field({
   label,
@@ -191,7 +201,14 @@ function Field({
         {required && ' *'}
       </label>
       {children}
-      {error && <span className="text-xs text-danger-11">{error}</span>}
+      {/* Carries the id the control points at with aria-describedby, so the
+          error is announced with the field rather than being a red border and
+          a floating sentence a screen reader never connects to it. */}
+      {error && (
+        <span className="text-xs text-danger-11" id={errorId(htmlFor)}>
+          {error}
+        </span>
+      )}
     </div>
   )
 }
@@ -212,7 +229,9 @@ function LabeledInput({
   return (
     <Field error={error} htmlFor={registration.name} label={label} required={required}>
       <input
-        className={clsx(FIELD_INPUT, error ? 'border-danger-7' : 'border-gray-7')}
+        aria-describedby={error ? errorId(registration.name) : undefined}
+        aria-invalid={error ? true : undefined}
+        className={fieldChrome({ isInvalid: Boolean(error) })}
         id={registration.name}
         type={type}
         {...registration}
@@ -233,7 +252,9 @@ function LabeledTextarea({
   return (
     <Field error={error} htmlFor={registration.name} label={label}>
       <textarea
-        className={clsx(FIELD_INPUT, 'h-auto py-2', error ? 'border-danger-7' : 'border-gray-7')}
+        aria-describedby={error ? errorId(registration.name) : undefined}
+        aria-invalid={error ? true : undefined}
+        className={fieldChrome({ isInvalid: Boolean(error), multiline: true })}
         id={registration.name}
         rows={3}
         {...registration}
@@ -244,6 +265,7 @@ function LabeledTextarea({
 
 type RegistrationFieldsProps = {
   upcomingDates: Date[]
+  timeZone?: string
   questions: RegistrationQuestionName[]
   register: UseFormRegister<Registration>
   control: Control<Registration>
@@ -252,6 +274,7 @@ type RegistrationFieldsProps = {
 
 function RegistrationFields({
   upcomingDates,
+  timeZone,
   questions,
   register,
   control,
@@ -276,14 +299,16 @@ function RegistrationFields({
             label={t('registration.starting_date')}
           >
             <Select
-              ariaLabel={t('registration.starting_date')}
+              aria-label={t('registration.starting_date')}
               isInvalid={!!errors.startingAt}
               value={field.value as unknown as string}
               onBlur={field.onBlur}
               onValueChange={field.onChange}
             >
               {upcomingDates.map((date) => {
-                const dateTime = DateTime.fromJSDate(date).setLocale(locale)
+                const dateTime = DateTime.fromJSDate(date)
+                  .setZone(timeZone ?? 'local')
+                  .setLocale(locale)
 
                 return (
                   <SelectItem
@@ -328,25 +353,7 @@ function RegistrationFields({
         />
       ))}
 
-      {/* Opt-in mailing-list consent — a checkbox-appearance toggle, unchecked by
-          default, shown just above the privacy note. */}
-      <Controller
-        control={control}
-        defaultValue={false}
-        name="subscribe"
-        render={({ field }) => (
-          <Checkbox
-            appearance="checkbox"
-            checked={!!field.value}
-            color="primary"
-            onCheckedChange={field.onChange}
-          >
-            {t('registration.mailing_list_consent')}
-          </Checkbox>
-        )}
-      />
-
-      <p className="text-xs text-center">{t('registration.privacy_policy')}</p>
+      <p className="text-center text-xs">{t('registration.privacy_policy')}</p>
     </div>
   )
 }

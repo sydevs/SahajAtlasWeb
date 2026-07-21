@@ -1,6 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
-import type { DependencyList } from 'react'
+import type { DependencyList, ReactNode } from 'react'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
@@ -10,10 +10,10 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
-import { Button, IconButton } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { NearbyPrompt } from '@/components/molecules'
-import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
+import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -51,14 +51,52 @@ export const useDrawerControl = () => useContext(DrawerControlContext)
 // The close affordance for the drawer views. Dismisses via the control seam (a
 // navigation to the parent) rather than vaul's Close — closing the real drawer made
 // the sheet animate shut and then re-open with the parent, which read as jarring.
+export type DrawerTitleProps = {
+  /** The drawer's visible heading. */
+  title: ReactNode
+  /** Optional muted line under it (region subtitle, event date, …). */
+  subtitle?: ReactNode
+  /**
+   * A smaller standing note below the subtitle (e.g. "All events are free").
+   * Distinct from `subtitle` in rank, not just size: the subtitle says which
+   * thing this drawer is about, the note is a fact that holds for the whole list.
+   */
+  note?: ReactNode
+}
+
+/**
+ * The title block every drawer header opens with. Previously copy-pasted across
+ * five views, which let the weight drift (`font-bold` here vs the event panel's
+ * `font-semibold`) and left all five as plain <div>s — so screen-reader users had
+ * no heading to navigate the drawer content by. Renders a real <h2>: the dialog
+ * itself is named by the sr-only Vaul.Title, so this is the content heading below
+ * it, not a competing label.
+ */
+export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
+  return (
+    <div className="min-w-0">
+      <h2 className="truncate text-lg font-semibold">{title}</h2>
+      {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
+      {note && <div className="truncate text-xs text-gray-11">{note}</div>}
+    </div>
+  )
+}
+
+/**
+ * The drawer header's icon controls (close, list-toggle, filter) are all the same
+ * Button preset, kept here as values rather than a wrapper component so the three
+ * provably render identical chrome — the header reads as one set of buttons.
+ */
+const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
+
 export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')
   const { dismiss } = useDrawerControl()
 
   return (
-    <IconButton aria-label={t('close')} className={className} onClick={dismiss}>
+    <Button {...HEADER_CONTROL} aria-label={t('close')} className={className} onClick={dismiss}>
       <CloseIcon size={20} />
-    </IconButton>
+    </Button>
   )
 }
 
@@ -74,20 +112,21 @@ export function CollapseToggle() {
   // At the peek it's a list toggle (expand the countries list); once opened past the
   // peek it becomes the usual close control (collapse back to the peek).
   return (
-    <IconButton
+    <Button
+      {...HEADER_CONTROL}
       aria-expanded={!collapsed}
       aria-label={collapsed ? t('explore') : t('close')}
       onClick={toggle}
     >
       {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
-    </IconButton>
+    </Button>
   )
 }
 
 // The event-filters trigger in CountriesView/SearchView headers: opens the filter
 // drawer by navigating to `<current>/filters` (root → `/filters`, `/search` →
 // `/search/filters`), preserving the search query so closing returns to the same
-// search. Shows an active-filter count badge; renders the same IconButton chrome as
+// search. Shows an active-filter count badge; renders the same header-control chrome as
 // the close/list controls so the header reads as one set of buttons.
 export function FilterButton() {
   const { t } = useTranslation('common')
@@ -99,7 +138,8 @@ export function FilterButton() {
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
 
   return (
-    <IconButton
+    <Button
+      {...HEADER_CONTROL}
       aria-label={label}
       className="relative"
       onClick={() => navigate({ pathname: to, search: location.search })}
@@ -108,12 +148,12 @@ export function FilterButton() {
       {count > 0 && (
         <span
           aria-hidden
-          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-[10px] font-semibold leading-none text-primary-foreground"
+          className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-xs font-semibold leading-none text-primary-foreground"
         >
           {count}
         </span>
       )}
-    </IconButton>
+    </Button>
   )
 }
 
@@ -203,6 +243,8 @@ export function DrawerLoading() {
 // (molecules/Fallbacks): an Alert, plus a retry since resetErrorBoundary is available.
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
+  const { t: tEvents } = useTranslation('events')
+  const navigate = useNavigate()
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
@@ -215,7 +257,27 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
       <Button variant="flat" onClick={resetErrorBoundary}>
         {t('error.retry')}
       </Button>
+      {/* A dead direct link (e.g. a finished event the CMS no longer serves)
+          still offers a way back into live inventory (issue #52). */}
+      <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
+        {tEvents('display.see_nearby')}
+      </Button>
     </DrawerBody>
+  )
+}
+
+// The generic "no events" state for the region/online drawers when their list
+// comes back empty. Unreachable in the running app (a 0-event region 404s, and the
+// online roll-up card only links out when there ARE online events), but rendered so
+// a directly-typed URL — or a story's empty case — never shows a blank drawer.
+// Search has its own filter-aware empty state (DynamicEventsList's EmptyResults).
+export function EmptyEventList() {
+  const { t } = useTranslation('common')
+
+  return (
+    <div className="p-4">
+      <Alert color="default" description={t('filters.no_events')} />
+    </div>
   )
 }
 
@@ -283,5 +345,5 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
   // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
   if (!ipLocation || !show) return null
 
-  return <NearbyPrompt city={ipLocation.city} onDismiss={handleDismiss} onSelect={handleSelect} />
+  return <NearbyPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
 }

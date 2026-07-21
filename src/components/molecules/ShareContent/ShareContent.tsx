@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { tv } from 'tailwind-variants'
 
 import { Link } from '@/components/atoms/Link'
 import {
@@ -9,10 +11,17 @@ import {
   FlipboardIcon,
 } from '@/components/atoms/Icons'
 
-// Click-to-copy URL field — the custom replacement for NextUI's Snippet (which
-// was rendered with hideSymbol, i.e. select-to-copy). Copies on click with a
-// brief tint flash; the text stays selectable as a fallback.
-function CopyField({ value }: { value: string }) {
+const copyField = tv({
+  base: 'w-full select-all truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors',
+  variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
+  defaultVariants: { copied: false },
+})
+
+// Click-to-copy value field. Copies on click
+// with a brief tint flash; the text stays selectable as a fallback. Exported
+// for the event panel's desktop contact popover (issue #52).
+export function CopyField({ value }: { value: string }) {
+  const { t } = useTranslation('common')
   const [copied, setCopied] = useState(false)
 
   const copy = () => {
@@ -26,17 +35,24 @@ function CopyField({ value }: { value: string }) {
   }
 
   return (
-    <button
-      aria-label="Copy link"
-      className={`w-full select-all truncate rounded px-3 py-2 text-left text-sm text-secondary-11 transition-colors ${
-        copied ? 'bg-secondary-5' : 'bg-secondary-3'
-      }`}
-      title={value}
-      type="button"
-      onClick={copy}
-    >
-      {value}
-    </button>
+    <div className="flex flex-col gap-1">
+      <button
+        aria-label={t('share.copy_link')}
+        className={copyField({ copied })}
+        title={value}
+        type="button"
+        onClick={copy}
+      >
+        {value}
+      </button>
+      {/* Success was previously signalled ONLY by a secondary-3 → secondary-5
+          tint — a ~1.15:1 shift that a screen reader can't see at all and that
+          low-vision/monochrome users won't perceive either. The live region
+          announces it and the text confirms it. */}
+      <span aria-live="polite" className="h-4 text-xs text-secondary-11">
+        {copied ? t('share.copied') : ''}
+      </span>
+    </div>
   )
 }
 
@@ -51,27 +67,31 @@ export type ShareContentProps = {
  * by EventView) and the registration "thank you" screen.
  */
 export function ShareContent({ label, url }: ShareContentProps) {
-  label = encodeURI(label)
-  url = encodeURI(url)
+  // The title/URL land as query-param VALUES in each sharer link, so they must be
+  // component-encoded: encodeURIComponent (not encodeURI, which leaves `& ? # /`
+  // intact) so a `&`/`?` in the URL can't append a stray param to the third-party
+  // link. The copy field below shows the plain URL (React escapes it as text).
+  const shareLabel = encodeURIComponent(label)
+  const shareUrl = encodeURIComponent(url)
   const socials = [
     {
-      url: `mailto:?subject=${label}&body=${url}`,
+      url: `mailto:?subject=${shareLabel}&body=${shareUrl}`,
       icon: EmailIcon,
     },
     {
-      url: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      url: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`,
       icon: FacebookIcon,
     },
     {
-      url: `https://x.com/intent/tweet?text=${url}`,
+      url: `https://x.com/intent/tweet?text=${shareUrl}`,
       icon: TwitterIcon,
     },
     {
-      url: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+      url: `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`,
       icon: LinkedinIcon,
     },
     {
-      url: `https://share.flipboard.com/bookmarklet/popout?v=2&title=${label}&url=${url}`,
+      url: `https://share.flipboard.com/bookmarklet/popout?v=2&title=${shareLabel}&url=${shareUrl}`,
       icon: FlipboardIcon,
     },
   ]
@@ -81,7 +101,7 @@ export function ShareContent({ label, url }: ShareContentProps) {
       <div>
         <CopyField value={url} />
       </div>
-      <div className="flex flex-row gap-4 mt-2 justify-center">
+      <div className="mt-2 flex flex-row justify-center gap-4">
         {socials.map((social, index) => (
           <Link key={index} href={social.url} rel="noopener noreferrer" target="_blank">
             <social.icon size={36} />

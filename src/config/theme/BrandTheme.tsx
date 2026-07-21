@@ -17,7 +17,7 @@ type BrandThemeProps = {
 }
 
 // Resolves the active brand palette (per-embed prop ?? client record ?? built-in
-// default, per role) and paints it onto the theme root as NextUI CSS vars.
+// default, per role) and paints it onto the theme root as CSS custom properties.
 //
 // It renders *above* the Suspense boundary so the prop palette themes the
 // loading fallback immediately; the client record (color1/2/3 → primary /

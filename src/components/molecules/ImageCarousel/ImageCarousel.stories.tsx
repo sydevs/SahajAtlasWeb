@@ -51,7 +51,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection inContext={true} title="Examples">
-      <div className="max-w-md rounded-lg border border-divider overflow-hidden">
+      <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <ImageCarousel slides={slides} />
         <div className="px-6 pb-6">
           <div className="text-lg font-semibold">Saturday Morning Meditation</div>

@@ -1,4 +1,13 @@
 {
+  "actions": {
+    "add_calendar": "Add to calendar",
+    "contact": "Contact",
+    "copy": "Copy",
+    "directions": "Directions",
+    "download_ics": "Download .ics file",
+    "share": "Share",
+    "website": "Website"
+  },
   "details": {
     "contact_for_timing": "Contact host for timings",
     "contact_host": "Contact the host",
@@ -13,6 +22,44 @@
     "starting_soon": "Starting soon",
     "tel": "tel: %{phoneNumber}",
     "view_photo": "View photo"
+  },
+  "display": {
+    "about": "About this class",
+    "all_events_free": "All events are free",
+    "chip_ended": "Ended",
+    "chip_free": "Free",
+    "chip_full": "Full",
+    "chip_started": "Started %{date}",
+    "chip_starts": "Starts %{date}",
+    "chip_today": "Today",
+    "contact_to_join_full": "Contact the host to join anyway",
+    "contact_to_join_late": "Contact the host to join late",
+    "distance_from_search": "%{distance} from the searched location",
+    "event_ended": "This event has ended",
+    "event_full": "This event is full",
+    "first_session": "First session: %{date}",
+    "hosted_from": "Hosted from %{city}",
+    "next_session": "Next session: %{date}",
+    "on_sahaj_atlas": "on Sahaj Atlas",
+    "online": "Online",
+    "online_joining_note": "Meeting link will be sent to you by email",
+    "registration_closed": "Registration closed",
+    "registration_required": "Registration required",
+    "see_nearby": "See nearby events",
+    "sessions_count_one": "%{count} session",
+    "sessions_count_other": "%{count} sessions",
+    "started_on": "Started %{date}",
+    "type_class": "Class",
+    "type_class_daily": "Daily class",
+    "type_class_fortnightly": "Fortnightly class",
+    "type_class_monthly": "Monthly class",
+    "type_class_weekly": "Weekly class",
+    "type_course": "Course",
+    "type_oneoff": "One-off event",
+    "time_in_place": "%{time} in %{city}",
+    "distance_away": "%{distance} away",
+    "distance_from_place": "%{distance} from %{place}",
+    "all_classes_free": "All classes are free"
   },
   "errors": {
     "email": "Enter a valid email",
@@ -32,16 +79,24 @@
   },
   "recurrence": {
     "daily": "Every Day",
-    "monthly": "Monthly",
+    "daily_n": "Every %{interval} days",
+    "monthly_1st": "1st %{weekday} of every month",
+    "monthly_2nd": "2nd %{weekday} of every month",
+    "monthly_3rd": "3rd %{weekday} of every month",
+    "monthly_4th": "4th %{weekday} of every month",
+    "monthly_date": "On day %{day} of every month",
+    "monthly_last": "Last %{weekday} of every month",
     "null": "Contact host for timings",
-    "weekly": "Every %{weekday}"
+    "weekly_1": "Every %{weekday}",
+    "weekly_2": "Every 2nd %{weekday}",
+    "weekly_multi": "Every %{weekdays}",
+    "weekly_n": "Every %{interval} weeks on %{weekday}"
   },
   "registration": {
     "cancel": "Cancel",
     "email": "Your email",
     "followup": "You will receive an email confirmation shortly",
     "invite_friend": "Invite a friend along",
-    "mailing_list_consent": "Keep me informed about upcoming events and news.",
     "name": "Your name",
     "okay": "Okay",
     "online_notice": "The link to this class will be emailed to you.",
@@ -51,7 +106,8 @@
     "register_now": "Register Now",
     "starting_date": "Starting date",
     "submit": "Register",
-    "thank_you": "Thank you for registering!"
+    "thank_you": "Thank you for registering!",
+    "error_title": "Something went wrong"
   },
   "timing": {
     "converted_to": "Converted to %{timezone} (%{offset})"
