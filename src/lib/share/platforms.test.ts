@@ -31,16 +31,34 @@ describe('platformsForCountry', () => {
     expect(platformsForCountry('US').slice(0, 2)).toEqual(['x', 'facebook'])
   })
 
-  it('is case-insensitive', () => {
-    expect(platformsForCountry('ru')).toEqual(platformsForCountry('RU'))
-    expect(platformsForCountry('Jp')).toEqual(PLATFORMS_BY_COUNTRY.JP)
+  it('always appends email as the final option, exactly once', () => {
+    for (const code of ['RU', 'JP', 'US', 'ZZ', undefined]) {
+      const list = platformsForCountry(code)
+
+      expect(list.at(-1)).toBe('email')
+      expect(list.filter((platform) => platform === 'email')).toHaveLength(1)
+    }
   })
 
-  it('falls back to DEFAULT_PLATFORMS for unknown, empty, or absent codes', () => {
-    expect(platformsForCountry('ZZ')).toBe(DEFAULT_PLATFORMS)
-    expect(platformsForCountry('')).toBe(DEFAULT_PLATFORMS)
-    expect(platformsForCountry(undefined)).toBe(DEFAULT_PLATFORMS)
-    expect(platformsForCountry(null)).toBe(DEFAULT_PLATFORMS)
+  it('is case-insensitive', () => {
+    expect(platformsForCountry('ru')).toEqual(platformsForCountry('RU'))
+    expect(platformsForCountry('Jp')).toEqual([...PLATFORMS_BY_COUNTRY.JP, 'email'])
+  })
+
+  it('falls back to the default set (+ email) for unknown, empty, or absent codes', () => {
+    const fallback = [...DEFAULT_PLATFORMS, 'email']
+
+    expect(platformsForCountry('ZZ')).toEqual(fallback)
+    expect(platformsForCountry('')).toEqual(fallback)
+    expect(platformsForCountry(undefined)).toEqual(fallback)
+    expect(platformsForCountry(null)).toEqual(fallback)
+  })
+
+  it('keeps email out of the stored lists (it is appended, not listed)', () => {
+    expect(DEFAULT_PLATFORMS).not.toContain('email')
+    for (const [country, list] of Object.entries(PLATFORMS_BY_COUNTRY)) {
+      expect(list, `${country} should not list email`).not.toContain('email')
+    }
   })
 
   it('seeds every country with a non-empty list of valid platform keys', () => {
@@ -52,6 +70,15 @@ describe('platformsForCountry', () => {
           `${country} references unknown platform "${platform}"`,
         ).toBe(true)
       }
+    }
+  })
+
+  it('stays within a single six-icon row for every region (incl. the appended email)', () => {
+    for (const code of [undefined, ...Object.keys(PLATFORMS_BY_COUNTRY)]) {
+      expect(
+        platformsForCountry(code).length,
+        `${code ?? 'default'} exceeds one row`,
+      ).toBeLessThanOrEqual(6)
     }
   })
 })
