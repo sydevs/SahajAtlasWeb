@@ -25,15 +25,17 @@ export type PlatformKey =
   | 'viber'
   | 'weibo'
 
-// The universal fallback: broadly-used targets for a global audience, with email
-// last as the lowest-common-denominator option that always works.
+// The universal fallback: six broadly-used targets for a global audience, with
+// email last as the lowest-common-denominator option that always works. Kept to
+// six (like every country list below) so the share grid stays a single balanced
+// row in the drawer — Reddit is anglophone-skewed, so it's left to the country
+// lists that want it rather than the universal default.
 export const DEFAULT_PLATFORMS: PlatformKey[] = [
   'whatsapp',
   'facebook',
   'x',
   'telegram',
   'linkedin',
-  'reddit',
   'email',
 ]
 
