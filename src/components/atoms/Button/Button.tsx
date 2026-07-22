@@ -42,10 +42,13 @@ export const controlSurface = tv({
     },
     /**
      * Drop the horizontal padding and square the width against the size scale —
-     * for a control whose entire content is a glyph. Orthogonal to `radius`:
-     * square icon buttons are `sm`, the action row's circles are `full`.
+     * for a control whose entire content is a glyph. `shrink-0` because the
+     * square is the whole point: these sit in flex header rows next to long
+     * titles, and default flex-shrink would squash the width (and the hover
+     * square with it). Orthogonal to `radius`: square icon buttons are `sm`,
+     * the action row's circles are `full`.
      */
-    isIconOnly: { true: 'px-0', false: '' },
+    isIconOnly: { true: 'shrink-0 px-0', false: '' },
   },
   compoundVariants: [
     // solid
