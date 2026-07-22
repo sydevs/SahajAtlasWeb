@@ -8,6 +8,7 @@ import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
@@ -35,6 +36,11 @@ export function RegionView({ slug }: { slug: string }) {
   })
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
+
+  // Warm the first few tappable events' details on idle so opening one is a cache hit
+  // even on touch (no hover to trigger the per-card prefetch). Located events first,
+  // then the inline online roll-up.
+  usePrefetchEvents([...region.events, ...region.onlineEvents].map((event) => event.id))
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const canonicalUrl = validateWebUrl(region.webUrl)
