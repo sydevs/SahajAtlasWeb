@@ -25,6 +25,11 @@ vi.mock('@/hooks/use-locale', () => ({
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ highlightEvent: () => {} }),
 }))
+// Prefetch-on-hover pulls react-query + the config/api chain (→ i18next); stub it out
+// so this stays a DOM-nesting-only SSR assertion.
+vi.mock('@/hooks/use-prefetch-event', () => ({
+  usePrefetchEvent: () => () => {},
+}))
 vi.mock('@/hooks/use-event-display', () => ({
   useEventDisplay: () => ({ display: { online: false }, typeLabel: '', isDefaultType: true }),
 }))

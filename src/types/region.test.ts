@@ -12,7 +12,6 @@ const regionNode = {
   parent: 28,
   webPath: '/belgium/antwerpen',
   webUrl: 'https://atlas.example/belgium/antwerpen',
-  legacyData: { countryCode: 'BE' },
 }
 
 const listItem = {
@@ -66,7 +65,6 @@ describe('RegionNodeSchema', () => {
     expect(parsed.level).toBe('city')
     expect(parsed.parent).toBe(28)
     expect(parsed.webPath).toBe('/belgium/antwerpen')
-    expect(parsed.legacyData?.countryCode).toBe('BE')
   })
 
   it('accepts a country root with a null parent', () => {
