@@ -8,6 +8,7 @@ import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
@@ -41,6 +42,14 @@ export function RegionView({ slug }: { slug: string }) {
   // A region with sub-region cards surfaces its online roll-up behind a dedicated
   // "Online Classes" card; a region without sub-regions lists its online events inline.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
+
+  // Warm the first few events actually rendered as cards on idle, so opening one is a
+  // cache hit even on touch (no hover to trigger the per-card prefetch). Online events
+  // behind the "Online Classes" roll-up card aren't tappable from here, so exclude them;
+  // only the inline online list (shown when there's no roll-up card) is warmed.
+  usePrefetchEvents(
+    [...region.events, ...(showOnlineCard ? [] : region.onlineEvents)].map((event) => event.id),
+  )
   // Whether this view actually shows event cards (vs. only child-region cards).
   const hasEventList =
     region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)

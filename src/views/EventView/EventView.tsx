@@ -13,7 +13,7 @@ import {
 } from '@/components/organisms/EventDetails/EventRegister'
 import { Spinner } from '@/components/atoms/Spinner'
 import { useEventDisplay } from '@/hooks/use-event-display'
-import api from '@/config/api'
+import { eventQuery } from '@/config/api'
 import { useIsDesktop } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -39,10 +39,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const isDesktop = useIsDesktop()
   const { collapsed } = useDrawerControl()
 
-  const { data: event } = useSuspenseQuery({
-    queryKey: ['event', id, locale],
-    queryFn: () => api.getEvent(id),
-  })
+  const { data: event } = useSuspenseQuery(eventQuery(id, locale))
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
