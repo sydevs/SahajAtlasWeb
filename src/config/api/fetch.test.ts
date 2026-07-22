@@ -205,7 +205,6 @@ describe('getRegion (region-tree derivation)', () => {
       parent: null,
       webPath: '/belgium',
       webUrl: 'https://atlas.example/belgium',
-      legacyData: { countryCode: 'BE' },
     },
     {
       id: 473,
@@ -264,10 +263,12 @@ describe('getRegion (region-tree derivation)', () => {
 
     const region = await api.getRegion('belgium')
 
-    // Core derivations: level, ISO code (slug 'belgium' → legacyData fallback), path,
-    // canonical URL, bounds of located events.
+    // Core derivations: level, path, canonical URL, bounds of located events. The ISO
+    // code now comes from the slug alone (no legacyData fallback), so a non-ISO slug like
+    // 'belgium' — an un-migrated seed — yields no country code rather than an error; the
+    // ISO-slug case is covered below.
     expect(region.level).toBe('country')
-    expect(region.countryCode).toBe('BE')
+    expect(region.countryCode).toBeUndefined()
     expect(region.path).toBe('/belgium')
     expect(region.webUrl).toBe('https://atlas.example/belgium')
     expect(region.bounds).toEqual([4.35, 50.85, 4.41, 51.21])
@@ -290,7 +291,7 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
 
-  it('derives a country code from an ISO slug (post-#556), with no legacyData', async () => {
+  it('derives a country code from an ISO slug (post-#566), with no legacyData', async () => {
     const isoTree = [
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
     ]

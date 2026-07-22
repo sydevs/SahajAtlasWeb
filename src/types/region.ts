@@ -15,9 +15,9 @@ export const PositionSchema = z.tuple([z.number(), z.number()])
 // level, read once). `parent` is the parent region's id — null for a country root —
 // and the widget walks these links client-side for ancestry + child lists, which
 // replaces the per-navigation region reads. `webPath`/`webUrl` are the
-// server-computed canonical route. `legacyData` is transitional: `countryCode`
-// derives from the slug first (post-SahajCloud#556 the country slug *is* the ISO
-// code), falling back to this until the backend seed reflects that migration.
+// server-computed canonical route. The ISO country code is derived from the `slug`
+// (post-SahajCloud#566 the country slug *is* the ISO code), so the legacy blob is no
+// longer read or selected — dropping ~113 KB (64%) off this read's weight.
 export const RegionNodeSchema = z.object({
   id: z.number(),
   slug: z.string(),
@@ -27,10 +27,6 @@ export const RegionNodeSchema = z.object({
   parent: z.number().nullish(),
   webPath: z.string().nullish(),
   webUrl: z.string().nullish(),
-  // Only `countryCode` is kept — the rest of the legacy blob (osmId/legacyId/…) is
-  // stripped at this boundary (no `.passthrough()`) so it never reaches the public
-  // `['regions']` cache. The whole field goes once the seed reflects SahajCloud#556.
-  legacyData: z.object({ countryCode: z.string().nullish() }).nullish(),
 })
 export type RegionNode = z.infer<typeof RegionNodeSchema>
 

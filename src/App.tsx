@@ -10,7 +10,7 @@ import { MapProvider } from 'react-map-gl'
 
 import { useLocale } from './hooks/use-locale'
 import Providers from './providers'
-import { clientQuery } from './config/api'
+import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
@@ -55,6 +55,14 @@ export default function App({
   standalone = false,
   hasMap = true,
 }: AppProps) {
+  // Warm the agnostic map/hierarchy caches (feed + region tree) + current-locale titles
+  // the moment we have the API key, in parallel with the client bootstrap the tree
+  // suspends on — so region/map data isn't serialized behind clients/me. Fire-and-forget
+  // and idempotent (React Query dedupes); AppShell still performs the real reads.
+  useEffect(() => {
+    if (apiKey) api.warmCaches()
+  }, [apiKey])
+
   return (
     <Providers>
       <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>

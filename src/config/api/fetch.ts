@@ -101,7 +101,9 @@ const FEED_SELECT = {
 // 0-event gate all derive from this dict client-side — replacing the per-navigation
 // `getRegionDoc`/`getChildRegions` reads and getCountries' own `/regions` read.
 // Region names are locale-agnostic, so this is cached once regardless of language.
-// `legacyData` is transitional (see `countryCodeOf`).
+// The ISO country code now comes from the slug (SahajCloud#566 slug→ISO is live in
+// prod), so the ~113 KB `legacyData` blob — 64% of this read's weight, and only ever
+// a country-code fallback — is no longer selected. See `countryCodeOf`.
 const REGIONS_SELECT = {
   slug: true,
   name: true,
@@ -110,8 +112,32 @@ const REGIONS_SELECT = {
   parent: true,
   webPath: true,
   webUrl: true,
-  legacyData: true,
 } as const
+
+// ── Stale-while-revalidate cache reads ──────────────────────────────────────────
+
+// Serve a cached React Query entry immediately and revalidate in the background, so a
+// navigation never *blocks* on a stale-window refetch (a cause of the "sometimes slow"
+// region open). The FIRST load (cold cache) still awaits and throws on failure, so a
+// real error reaches the ErrorBoundary — preserving the data-layer contract. Once a
+// usable value is cached, later reads return it right away and `prefetchQuery` refreshes
+// it in the background when past `staleTime` (a no-op while still fresh); a background
+// refresh failure is swallowed since we already have data to serve.
+const cachedOrRevalidate = <T>(
+  queryKey: readonly unknown[],
+  queryFn: () => Promise<T>,
+  staleTime: number,
+): Promise<T> => {
+  const cached = queryClient.getQueryData<T>(queryKey)
+
+  if (cached !== undefined) {
+    void queryClient.prefetchQuery({ queryKey, queryFn, staleTime })
+
+    return Promise.resolve(cached)
+  }
+
+  return queryClient.fetchQuery({ queryKey, queryFn, staleTime })
+}
 
 const getRegions = async (): Promise<RegionNode[]> => {
   const { docs } = validateSDKResponse(
@@ -128,15 +154,11 @@ const getRegions = async (): Promise<RegionNode[]> => {
   return RegionNodeSchema.array().parse(docs)
 }
 
-// Read the region tree through the shared React Query cache so the whole app
-// fetches + parses it once per (long) stale window rather than on every
-// navigation. `fetchQuery` (not `ensureQueryData`) refetches a stale tree.
+// Read the region tree through the shared React Query cache so the whole app fetches +
+// parses it once per (long) stale window rather than on every navigation, and serves it
+// stale-while-revalidate so a nav past the window never blocks on the refetch.
 const loadRegions = (): Promise<RegionNode[]> =>
-  queryClient.fetchQuery({
-    queryKey: ['regions'],
-    queryFn: getRegions,
-    staleTime: REGIONS_STALE_TIME,
-  })
+  cachedOrRevalidate(['regions'], getRegions, REGIONS_STALE_TIME)
 
 // One region by id from the wholesale tree — the live-preview boot (issue #40) gets an
 // id, not a slug, so it looks the node up rather than adding a per-region read.
@@ -166,14 +188,10 @@ const getGeojson = async (): Promise<Geojson> => {
 // React Query cache (the key the map also uses) so it's fetched + parsed once per
 // stale window rather than on every navigation. It's locale-agnostic, so `['geojson']`
 // carries no locale — a language switch doesn't refetch it, only the titles sliver.
+// Stale-while-revalidate: a nav past the stale window serves the cached feed instantly
+// and refreshes it in the background rather than blocking on the (cold-slow) refetch.
 const loadGeojson = (): Promise<Geojson> =>
-  // fetchQuery (not ensureQueryData) so a feed older than the stale window is
-  // refetched rather than served indefinitely from cache.
-  queryClient.fetchQuery({
-    queryKey: ['geojson'],
-    queryFn: getGeojson,
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  cachedOrRevalidate(['geojson'], getGeojson, GEOJSON_STALE_TIME)
 
 // ── Per-locale event titles (the one localized field, split off the feed) ───────
 
@@ -195,14 +213,10 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
 }
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
-  queryClient.fetchQuery({
-    // Every request sends the resolved locale (activeLocale, via applyRequestContext);
-    // key by that same value so a language switch re-keys the titles sliver (feed +
-    // regions stay cached) and the key can't drift from the locale actually sent.
-    queryKey: ['event-titles', activeLocale()],
-    queryFn: getEventTitles,
-    staleTime: GEOJSON_STALE_TIME,
-  })
+  // Every request sends the resolved locale (activeLocale, via applyRequestContext);
+  // key by that same value so a language switch re-keys the titles sliver (feed +
+  // regions stay cached) and the key can't drift from the locale actually sent.
+  cachedOrRevalidate(['event-titles', activeLocale()], getEventTitles, GEOJSON_STALE_TIME)
 
 // A feature paired with its region ancestry (direct region + full parent chain).
 // `GeoEvent`-compatible, so the hierarchy helpers can aggregate over it while the
@@ -220,6 +234,29 @@ const indexFeatures = (geojson: Geojson, regions: RegionIndex<RegionNode>): Inde
     // event's direct region id — no breadcrumbs needed on the feed.
     ancestorIds: ancestorIds(regions, feature.properties.region.id),
   }))
+
+// The region index + per-feature ancestry are pure derivations of the (cached) region
+// tree and geojson feed. Both come back from React Query with a stable reference until a
+// refetch replaces them, so memoize the derivation on those references — computed once
+// per feed load and reused across every navigation, instead of an O(regions)+O(features)
+// re-index on each getCountries/getRegion call. A refetch swaps a reference and the memo
+// recomputes on the next read.
+let feedMemo: {
+  regions: RegionNode[]
+  geojson: Geojson
+  index: RegionIndex<RegionNode>
+  events: IndexedFeature[]
+} | null = null
+
+const indexedFeed = (regions: RegionNode[], geojson: Geojson) => {
+  if (feedMemo && feedMemo.regions === regions && feedMemo.geojson === geojson) return feedMemo
+
+  const index = indexRegions(regions)
+
+  feedMemo = { regions, geojson, index, events: indexFeatures(geojson, index) }
+
+  return feedMemo
+}
 
 // Build a list/map item from an agnostic feed feature, joining its localized `title`
 // (from the per-locale titles map — `''` if a title is somehow missing, so a data
@@ -239,16 +276,15 @@ const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position)
 // Exported so the live-preview controller (issue #40) reuses the exact route derivation.
 export const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
 
-// ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
-// the country slug *is* the code, so derive it from the slug first; fall back to
-// the pre-migration `legacyData.countryCode` (transitional — drop once the backend
-// seed reflects #556). Guard the shape so a malformed value can't throw in
-// `Intl.DisplayNames` / `CircleFlag` downstream.
+// ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#566
+// the country slug *is* the ISO code, so it's derived straight from the slug — no
+// more `legacyData` fallback. Guard the shape so a malformed value can't throw in
+// `Intl.DisplayNames` / `CircleFlag` downstream (a non-ISO slug — e.g. an un-migrated
+// local dev seed — simply yields no flag rather than an error).
 const isoCountryCode = (value: string | null | undefined): string | undefined =>
   typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value : undefined
 
-const countryCodeOf = (node: RegionNode): string | undefined =>
-  isoCountryCode(node.slug) ?? isoCountryCode(node.legacyData?.countryCode)
+const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 
 const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>
   RegionListItemSchema.parse({
@@ -272,8 +308,7 @@ const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount 
 // titles — a country card shows no event title, so this stays locale-agnostic).
 const getCountries = async (): Promise<RegionListItem[]> => {
   const [regions, geojson] = await Promise.all([loadRegions(), loadGeojson()])
-  const index = indexRegions(regions)
-  const events = indexFeatures(geojson, index)
+  const { events } = indexedFeed(regions, geojson)
 
   // Ordering is the list's concern, not the feed's — CountriesView sorts by event
   // count so the display order holds for a seeded story (unsorted mock) too.
@@ -304,12 +339,10 @@ const getRegion = async (slug: string): Promise<Region> => {
     loadGeojson(),
     loadEventTitles(),
   ])
-  const index = indexRegions(regions)
+  const { index, events } = indexedFeed(regions, geojson)
   const node = index.bySlug.get(slug)
 
   if (!node) throw new Error(`Region not found: ${slug}`)
-
-  const events = indexFeatures(geojson, index)
 
   // A region with no events under it (located or online) isn't a destination — 404
   // it (the nearest ErrorBoundary renders the not-found state) rather than render an
@@ -515,6 +548,20 @@ const populatePreviewDoc = async (
     init: { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
   })
 
+// ── Bootstrap warm-up (break the clients/me → data waterfall) ────────────────────
+
+// Kick the agnostic caches (region tree + geojson feed) and the current-locale event
+// titles warming as soon as the API key is set, in parallel with the client bootstrap —
+// the app suspends on clients/me (see AppShell), which otherwise serializes every map /
+// hierarchy read behind it. Best-effort + idempotent: each just populates the shared
+// cache (React Query dedupes in-flight fetches), and a failure is swallowed here so it
+// re-surfaces through the real read's ErrorBoundary rather than as an unhandled rejection.
+const warmCaches = (): void => {
+  void loadGeojson().catch(() => {})
+  void loadRegions().catch(() => {})
+  void loadEventTitles().catch(() => {})
+}
+
 export default {
   getGeojson,
   getCountries,
@@ -525,4 +572,5 @@ export default {
   getEventDoc,
   populatePreviewDoc,
   getClient,
+  warmCaches,
 }
