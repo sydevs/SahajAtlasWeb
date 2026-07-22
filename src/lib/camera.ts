@@ -52,19 +52,11 @@ export const isWithinPaddedViewport = (
   point.y >= (padding.top ?? 0) &&
   point.y <= size.height - (padding.bottom ?? 0)
 
-/** What framing an event's point should do — "camera moves only as needed". */
-export type EventFrameAction =
-  | 'select' // online/approximate: show the marker, never move the camera
-  | 'keep' // already visible in the padded viewport (pin click): keep the current zoom
-  | 'move' // off-screen (list / search click): ease to the event zoom
-
 /**
- * Decide how `frameEvent` should move. An online/approximate event never moves
- * (it has no real location); an on-screen event keeps the current zoom so a pin
- * click doesn't yank the camera; an off-screen one eases in.
+ * Whether `frameEvent` should ease the camera to the event — "move only as needed".
+ * Selecting the marker happens unconditionally; the camera moves only for a located
+ * event that's off-screen (list / search click). An online/approximate event (no real
+ * location) and an on-screen pin (already visible — a pin click) both stay put.
  */
-export const eventFrameAction = (approximate: boolean, visible: boolean): EventFrameAction => {
-  if (approximate) return 'select'
-
-  return visible ? 'keep' : 'move'
-}
+export const shouldMoveToEvent = (approximate: boolean, visible: boolean): boolean =>
+  !approximate && !visible

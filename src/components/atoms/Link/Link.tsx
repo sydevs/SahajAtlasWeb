@@ -4,7 +4,7 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { rememberCamera } from '@/config/store'
-import { atlasDepth } from '@/lib/shape'
+import { atlasPushState } from '@/lib/shape'
 
 // The app's link atom. Internal targets route through react-router's <Link>
 // (client-side, hash-aware); external ones (or any target="_blank") render a
@@ -61,7 +61,7 @@ const InternalLink = forwardRef<
   return (
     <RouterLink
       ref={ref}
-      state={{ depth: atlasDepth(location) + 1 }}
+      state={atlasPushState(location)}
       to={href}
       onClick={handleClick}
       {...props}

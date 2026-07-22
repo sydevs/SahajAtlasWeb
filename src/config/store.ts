@@ -59,11 +59,24 @@ type CameraHistoryState = {
   read: (key: string) => CameraSnapshot | undefined
 }
 
+// Bound the history so a long-lived embedded session can't grow it without limit;
+// far more than back/forward ever reaches back through. Oldest-inserted evicts first
+// (object key order), which is fine — restores target recent entries.
+const MAX_SNAPSHOTS = 50
+
 // Accessed imperatively (getState) from navigation handlers + the frame effect, not
 // subscribed to in render — so writing a snapshot never re-renders the map.
 export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
   snapshots: {},
-  save: (key, camera) => set((state) => ({ snapshots: { ...state.snapshots, [key]: camera } })),
+  save: (key, camera) =>
+    set((state) => {
+      const snapshots = { ...state.snapshots, [key]: camera }
+      const keys = Object.keys(snapshots)
+
+      if (keys.length > MAX_SNAPSHOTS) delete snapshots[keys[0]]
+
+      return { snapshots }
+    }),
   read: (key) => get().snapshots[key],
 }))
 

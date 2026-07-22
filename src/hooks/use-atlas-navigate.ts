@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { type NavigateOptions, type To, useLocation, useNavigate } from 'react-router'
 
 import { rememberCamera } from '@/config/store'
-import { atlasDepth } from '@/lib/shape'
+import { atlasPushState } from '@/lib/shape'
 
 /**
  * `navigate()` for in-widget pushes. Stamps an incrementing `state.depth` (so
@@ -12,8 +12,10 @@ import { atlasDepth } from '@/lib/shape'
  * — it's a history move, not a new entry to stamp.
  *
  * Use for imperative pushes (map pin, header CTAs); link navigations carry the same
- * stamping through the Link atom. Structural moves that should stay at depth 0 (the
- * peek strips, the deep-link dismiss fallback) deliberately keep the raw `navigate`.
+ * stamping through the Link atom. Non-push navigations deliberately keep the raw
+ * `navigate`: the peek strips and the deep-link dismiss fallback (structural climbs,
+ * depth 0), and FilterView's "apply" (a `replace` that resets to results, not a new
+ * entry).
  */
 export function useAtlasNavigate() {
   const navigate = useNavigate()
@@ -27,7 +29,7 @@ export function useAtlasNavigate() {
 
       return navigate(to, {
         ...options,
-        state: { ...(options?.state as object | undefined), depth: atlasDepth(location) + 1 },
+        state: { ...(options?.state as object | undefined), ...atlasPushState(location) },
       })
     },
     [navigate, location],

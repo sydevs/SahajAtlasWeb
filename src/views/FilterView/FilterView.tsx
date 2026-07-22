@@ -59,11 +59,14 @@ export function FilterView() {
   // Applying/clearing always shows the results: go to /search with the filters
   // written into the query (preserving any existing q/bbox/center), even when the
   // drawer was opened over the country list — the point of applying is to see the
-  // filtered events, not return to the countries.
+  // filtered events, not return to the countries. It's a "reset to results", not a
+  // forward push, so it REPLACES the filter-drawer entry (carrying its depth over)
+  // rather than stacking a new one — the filter drawer doesn't linger in history, and
+  // a chronological back from the results lands on the pre-filter view.
   const commit = (filters: typeof draft) => {
     const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
 
-    navigate({ pathname: '/search', search })
+    navigate({ pathname: '/search', search }, { replace: true, state: location.state })
   }
 
   return (

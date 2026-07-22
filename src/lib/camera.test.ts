@@ -1,22 +1,22 @@
 import { describe, it, expect } from 'vitest'
 
-import { eventFrameAction, fitBoundsOptions, isWithinPaddedViewport } from './camera'
+import { fitBoundsOptions, isWithinPaddedViewport, shouldMoveToEvent } from './camera'
 
 // Pure camera-move decisions — the controller owns the zoom values and applies the
 // action; live projection/easing is a browser concern, not asserted here.
 
-describe('eventFrameAction', () => {
-  it('never moves for an online/approximate event (select the marker only)', () => {
-    expect(eventFrameAction(true, true)).toBe('select')
-    expect(eventFrameAction(true, false)).toBe('select')
+describe('shouldMoveToEvent', () => {
+  it('does not move for an online/approximate event (select the marker only)', () => {
+    expect(shouldMoveToEvent(true, true)).toBe(false)
+    expect(shouldMoveToEvent(true, false)).toBe(false)
   })
 
-  it('keeps the current zoom for an on-screen pin (pin click)', () => {
-    expect(eventFrameAction(false, true)).toBe('keep')
+  it('does not move for an on-screen pin (a pin click keeps the current zoom)', () => {
+    expect(shouldMoveToEvent(false, true)).toBe(false)
   })
 
-  it('eases in for an off-screen event (list / search click)', () => {
-    expect(eventFrameAction(false, false)).toBe('move')
+  it('moves for an off-screen event (a list / search click eases in)', () => {
+    expect(shouldMoveToEvent(false, false)).toBe(true)
   })
 })
 

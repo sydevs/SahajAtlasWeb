@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { atlasDepth, dismissAction } from './navigation'
+import { atlasDepth, atlasPushState, dismissAction } from './navigation'
 
 // The in-widget history shaping that turns a chronological-back dismiss on and the
 // structural-parent climb off (or vice-versa). Pure decisions, so we drive them with
@@ -25,6 +25,13 @@ describe('atlasDepth', () => {
     expect(atlasDepth({ state: {} })).toBe(0)
     expect(atlasDepth({ state: { depth: '3' } })).toBe(0)
     expect(atlasDepth({ state: { other: 5 } })).toBe(0)
+  })
+})
+
+describe('atlasPushState', () => {
+  it('stamps one level deeper than the current entry', () => {
+    expect(atlasPushState({ state: null })).toEqual({ depth: 1 }) // fresh entry → depth 1
+    expect(atlasPushState({ state: { depth: 2 } })).toEqual({ depth: 3 })
   })
 })
 

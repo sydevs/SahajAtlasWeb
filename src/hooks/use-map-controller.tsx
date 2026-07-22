@@ -7,7 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
 import { useBreakpoint } from '@/config/responsive'
-import { eventFrameAction } from '@/lib/camera'
+import { shouldMoveToEvent } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 
 // The camera seam (issue #30). Views call these *unconditionally*; when a map is
@@ -131,12 +131,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setSelection(point)
         // Move only as needed: online (approximate) events never move; an on-screen
         // pin keeps the current zoom (pin click); an off-screen one eases in (list click).
-        const action = eventFrameAction(
-          point.approximate,
-          isPointVisible(point.longitude, point.latitude),
-        )
-
-        if (action === 'move') {
+        if (shouldMoveToEvent(point.approximate, isPointVisible(point.longitude, point.latitude))) {
           moveMap({ center: [point.longitude, point.latitude], zoom: EVENT_ZOOM })
         }
       },

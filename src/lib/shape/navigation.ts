@@ -22,6 +22,18 @@ export const atlasDepth = (location: { state?: unknown }): number => {
   return typeof state?.depth === 'number' ? state.depth : 0
 }
 
+/**
+ * The `state` to stamp on an in-widget push: one level deeper than the current
+ * entry. The single definition of the depth-stamp convention, shared by the Link
+ * atom (declarative `state` prop) and `useAtlasNavigate` (imperative) so the two
+ * paths can't silently diverge. Pair it with `rememberCamera(location.key)` at
+ * click time so a later back restores the camera — that stays a separate call
+ * because Link stamps `state` at render but can only capture the live camera on click.
+ */
+export const atlasPushState = (location: { state?: unknown }): AtlasNavState => ({
+  depth: atlasDepth(location) + 1,
+})
+
 /** What dismissing the top drawer resolves to. */
 export type DismissAction =
   | 'collapse' // the root view (no parent) — collapse the sheet to its peek

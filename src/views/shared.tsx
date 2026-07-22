@@ -29,7 +29,13 @@ import {
   readNearbyDismissed,
   shouldShowNearbyPrompt,
 } from '@/lib/nearby'
-import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
+import {
+  activeFilterCount,
+  atlasDepth,
+  filtersFromParams,
+  filtersToParams,
+  resolvePath,
+} from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
 // use it for their close / list-toggle buttons, so those act on the ONE persistent
@@ -192,13 +198,19 @@ export function SearchField() {
   )
 }
 
+// Context handed to a top view's frame callback. `isEntry` is true when the view is
+// the session entry point (a fresh deep link / structural climb — depth 0) rather than
+// an in-session push; a placeless view (OnlineView) frames its parent only then, so it
+// never needs to re-derive history-awareness itself.
+export type FrameContext = { isEntry: boolean }
+
 // Only the top (active) view is rendered — ancestors are peek panels, not views — so
 // each view frames the map for its level unconditionally on mount / when its inputs
 // change. Centralized so the call sites are one line and their deps arrays stay honest:
 // `deps` is spread into the effect's own array, so a per-view length is fine (it's
 // fixed for any given call site across renders).
-export function useFrameOnTop(frame: () => void, deps: DependencyList) {
-  const { key } = useLocation()
+export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: DependencyList) {
+  const location = useLocation()
   const navigationType = useNavigationType()
   const { hasMap, restore } = useMapController()
 
@@ -206,12 +218,14 @@ export function useFrameOnTop(frame: () => void, deps: DependencyList) {
     // On a POP back to a remembered entry, restore the camera the user left rather
     // than re-deriving the framing — so closing an event returns to the prior
     // viewport/zoom (browser back/forward get this for free). Otherwise (a PUSH, or a
-    // fresh deep link with no snapshot) frame normally. `deps` is the caller's own
-    // list; key/navigationType/hasMap/restore are stable for a mounted view.
-    const snapshot = navigationType === 'POP' ? useCameraHistory.getState().read(key) : undefined
+    // fresh deep link with no snapshot) frame normally, telling the view whether it's
+    // the session entry point. `deps` is the caller's own list; location/navigationType/
+    // hasMap/restore are stable for a mounted view.
+    const snapshot =
+      navigationType === 'POP' ? useCameraHistory.getState().read(location.key) : undefined
 
     if (hasMap && snapshot) restore(snapshot)
-    else frame()
+    else frame({ isEntry: atlasDepth(location) === 0 })
   }, [...deps])
 }
 
