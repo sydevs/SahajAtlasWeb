@@ -91,6 +91,28 @@ change should surface as a parse error, not a deep runtime crash.
   switching language refetches when the locale is part of the query key or the
   resolved language varies the data.
 
+## Caching, revalidation & prefetch
+
+- **Imperative reads are stale-while-revalidate.** The hierarchy loaders
+  (`loadRegions` / `loadGeojson` / `loadEventTitles` in `fetch.ts`) read the shared
+  React Query cache via `ensureQueryData({ …, revalidateIfStale: true })`: a cold cache
+  awaits + throws to the ErrorBoundary; a warm cache returns immediately and revalidates
+  in the background when stale — so a navigation never *blocks* on a stale-window
+  refetch. Don't switch these back to `fetchQuery` (it blocks on the stale refetch).
+- **The region index is memoized per feed load.** `indexedFeed(regions, geojson)`
+  derives the region index + per-feature ancestry once per (cached) feed reference, and
+  both `getCountries` / `getRegion` reuse it — not an O(features) rebuild per navigation.
+  A background revalidation swaps the reference and the memo recomputes on the next read.
+- **Bootstrap warm-up.** `api.warmCaches()` (fired from App's mount effect) kicks the
+  locale-agnostic feed + region-tree reads in parallel with the client bootstrap the tree
+  suspends on — breaking the `clients/me` → data waterfall. Titles are *not* warmed there
+  (the UI locale isn't resolved yet at mount, so it'd fetch under the wrong key).
+- **Event details are prefetched.** Cards warm `['event', id, locale]` on hover/focus
+  (`usePrefetchEvent`) and a region's first few cards on idle (`usePrefetchEvents`), so
+  opening an event is a cache hit, not a cold `findByID`. Build the key through the
+  `eventQuery(id, locale)` factory (`config/api`) so the prefetch and the view's
+  suspense read can't drift.
+
 ## Errors
 
 - Network/parse failures bubble to the `react-error-boundary` `<ErrorBoundary>`

@@ -291,7 +291,7 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
 
-  it('derives a country code from an ISO slug (post-#566), with no legacyData', async () => {
+  it('derives a country code from an ISO slug (post-#556), with no legacyData', async () => {
     const isoTree = [
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
     ]

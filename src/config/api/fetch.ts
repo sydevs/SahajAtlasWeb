@@ -101,7 +101,7 @@ const FEED_SELECT = {
 // 0-event gate all derive from this dict client-side — replacing the per-navigation
 // `getRegionDoc`/`getChildRegions` reads and getCountries' own `/regions` read.
 // Region names are locale-agnostic, so this is cached once regardless of language.
-// The ISO country code now comes from the slug (SahajCloud#566 slug→ISO is live in
+// The ISO country code now comes from the slug (SahajCloud#556 slug→ISO is live in
 // prod), so the ~113 KB `legacyData` blob — 64% of this read's weight, and only ever
 // a country-code fallback — is no longer selected. See `countryCodeOf`.
 const REGIONS_SELECT = {
@@ -272,7 +272,7 @@ const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position)
 // Exported so the live-preview controller (issue #40) reuses the exact route derivation.
 export const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
 
-// ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#566
+// ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
 // the country slug *is* the ISO code, so it's derived straight from the slug — no
 // more `legacyData` fallback. Guard the shape so a malformed value can't throw in
 // `Intl.DisplayNames` / `CircleFlag` downstream (a non-ISO slug — e.g. an un-migrated

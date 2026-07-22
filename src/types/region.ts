@@ -16,7 +16,7 @@ export const PositionSchema = z.tuple([z.number(), z.number()])
 // and the widget walks these links client-side for ancestry + child lists, which
 // replaces the per-navigation region reads. `webPath`/`webUrl` are the
 // server-computed canonical route. The ISO country code is derived from the `slug`
-// (post-SahajCloud#566 the country slug *is* the ISO code), so the legacy blob is no
+// (post-SahajCloud#556 the country slug *is* the ISO code), so the legacy blob is no
 // longer read or selected — dropping ~113 KB (64%) off this read's weight.
 export const RegionNodeSchema = z.object({
   id: z.number(),
