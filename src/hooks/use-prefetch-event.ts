@@ -51,11 +51,13 @@ export function usePrefetchEvent() {
 export function usePrefetchEvents(ids: number[]) {
   const prefetch = usePrefetchEvent()
   const leading = ids.slice(0, EAGER_COUNT)
+  // Depend on a stable primitive (the leading ids joined) since the array is a fresh
+  // reference each render; the effect warms the captured `leading` numbers directly.
   const key = leading.join(',')
 
   useEffect(() => {
-    if (!key) return
+    if (!leading.length) return
 
-    return scheduleIdle(() => key.split(',').forEach((id) => prefetch(Number(id))))
+    return scheduleIdle(() => leading.forEach(prefetch))
   }, [key, prefetch])
 }

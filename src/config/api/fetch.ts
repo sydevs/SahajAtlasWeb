@@ -114,30 +114,14 @@ const REGIONS_SELECT = {
   webUrl: true,
 } as const
 
-// ── Stale-while-revalidate cache reads ──────────────────────────────────────────
+// ── Region tree + feed reads (stale-while-revalidate) ───────────────────────────
 
-// Serve a cached React Query entry immediately and revalidate in the background, so a
-// navigation never *blocks* on a stale-window refetch (a cause of the "sometimes slow"
-// region open). The FIRST load (cold cache) still awaits and throws on failure, so a
-// real error reaches the ErrorBoundary — preserving the data-layer contract. Once a
-// usable value is cached, later reads return it right away and `prefetchQuery` refreshes
-// it in the background when past `staleTime` (a no-op while still fresh); a background
-// refresh failure is swallowed since we already have data to serve.
-const cachedOrRevalidate = <T>(
-  queryKey: readonly unknown[],
-  queryFn: () => Promise<T>,
-  staleTime: number,
-): Promise<T> => {
-  const cached = queryClient.getQueryData<T>(queryKey)
-
-  if (cached !== undefined) {
-    void queryClient.prefetchQuery({ queryKey, queryFn, staleTime })
-
-    return Promise.resolve(cached)
-  }
-
-  return queryClient.fetchQuery({ queryKey, queryFn, staleTime })
-}
+// The imperative loaders below read the shared React Query cache with
+// `ensureQueryData({ revalidateIfStale: true })`: a cold cache awaits the fetch (and
+// throws on failure → ErrorBoundary, preserving the data-layer contract), while a warm
+// cache returns immediately and revalidates in the background when stale — so a
+// navigation past the stale window never *blocks* on the (cold-slow) refetch, the cause
+// of the "sometimes slow" region open. (Plain `fetchQuery` would block on that refetch.)
 
 const getRegions = async (): Promise<RegionNode[]> => {
   const { docs } = validateSDKResponse(
@@ -155,10 +139,14 @@ const getRegions = async (): Promise<RegionNode[]> => {
 }
 
 // Read the region tree through the shared React Query cache so the whole app fetches +
-// parses it once per (long) stale window rather than on every navigation, and serves it
-// stale-while-revalidate so a nav past the window never blocks on the refetch.
+// parses it once per (long) stale window rather than on every navigation.
 const loadRegions = (): Promise<RegionNode[]> =>
-  cachedOrRevalidate(['regions'], getRegions, REGIONS_STALE_TIME)
+  queryClient.ensureQueryData({
+    queryKey: ['regions'],
+    queryFn: getRegions,
+    staleTime: REGIONS_STALE_TIME,
+    revalidateIfStale: true,
+  })
 
 // One region by id from the wholesale tree — the live-preview boot (issue #40) gets an
 // id, not a slug, so it looks the node up rather than adding a per-region read.
@@ -188,10 +176,13 @@ const getGeojson = async (): Promise<Geojson> => {
 // React Query cache (the key the map also uses) so it's fetched + parsed once per
 // stale window rather than on every navigation. It's locale-agnostic, so `['geojson']`
 // carries no locale — a language switch doesn't refetch it, only the titles sliver.
-// Stale-while-revalidate: a nav past the stale window serves the cached feed instantly
-// and refreshes it in the background rather than blocking on the (cold-slow) refetch.
 const loadGeojson = (): Promise<Geojson> =>
-  cachedOrRevalidate(['geojson'], getGeojson, GEOJSON_STALE_TIME)
+  queryClient.ensureQueryData({
+    queryKey: ['geojson'],
+    queryFn: getGeojson,
+    staleTime: GEOJSON_STALE_TIME,
+    revalidateIfStale: true,
+  })
 
 // ── Per-locale event titles (the one localized field, split off the feed) ───────
 
@@ -213,10 +204,15 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
 }
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
-  // Every request sends the resolved locale (activeLocale, via applyRequestContext);
-  // key by that same value so a language switch re-keys the titles sliver (feed +
-  // regions stay cached) and the key can't drift from the locale actually sent.
-  cachedOrRevalidate(['event-titles', activeLocale()], getEventTitles, GEOJSON_STALE_TIME)
+  queryClient.ensureQueryData({
+    // Every request sends the resolved locale (activeLocale, via applyRequestContext);
+    // key by that same value so a language switch re-keys the titles sliver (feed +
+    // regions stay cached) and the key can't drift from the locale actually sent.
+    queryKey: ['event-titles', activeLocale()],
+    queryFn: getEventTitles,
+    staleTime: GEOJSON_STALE_TIME,
+    revalidateIfStale: true,
+  })
 
 // A feature paired with its region ancestry (direct region + full parent chain).
 // `GeoEvent`-compatible, so the hierarchy helpers can aggregate over it while the
@@ -550,16 +546,17 @@ const populatePreviewDoc = async (
 
 // ── Bootstrap warm-up (break the clients/me → data waterfall) ────────────────────
 
-// Kick the agnostic caches (region tree + geojson feed) and the current-locale event
-// titles warming as soon as the API key is set, in parallel with the client bootstrap —
-// the app suspends on clients/me (see AppShell), which otherwise serializes every map /
-// hierarchy read behind it. Best-effort + idempotent: each just populates the shared
-// cache (React Query dedupes in-flight fetches), and a failure is swallowed here so it
-// re-surfaces through the real read's ErrorBoundary rather than as an unhandled rejection.
+// Kick the locale-agnostic caches (region tree + geojson feed) warming as soon as the
+// API key is set, in parallel with the client bootstrap — the app suspends on clients/me
+// (see AppShell), which otherwise serializes every map / hierarchy read behind it.
+// Titles are deliberately NOT warmed here: they key on the UI locale, which isn't
+// resolved until AppShell applies the client/widget locale (after clients/me), so
+// warming at mount would fetch under the wrong locale key and be re-fetched anyway.
+// Best-effort + idempotent (React Query dedupes in-flight fetches); a failure is swallowed
+// so it re-surfaces through the real read's ErrorBoundary, not as an unhandled rejection.
 const warmCaches = (): void => {
   void loadGeojson().catch(() => {})
   void loadRegions().catch(() => {})
-  void loadEventTitles().catch(() => {})
 }
 
 export default {

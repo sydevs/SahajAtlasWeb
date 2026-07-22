@@ -37,16 +37,19 @@ export function RegionView({ slug }: { slug: string }) {
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 
-  // Warm the first few tappable events' details on idle so opening one is a cache hit
-  // even on touch (no hover to trigger the per-card prefetch). Located events first,
-  // then the inline online roll-up.
-  usePrefetchEvents([...region.events, ...region.onlineEvents].map((event) => event.id))
-
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const canonicalUrl = validateWebUrl(region.webUrl)
   // A region with sub-region cards surfaces its online roll-up behind a dedicated
   // "Online Classes" card; a region without sub-regions lists its online events inline.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
+
+  // Warm the first few events actually rendered as cards on idle, so opening one is a
+  // cache hit even on touch (no hover to trigger the per-card prefetch). Online events
+  // behind the "Online Classes" roll-up card aren't tappable from here, so exclude them;
+  // only the inline online list (shown when there's no roll-up card) is warmed.
+  usePrefetchEvents(
+    [...region.events, ...(showOnlineCard ? [] : region.onlineEvents)].map((event) => event.id),
+  )
   // Whether this view actually shows event cards (vs. only child-region cards).
   const hasEventList =
     region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)

@@ -75,20 +75,21 @@ export function EventListItem({ event }: EventListItemProps) {
     : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
 
+  // Hover/focus: highlight this card's pin AND warm its detail query so opening it is a
+  // cache hit. Shared by pointer + keyboard entry so the two can't drift.
+  const activate = () => {
+    highlightEvent(event)
+    prefetchEvent(event.id)
+  }
+
   return (
     <li>
       <Link
         className={listRow({ className: 'flex flex-col gap-1 py-4' })}
         href={event.path}
         onBlur={() => highlightEvent(null)}
-        onFocus={() => {
-          highlightEvent(event)
-          prefetchEvent(event.id)
-        }}
-        onMouseEnter={() => {
-          highlightEvent(event)
-          prefetchEvent(event.id)
-        }}
+        onFocus={activate}
+        onMouseEnter={activate}
         onMouseLeave={() => highlightEvent(null)}
       >
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
