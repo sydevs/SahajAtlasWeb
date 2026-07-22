@@ -1,22 +1,79 @@
 import { describe, it, expect } from 'vitest'
 
-import { fitBoundsOptions, isWithinPaddedViewport, shouldMoveToEvent } from './camera'
+import { eventFrameZoom, fitBoundsOptions, isWithinPaddedViewport } from './camera'
 
 // Pure camera-move decisions — the controller owns the zoom values and applies the
 // action; live projection/easing is a browser concern, not asserted here.
 
-describe('shouldMoveToEvent', () => {
-  it('does not move for an online/approximate event (select the marker only)', () => {
-    expect(shouldMoveToEvent(true, true)).toBe(false)
-    expect(shouldMoveToEvent(true, false)).toBe(false)
+describe('eventFrameZoom', () => {
+  const zooms = { eventZoom: 15, onlineZoom: 7 }
+
+  it('frames an online event only as the session entry point (a deep link)', () => {
+    expect(
+      eventFrameZoom({
+        approximate: true,
+        visible: true,
+        atDetailZoom: false,
+        isEntry: true,
+        ...zooms,
+      }),
+    ).toBe(7)
+    // in-session: selecting an online event never moves the camera
+    expect(
+      eventFrameZoom({
+        approximate: true,
+        visible: true,
+        atDetailZoom: true,
+        isEntry: false,
+        ...zooms,
+      }),
+    ).toBeNull()
   })
 
-  it('does not move for an on-screen pin (a pin click keeps the current zoom)', () => {
-    expect(shouldMoveToEvent(false, true)).toBe(false)
+  it('keeps the current zoom only for a pin already shown at a detail zoom', () => {
+    expect(
+      eventFrameZoom({
+        approximate: false,
+        visible: true,
+        atDetailZoom: true,
+        isEntry: false,
+        ...zooms,
+      }),
+    ).toBeNull()
   })
 
-  it('moves for an off-screen event (a list / search click eases in)', () => {
-    expect(shouldMoveToEvent(false, false)).toBe(true)
+  it('eases to the event zoom on entry, from a wider view, or when off-screen', () => {
+    // deep-link entry — the boot-time world-zoom point projects as "visible", but we
+    // still frame it (atDetailZoom false + isEntry).
+    expect(
+      eventFrameZoom({
+        approximate: false,
+        visible: true,
+        atDetailZoom: false,
+        isEntry: true,
+        ...zooms,
+      }),
+    ).toBe(15)
+    // wider view — on-screen but not yet at a detail zoom
+    expect(
+      eventFrameZoom({
+        approximate: false,
+        visible: true,
+        atDetailZoom: false,
+        isEntry: false,
+        ...zooms,
+      }),
+    ).toBe(15)
+    // off-screen (a list / search click)
+    expect(
+      eventFrameZoom({
+        approximate: false,
+        visible: false,
+        atDetailZoom: true,
+        isEntry: false,
+        ...zooms,
+      }),
+    ).toBe(15)
   })
 })
 

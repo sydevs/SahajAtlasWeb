@@ -50,7 +50,7 @@ export function RegistrationView({
   const { data: event } = useEventFromPath(eventPath)
   const { display, contactHelper, blockedMessage } = useEventDisplay(event)
 
-  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
   const open = display.registration === 'open'
   // Registration for an external event never happens on Atlas — a deep link

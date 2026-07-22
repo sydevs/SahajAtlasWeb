@@ -7,7 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
 import { useBreakpoint } from '@/config/responsive'
-import { shouldMoveToEvent } from '@/lib/camera'
+import { eventFrameZoom } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 
 // The camera seam (issue #30). Views call these *unconditionally*; when a map is
@@ -19,8 +19,13 @@ export type MapController = {
   hasMap: boolean
   /** Frame a region: a venue moves to its point, everything else fits its bounds. */
   frameRegion: (region: Region) => void
-  /** Frame an event: select its point and move only as needed (online events don't move). */
-  frameEvent: (event: Event) => void
+  /**
+   * Frame an event: select its point and move only as needed. `isEntry` (the view is
+   * the session entry point — a deep link) forces framing even when the point is
+   * nominally "visible" at the boot-time world zoom, and frames online events (which
+   * otherwise never move).
+   */
+  frameEvent: (event: Event, opts?: { isEntry: boolean }) => void
   /** Emphasize an event's pin without moving the camera (card hover); null clears it. */
   highlightEvent: (event: EventSlim | null) => void
   /** Frame the search view: fit a bbox, move to a geocoded centre, or reset. */
@@ -68,6 +73,9 @@ const MAP_MARGIN = 20
 const EVENT_ZOOM = 15
 const REGION_MAX_ZOOM = 13
 const REGION_FIT_PADDING = 48
+// An online event has only an approximate location; frame it wide (city/area level)
+// when a deep link makes it the session entry point.
+const ONLINE_ZOOM = 7
 
 // The map point an event emphasizes: its stored coordinates, tagged `approximate`
 // for online events (softer area sprite + a wider zoom). Null when the event has
@@ -89,7 +97,7 @@ export function NoopMapControllerProvider({ children }: { children: ReactNode })
 
 /** Drives the real Mapbox camera. Must render inside <MapProvider>. */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { moveMap, fitBounds, isPointVisible } = useMapbox()
+  const { mapbox, moveMap, fitBounds, isPointVisible } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
@@ -123,17 +131,25 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
           setBoundary(undefined)
         }
       },
-      frameEvent(event) {
+      frameEvent(event, opts) {
         const point = eventPoint(event)
 
         if (!point) return
 
         setSelection(point)
-        // Move only as needed: online (approximate) events never move; an on-screen
-        // pin keeps the current zoom (pin click); an off-screen one eases in (list click).
-        if (shouldMoveToEvent(point.approximate, isPointVisible(point.longitude, point.latitude))) {
-          moveMap({ center: [point.longitude, point.latitude], zoom: EVENT_ZOOM })
-        }
+        // Move only as needed. `atDetailZoom` reads the LIVE map zoom (not the moveEnd-
+        // lagged store) so a genuine pin click at a detail zoom keeps its zoom, while a
+        // deep link / wide-view / off-screen click still eases in.
+        const zoom = eventFrameZoom({
+          approximate: point.approximate,
+          visible: isPointVisible(point.longitude, point.latitude),
+          atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
+          isEntry: opts?.isEntry ?? false,
+          eventZoom: EVENT_ZOOM,
+          onlineZoom: ONLINE_ZOOM,
+        })
+
+        if (zoom != null) moveMap({ center: [point.longitude, point.latitude], zoom })
       },
       highlightEvent(event) {
         setHover(event ? eventPoint(event) : null)
@@ -158,7 +174,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setBoundary(undefined)
       },
     }),
-    [moveMap, fitBounds, isPointVisible, setSelection, setHover, setBoundary],
+    [mapbox, moveMap, fitBounds, isPointVisible, setSelection, setHover, setBoundary],
   )
 
   return (

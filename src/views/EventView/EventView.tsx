@@ -44,7 +44,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
     queryFn: () => api.getEvent(id),
   })
 
-  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
   useEffect(() => () => clearSelection(), [clearSelection])
 
