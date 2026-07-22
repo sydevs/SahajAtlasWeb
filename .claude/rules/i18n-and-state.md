@@ -44,7 +44,7 @@ alwaysApply: false
 
 ## zustand stores (`src/config/store.ts`)
 
-Two stores, each the single source of truth for its slice:
+Three stores, each the single source of truth for its slice:
 
 - **`useViewState`** — map camera (`zoom/latitude/longitude`), current
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`
@@ -52,6 +52,11 @@ Two stores, each the single source of truth for its slice:
   re-render on the fields they use.
 - **`useRegistrationDraft`** — in-progress RegistrationView form values, hoisted
   out of the form so the md-crossing drawer remount can't drop a half-filled form.
+- **`useCameraHistory`** — per-`location.key` camera snapshots. Written
+  imperatively (`rememberCamera`, via the `Link` atom + `useAtlasNavigate`) before
+  an in-widget push and read on a POP by `useFrameOnTop` to **restore** the viewport
+  the user left. Non-reactive — accessed via `getState()` only, so a write never
+  re-renders the map — and FIFO-capped so a long embedded session stays bounded.
 
 Two slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so both are linkable/shareable:
@@ -62,7 +67,11 @@ of truth, so both are linkable/shareable:
   and the FilterButton badge all read the same URL. (There is no `useSearchState`
   store — filters used to live in zustand.)
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
-  in `src/lib/shape/path.ts`); dismissing a drawer is `navigate(parentPath)`.
+  in `src/lib/shape/path.ts`). Dismissal is history-aware: `dismissAction`
+  (`src/lib/shape/navigation.ts`) maps X / swipe / Esc to a chronological
+  `navigate(-1)` when the in-widget `atlasDepth(location)` > 0 (restoring the prior
+  camera), and only to the structural parent for a fresh deep link (depth 0) — never
+  popping the host page's history.
 
 Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.

@@ -39,10 +39,19 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-renders when the fields it uses change.
 - **Views never touch the map directly.** Camera framing goes through the
   `MapController` seam (`src/hooks/use-map-controller.tsx`): views call
-  `useMapController().frameRegion/frameEvent/frameSearch/clearSelection`
+  `useMapController().frameRegion/frameEvent/frameSearch/restore/clearSelection`
   unconditionally. The real provider drives `useMapbox().moveMap/fitBounds` + the
   `useViewState` selection/boundary; the **no-op** provider (when `map=false`)
   does nothing — so one place knows whether a map exists and no view branches on it.
+- **Framing moves only as needed** (zoom constants live beside `LEFT_DRAWER_PX`:
+  `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`, `REGION_FIT_PADDING=48`, `ONLINE_ZOOM=7`).
+  `frameEvent` (via `eventFrameZoom` in `src/lib/camera.ts`) keeps the current zoom
+  only for an on-screen pin already at a detail zoom, and otherwise eases in — on
+  entry (`isEntry`, a deep link), from a wider view, or when off-screen. Region fits
+  cap at `REGION_MAX_ZOOM` and pad the edges so a tight region can't over-zoom.
+  **`restore(camera)`** reapplies a remembered viewport on a *back* navigation —
+  `useFrameOnTop` reads the per-`location.key` `useCameraHistory` snapshot on a POP
+  (see `.claude/rules/i18n-and-state.md`) instead of re-deriving the framing.
 - `useMapbox().moveMap(...)`/`fitBounds(...)` are the low-level camera ops behind
   the controller — don't call `map.flyTo` directly from components. Map padding is
   set from the known drawer width per breakpoint by the MapController (no DOM
