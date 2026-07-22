@@ -97,7 +97,7 @@ export function NoopMapControllerProvider({ children }: { children: ReactNode })
 
 /** Drives the real Mapbox camera. Must render inside <MapProvider>. */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { mapbox, moveMap, fitBounds, isPointVisible } = useMapbox()
+  const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
@@ -120,7 +120,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       frameRegion(region) {
         if (region.level === 'center') {
           setBoundary(undefined)
-          if (region.center) moveMap({ center: region.center, zoom: REGION_MAX_ZOOM })
+          if (region.center) flyTo(region.center, REGION_MAX_ZOOM)
         } else if (region.bounds) {
           setBoundary(bboxPolygon(region.bounds))
           // Cap the fit + pad the edges: a single-/tight-event region can't zoom past
@@ -149,7 +149,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
           onlineZoom: ONLINE_ZOOM,
         })
 
-        if (zoom != null) moveMap({ center: [point.longitude, point.latitude], zoom })
+        // Fly in as one smooth arc (Mapbox flyTo) — the zoom happens near the target,
+        // not while the event is still crossing the screen.
+        if (zoom != null) flyTo([point.longitude, point.latitude], zoom)
       },
       highlightEvent(event) {
         setHover(event ? eventPoint(event) : null)
@@ -157,13 +159,15 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       frameSearch({ bbox, center }) {
         setBoundary(undefined)
         if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
-        else if (center) moveMap({ center: { lng: center[0], lat: center[1] }, zoom: EVENT_ZOOM })
+        else if (center) flyTo(center, EVENT_ZOOM)
         else moveMap({ zoom: 0 })
       },
       restore(camera) {
         setSelection(camera.selection ?? null)
         setBoundary(camera.boundary)
-        moveMap({ center: [camera.longitude, camera.latitude], zoom: camera.zoom })
+        // Fly back to the remembered viewport so going back reads as smoothly as going
+        // in (e.g. the zoom-out from an event to its region), not a snappy jump.
+        flyTo([camera.longitude, camera.latitude], camera.zoom)
       },
       reset() {
         setBoundary(undefined)
@@ -174,7 +178,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setBoundary(undefined)
       },
     }),
-    [mapbox, moveMap, fitBounds, isPointVisible, setSelection, setHover, setBoundary],
+    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
   )
 
   return (
