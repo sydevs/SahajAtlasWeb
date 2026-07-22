@@ -18,7 +18,7 @@ import { SettingsMenu } from '@/components/molecules'
 import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { overlayContainer } from '@/lib/overlay'
-import { type StackEntry, resolveStack } from '@/lib/shape'
+import { type StackEntry, atlasDepth, dismissAction, resolveStack } from '@/lib/shape'
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
@@ -217,14 +217,30 @@ export function DrawerStack() {
     [location.search],
   )
 
+  // History-aware dismiss (X / swipe / Esc): with in-widget history (depth > 0) go
+  // chronologically back — which restores the prior camera and returns to exactly
+  // where the user came from (a `/search` result closes back to those results, not
+  // the event's parent region). A fresh deep link (depth 0) has no in-widget entry
+  // to pop — and `navigate(-1)` would navigate the *host page* away (the embedded
+  // widget shares browser history) — so it climbs to the structural parent instead.
+  // The root view (no parent) collapses to its peek.
   const control = useMemo(
     () => ({
       collapsed: snap === PEEK_SNAP,
       canCollapse,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
-      dismiss: () => (parentPath ? navigate(toStackTarget(parentPath)) : setSnap(PEEK_SNAP)),
+      dismiss: () => {
+        const action = dismissAction({
+          hasParent: Boolean(parentPath),
+          depth: atlasDepth(location),
+        })
+
+        if (action === 'collapse') setSnap(PEEK_SNAP)
+        else if (action === 'back') navigate(-1)
+        else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
+      },
     }),
-    [snap, canCollapse, parentPath, navigate, toStackTarget],
+    [snap, canCollapse, parentPath, location, navigate, toStackTarget],
   )
 
   const sheet = (

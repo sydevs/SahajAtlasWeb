@@ -1,9 +1,9 @@
 import type { EventDisplay } from '@/lib/shape'
 import type { EventSurfaceProps } from './EventDetails'
 
-import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
+import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -28,7 +28,7 @@ const nearbyPath = (event: Event, basePath: string): string => {
 /** The escape hatch out of terminal states, back into live inventory. */
 function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) {
   const { t } = useTranslation('events')
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
 
   return (
     <Button
@@ -68,7 +68,7 @@ export const hasRegisterSlot = (event: Event, display: EventDisplay): boolean =>
  * terminal states replace the button with their message + escape hatch.
  */
 export function EventRegisterBar({ event, basePath }: EventRegisterBarProps) {
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
   const { display, registerLabel, microcopy, contactHelper, blockedMessage } =
     useEventDisplay(event)
 

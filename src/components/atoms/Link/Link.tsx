@@ -1,8 +1,10 @@
-import { type ComponentProps, type ReactNode, forwardRef } from 'react'
-import { Link as RouterLink } from 'react-router'
+import { type ComponentProps, type MouseEvent, type ReactNode, forwardRef } from 'react'
+import { Link as RouterLink, useLocation } from 'react-router'
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { AnchorIcon } from '@/components/atoms/Icons'
+import { rememberCamera } from '@/config/store'
+import { atlasDepth } from '@/lib/shape'
 
 // The app's link atom. Internal targets route through react-router's <Link>
 // (client-side, hash-aware); external ones (or any target="_blank") render a
@@ -40,6 +42,35 @@ export type LinkProps = Omit<ComponentProps<'a'>, 'color' | 'href'> &
     children?: ReactNode
   }
 
+// The internal (client-routed) branch, split into its own component so its router
+// hooks only run when the target is internal — an external Link (plain <a>) needs no
+// Router context. Every internal push stamps an incrementing `state.depth` (so the
+// drawer stack's `dismiss` can go chronologically back) and remembers the current
+// camera under the outgoing history entry (so that back restores the viewport).
+const InternalLink = forwardRef<
+  HTMLAnchorElement,
+  Omit<ComponentProps<'a'>, 'href'> & { href: string }
+>(function InternalLink({ href, onClick, children, ...props }, ref) {
+  const location = useLocation()
+
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    rememberCamera(location.key)
+    onClick?.(event)
+  }
+
+  return (
+    <RouterLink
+      ref={ref}
+      state={{ depth: atlasDepth(location) + 1 }}
+      to={href}
+      onClick={handleClick}
+      {...props}
+    >
+      {children}
+    </RouterLink>
+  )
+})
+
 // forwardRef because Link is used as a whole-card hit target (EventListItem,
 // ListItem) — the only atom rendering an interactive element that couldn't be
 // reached by a caller needing the DOM node (e.g. to scroll a highlighted card
@@ -69,9 +100,9 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   }
 
   return (
-    <RouterLink ref={ref} className={classes} rel={rel} target={target} to={href} {...props}>
+    <InternalLink ref={ref} className={classes} href={href} rel={rel} target={target} {...props}>
       {children}
       {icon}
-    </RouterLink>
+    </InternalLink>
   )
 })

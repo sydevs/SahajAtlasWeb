@@ -3,7 +3,7 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
@@ -16,9 +16,12 @@ import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { useCameraHistory } from '@/config/store'
+import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import {
   hasActivePlaceSearch,
@@ -130,7 +133,7 @@ export function CollapseToggle() {
 // the close/list controls so the header reads as one set of buttons.
 export function FilterButton() {
   const { t } = useTranslation('common')
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
   const location = useLocation()
   const count = activeFilterCount(useEventFilters())
 
@@ -162,7 +165,7 @@ export function FilterButton() {
 // ranks events by distance from there). Carries the geocode→search behaviour that
 // used to live in the removed SearchBar.
 export function SearchField() {
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
 
   const handleSelect = useCallback(
@@ -195,8 +198,20 @@ export function SearchField() {
 // `deps` is spread into the effect's own array, so a per-view length is fine (it's
 // fixed for any given call site across renders).
 export function useFrameOnTop(frame: () => void, deps: DependencyList) {
+  const { key } = useLocation()
+  const navigationType = useNavigationType()
+  const { hasMap, restore } = useMapController()
+
   useEffect(() => {
-    frame()
+    // On a POP back to a remembered entry, restore the camera the user left rather
+    // than re-deriving the framing — so closing an event returns to the prior
+    // viewport/zoom (browser back/forward get this for free). Otherwise (a PUSH, or a
+    // fresh deep link with no snapshot) frame normally. `deps` is the caller's own
+    // list; key/navigationType/hasMap/restore are stable for a mounted view.
+    const snapshot = navigationType === 'POP' ? useCameraHistory.getState().read(key) : undefined
+
+    if (hasMap && snapshot) restore(snapshot)
+    else frame()
   }, [...deps])
 }
 
@@ -244,7 +259,7 @@ export function DrawerLoading() {
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
   const { t: tEvents } = useTranslation('events')
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
@@ -295,7 +310,7 @@ const NEARBY_RADIUS_KM = 25
 // (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions; dismissal
 // (× or accept) is session-scoped.
 export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, number] | null }) {
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const [dismissed, setDismissed] = useState(readNearbyDismissed)
   // Skip the passive lookup when it couldn't be shown anyway — dismissed, or a place

@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -7,7 +8,7 @@ import { EventListItem, List } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { childRoute } from '@/lib/shape'
+import { atlasDepth, childRoute } from '@/lib/shape'
 import { CloseButton, DrawerTitle, EmptyEventList, useFrameOnTop } from '@/views/shared'
 
 // The online-classes drawer (route `<region-path>/online`): the placeless online
@@ -21,13 +22,20 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
   const { t: tEvents } = useTranslation('events')
   const { regionNames, locale } = useLocale()
   const { frameRegion } = useMapController()
+  const location = useLocation()
+  // Only frame the parent region when this drawer is the session entry point (a
+  // fresh deep link, depth 0). Opening it in-session leaves the camera where it is —
+  // online events have no location of their own, so there's nothing to move to.
+  const isEntryPoint = atlasDepth(location) === 0
 
   const { data: region } = useSuspenseQuery({
     queryKey: ['region', regionSlug, locale],
     queryFn: () => api.getRegion(regionSlug),
   })
 
-  useFrameOnTop(() => frameRegion(region), [region, frameRegion])
+  useFrameOnTop(() => {
+    if (isEntryPoint) frameRegion(region)
+  }, [region, frameRegion, isEntryPoint])
 
   const regionName = (region.countryCode && regionNames.of(region.countryCode)) || region.name
 
