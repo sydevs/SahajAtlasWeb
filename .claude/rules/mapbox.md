@@ -32,6 +32,22 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - GeoJSON is fetched via React Query (`queryKey: ['geojson']`) from
   `api.getGeojson()`. Don't fetch it ad-hoc in components — read from the cache.
 
+## Pin-hover timing popover
+
+- Hovering an individual pin shows a small non-interactive popover with that
+  event's timing line (`EventPinPopover`, in the `Mapbox/EventPinPopover/`
+  sub-folder). `Map.tsx` tracks the hovered `unclustered-point` id (never a
+  cluster) in **local `useState`** — it's set and read only inside the map, so it
+  stays out of `useViewState` — and re-joins it to the FULL event from the
+  `['geojson']` cache (the vector source is trimmed to `id` + `webPath`, so the
+  hovered feature alone carries no schedule).
+- It renders a react-map-gl `<Popup>`; the default popup chrome is stripped in
+  `globals.css` (`.event-pin-popover`) and the content is `pointer-events: none`,
+  so the popover never steals hover from the pin or blocks tap-to-open.
+- The line is built by the shared `composeCalendarLine` formatter
+  (`src/hooks/use-event-display.ts`) — the same one the list card's `EventFacts`
+  uses — so the popover and the card can never drift (issues #52/#72).
+
 ## View state lives in zustand, not local state
 
 - `useViewState` (`src/config/store.ts`) holds `zoom/latitude/longitude/selection/boundary`.
