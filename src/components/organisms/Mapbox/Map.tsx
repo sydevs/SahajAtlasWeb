@@ -205,17 +205,13 @@ export function Mapbox() {
       mapbox.getCanvas().style.cursor = feature ? 'pointer' : ''
 
       // Track the hovered INDIVIDUAL pin for the timing popover — never a cluster
-      // (one recurrence line is meaningless for a cluster of events). Comparing to
-      // the previous id keeps the state write a no-op while the pointer sits on one
-      // pin, and clears it the moment the pointer moves to a cluster or empty map.
+      // (one recurrence line is meaningless for a cluster of events), and null over
+      // a cluster or empty map. React bails out of a re-render when the id is
+      // unchanged (Object.is), so this stays a no-op while the pointer sits on one pin.
       const pinId =
         feature?.layer?.id === unclusteredPointLayer.id ? Number(feature.properties?.id) : NaN
 
-      setHoveredId((prev) => {
-        const next = Number.isFinite(pinId) ? pinId : null
-
-        return prev === next ? prev : next
-      })
+      setHoveredId(Number.isFinite(pinId) ? pinId : null)
     },
     [mapbox],
   )
