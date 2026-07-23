@@ -115,7 +115,7 @@ export function CloseButton({ className }: { className?: string }) {
 // close/filter controls so the header reads as one set of buttons.
 export function SearchButton() {
   const { t } = useTranslation('common')
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
 
   return (
     <Button {...HEADER_CONTROL} aria-label={t('search')} onClick={() => navigate(searchPath())}>
