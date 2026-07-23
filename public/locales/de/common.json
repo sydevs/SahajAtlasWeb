@@ -73,5 +73,9 @@
     "copy_link": "Link kopieren",
     "copied": "Kopiert"
   },
-  "search": "Suchen"
+  "search": "Suchen",
+  "back": "Zurück",
+  "close": "Schließen",
+  "explore": "Entdecken",
+  "settings": "Einstellungen"
 }

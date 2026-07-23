@@ -73,5 +73,9 @@
     "copy_link": "Kopírovat odkaz",
     "copied": "Zkopírováno"
   },
-  "search": "Hledat"
+  "search": "Hledat",
+  "back": "Zpět",
+  "close": "Zavřít",
+  "explore": "Prozkoumat",
+  "settings": "Nastavení"
 }
