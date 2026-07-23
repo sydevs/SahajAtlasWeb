@@ -112,6 +112,25 @@
   }
 }
 
+/* The event-pin hover popover (#72). Strip Mapbox's default popup chrome — the
+   white content box, its padding/radius/shadow, and the little tip — so the inner
+   Tailwind card is the whole surface and themes light/dark with the widget. The
+   content sets `pointer-events:auto` by default; force it off (the container is
+   already `none`) so the popover never steals hover from the pin beneath it or
+   blocks tap-to-open — it is a purely visual affordance. Plain CSS (not a Tailwind
+   layer) so it reliably overrides the imported mapbox-gl.css. */
+.event-pin-popover .mapboxgl-popup-content {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.event-pin-popover .mapboxgl-popup-tip {
+  display: none;
+}
+
 @layer base {
   /* Scoped to Swiper's own root rather than `:root`. This stylesheet is injected
      into the HOST document when embedded, so writing these on `:root` would
@@ -133,7 +152,7 @@
 
 @layer components {
   .bg-panel {
-    @apply backdrop-blur-lg backdrop-saturate-150 bg-background/90;
+    @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150;
   }
 
   .bg-panel-thin {
@@ -141,7 +160,7 @@
   }
 
   .bg-panel-hover {
-    @apply backdrop-blur-lg backdrop-saturate-150 bg-background/90 hover:bg-background/70;
+    @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150 hover:bg-background/70;
   }
 }
 

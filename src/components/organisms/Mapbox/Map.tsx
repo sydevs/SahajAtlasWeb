@@ -1,7 +1,7 @@
 import type { FeatureCollection, Geometry } from 'geojson'
 import type { Geojson } from '@/types'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
+import { EventPinPopover } from './EventPinPopover'
 import {
   clusterLayer,
   selectedPointLayer,
@@ -133,6 +134,11 @@ export function Mapbox() {
     staleTime: GEOJSON_STALE_TIME,
   })
 
+  // The individual event pin (unclustered-point) currently under the pointer, for
+  // the timing popover — never a cluster. Cleared when the pointer moves to empty
+  // map or leaves the canvas. Local state (not zustand): purely a map-view detail.
+  const [hoveredId, setHoveredId] = useState<number | null>(null)
+
   // Filter the feed before it feeds the clustering source, so cluster counts
   // reflect the filters (a layer-level `filter` would leave stale counts), then trim
   // to a geometry-only source. Recomputes only when the feed or filters change — not
@@ -147,6 +153,22 @@ export function Mapbox() {
 
     return toMapSource(features)
   }, [data, filters])
+
+  // Re-join the hovered pin's id to the FULL feed event (the map source is trimmed
+  // to id + webPath), reading the same `['geojson']` cache the pins come from, and
+  // read its coordinates for the popover anchor. Only events with a Point geometry
+  // are pinnable, so a geometry-less (online) event can never be hovered here.
+  const hovered = useMemo(() => {
+    if (hoveredId == null || !data) return undefined
+
+    const feature = data.features.find((f) => f.properties.id === hoveredId)
+
+    if (!feature || feature.geometry?.type !== 'Point') return undefined
+
+    const [longitude, latitude] = feature.geometry.coordinates
+
+    return { event: feature.properties, longitude, latitude }
+  }, [hoveredId, data])
 
   const selectFeature = useCallback(
     (evt: MapMouseEvent) => {
@@ -177,8 +199,23 @@ export function Mapbox() {
     (evt: MapMouseEvent) => {
       if (!mapbox) return
 
-      // This is in order to render a clickable cursor on hover
-      mapbox.getCanvas().style.cursor = evt.features?.length ? 'pointer' : ''
+      const feature = evt.features?.[0]
+
+      // Clickable cursor over any interactive feature (a pin OR a cluster).
+      mapbox.getCanvas().style.cursor = feature ? 'pointer' : ''
+
+      // Track the hovered INDIVIDUAL pin for the timing popover — never a cluster
+      // (one recurrence line is meaningless for a cluster of events). Comparing to
+      // the previous id keeps the state write a no-op while the pointer sits on one
+      // pin, and clears it the moment the pointer moves to a cluster or empty map.
+      const pinId =
+        feature?.layer?.id === unclusteredPointLayer.id ? Number(feature.properties?.id) : NaN
+
+      setHoveredId((prev) => {
+        const next = Number.isFinite(pinId) ? pinId : null
+
+        return prev === next ? prev : next
+      })
     },
     [mapbox],
   )
@@ -208,6 +245,10 @@ export function Mapbox() {
       worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
       onClick={selectFeature}
       onMouseMove={hoverOnFeature}
+      // Dismiss the timing popover when the pointer leaves the canvas. `mouseout`
+      // (react-map-gl `onMouseOut`) is the canvas-exit event; moving between pins
+      // or onto empty map is handled by `hoverOnFeature` above.
+      onMouseOut={() => setHoveredId(null)}
       //{...viewState}
       onMoveEnd={(evt) => setViewState(evt.viewState)}
     >
@@ -249,6 +290,13 @@ export function Mapbox() {
           id="hover"
           point={hover}
           pointLayer={hoveredPointLayer}
+        />
+      )}
+      {hovered && (
+        <EventPinPopover
+          event={hovered.event}
+          latitude={hovered.latitude}
+          longitude={hovered.longitude}
         />
       )}
       <GeolocateControl />
