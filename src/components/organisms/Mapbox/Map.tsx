@@ -175,6 +175,10 @@ export function Mapbox() {
       if (!evt.features || !evt.features.length || !mapbox) return
       const feature = evt.features[0]
 
+      // Dismiss the transient hover popover on any pin/cluster click (desktop
+      // click-through, or tap-to-open on touch) so it can't linger over the pin.
+      setHoveredId(null)
+
       if (feature.layer?.id === clusterLayer.id) {
         const source = mapbox.getSource('events') as GeoJSONSource
 
