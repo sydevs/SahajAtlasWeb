@@ -11,7 +11,7 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
+import { CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
 import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
@@ -26,7 +26,13 @@ import {
   readNearbyDismissed,
   shouldShowNearbyPrompt,
 } from '@/lib/nearby'
-import { activeFilterCount, filtersFromParams, filtersToParams, resolvePath } from '@/lib/shape'
+import {
+  activeFilterCount,
+  filtersFromParams,
+  filtersToParams,
+  resolvePath,
+  searchPath,
+} from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
 // use it for their close / list-toggle buttons, so those act on the ONE persistent
@@ -96,6 +102,20 @@ export function CloseButton({ className }: { className?: string }) {
   return (
     <Button {...HEADER_CONTROL} aria-label={t('close')} className={className} onClick={dismiss}>
       <CloseIcon size={20} />
+    </Button>
+  )
+}
+
+// The search affordance for region headers (RegionView): jumps to the
+// distance-ranked search view. Renders the same header-control chrome as the
+// close/filter controls so the header reads as one set of buttons.
+export function SearchButton() {
+  const { t } = useTranslation('common')
+  const navigate = useNavigate()
+
+  return (
+    <Button {...HEADER_CONTROL} aria-label={t('search')} onClick={() => navigate(searchPath())}>
+      <SearchIcon size={20} />
     </Button>
   )
 }
