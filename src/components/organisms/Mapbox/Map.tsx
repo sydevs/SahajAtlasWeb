@@ -11,7 +11,6 @@ import ReactMapGL, {
   Source,
 } from 'react-map-gl'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -25,6 +24,7 @@ import {
 } from './layers'
 
 import { useViewState, type MapPoint } from '@/config/store'
+import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -107,7 +107,7 @@ function PointSource({
 }
 
 export function Mapbox() {
-  let navigate = useNavigate()
+  let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
     useShallow((s) => ({

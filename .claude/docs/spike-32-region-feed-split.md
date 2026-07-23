@@ -111,16 +111,14 @@ derive from the cached dict + feed, client-side.
   and `/events/geojson`). Alignment is now a **policy**: a UI language SahajCloud lacks
   is added there (sydevs/SahajCloud#578 for `hu`/`nl`), not remapped here. A query-key
   factory (à la `clientQuery`) is still a nice DRY-up, but no longer a correctness net.
-- **`countryCode` from slug (#556).** SahajCloud#556 is merged, but **the local dev
-  seed still serves name-slugs (`belgium`) + `legacyData.countryCode` (`BE`)**.
-  `countryCodeOf` derives from the slug **first** and falls back to `legacyData` — so
-  flags work in both worlds today. Once the seed reflects #556, drop `legacyData` from
-  the `['regions']` select and the fallback (criterion #4's "no `legacyData` in
-  `fetch.ts`" lands then). The wholesale read still selects `legacyData: true`
-  transitionally (Payload can't sub-select that json field, so the full legacy blob
-  rides the wire) — but the zod boundary strips it to `countryCode` (no
-  `.passthrough()`), so only that reaches the public `['regions']` cache. Dropping the
-  select removes the wire exposure too.
+- **`countryCode` from slug (#556) — DONE (view-switching perf pass).** SahajCloud#556
+  (slug→ISO) is live in prod, so `legacyData` was dropped from the `['regions']` select
+  and `countryCodeOf` is now slug-only (`isoCountryCode(node.slug)`) — removing the
+  ~113 KB (64%) legacy blob from the region read and lands criterion #4's "no
+  `legacyData` in `fetch.ts`". Caveat: the **local dev seed still serves name-slugs
+  (`belgium`)**, so in dev a non-ISO slug yields no code and country flags/localized
+  names degrade to the raw region name until the seed is re-seeded (guarded — never a
+  crash). Re-verify prod country cards still render flags after deploy.
 - **Stale times.** `['regions']` gets a 30-min stale window (slower cadence than the
   5-min feed). Tune against real cache-hit telemetry.
 - The `['event-titles']` join sources titles from `/api/events` (same collection as

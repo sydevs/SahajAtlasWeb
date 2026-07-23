@@ -27,7 +27,15 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
     queryFn: () => api.getRegion(regionSlug),
   })
 
-  useFrameOnTop(() => frameRegion(region), [region, frameRegion])
+  // Frame the parent region only when this drawer is the session entry point (a fresh
+  // deep link). Opening it in-session leaves the camera where it is — online events
+  // have no location of their own, so there's nothing to move to.
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (isEntry) frameRegion(region)
+    },
+    [region, frameRegion],
+  )
 
   const regionName = (region.countryCode && regionNames.of(region.countryCode)) || region.name
 

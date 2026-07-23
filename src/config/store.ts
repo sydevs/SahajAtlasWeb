@@ -40,6 +40,56 @@ export const useViewState = create<ViewState & ViewAction>((set) => ({
 // URL query (`src/hooks/use-filters.ts` + `filtersToParams`/`filtersFromParams`),
 // so a filtered view is linkable. The map + list read them with `useEventFilters`.
 
+// ===== CAMERA HISTORY ===== //
+
+// A remembered camera, keyed by `location.key`, so going *back* restores the exact
+// viewport the user left instead of re-deriving it from the region/event. Captured
+// at navigation time (via the Link atom + useAtlasNavigate, before any new framing
+// runs — so it never races the incoming view's frame), read on a POP navigation by
+// `useFrameOnTop`. `location.key` is stable per history entry, so browser
+// back/forward hit the same snapshot for free.
+export type CameraSnapshot = Pick<
+  ViewState,
+  'zoom' | 'latitude' | 'longitude' | 'selection' | 'boundary'
+>
+
+type CameraHistoryState = {
+  snapshots: Record<string, CameraSnapshot>
+  save: (key: string, camera: CameraSnapshot) => void
+  read: (key: string) => CameraSnapshot | undefined
+}
+
+// Bound the history so a long-lived embedded session can't grow it without limit;
+// far more than back/forward ever reaches back through. Oldest-inserted evicts first
+// (object key order), which is fine — restores target recent entries.
+const MAX_SNAPSHOTS = 50
+
+// Accessed imperatively (getState) from navigation handlers + the frame effect, not
+// subscribed to in render — so writing a snapshot never re-renders the map.
+export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
+  snapshots: {},
+  save: (key, camera) =>
+    set((state) => {
+      const snapshots = { ...state.snapshots, [key]: camera }
+      const keys = Object.keys(snapshots)
+
+      if (keys.length > MAX_SNAPSHOTS) delete snapshots[keys[0]]
+
+      return { snapshots }
+    }),
+  read: (key) => get().snapshots[key],
+}))
+
+/**
+ * Snapshot the live camera (from `useViewState`) under a history key. Called right
+ * before an in-widget push so a later POP back to that entry can restore it.
+ */
+export const rememberCamera = (key: string): void => {
+  const { zoom, latitude, longitude, selection, boundary } = useViewState.getState()
+
+  useCameraHistory.getState().save(key, { zoom, latitude, longitude, selection, boundary })
+}
+
 // ===== REGISTRATION DRAFT ===== //
 
 // In-progress registration form values, hoisted out of the form so a drawer

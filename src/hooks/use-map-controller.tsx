@@ -1,3 +1,4 @@
+import type { CameraSnapshot } from '@/config/store'
 import type { Event, EventSlim, Region } from '@/types'
 
 import { type ReactNode, createContext, useContext, useEffect, useMemo } from 'react'
@@ -6,6 +7,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
 import { useBreakpoint } from '@/config/responsive'
+import { eventFrameZoom } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 
 // The camera seam (issue #30). Views call these *unconditionally*; when a map is
@@ -17,8 +19,13 @@ export type MapController = {
   hasMap: boolean
   /** Frame a region: a venue moves to its point, everything else fits its bounds. */
   frameRegion: (region: Region) => void
-  /** Frame an event: select its point and move to it (online events zoom out). */
-  frameEvent: (event: Event) => void
+  /**
+   * Frame an event: select its point and move only as needed. `isEntry` (the view is
+   * the session entry point — a deep link) forces framing even when the point is
+   * nominally "visible" at the boot-time world zoom, and frames online events (which
+   * otherwise never move).
+   */
+  frameEvent: (event: Event, opts?: { isEntry: boolean }) => void
   /** Emphasize an event's pin without moving the camera (card hover); null clears it. */
   highlightEvent: (event: EventSlim | null) => void
   /** Frame the search view: fit a bbox, move to a geocoded centre, or reset. */
@@ -26,6 +33,11 @@ export type MapController = {
     bbox?: [number, number, number, number]
     center?: [number, number]
   }) => void
+  /**
+   * Restore a remembered camera on a POP navigation — the exact viewport (centre +
+   * zoom), selection, and boundary the user left, rather than re-deriving framing.
+   */
+  restore: (camera: CameraSnapshot) => void
   /** Reset to the world view. */
   reset: () => void
   /** Clear the selected point + region boundary. */
@@ -38,6 +50,7 @@ const NOOP: MapController = {
   frameEvent: () => {},
   highlightEvent: () => {},
   frameSearch: () => {},
+  restore: () => {},
   reset: () => {},
   clearSelection: () => {},
 }
@@ -52,6 +65,17 @@ export const useMapController = () => useContext(MapControllerContext)
 const LEFT_DRAWER_PX = 352
 const MOBILE_PEEK_PX = 128
 const MAP_MARGIN = 20
+
+// Zoom/padding anchored to the event zoom, so navigating between levels reads as a
+// consistent zoom-in: an event frames at EVENT_ZOOM; a region fits no closer than
+// REGION_MAX_ZOOM (2 levels wider, so clicking its event is always a zoom-in, never
+// a jarring zoom-out); REGION_FIT_PADDING keeps edge events off the map border.
+const EVENT_ZOOM = 15
+const REGION_MAX_ZOOM = 13
+const REGION_FIT_PADDING = 48
+// An online event has only an approximate location; frame it wide (city/area level)
+// when a deep link makes it the session entry point.
+const ONLINE_ZOOM = 7
 
 // The map point an event emphasizes: its stored coordinates, tagged `approximate`
 // for online events (softer area sprite + a wider zoom). Null when the event has
@@ -73,7 +97,7 @@ export function NoopMapControllerProvider({ children }: { children: ReactNode })
 
 /** Drives the real Mapbox camera. Must render inside <MapProvider>. */
 export function RealMapControllerProvider({ children }: { children: ReactNode }) {
-  const { moveMap, fitBounds } = useMapbox()
+  const { mapbox, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
@@ -96,30 +120,54 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       frameRegion(region) {
         if (region.level === 'center') {
           setBoundary(undefined)
-          if (region.center) moveMap({ center: region.center, zoom: 13 })
+          if (region.center) flyTo(region.center, REGION_MAX_ZOOM)
         } else if (region.bounds) {
           setBoundary(bboxPolygon(region.bounds))
-          fitBounds(region.bounds)
+          // Cap the fit + pad the edges: a single-/tight-event region can't zoom past
+          // REGION_MAX_ZOOM (no-op on a large region that fits wider), and events keep
+          // breathing room from the border.
+          fitBounds(region.bounds, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
         } else {
           setBoundary(undefined)
         }
       },
-      frameEvent(event) {
+      frameEvent(event, opts) {
         const point = eventPoint(event)
 
-        if (point) {
-          setSelection(point)
-          moveMap({ center: [point.longitude, point.latitude], zoom: point.approximate ? 7 : 15 })
-        }
+        if (!point) return
+
+        setSelection(point)
+        // Move only as needed. `atDetailZoom` reads the LIVE map zoom (not the moveEnd-
+        // lagged store) so a genuine pin click at a detail zoom keeps its zoom, while a
+        // deep link / wide-view / off-screen click still eases in.
+        const zoom = eventFrameZoom({
+          approximate: point.approximate,
+          visible: isPointVisible(point.longitude, point.latitude),
+          atDetailZoom: (mapbox?.getZoom() ?? 0) >= REGION_MAX_ZOOM,
+          isEntry: opts?.isEntry ?? false,
+          eventZoom: EVENT_ZOOM,
+          onlineZoom: ONLINE_ZOOM,
+        })
+
+        // Fly in as one smooth arc (Mapbox flyTo) — the zoom happens near the target,
+        // not while the event is still crossing the screen.
+        if (zoom != null) flyTo([point.longitude, point.latitude], zoom)
       },
       highlightEvent(event) {
         setHover(event ? eventPoint(event) : null)
       },
       frameSearch({ bbox, center }) {
         setBoundary(undefined)
-        if (bbox) fitBounds(bbox)
-        else if (center) moveMap({ center: { lng: center[0], lat: center[1] }, zoom: 15 })
+        if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
+        else if (center) flyTo(center, EVENT_ZOOM)
         else moveMap({ zoom: 0 })
+      },
+      restore(camera) {
+        setSelection(camera.selection ?? null)
+        setBoundary(camera.boundary)
+        // Fly back to the remembered viewport so going back reads as smoothly as going
+        // in (e.g. the zoom-out from an event to its region), not a snappy jump.
+        flyTo([camera.longitude, camera.latitude], camera.zoom)
       },
       reset() {
         setBoundary(undefined)
@@ -130,7 +178,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setBoundary(undefined)
       },
     }),
-    [moveMap, fitBounds, setSelection, setHover, setBoundary],
+    [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],
   )
 
   return (

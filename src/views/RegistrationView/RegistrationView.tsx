@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -9,7 +8,13 @@ import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { eventTimeZone, isOnline } from '@/lib/shape'
 import { Event, REGISTRATION_QUESTION_NAMES, RegistrationQuestionName } from '@/types'
-import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
+import {
+  CloseButton,
+  DrawerTitle,
+  useDrawerControl,
+  useEventFromPath,
+  useFrameOnTop,
+} from '@/views/shared'
 
 // The registration questions enabled on this event (each `true` boolean → a field),
 // as the CMS question names so the form registers `questions.<name>` field paths.
@@ -39,13 +44,13 @@ export function RegistrationView({
   initialSubmitted?: boolean
 }) {
   const { t } = useTranslation('events')
-  const navigate = useNavigate()
+  const { dismiss } = useDrawerControl()
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, contactHelper, blockedMessage } = useEventDisplay(event)
 
-  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
   const open = display.registration === 'open'
   // Registration for an external event never happens on Atlas — a deep link
@@ -84,7 +89,7 @@ export function RegistrationView({
             questions={enabledQuestions(event)}
             timeZone={eventTimeZone(event)}
             upcomingDates={selectableDates}
-            onClose={() => navigate(parentPath)}
+            onClose={dismiss}
           />
         ) : external && !blockedMessage ? (
           // Only when the external event is actually registerable — a terminal

@@ -6,6 +6,7 @@ import { listRow } from '@/components/molecules/List/List'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePrefetchEvent } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
@@ -36,6 +37,7 @@ export function EventListItem({ event }: EventListItemProps) {
   const { locale, languageCode: uiLanguage, languageNames } = useLocale()
   const [searchParams] = useSearchParams()
   const { highlightEvent } = useMapController()
+  const prefetchEvent = usePrefetchEvent()
   const { display, typeLabel, isDefaultType } = useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
@@ -73,14 +75,21 @@ export function EventListItem({ event }: EventListItemProps) {
     : null
   const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
 
+  // Hover/focus: highlight this card's pin AND warm its detail query so opening it is a
+  // cache hit. Shared by pointer + keyboard entry so the two can't drift.
+  const activate = () => {
+    highlightEvent(event)
+    prefetchEvent(event.id)
+  }
+
   return (
     <li>
       <Link
         className={listRow({ className: 'flex flex-col gap-1 py-4' })}
         href={event.path}
         onBlur={() => highlightEvent(null)}
-        onFocus={() => highlightEvent(event)}
-        onMouseEnter={() => highlightEvent(event)}
+        onFocus={activate}
+        onMouseEnter={activate}
         onMouseLeave={() => highlightEvent(null)}
       >
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
