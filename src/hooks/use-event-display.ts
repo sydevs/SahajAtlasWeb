@@ -62,6 +62,33 @@ const WEEK_NUMBER_KEYS = {
 } as const
 
 /**
+ * Compose the compact calendar fact — the repeat pattern (or, for a one-off /
+ * terminal event, the authoritative when-line) joined to the occurrence time
+ * with a middot. The single place this line is built, shared by the list card
+ * (`EventFacts`) and the map-pin hover popover (#72) so the two can never drift.
+ *
+ * `time` is the surface's chosen time string — the start only (compact card /
+ * popover) or the full start–end range (panel). `hasNext` gates the time onto a
+ * one-off / terminal line, whose when-line already carries the date or message
+ * and which may have no upcoming occurrence to time.
+ */
+export function composeCalendarLine({
+  recurrenceLine,
+  whenLine,
+  time,
+  hasNext,
+}: {
+  recurrenceLine: string | null
+  whenLine: string
+  time: string | null
+  hasNext: boolean
+}): string {
+  return recurrenceLine
+    ? [recurrenceLine, time].filter(Boolean).join(' · ')
+    : [whenLine, hasNext ? time : null].filter(Boolean).join(' · ')
+}
+
+/**
  * The one formatting layer over `resolveEventDisplay` — every surface that
  * renders event strings (panel, card, form/share headers) reads them from here,
  * so type/status/time copy can never diverge between surfaces (issue #52).
