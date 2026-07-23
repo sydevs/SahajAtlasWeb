@@ -19,7 +19,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
 
   const { data: event } = useEventFromPath(eventPath)
 
-  useFrameOnTop(() => frameEvent(event), [event, frameEvent])
+  useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
   return (
     <>

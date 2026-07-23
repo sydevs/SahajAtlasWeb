@@ -114,7 +114,12 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 - **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
   `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open
   drawers; `DrawerStack` renders RootView (base) + one nested vaul drawer per
-  ancestor. No drawer-stack store — dismissing a drawer is `navigate(parentPath)`.
+  ancestor. No drawer-stack store. Dismissal is **history-aware**: every in-widget
+  push stamps `location.state.depth` (`atlasPushState`, via the `Link` atom +
+  `useAtlasNavigate`), so X / swipe / Esc go chronologically **back**
+  (`navigate(-1)`, restoring the prior camera) when in-widget history exists and
+  only climb to the structural parent for a fresh deep link (depth 0) — never
+  popping the host page's history. See `.claude/rules/i18n-and-state.md`.
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`;
   never inline layer paint/layout in JSX. Camera control goes through the
   `MapController` seam (`src/hooks/use-map-controller.tsx`) — a no-op when

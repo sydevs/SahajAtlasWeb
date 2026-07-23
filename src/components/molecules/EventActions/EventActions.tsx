@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react'
 import { FloatingPortal } from '@floating-ui/react'
-import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
+import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
 import {
@@ -88,7 +88,7 @@ export type EventActionsProps = {
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
   const { t } = useTranslation('events')
-  const navigate = useNavigate()
+  const navigate = useAtlasNavigate()
   const isDesktop = useIsDesktop()
   const { display, whereLine } = useEventDisplay(event)
 
