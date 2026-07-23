@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 import { tv } from 'tailwind-variants'
 
 import { CalendarIcon, LocationIcon, MonitorIcon } from '@/components/atoms/Icons'
-import { useEventDisplay, type DisplayableEvent } from '@/hooks/use-event-display'
+import {
+  composeCalendarLine,
+  useEventDisplay,
+  type DisplayableEvent,
+} from '@/hooks/use-event-display'
 
 // The when/where fact list. `default` is the panel treatment (brand-tinted icons,
 // roomy spacing); `compact` is the list-card treatment — tighter spacing, icons
@@ -123,17 +127,20 @@ export function EventFacts({
   }
 
   const items: Fact[] = [
-    recurrenceLine
-      ? {
-          icon: CalendarIcon,
-          text: [recurrenceLine, time].filter(Boolean).join(' · '),
-          subtext: timingDetail,
-        }
-      : {
-          // One-off / terminal: the when-line leads (it IS the date or message).
-          icon: CalendarIcon,
-          text: [whenLine, display.next ? time : null].filter(Boolean).join(' · '),
-        },
+    {
+      icon: CalendarIcon,
+      // The shared calendar-line composition — the identical string on the list
+      // card and the map-pin hover popover (#72). Recurring events lead with the
+      // pattern; one-off / terminal ones lead with the when-line (it IS the date
+      // or message). The muted `timingDetail` beneath it stays card/panel-only.
+      text: composeCalendarLine({
+        recurrenceLine,
+        whenLine,
+        time,
+        hasNext: Boolean(display.next),
+      }),
+      subtext: timingDetail,
+    },
   ]
 
   if (whereLine && display.status !== 'ended') {
