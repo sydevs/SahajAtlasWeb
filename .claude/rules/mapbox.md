@@ -40,22 +40,27 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 - **Views never touch the map directly.** Camera framing goes through the
   `MapController` seam (`src/hooks/use-map-controller.tsx`): views call
   `useMapController().frameRegion/frameEvent/frameSearch/restore/clearSelection`
-  unconditionally. The real provider drives `useMapbox().moveMap/fitBounds` + the
+  unconditionally. The real provider drives `useMapbox().flyTo/fitBounds/moveMap` + the
   `useViewState` selection/boundary; the **no-op** provider (when `map=false`)
   does nothing — so one place knows whether a map exists and no view branches on it.
-- **Framing moves only as needed** (zoom constants live beside `LEFT_DRAWER_PX`:
-  `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`, `REGION_FIT_PADDING=48`, `ONLINE_ZOOM=7`).
+- **Framing moves only as needed, and flies** (zoom constants live beside
+  `LEFT_DRAWER_PX`: `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`, `REGION_FIT_PADDING=48`,
+  `ONLINE_ZOOM=7`; the fly feel is `FLY_CURVE`/`FLY_SPEED` in `use-mapbox.ts`).
   `frameEvent` (via `eventFrameZoom` in `src/lib/camera.ts`) keeps the current zoom
-  only for an on-screen pin already at a detail zoom, and otherwise eases in — on
+  only for an on-screen pin already at a detail zoom, and otherwise flies in — on
   entry (`isEntry`, a deep link), from a wider view, or when off-screen. Region fits
   cap at `REGION_MAX_ZOOM` and pad the edges so a tight region can't over-zoom.
-  **`restore(camera)`** reapplies a remembered viewport on a *back* navigation —
-  `useFrameOnTop` reads the per-`location.key` `useCameraHistory` snapshot on a POP
-  (see `.claude/rules/i18n-and-state.md`) instead of re-deriving the framing.
-- `useMapbox().moveMap(...)`/`fitBounds(...)` are the low-level camera ops behind
-  the controller — don't call `map.flyTo` directly from components. Map padding is
-  set from the known drawer width per breakpoint by the MapController (no DOM
-  measurement of the panel).
+  **Every in-app level transition flies one tuned Mapbox `flyTo` arc** — framing an
+  event, drilling into a region/venue, searching a place, and **`restore(camera)`** on
+  a *back* navigation — so zooming in and out feel symmetric. `restore` reapplies a
+  remembered viewport — `useFrameOnTop` reads the per-`location.key` `useCameraHistory`
+  snapshot on a POP (see `.claude/rules/i18n-and-state.md`) instead of re-deriving it.
+- `useMapbox().flyTo/fitBounds/moveMap(...)` are the low-level camera ops behind the
+  controller — don't drive `map.flyTo`/`easeTo` directly from components. `flyTo`
+  (a point) and `fitBounds` (a bbox — Mapbox's fitBounds already flies, `linear`
+  defaults to false) both carry the tuned arc; `moveMap` is the plain `easeTo`, kept
+  only for the instant world reset + cluster expansion. Map padding is set from the
+  known drawer width per breakpoint by the MapController (no DOM measurement).
 
 ## Geo helpers
 
