@@ -87,6 +87,25 @@ export const ancestorIds = <T extends RegionTreeNode>(
   return chain
 }
 
+/**
+ * Every region id at or below `regionId` — the region itself plus all descendants
+ * (self-inclusive; a leaf yields just `{regionId}`). Drives the region *filter*:
+ * an event is "under" the selection when its own region id is in this set. Built by
+ * walking each node's ancestry once, so it's the inverse of `ancestorIds`.
+ */
+export const subtreeIds = <T extends RegionTreeNode>(
+  index: RegionIndex<T>,
+  regionId: number,
+): Set<number> => {
+  const ids = new Set<number>()
+
+  for (const node of index.byId.values()) {
+    if (ancestorIds(index, node.id).includes(regionId)) ids.add(node.id)
+  }
+
+  return ids
+}
+
 /** Events whose ancestry includes `regionId` (i.e. that fall under that region). */
 export const eventsUnder = <T extends GeoEvent>(events: T[], regionId: number): T[] =>
   events.filter((event) => event.ancestorIds.includes(regionId))

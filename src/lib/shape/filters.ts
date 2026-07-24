@@ -3,6 +3,7 @@ import type { EventSchedule, EventType, FeedEvent } from '@/types'
 import { DateTime } from 'luxon'
 
 import { eventTimeZone } from './event'
+import { type RegionTreeNode, indexRegions, subtreeIds } from './hierarchy'
 
 /**
  * The event-filter model, shared by the SearchFilters panel, the URL filter codec
@@ -49,6 +50,12 @@ export type EventFilters = {
   cadence: EventCadence
   /** Keep only events with an upcoming occurrence in this calendar-date window. */
   dateRange: DateRange
+  /**
+   * Region slug to scope to, or `null` for no restriction. An event matches when its
+   * region is this region *or a descendant* of it (see `buildRegionMatcher`), so
+   * selecting a country keeps every event in its regions/areas/venues.
+   */
+  region: string | null
 }
 
 export const DEFAULT_FILTERS: EventFilters = {
@@ -58,6 +65,7 @@ export const DEFAULT_FILTERS: EventFilters = {
   languages: [],
   cadence: 'any',
   dateRange: { start: null, end: null },
+  region: null,
 }
 
 // Freeze the singleton and its arrays so the store can safely seed/clear by
@@ -93,6 +101,38 @@ export const dateWindow = (): { min: string; max: string } => {
 /** The subset of an event `matchesFilters` needs — so it works for `FeedEvent`, `EventSlim`, and `Event`. */
 type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
   schedule?: EventSchedule | null
+  /** Direct region (present on feed features); enables the region-filter cut. */
+  region?: { id: number } | null
+}
+
+/**
+ * Decides whether an event falls under the region filter's selection. Built by
+ * `buildRegionMatcher` from the `['regions']` tree and passed into `matchesFilters`
+ * by the callers that hold that tree (the map, the list fetcher, the filter count).
+ */
+export type RegionMatcher = (event: FilterableEvent) => boolean
+
+/**
+ * A region-filter predicate over the region tree: an event matches when its region is
+ * `regionSlug` or any descendant of it. Returns `undefined` — meaning "no region
+ * restriction" — when no slug is selected, the tree isn't loaded yet, or the slug isn't
+ * a known region (an unknown slug never narrows the set). The descendant set is
+ * precomputed once so the returned matcher is O(1) per event on the map's hot path.
+ */
+export const buildRegionMatcher = (
+  regions: RegionTreeNode[] | undefined,
+  regionSlug: string | null,
+): RegionMatcher | undefined => {
+  if (!regionSlug || !regions?.length) return undefined
+
+  const index = indexRegions(regions)
+  const selected = index.bySlug.get(regionSlug)
+
+  if (!selected) return undefined
+
+  const subtree = subtreeIds(index, selected.id)
+
+  return (event) => event.region != null && subtree.has(event.region.id)
 }
 
 /**
@@ -114,13 +154,23 @@ type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
  *   wall-clock here too).
  * - When a day, time, or date filter is active, an event with no `upcomingDates`
  *   is excluded (its occurrences can't be verified).
+ * - The region cut (selected region + descendants) is applied via the optional
+ *   `matchesRegion` resolver, so region stays the single predicate the list, map,
+ *   and filter count share rather than a separate pass that could drift.
  */
 export function matchesFilters(
   event: FilterableEvent,
   filters: EventFilters,
   today?: string,
+  matchesRegion?: RegionMatcher,
 ): boolean {
   if (filters.format !== 'any' && event.eventType !== filters.format) return false
+
+  // Region cut: narrows only when a region is selected AND a resolver is supplied
+  // (the resolver carries the region tree). A selected region with no resolver is
+  // treated as no restriction, so a caller lacking the tree degrades gracefully
+  // instead of excluding every event.
+  if (filters.region && matchesRegion && !matchesRegion(event)) return false
 
   if (
     filters.languages.length > 0 &&
@@ -198,6 +248,7 @@ export const activeFilterCount = (filters: EventFilters): number => {
   if (filters.languages.length > 0) count++
   if (isTimeRestricted(filters.timeOfDay)) count++
   if (isDateRestricted(filters.dateRange)) count++
+  if (filters.region) count++
 
   return count
 }
@@ -215,13 +266,14 @@ export const filtersKey = (filters: EventFilters): string =>
     daysOfWeek: [...filters.daysOfWeek].sort((a, b) => a - b),
     languages: [...filters.languages].sort(),
     dateRange: filters.dateRange,
+    region: filters.region,
   })
 
 // ── URL serialization (the query params ARE the applied filters) ────────────────
 // The filters live in the URL so a filtered view is linkable/shareable. One compact
 // key per group; a default (unrestricted) group is omitted so links stay clean.
 
-const FILTER_PARAM_KEYS = ['format', 'cadence', 'days', 'time', 'langs', 'dates'] as const
+const FILTER_PARAM_KEYS = ['format', 'cadence', 'days', 'time', 'langs', 'dates', 'region'] as const
 const CADENCES: readonly string[] = ['once', 'DAILY', 'WEEKLY', 'MONTHLY']
 
 const parseDays = (value: string | null): number[] =>
@@ -292,6 +344,9 @@ export const filtersFromParams = (params: URLSearchParams): EventFilters => {
     // balloon it (values only feed `matchesFilters` includes + re-serialization).
     languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort().slice(0, 50) : [],
     dateRange: parseDates(params.get('dates')),
+    // Raw slug, length-capped defensively; validated against the loaded region set
+    // downstream — an unknown slug resolves to no restriction in `buildRegionMatcher`.
+    region: params.get('region')?.slice(0, 128) || null,
   }
 }
 
@@ -310,6 +365,7 @@ export const filtersToParams = (filters: EventFilters, base?: URLSearchParams): 
   if (isDateRestricted(filters.dateRange)) {
     params.set('dates', `${filters.dateRange.start ?? ''},${filters.dateRange.end ?? ''}`)
   }
+  if (filters.region) params.set('region', filters.region)
 
   return params
 }

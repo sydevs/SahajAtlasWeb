@@ -22,6 +22,7 @@ const seededParams = filtersToParams({
   timeOfDay: [9, 17],
   languages: ['en', 'fr'],
   dateRange: { start: null, end: null },
+  region: null,
 })
 
 // Seed the query on the decorator's router rather than nesting a second

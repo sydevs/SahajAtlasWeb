@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
+  buildRegionMatcher,
   filtersFromParams,
   filtersKey,
   filtersToParams,
@@ -318,6 +319,7 @@ describe('URL serialization', () => {
     timeOfDay: [9, 17],
     languages: ['en', 'fr'],
     dateRange: { start: null, end: null },
+    region: 'london',
   }
 
   it('round-trips an active filter set through the query', () => {
@@ -405,5 +407,74 @@ describe('date-range URL codec', () => {
     expect(filtersFromParams(new URLSearchParams('dates=foo,bar')).dateRange).toEqual(empty)
     expect(filtersFromParams(new URLSearchParams('dates=2026-13-40,')).dateRange).toEqual(empty)
     expect(filtersFromParams(new URLSearchParams('dates=2026-7-6,')).dateRange).toEqual(empty)
+  })
+})
+
+describe('region filter — URL codec + count', () => {
+  it('round-trips the region slug and counts it as one active group', () => {
+    const scoped = withFilters({ region: 'london' })
+
+    expect(filtersToParams(scoped).get('region')).toBe('london')
+    expect(filtersFromParams(filtersToParams(scoped)).region).toBe('london')
+    expect(activeFilterCount(scoped)).toBe(1)
+    expect(hasActiveFilters(scoped)).toBe(true)
+  })
+
+  it('omits the param and defaults to null when no region is selected', () => {
+    expect(filtersToParams(DEFAULT_FILTERS).has('region')).toBe(false)
+    expect(filtersFromParams(new URLSearchParams()).region).toBeNull()
+  })
+
+  it('varies the filters key', () => {
+    expect(filtersKey(DEFAULT_FILTERS)).not.toBe(filtersKey(withFilters({ region: 'london' })))
+  })
+})
+
+describe('region-aware matchesFilters (self + descendants)', () => {
+  // gb ▸ london ▸ ealing; de ▸ berlin
+  const regions = [
+    { id: 1, slug: 'gb', parent: null },
+    { id: 2, slug: 'london', parent: 1 },
+    { id: 3, slug: 'ealing', parent: 2 },
+    { id: 4, slug: 'de', parent: null },
+    { id: 5, slug: 'berlin', parent: 4 },
+  ]
+  const inRegion = (id: number) => ({
+    eventType: 'offline' as const,
+    languages: ['en'],
+    region: { id },
+  })
+
+  it('matches an event in the selected region or any descendant', () => {
+    const underGb = buildRegionMatcher(regions, 'gb')
+
+    expect(underGb?.(inRegion(1))).toBe(true) // the country itself
+    expect(underGb?.(inRegion(2))).toBe(true) // a region under it
+    expect(underGb?.(inRegion(3))).toBe(true) // a venue two levels down
+    expect(underGb?.(inRegion(5))).toBe(false) // a different country's region
+  })
+
+  it('scopes to a mid-tree region (parent is not "under" its child)', () => {
+    const underLondon = buildRegionMatcher(regions, 'london')
+
+    expect(underLondon?.(inRegion(2))).toBe(true)
+    expect(underLondon?.(inRegion(3))).toBe(true)
+    expect(underLondon?.(inRegion(1))).toBe(false)
+  })
+
+  it('applies the region cut through matchesFilters', () => {
+    const underGb = buildRegionMatcher(regions, 'gb')
+    const scoped = withFilters({ region: 'gb' })
+
+    expect(matchesFilters(inRegion(3), scoped, undefined, underGb)).toBe(true)
+    expect(matchesFilters(inRegion(5), scoped, undefined, underGb)).toBe(false)
+  })
+
+  it('treats an unknown slug, empty tree, or missing resolver as no restriction', () => {
+    expect(buildRegionMatcher(regions, 'atlantis')).toBeUndefined()
+    expect(buildRegionMatcher(regions, null)).toBeUndefined()
+    expect(buildRegionMatcher([], 'gb')).toBeUndefined()
+    // A selected region with no resolver passed ⇒ region does not exclude (graceful).
+    expect(matchesFilters(inRegion(5), withFilters({ region: 'gb' }))).toBe(true)
   })
 })
