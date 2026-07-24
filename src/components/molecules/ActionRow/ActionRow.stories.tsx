@@ -65,7 +65,7 @@ export const Default: Story = () => (
       title="Colors"
     >
       <div className="flex max-w-md flex-col gap-3">
-        {(['flat', 'solid', 'faded', 'bordered', 'ghost'] as const).map((variant) => (
+        {(['flat', 'solid', 'bordered', 'ghost'] as const).map((variant) => (
           <ActionRow key={variant}>
             {(['primary', 'secondary', 'contrast', 'neutral'] as const).map((color) => (
               <ActionCircle

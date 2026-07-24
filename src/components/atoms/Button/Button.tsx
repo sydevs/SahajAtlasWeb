@@ -21,7 +21,6 @@ export const controlSurface = tv({
     variant: {
       solid: '',
       flat: '',
-      faded: 'border',
       bordered: 'border bg-transparent',
       /** No surface until hovered — toolbar//header controls that must recede. */
       ghost: 'bg-transparent',
@@ -94,27 +93,6 @@ export const controlSurface = tv({
       color: 'neutral',
       variant: 'flat',
       class: 'bg-gray-3 text-gray-12 hover:bg-gray-4 active:bg-gray-5',
-    },
-    // faded (subtle bg + border)
-    {
-      color: 'primary',
-      variant: 'faded',
-      class: 'border-primary-6 bg-primary-2 text-primary-11 hover:bg-primary-3',
-    },
-    {
-      color: 'secondary',
-      variant: 'faded',
-      class: 'border-secondary-6 bg-secondary-2 text-secondary-11 hover:bg-secondary-3',
-    },
-    {
-      color: 'contrast',
-      variant: 'faded',
-      class: 'border-contrast-6 bg-contrast-2 text-contrast-11 hover:bg-contrast-3',
-    },
-    {
-      color: 'neutral',
-      variant: 'faded',
-      class: 'border-gray-6 bg-gray-2 text-gray-12 hover:bg-gray-3',
     },
     // bordered (outline)
     {

@@ -43,15 +43,15 @@ describe('EventChips', () => {
     expect(html).toContain('en, fr')
   })
 
-  it('concise: drops the plain weekly type and the viewer language (renders nothing)', () => {
-    expect(render(['en'], 'concise')).toBe('')
+  it('compact: drops the plain weekly type and the viewer language (renders nothing)', () => {
+    expect(render(['en'], 'compact')).toBe('')
   })
 
-  it('concise: keeps a non-default type and only the non-UI languages', () => {
+  it('compact: keeps a non-default type and only the non-UI languages', () => {
     d.isDefaultType = false
     d.typeLabel = 'Course'
 
-    const html = render(['en', 'fr'], 'concise')
+    const html = render(['en', 'fr'], 'compact')
 
     expect(html).toContain('Course')
     expect(html).toContain('>fr<')

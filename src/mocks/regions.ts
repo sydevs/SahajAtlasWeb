@@ -51,6 +51,13 @@ const countrySubregions: RegionListItem[] = [
   { id: 9108, slug: 'oxford', level: 'city', name: 'Oxford', subtitle: 'Oxfordshire', eventCount: 15, path: '/united-kingdom/oxfordshire/oxford' }, // prettier-ignore
 ]
 
+/** Two SY Centers (venues) inside a city — the child rows a "city with centers"
+ *  region shows. Level `center` routes to a venue. */
+const cityCenters: RegionListItem[] = [
+  { id: 8201, slug: '44-chelsham-road', level: 'center', name: '44 Chelsham Rd', eventCount: 6, path: '/united-kingdom/greater-london/london/44-chelsham-road' }, // prettier-ignore
+  { id: 8202, slug: 'flood-street', level: 'center', name: 'Flood Street', eventCount: 4, path: '/united-kingdom/greater-london/london/flood-street' }, // prettier-ignore
+]
+
 /**
  * A mixed region: child-region cards AND its own free-floating located events in one
  * list, led by an "Online Classes" roll-up card. A region can hold both venues/child
@@ -121,6 +128,25 @@ export const mockLeafRegion: Region = {
   subregions: [],
   events: mockEventVariants.filter((event) => event.eventType === 'offline'),
   onlineEvents: mockEventVariants.filter((event) => event.eventType === 'online'),
+}
+
+/**
+ * A city holding SY Centers (venues) as its children: London with two centers
+ * ("44 Chelsham Rd", "Flood Street") and an "Online Classes" roll-up above them —
+ * a city whose classes live at its centers rather than free-floating on the city.
+ */
+export const mockCityWithCentersRegion: Region = {
+  ...mockParentRegion,
+  id: 8200,
+  slug: 'london',
+  name: 'London',
+  level: 'city',
+  subtitle: 'Greater London',
+  eventCount: 24,
+  path: '/united-kingdom/greater-london/london',
+  parentPath: '/united-kingdom/greater-london',
+  subregions: cityCenters,
+  events: [],
 }
 
 /** Minimal region: no children, no events (the sparsest valid state). */

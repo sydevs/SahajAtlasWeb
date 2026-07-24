@@ -13,7 +13,6 @@ import ReactMapGL, {
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { EventPinPopover } from './EventPinPopover'
 import {
   clusterLayer,
   selectedPointLayer,
@@ -24,6 +23,7 @@ import {
   boundsLayer,
 } from './layers'
 
+import { EventPinPopover } from '@/components/molecules/EventPinPopover'
 import { useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'

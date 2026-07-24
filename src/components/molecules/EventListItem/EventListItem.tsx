@@ -25,7 +25,7 @@ const MIN_DISTANCE_KM = 5
 /**
  * The list card: title, the shared EventFacts summary (recurrence · time, then
  * the address with its distance faded below — or the online hosted-from line),
- * then the concise EventChips (a non-default type, a non-UI language, and a
+ * then the compact EventChips (a non-default type, a non-UI language, and a
  * "Today"). Distance is carried by the facts, not a chip. The
  * whole card is tappable (press state, no chevron); the Link wrapper stays
  * hookable for map-pin highlight (#44). The row is an <li> wrapping the Link so
@@ -99,7 +99,7 @@ export function EventListItem({ event }: EventListItemProps) {
           event={event}
           variant="compact"
         />
-        <EventChips className="mt-1" event={event} variant="concise" />
+        <EventChips className="mt-1" event={event} variant="compact" />
       </Link>
     </li>
   )

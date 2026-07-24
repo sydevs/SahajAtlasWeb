@@ -5,7 +5,7 @@ import { Button } from '@/components/atoms/Button'
 import { CloseIcon } from '@/components/atoms/Icons'
 
 // A status banner replacing NextUI's Alert, on the Radix-semantic tokens. `flat`
-// is a soft tint, `bordered`/`faded` add an outline; `color` selects the ramp
+// is a soft tint, `bordered` adds an outline; `color` selects the ramp
 // (danger stays the fixed status red, never brand-tinted).
 const alert = tv({
   slots: {
@@ -18,7 +18,7 @@ const alert = tv({
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },
-    variant: { flat: '', bordered: 'border', faded: 'border' },
+    variant: { flat: '', bordered: 'border' },
     // Top-align a two-line alert; vertically centre a single line of text.
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
     // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.
@@ -43,27 +43,6 @@ const alert = tv({
     },
     { color: 'neutral', variant: 'bordered', class: { base: 'border-gray-6 text-gray-12' } },
     { color: 'danger', variant: 'bordered', class: { base: 'border-danger-6 text-danger-11' } },
-    {
-      color: 'primary',
-      variant: 'faded',
-      class: { base: 'border-primary-6 bg-primary-2 text-primary-11' },
-    },
-    {
-      color: 'secondary',
-      variant: 'faded',
-      class: { base: 'border-secondary-6 bg-secondary-2 text-secondary-11' },
-    },
-    {
-      color: 'contrast',
-      variant: 'faded',
-      class: { base: 'border-contrast-6 bg-contrast-2 text-contrast-11' },
-    },
-    { color: 'neutral', variant: 'faded', class: { base: 'border-gray-6 bg-gray-2 text-gray-12' } },
-    {
-      color: 'danger',
-      variant: 'faded',
-      class: { base: 'border-danger-6 bg-danger-2 text-danger-11' },
-    },
   ],
   defaultVariants: { color: 'neutral', variant: 'flat', size: 'md' },
 })

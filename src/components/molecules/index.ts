@@ -32,7 +32,7 @@ export { EventSummary } from './EventFacts'
 export type { EventSummaryProps } from './EventFacts'
 
 // The event's triage chips (type · language(s) · Today), shared by the list card
-// and the event header so the two never drift. `concise` trims the compact card.
+// and the event header so the two never drift. `compact` trims the list card.
 export { EventChips } from './EventChips'
 export type { EventChipsProps, EventChipsVariant } from './EventChips'
 
@@ -66,3 +66,8 @@ export type { EventMetadataProps } from './EventMetadata'
 // above the list on the top-level views (wired by NearbySuggestion in views/shared).
 export { NearbyPrompt } from './NearbyPrompt'
 export type { NearbyPromptProps } from './NearbyPrompt'
+
+// EventPinPopover — the hover popover over a single map pin; its map-free card
+// (EventPinCard) stacks the recurrence above the start time. Mounted by the map.
+export { EventPinCard, EventPinPopover } from './EventPinPopover'
+export type { EventPinCardProps, EventPinPopoverProps } from './EventPinPopover'

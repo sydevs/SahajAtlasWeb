@@ -19,7 +19,7 @@ export default {
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral', 'danger'] as const
-const variants = ['flat', 'bordered', 'faded'] as const
+const variants = ['flat', 'bordered'] as const
 
 /**
  * Alert — a status banner on the Radix-semantic tokens (danger stays the fixed

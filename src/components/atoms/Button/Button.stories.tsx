@@ -21,7 +21,7 @@ export default {
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
-const variants = ['solid', 'flat', 'faded', 'bordered', 'ghost'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 

@@ -7,8 +7,8 @@ export { Mapbox, MapSearch } from './Mapbox'
 export type { MapSearchProps } from './Mapbox'
 
 // Only the data-connected container is public: the presentational `EventsList`
-// is consumed solely by `DynamicEventsList` in the same file (and its story), so
-// per DESIGN_SYSTEM.md's single-use rule it stays module-private.
+// is consumed solely by `DynamicEventsList` and its own story, so per
+// DESIGN_SYSTEM.md's single-use rule it stays module-private.
 export { DynamicEventsList } from './EventsList'
 export type { DynamicEventsListProps } from './EventsList'
 
