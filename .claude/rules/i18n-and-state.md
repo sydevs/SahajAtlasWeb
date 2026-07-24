@@ -58,14 +58,21 @@ Three stores, each the single source of truth for its slice:
   the user left. Non-reactive — accessed via `getState()` only, so a write never
   re-renders the map — and FIFO-capped so a long embedded session stays bounded.
 
-Two slices are **URL-derived, not stores** — the URL query is their single source
-of truth, so both are linkable/shareable:
+Three slices are **URL-derived, not stores** — the URL query is their single source
+of truth, so all are linkable/shareable:
 
 - **Search filters** — read with `useEventFilters`, mutate with `useSetFilters`
   (`src/hooks/use-filters.ts`); serialized by `filtersToParams` / `filtersFromParams`
   (`src/lib/shape/filters.ts`). The map, the results list, the active-filter pills,
   and the FilterButton badge all read the same URL. (There is no `useSearchState`
   store — filters used to live in zustand.)
+- **List sort order** — read with `useSortOrder`, mutate with `useSetSortOrder`
+  (`src/hooks/use-sort.ts`); serialized by `sortToParams` / `sortFromParams`
+  (`src/lib/shape/sort.ts`) under `?sort=` (default `recommended`, omitted). Kept
+  **separate from the filters** because it's presentation, not a predicate: it only
+  reorders the already-fetched results (a client re-sort in `DynamicEventsList`, never
+  a refetch — absent from `filtersKey`), and never lights the filter badge
+  (absent from `activeFilterCount`). The SortMenu (search results only) reads/writes it.
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
   in `src/lib/shape/path.ts`). Dismissal is history-aware: `dismissAction`
   (`src/lib/shape/navigation.ts`) maps X / swipe / Esc to a chronological
