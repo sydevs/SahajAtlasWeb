@@ -16,6 +16,7 @@ import {
   filtersToParams,
   hasActiveFilters,
   matchesFilters,
+  parentOf,
   todayISO,
 } from '@/lib/shape'
 import { CloseButton, DrawerTitle } from '@/views/shared'
@@ -60,17 +61,20 @@ export function FilterView() {
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
 
-  // Applying/clearing always shows the results: go to /search with the filters
-  // written into the query (preserving any existing q/bbox/center), even when the
-  // drawer was opened over the country list — the point of applying is to see the
-  // filtered events, not return to the countries. It's a "reset to results", not a
-  // forward push, so it REPLACES the filter-drawer entry (carrying its depth over)
-  // rather than stacking a new one — the filter drawer doesn't linger in history, and
-  // a chronological back from the results lands on the pre-filter view.
+  // Applying/clearing returns to the ORIGIN view (the drawer beneath the filters),
+  // with the filters written into its query — so filtering from the calendar returns
+  // to the calendar and from search back to search, each still framed by its own
+  // q/center/bbox/region. Opened over a view that doesn't itself reflect the filters
+  // (the country list or a region), apply instead jumps to /search to show the filtered
+  // events — there's no filtered surface to return to. Either way it REPLACES the
+  // filter-drawer entry (carrying its depth over) rather than stacking a new one, so the
+  // drawer doesn't linger in history and a chronological back lands on the pre-filter view.
   const commit = (filters: typeof draft) => {
     const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
+    const origin = parentOf(location.pathname)
+    const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
-    navigate({ pathname: '/search', search }, { replace: true, state: location.state })
+    navigate({ pathname: target, search }, { replace: true, state: location.state })
   }
 
   return (
