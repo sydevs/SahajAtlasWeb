@@ -72,14 +72,6 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
 
       <EventActions basePath={basePath} event={event} />
 
-      {slides.length > 0 && (
-        // Full-bleed: cancel the container's px-6 so the carousel spans the full
-        // drawer width (the slides carry no padding of their own now).
-        <div className="-mx-6">
-          <ImageCarousel slides={slides} />
-        </div>
-      )}
-
       {/* About — host-authored prose sits BELOW facts and actions, always. */}
       {descriptionHtml && (
         <div className="flex flex-col gap-2">
@@ -108,6 +100,14 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
             }}
             className="colored-links flex flex-col gap-2 text-sm normal-nums leading-snug"
           />
+        </div>
+      )}
+
+      {slides.length > 0 && (
+        // Full-bleed below the description: cancel the container's px-6 so the
+        // carousel spans the full drawer width (the slides carry no padding now).
+        <div className="-mx-6">
+          <ImageCarousel slides={slides} />
         </div>
       )}
     </div>
