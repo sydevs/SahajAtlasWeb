@@ -72,5 +72,11 @@
     "native": "Compartilhar…",
     "copy_link": "Copiar link",
     "copied": "Copiado"
+  },
+  "sort": {
+    "label": "Ordenar",
+    "recommended": "Recomendados",
+    "closest": "Mais próximos",
+    "soonest": "Mais próximos no tempo"
   }
 }

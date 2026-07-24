@@ -86,5 +86,11 @@
     "native": "Share…",
     "copy_link": "Copy link",
     "copied": "Copied"
+  },
+  "sort": {
+    "label": "Sort",
+    "recommended": "Recommended",
+    "closest": "Closest",
+    "soonest": "Soonest"
   }
 }

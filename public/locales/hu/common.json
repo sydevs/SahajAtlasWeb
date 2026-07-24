@@ -72,5 +72,11 @@
     "native": "Megosztás…",
     "copy_link": "Link másolása",
     "copied": "Másolva"
+  },
+  "sort": {
+    "label": "Rendezés",
+    "recommended": "Ajánlott",
+    "closest": "Legközelebbi",
+    "soonest": "Leghamarabb"
   }
 }
