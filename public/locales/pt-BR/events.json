@@ -27,7 +27,6 @@
     "about": "Sobre esta aula",
     "all_events_free": "Todos os eventos são gratuitos",
     "chip_ended": "Encerrado",
-    "chip_free": "Gratuito",
     "chip_full": "Lotado",
     "chip_started": "Começou em %{date}",
     "chip_starts": "Começa em %{date}",
@@ -100,7 +99,9 @@
     "starting_date": "Data de início",
     "submit": "Cadastre-se",
     "thank_you": "Obrigado por se registrar!",
-    "error_title": "Algo deu errado"
+    "error_title": "Algo deu errado",
+    "show_more_dates": "Mostrar mais datas",
+    "free_note": "A participação nesta aula é gratuita"
   },
   "timing": {
     "converted_to": "Convertido para %{timezone} (%{offset})"

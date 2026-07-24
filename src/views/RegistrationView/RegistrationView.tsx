@@ -74,7 +74,10 @@ export function RegistrationView({
   return (
     <>
       <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('registration.register_meditation')} />
+        <DrawerTitle
+          subtitle={t('registration.free_note')}
+          title={t('registration.register_meditation')}
+        />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

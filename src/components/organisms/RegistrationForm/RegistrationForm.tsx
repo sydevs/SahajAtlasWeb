@@ -9,12 +9,13 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
+import { tv } from 'tailwind-variants'
 import { useTranslation } from 'react-i18next'
 import { type ReactNode, useEffect, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
-import { Select, SelectItem, fieldChrome } from '@/components/atoms/Select'
+import { fieldChrome } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import preview from '@/config/preview'
@@ -290,8 +291,8 @@ function RegistrationFields({
   return (
     <div className="flex flex-col gap-4">
       {/* The form value is the ISO string; RegistrationSchema's z.coerce.date()
-          turns it into a Date on submit, so we bridge the controlled Radix Select
-          through a Controller and cast across that string↔Date coercion seam. */}
+          turns it into a Date on submit, so the radio list's onChange stores the
+          ISO string and we cast across that string↔Date coercion seam. */}
       <Controller
         control={control}
         defaultValue={upcomingDates[0]?.toISOString() as unknown as Date}
@@ -302,31 +303,17 @@ function RegistrationFields({
             error={errors.startingAt && t('errors.starting_at')}
             label={t('registration.starting_date')}
           >
-            <Select
-              aria-label={t('registration.starting_date')}
-              isInvalid={!!errors.startingAt}
+            <StartingDateOptions
+              ariaLabel={t('registration.starting_date')}
+              dates={upcomingDates}
+              invalid={!!errors.startingAt}
+              locale={locale}
+              name={field.name}
+              timeZone={timeZone}
               value={field.value as unknown as string}
               onBlur={field.onBlur}
-              onValueChange={field.onChange}
-            >
-              {upcomingDates.map((date) => {
-                const dateTime = DateTime.fromJSDate(date)
-                  .setZone(timeZone ?? 'local')
-                  .setLocale(locale)
-
-                return (
-                  <SelectItem
-                    key={date.toISOString()}
-                    className="capitalize"
-                    textValue={dateTime.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY)}
-                    value={date.toISOString()}
-                  >
-                    {dateTime.toRelativeCalendar()} -{' '}
-                    {dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
-                  </SelectItem>
-                )
-              })}
-            </Select>
+              onChange={field.onChange}
+            />
           </Field>
         )}
         rules={{ required: true }}
@@ -358,6 +345,94 @@ function RegistrationFields({
       ))}
 
       <p className="text-center text-xs">{t('registration.privacy_policy')}</p>
+    </div>
+  )
+}
+
+// The starting date picker: the next few occurrences as a radio list, the rest
+// behind a "show more" link so a long recurrence doesn't flood the form. Native
+// radios (not the Select atom) so the common choice — the very next session — is
+// one tap with every near option visible at a glance.
+const VISIBLE_DATES = 3
+
+const startingDateOption = tv({
+  base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm text-foreground transition-colors',
+  variants: {
+    checked: {
+      true: 'border-primary-8 bg-primary-2',
+      false: 'border-gray-7 hover:bg-gray-2',
+    },
+  },
+})
+
+function StartingDateOptions({
+  dates,
+  timeZone,
+  locale,
+  name,
+  value,
+  invalid,
+  onChange,
+  onBlur,
+  ariaLabel,
+}: {
+  dates: Date[]
+  timeZone?: string
+  locale: string
+  name: string
+  value?: string
+  invalid?: boolean
+  onChange: (value: string) => void
+  onBlur: () => void
+  ariaLabel: string
+}) {
+  const { t } = useTranslation('events')
+  const [expanded, setExpanded] = useState(false)
+
+  const visible = expanded ? dates : dates.slice(0, VISIBLE_DATES)
+
+  return (
+    <div
+      aria-invalid={invalid || undefined}
+      aria-label={ariaLabel}
+      className="flex flex-col gap-2"
+      role="radiogroup"
+    >
+      {visible.map((date) => {
+        const iso = date.toISOString()
+        const dateTime = DateTime.fromJSDate(date)
+          .setZone(timeZone ?? 'local')
+          .setLocale(locale)
+        const checked = value === iso
+
+        return (
+          <label key={iso} className={startingDateOption({ checked })}>
+            <input
+              checked={checked}
+              className="h-4 w-4 shrink-0 accent-primary"
+              name={name}
+              type="radio"
+              value={iso}
+              onBlur={onBlur}
+              onChange={() => onChange(iso)}
+            />
+            <span className="capitalize">
+              {dateTime.toRelativeCalendar()} -{' '}
+              {dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
+            </span>
+          </label>
+        )
+      })}
+
+      {dates.length > VISIBLE_DATES && !expanded && (
+        <button
+          className="self-start text-sm font-medium text-primary-11 underline underline-offset-2 hover:opacity-hover"
+          type="button"
+          onClick={() => setExpanded(true)}
+        >
+          {t('registration.show_more_dates')}
+        </button>
+      )}
     </div>
   )
 }

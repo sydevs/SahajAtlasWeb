@@ -35,8 +35,8 @@ export function EventHeader({ event, trailing }: EventHeaderProps) {
       </div>
       <div className="flex flex-wrap items-center gap-1">
         <Chip color="default">{typeLabel}</Chip>
-        {/* Free is a registration fact — irrelevant once the event has ended. */}
-        {display.status !== 'ended' && <Chip color="primary">{t('display.chip_free')}</Chip>}
+        {/* "Free" now lives in the registration header (RegistrationView), not as a
+            chip here — every event is free, so the pill added noise on every card. */}
         {statusChip && <Chip color="secondary">{statusChip}</Chip>}
         {display.online && <Chip color="default">{t('display.online')}</Chip>}
         {event.languages.map((code) => (

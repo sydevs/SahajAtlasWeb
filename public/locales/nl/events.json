@@ -27,7 +27,6 @@
     "about": "Over deze les",
     "all_events_free": "Alle evenementen zijn gratis",
     "chip_ended": "Afgelopen",
-    "chip_free": "Gratis",
     "chip_full": "Vol",
     "chip_started": "Gestart %{date}",
     "chip_starts": "Start %{date}",
@@ -100,7 +99,9 @@
     "starting_date": "Startdatum",
     "submit": "Register",
     "thank_you": "Bedankt voor uw registratie!",
-    "error_title": "Er ging iets mis"
+    "error_title": "Er ging iets mis",
+    "show_more_dates": "Meer data tonen",
+    "free_note": "Deelname aan deze les is gratis"
   },
   "timing": {
     "converted_to": "Omgerekend naar %{timezone} (%{offset})"

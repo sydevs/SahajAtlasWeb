@@ -27,7 +27,6 @@
     "about": "About this class",
     "all_events_free": "All events are free",
     "chip_ended": "Ended",
-    "chip_free": "Free",
     "chip_full": "Full",
     "chip_started": "Started %{date}",
     "chip_starts": "Starts %{date}",
@@ -107,7 +106,9 @@
     "starting_date": "Starting date",
     "submit": "Register",
     "thank_you": "Thank you for registering!",
-    "error_title": "Something went wrong"
+    "error_title": "Something went wrong",
+    "show_more_dates": "Show more dates",
+    "free_note": "This class is free to attend"
   },
   "timing": {
     "converted_to": "Converted to %{timezone} (%{offset})"

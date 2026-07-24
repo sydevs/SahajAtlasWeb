@@ -27,7 +27,6 @@
     "about": "Acerca de esta clase",
     "all_events_free": "Todos los eventos son gratuitos",
     "chip_ended": "Finalizado",
-    "chip_free": "Gratis",
     "chip_full": "Completo",
     "chip_started": "Empezó el %{date}",
     "chip_starts": "Empieza el %{date}",
@@ -100,7 +99,9 @@
     "starting_date": "Fecha de inicio",
     "submit": "Registro",
     "thank_you": "¡Gracias por registrarte!",
-    "error_title": "Algo salió mal"
+    "error_title": "Algo salió mal",
+    "show_more_dates": "Mostrar más fechas",
+    "free_note": "Asistir a esta clase es gratis"
   },
   "timing": {
     "converted_to": "Convertido a %{timezone} (%{offset})"
