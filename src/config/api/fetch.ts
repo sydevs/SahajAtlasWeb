@@ -18,6 +18,7 @@ import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
   ancestorIds,
   boundsUnder,
+  buildRegionMatcher,
   byNextOccurrence,
   countUnder,
   childRoute,
@@ -410,8 +411,15 @@ const getEvents = async (
   longitude: number,
   filters: EventFilters = DEFAULT_FILTERS,
 ): Promise<EventSlim[]> => {
-  const [geojson, titles] = await Promise.all([loadGeojson(), loadEventTitles()])
+  const [geojson, titles, regions] = await Promise.all([
+    loadGeojson(),
+    loadEventTitles(),
+    loadRegions(),
+  ])
   const from: Position = [longitude, latitude]
+  // The region cut needs the tree; only built when a region is selected (else undefined
+  // = no restriction), so the common path is unaffected.
+  const matchesRegion = buildRegionMatcher(regions, filters.region)
 
   // Filter the whole feed *before* the nearest-N slice, so a restrictive filter
   // returns the nearest matching events rather than whatever survives among the
@@ -421,7 +429,7 @@ const getEvents = async (
   const today = todayISO()
 
   return geojson.features
-    .filter((feature) => matchesFilters(feature.properties, filters, today))
+    .filter((feature) => matchesFilters(feature.properties, filters, today, matchesRegion))
     .map((feature) => toSlim(feature, titles.get(feature.properties.id), from))
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     .slice(0, NEAREST_LIMIT)
@@ -561,6 +569,7 @@ const warmCaches = (): void => {
 
 export default {
   getGeojson,
+  getRegions,
   getCountries,
   getEvents,
   getRegion,

@@ -9,6 +9,7 @@ import { SearchFilters } from '@/components/molecules'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import {
   DEFAULT_FILTERS,
   filtersKey,
@@ -35,6 +36,8 @@ export function FilterView() {
 
   // Start from the applied filters; discarded on close unless the user applies.
   const [draft, setDraft] = useState(applied)
+  // Region cut for the live count, from the draft's selected region (see matchesFilters).
+  const matchesRegion = useRegionMatcher(draft.region)
 
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
@@ -50,8 +53,9 @@ export function FilterView() {
 
     const today = todayISO()
 
-    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today)).length
-  }, [geojson, draft])
+    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today, matchesRegion))
+      .length
+  }, [geojson, draft, matchesRegion])
 
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
