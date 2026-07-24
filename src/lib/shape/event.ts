@@ -37,6 +37,19 @@ export const byNextOccurrence = (a: EventLike, b: EventLike): number => {
 }
 
 /**
+ * Comparator ordering events by ascending distance from the search point,
+ * placeless/online events (no `distance`) last — the "Closest" list sort. Guards the
+ * `Infinity - Infinity = NaN` an unguarded subtraction would return (an invalid
+ * `Array.sort` result) so two placeless events compare equal.
+ */
+export const byDistance = (a: { distance?: number }, b: { distance?: number }): number => {
+  const da = a.distance ?? Infinity
+  const db = b.distance ?? Infinity
+
+  return da === db ? 0 : da - db
+}
+
+/**
  * The timezone to display an event's times in: the viewer's local zone for
  * online events, otherwise the event's own zone (UTC as a last resort).
  */
