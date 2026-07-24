@@ -5,7 +5,7 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, ListItem } from '@/components/molecules'
+import { List, ListItem, ListToolbar } from '@/components/molecules'
 import { MonitorIcon } from '@/components/atoms/Icons'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -76,11 +76,13 @@ export function CountriesView() {
       )}
       <DrawerHeader>
         <SearchField />
-        <FilterButton />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
         <NearbySuggestion />
+        <ListToolbar>
+          <FilterButton />
+        </ListToolbar>
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
