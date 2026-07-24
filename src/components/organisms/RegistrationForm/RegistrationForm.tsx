@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
@@ -295,7 +295,10 @@ function RegistrationFields({
   const { t } = useTranslation('events')
   const { locale } = useLocale()
 
-  const startingDates = dateOptions(upcomingDates, recurrenceType, timeZone, locale)
+  const startingDates = useMemo(
+    () => dateOptions(upcomingDates, recurrenceType, timeZone, locale),
+    [upcomingDates, recurrenceType, timeZone, locale],
+  )
 
   return (
     <div className="flex flex-col gap-4">

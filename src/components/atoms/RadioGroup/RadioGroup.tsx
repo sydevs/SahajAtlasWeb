@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react'
+import clsx from 'clsx'
 import { tv } from 'tailwind-variants'
 
 // A vertical radio list rendered as selectable cards, controlled via
@@ -59,7 +60,7 @@ export function RadioGroup({
     <div
       aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
-      className={className ? `flex flex-col gap-2 ${className}` : 'flex flex-col gap-2'}
+      className={clsx('flex flex-col gap-2', className)}
       role="radiogroup"
     >
       {visible.map((option) => {
