@@ -78,5 +78,8 @@
     "native": "Partager…",
     "copy_link": "Copier le lien",
     "copied": "Copié"
+  },
+  "calendar": {
+    "title": "Calendrier"
   }
 }

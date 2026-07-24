@@ -92,5 +92,8 @@
     "native": "Share…",
     "copy_link": "Copy link",
     "copied": "Copied"
+  },
+  "calendar": {
+    "title": "Calendar"
   }
 }

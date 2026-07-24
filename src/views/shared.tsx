@@ -11,7 +11,7 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
+import { CalendarIcon, CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 import { NearbyPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
@@ -32,6 +32,7 @@ import {
 import {
   activeFilterCount,
   atlasDepth,
+  calendarPath,
   filtersFromParams,
   filtersToParams,
   resolvePath,
@@ -105,6 +106,25 @@ export function CloseButton({ className }: { className?: string }) {
   return (
     <Button {...HEADER_CONTROL} aria-label={t('close')} className={className} onClick={dismiss}>
       <CloseIcon size={20} />
+    </Button>
+  )
+}
+
+// The calendar affordance for region headers (RegionView): opens the full-width
+// calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
+// Region filter). Same header-control chrome as the close control, so the header reads
+// as one set of buttons.
+export function CalendarButton({ regionSlug }: { regionSlug: string }) {
+  const { t } = useTranslation('common')
+  const navigate = useAtlasNavigate()
+
+  return (
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('calendar.title')}
+      onClick={() => navigate(calendarPath(regionSlug))}
+    >
+      <CalendarIcon size={20} />
     </Button>
   )
 }

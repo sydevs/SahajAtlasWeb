@@ -78,5 +78,8 @@
     "native": "Delen…",
     "copy_link": "Link kopiëren",
     "copied": "Gekopieerd"
+  },
+  "calendar": {
+    "title": "Kalender"
   }
 }
