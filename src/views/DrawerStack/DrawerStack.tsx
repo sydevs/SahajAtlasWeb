@@ -22,6 +22,7 @@ import { type StackEntry, atlasDepth, dismissAction, resolveStack } from '@/lib/
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
+import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
@@ -37,6 +38,7 @@ import { ShareView } from '@/views/ShareView/ShareView'
 const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
+const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
 // How far each stacked ancestor peeks out behind the active sheet.
 const PEEK_MOBILE = 5 // px above the sheet's top edge
@@ -59,6 +61,8 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
   switch (entry.kind) {
     case 'search':
       return <SearchView />
+    case 'calendar':
+      return <CalendarView />
     case 'filters':
       return <FilterView />
     case 'region':
@@ -162,6 +166,9 @@ export function DrawerStack() {
 
   const entries = useMemo(() => resolveStack(location.pathname), [location.pathname])
   const top = entries.at(-1) ?? null
+  // The calendar is the one full-width view — it fills the widget (minus the floating
+  // margins) instead of the ~22rem left panel (see the Drawer `wide` variant).
+  const wide = top?.kind === 'calendar'
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (entries.length === 0 ? [] : ['/', ...entries.slice(0, -1).map((e) => e.path)]),
@@ -205,6 +212,14 @@ export function DrawerStack() {
 
     return () => cancelAnimationFrame(raf)
   }, [hasMap, direction, parentPaths.length])
+
+  // The full-width calendar opens at the near-full snap on mobile — a month grid needs
+  // the height — while every other view keeps the third-height open snap. Runs only when
+  // the wide-ness (or direction) flips, i.e. navigating to/from the calendar, so it never
+  // fights a manual drag on a non-calendar view.
+  useEffect(() => {
+    if (direction === 'bottom') setSnap(wide ? WIDE_SNAP : OPEN_SNAP)
+  }, [wide, direction])
 
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both
@@ -345,8 +360,12 @@ export function DrawerStack() {
                 the right edge, and the cog has to travel with it. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
             {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
-                bump the cog to top-4 to line up with the drawer's top edge. */}
-            <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+                bump the cog to top-4 to line up with the drawer's top edge. Hidden on
+                the full-width calendar — a focused view with no clean corner for the
+                floating cog; settings stay reachable from every other view. */}
+            {!wide && (
+              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+            )}
           </>,
           target,
         )}
@@ -362,6 +381,7 @@ export function DrawerStack() {
         handleOnly={direction === 'left'}
         setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
         snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+        wide={wide}
         onOpenChange={(o) => !o && control.dismiss()}
       >
         {sheet}
