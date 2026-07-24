@@ -23,8 +23,8 @@ reach for `@nextui-org/react`; it isn't a dependency.
 Before hand-rolling UI, in this order:
 
 1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip,
-   Drawer, Dropdown, Link, Select, Slider, Spinner, ToggleGroup already exist and
-   carry the app's tokens and focus behaviour.
+   Drawer, Dropdown, Link, RadioGroup, Select, Slider, Spinner, ToggleGroup
+   already exist and carry the app's tokens and focus behaviour.
 2. **Check Radix** for an unstyled primitive to build on (`@radix-ui/react-*` —
    dialog, select, checkbox, switch, slider, toggle-group, dropdown-menu, label
    are installed). Radix owns the interaction/ARIA; we own the Tailwind skin.
