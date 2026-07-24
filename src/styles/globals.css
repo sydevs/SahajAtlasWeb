@@ -20,71 +20,99 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Built-in brand defaults (the SY teal/secondary orange) as a 12-step ramp per
-   role, in the same channel format the runtime engine writes. A tenant palette
-   overrides these by setting the vars inline on the theme root (inline beats
-   these selectors); when none is set, these stand. Generated to match
-   palette.ts buildScale() — keep in sync if the ladder changes. */
+/* Built-in brand defaults — the three themeable roles (primary teal #1E6C71,
+   secondary blue #A1C3D7, contrast orange #e08e79) as a 12-step ramp each, in the
+   same channel format the runtime engine writes. `--{role}-on` is the readable
+   on-color for the solid (step 9). A tenant palette overrides these by setting the
+   vars inline on the theme root (inline beats these selectors); when none is set,
+   these stand. Generated to match palette.ts buildScale() from DEFAULT_SEEDS —
+   the palette.defaults.test gate keeps them in sync. */
 :root,
 .light,
 .light-theme {
-  --primary-contrast: 0 0% 0%;
-  --primary-1: 176 23% 99%;
-  --primary-2: 176 23% 97%;
-  --primary-3: 176 23% 94%;
-  --primary-4: 176 23% 90%;
-  --primary-5: 176 23% 85%;
-  --primary-6: 176 23% 79%;
-  --primary-7: 176 23% 72%;
-  --primary-8: 176 23% 63%;
-  --primary-9: 176 23% 60%;
-  --primary-10: 176 23% 54%;
-  --primary-11: 176 23% 40%;
-  --primary-12: 176 23% 24%;
-  --secondary-contrast: 0 0% 0%;
-  --secondary-1: 12 60% 99%;
-  --secondary-2: 12 60% 97%;
-  --secondary-3: 12 60% 94%;
-  --secondary-4: 12 60% 90%;
-  --secondary-5: 12 60% 85%;
-  --secondary-6: 12 60% 79%;
-  --secondary-7: 12 60% 72%;
-  --secondary-8: 12 60% 63%;
-  --secondary-9: 12 60% 68%;
-  --secondary-10: 12 60% 62%;
-  --secondary-11: 12 60% 40%;
-  --secondary-12: 12 60% 24%;
+  --primary-on: 0 0% 100%;
+  --primary-1: 184 58% 99%;
+  --primary-2: 184 58% 97%;
+  --primary-3: 184 58% 94%;
+  --primary-4: 184 58% 90%;
+  --primary-5: 184 58% 85%;
+  --primary-6: 184 58% 79%;
+  --primary-7: 184 58% 72%;
+  --primary-8: 184 58% 63%;
+  --primary-9: 184 58% 28%;
+  --primary-10: 184 58% 22%;
+  --primary-11: 184 58% 40%;
+  --primary-12: 184 58% 24%;
+  --secondary-on: 0 0% 0%;
+  --secondary-1: 202 40% 99%;
+  --secondary-2: 202 40% 97%;
+  --secondary-3: 202 40% 94%;
+  --secondary-4: 202 40% 90%;
+  --secondary-5: 202 40% 85%;
+  --secondary-6: 202 40% 79%;
+  --secondary-7: 202 40% 72%;
+  --secondary-8: 202 40% 63%;
+  --secondary-9: 202 40% 70%;
+  --secondary-10: 202 40% 64%;
+  --secondary-11: 202 40% 40%;
+  --secondary-12: 202 40% 24%;
+  --contrast-on: 0 0% 0%;
+  --contrast-1: 12 60% 99%;
+  --contrast-2: 12 60% 97%;
+  --contrast-3: 12 60% 94%;
+  --contrast-4: 12 60% 90%;
+  --contrast-5: 12 60% 85%;
+  --contrast-6: 12 60% 79%;
+  --contrast-7: 12 60% 72%;
+  --contrast-8: 12 60% 63%;
+  --contrast-9: 12 60% 68%;
+  --contrast-10: 12 60% 62%;
+  --contrast-11: 12 60% 40%;
+  --contrast-12: 12 60% 24%;
   --background: 0 0% 100%;
 }
 
 .dark,
 .dark-theme {
-  --primary-contrast: 0 0% 0%;
-  --primary-1: 176 23% 9%;
-  --primary-2: 176 23% 12%;
-  --primary-3: 176 23% 16%;
-  --primary-4: 176 23% 20%;
-  --primary-5: 176 23% 24%;
-  --primary-6: 176 23% 28%;
-  --primary-7: 176 23% 34%;
-  --primary-8: 176 23% 42%;
-  --primary-9: 176 23% 60%;
-  --primary-10: 176 23% 66%;
-  --primary-11: 176 23% 72%;
-  --primary-12: 176 23% 90%;
-  --secondary-contrast: 0 0% 0%;
-  --secondary-1: 12 60% 9%;
-  --secondary-2: 12 60% 12%;
-  --secondary-3: 12 60% 16%;
-  --secondary-4: 12 60% 20%;
-  --secondary-5: 12 60% 24%;
-  --secondary-6: 12 60% 28%;
-  --secondary-7: 12 60% 34%;
-  --secondary-8: 12 60% 42%;
-  --secondary-9: 12 60% 68%;
-  --secondary-10: 12 60% 74%;
-  --secondary-11: 12 60% 72%;
-  --secondary-12: 12 60% 90%;
+  --primary-on: 0 0% 0%;
+  --primary-1: 184 58% 9%;
+  --primary-2: 184 58% 12%;
+  --primary-3: 184 58% 16%;
+  --primary-4: 184 58% 20%;
+  --primary-5: 184 58% 24%;
+  --primary-6: 184 58% 28%;
+  --primary-7: 184 58% 34%;
+  --primary-8: 184 58% 42%;
+  --primary-9: 184 58% 60%;
+  --primary-10: 184 58% 66%;
+  --primary-11: 184 58% 72%;
+  --primary-12: 184 58% 90%;
+  --secondary-on: 0 0% 0%;
+  --secondary-1: 202 40% 9%;
+  --secondary-2: 202 40% 12%;
+  --secondary-3: 202 40% 16%;
+  --secondary-4: 202 40% 20%;
+  --secondary-5: 202 40% 24%;
+  --secondary-6: 202 40% 28%;
+  --secondary-7: 202 40% 34%;
+  --secondary-8: 202 40% 42%;
+  --secondary-9: 202 40% 74%;
+  --secondary-10: 202 40% 80%;
+  --secondary-11: 202 40% 72%;
+  --secondary-12: 202 40% 90%;
+  --contrast-on: 0 0% 0%;
+  --contrast-1: 12 60% 9%;
+  --contrast-2: 12 60% 12%;
+  --contrast-3: 12 60% 16%;
+  --contrast-4: 12 60% 20%;
+  --contrast-5: 12 60% 24%;
+  --contrast-6: 12 60% 28%;
+  --contrast-7: 12 60% 34%;
+  --contrast-8: 12 60% 42%;
+  --contrast-9: 12 60% 68%;
+  --contrast-10: 12 60% 74%;
+  --contrast-11: 12 60% 72%;
+  --contrast-12: 12 60% 90%;
   --background: 0 0% 7%;
 }
 
