@@ -87,6 +87,8 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `ListItem/`        | `ListItem`                       | Every row in a region list: the country → region → area drill-down AND the online-classes entry. `icon` is a fixed slot that sizes/spaces the glyph, so rows align whatever goes in it |
 | `SearchFilters/`     | `SearchFilters`                    | The filter form (format / frequency / day / time / language); fully controlled                |
 | `SettingsMenu/`      | `SettingsMenu`                     | The cog: theme radio group + language submenu, on Radix DropdownMenu (needs Sub/RadioGroup)   |
+| `ListToolbar/`       | `ListToolbar`                      | The controls row above a results list — a Filters button, plus a SortMenu on the search results; a thin `justify-between` layout the views fill |
+| `SortMenu/`          | `SortMenu`                         | The results-list sort selector (Recommended / Closest / Soonest), persisted in `?sort=`; a Radix DropdownMenu radio group (mirrors `SettingsMenu`) |
 | `ShareContent/`      | `ShareContent`, `CopyField`        | Copyable URL + region-ordered `react-share` targets with a native Web Share fallback (share dialog + registration thank-you) |
 
 **Organisms** (`src/components/organisms/`)

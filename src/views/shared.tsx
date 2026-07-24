@@ -35,6 +35,8 @@ import {
   filtersFromParams,
   filtersToParams,
   resolvePath,
+  sortFromParams,
+  sortToParams,
 } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -132,11 +134,11 @@ export function CollapseToggle() {
   )
 }
 
-// The event-filters trigger in CountriesView/SearchView headers: opens the filter
-// drawer by navigating to `<current>/filters` (root → `/filters`, `/search` →
-// `/search/filters`), preserving the search query so closing returns to the same
-// search. Shows an active-filter count badge; renders the same header-control chrome as
-// the close/list controls so the header reads as one set of buttons.
+// The event-filters trigger for the list toolbar (SearchView + CountriesView): a
+// labeled ghost button that opens the filter drawer by navigating to `<current>/filters`
+// (root → `/filters`, `/search` → `/search/filters`), preserving the search query so
+// closing returns to the same search. The active-filter count rides in the label
+// (`Filters (2)`) rather than a badge, now that the control carries text.
 export function FilterButton() {
   const { t } = useTranslation('common')
   const navigate = useAtlasNavigate()
@@ -148,21 +150,25 @@ export function FilterButton() {
 
   return (
     <Button
-      {...HEADER_CONTROL}
-      aria-label={label}
-      className="relative"
+      size="sm"
+      variant="ghost"
       onClick={() => navigate({ pathname: to, search: location.search })}
     >
-      <FilterIcon size={20} />
-      {count > 0 && (
-        <span
-          aria-hidden
-          className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-xs font-semibold leading-none text-primary-foreground"
-        >
-          {count}
-        </span>
-      )}
+      <FilterIcon size={18} />
+      {label}
     </Button>
+  )
+}
+
+// The URL-only state that survives a new place search — the applied filters and the
+// list sort (both presentation, not location). Re-encoding through the two codecs drops
+// the searched-location params (`q`/`center`/`bbox`/`all`); the caller then sets the new
+// location. Shared by SearchField + NearbySuggestion so a re-search never silently clears
+// either slice.
+function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
+  return sortToParams(
+    sortFromParams(searchParams),
+    filtersToParams(filtersFromParams(searchParams)),
   )
 }
 
@@ -176,9 +182,9 @@ export function SearchField() {
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      // Preserve the active filters (URL-only now) while resetting the searched
-      // location — searching a new place shouldn't silently clear the filters.
-      const params = filtersToParams(filtersFromParams(searchParams))
+      // Carry the active filters + sort (both URL-only) across the re-search, resetting
+      // only the searched location below.
+      const params = preserveSearchState(searchParams)
 
       params.set('q', value.properties.full_address ?? '')
       if (value.properties.bbox) params.set('bbox', value.properties.bbox.toString())
@@ -348,9 +354,9 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
 
-    // Preserve the active filters (URL-only) while resetting the searched location —
-    // mirrors SearchField; searching shouldn't silently clear the filters.
-    const params = filtersToParams(filtersFromParams(searchParams))
+    // Carry the active filters + sort across the re-search (mirrors SearchField),
+    // resetting only the searched location below.
+    const params = preserveSearchState(searchParams)
 
     params.set('q', `${ipLocation.city}, ${ipLocation.country}`)
     params.set('center', `${ipLocation.longitude},${ipLocation.latitude}`)
