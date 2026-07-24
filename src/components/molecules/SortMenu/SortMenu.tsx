@@ -43,11 +43,13 @@ export function SortMenu() {
   const setOrder = useSetSortOrder()
   const container = overlayContainer()
 
+  // modal={false}: this menu opens inside the draggable vaul drawer; Radix's default
+  // modal scroll-lock + body pointer-events trap fights the sheet's own drag/scroll.
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
         <Button size="sm" variant="ghost">
-          <span className="truncate">
+          <span>
             {t('sort.label')}: {t(`sort.${order}`)}
           </span>
           <DownArrowIcon size={16} />
