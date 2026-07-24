@@ -1,0 +1,100 @@
+import { describe, it, expect } from 'vitest'
+import { DateTime } from 'luxon'
+
+import { eventsToCalendarEntries, type CalendarSourceEvent } from './calendar'
+
+const at = (zone: string, iso: string) => DateTime.fromISO(iso, { zone })
+
+const makeEvent = (opts: {
+  id?: number
+  title?: string
+  path?: string
+  eventType?: 'offline' | 'online'
+  zone?: string | null
+  endTime?: string | null
+  occurrences: DateTime[]
+}): CalendarSourceEvent => ({
+  id: opts.id ?? 1,
+  title: opts.title ?? 'Meditation',
+  path: opts.path ?? '/1',
+  eventType: opts.eventType ?? 'offline',
+  schedule: {
+    firstDate: opts.occurrences[0]?.toJSDate() ?? new Date('2026-01-01T00:00:00Z'),
+    firstDate_tz: opts.zone === undefined ? 'Asia/Kolkata' : opts.zone,
+    endTime: opts.endTime ?? null,
+    upcomingDates: opts.occurrences.map((dt) => dt.toJSDate()),
+  },
+})
+
+// A wide instant window so the fixtures' July occurrences fall inside it.
+const RANGE = { from: at('UTC', '2026-07-01T00:00'), to: at('UTC', '2026-12-31T23:59') }
+
+describe('eventsToCalendarEntries', () => {
+  it('emits one entry per occurrence, as the event-zone wall-clock', () => {
+    const evt = makeEvent({
+      zone: 'Asia/Kolkata',
+      endTime: '11:00',
+      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30'), at('Asia/Kolkata', '2026-07-13T09:30')],
+    })
+    const entries = eventsToCalendarEntries([evt], RANGE)
+
+    expect(entries).toHaveLength(2)
+    expect(entries[0]).toMatchObject({
+      title: 'Meditation',
+      start: '2026-07-06 09:30',
+      end: '2026-07-06 11:00',
+      path: '/1',
+    })
+    // Ids are unique per occurrence.
+    expect(entries[0].id).not.toBe(entries[1].id)
+  })
+
+  it('reads online events in the viewer zone', () => {
+    const zone = DateTime.local().zoneName ?? 'UTC'
+    const evt = makeEvent({
+      eventType: 'online',
+      zone: null,
+      occurrences: [at(zone, '2026-07-06T18:00')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], RANGE)
+
+    expect(entry.start).toBe('2026-07-06 18:00')
+  })
+
+  it('falls back to a 1h span when endTime is unset', () => {
+    const evt = makeEvent({
+      zone: 'Asia/Kolkata',
+      endTime: null,
+      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], RANGE)
+
+    expect(entry).toMatchObject({ start: '2026-07-06 09:30', end: '2026-07-06 10:30' })
+  })
+
+  it('rolls an endTime before the start to the next day', () => {
+    const evt = makeEvent({
+      zone: 'Asia/Kolkata',
+      endTime: '00:30',
+      occurrences: [at('Asia/Kolkata', '2026-07-06T23:00')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], RANGE)
+
+    expect(entry).toMatchObject({ start: '2026-07-06 23:00', end: '2026-07-07 00:30' })
+  })
+
+  it('excludes occurrences outside the range', () => {
+    const evt = makeEvent({
+      zone: 'Asia/Kolkata',
+      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30'), at('Asia/Kolkata', '2027-01-06T09:30')],
+    })
+    const entries = eventsToCalendarEntries([evt], RANGE)
+
+    expect(entries).toHaveLength(1)
+    expect(entries[0].start).toBe('2026-07-06 09:30')
+  })
+
+  it('contributes nothing for an event with no occurrences', () => {
+    expect(eventsToCalendarEntries([makeEvent({ occurrences: [] })], RANGE)).toEqual([])
+  })
+})

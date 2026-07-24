@@ -8,7 +8,7 @@ import type {
   RegionListItem,
   RegionNode,
 } from '@/types'
-import type { EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
+import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
@@ -435,6 +435,36 @@ const getEvents = async (
     .slice(0, NEAREST_LIMIT)
 }
 
+// ── Calendar source events (the whole filtered set, for occurrence expansion) ────
+
+// Every event matching the filters, shaped for the CalendarView's occurrence
+// expansion — title + canonical route joined, the region cut applied via the same
+// `matchesFilters` predicate the map/list share. Unlike getEvents this is NOT
+// distance-ranked or capped (a calendar shows the whole matching set, online events
+// included); the client expands each event's `upcomingDates` into per-occurrence
+// entries (`eventsToCalendarEntries`).
+const getCalendarEvents = async (
+  filters: EventFilters = DEFAULT_FILTERS,
+): Promise<CalendarSourceEvent[]> => {
+  const [geojson, titles, regions] = await Promise.all([
+    loadGeojson(),
+    loadEventTitles(),
+    loadRegions(),
+  ])
+  const matchesRegion = buildRegionMatcher(regions, filters.region)
+  const today = todayISO()
+
+  return geojson.features
+    .filter((feature) => matchesFilters(feature.properties, filters, today, matchesRegion))
+    .map((feature) => ({
+      id: feature.properties.id,
+      title: titles.get(feature.properties.id) ?? '',
+      path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
+      eventType: feature.properties.eventType,
+      schedule: feature.properties.schedule,
+    }))
+}
+
 // ── Single event detail ─────────────────────────────────────────────────────────
 
 /**
@@ -572,6 +602,7 @@ export default {
   getRegions,
   getCountries,
   getEvents,
+  getCalendarEvents,
   getRegion,
   getRegionNodeById,
   getEvent,
