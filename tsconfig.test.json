@@ -14,5 +14,5 @@
     "checkJs": true,
     "noImplicitAny": false
   },
-  "include": ["tests", "scripts", "vitest.config.ts", "vitest.smoke.config.ts"]
+  "include": ["tests", "scripts", "functions", "vitest.config.ts", "vitest.smoke.config.ts"]
 }
