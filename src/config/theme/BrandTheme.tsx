@@ -21,7 +21,7 @@ type BrandThemeProps = {
 //
 // It renders *above* the Suspense boundary so the prop palette themes the
 // loading fallback immediately; the client record (color1/2/3 → primary /
-// secondary / background) merges in once its query resolves. Re-applies the
+// secondary / contrast) merges in once its query resolves. Re-applies the
 // mode-aware DEFAULT/foreground whenever the theme flips light↔dark.
 export function BrandTheme({ apiKey, palette, rootRef, children }: BrandThemeProps) {
   const { theme } = useTheme()
@@ -35,17 +35,14 @@ export function BrandTheme({ apiKey, palette, rootRef, children }: BrandThemePro
     () => ({
       primary: palette?.primary ?? client?.color1,
       secondary: palette?.secondary ?? client?.color2,
-      // No client slot for `contrast` (the record only carries color1–3 →
-      // primary/secondary/background), so it's per-embed-only for now, falling
-      // back to the built-in default ramp otherwise.
-      contrast: palette?.contrast,
-      background: palette?.background ?? client?.color3,
+      // `color3` now themes the `contrast` role. Background is no longer
+      // tenant-wired — it uses the fixed globals.css default on every component.
+      contrast: palette?.contrast ?? client?.color3,
     }),
     [
       palette?.primary,
       palette?.secondary,
       palette?.contrast,
-      palette?.background,
       client?.color1,
       client?.color2,
       client?.color3,
