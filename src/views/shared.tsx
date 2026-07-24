@@ -160,6 +160,18 @@ export function FilterButton() {
   )
 }
 
+// The URL-only state that survives a new place search — the applied filters and the
+// list sort (both presentation, not location). Re-encoding through the two codecs drops
+// the searched-location params (`q`/`center`/`bbox`/`all`); the caller then sets the new
+// location. Shared by SearchField + NearbySuggestion so a re-search never silently clears
+// either slice.
+function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
+  return sortToParams(
+    sortFromParams(searchParams),
+    filtersToParams(filtersFromParams(searchParams)),
+  )
+}
+
 // The geocoder search field used by CountriesView/SearchView headers. Selecting a
 // place navigates to /search with the geocoded bbox + centre (the SearchView
 // ranks events by distance from there). Carries the geocode→search behaviour that
@@ -170,12 +182,9 @@ export function SearchField() {
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      // Preserve the active filters + sort (both URL-only) while resetting the searched
-      // location — searching a new place shouldn't silently clear either.
-      const params = sortToParams(
-        sortFromParams(searchParams),
-        filtersToParams(filtersFromParams(searchParams)),
-      )
+      // Carry the active filters + sort (both URL-only) across the re-search, resetting
+      // only the searched location below.
+      const params = preserveSearchState(searchParams)
 
       params.set('q', value.properties.full_address ?? '')
       if (value.properties.bbox) params.set('bbox', value.properties.bbox.toString())
@@ -345,12 +354,9 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
 
-    // Preserve the active filters + sort (both URL-only) while resetting the searched
-    // location — mirrors SearchField; searching shouldn't silently clear either.
-    const params = sortToParams(
-      sortFromParams(searchParams),
-      filtersToParams(filtersFromParams(searchParams)),
-    )
+    // Carry the active filters + sort across the re-search (mirrors SearchField),
+    // resetting only the searched location below.
+    const params = preserveSearchState(searchParams)
 
     params.set('q', `${ipLocation.city}, ${ipLocation.country}`)
     params.set('center', `${ipLocation.longitude},${ipLocation.latitude}`)
