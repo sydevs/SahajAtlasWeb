@@ -24,7 +24,7 @@ const colors = ['primary', 'secondary', 'default'] as const
 
 /**
  * Chip — a compact, uppercase label on the Radix-semantic tokens. Showcases the
- * colour × variant matrix and the emphasis / size / radius / removable options.
+ * colour × variant matrix and the size / radius / removable options.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -37,6 +37,7 @@ export const Default: Story = () => (
           <StoryGridHeaderRow>
             <StoryGridHeaderCell />
             <StoryGridHeaderCell>flat</StoryGridHeaderCell>
+            <StoryGridHeaderCell>subtle</StoryGridHeaderCell>
             <StoryGridHeaderCell>ghost</StoryGridHeaderCell>
           </StoryGridHeaderRow>
         </StoryGridHeader>
@@ -50,6 +51,11 @@ export const Default: Story = () => (
                 </Chip>
               </StoryGridCell>
               <StoryGridCell>
+                <Chip color={color} variant="subtle">
+                  online
+                </Chip>
+              </StoryGridCell>
+              <StoryGridCell>
                 <Chip color={color} variant="ghost">
                   online
                 </Chip>
@@ -58,13 +64,6 @@ export const Default: Story = () => (
           ))}
         </StoryGridBody>
       </StoryGrid>
-    </StorySection>
-
-    <StorySection description="Content weight (default: solid)." title="Emphasis">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip emphasis="solid">solid</Chip>
-        <Chip emphasis="subtle">subtle</Chip>
-      </div>
     </StorySection>
 
     <StorySection description="sm (default) and md." title="Size">
