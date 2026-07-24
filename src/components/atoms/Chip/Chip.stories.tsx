@@ -20,7 +20,7 @@ export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
-const colors = ['primary', 'secondary', 'default'] as const
+const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
 
 /**
  * Chip — a compact, uppercase label on the Radix-semantic tokens. Showcases the
@@ -85,7 +85,7 @@ export const Default: Story = () => (
       title="Removable"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Chip closeLabel="Remove online" color="default" radius="full" onClose={() => {}}>
+        <Chip closeLabel="Remove online" color="neutral" radius="full" onClose={() => {}}>
           online
         </Chip>
         <Chip closeLabel="Remove Français" color="primary" radius="full" onClose={() => {}}>

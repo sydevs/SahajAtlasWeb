@@ -8,7 +8,7 @@ export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
-const colors = ['primary', 'secondary', 'default'] as const
+const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 
 /** Spinner — a pure-CSS loading indicator on the brand/neutral tokens. */

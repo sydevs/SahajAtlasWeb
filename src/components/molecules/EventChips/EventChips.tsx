@@ -52,7 +52,7 @@ export function EventChips({ event, variant = 'default', className }: EventChips
     <div className={clsx('flex flex-wrap items-center gap-1', className)}>
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
-      {today && <Chip color="danger">{t('display.chip_today')}</Chip>}
+      {today && <Chip color="contrast">{t('display.chip_today')}</Chip>}
     </div>
   )
 }

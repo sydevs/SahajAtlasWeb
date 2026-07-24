@@ -58,12 +58,12 @@ describe('EventChips', () => {
     expect(html).not.toContain('en, fr')
   })
 
-  it('shows a danger "Today" chip when the event is today', () => {
+  it('shows a contrast "Today" chip when the event is today', () => {
     d.status = 'today'
 
     const html = render(['en'])
 
     expect(html).toContain('display.chip_today')
-    expect(html).toContain('text-danger-11')
+    expect(html).toContain('text-contrast-11')
   })
 })

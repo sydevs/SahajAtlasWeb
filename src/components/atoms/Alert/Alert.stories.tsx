@@ -18,7 +18,7 @@ export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
-const colors = ['primary', 'secondary', 'default', 'danger'] as const
+const colors = ['primary', 'secondary', 'contrast', 'neutral', 'danger'] as const
 const variants = ['flat', 'bordered', 'faded'] as const
 
 /**
@@ -95,16 +95,16 @@ export const Default: Story = () => (
     >
       <div className="flex max-w-xs flex-col gap-3">
         <Alert
-          color="default"
+          color="neutral"
           description="A single, longer field that wraps onto two or three lines — with one field the icon auto-centres against the block."
         />
         <Alert
           align="start"
-          color="default"
+          color="neutral"
           description="The same wrapping field, but align=start pins the icon to the first line instead."
         />
         <Alert
-          color="default"
+          color="neutral"
           description="With two fields the icon top-aligns with the first line by default."
           title="Title + description"
         />

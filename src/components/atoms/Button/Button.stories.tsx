@@ -20,7 +20,7 @@ export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
-const colors = ['primary', 'secondary', 'default', 'danger'] as const
+const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
 const variants = ['solid', 'flat', 'faded', 'bordered', 'ghost'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const

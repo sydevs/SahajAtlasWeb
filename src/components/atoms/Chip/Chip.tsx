@@ -18,7 +18,7 @@ const chip = tv({
       'shrink-0 rounded-full opacity-60 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100',
   },
   variants: {
-    color: { primary: '', secondary: '', default: '', danger: '' },
+    color: { primary: '', secondary: '', contrast: '', neutral: '' },
     // The surface treatment carries the content weight: `flat`/`ghost` are bold,
     // `subtle` is the flat tint at a lighter weight (the tint itself is shared in
     // compoundVariants below).
@@ -48,12 +48,16 @@ const chip = tv({
       variant: ['flat', 'subtle'],
       class: { base: 'bg-secondary-3 text-secondary-11' },
     },
-    { color: 'default', variant: ['flat', 'subtle'], class: { base: 'bg-gray-3 text-gray-12' } },
-    { color: 'danger', variant: ['flat', 'subtle'], class: { base: 'bg-danger-3 text-danger-11' } },
+    {
+      color: 'contrast',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-contrast-3 text-contrast-11' },
+    },
+    { color: 'neutral', variant: ['flat', 'subtle'], class: { base: 'bg-gray-3 text-gray-12' } },
     { color: 'primary', variant: 'ghost', class: { base: 'text-primary-11' } },
     { color: 'secondary', variant: 'ghost', class: { base: 'text-secondary-11' } },
-    { color: 'default', variant: 'ghost', class: { base: 'text-gray-12' } },
-    { color: 'danger', variant: 'ghost', class: { base: 'text-danger-11' } },
+    { color: 'contrast', variant: 'ghost', class: { base: 'text-contrast-11' } },
+    { color: 'neutral', variant: 'ghost', class: { base: 'text-gray-12' } },
   ],
   defaultVariants: {
     color: 'primary',

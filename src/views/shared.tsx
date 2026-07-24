@@ -320,7 +320,7 @@ export function EmptyEventList() {
 
   return (
     <div className="p-4">
-      <Alert color="default" description={t('filters.no_events')} />
+      <Alert color="neutral" description={t('filters.no_events')} />
     </div>
   )
 }

@@ -22,7 +22,7 @@ export const Default: Story = () => {
         <div className="flex flex-wrap items-center gap-6">
           <Checkbox checked color="primary" />
           <Checkbox checked color="secondary" />
-          <Checkbox checked color="default" />
+          <Checkbox checked color="neutral" />
           <Checkbox checked={false} color="primary" />
         </div>
       </StorySection>
@@ -31,7 +31,7 @@ export const Default: Story = () => {
         <div className="flex flex-wrap items-center gap-6">
           <Checkbox checked appearance="checkbox" color="primary" />
           <Checkbox checked appearance="checkbox" color="secondary" />
-          <Checkbox checked appearance="checkbox" color="default" />
+          <Checkbox checked appearance="checkbox" color="neutral" />
           <Checkbox appearance="checkbox" checked={false} color="primary" />
         </div>
       </StorySection>

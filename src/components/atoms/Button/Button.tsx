@@ -17,7 +17,7 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 export const controlSurface = tv({
   base: 'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[background,color,opacity]',
   variants: {
-    color: { primary: '', secondary: '', default: '', danger: '' },
+    color: { primary: '', secondary: '', contrast: '', neutral: '' },
     variant: {
       solid: '',
       flat: '',
@@ -51,25 +51,29 @@ export const controlSurface = tv({
     isIconOnly: { true: 'shrink-0 px-0', false: '' },
   },
   compoundVariants: [
-    // solid
+    // solid — a dark brand bg + WHITE text in light mode, so even a light brand
+    // seed (e.g. a pale secondary) reads with white; dark mode keeps the ramp's
+    // light solid (step 9) + its adaptive on-color. `neutral` uses the fixed gray
+    // solid (gray-9 pairs with gray-1/white in both modes).
     {
       color: 'primary',
       variant: 'solid',
-      class: 'bg-primary-9 text-primary-foreground hover:bg-primary-10',
+      class:
+        'bg-primary-12 text-white hover:bg-primary-11 dark:bg-primary-9 dark:text-primary-foreground dark:hover:bg-primary-10',
     },
     {
       color: 'secondary',
       variant: 'solid',
-      class: 'bg-secondary-9 text-secondary-foreground hover:bg-secondary-10',
+      class:
+        'bg-secondary-12 text-white hover:bg-secondary-11 dark:bg-secondary-9 dark:text-secondary-foreground dark:hover:bg-secondary-10',
     },
-    // gray-1 rather than a literal white so the pairing follows the ramp in dark
-    // mode too (every other cell in this matrix uses a token).
-    { color: 'default', variant: 'solid', class: 'bg-gray-9 text-gray-1 hover:bg-gray-10' },
     {
-      color: 'danger',
+      color: 'contrast',
       variant: 'solid',
-      class: 'bg-danger-9 text-danger-foreground hover:bg-danger-10',
+      class:
+        'bg-contrast-12 text-white hover:bg-contrast-11 dark:bg-contrast-9 dark:text-contrast-foreground dark:hover:bg-contrast-10',
     },
+    { color: 'neutral', variant: 'solid', class: 'bg-gray-9 text-gray-1 hover:bg-gray-10' },
     // flat (soft tint)
     {
       color: 'primary',
@@ -82,14 +86,14 @@ export const controlSurface = tv({
       class: 'bg-secondary-3 text-secondary-11 hover:bg-secondary-4 active:bg-secondary-5',
     },
     {
-      color: 'default',
+      color: 'contrast',
       variant: 'flat',
-      class: 'bg-gray-3 text-gray-12 hover:bg-gray-4 active:bg-gray-5',
+      class: 'bg-contrast-3 text-contrast-11 hover:bg-contrast-4 active:bg-contrast-5',
     },
     {
-      color: 'danger',
+      color: 'neutral',
       variant: 'flat',
-      class: 'bg-danger-3 text-danger-11 hover:bg-danger-4 active:bg-danger-5',
+      class: 'bg-gray-3 text-gray-12 hover:bg-gray-4 active:bg-gray-5',
     },
     // faded (subtle bg + border)
     {
@@ -103,14 +107,14 @@ export const controlSurface = tv({
       class: 'border-secondary-6 bg-secondary-2 text-secondary-11 hover:bg-secondary-3',
     },
     {
-      color: 'default',
+      color: 'contrast',
       variant: 'faded',
-      class: 'border-gray-6 bg-gray-2 text-gray-12 hover:bg-gray-3',
+      class: 'border-contrast-6 bg-contrast-2 text-contrast-11 hover:bg-contrast-3',
     },
     {
-      color: 'danger',
+      color: 'neutral',
       variant: 'faded',
-      class: 'border-danger-6 bg-danger-2 text-danger-11 hover:bg-danger-3',
+      class: 'border-gray-6 bg-gray-2 text-gray-12 hover:bg-gray-3',
     },
     // bordered (outline)
     {
@@ -123,23 +127,23 @@ export const controlSurface = tv({
       variant: 'bordered',
       class: 'border-secondary-7 text-secondary-11 hover:bg-secondary-3',
     },
-    { color: 'default', variant: 'bordered', class: 'border-gray-7 text-gray-12 hover:bg-gray-3' },
     {
-      color: 'danger',
+      color: 'contrast',
       variant: 'bordered',
-      class: 'border-danger-7 text-danger-11 hover:bg-danger-3',
+      class: 'border-contrast-7 text-contrast-11 hover:bg-contrast-3',
     },
+    { color: 'neutral', variant: 'bordered', class: 'border-gray-7 text-gray-12 hover:bg-gray-3' },
     // ghost (surface only on hover)
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },
+    { color: 'contrast', variant: 'ghost', class: 'text-contrast-11 hover:bg-contrast-3' },
     // The drawer header's controls: subtle until hovered, then full contrast, so
     // close / list-toggle / filter read as one set.
     {
-      color: 'default',
+      color: 'neutral',
       variant: 'ghost',
       class: 'text-gray-11 hover:bg-primary-3 hover:text-foreground',
     },
-    { color: 'danger', variant: 'ghost', class: 'text-danger-11 hover:bg-danger-3' },
     // Icon-only controls are square: the width tracks the height from the size
     // scale, so the control stays square (and the circle round) at every size.
     { isIconOnly: true, size: 'sm', class: 'w-8' },
@@ -147,7 +151,7 @@ export const controlSurface = tv({
     { isIconOnly: true, size: 'lg', class: 'w-12' },
   ],
   defaultVariants: {
-    color: 'default',
+    color: 'neutral',
     variant: 'solid',
     size: 'md',
     radius: 'sm',

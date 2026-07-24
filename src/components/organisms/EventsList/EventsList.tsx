@@ -107,7 +107,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   if (nearbyKm !== undefined) {
     return (
       <div className="p-4">
-        <Alert color="default" description={t('filters.no_nearby', { km: nearbyKm })} />
+        <Alert color="neutral" description={t('filters.no_nearby', { km: nearbyKm })} />
       </div>
     )
   }
@@ -115,7 +115,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   return (
     <div className="p-4">
       <Alert
-        color="default"
+        color="neutral"
         description={active ? t('filters.no_results') : t('filters.no_events')}
       >
         {active && (

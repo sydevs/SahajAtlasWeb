@@ -17,10 +17,19 @@ const toggle = tv({
       'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform',
   },
   variants: {
+    // Checked track darkened (step 12) in light mode so a pale brand still reads
+    // against the near-white thumb; dark mode keeps the ramp's light solid (step 9).
     color: {
-      primary: { root: 'data-[state=checked]:bg-primary-9' },
-      secondary: { root: 'data-[state=checked]:bg-secondary-9' },
-      default: { root: 'data-[state=checked]:bg-gray-9' },
+      primary: {
+        root: 'data-[state=checked]:bg-primary-12 dark:data-[state=checked]:bg-primary-9',
+      },
+      secondary: {
+        root: 'data-[state=checked]:bg-secondary-12 dark:data-[state=checked]:bg-secondary-9',
+      },
+      contrast: {
+        root: 'data-[state=checked]:bg-contrast-12 dark:data-[state=checked]:bg-contrast-9',
+      },
+      neutral: { root: 'data-[state=checked]:bg-gray-9' },
     },
     size: {
       sm: { root: 'h-5 w-9', thumb: 'h-4 w-4 data-[state=checked]:translate-x-[18px]' },
@@ -36,17 +45,20 @@ const box = tv({
     indicator: 'flex items-center justify-center',
   },
   variants: {
-    // The check colour rides with the checked background: `*-foreground` resolves
-    // to the tenant's `--{role}-contrast` (black by default), so a pale brand
-    // palette still gets a legible check — a literal white would vanish on it.
+    // Checked box darkened (step 12) + WHITE check in light mode, so even a pale
+    // brand gets a legible check; dark mode keeps the ramp's light solid (step 9)
+    // + its adaptive on-color (`--{role}-on`).
     color: {
       primary: {
-        root: 'data-[state=checked]:border-primary-9 data-[state=checked]:bg-primary-9 data-[state=checked]:text-primary-foreground',
+        root: 'data-[state=checked]:border-primary-12 data-[state=checked]:bg-primary-12 data-[state=checked]:text-white dark:data-[state=checked]:border-primary-9 dark:data-[state=checked]:bg-primary-9 dark:data-[state=checked]:text-primary-foreground',
       },
       secondary: {
-        root: 'data-[state=checked]:border-secondary-9 data-[state=checked]:bg-secondary-9 data-[state=checked]:text-secondary-foreground',
+        root: 'data-[state=checked]:border-secondary-12 data-[state=checked]:bg-secondary-12 data-[state=checked]:text-white dark:data-[state=checked]:border-secondary-9 dark:data-[state=checked]:bg-secondary-9 dark:data-[state=checked]:text-secondary-foreground',
       },
-      default: {
+      contrast: {
+        root: 'data-[state=checked]:border-contrast-12 data-[state=checked]:bg-contrast-12 data-[state=checked]:text-white dark:data-[state=checked]:border-contrast-9 dark:data-[state=checked]:bg-contrast-9 dark:data-[state=checked]:text-contrast-foreground',
+      },
+      neutral: {
         root: 'data-[state=checked]:border-gray-9 data-[state=checked]:bg-gray-9 data-[state=checked]:text-gray-1',
       },
     },
