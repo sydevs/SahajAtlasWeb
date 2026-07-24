@@ -31,6 +31,11 @@ export type { EventFactsProps } from './EventFacts'
 export { EventSummary } from './EventFacts'
 export type { EventSummaryProps } from './EventFacts'
 
+// The event's triage chips (type · language(s) · Today), shared by the list card
+// and the event header so the two never drift. `concise` trims the compact card.
+export { EventChips } from './EventChips'
+export type { EventChipsProps, EventChipsVariant } from './EventChips'
+
 export { List } from './List'
 
 export { ListItem } from './ListItem'

@@ -16,11 +16,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({
-    locale: 'en',
-    languageCode: 'en',
-    languageNames: { of: (code: string) => code },
-  }),
+  useLocale: () => ({ locale: 'en' }),
 }))
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ highlightEvent: () => {} }),
@@ -30,11 +26,13 @@ vi.mock('@/hooks/use-map-controller', () => ({
 vi.mock('@/hooks/use-prefetch-event', () => ({
   usePrefetchEvent: () => () => {},
 }))
-vi.mock('@/hooks/use-event-display', () => ({
-  useEventDisplay: () => ({ display: { online: false }, typeLabel: '', isDefaultType: true }),
-}))
 vi.mock('@/components/molecules/EventFacts', () => ({
   EventFacts: () => null,
+}))
+// EventChips pulls the display resolver + i18n; the card's chips aren't what this
+// DOM-nesting test asserts, so stub it out (like EventFacts).
+vi.mock('@/components/molecules/EventChips', () => ({
+  EventChips: () => null,
 }))
 
 describe('EventListItem', () => {

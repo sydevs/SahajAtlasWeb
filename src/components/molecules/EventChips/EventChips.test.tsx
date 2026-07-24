@@ -1,0 +1,69 @@
+import type { EventChipsProps } from './EventChips'
+
+import { renderToStaticMarkup } from 'react-dom/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { EventChips } from './EventChips'
+
+// Drive the display resolver + locale by hand so the test exercises the chip
+// variant/filter logic, not the display derivation. The UI language is `en`;
+// `languageLabel` echoes the code so the combined language text is greppable.
+const { d } = vi.hoisted(() => ({
+  d: { status: 'upcoming', typeLabel: 'Weekly class', isDefaultType: true },
+}))
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
+vi.mock('@/hooks/use-locale', () => ({
+  useLocale: () => ({ languageCode: 'en', languageLabel: (code: string) => code }),
+}))
+vi.mock('@/hooks/use-event-display', () => ({
+  useEventDisplay: () => ({
+    display: { status: d.status },
+    typeLabel: d.typeLabel,
+    isDefaultType: d.isDefaultType,
+  }),
+}))
+
+const render = (languages: string[], variant?: EventChipsProps['variant']) =>
+  renderToStaticMarkup(
+    <EventChips event={{ languages } as unknown as EventChipsProps['event']} variant={variant} />,
+  )
+
+describe('EventChips', () => {
+  beforeEach(() => {
+    d.status = 'upcoming'
+    d.typeLabel = 'Weekly class'
+    d.isDefaultType = true
+  })
+
+  it('default: names the type and folds every language into one chip', () => {
+    const html = render(['en', 'fr'])
+
+    expect(html).toContain('Weekly class')
+    expect(html).toContain('en, fr')
+  })
+
+  it('concise: drops the plain weekly type and the viewer language (renders nothing)', () => {
+    expect(render(['en'], 'concise')).toBe('')
+  })
+
+  it('concise: keeps a non-default type and only the non-UI languages', () => {
+    d.isDefaultType = false
+    d.typeLabel = 'Course'
+
+    const html = render(['en', 'fr'], 'concise')
+
+    expect(html).toContain('Course')
+    expect(html).toContain('>fr<')
+    expect(html).not.toContain('en, fr')
+  })
+
+  it('shows a danger "Today" chip when the event is today', () => {
+    d.status = 'today'
+
+    const html = render(['en'])
+
+    expect(html).toContain('display.chip_today')
+    expect(html).toContain('text-danger-11')
+  })
+})

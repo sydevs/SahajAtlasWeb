@@ -3,14 +3,14 @@ import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { listRow } from '@/components/molecules/List/List'
-import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePrefetchEvent } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
+import { isOnline } from '@/lib/shape'
+import { EventChips } from '@/components/molecules/EventChips'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { Link } from '@/components/atoms/Link'
-import { Chip } from '@/components/atoms/Chip'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -25,8 +25,8 @@ const MIN_DISTANCE_KM = 5
 /**
  * The list card: title, the shared EventFacts summary (recurrence · time, then
  * the address with its distance faded below — or the online hosted-from line),
- * then the language chip when it differs from the UI language. Status and
- * distance are carried by the facts, so the card adds no chips of its own. The
+ * then the concise EventChips (a non-default type, a non-UI language, and a
+ * "Today"). Distance is carried by the facts, not a chip. The
  * whole card is tappable (press state, no chevron); the Link wrapper stays
  * hookable for map-pin highlight (#44). The row is an <li> wrapping the Link so
  * each card is a valid direct child of the List's <ul> (#65). The divider
@@ -34,11 +34,10 @@ const MIN_DISTANCE_KM = 5
  */
 export function EventListItem({ event }: EventListItemProps) {
   const { t } = useTranslation('events')
-  const { locale, languageCode: uiLanguage, languageNames } = useLocale()
+  const { locale } = useLocale()
   const [searchParams] = useSearchParams()
   const { highlightEvent } = useMapController()
   const prefetchEvent = usePrefetchEvent()
-  const { display, typeLabel, isDefaultType } = useEventDisplay(event)
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -51,12 +50,7 @@ export function EventListItem({ event }: EventListItemProps) {
   highlightRef.current = highlightEvent
   useEffect(() => () => highlightRef.current(null), [])
 
-  const online = display.online
-  const languageCode = event.languages[0] ?? ''
-  const showLanguage = languageCode && languageCode.split('-')[0] !== uiLanguage
-
-  // The type pill names anything that ISN'T the default weekly class.
-  const showType = !isDefaultType
+  const online = isOnline(event)
 
   // Distance from the SEARCHED location, never the device's — so name the place
   // when we know it ("3.6 km from Brussels"); "away" would imply "from you" and
@@ -105,20 +99,7 @@ export function EventListItem({ event }: EventListItemProps) {
           event={event}
           variant="compact"
         />
-        {(showType || showLanguage) && (
-          <div className="mt-1 flex flex-wrap items-center gap-1">
-            {showType && (
-              <Chip color="default" size="sm">
-                {typeLabel}
-              </Chip>
-            )}
-            {showLanguage && (
-              <Chip color="secondary" size="sm">
-                {languageNames.of(languageCode)}
-              </Chip>
-            )}
-          </div>
-        )}
+        <EventChips className="mt-1" event={event} variant="concise" />
       </Link>
     </li>
   )
