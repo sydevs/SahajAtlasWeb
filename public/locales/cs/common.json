@@ -59,6 +59,12 @@
       "pill_from": "Od %{date}",
       "pill_until": "Do %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Region",
+      "all": "Všechny regiony",
+      "search": "Hledat regiony…",
+      "empty": "Žádné regiony nenalezeny"
     }
   },
   "search_placeholder": "Hledat události poblíž…",

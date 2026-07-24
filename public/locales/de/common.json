@@ -59,6 +59,12 @@
       "pill_from": "Ab %{date}",
       "pill_until": "Bis %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Region",
+      "all": "Alle Regionen",
+      "search": "Regionen suchen…",
+      "empty": "Keine Regionen gefunden"
     }
   },
   "search_placeholder": "Veranstaltungen suchen in …",

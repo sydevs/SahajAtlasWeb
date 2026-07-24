@@ -59,6 +59,12 @@
       "pill_from": "Ettől: %{date}",
       "pill_until": "Eddig: %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Régió",
+      "all": "Minden régió",
+      "search": "Régió keresése…",
+      "empty": "Nincs találat"
     }
   },
   "search_placeholder": "Események keresése a közelben…",

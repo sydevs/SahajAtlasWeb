@@ -59,6 +59,12 @@
       "pill_from": "С %{date}",
       "pill_until": "До %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Регион",
+      "all": "Все регионы",
+      "search": "Поиск регионов…",
+      "empty": "Регионы не найдены"
     }
   },
   "search_placeholder": "Искать события рядом с…",

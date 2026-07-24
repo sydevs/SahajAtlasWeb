@@ -1,8 +1,11 @@
 import { useMemo } from 'react'
 import { DateTime, Info } from 'luxon'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Chip } from '@/components/atoms/Chip'
+import api from '@/config/api'
+import { REGIONS_STALE_TIME } from '@/config/query-client'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
@@ -26,11 +29,27 @@ export type ActiveFilterPillsProps = {
 export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = useEventFilters()
-  const { setFormat, setCadence, setTimeOfDay, setDaysOfWeek, setLanguages, setDateRange } =
-    useSetFilters()
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
+  const {
+    setFormat,
+    setCadence,
+    setTimeOfDay,
+    setDaysOfWeek,
+    setLanguages,
+    setDateRange,
+    setRegion,
+  } = useSetFilters()
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
+
+  // Resolve the selected region slug to its display name from the cache-once tree
+  // (falls back to the slug until the tree loads / for an unknown slug).
+  const { data: regions } = useQuery({
+    queryKey: ['regions'],
+    queryFn: () => api.getRegions(),
+    staleTime: REGIONS_STALE_TIME,
+  })
+  const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
 
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
@@ -39,6 +58,13 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
       key: 'nearby',
       label: t('filters.nearby', { km: nearby.km }),
       onRemove: nearby.onClear,
+    })
+  }
+  if (region) {
+    pills.push({
+      key: 'region',
+      label: regionName ?? region,
+      onRemove: () => setRegion(null),
     })
   }
   if (format !== 'any') {

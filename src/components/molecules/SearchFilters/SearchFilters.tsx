@@ -7,10 +7,11 @@ import { Checkbox } from '@/components/atoms/Checkbox'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Slider } from '@/components/atoms/Slider'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
+import { SearchableSelect } from '@/components/atoms/SearchableSelect'
 import { fieldChrome } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
 import {
@@ -20,7 +21,9 @@ import {
   TIME_MAX,
   TIME_MIN,
   TIME_STEP,
+  ancestorIds,
   dateWindow,
+  indexRegions,
   isDateRestricted,
   isTimeRestricted,
 } from '@/lib/shape'
@@ -133,7 +136,7 @@ export type SearchFiltersProps = {
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = value
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = value
 
   // Patch one or more fields of the current draft.
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
@@ -143,6 +146,41 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
   })
+
+  const { data: regions } = useQuery({
+    queryKey: ['regions'],
+    queryFn: () => api.getRegions(),
+    staleTime: REGIONS_STALE_TIME,
+  })
+
+  // Region options: every region present in the feed (any level with events under
+  // it), labelled with a breadcrumb hint so same-named places are distinguishable.
+  // The region cut itself (self + descendants) lives in `buildRegionMatcher`.
+  const regionOptions = useMemo(() => {
+    if (!regions?.length || !geojson) return []
+
+    const index = indexRegions(regions)
+    const present = new Set<number>()
+
+    for (const feature of geojson.features) {
+      for (const id of ancestorIds(index, feature.properties.region.id)) present.add(id)
+    }
+
+    return regions
+      .filter((node) => present.has(node.id))
+      .map((node) => ({
+        value: node.slug,
+        label: node.name ?? node.slug,
+        hint:
+          ancestorIds(index, node.id)
+            .slice(1) // drop self → parent … country
+            .map((id) => index.byId.get(id)?.name)
+            .filter((name): name is string => Boolean(name))
+            .reverse() // country → … → parent (top-down breadcrumb)
+            .join(' · ') || undefined,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, locale))
+  }, [regions, geojson, locale])
 
   // Mon-first weekday pills; luxon's `Info.weekdays` is 1 (Mon)–7 (Sun), matching
   // the store's day encoding, so the value is the index + 1. `short` (3-char)
@@ -188,6 +226,24 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      {regionOptions.length > 0 && (
+        <FilterGroup
+          active={region !== null}
+          label={t('filters.region.label')}
+          onClear={() => patch({ region: null })}
+        >
+          <SearchableSelect
+            aria-label={t('filters.region.label')}
+            emptyLabel={t('filters.region.empty')}
+            options={regionOptions}
+            placeholder={t('filters.region.all')}
+            searchPlaceholder={t('filters.region.search')}
+            value={region}
+            onChange={(next) => patch({ region: next })}
+          />
+        </FilterGroup>
+      )}
+
       <FilterGroup
         active={format !== 'any'}
         label={t('filters.format.label')}

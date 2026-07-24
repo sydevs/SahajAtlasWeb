@@ -101,7 +101,7 @@ export function SearchableSelect({
 
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
-          <FloatingFocusManager context={context} initialFocus={inputRef} modal={false} returnFocus>
+          <FloatingFocusManager returnFocus context={context} initialFocus={inputRef} modal={false}>
             <div
               ref={refs.setFloating}
               style={floatingStyles}

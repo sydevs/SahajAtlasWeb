@@ -52,6 +52,12 @@
       "pill_from": "From %{date}",
       "pill_until": "Until %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Region",
+      "all": "All regions",
+      "search": "Search regions…",
+      "empty": "No regions found"
     }
   },
   "free_meditation_class": "Free Meditation Class",
