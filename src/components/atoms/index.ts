@@ -37,6 +37,9 @@ export type { DropdownProps } from './Dropdown'
 export { Link } from './Link'
 export type { LinkProps } from './Link'
 
+export { SearchableSelect } from './SearchableSelect'
+export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect'
+
 export { Select, SelectItem } from './Select'
 export type { SelectProps, SelectItemProps } from './Select'
 
