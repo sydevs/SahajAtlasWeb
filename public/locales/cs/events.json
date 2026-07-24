@@ -25,7 +25,7 @@
   },
   "display": {
     "about": "O této lekci",
-    "all_events_free": "Všechny akce jsou zdarma",
+    "all_events_free": "Všechny lekce jsou zdarma",
     "chip_ended": "Ukončeno",
     "chip_full": "Obsazeno",
     "chip_started": "Zahájeno %{date}",
@@ -102,8 +102,7 @@
     "submit": "Rejstřík",
     "thank_you": "Děkujeme za registraci!",
     "error_title": "Něco se pokazilo",
-    "show_more_dates": "Zobrazit další termíny",
-    "free_note": "Účast na této lekci je zdarma"
+    "show_more_dates": "Zobrazit další termíny"
   },
   "timing": {
     "converted_to": "Převedeno na %{timezone} (%{offset})"

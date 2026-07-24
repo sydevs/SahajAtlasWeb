@@ -75,7 +75,7 @@ export function RegistrationView({
     <>
       <DrawerHeader className="justify-between">
         <DrawerTitle
-          subtitle={t('registration.free_note')}
+          subtitle={t('display.all_events_free')}
           title={t('registration.register_meditation')}
         />
         <CloseButton />
@@ -90,6 +90,7 @@ export function RegistrationView({
             initialSubmitted={initialSubmitted}
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
+            recurrenceType={event.schedule?.recurrenceType}
             timeZone={eventTimeZone(event)}
             upcomingDates={selectableDates}
             onClose={dismiss}

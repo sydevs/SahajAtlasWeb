@@ -9,18 +9,18 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
-import { tv } from 'tailwind-variants'
 import { useTranslation } from 'react-i18next'
 import { type ReactNode, useEffect, useState } from 'react'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
+import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import preview from '@/config/preview'
 import { useRegistrationDraft } from '@/config/store'
-import { Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
+import { RecurrenceType, Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 
@@ -34,6 +34,9 @@ export type RegistrationFormProps = {
   /** Zone the starting-date options render in — the event's own zone for
    *  physical events, the viewer's for online (issue #52 time contract). */
   timeZone?: string
+  /** The event's recurrence (DAILY/WEEKLY/MONTHLY) so the starting-date labels
+   *  read in the class's own cadence ("Next week" vs "Next month"). */
+  recurrenceType?: RecurrenceType | null
   /** Optional close callback; the footer also closes the enclosing Modal via ModalClose. */
   onClose?: () => void
   /** Start in the post-submit confirmation state — for previewing that screen in a
@@ -54,6 +57,7 @@ export function RegistrationForm({
   eventId,
   upcomingDates,
   timeZone,
+  recurrenceType,
   questions,
   isOnline,
   eventTitle,
@@ -125,6 +129,7 @@ export function RegistrationForm({
             control={control}
             errors={errors}
             questions={questions}
+            recurrenceType={recurrenceType}
             register={register}
             timeZone={timeZone}
             upcomingDates={upcomingDates}
@@ -271,6 +276,7 @@ function LabeledTextarea({
 type RegistrationFieldsProps = {
   upcomingDates: Date[]
   timeZone?: string
+  recurrenceType?: RecurrenceType | null
   questions: RegistrationQuestionName[]
   register: UseFormRegister<Registration>
   control: Control<Registration>
@@ -280,6 +286,7 @@ type RegistrationFieldsProps = {
 function RegistrationFields({
   upcomingDates,
   timeZone,
+  recurrenceType,
   questions,
   register,
   control,
@@ -287,6 +294,8 @@ function RegistrationFields({
 }: RegistrationFieldsProps) {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
+
+  const startingDates = dateOptions(upcomingDates, recurrenceType, timeZone, locale)
 
   return (
     <div className="flex flex-col gap-4">
@@ -303,13 +312,13 @@ function RegistrationFields({
             error={errors.startingAt && t('errors.starting_at')}
             label={t('registration.starting_date')}
           >
-            <StartingDateOptions
-              ariaLabel={t('registration.starting_date')}
-              dates={upcomingDates}
-              invalid={!!errors.startingAt}
-              locale={locale}
+            <RadioGroup
+              aria-label={t('registration.starting_date')}
+              collapseAfter={VISIBLE_DATES}
+              isInvalid={!!errors.startingAt}
+              moreLabel={t('registration.show_more_dates')}
               name={field.name}
-              timeZone={timeZone}
+              options={startingDates}
               value={field.value as unknown as string}
               onBlur={field.onBlur}
               onChange={field.onChange}
@@ -349,90 +358,42 @@ function RegistrationFields({
   )
 }
 
-// The starting date picker: the next few occurrences as a radio list, the rest
-// behind a "show more" link so a long recurrence doesn't flood the form. Native
-// radios (not the Select atom) so the common choice — the very next session — is
-// one tap with every near option visible at a glance.
+// The starting-date picker shows the next `VISIBLE_DATES` occurrences up front;
+// the RadioGroup atom collapses the rest behind a "show more" link.
 const VISIBLE_DATES = 3
 
-const startingDateOption = tv({
-  base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm text-foreground transition-colors',
-  variants: {
-    checked: {
-      true: 'border-primary-8 bg-primary-2',
-      false: 'border-gray-7 hover:bg-gray-2',
-    },
-  },
-})
+// Relative-label unit per recurrence, so the options read in the class's own
+// cadence — weekly: "This week / Next week / In 2 weeks", daily: "Today /
+// Tomorrow / In 2 days", monthly: "This month / Next month / …" — rather than
+// Luxon's auto unit, which drifts ("in 6 days", then "next month"). A one-off /
+// course (no recurrence) keeps the auto unit.
+const RELATIVE_UNIT: Record<RecurrenceType, 'days' | 'weeks' | 'months'> = {
+  DAILY: 'days',
+  WEEKLY: 'weeks',
+  MONTHLY: 'months',
+}
 
-function StartingDateOptions({
-  dates,
-  timeZone,
-  locale,
-  name,
-  value,
-  invalid,
-  onChange,
-  onBlur,
-  ariaLabel,
-}: {
-  dates: Date[]
-  timeZone?: string
-  locale: string
-  name: string
-  value?: string
-  invalid?: boolean
-  onChange: (value: string) => void
-  onBlur: () => void
-  ariaLabel: string
-}) {
-  const { t } = useTranslation('events')
-  const [expanded, setExpanded] = useState(false)
+function dateOptions(
+  dates: Date[],
+  recurrenceType: RecurrenceType | null | undefined,
+  timeZone: string | undefined,
+  locale: string,
+): RadioOption[] {
+  const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
 
-  const visible = expanded ? dates : dates.slice(0, VISIBLE_DATES)
+  return dates.map((date) => {
+    const dateTime = DateTime.fromJSDate(date)
+      .setZone(timeZone ?? 'local')
+      .setLocale(locale)
 
-  return (
-    <div
-      aria-invalid={invalid || undefined}
-      aria-label={ariaLabel}
-      className="flex flex-col gap-2"
-      role="radiogroup"
-    >
-      {visible.map((date) => {
-        const iso = date.toISOString()
-        const dateTime = DateTime.fromJSDate(date)
-          .setZone(timeZone ?? 'local')
-          .setLocale(locale)
-        const checked = value === iso
-
-        return (
-          <label key={iso} className={startingDateOption({ checked })}>
-            <input
-              checked={checked}
-              className="h-4 w-4 shrink-0 accent-primary"
-              name={name}
-              type="radio"
-              value={iso}
-              onBlur={onBlur}
-              onChange={() => onChange(iso)}
-            />
-            <span className="capitalize">
-              {dateTime.toRelativeCalendar()} -{' '}
-              {dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
-            </span>
-          </label>
-        )
-      })}
-
-      {dates.length > VISIBLE_DATES && !expanded && (
-        <button
-          className="self-start text-sm font-medium text-primary-11 underline underline-offset-2 hover:opacity-hover"
-          type="button"
-          onClick={() => setExpanded(true)}
-        >
-          {t('registration.show_more_dates')}
-        </button>
-      )}
-    </div>
-  )
+    return {
+      value: date.toISOString(),
+      label: (
+        <span className="capitalize">
+          {dateTime.toRelativeCalendar(unit ? { unit } : undefined)} -{' '}
+          {dateTime.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY)}
+        </span>
+      ),
+    }
+  })
 }

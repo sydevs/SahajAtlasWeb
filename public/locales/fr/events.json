@@ -25,7 +25,7 @@
   },
   "display": {
     "about": "À propos de ce cours",
-    "all_events_free": "Tous les événements sont gratuits",
+    "all_events_free": "Tous les cours sont gratuits",
     "chip_ended": "Terminé",
     "chip_full": "Complet",
     "chip_started": "Commencé le %{date}",
@@ -100,8 +100,7 @@
     "submit": "Continuer",
     "thank_you": "Merci pour votre inscription !",
     "error_title": "Une erreur est survenue",
-    "show_more_dates": "Afficher plus de dates",
-    "free_note": "La participation à ce cours est gratuite"
+    "show_more_dates": "Afficher plus de dates"
   },
   "timing": {
     "converted_to": "Converti en %{timezone} (%{offset})"

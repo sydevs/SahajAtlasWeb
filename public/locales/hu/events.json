@@ -25,7 +25,7 @@
   },
   "display": {
     "about": "Erről a foglalkozásról",
-    "all_events_free": "Minden esemény ingyenes",
+    "all_events_free": "Minden óra ingyenes",
     "chip_ended": "Véget ért",
     "chip_full": "Betelt",
     "chip_started": "Elkezdődött: %{date}",
@@ -100,8 +100,7 @@
     "submit": "Register",
     "thank_you": "Thank you for registering!",
     "error_title": "Valami hiba történt",
-    "show_more_dates": "További időpontok megjelenítése",
-    "free_note": "Ezen az órán ingyenes a részvétel"
+    "show_more_dates": "További időpontok megjelenítése"
   },
   "timing": {
     "converted_to": "Converted to %{timezone} (%{offset})"

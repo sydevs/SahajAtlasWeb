@@ -25,7 +25,7 @@
   },
   "display": {
     "about": "Об этом занятии",
-    "all_events_free": "Все мероприятия бесплатны",
+    "all_events_free": "Все занятия бесплатны",
     "chip_ended": "Завершено",
     "chip_full": "Мест нет",
     "chip_started": "Идёт с %{date}",
@@ -102,8 +102,7 @@
     "submit": "Зарегистрироваться",
     "thank_you": "Спасибо за регистрацию!",
     "error_title": "Что-то пошло не так",
-    "show_more_dates": "Показать больше дат",
-    "free_note": "Посещение этого занятия бесплатно"
+    "show_more_dates": "Показать больше дат"
   },
   "timing": {
     "converted_to": "Преобразовано в %{timezone} (%{offset})"
