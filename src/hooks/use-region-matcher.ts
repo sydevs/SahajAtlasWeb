@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import api from '@/config/api'
-import { REGIONS_STALE_TIME } from '@/config/query-client'
+import { regionsQuery } from '@/config/api'
 import { type RegionMatcher, buildRegionMatcher } from '@/lib/shape'
 
 /**
@@ -14,11 +13,7 @@ import { type RegionMatcher, buildRegionMatcher } from '@/lib/shape'
  * restriction" (the pins/list show unscoped for the one frame before it resolves).
  */
 export const useRegionMatcher = (regionSlug: string | null): RegionMatcher | undefined => {
-  const { data: regions } = useQuery({
-    queryKey: ['regions'],
-    queryFn: () => api.getRegions(),
-    staleTime: REGIONS_STALE_TIME,
-  })
+  const { data: regions } = useQuery(regionsQuery())
 
   return useMemo(() => buildRegionMatcher(regions, regionSlug), [regions, regionSlug])
 }

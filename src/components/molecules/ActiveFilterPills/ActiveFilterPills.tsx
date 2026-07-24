@@ -4,8 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Chip } from '@/components/atoms/Chip'
-import api from '@/config/api'
-import { REGIONS_STALE_TIME } from '@/config/query-client'
+import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
@@ -42,14 +41,8 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
 
-  // Resolve the selected region slug to its display name from the cache-once tree
-  // (falls back to the slug until the tree loads / for an unknown slug).
-  const { data: regions } = useQuery({
-    queryKey: ['regions'],
-    queryFn: () => api.getRegions(),
-    staleTime: REGIONS_STALE_TIME,
-  })
-  const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
+  // The cache-once region tree, to resolve the selected slug to its display name below.
+  const { data: regions } = useQuery(regionsQuery())
 
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
@@ -61,11 +54,11 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
     })
   }
   if (region) {
-    pills.push({
-      key: 'region',
-      label: regionName ?? region,
-      onRemove: () => setRegion(null),
-    })
+    // Show the region's name (falling back to the slug until the tree loads / for an
+    // unknown slug), resolved where it's used so there's no null-typed intermediate.
+    const name = regions?.find((node) => node.slug === region)?.name ?? region
+
+    pills.push({ key: 'region', label: name, onRemove: () => setRegion(null) })
   }
   if (format !== 'any') {
     pills.push({

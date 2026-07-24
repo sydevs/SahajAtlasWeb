@@ -89,18 +89,35 @@ export const ancestorIds = <T extends RegionTreeNode>(
 
 /**
  * Every region id at or below `regionId` — the region itself plus all descendants
- * (self-inclusive; a leaf yields just `{regionId}`). Drives the region *filter*:
- * an event is "under" the selection when its own region id is in this set. Built by
- * walking each node's ancestry once, so it's the inverse of `ancestorIds`.
+ * (self-inclusive; a leaf yields just `{regionId}`). Drives the region *filter*: an
+ * event is "under" the selection when its own region id is in this set. Descends the
+ * tree from `regionId` (via a one-pass parent→children index) rather than re-walking
+ * every node's ancestry, so it's O(regions), not O(regions·depth).
  */
 export const subtreeIds = <T extends RegionTreeNode>(
   index: RegionIndex<T>,
   regionId: number,
 ): Set<number> => {
-  const ids = new Set<number>()
+  const childrenByParent = new Map<number, number[]>()
 
   for (const node of index.byId.values()) {
-    if (ancestorIds(index, node.id).includes(regionId)) ids.add(node.id)
+    if (node.parent == null) continue
+    const siblings = childrenByParent.get(node.parent)
+
+    if (siblings) siblings.push(node.id)
+    else childrenByParent.set(node.parent, [node.id])
+  }
+
+  const ids = new Set<number>([regionId])
+  const stack = [regionId]
+
+  for (let current = stack.pop(); current !== undefined; current = stack.pop()) {
+    for (const child of childrenByParent.get(current) ?? []) {
+      if (!ids.has(child)) {
+        ids.add(child)
+        stack.push(child)
+      }
+    }
   }
 
   return ids

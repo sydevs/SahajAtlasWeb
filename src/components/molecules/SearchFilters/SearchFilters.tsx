@@ -10,8 +10,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { SearchableSelect } from '@/components/atoms/SearchableSelect'
 import { fieldChrome } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
-import api from '@/config/api'
-import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME } from '@/config/query-client'
+import api, { regionsQuery } from '@/config/api'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { formatHour } from '@/lib'
 import {
@@ -147,11 +147,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  const { data: regions } = useQuery({
-    queryKey: ['regions'],
-    queryFn: () => api.getRegions(),
-    staleTime: REGIONS_STALE_TIME,
-  })
+  const { data: regions } = useQuery(regionsQuery())
 
   // Region options: every region present in the feed (any level with events under
   // it), labelled with a breadcrumb hint so same-named places are distinguishable.
@@ -160,10 +156,13 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     if (!regions?.length || !geojson) return []
 
     const index = indexRegions(regions)
+    // Many features share a region, so expand ancestry once per DISTINCT region id
+    // rather than once per feature.
+    const directRegionIds = new Set(geojson.features.map((f) => f.properties.region.id))
     const present = new Set<number>()
 
-    for (const feature of geojson.features) {
-      for (const id of ancestorIds(index, feature.properties.region.id)) present.add(id)
+    for (const id of directRegionIds) {
+      for (const ancestorId of ancestorIds(index, id)) present.add(ancestorId)
     }
 
     return regions
