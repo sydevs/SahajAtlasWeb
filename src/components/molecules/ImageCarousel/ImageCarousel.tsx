@@ -53,16 +53,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         grabCursor={carousel}
         loop={carousel}
         modules={[Autoplay, Pagination, A11y, EffectFade]}
-        pagination={
-          carousel && {
-            clickable: true,
-            dynamicBullets: true,
-            dynamicMainBullets: 5,
-          }
-        }
+        // Swiper's built-in pagination: plain clickable bullets, one per slide.
+        pagination={carousel && { clickable: true }}
       >
         {slides.map((slide, index) => (
-          <SwiperSlide key={slide.src} className="p-6 pb-10">
+          <SwiperSlide key={slide.src} className="pb-10">
             <button
               aria-label={slide.alt ?? t('details.view_photo')}
               className="block w-full cursor-zoom-in"
@@ -71,7 +66,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             >
               <img
                 alt={slide.alt ?? undefined}
-                className="aspect-[4/3] w-full rounded-lg object-cover"
+                className="aspect-[4/3] w-full object-cover"
                 src={slide.src}
               />
             </button>

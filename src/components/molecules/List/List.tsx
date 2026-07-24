@@ -20,7 +20,11 @@ import { tv } from 'tailwind-variants'
  * the enforcement — change one, change the other.
  */
 export const listRow = tv({
-  base: 'block px-6 text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+  // `items-stretch` undoes the Link atom's `items-center` (inline icon-link
+  // alignment): on a flex-col card it would center every line of content.
+  // Row-shaped cards (ListItem) re-opt into `items-center` in their own classes,
+  // which wins the merge as the later conflict.
+  base: 'block items-stretch px-6 text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
 })
 
 // The divider is drawn here (cards carry no border of their own, so mixed
@@ -38,6 +42,20 @@ export type ListProps = {
 
 // A scrollable list wrapper. The surrounding drawer body is the actual scroll
 // container, so this is a plain styled `<ul>`.
+//
+// The list-none/m-0/p-0 resets duplicate Tailwind's preflight on purpose: the
+// widget's CSS is injected into HOST documents, where a host typography rule on
+// bare `ul`/`li` (e.g. `li { list-style: disc }`) beats preflight's inherited
+// reset and paints bullets next to every card. Class-level utilities — including
+// `[&>li]:list-none` directly on the `<li>` wrappers, which inheritance alone
+// can't protect — out-specific those element rules. (Host rules with class
+// selectors can still win; that's the widget's accepted scoping limit.)
 export function List({ children }: ListProps) {
-  return <ul className={`scroll-m-0 scroll-p-0 overflow-y-auto ${DIVIDER}`}>{children}</ul>
+  return (
+    <ul
+      className={`m-0 scroll-m-0 scroll-p-0 list-none overflow-y-auto p-0 [&>li]:list-none ${DIVIDER}`}
+    >
+      {children}
+    </ul>
+  )
 }

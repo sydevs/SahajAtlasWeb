@@ -65,14 +65,17 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
 
   return (
     <div className="flex flex-col gap-4 px-6 pb-10 pt-2">
-      <EventFacts event={event} />
+      {/* Extra breathing room around the when/where facts, above the register CTA. */}
+      <EventFacts className="my-2" event={event} />
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 
       <EventActions basePath={basePath} event={event} />
 
       {slides.length > 0 && (
-        <div className="flex w-full items-center justify-center">
+        // Full-bleed: cancel the container's px-6 so the carousel spans the full
+        // drawer width (the slides carry no padding of their own now).
+        <div className="-mx-6">
           <ImageCarousel slides={slides} />
         </div>
       )}

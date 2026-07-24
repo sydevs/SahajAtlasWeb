@@ -72,5 +72,10 @@
     "native": "Megosztás…",
     "copy_link": "Link másolása",
     "copied": "Másolva"
-  }
+  },
+  "search": "Keresés",
+  "back": "Vissza",
+  "close": "Bezárás",
+  "explore": "Felfedezés",
+  "settings": "Beállítások"
 }

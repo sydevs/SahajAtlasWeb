@@ -72,5 +72,10 @@
     "native": "Compartilhar…",
     "copy_link": "Copiar link",
     "copied": "Copiado"
-  }
+  },
+  "search": "Buscar",
+  "back": "Voltar",
+  "close": "Fechar",
+  "explore": "Explorar",
+  "settings": "Configurações"
 }

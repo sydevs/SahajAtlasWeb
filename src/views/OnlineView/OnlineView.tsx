@@ -52,7 +52,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         {/* The region name is the subtitle; "All classes are free" only fills in when
             a region has none (no Free chips on the cards — issue #52). */}
         <DrawerTitle
-          subtitle={regionName || tEvents('display.all_classes_free')}
+          subtitle={regionName || tEvents('display.all_events_free')}
           title={t('online_classes')}
         />
         <CloseButton />

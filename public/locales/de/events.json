@@ -25,9 +25,8 @@
   },
   "display": {
     "about": "Über diesen Kurs",
-    "all_events_free": "Alle Veranstaltungen sind kostenlos",
+    "all_events_free": "Alle Kurse sind kostenlos",
     "chip_ended": "Beendet",
-    "chip_free": "Kostenlos",
     "chip_full": "Ausgebucht",
     "chip_started": "Begonnen am %{date}",
     "chip_starts": "Beginnt am %{date}",
@@ -100,7 +99,8 @@
     "starting_date": "Startdatum",
     "submit": "Registrieren",
     "thank_you": "Vielen Dank für Ihre Registrierung!",
-    "error_title": "Etwas ist schiefgelaufen"
+    "error_title": "Etwas ist schiefgelaufen",
+    "show_more_dates": "Weitere Termine anzeigen"
   },
   "timing": {
     "converted_to": "Konvertiert in %{timezone} (%{offset})"
