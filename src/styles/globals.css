@@ -137,10 +137,9 @@
      retune any carousel the host page runs. `.swiper` only ever exists inside
      our own ImageCarousel. */
   .swiper {
+    /* Sit the pagination clear of the image; bullet size/shape are Swiper's own
+       defaults (round, clickable) — no custom bar styling. */
     --swiper-pagination-bottom: 1rem;
-    --swiper-pagination-bullet-width: 5rem;
-    --swiper-pagination-bullet-height: 1rem;
-    --swiper-pagination-bullet-border-radius: 8px;
   }
 
   /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host
