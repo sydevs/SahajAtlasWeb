@@ -1,3 +1,6 @@
+import type { SortOrder } from '@/lib/shape'
+
+import { useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
@@ -8,9 +11,17 @@ import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { Alert } from '@/components/atoms/Alert'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
-import { filtersKey, hasActiveFilters, isOnline, nextOccurrence } from '@/lib/shape'
+import {
+  byDistance,
+  byNextOccurrence,
+  filtersKey,
+  hasActiveFilters,
+  isOnline,
+  nextOccurrence,
+} from '@/lib/shape'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
+import { useSortOrder } from '@/hooks/use-sort'
 import api from '@/config/api'
 import i18n from '@/config/i18n'
 
@@ -42,6 +53,26 @@ function calculateOrder(event: EventSlim) {
   return order
 }
 
+// Reorder the fetched events for the chosen sort (a presentation concern — this runs
+// on the already-fetched list, so switching sort never refetches). Recommended keeps
+// the relevance score, decorate-sort-undecorate so each event's order is computed once
+// (it builds luxon DateTimes) rather than O(n·log n) times inside the comparator;
+// Closest and Soonest reuse the shared `@/lib/shape` comparators (distance ascending /
+// next-occurrence, placeless + undated last).
+function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
+  switch (order) {
+    case 'closest':
+      return [...events].sort(byDistance)
+    case 'soonest':
+      return [...events].sort(byNextOccurrence)
+    default:
+      return events
+        .map((event) => ({ event, order: calculateOrder(event) }))
+        .sort((a, b) => a.order - b.order)
+        .map(({ event }) => event)
+  }
+}
+
 export function DynamicEventsList({
   latitude,
   longitude,
@@ -58,28 +89,27 @@ export function DynamicEventsList({
 
   const { data: events } = useSuspenseQuery({
     // Latitude/longitude are rounded to reduce re-fetching when the map moves; the
-    // locale keys the (localized) titles the list shows, so a switch refetches.
+    // locale keys the (localized) titles the list shows, so a switch refetches. Sort
+    // is deliberately NOT in the key — it's presentation, applied below in a memo.
     queryKey: ['events', latitude.toFixed(2), longitude.toFixed(2), filtersKey(filters), locale],
-    queryFn: () =>
-      api.getEvents(latitude, longitude, filters).then((data) =>
-        // Decorate-sort-undecorate: compute each event's order once (it builds
-        // luxon DateTimes) rather than O(n·log n) times inside the comparator.
-        data
-          .map((event) => ({ event, order: calculateOrder(event) }))
-          .sort((a, b) => a.order - b.order)
-          .map(({ event }) => event),
-      ),
+    queryFn: () => api.getEvents(latitude, longitude, filters),
   })
+
+  // Apply the URL-selected ordering to the fetched list. Memoized on the fetched
+  // reference + the order, so re-sorting is a cheap client-side reorder, never a
+  // refetch (the query key above is unchanged).
+  const order = useSortOrder()
+  const sorted = useMemo(() => sortEvents(events, order), [events, order])
 
   // "< NEARBY_KM" cap — only when a place was searched. Auto-applied when the
   // results include far in-person events; dismissable via the pill (then the far
   // ones show). Online events have no distance, so they are never distance-excluded.
   const hasFar =
-    hasSearchCenter && events.some((e) => e.distance !== undefined && e.distance > NEARBY_KM)
+    hasSearchCenter && sorted.some((e) => e.distance !== undefined && e.distance > NEARBY_KM)
   const nearbyActive = hasFar && !showAll
   const shown = nearbyActive
-    ? events.filter((e) => e.distance === undefined || e.distance <= NEARBY_KM)
-    : events
+    ? sorted.filter((e) => e.distance === undefined || e.distance <= NEARBY_KM)
+    : sorted
 
   return (
     <>
