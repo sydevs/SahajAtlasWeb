@@ -336,8 +336,9 @@ const NEARBY_RADIUS_KM = 25
 // centred on the guess — preserving the active URL filters exactly as SearchField
 // does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
 // rather than the pinpoint zoom it uses for a bare centre. `shouldShowNearbyPrompt`
-// (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions; dismissal
-// (× or accept) is session-scoped.
+// (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions. Only the ×
+// persists a (session-scoped) dismissal; accepting merely navigates — the prompt
+// self-hides while you're viewing that area but returns once you leave it.
 export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, number] | null }) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
@@ -374,10 +375,11 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
       approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM).toString(),
     )
 
-    markNearbyDismissed()
-    // Also hide it immediately: accepting from /search → /search is a same-pathname
-    // nav, so NearbySuggestion doesn't remount to re-read the session flag on its own.
-    setDismissed(true)
+    // Accepting must NOT persist a dismissal — only the × does (handleDismiss).
+    // Zooming to the guess already hides the prompt on its own: the new URL carries
+    // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while you're looking at
+    // that area. Leaving the area (clearing the search) brings the suggestion back,
+    // so it keeps offering until the user actually dismisses it.
     navigate(`/search?${params.toString()}`)
   }, [ipLocation, navigate, searchParams])
 
