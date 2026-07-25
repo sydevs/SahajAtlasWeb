@@ -94,23 +94,24 @@ export const controlSurface = tv({
       variant: 'flat',
       class: 'bg-gray-3 text-gray-12 hover:bg-gray-4 active:bg-gray-5',
     },
-    // bordered (outline)
+    // bordered (outline) — the border matches the icon/text colour (its ramp's
+    // readable step), not a lighter divider tint.
     {
       color: 'primary',
       variant: 'bordered',
-      class: 'border-primary-7 text-primary-11 hover:bg-primary-3',
+      class: 'border-primary-11 text-primary-11 hover:bg-primary-3',
     },
     {
       color: 'secondary',
       variant: 'bordered',
-      class: 'border-secondary-7 text-secondary-11 hover:bg-secondary-3',
+      class: 'border-secondary-11 text-secondary-11 hover:bg-secondary-3',
     },
     {
       color: 'contrast',
       variant: 'bordered',
-      class: 'border-contrast-7 text-contrast-11 hover:bg-contrast-3',
+      class: 'border-contrast-11 text-contrast-11 hover:bg-contrast-3',
     },
-    { color: 'neutral', variant: 'bordered', class: 'border-gray-7 text-gray-12 hover:bg-gray-3' },
+    { color: 'neutral', variant: 'bordered', class: 'border-gray-12 text-gray-12 hover:bg-gray-3' },
     // ghost (surface only on hover)
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },

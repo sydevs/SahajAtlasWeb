@@ -50,13 +50,13 @@ export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
 // the `contrast` brand role.)
 export type ColorScale = Record<Step, string> & { on: string }
 
-// The built-in (no-tenant) brand seeds — a soft blue primary, SY teal secondary,
+// The built-in (no-tenant) brand seeds — the SY teal primary, soft blue secondary,
 // warm contrast. The static defaults in globals.css are these run through
 // buildScale(); the palette.defaults.test.ts gate asserts they stay in sync, so a
 // ladder change can't silently desync the default theme from every tenant theme.
 export const DEFAULT_SEEDS = {
-  primary: '#A1C3D7',
-  secondary: '#1E6C71',
+  primary: '#1E6C71',
+  secondary: '#A1C3D7',
   contrast: '#e08e79',
 } as const
 

@@ -63,6 +63,42 @@ export const Default: Story = () => (
       </StoryGrid>
     </StorySection>
 
+    <StorySection
+      description="The same colour × variant matrix as icon-only circles (`isIconOnly radius=full`)."
+      title="Variants (icon only)"
+    >
+      <StoryGrid>
+        <StoryGridHeader>
+          <StoryGridHeaderRow>
+            <StoryGridHeaderCell />
+            {variants.map((variant) => (
+              <StoryGridHeaderCell key={variant}>{variant}</StoryGridHeaderCell>
+            ))}
+          </StoryGridHeaderRow>
+        </StoryGridHeader>
+        <StoryGridBody>
+          {colors.map((color) => (
+            <StoryGridRow key={color}>
+              <StoryGridCell isLabel>{color}</StoryGridCell>
+              {variants.map((variant) => (
+                <StoryGridCell key={variant}>
+                  <Button
+                    isIconOnly
+                    aria-label={`${color} ${variant}`}
+                    color={color}
+                    radius="full"
+                    variant={variant}
+                  >
+                    <FilterIcon size={20} />
+                  </Button>
+                </StoryGridCell>
+              ))}
+            </StoryGridRow>
+          ))}
+        </StoryGridBody>
+      </StoryGrid>
+    </StorySection>
+
     <StorySection title="Sizes">
       <div className="flex flex-wrap items-center gap-2">
         {sizes.map((size) => (
