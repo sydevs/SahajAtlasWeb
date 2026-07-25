@@ -19,6 +19,7 @@ import {
   CollapseToggle,
   FilterButton,
   GeolocationSuggestion,
+  SearchButton,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -76,6 +77,7 @@ export function CountriesView() {
       )}
       <DrawerHeader>
         <SearchField />
+        <SearchButton />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
