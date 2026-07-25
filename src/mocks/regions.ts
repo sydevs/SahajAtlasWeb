@@ -1,7 +1,7 @@
 // Region / country / geojson fixtures for the view stories. Type-valid against the
 // zod-inferred entity types — the view stories seed these straight into the React
 // Query cache (bypassing the fetchers' zod parse), so TypeScript is the guard.
-import type { Geojson, Region, RegionListItem, RegionRef } from '@/types'
+import type { EventSlim, Geojson, Region, RegionListItem, RegionRef } from '@/types'
 
 import { mockEventSlim, mockEventSlimOnline, mockEventVariants } from './events'
 
@@ -49,6 +49,13 @@ const countrySubregions: RegionListItem[] = [
   { id: 9106, slug: 'brighton', level: 'city', name: 'Brighton', subtitle: 'East Sussex', eventCount: 29, path: '/united-kingdom/east-sussex/brighton' }, // prettier-ignore
   { id: 9107, slug: 'leeds', level: 'city', name: 'Leeds', eventCount: 24, path: '/united-kingdom/leeds' }, // prettier-ignore
   { id: 9108, slug: 'oxford', level: 'city', name: 'Oxford', subtitle: 'Oxfordshire', eventCount: 15, path: '/united-kingdom/oxfordshire/oxford' }, // prettier-ignore
+]
+
+/** Two SY Centers (venues) inside a city — the child rows a "city with centers"
+ *  region shows. Level `center` routes to a venue. */
+const cityCenters: RegionListItem[] = [
+  { id: 8201, slug: '44-chelsham-road', level: 'center', name: '44 Chelsham Rd', eventCount: 6, path: '/united-kingdom/greater-london/london/44-chelsham-road' }, // prettier-ignore
+  { id: 8202, slug: 'flood-street', level: 'center', name: 'Flood Street', eventCount: 4, path: '/united-kingdom/greater-london/london/flood-street' }, // prettier-ignore
 ]
 
 /**
@@ -104,6 +111,23 @@ export const mockCountryRegion: Region = {
   ],
 }
 
+// A busy leaf city's roster: the located variants repeated a few times with unique
+// ids/titles, so the City example shows a long, scrollable gallery rather than the
+// handful the raw variant list holds.
+const offlineVariants = mockEventVariants.filter((event) => event.eventType === 'offline')
+const cityEvents: EventSlim[] = [0, 1, 2].flatMap((pass) =>
+  offlineVariants.map((event, i) => {
+    const id = 8300 + pass * offlineVariants.length + i
+
+    return {
+      ...event,
+      id,
+      title: pass === 0 ? event.title : `${event.title} ${pass + 1}`,
+      path: `/united-kingdom/cambridgeshire/cambridge/${id}`,
+    }
+  }),
+)
+
 /** A leaf region (a city): its own located events (the full card gallery), no child
  *  regions, with its online classes listed inline after them. Located vs online are
  *  disjoint (a real feed splits them the same way), so the shared variant list is
@@ -115,12 +139,31 @@ export const mockLeafRegion: Region = {
   name: 'Cambridge',
   level: 'city',
   subtitle: 'Cambridgeshire',
-  eventCount: 12,
+  eventCount: cityEvents.length,
   path: '/united-kingdom/cambridgeshire/cambridge',
   parentPath: '/united-kingdom/cambridgeshire',
   subregions: [],
-  events: mockEventVariants.filter((event) => event.eventType === 'offline'),
+  events: cityEvents,
   onlineEvents: mockEventVariants.filter((event) => event.eventType === 'online'),
+}
+
+/**
+ * A mixed city: SY Centers (venues) as its children AND its own free-floating
+ * located events, led by an "Online Classes" roll-up — London with two centers
+ * ("44 Chelsham Rd", "Flood Street") plus a few classes pinned to the city itself.
+ */
+export const mockCityWithCentersRegion: Region = {
+  ...mockParentRegion,
+  id: 8200,
+  slug: 'london',
+  name: 'London',
+  level: 'city',
+  subtitle: 'Greater London',
+  eventCount: 24,
+  path: '/united-kingdom/greater-london/london',
+  parentPath: '/united-kingdom/greater-london',
+  subregions: cityCenters,
+  events: offlineVariants.slice(0, 5),
 }
 
 /** Minimal region: no children, no events (the sparsest valid state). */

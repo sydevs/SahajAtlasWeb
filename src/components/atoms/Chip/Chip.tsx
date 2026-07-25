@@ -6,10 +6,10 @@ import { IconSvgProps } from '@/types'
 
 // A compact, uppercase label — the design system's reference tailwind-variants
 // component (see DESIGN_SYSTEM.md), built directly on the Radix-semantic 12-step
-// tokens. `flat` is a soft tint, `ghost` is text-only (matching Button's `ghost`);
-// `emphasis` tunes the content weight; `radius` picks square (`sm`) or pill
-// (`full`) corners. Pass `onClose` to render a trailing remove button (e.g. the
-// active-filter pills).
+// tokens. Variants: `flat` is a soft tint (bold), `subtle` is that same tint with
+// a lighter content weight, `ghost` is text-only (matching Button's `ghost`).
+// `radius` picks square (`sm`) or pill (`full`) corners. Pass `onClose` to render
+// a trailing remove button (e.g. the active-filter pills).
 const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',
@@ -18,15 +18,18 @@ const chip = tv({
       'shrink-0 rounded-full opacity-60 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100',
   },
   variants: {
-    color: { primary: '', secondary: '', default: '' },
-    variant: { flat: '', ghost: '' },
+    color: { primary: '', secondary: '', contrast: '', neutral: '' },
+    // The surface treatment carries the content weight: `flat`/`ghost` are bold,
+    // `subtle` is the flat tint at a lighter weight (the tint itself is shared in
+    // compoundVariants below).
+    variant: {
+      flat: { content: 'font-bold' },
+      subtle: { content: 'font-medium' },
+      ghost: { content: 'font-bold' },
+    },
     size: {
       sm: { base: 'px-2 py-1 text-xs' },
       md: { base: 'px-2.5 py-1.5 text-sm' },
-    },
-    emphasis: {
-      solid: { content: 'font-bold' },
-      subtle: { content: 'font-medium' },
     },
     radius: {
       sm: { base: 'rounded-sm' },
@@ -34,18 +37,32 @@ const chip = tv({
     },
   },
   compoundVariants: [
-    { color: 'primary', variant: 'flat', class: { base: 'bg-primary-3 text-primary-11' } },
-    { color: 'secondary', variant: 'flat', class: { base: 'bg-secondary-3 text-secondary-11' } },
-    { color: 'default', variant: 'flat', class: { base: 'bg-gray-3 text-gray-12' } },
+    // `flat` and `subtle` share the soft tint — they differ only in weight (above).
+    {
+      color: 'primary',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-primary-3 text-primary-11' },
+    },
+    {
+      color: 'secondary',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-secondary-3 text-secondary-11' },
+    },
+    {
+      color: 'contrast',
+      variant: ['flat', 'subtle'],
+      class: { base: 'bg-contrast-3 text-contrast-11' },
+    },
+    { color: 'neutral', variant: ['flat', 'subtle'], class: { base: 'bg-gray-3 text-gray-12' } },
     { color: 'primary', variant: 'ghost', class: { base: 'text-primary-11' } },
     { color: 'secondary', variant: 'ghost', class: { base: 'text-secondary-11' } },
-    { color: 'default', variant: 'ghost', class: { base: 'text-gray-12' } },
+    { color: 'contrast', variant: 'ghost', class: { base: 'text-contrast-11' } },
+    { color: 'neutral', variant: 'ghost', class: { base: 'text-gray-12' } },
   ],
   defaultVariants: {
     color: 'primary',
     variant: 'flat',
     size: 'sm',
-    emphasis: 'solid',
     radius: 'sm',
   },
 })
@@ -72,13 +89,12 @@ export function Chip({
   color,
   variant,
   size,
-  emphasis,
   radius,
   onClose,
   closeLabel,
   className,
 }: ChipProps) {
-  const slots = chip({ color, variant, size, emphasis, radius })
+  const slots = chip({ color, variant, size, radius })
 
   return (
     <span className={slots.base({ className })}>

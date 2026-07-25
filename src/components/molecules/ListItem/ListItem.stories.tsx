@@ -25,17 +25,21 @@ export const Default: Story = () => (
     <StorySection title="Variants">
       <div className="flex max-w-md flex-col gap-6">
         <StorySection title="Minimal" variant="subsection">
-          <ListItem count={12} href="#area" label="Cambridge" />
+          <List>
+            <ListItem count={12} href="#area" label="Cambridge" />
+          </List>
         </StorySection>
 
         <StorySection title="Maximal" variant="subsection">
-          <ListItem
-            count={7}
-            href="#area"
-            icon={<CircleFlag className={FLAG_CLASS} countryCode="gb" />}
-            label="Oxford"
-            subtitle="Oxfordshire"
-          />
+          <List>
+            <ListItem
+              count={7}
+              href="#area"
+              icon={<CircleFlag className={FLAG_CLASS} countryCode="gb" />}
+              label="Oxford"
+              subtitle="Oxfordshire"
+            />
+          </List>
         </StorySection>
       </div>
     </StorySection>

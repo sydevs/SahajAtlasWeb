@@ -38,8 +38,10 @@
     },
     "time": {
       "label": "Tijdstip",
-      "start": "Vroegste starttijd",
-      "end": "Laatste starttijd"
+      "morning": "Ochtend",
+      "afternoon": "Middag",
+      "evening": "Avond",
+      "night": "Nacht"
     },
     "language": {
       "all": "Alle talen",
@@ -72,5 +74,10 @@
     "native": "Delen…",
     "copy_link": "Link kopiëren",
     "copied": "Gekopieerd"
-  }
+  },
+  "search": "Zoeken",
+  "back": "Terug",
+  "close": "Sluiten",
+  "explore": "Verkennen",
+  "settings": "Instellingen"
 }

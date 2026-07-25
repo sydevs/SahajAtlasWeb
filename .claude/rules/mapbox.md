@@ -35,18 +35,22 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
 ## Pin-hover timing popover
 
 - Hovering an individual pin shows a small non-interactive popover with that
-  event's timing line (`EventPinPopover`, in the `Mapbox/EventPinPopover/`
-  sub-folder). `Map.tsx` tracks the hovered `unclustered-point` id (never a
+  event's timing — `EventPinPopover` + its `EventPinCard`, **module-private
+  helpers inlined in `Map.tsx`** (the popover is inherently map-bound — it renders
+  a react-map-gl `<Popup>` — so it lives with the map, not as a separate
+  component). `Map.tsx` tracks the hovered `unclustered-point` id (never a
   cluster) in **local `useState`** — it's set and read only inside the map, so it
   stays out of `useViewState` — and re-joins it to the FULL event from the
   `['geojson']` cache (the vector source is trimmed to `id` + `webPath`, so the
   hovered feature alone carries no schedule).
-- It renders a react-map-gl `<Popup>`; the default popup chrome is stripped in
-  `globals.css` (`.event-pin-popover`) and the content is `pointer-events: none`,
-  so the popover never steals hover from the pin or blocks tap-to-open.
-- The line is built by the shared `composeCalendarLine` formatter
-  (`src/hooks/use-event-display.ts`) — the same one the list card's `EventFacts`
-  uses — so the popover and the card can never drift (issues #52/#72).
+- The `<Popup>`'s default popup chrome is stripped in `globals.css`
+  (`.event-pin-popover`) and the content is `pointer-events: none`, so the popover
+  never steals hover from the pin or blocks tap-to-open.
+- The card **stacks the recurrence above the start time** (two lines, kept narrow)
+  rather than the list card's single `·`-joined line — but both derive the parts
+  from the shared `calendarLineParts` gate (`src/hooks/use-event-display.ts`);
+  `composeCalendarLine` (used by the list card's `EventFacts`) joins the same
+  parts. So the popover and the card can never drift (issues #52/#72).
 
 ## View state lives in zustand, not local state
 

@@ -19,7 +19,9 @@ export const Default: Story = () => (
   <StoryWrapper>
     <StorySection description="A weekly class with a long title." title="Weekly class">
       <div className="max-w-md">
-        <EventListItem event={mockEventSlim} />
+        <List>
+          <EventListItem event={mockEventSlim} />
+        </List>
       </div>
     </StorySection>
 
@@ -28,14 +30,16 @@ export const Default: Story = () => (
       title="Course"
     >
       <div className="max-w-md">
-        <EventListItem
-          event={{
-            ...mockEventSlim,
-            id: 110,
-            title: 'Beginners Meditation Course',
-            schedule: { ...mockEventSlim.schedule!, endingType: 'count', count: 8 },
-          }}
-        />
+        <List>
+          <EventListItem
+            event={{
+              ...mockEventSlim,
+              id: 110,
+              title: 'Beginners Meditation Course',
+              schedule: { ...mockEventSlim.schedule!, endingType: 'count', count: 8 },
+            }}
+          />
+        </List>
       </div>
     </StorySection>
 
@@ -44,7 +48,9 @@ export const Default: Story = () => (
       title="Online"
     >
       <div className="max-w-md">
-        <EventListItem event={mockEventSlimOnline} />
+        <List>
+          <EventListItem event={mockEventSlimOnline} />
+        </List>
       </div>
     </StorySection>
 
@@ -66,7 +72,9 @@ export const Default: Story = () => (
       title="Dateless"
     >
       <div className="max-w-md">
-        <EventListItem event={{ ...mockEventSlim, id: 113, schedule: null }} />
+        <List>
+          <EventListItem event={{ ...mockEventSlim, id: 113, schedule: null }} />
+        </List>
       </div>
     </StorySection>
 

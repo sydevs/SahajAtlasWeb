@@ -25,9 +25,8 @@
   },
   "display": {
     "about": "About this class",
-    "all_events_free": "All events are free",
+    "all_events_free": "All classes are free",
     "chip_ended": "Ended",
-    "chip_free": "Free",
     "chip_full": "Full",
     "chip_started": "Started %{date}",
     "chip_starts": "Starts %{date}",
@@ -58,8 +57,7 @@
     "type_oneoff": "One-off event",
     "time_in_place": "%{time} in %{city}",
     "distance_away": "%{distance} away",
-    "distance_from_place": "%{distance} from %{place}",
-    "all_classes_free": "All classes are free"
+    "distance_from_place": "%{distance} from %{place}"
   },
   "errors": {
     "email": "Enter a valid email",
@@ -107,7 +105,8 @@
     "starting_date": "Starting date",
     "submit": "Register",
     "thank_you": "Thank you for registering!",
-    "error_title": "Something went wrong"
+    "error_title": "Something went wrong",
+    "show_more_dates": "Show more dates"
   },
   "timing": {
     "converted_to": "Converted to %{timezone} (%{offset})"

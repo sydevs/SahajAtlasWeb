@@ -38,8 +38,10 @@
     },
     "time": {
       "label": "Hora del día",
-      "start": "Hora de inicio más temprana",
-      "end": "Hora de inicio más tardía"
+      "morning": "Mañana",
+      "afternoon": "Tarde",
+      "evening": "Atardecer",
+      "night": "Noche"
     },
     "language": {
       "all": "Todos los idiomas",
@@ -72,5 +74,10 @@
     "native": "Compartir…",
     "copy_link": "Copiar enlace",
     "copied": "Copiado"
-  }
+  },
+  "search": "Buscar",
+  "back": "Atrás",
+  "close": "Cerrar",
+  "explore": "Explorar",
+  "settings": "Ajustes"
 }

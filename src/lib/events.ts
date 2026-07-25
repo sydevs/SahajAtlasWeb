@@ -2,6 +2,8 @@ import type { EventAddress } from '@/types'
 
 import { DateTime } from 'luxon'
 
+import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
+
 /**
  * A Google Maps directions link from an event's coordinates (preferred) or its
  * address text; undefined when there is nothing to point at. Pure — shared by
@@ -47,4 +49,16 @@ export function formatHour(locale: string, hour: number): string {
   return DateTime.fromObject({ hour: Math.floor(minutes / 60), minute: minutes % 60 })
     .setLocale(locale)
     .toLocaleString(DateTime.TIME_SIMPLE)
+}
+
+/**
+ * The selected time-of-day periods rendered as a locale-formatted list of hour
+ * ranges (e.g. "9:00 AM – 12:00 PM · 5:00 PM – 9:00 PM"), for the filter form's
+ * readout and the active-filter pill. Empty string when nothing is selected — the
+ * two surfaces stay in lockstep because both format the same `timePeriodRanges`.
+ */
+export function formatTimePeriods(locale: string, periods: readonly TimePeriod[]): string {
+  return timePeriodRanges(periods)
+    .map(([from, to]) => `${formatHour(locale, from)} – ${formatHour(locale, to)}`)
+    .join(' · ')
 }

@@ -19,7 +19,7 @@ export const Default: Story = () => (
       title="Colours"
     >
       <div className="flex flex-wrap items-center gap-4">
-        <Link color="default" href="/">
+        <Link color="neutral" href="/">
           Default
         </Link>
         <Link color="foreground" href="/">
@@ -28,8 +28,8 @@ export const Default: Story = () => (
         <Link color="primary" href="/">
           Primary
         </Link>
-        <Link color="danger" href="/">
-          Danger
+        <Link color="contrast" href="/">
+          Contrast
         </Link>
       </div>
     </StorySection>

@@ -128,8 +128,6 @@ export type EventDisplay = {
   weekdayInstants: DateTime[]
   /** Secondary actions for this state, in display order. */
   actions: EventActionId[]
-  /** Inactive events have no Register — Contact becomes the emphasized action. */
-  emphasizeContact: boolean
   /** Terminal/full states offer "See nearby events" back into live inventory. */
   showNearby: boolean
 }
@@ -178,7 +176,6 @@ const terminalDisplay = (
           ...(hasWebsite ? (['website'] as const) : []),
           'share',
         ],
-  emphasizeContact: status === 'inactive' && hasContact,
   showNearby: status === 'ended',
 })
 
@@ -287,7 +284,6 @@ export function resolveEventDisplay(
     timeHint: online ? 'viewer' : viewerTz !== eventTz ? 'local' : null,
     weekdayInstants,
     actions,
-    emphasizeContact: false,
     showNearby: full,
   }
 }

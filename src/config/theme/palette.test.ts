@@ -45,10 +45,10 @@ describe('buildScale', () => {
   })
 })
 
-describe('contrast', () => {
+describe('on-color', () => {
   it('picks a readable on-color for the brand solid (by its lightness)', () => {
-    expect(buildScale('#82b1ae', 'light').contrast).toBe('0 0% 0%') // light teal → black
-    expect(buildScale('#64032e', 'light').contrast).toBe('0 0% 100%') // dark maroon → white
+    expect(buildScale('#82b1ae', 'light').on).toBe('0 0% 0%') // light teal → black
+    expect(buildScale('#64032e', 'light').on).toBe('0 0% 100%') // dark maroon → white
   })
 })
 
@@ -67,13 +67,13 @@ function fakeRoot() {
 }
 
 describe('applyPalette', () => {
-  it('writes the full primary 12-step ramp + contrast', () => {
+  it('writes the full primary 12-step ramp + on-color', () => {
     const { root, props } = fakeRoot()
 
     applyPalette(root, { primary: '#64032e' }, 'light')
 
     expect(props.get('--primary-9')).toBe('333 60% 20%')
-    expect(props.get('--primary-contrast')).toBe('0 0% 100%')
+    expect(props.get('--primary-on')).toBe('0 0% 100%')
     expect(props.get('--primary-1')).toBeDefined()
     expect(props.get('--primary-12')).toBeDefined()
     // All 12 steps present.

@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/atoms/Chip'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
-import { formatHour } from '@/lib'
-import { TIME_MAX, TIME_MIN, isDateRestricted, isTimeRestricted } from '@/lib/shape'
+import { formatTimePeriods } from '@/lib'
+import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 export type ActiveFilterPillsProps = {
   /**
@@ -65,8 +65,9 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   if (isTimeRestricted(timeOfDay)) {
     pills.push({
       key: 'time',
-      label: `${formatHour(locale, timeOfDay[0])} – ${formatHour(locale, timeOfDay[1])}`,
-      onRemove: () => setTimeOfDay([TIME_MIN, TIME_MAX]),
+      // Empty when every period is selected (a whole-day cover) — read as "any time".
+      label: formatTimePeriods(locale, timeOfDay) || t('filters.any_time'),
+      onRemove: () => setTimeOfDay([]),
     })
   }
   if (languages.length > 0) {
@@ -97,7 +98,7 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
         <Chip
           key={pill.key}
           closeLabel={t('filters.remove', { label: pill.label })}
-          color="default"
+          color="neutral"
           radius="full"
           onClose={pill.onRemove}
         >

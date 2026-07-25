@@ -20,8 +20,8 @@ export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
-const colors = ['primary', 'secondary', 'default', 'danger'] as const
-const variants = ['solid', 'flat', 'faded', 'bordered', 'ghost'] as const
+const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost'] as const
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 
@@ -54,6 +54,42 @@ export const Default: Story = () => (
                 <StoryGridCell key={variant}>
                   <Button color={color} variant={variant}>
                     Button
+                  </Button>
+                </StoryGridCell>
+              ))}
+            </StoryGridRow>
+          ))}
+        </StoryGridBody>
+      </StoryGrid>
+    </StorySection>
+
+    <StorySection
+      description="The same colour × variant matrix as icon-only circles (`isIconOnly radius=full`)."
+      title="Variants (icon only)"
+    >
+      <StoryGrid>
+        <StoryGridHeader>
+          <StoryGridHeaderRow>
+            <StoryGridHeaderCell />
+            {variants.map((variant) => (
+              <StoryGridHeaderCell key={variant}>{variant}</StoryGridHeaderCell>
+            ))}
+          </StoryGridHeaderRow>
+        </StoryGridHeader>
+        <StoryGridBody>
+          {colors.map((color) => (
+            <StoryGridRow key={color}>
+              <StoryGridCell isLabel>{color}</StoryGridCell>
+              {variants.map((variant) => (
+                <StoryGridCell key={variant}>
+                  <Button
+                    isIconOnly
+                    aria-label={`${color} ${variant}`}
+                    color={color}
+                    radius="full"
+                    variant={variant}
+                  >
+                    <FilterIcon size={20} />
                   </Button>
                 </StoryGridCell>
               ))}

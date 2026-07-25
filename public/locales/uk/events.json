@@ -25,9 +25,8 @@
   },
   "display": {
     "about": "Про це заняття",
-    "all_events_free": "Усі заходи безкоштовні",
+    "all_events_free": "Усі заняття безкоштовні",
     "chip_ended": "Завершено",
-    "chip_free": "Безкоштовно",
     "chip_full": "Місць немає",
     "chip_started": "Триває з %{date}",
     "chip_starts": "Початок: %{date}",
@@ -102,7 +101,8 @@
     "starting_date": "Дата початку",
     "submit": "Зареєструватися",
     "thank_you": "Дякуємо за реєстрацію!",
-    "error_title": "Щось пішло не так"
+    "error_title": "Щось пішло не так",
+    "show_more_dates": "Показати більше дат"
   },
   "timing": {
     "converted_to": "Перетворено на %{timezone} (%{offset})"

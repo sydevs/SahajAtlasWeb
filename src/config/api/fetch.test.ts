@@ -291,7 +291,7 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
 
-  it('derives a country code from an ISO slug (post-#556), with no legacyData', async () => {
+  it('derives an UPPERCASE country code from an ISO slug (post-#556), with no legacyData', async () => {
     const isoTree = [
       { id: 9, slug: 'de', level: 'country', name: 'Germany', parent: null, webPath: '/de' },
     ]
@@ -300,7 +300,12 @@ describe('getRegion (region-tree derivation)', () => {
 
     const region = await api.getRegion('de')
 
-    expect(region.countryCode).toBe('de')
+    // The migrated slug is lowercase (`de`), but the stored code must be UPPERCASE:
+    // `Intl.DisplayNames({ type: 'region' })` is case-sensitive, so a lowercase code
+    // echoes back through fallback:'code' and the views render "de" instead of the
+    // country name. Assert both the normalization and that the name actually resolves.
+    expect(region.countryCode).toBe('DE')
+    expect(new Intl.DisplayNames('en', { type: 'region' }).of(region.countryCode!)).toBe('Germany')
   })
 
   it('throws when the slug is not in the region tree', async () => {
