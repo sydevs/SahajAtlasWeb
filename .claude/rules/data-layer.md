@@ -64,6 +64,11 @@ those are derived client-side:
   taxonomy is `country / region / city / center` → routed `city`→area,
   `center`→venue (`src/lib/shape/path.ts`).
 - **`getEvents`** → nearest events from the feed, sorted by `@turf/distance`.
+- **`getCalendarEvents`** → the whole filtered feed (region cut + `matchesFilters`, online
+  included, uncapped) for the CalendarView to expand into per-occurrence entries. Shares
+  the `filteredFeed` helper with `getEvents` so both stay on one predicate.
+- **`getRegions`** → the wholesale region tree (`['regions']`, `RegionNode[]`), exposed for
+  the region filter's matcher + options (read via the `regionsQuery()` factory in `config/api`).
 - **`getEvent`** → raw `/api/events/:id` (depth 1, region + images populated).
   The Lexical `description` is serialized to HTML client-side
   (`src/lib/shape/lexical.ts`) and rendered through DOMPurify in `EventPanel`.

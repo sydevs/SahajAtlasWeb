@@ -83,12 +83,12 @@ src/
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
   providers.tsx       # React Query + Helmet + theme providers
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
-    atoms/            # Primitives: Drawer/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
+    atoms/            # Primitives: Drawer/, Button/, Chip/, Dropdown/, Select/, SearchableSelect/, Link/, Spinner/, Icons/
     molecules/        # Compositions: Toolbar/, List/, ListItem/, EventListItem/, EventTime|Share|Images|Soon/, EventMetadata/, Fallbacks/
     organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
-  views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Region/Event/Registration/Share
+  views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Calendar/Region/Event/Registration/Share
   config/
     api/              # axios client + zod-parsed fetchers (fetch.ts, mutate.ts, auth.ts)
     store.ts          # zustand stores (view / registration-draft; filters live in the URL)
