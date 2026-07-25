@@ -26,7 +26,7 @@ import {
 } from './layers'
 
 import { CalendarIcon } from '@/components/atoms/Icons'
-import { useEventDisplay } from '@/hooks/use-event-display'
+import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
 import { useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
@@ -112,15 +112,18 @@ function PointSource({
 
 // The card shown inside the hover popover: a calendar glyph beside the event's
 // timing, with the recurrence (e.g. "Every Thursday") stacked above its start
-// time so the card stays narrow. Its timing mirrors `composeCalendarLine`'s
-// branches (#72), just broken across two lines instead of joined with a `·`: the
-// recurrence (or the fallback when-line) leads, and the start time only follows a
-// non-recurring line when there's a next session.
+// time so the card stays narrow. It renders the SAME calendar parts the list
+// card's `composeCalendarLine` joins (via the shared `calendarLineParts` gate),
+// stacked across two lines instead of joined with a `·`, so the two never drift
+// (#72).
 function EventPinCard({ event }: { event: DisplayableEvent }) {
   const { display, recurrenceLine, whenLine, eventStartTime } = useEventDisplay(event)
-
-  const primary = recurrenceLine ?? whenLine
-  const time = recurrenceLine || display.next ? eventStartTime : null
+  const { primary, time } = calendarLineParts({
+    recurrenceLine,
+    whenLine,
+    time: eventStartTime,
+    hasNext: Boolean(display.next),
+  })
 
   if (!primary) return null
 

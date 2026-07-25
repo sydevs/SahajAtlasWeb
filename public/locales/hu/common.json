@@ -38,8 +38,6 @@
     },
     "time": {
       "label": "Napszak",
-      "start": "Legkorábbi kezdési idő",
-      "end": "Legkésőbbi kezdési idő",
       "morning": "Reggel",
       "afternoon": "Délután",
       "evening": "Este",

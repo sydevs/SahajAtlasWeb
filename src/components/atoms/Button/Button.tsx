@@ -128,8 +128,9 @@ export const controlSurface = tv({
     { isIconOnly: true, size: 'sm', class: 'w-8' },
     { isIconOnly: true, size: 'md', class: 'w-10' },
     { isIconOnly: true, size: 'lg', class: 'w-12' },
-    // Icon-only bordered controls keep the heavier 2px outline (a hairline reads as
-    // an artifact around a small circle); labelled bordered buttons stay at 1px.
+    // Icon-only bordered controls keep a slightly heavier 1.5px outline (a 1px
+    // hairline reads as an artifact around a small circle); labelled bordered
+    // buttons stay at 1px.
     { isIconOnly: true, variant: 'bordered', class: 'border-[1.5px]' },
   ],
   defaultVariants: {

@@ -38,8 +38,6 @@
     },
     "time": {
       "label": "Horário",
-      "start": "Horário de início mais cedo",
-      "end": "Horário de início mais tarde",
       "morning": "Manhã",
       "afternoon": "Tarde",
       "evening": "Anoitecer",

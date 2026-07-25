@@ -38,8 +38,6 @@
     },
     "time": {
       "label": "Uhrzeit",
-      "start": "Früheste Startzeit",
-      "end": "Späteste Startzeit",
       "morning": "Morgen",
       "afternoon": "Nachmittag",
       "evening": "Abend",

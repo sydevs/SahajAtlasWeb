@@ -31,8 +31,6 @@
     },
     "time": {
       "label": "Time of day",
-      "start": "Earliest start time",
-      "end": "Latest start time",
       "morning": "Morning",
       "afternoon": "Afternoon",
       "evening": "Evening",

@@ -38,8 +38,6 @@
     },
     "time": {
       "label": "Denní doba",
-      "start": "Nejdřívější čas začátku",
-      "end": "Nejpozdější čas začátku",
       "morning": "Ráno",
       "afternoon": "Odpoledne",
       "evening": "Večer",
