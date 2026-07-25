@@ -12,7 +12,13 @@ import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
-import { CloseButton, DrawerTitle, NearbySuggestion, useFrameOnTop } from '@/views/shared'
+import {
+  CloseButton,
+  DrawerTitle,
+  GeolocationSuggestion,
+  SearchButton,
+  useFrameOnTop,
+} from '@/views/shared'
 
 // A region at any level (route `<region-path>`): child-region cards then this region's
 // own located events, in ONE mixed list. A city can hold both venue/centre sub-regions
@@ -70,10 +76,16 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        <CloseButton />
+        {/* Search + close as one right-aligned group, so justify-between keeps the
+            title left and the two controls sit adjacent (gap-2, matching the
+            header's own control spacing) rather than being spread apart. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <SearchButton />
+          <CloseButton />
+        </div>
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion regionCenter={region.center} />
+        <GeolocationSuggestion regionCenter={region.center} />
         <List>
           {/* On a region with sub-regions, the online roll-up opens in its own drawer
               via this card, keeping the placeless classes out of the mixed list below. */}

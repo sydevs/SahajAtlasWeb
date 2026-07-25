@@ -27,4 +27,19 @@ describe('ListItem', () => {
     expect(html).toContain('France')
     expect(html).toContain('12')
   })
+
+  it('keeps the row vertically centered: its items-center beats listRow items-stretch', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ListItem count={12} href="/regions/france" label="France" />
+      </MemoryRouter>,
+    )
+
+    // The first class attribute is the row anchor's (the <li> wrapper is bare).
+    const classes = (html.match(/class="([^"]*)"/)?.[1] ?? '').split(' ')
+
+    expect(classes).toContain('flex-row')
+    expect(classes).toContain('items-center')
+    expect(classes).not.toContain('items-stretch')
+  })
 })

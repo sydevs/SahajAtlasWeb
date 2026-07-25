@@ -38,8 +38,10 @@
     },
     "time": {
       "label": "Denní doba",
-      "start": "Nejdřívější čas začátku",
-      "end": "Nejpozdější čas začátku"
+      "morning": "Ráno",
+      "afternoon": "Odpoledne",
+      "evening": "Večer",
+      "night": "Noc"
     },
     "language": {
       "all": "Všechny jazyky",
@@ -78,5 +80,10 @@
     "recommended": "Doporučené",
     "closest": "Nejbližší",
     "soonest": "Nejdříve"
-  }
+  },
+  "search": "Hledat",
+  "back": "Zpět",
+  "close": "Zavřít",
+  "explore": "Prozkoumat",
+  "settings": "Nastavení"
 }

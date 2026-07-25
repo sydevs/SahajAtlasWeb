@@ -18,7 +18,7 @@ import { validateWebUrl } from '@/lib/url'
 import {
   CollapseToggle,
   FilterButton,
-  NearbySuggestion,
+  GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -79,7 +79,7 @@ export function CountriesView() {
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion />
+        <GeolocationSuggestion />
         <ListToolbar>
           <FilterButton />
         </ListToolbar>

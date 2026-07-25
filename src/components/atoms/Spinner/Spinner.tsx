@@ -14,7 +14,8 @@ const spinner = tv({
     color: {
       primary: { icon: 'text-primary-9' },
       secondary: { icon: 'text-secondary-9' },
-      default: { icon: 'text-gray-9' },
+      contrast: { icon: 'text-contrast-9' },
+      neutral: { icon: 'text-gray-9' },
       // Inherit the surrounding text colour — used by Button so the spinner
       // matches the label across every colour/variant.
       current: { icon: 'text-current' },

@@ -3,12 +3,12 @@ import type { Geojson } from '@/types'
 import { distanceKm } from './geo'
 
 // The visibility logic behind the IP-geolocation "nearby classes" suggestion,
-// factored out of the NearbySuggestion component so every condition is unit-tested
-// (the component itself is hook-heavy and the node lane can't render it).
+// factored out of the GeolocationSuggestion component so every condition is
+// unit-tested (the component itself is hook-heavy and the node lane can't render it).
 
 // One session-scoped flag: dismissing the suggestion (× or clicking through) hides
 // it for the rest of the browser session; it reappears on a fresh visit.
-export const NEARBY_DISMISS_KEY = 'sahajAtlas.nearbyPromptDismissed'
+export const GEOLOCATION_DISMISS_KEY = 'sahajAtlas.geolocationPromptDismissed'
 
 // Only suggest when a located class is within this radius (km) of the guess — a
 // tight "genuinely near" bound so the prompt never leads to an empty search.
@@ -20,17 +20,17 @@ export const LOCAL_REGION_KM = 100
 
 // sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
 // accessors degrade to "not dismissed" rather than crashing the suggestion.
-export const readNearbyDismissed = (): boolean => {
+export const readGeolocationDismissed = (): boolean => {
   try {
-    return sessionStorage.getItem(NEARBY_DISMISS_KEY) === '1'
+    return sessionStorage.getItem(GEOLOCATION_DISMISS_KEY) === '1'
   } catch {
     return false
   }
 }
 
-export const markNearbyDismissed = (): void => {
+export const markGeolocationDismissed = (): void => {
   try {
-    sessionStorage.setItem(NEARBY_DISMISS_KEY, '1')
+    sessionStorage.setItem(GEOLOCATION_DISMISS_KEY, '1')
   } catch {
     // Dismissal just won't persist where sessionStorage is unavailable — acceptable.
   }
@@ -62,8 +62,8 @@ export const isLocalRegion = (
   km: number,
 ): boolean => !!regionCenter && distanceKm(point, regionCenter) <= km
 
-/** The inputs the nearby-prompt visibility decision reads. */
-export type NearbyPromptState = {
+/** The inputs the geolocation-prompt visibility decision reads. */
+export type GeolocationPromptState = {
   /** The resolved IP guess, or `null` while loading / on failure. */
   guess: { latitude: number; longitude: number } | null
   /** Session-dismissed (× or accepted). */
@@ -82,13 +82,13 @@ export type NearbyPromptState = {
  * no located class is within `NEARBY_MAX_KM` of the guess (the suggestion would
  * lead nowhere); or the user is already viewing a region local to the guess.
  */
-export const shouldShowNearbyPrompt = ({
+export const shouldShowGeolocationPrompt = ({
   guess,
   dismissed,
   activeSearch,
   geojson,
   regionCenter,
-}: NearbyPromptState): boolean => {
+}: GeolocationPromptState): boolean => {
   if (!guess || dismissed || activeSearch) return false
 
   const point: [number, number] = [guess.longitude, guess.latitude]

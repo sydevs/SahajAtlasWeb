@@ -38,8 +38,10 @@
     },
     "time": {
       "label": "Uhrzeit",
-      "start": "Früheste Startzeit",
-      "end": "Späteste Startzeit"
+      "morning": "Morgen",
+      "afternoon": "Nachmittag",
+      "evening": "Abend",
+      "night": "Nacht"
     },
     "language": {
       "all": "Alle Sprachen",
@@ -78,5 +80,10 @@
     "recommended": "Empfohlen",
     "closest": "Nächstgelegene",
     "soonest": "Demnächst"
-  }
+  },
+  "search": "Suchen",
+  "back": "Zurück",
+  "close": "Schließen",
+  "explore": "Entdecken",
+  "settings": "Einstellungen"
 }

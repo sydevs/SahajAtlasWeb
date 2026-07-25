@@ -24,10 +24,27 @@ export type EventFormat = 'any' | EventType
  */
 export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
-/** Time-of-day range bounds (hours), and the step used by the slider. */
-export const TIME_MIN = 0
-export const TIME_MAX = 24
-export const TIME_STEP = 0.5
+/** The four named times of day the filter selects, in day order. */
+export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
+export const TIME_PERIODS = ['morning', 'afternoon', 'evening', 'night'] as const
+
+// Each period's local-hour half-open interval(s) `[start, end)`. Night wraps
+// midnight, so it's two intervals. `matchesFilters` tests an occurrence's start
+// hour against these; `timePeriodRanges` coalesces them for display.
+export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, number])[]> = {
+  morning: [[6, 12]],
+  afternoon: [[12, 17]],
+  evening: [[17, 21]],
+  night: [
+    [21, 24],
+    [0, 6],
+  ],
+}
+
+// Selected periods in canonical day order (morning → night), de-duped — keeps the
+// URL param and the query key stable regardless of selection order.
+const sortPeriods = (periods: readonly TimePeriod[]): TimePeriod[] =>
+  TIME_PERIODS.filter((period) => periods.includes(period))
 
 /** How far ahead the date-range filter reaches from today — bounds the picker and the URL clamp. */
 export const DATE_WINDOW_MONTHS = 12
@@ -40,8 +57,8 @@ export type DateRange = { start: string | null; end: string | null }
 
 export type EventFilters = {
   format: EventFormat
-  /** [earliest, latest] local start hour, 0–24. `[0, 24]` = no restriction. */
-  timeOfDay: [number, number]
+  /** Selected times of day; an event matches if a start falls in any. Empty = no restriction. */
+  timeOfDay: TimePeriod[]
   /** Luxon weekday numbers, 1 (Mon)–7 (Sun). Empty = no restriction. */
   daysOfWeek: number[]
   /** Language codes; an event matches if it offers any selected language. Empty = no restriction. */
@@ -53,7 +70,7 @@ export type EventFilters = {
 
 export const DEFAULT_FILTERS: EventFilters = {
   format: 'any',
-  timeOfDay: [TIME_MIN, TIME_MAX],
+  timeOfDay: [],
   daysOfWeek: [],
   languages: [],
   cadence: 'any',
@@ -68,9 +85,43 @@ Object.freeze(DEFAULT_FILTERS.languages)
 Object.freeze(DEFAULT_FILTERS.dateRange)
 Object.freeze(DEFAULT_FILTERS)
 
-/** Whether the time-of-day range narrows anything (i.e. isn't the full day). */
-export const isTimeRestricted = (timeOfDay: [number, number]): boolean =>
-  timeOfDay[0] !== TIME_MIN || timeOfDay[1] !== TIME_MAX
+/** Whether any time-of-day period is selected (i.e. the filter narrows the day). */
+export const isTimeRestricted = (timeOfDay: readonly TimePeriod[]): boolean => timeOfDay.length > 0
+
+/**
+ * The selected periods as coalesced `[start, end)` hour ranges for display —
+ * adjacent/overlapping intervals fused, and a pair spanning midnight (…–24 and
+ * 0–…) shown as one wrapping range (e.g. night alone → `[21, 6]`). Empty when
+ * nothing is selected. Shared by the filter form's readout and the active pill.
+ */
+export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, number][] => {
+  const intervals = sortPeriods(periods)
+    .flatMap((period) => TIME_PERIOD_HOURS[period])
+    .map(([start, end]) => [start, end] as [number, number])
+    .sort((a, b) => a[0] - b[0])
+
+  const merged: [number, number][] = []
+
+  for (const [start, end] of intervals) {
+    const last = merged[merged.length - 1]
+
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end)
+    else merged.push([start, end])
+  }
+
+  // Fuse a midnight-spanning pair (…–24 and 0–…) into a single wrapping range.
+  if (merged.length > 1 && merged[0][0] === 0 && merged[merged.length - 1][1] === 24) {
+    const head = merged.shift()!
+
+    merged[merged.length - 1] = [merged[merged.length - 1][0], head[1]]
+  }
+
+  // Every period selected covers the whole day — there's no meaningful window to
+  // show, so callers fall back to their "any time" copy.
+  if (merged.length === 1 && merged[0][0] === 0 && merged[0][1] === 24) return []
+
+  return merged
+}
 
 /** Whether the date range narrows anything (i.e. either bound is set). */
 export const isDateRestricted = (dateRange: DateRange): boolean =>
@@ -152,7 +203,6 @@ export function matchesFilters(
     if (!occurrences || occurrences.length === 0) return false
 
     const zone = eventTimeZone(event)
-    const [earliest, latest] = filters.timeOfDay
     const { start, end } = filters.dateRange
     // Floor the lower bound at today, so an open-ended "until Y" range never matches
     // a past occurrence; a set start is already >= today, so this is just `start`.
@@ -164,8 +214,11 @@ export function matchesFilters(
       if (dayActive && !filters.daysOfWeek.includes(local.weekday)) return false
       if (timeActive) {
         const startHour = local.hour + local.minute / 60
+        const inPeriod = filters.timeOfDay.some((period) =>
+          TIME_PERIOD_HOURS[period].some(([from, to]) => startHour >= from && startHour < to),
+        )
 
-        if (startHour < earliest || startHour > latest) return false
+        if (!inPeriod) return false
       }
       if (dateActive) {
         // Compare calendar dates in the event's own frame. `yyyy-MM-dd` strings are
@@ -211,7 +264,7 @@ export const filtersKey = (filters: EventFilters): string =>
   JSON.stringify({
     format: filters.format,
     cadence: filters.cadence,
-    timeOfDay: filters.timeOfDay,
+    timeOfDay: sortPeriods(filters.timeOfDay),
     daysOfWeek: [...filters.daysOfWeek].sort((a, b) => a - b),
     languages: [...filters.languages].sort(),
     dateRange: filters.dateRange,
@@ -231,21 +284,20 @@ const parseDays = (value: string | null): number[] =>
         .sort((a, b) => a - b)
     : []
 
-const parseTime = (value: string | null): [number, number] => {
-  const [earliest, latest] = (value ?? '').split(',').map(Number)
-  const valid =
-    Number.isFinite(earliest) &&
-    Number.isFinite(latest) &&
-    earliest >= TIME_MIN &&
-    latest <= TIME_MAX &&
-    earliest <= latest
-
-  return valid ? [earliest, latest] : [TIME_MIN, TIME_MAX]
-}
+const parsePeriods = (value: string | null): TimePeriod[] =>
+  value
+    ? sortPeriods(
+        value
+          .split(',')
+          .filter((token): token is TimePeriod =>
+            (TIME_PERIODS as readonly string[]).includes(token),
+          ),
+      )
+    : []
 
 /**
  * Decode the `dates` param (`start,end`, either side blank for an open bound) into a
- * `DateRange`. Defensive like `parseTime`/`parseDays`: each side must be a strict
+ * `DateRange`. Defensive like `parsePeriods`/`parseDays`: each side must be a strict
  * `yyyy-MM-dd`, is clamped into `[today, today + DATE_WINDOW_MONTHS]`, and a reversed
  * range collapses to no restriction — so a hand-crafted URL can't escape the window.
  */
@@ -271,7 +323,7 @@ const parseDates = (value: string | null): DateRange => {
   const start = clamp(rawStart)
   const end = clamp(rawEnd)
 
-  // A reversed range is contradictory — treat it as no restriction (like `parseTime`).
+  // A reversed range is contradictory — treat it as no restriction (like `parsePeriods`).
   if (start && end && start > end) return { start: null, end: null }
 
   return { start, end }
@@ -287,7 +339,7 @@ export const filtersFromParams = (params: URLSearchParams): EventFilters => {
     format: format === 'online' || format === 'offline' ? format : 'any',
     cadence: CADENCES.includes(cadence ?? '') ? (cadence as EventCadence) : 'any',
     daysOfWeek: parseDays(params.get('days')),
-    timeOfDay: parseTime(params.get('time')),
+    timeOfDay: parsePeriods(params.get('time')),
     // Cap the list like the other groups are bounded — a hand-crafted URL can't
     // balloon it (values only feed `matchesFilters` includes + re-serialization).
     languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort().slice(0, 50) : [],
@@ -305,7 +357,8 @@ export const filtersToParams = (filters: EventFilters, base?: URLSearchParams): 
   if (filters.daysOfWeek.length > 0) {
     params.set('days', [...filters.daysOfWeek].sort((a, b) => a - b).join(','))
   }
-  if (isTimeRestricted(filters.timeOfDay)) params.set('time', filters.timeOfDay.join(','))
+  if (isTimeRestricted(filters.timeOfDay))
+    params.set('time', sortPeriods(filters.timeOfDay).join(','))
   if (filters.languages.length > 0) params.set('langs', [...filters.languages].sort().join(','))
   if (isDateRestricted(filters.dateRange)) {
     params.set('dates', `${filters.dateRange.start ?? ''},${filters.dateRange.end ?? ''}`)

@@ -44,7 +44,7 @@ const mockClient: Client = { id: 1, name: 'Demo Host', locale: 'en', region: nul
 /** A passive IP guess (Cambridge) so the nearby-suggestion prompt renders on the
  *  views that show it (Countries / Region / Search). Sits where the feed has a
  *  located class within reach, and far from the country/region the default example
- *  frames, so `shouldShowNearbyPrompt` resolves true (a region you're already
+ *  frames, so `shouldShowGeolocationPrompt` resolves true (a region you're already
  *  viewing locally correctly suppresses it). */
 const mockIpLocation: IpLocation = {
   latitude: 52.2,

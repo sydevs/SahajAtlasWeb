@@ -65,10 +65,11 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Body`/`Footer`/`Close` | vaul drawer; left ≥md / bottom sheet on mobile, non-modal; portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction |
 | `Dropdown/`           | `Dropdown`                                           | Floating-UI **popover shell**: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`)            |
 | `Link/`               | `Link`                                               | Router link, or `<a>` for external/`mailto:`/`tel:`; forwards a ref (used as a whole-card hit target)                                    |
+| `RadioGroup/`         | `RadioGroup`, `RadioOption`                          | Controlled radio list as selectable cards (native `<input type="radio">`); optional `collapseAfter` hides the tail behind a reveal link. Callers pass `label` nodes — no domain logic (the registration date picker) |
 | `Select/`             | `Select`, `SelectItem`, `fieldChrome`                | Radix select on brand tokens. `fieldChrome` is the shared input recipe (also used by the registration fields + filter date bounds)      |
-| `Slider/`             | `Slider`                                             | Radix slider; `thumbLabels` labels each thumb (the time-of-day range filter)                                                            |
+| `Slider/`             | `Slider`                                             | Radix slider; `thumbLabels` labels each thumb. Currently unused by the app (the time-of-day filter moved to period toggles)              |
 | `Spinner/`            | `Spinner`                                            | SVG spinner; `decorative` drops the live region when the parent already announces busy (Button)                                         |
-| `ToggleGroup/`        | `ToggleGroup`, `ToggleGroupItem`                     | Radix toggle group — the filter panel's format/frequency/day pills                                                                     |
+| `ToggleGroup/`        | `ToggleGroup`, `ToggleGroupItem`                     | Radix toggle group — the filter panel's format / frequency / day / time-of-day pills                                                    |
 
 **Molecules** (`src/components/molecules/`)
 
@@ -77,13 +78,14 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line           |
 | `ActiveFilterPills/` | `ActiveFilterPills`                | Removable pills for the active URL filters                                                    |
 | `EventActions/`      | `EventActions`                     | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
+| `EventChips/`        | `EventChips`                       | The shared triage chips (type · language(s) · Today); `variant="compact"` trims the redundant ones for the list card. Used by the list card + the event header so the two never drift |
 | `EventListItem/`         | `EventListItem`                        | Per-event row in an event list (title, facts, chips)                                          |
 | `EventFacts/`        | `EventFacts`, `EventSummary`       | The shared calendar/location fact block. `variant="compact"` for result cards; `variant="card"` is the boxed details card, wrapped by `EventSummary` (title + embed backlink) on the share/registration drawers |
 | `EventMetadata/`     | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
 | `Fallbacks/`         | `LoadingFallback`, `ErrorFallback` | Suspense / error-boundary fallbacks (compose `Alert`/`Spinner`)                               |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`           | Generic Swiper carousel (`slides`); folds in the lazy YARL lightbox (own chunk)               |
 | `List/`              | `List`, `listRow`                  | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome + gutter          |
-| `NearbyPrompt/`      | `NearbyPrompt`                     | The IP-geolocated "events near you?" suggestion line                                          |
+| `GeolocationPrompt/` | `GeolocationPrompt`                | The IP-geolocated "events near you?" suggestion line                                          |
 | `ListItem/`        | `ListItem`                       | Every row in a region list: the country → region → area drill-down AND the online-classes entry. `icon` is a fixed slot that sizes/spaces the glyph, so rows align whatever goes in it |
 | `SearchFilters/`     | `SearchFilters`                    | The filter form (format / frequency / day / time / language); fully controlled                |
 | `SettingsMenu/`      | `SettingsMenu`                     | The cog: theme radio group + language submenu, on Radix DropdownMenu (needs Sub/RadioGroup)   |
@@ -103,7 +105,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
 `CountriesView`/`SearchView`/`RegionView`/`OnlineView`/`EventView`/
 `FilterView`/`RegistrationView`/`ShareView`), with shared pieces (`DrawerTitle`,
-`CloseButton`, `FilterButton`, `SearchField`, `NearbySuggestion`) in
+`CloseButton`, `FilterButton`, `SearchField`, `GeolocationSuggestion`) in
 `views/shared.tsx`. `DrawerStack` derives the stack from the pathname
 (`resolveStack`) and renders ONE vaul drawer holding the active view, with
 ancestors as static peek cards behind it; map-less it renders a single

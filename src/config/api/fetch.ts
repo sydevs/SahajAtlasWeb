@@ -277,8 +277,14 @@ export const regionRoute = (node: RegionNode): string => safePath(node.webPath) 
 // more `legacyData` fallback. Guard the shape so a malformed value can't throw in
 // `Intl.DisplayNames` / `CircleFlag` downstream (a non-ISO slug — e.g. an un-migrated
 // local dev seed — simply yields no flag rather than an error).
+//
+// Normalized to UPPERCASE: the migrated slugs are lowercase (`gb`), but
+// `Intl.DisplayNames({ type: 'region' })` is case-sensitive — `.of('gb')` echoes
+// back `"gb"` (fallback:'code') while `.of('GB')` resolves "United Kingdom". So the
+// canonical stored form is upper (matches the mocks' `countryCode: 'GB'`); the flag
+// lowercases it again at its call site.
 const isoCountryCode = (value: string | null | undefined): string | undefined =>
-  typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value : undefined
+  typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value.toUpperCase() : undefined
 
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 

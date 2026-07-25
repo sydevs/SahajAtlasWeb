@@ -5,7 +5,7 @@ import { Button } from '@/components/atoms/Button'
 import { CloseIcon } from '@/components/atoms/Icons'
 
 // A status banner replacing NextUI's Alert, on the Radix-semantic tokens. `flat`
-// is a soft tint, `bordered`/`faded` add an outline; `color` selects the ramp
+// is a soft tint, `bordered` adds an outline; `color` selects the ramp
 // (danger stays the fixed status red, never brand-tinted).
 const alert = tv({
   slots: {
@@ -17,8 +17,8 @@ const alert = tv({
     close: '-me-1 shrink-0 opacity-60 hover:opacity-100',
   },
   variants: {
-    color: { primary: '', secondary: '', default: '', danger: '' },
-    variant: { flat: '', bordered: 'border', faded: 'border' },
+    color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },
+    variant: { flat: '', bordered: 'border' },
     // Top-align a two-line alert; vertically centre a single line of text.
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
     // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.
@@ -27,7 +27,8 @@ const alert = tv({
   compoundVariants: [
     { color: 'primary', variant: 'flat', class: { base: 'bg-primary-3 text-primary-11' } },
     { color: 'secondary', variant: 'flat', class: { base: 'bg-secondary-3 text-secondary-11' } },
-    { color: 'default', variant: 'flat', class: { base: 'bg-gray-3 text-gray-12' } },
+    { color: 'contrast', variant: 'flat', class: { base: 'bg-contrast-3 text-contrast-11' } },
+    { color: 'neutral', variant: 'flat', class: { base: 'bg-gray-3 text-gray-12' } },
     { color: 'danger', variant: 'flat', class: { base: 'bg-danger-3 text-danger-11' } },
     { color: 'primary', variant: 'bordered', class: { base: 'border-primary-6 text-primary-11' } },
     {
@@ -35,26 +36,15 @@ const alert = tv({
       variant: 'bordered',
       class: { base: 'border-secondary-6 text-secondary-11' },
     },
-    { color: 'default', variant: 'bordered', class: { base: 'border-gray-6 text-gray-12' } },
+    {
+      color: 'contrast',
+      variant: 'bordered',
+      class: { base: 'border-contrast-6 text-contrast-11' },
+    },
+    { color: 'neutral', variant: 'bordered', class: { base: 'border-gray-6 text-gray-12' } },
     { color: 'danger', variant: 'bordered', class: { base: 'border-danger-6 text-danger-11' } },
-    {
-      color: 'primary',
-      variant: 'faded',
-      class: { base: 'border-primary-6 bg-primary-2 text-primary-11' },
-    },
-    {
-      color: 'secondary',
-      variant: 'faded',
-      class: { base: 'border-secondary-6 bg-secondary-2 text-secondary-11' },
-    },
-    { color: 'default', variant: 'faded', class: { base: 'border-gray-6 bg-gray-2 text-gray-12' } },
-    {
-      color: 'danger',
-      variant: 'faded',
-      class: { base: 'border-danger-6 bg-danger-2 text-danger-11' },
-    },
   ],
-  defaultVariants: { color: 'default', variant: 'flat', size: 'md' },
+  defaultVariants: { color: 'neutral', variant: 'flat', size: 'md' },
 })
 
 // A round info/alert glyph used when no custom icon is supplied.

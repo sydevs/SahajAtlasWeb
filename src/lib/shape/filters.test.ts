@@ -9,6 +9,7 @@ import {
   filtersToParams,
   hasActiveFilters,
   matchesFilters,
+  timePeriodRanges,
   type EventFilters,
 } from './filters'
 
@@ -127,22 +128,40 @@ describe('matchesFilters — day of week (in the event zone)', () => {
   })
 })
 
-describe('matchesFilters — time of day (local start window)', () => {
-  const morning = at('Asia/Kolkata', '2026-07-06T09:30')
-  const morningEvent = event({ zone: 'Asia/Kolkata', occurrences: [morning] })
+describe('matchesFilters — time of day (selected periods, in the event zone)', () => {
+  const morningEvent = event({
+    zone: 'Asia/Kolkata',
+    occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
+  })
+  const withHour = (hour: string) =>
+    event({ zone: 'Asia/Kolkata', occurrences: [at('Asia/Kolkata', `2026-07-06T${hour}`)] })
 
-  it('matches when the local start hour is within range (inclusive)', () => {
-    expect(matchesFilters(morningEvent, withFilters({ timeOfDay: [9, 10] }))).toBe(true)
-    expect(matchesFilters(morningEvent, withFilters({ timeOfDay: [9.5, 12] }))).toBe(true)
-    expect(matchesFilters(morningEvent, withFilters({ timeOfDay: [10, 12] }))).toBe(false)
+  it('matches when the local start hour falls in a selected period', () => {
+    expect(matchesFilters(morningEvent, withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(morningEvent, withFilters({ timeOfDay: ['morning', 'evening'] }))).toBe(
+      true,
+    )
+    expect(matchesFilters(morningEvent, withFilters({ timeOfDay: ['afternoon'] }))).toBe(false)
+  })
+
+  it('treats period boundaries as half-open [start, end)', () => {
+    // 12:00 belongs to afternoon [12,17), not morning [6,12).
+    expect(matchesFilters(withHour('12:00'), withFilters({ timeOfDay: ['afternoon'] }))).toBe(true)
+    expect(matchesFilters(withHour('12:00'), withFilters({ timeOfDay: ['morning'] }))).toBe(false)
+  })
+
+  it('matches night on both sides of midnight (21–24 and 0–6)', () => {
+    expect(matchesFilters(withHour('23:00'), withFilters({ timeOfDay: ['night'] }))).toBe(true)
+    expect(matchesFilters(withHour('03:00'), withFilters({ timeOfDay: ['night'] }))).toBe(true)
+    // 06:00 is morning, not night.
+    expect(matchesFilters(withHour('06:00'), withFilters({ timeOfDay: ['night'] }))).toBe(false)
   })
 
   it('falls back to UTC when the event has no timezone', () => {
-    const utcNine = at('UTC', '2026-07-06T09:00')
-    const noZone = event({ zone: null, occurrences: [utcNine] })
+    const noZone = event({ zone: null, occurrences: [at('UTC', '2026-07-06T09:00')] })
 
-    expect(matchesFilters(noZone, withFilters({ timeOfDay: [8, 10] }))).toBe(true)
-    expect(matchesFilters(noZone, withFilters({ timeOfDay: [10, 12] }))).toBe(false)
+    expect(matchesFilters(noZone, withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(noZone, withFilters({ timeOfDay: ['afternoon'] }))).toBe(false)
   })
 
   it('evaluates online events in the viewer local zone', () => {
@@ -150,7 +169,7 @@ describe('matchesFilters — time of day (local start window)', () => {
     const localNine = at(localZone, '2026-07-06T09:30')
     const onlineEvent = event({ eventType: 'online', zone: null, occurrences: [localNine] })
 
-    expect(matchesFilters(onlineEvent, withFilters({ timeOfDay: [9, 10] }))).toBe(true)
+    expect(matchesFilters(onlineEvent, withFilters({ timeOfDay: ['morning'] }))).toBe(true)
   })
 })
 
@@ -164,7 +183,7 @@ describe('matchesFilters — day and time evaluated together', () => {
     expect(
       matchesFilters(
         twoOccurrences,
-        withFilters({ daysOfWeek: [monMorning.weekday], timeOfDay: [9, 12] }),
+        withFilters({ daysOfWeek: [monMorning.weekday], timeOfDay: ['morning'] }),
       ),
     ).toBe(true)
     // Wednesday + morning: the Wednesday occurrence is in the evening, and the
@@ -172,14 +191,14 @@ describe('matchesFilters — day and time evaluated together', () => {
     expect(
       matchesFilters(
         twoOccurrences,
-        withFilters({ daysOfWeek: [wedEvening.weekday], timeOfDay: [9, 12] }),
+        withFilters({ daysOfWeek: [wedEvening.weekday], timeOfDay: ['morning'] }),
       ),
     ).toBe(false)
     // Wednesday + evening: the Wednesday occurrence satisfies both.
     expect(
       matchesFilters(
         twoOccurrences,
-        withFilters({ daysOfWeek: [wedEvening.weekday], timeOfDay: [18, 21] }),
+        withFilters({ daysOfWeek: [wedEvening.weekday], timeOfDay: ['evening'] }),
       ),
     ).toBe(true)
   })
@@ -263,11 +282,11 @@ describe('matchesFilters — date range (in the event zone)', () => {
 
     // The 22nd is only in the evening; the morning occurrence is the 20th — no overlap.
     expect(
-      matches({ dateRange: { start: '2026-07-22', end: '2026-07-22' }, timeOfDay: [9, 12] }),
+      matches({ dateRange: { start: '2026-07-22', end: '2026-07-22' }, timeOfDay: ['morning'] }),
     ).toBe(false)
     // The 20th morning occurrence satisfies both.
     expect(
-      matches({ dateRange: { start: '2026-07-20', end: '2026-07-20' }, timeOfDay: [9, 12] }),
+      matches({ dateRange: { start: '2026-07-20', end: '2026-07-20' }, timeOfDay: ['morning'] }),
     ).toBe(true)
   })
 })
@@ -284,7 +303,7 @@ describe('hasActiveFilters / activeFilterCount', () => {
       cadence: 'WEEKLY',
       daysOfWeek: [1, 2],
       languages: ['en'],
-      timeOfDay: [9, 17],
+      timeOfDay: ['morning', 'afternoon'],
       dateRange: { start: '2026-07-20', end: '2026-07-27' },
     })
 
@@ -315,7 +334,7 @@ describe('URL serialization', () => {
     format: 'online',
     cadence: 'WEEKLY',
     daysOfWeek: [1, 3, 5],
-    timeOfDay: [9, 17],
+    timeOfDay: ['morning', 'afternoon'],
     languages: ['en', 'fr'],
     dateRange: { start: null, end: null },
   }
@@ -341,8 +360,8 @@ describe('URL serialization', () => {
 
   it('falls back to defaults for missing or malformed params', () => {
     expect(filtersFromParams(new URLSearchParams())).toEqual(DEFAULT_FILTERS)
-    // Unknown format/cadence, out-of-range days, reversed time → each group defaults.
-    const junk = new URLSearchParams('format=hybrid&cadence=YEARLY&days=0,8,foo&time=20,4')
+    // Unknown format/cadence, out-of-range days, unknown time periods → each group defaults.
+    const junk = new URLSearchParams('format=hybrid&cadence=YEARLY&days=0,8,foo&time=noon,dawn')
 
     expect(filtersFromParams(junk)).toEqual(DEFAULT_FILTERS)
   })
@@ -405,5 +424,42 @@ describe('date-range URL codec', () => {
     expect(filtersFromParams(new URLSearchParams('dates=foo,bar')).dateRange).toEqual(empty)
     expect(filtersFromParams(new URLSearchParams('dates=2026-13-40,')).dateRange).toEqual(empty)
     expect(filtersFromParams(new URLSearchParams('dates=2026-7-6,')).dateRange).toEqual(empty)
+  })
+})
+
+describe('timePeriodRanges', () => {
+  it('is empty when nothing is selected', () => {
+    expect(timePeriodRanges([])).toEqual([])
+  })
+
+  it('is empty when every period is selected (a whole-day cover)', () => {
+    expect(timePeriodRanges(['morning', 'afternoon', 'evening', 'night'])).toEqual([])
+  })
+
+  it('gives one range per non-adjacent period', () => {
+    expect(timePeriodRanges(['morning'])).toEqual([[6, 12]])
+    expect(timePeriodRanges(['morning', 'evening'])).toEqual([
+      [6, 12],
+      [17, 21],
+    ])
+  })
+
+  it('fuses adjacent periods into one range', () => {
+    expect(timePeriodRanges(['morning', 'afternoon'])).toEqual([[6, 17]])
+  })
+
+  it('shows night as a single range wrapping midnight', () => {
+    expect(timePeriodRanges(['night'])).toEqual([[21, 6]])
+  })
+
+  it('coalesces night with an adjacent period across midnight', () => {
+    // night [21,24]+[0,6] fused with morning [6,12] → 21 through 12 (wrapping).
+    expect(timePeriodRanges(['morning', 'night'])).toEqual([[21, 12]])
+  })
+
+  it('is order-independent', () => {
+    expect(timePeriodRanges(['evening', 'morning'])).toEqual(
+      timePeriodRanges(['morning', 'evening']),
+    )
   })
 })

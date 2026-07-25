@@ -3,14 +3,14 @@ import type { GeoFeature, Geojson } from '@/types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  NEARBY_DISMISS_KEY,
+  GEOLOCATION_DISMISS_KEY,
   hasActivePlaceSearch,
   hasClassWithin,
   isLocalRegion,
-  markNearbyDismissed,
-  readNearbyDismissed,
-  shouldShowNearbyPrompt,
-} from './nearby'
+  markGeolocationDismissed,
+  readGeolocationDismissed,
+  shouldShowGeolocationPrompt,
+} from './geolocation'
 
 // Paris as the resolved guess. Coordinates elsewhere are [lng, lat]; NEAR is ~5 km
 // east of Paris (well within 100 km), FAR is ~500 km south (well beyond).
@@ -80,7 +80,7 @@ describe('isLocalRegion', () => {
   })
 })
 
-describe('shouldShowNearbyPrompt', () => {
+describe('shouldShowGeolocationPrompt', () => {
   // A baseline where the prompt SHOWS; each case flips exactly one condition.
   const showing = {
     guess: PARIS,
@@ -91,38 +91,40 @@ describe('shouldShowNearbyPrompt', () => {
   }
 
   it('shows for a resolved guess with a nearby class and nothing suppressing it', () => {
-    expect(shouldShowNearbyPrompt(showing)).toBe(true)
+    expect(shouldShowGeolocationPrompt(showing)).toBe(true)
   })
   it('hides when there is no resolved guess', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, guess: null })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, guess: null })).toBe(false)
   })
   it('hides when dismissed this session', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, dismissed: true })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, dismissed: true })).toBe(false)
   })
   it('hides when a place search is already active', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, activeSearch: true })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, activeSearch: true })).toBe(false)
   })
   it('hides while the feed is still loading', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, geojson: undefined })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, geojson: undefined })).toBe(false)
   })
   it('hides when no located class is within range', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, geojson: feed(located(FAR)) })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, geojson: feed(located(FAR)) })).toBe(false)
   })
   it('hides when the only nearby classes are online', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, geojson: feed(online()) })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, geojson: feed(online()) })).toBe(false)
   })
   it('hides when already viewing a region local to the guess', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, regionCenter: NEAR })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, regionCenter: NEAR })).toBe(false)
   })
   it('shows when the viewed region is far from the guess (a whole country)', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, regionCenter: FAR })).toBe(true)
+    expect(shouldShowGeolocationPrompt({ ...showing, regionCenter: FAR })).toBe(true)
   })
   it('a lookup-suppressor wins over an otherwise-showing state (precedence)', () => {
-    expect(shouldShowNearbyPrompt({ ...showing, dismissed: true, regionCenter: FAR })).toBe(false)
+    expect(shouldShowGeolocationPrompt({ ...showing, dismissed: true, regionCenter: FAR })).toBe(
+      false,
+    )
   })
 })
 
-describe('readNearbyDismissed / markNearbyDismissed', () => {
+describe('readGeolocationDismissed / markGeolocationDismissed', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   const stubStorage = () => {
@@ -138,14 +140,14 @@ describe('readNearbyDismissed / markNearbyDismissed', () => {
 
   it('reads false before anything is written', () => {
     stubStorage()
-    expect(readNearbyDismissed()).toBe(false)
+    expect(readGeolocationDismissed()).toBe(false)
   })
   it('round-trips the dismiss flag under the session key', () => {
     const store = stubStorage()
 
-    markNearbyDismissed()
-    expect(store.get(NEARBY_DISMISS_KEY)).toBe('1')
-    expect(readNearbyDismissed()).toBe(true)
+    markGeolocationDismissed()
+    expect(store.get(GEOLOCATION_DISMISS_KEY)).toBe('1')
+    expect(readGeolocationDismissed()).toBe(true)
   })
   it('degrades to "not dismissed" when storage throws (sandboxed embed / private mode)', () => {
     vi.stubGlobal('sessionStorage', {
@@ -156,7 +158,7 @@ describe('readNearbyDismissed / markNearbyDismissed', () => {
         throw new Error('blocked')
       },
     })
-    expect(readNearbyDismissed()).toBe(false)
-    expect(() => markNearbyDismissed()).not.toThrow()
+    expect(readGeolocationDismissed()).toBe(false)
+    expect(() => markGeolocationDismissed()).not.toThrow()
   })
 })

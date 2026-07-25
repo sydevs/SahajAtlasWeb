@@ -41,6 +41,11 @@ export type { EventFactsProps } from './EventFacts'
 export { EventSummary } from './EventFacts'
 export type { EventSummaryProps } from './EventFacts'
 
+// The event's triage chips (type · language(s) · Today), shared by the list card
+// and the event header so the two never drift. `compact` trims the list card.
+export { EventChips } from './EventChips'
+export type { EventChipsProps, EventChipsVariant } from './EventChips'
+
 export { List } from './List'
 
 export { ListItem } from './ListItem'
@@ -67,7 +72,8 @@ export type { ImageCarouselProps, Slide } from './ImageCarousel'
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
 
-// NearbyPrompt — the dismissible IP-geolocation "events near you" suggestion shown
-// above the list on the top-level views (wired by NearbySuggestion in views/shared).
-export { NearbyPrompt } from './NearbyPrompt'
-export type { NearbyPromptProps } from './NearbyPrompt'
+// GeolocationPrompt — the dismissible IP-geolocation "events near you" suggestion
+// shown above the list on the top-level views (wired by GeolocationSuggestion in
+// views/shared).
+export { GeolocationPrompt } from './GeolocationPrompt'
+export type { GeolocationPromptProps } from './GeolocationPrompt'

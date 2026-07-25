@@ -45,7 +45,7 @@ describe('globals.css brand defaults', () => {
         const vars = BLOCKS[mode]
         const scale = buildScale(seed, mode)
 
-        expect(vars[`--${role}-contrast`]).toBe(scale.contrast)
+        expect(vars[`--${role}-on`]).toBe(scale.on)
         for (const step of STEPS) {
           expect(vars[`--${role}-${step}`]).toBe(scale[step])
         }
