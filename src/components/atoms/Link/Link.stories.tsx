@@ -29,7 +29,7 @@ export const Default: Story = () => (
           Primary
         </Link>
         <Link color="contrast" href="/">
-          Danger
+          Contrast
         </Link>
       </div>
     </StorySection>
