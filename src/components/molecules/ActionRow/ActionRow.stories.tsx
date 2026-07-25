@@ -1,12 +1,25 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { StoryWrapper, StorySection } from '../../ladle'
+import {
+  StoryWrapper,
+  StorySection,
+  StoryGrid,
+  StoryGridHeader,
+  StoryGridHeaderRow,
+  StoryGridHeaderCell,
+  StoryGridBody,
+  StoryGridRow,
+  StoryGridCell,
+} from '../../ladle'
 
 import { ActionCircle, ActionRow } from './ActionRow'
 
 import { CalendarIcon, CallIcon, DirectionsIcon, ShareIcon } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules' } satisfies StoryDefault
+
+const COLORS = ['primary', 'secondary', 'contrast', 'neutral'] as const
+const VARIANTS = ['solid', 'flat', 'bordered', 'ghost'] as const
 
 /**
  * ActionRow / ActionCircle — the labelled tonal-circle secondary actions under
@@ -18,6 +31,40 @@ export default { title: 'Molecules' } satisfies StoryDefault
  */
 export const Default: Story = () => (
   <StoryWrapper>
+    <StorySection
+      description="The circle takes the same colour × variant matrix as Button, so an action can be skinned like any other control. The app uses primary flat (and solid for the one emphasized case)."
+      title="Colour × variant"
+    >
+      <StoryGrid>
+        <StoryGridHeader>
+          <StoryGridHeaderRow>
+            <StoryGridHeaderCell />
+            {VARIANTS.map((variant) => (
+              <StoryGridHeaderCell key={variant}>{variant}</StoryGridHeaderCell>
+            ))}
+          </StoryGridHeaderRow>
+        </StoryGridHeader>
+        <StoryGridBody>
+          {COLORS.map((color) => (
+            <StoryGridRow key={color}>
+              <StoryGridCell isLabel>{color}</StoryGridCell>
+              {VARIANTS.map((variant) => (
+                <StoryGridCell key={variant}>
+                  <ActionCircle
+                    color={color}
+                    icon={<CallIcon />}
+                    label="Contact"
+                    variant={variant}
+                    onClick={() => {}}
+                  />
+                </StoryGridCell>
+              ))}
+            </StoryGridRow>
+          ))}
+        </StoryGridBody>
+      </StoryGrid>
+    </StorySection>
+
     <StorySection
       description="The physical-live set: Directions · Add to calendar · Contact · Share."
       title="Physical event"
@@ -57,28 +104,6 @@ export const Default: Story = () => (
           />
           <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
-      </div>
-    </StorySection>
-
-    <StorySection
-      description="The circle takes the same colour × variant matrix as Button, so an action can be skinned like any other control. The app uses primary flat (and solid for the one emphasized case)."
-      title="Colors"
-    >
-      <div className="flex max-w-md flex-col gap-3">
-        {(['flat', 'solid', 'bordered', 'ghost'] as const).map((variant) => (
-          <ActionRow key={variant}>
-            {(['primary', 'secondary', 'contrast', 'neutral'] as const).map((color) => (
-              <ActionCircle
-                key={color}
-                color={color}
-                icon={<CallIcon />}
-                label={`${variant}/${color}`}
-                variant={variant}
-                onClick={() => {}}
-              />
-            ))}
-          </ActionRow>
-        ))}
       </div>
     </StorySection>
 

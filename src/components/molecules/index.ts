@@ -62,12 +62,8 @@ export type { ImageCarouselProps, Slide } from './ImageCarousel'
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
 
-// NearbyPrompt — the dismissible IP-geolocation "events near you" suggestion shown
-// above the list on the top-level views (wired by NearbySuggestion in views/shared).
-export { NearbyPrompt } from './NearbyPrompt'
-export type { NearbyPromptProps } from './NearbyPrompt'
-
-// EventPinPopover — the hover popover over a single map pin; its map-free card
-// (EventPinCard) stacks the recurrence above the start time. Mounted by the map.
-export { EventPinCard, EventPinPopover } from './EventPinPopover'
-export type { EventPinCardProps, EventPinPopoverProps } from './EventPinPopover'
+// GeolocationPrompt — the dismissible IP-geolocation "events near you" suggestion
+// shown above the list on the top-level views (wired by NearbySuggestion in
+// views/shared).
+export { GeolocationPrompt } from './GeolocationPrompt'
+export type { GeolocationPromptProps } from './GeolocationPrompt'

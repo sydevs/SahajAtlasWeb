@@ -12,7 +12,7 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
-import { NearbyPrompt } from '@/components/molecules'
+import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -391,5 +391,7 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
   // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
   if (!ipLocation || !show) return null
 
-  return <NearbyPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+  return (
+    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+  )
 }

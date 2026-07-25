@@ -1,7 +1,7 @@
 // Region / country / geojson fixtures for the view stories. Type-valid against the
 // zod-inferred entity types — the view stories seed these straight into the React
 // Query cache (bypassing the fetchers' zod parse), so TypeScript is the guard.
-import type { Geojson, Region, RegionListItem, RegionRef } from '@/types'
+import type { EventSlim, Geojson, Region, RegionListItem, RegionRef } from '@/types'
 
 import { mockEventSlim, mockEventSlimOnline, mockEventVariants } from './events'
 
@@ -111,6 +111,23 @@ export const mockCountryRegion: Region = {
   ],
 }
 
+// A busy leaf city's roster: the located variants repeated a few times with unique
+// ids/titles, so the City example shows a long, scrollable gallery rather than the
+// handful the raw variant list holds.
+const offlineVariants = mockEventVariants.filter((event) => event.eventType === 'offline')
+const cityEvents: EventSlim[] = [0, 1, 2].flatMap((pass) =>
+  offlineVariants.map((event, i) => {
+    const id = 8300 + pass * offlineVariants.length + i
+
+    return {
+      ...event,
+      id,
+      title: pass === 0 ? event.title : `${event.title} ${pass + 1}`,
+      path: `/united-kingdom/cambridgeshire/cambridge/${id}`,
+    }
+  }),
+)
+
 /** A leaf region (a city): its own located events (the full card gallery), no child
  *  regions, with its online classes listed inline after them. Located vs online are
  *  disjoint (a real feed splits them the same way), so the shared variant list is
@@ -122,18 +139,18 @@ export const mockLeafRegion: Region = {
   name: 'Cambridge',
   level: 'city',
   subtitle: 'Cambridgeshire',
-  eventCount: 12,
+  eventCount: cityEvents.length,
   path: '/united-kingdom/cambridgeshire/cambridge',
   parentPath: '/united-kingdom/cambridgeshire',
   subregions: [],
-  events: mockEventVariants.filter((event) => event.eventType === 'offline'),
+  events: cityEvents,
   onlineEvents: mockEventVariants.filter((event) => event.eventType === 'online'),
 }
 
 /**
- * A city holding SY Centers (venues) as its children: London with two centers
- * ("44 Chelsham Rd", "Flood Street") and an "Online Classes" roll-up above them —
- * a city whose classes live at its centers rather than free-floating on the city.
+ * A mixed city: SY Centers (venues) as its children AND its own free-floating
+ * located events, led by an "Online Classes" roll-up — London with two centers
+ * ("44 Chelsham Rd", "Flood Street") plus a few classes pinned to the city itself.
  */
 export const mockCityWithCentersRegion: Region = {
   ...mockParentRegion,
@@ -146,7 +163,7 @@ export const mockCityWithCentersRegion: Region = {
   path: '/united-kingdom/greater-london/london',
   parentPath: '/united-kingdom/greater-london',
   subregions: cityCenters,
-  events: [],
+  events: offlineVariants.slice(0, 5),
 }
 
 /** Minimal region: no children, no events (the sparsest valid state). */

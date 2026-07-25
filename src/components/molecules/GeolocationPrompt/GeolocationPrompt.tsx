@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Alert } from '@/components/atoms/Alert'
 import { LocationIcon } from '@/components/atoms/Icons'
 
-export type NearbyPromptProps = {
+export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
   city: string
   /** Accept the suggestion — navigate into the distance-ranked nearby search. */
@@ -21,7 +21,7 @@ export type NearbyPromptProps = {
  * "your location". Presentational only — the IP lookup, session-scoped dismissal,
  * and navigation live in `NearbySuggestion` (src/views/shared.tsx).
  */
-export function NearbyPrompt({ city, onAccept, onClose }: NearbyPromptProps) {
+export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation('common')
 
   // `px-4` matches the drawer header's horizontal padding so the prompt's icon/text

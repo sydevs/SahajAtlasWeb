@@ -2,13 +2,34 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { useState } from 'react'
 
-import { StoryWrapper, StorySection } from '../../ladle'
+import {
+  StoryWrapper,
+  StorySection,
+  StoryGrid,
+  StoryGridHeader,
+  StoryGridHeaderRow,
+  StoryGridHeaderCell,
+  StoryGridBody,
+  StoryGridRow,
+  StoryGridCell,
+} from '../../ladle'
 
 import { Checkbox } from './Checkbox'
 
 export default {
   title: 'Atoms',
 } satisfies StoryDefault
+
+// Rows are the palette colors, plus a `disabled` row — the disabled appearance is
+// color-independent (a flat opacity), so one row stands in for all four. Columns
+// are the two appearances the single control offers.
+const rows = [
+  { color: 'primary' as const },
+  { color: 'secondary' as const },
+  { color: 'contrast' as const },
+  { color: 'neutral' as const },
+  { color: 'primary' as const, disabled: true, label: 'disabled' },
+]
 
 /** Checkbox — one Radix control with a `switch` or `checkbox` appearance. */
 export const Default: Story = () => {
@@ -18,22 +39,32 @@ export const Default: Story = () => {
 
   return (
     <StoryWrapper>
-      <StorySection description="Colour × on/off (default appearance)." title="Switch">
-        <div className="flex flex-wrap items-center gap-6">
-          <Checkbox checked color="primary" />
-          <Checkbox checked color="secondary" />
-          <Checkbox checked color="neutral" />
-          <Checkbox checked={false} color="primary" />
-        </div>
-      </StorySection>
-
-      <StorySection description="Square box with a check indicator." title="Checkbox appearance">
-        <div className="flex flex-wrap items-center gap-6">
-          <Checkbox checked appearance="checkbox" color="primary" />
-          <Checkbox checked appearance="checkbox" color="secondary" />
-          <Checkbox checked appearance="checkbox" color="neutral" />
-          <Checkbox appearance="checkbox" checked={false} color="primary" />
-        </div>
+      <StorySection
+        description="Appearance × colour, all checked (disabled is color-independent)."
+        title="Appearance × colour"
+      >
+        <StoryGrid>
+          <StoryGridHeader>
+            <StoryGridHeaderRow>
+              <StoryGridHeaderCell />
+              <StoryGridHeaderCell>Switch</StoryGridHeaderCell>
+              <StoryGridHeaderCell>Checkbox</StoryGridHeaderCell>
+            </StoryGridHeaderRow>
+          </StoryGridHeader>
+          <StoryGridBody>
+            {rows.map(({ color, disabled, label }) => (
+              <StoryGridRow key={label ?? color}>
+                <StoryGridCell isLabel>{label ?? color}</StoryGridCell>
+                <StoryGridCell>
+                  <Checkbox checked color={color} disabled={disabled} />
+                </StoryGridCell>
+                <StoryGridCell>
+                  <Checkbox checked appearance="checkbox" color={color} disabled={disabled} />
+                </StoryGridCell>
+              </StoryGridRow>
+            ))}
+          </StoryGridBody>
+        </StoryGrid>
       </StorySection>
 
       <StorySection title="With label (controlled)">

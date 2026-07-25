@@ -2,12 +2,12 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { NearbyPrompt } from './NearbyPrompt'
+import { GeolocationPrompt } from './GeolocationPrompt'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
 /**
- * NearbyPrompt — the dismissible IP-geolocation suggestion shown above the list on
+ * GeolocationPrompt — the dismissible IP-geolocation suggestion shown above the list on
  * the top-level views ("Looking for classes near %{city}?"). A slim, secondary-tinted
  * `Alert` whose text is a button into the distance-ranked nearby search; the small ×
  * dismisses it for the session. Announced politely (`role="status"`), and its
@@ -21,8 +21,12 @@ export const Default: Story = () => (
       title="Nearby suggestion"
     >
       <div className="flex max-w-sm flex-col gap-4">
-        <NearbyPrompt city="Paris" onAccept={() => {}} onClose={() => {}} />
-        <NearbyPrompt city="San Cristóbal de La Laguna" onAccept={() => {}} onClose={() => {}} />
+        <GeolocationPrompt city="Paris" onAccept={() => {}} onClose={() => {}} />
+        <GeolocationPrompt
+          city="San Cristóbal de La Laguna"
+          onAccept={() => {}}
+          onClose={() => {}}
+        />
       </div>
     </StorySection>
 
@@ -30,4 +34,4 @@ export const Default: Story = () => (
   </StoryWrapper>
 )
 
-Default.storyName = 'Nearby Prompt'
+Default.storyName = 'Geolocation Prompt'

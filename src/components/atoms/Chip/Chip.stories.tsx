@@ -66,51 +66,76 @@ export const Default: Story = () => (
       </StoryGrid>
     </StorySection>
 
-    <StorySection description="sm (default) and md." title="Size">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip size="sm">small</Chip>
-        <Chip size="md">medium</Chip>
-      </div>
-    </StorySection>
-
-    <StorySection description="Square (sm, default) vs pill (full) corners." title="Radius">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip radius="sm">square</Chip>
-        <Chip radius="full">pill</Chip>
+    <StorySection description="sm (default) and md, across every colour." title="Size">
+      <div className="flex flex-col gap-3">
+        {(['sm', 'md'] as const).map((size) => (
+          <div key={size} className="flex flex-wrap items-center gap-2">
+            {colors.map((color) => (
+              <Chip key={color} color={color} size={size}>
+                {size}
+              </Chip>
+            ))}
+          </div>
+        ))}
       </div>
     </StorySection>
 
     <StorySection
-      description="`onClose` adds a trailing remove button — pairs with `radius=full` for the active-filter pills."
-      title="Removable"
+      description="Square (sm, default) vs pill (full) corners, across every colour."
+      title="Radius"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip closeLabel="Remove online" color="neutral" radius="full" onClose={() => {}}>
-          online
-        </Chip>
-        <Chip closeLabel="Remove Français" color="primary" radius="full" onClose={() => {}}>
-          Français
-        </Chip>
-        <Chip closeLabel="Remove weekly" color="secondary" onClose={() => {}}>
-          weekly
-        </Chip>
+      <div className="flex flex-col gap-3">
+        {(['sm', 'full'] as const).map((radius) => (
+          <div key={radius} className="flex flex-wrap items-center gap-2">
+            {colors.map((color) => (
+              <Chip key={color} color={color} radius={radius}>
+                {radius === 'sm' ? 'square' : 'pill'}
+              </Chip>
+            ))}
+          </div>
+        ))}
       </div>
     </StorySection>
 
-    <StorySection title="With icon">
+    <StorySection
+      description="`onClose` adds a trailing remove button — pairs with `radius=full` for the active-filter pills. Shown on every colour."
+      title="Removable"
+    >
       <div className="flex flex-wrap items-center gap-2">
-        <Chip icon={<EventIcon size={14} />}>course</Chip>
-        <Chip color="secondary" icon={<OnlineCallIcon size={14} />}>
-          online
-        </Chip>
+        {colors.map((color) => (
+          <Chip
+            key={color}
+            closeLabel={`Remove ${color}`}
+            color={color}
+            radius="full"
+            onClose={() => {}}
+          >
+            {color}
+          </Chip>
+        ))}
+      </div>
+    </StorySection>
+
+    <StorySection description="A leading icon slot, across every colour." title="With icon">
+      <div className="flex flex-wrap items-center gap-2">
+        {colors.map((color) => (
+          <Chip key={color} color={color} icon={<EventIcon size={14} />}>
+            {color}
+          </Chip>
+        ))}
       </div>
     </StorySection>
 
     <StorySection inContext={true} title="Examples">
       <div className="flex flex-wrap items-center gap-1">
-        <Chip>online</Chip>
+        <Chip color="primary" icon={<EventIcon size={14} />}>
+          weekly
+        </Chip>
         <Chip color="secondary">Français</Chip>
-        <Chip icon={<EventIcon size={14} />}>weekly</Chip>
+        <Chip color="contrast">Today</Chip>
+        <Chip color="neutral" icon={<OnlineCallIcon size={14} />}>
+          online
+        </Chip>
       </div>
     </StorySection>
 
