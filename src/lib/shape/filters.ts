@@ -136,6 +136,46 @@ export const buildRegionMatcher = (
 }
 
 /**
+ * The date lower bound for the range filter, floored at today so an open-ended "until Y"
+ * never matches a past occurrence (a set start is already >= today). Empty string when no
+ * date filter is active. Shared so `matchesFilters` and the calendar floor identically.
+ */
+export const dateFloor = (filters: EventFilters, today?: string): string =>
+  isDateRestricted(filters.dateRange) ? (filters.dateRange.start ?? today ?? todayISO()) : ''
+
+/**
+ * Whether one occurrence — already resolved to the event's display zone — satisfies the
+ * active day / time / date filters. This is the PER-OCCURRENCE half of `matchesFilters`,
+ * exported so the calendar's occurrence expansion applies the EXACT same cut: an event's
+ * list/map card and its individual calendar entries then agree on which occurrences count.
+ * `floor` is the pre-resolved date lower bound (from `dateFloor`).
+ */
+export const occurrenceMatchesFilters = (
+  local: DateTime,
+  filters: EventFilters,
+  floor: string,
+): boolean => {
+  if (filters.daysOfWeek.length > 0 && !filters.daysOfWeek.includes(local.weekday)) return false
+
+  if (isTimeRestricted(filters.timeOfDay)) {
+    const startHour = local.hour + local.minute / 60
+
+    if (startHour < filters.timeOfDay[0] || startHour > filters.timeOfDay[1]) return false
+  }
+
+  if (isDateRestricted(filters.dateRange)) {
+    // Compare calendar dates in the event's own frame. `yyyy-MM-dd` strings are
+    // fixed-width, so lexicographic order is chronological.
+    const date = local.toISODate() ?? ''
+
+    if (date < floor) return false
+    if (filters.dateRange.end && date > filters.dateRange.end) return false
+  }
+
+  return true
+}
+
+/**
  * Does an event pass the given filters? Pure and timezone-correct:
  *
  * - **Day, time, and date range are evaluated together, per occurrence.** An event
@@ -202,32 +242,14 @@ export function matchesFilters(
     if (!occurrences || occurrences.length === 0) return false
 
     const zone = eventTimeZone(event)
-    const [earliest, latest] = filters.timeOfDay
-    const { start, end } = filters.dateRange
-    // Floor the lower bound at today, so an open-ended "until Y" range never matches
-    // a past occurrence; a set start is already >= today, so this is just `start`.
-    const from = dateActive ? (start ?? today ?? todayISO()) : ''
+    const floor = dateFloor(filters, today)
 
-    const matches = occurrences.some((occurrence) => {
-      const local = DateTime.fromJSDate(occurrence, { zone })
-
-      if (dayActive && !filters.daysOfWeek.includes(local.weekday)) return false
-      if (timeActive) {
-        const startHour = local.hour + local.minute / 60
-
-        if (startHour < earliest || startHour > latest) return false
-      }
-      if (dateActive) {
-        // Compare calendar dates in the event's own frame. `yyyy-MM-dd` strings are
-        // fixed-width, so lexicographic order is chronological.
-        const date = local.toISODate() ?? ''
-
-        if (date < from) return false
-        if (end && date > end) return false
-      }
-
-      return true
-    })
+    // An event matches when SOME occurrence satisfies day + time + date together — the
+    // Monday-morning and Wednesday-evening occurrences don't combine. The calendar reuses
+    // `occurrenceMatchesFilters` per occurrence to keep only the matching ones.
+    const matches = occurrences.some((occurrence) =>
+      occurrenceMatchesFilters(DateTime.fromJSDate(occurrence, { zone }), filters, floor),
+    )
 
     if (!matches) return false
   }

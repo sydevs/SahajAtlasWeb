@@ -20,9 +20,12 @@ import { CloseButton, DrawerTitle, FilterButton } from '@/views/shared'
 // — timezone-correct, online events included — laid out on a Schedule-X month / week /
 // list(agenda) grid whose `--sx-*` tokens are mapped to our theme (see globals.css).
 // The view is placeless, so it never frames the map. Clicking an entry opens its
-// EventView. It suspends on the cache-once source, so the calendar is built ONCE with
-// the complete set; changing filters returns here via the origin-aware apply, which
-// remounts the view with the new set. The header mirrors SearchView (Filter + Close).
+// EventView. It suspends on the cache-once source, so the calendar is built with the
+// complete set on first render (Schedule-X captures its config once); changing filters
+// returns here via the origin-aware apply, which REMOUNTS the view with the new set, and
+// theme is followed through the CSS-var overrides (not `isDark`) — so a background refetch
+// or host-locale change mid-view just won't live-update until the next navigation. The
+// header mirrors SearchView (Filter + Close).
 export function CalendarView() {
   const { t } = useTranslation('common')
   const { locale } = useLocale()
@@ -35,7 +38,7 @@ export function CalendarView() {
     queryFn: () => api.getCalendarEvents(filters),
   })
 
-  const events = useMemo(() => eventsToCalendarEntries(source), [source])
+  const events = useMemo(() => eventsToCalendarEntries(source, filters), [source, filters])
 
   const calendar = useNextCalendarApp({
     views: [createViewMonthGrid(), createViewWeek(), createViewList()],

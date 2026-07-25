@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import { eventsToCalendarEntries, type CalendarSourceEvent } from './calendar'
+import { DEFAULT_FILTERS, type EventFilters } from './filters'
 
 const at = (zone: string, iso: string) => DateTime.fromISO(iso, { zone })
 
@@ -36,7 +37,7 @@ describe('eventsToCalendarEntries', () => {
       endTime: '11:00',
       occurrences: [at('Asia/Kolkata', '2026-07-06T09:30'), at('Asia/Kolkata', '2026-07-13T09:30')],
     })
-    const entries = eventsToCalendarEntries([evt], RANGE)
+    const entries = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entries).toHaveLength(2)
     expect(entries[0]).toMatchObject({
@@ -56,7 +57,7 @@ describe('eventsToCalendarEntries', () => {
       zone: null,
       occurrences: [at(zone, '2026-07-06T18:00')],
     })
-    const [entry] = eventsToCalendarEntries([evt], RANGE)
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entry.start).toBe('2026-07-06 18:00')
   })
@@ -67,7 +68,7 @@ describe('eventsToCalendarEntries', () => {
       endTime: null,
       occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
     })
-    const [entry] = eventsToCalendarEntries([evt], RANGE)
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entry).toMatchObject({ start: '2026-07-06 09:30', end: '2026-07-06 10:30' })
   })
@@ -78,7 +79,7 @@ describe('eventsToCalendarEntries', () => {
       endTime: '00:30',
       occurrences: [at('Asia/Kolkata', '2026-07-06T23:00')],
     })
-    const [entry] = eventsToCalendarEntries([evt], RANGE)
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entry).toMatchObject({ start: '2026-07-06 23:00', end: '2026-07-07 00:30' })
   })
@@ -88,13 +89,31 @@ describe('eventsToCalendarEntries', () => {
       zone: 'Asia/Kolkata',
       occurrences: [at('Asia/Kolkata', '2026-07-06T09:30'), at('Asia/Kolkata', '2027-01-06T09:30')],
     })
-    const entries = eventsToCalendarEntries([evt], RANGE)
+    const entries = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entries).toHaveLength(1)
     expect(entries[0].start).toBe('2026-07-06 09:30')
   })
 
   it('contributes nothing for an event with no occurrences', () => {
-    expect(eventsToCalendarEntries([makeEvent({ occurrences: [] })], RANGE)).toEqual([])
+    expect(
+      eventsToCalendarEntries([makeEvent({ occurrences: [] })], DEFAULT_FILTERS, RANGE),
+    ).toEqual([])
+  })
+
+  it('trims occurrences to the active day filter (not just event-level match)', () => {
+    // A weekly event with a Monday and a Wednesday occurrence; filter to Mondays only.
+    // The event matches at the event level, but only its Monday occurrence should show.
+    const evt = makeEvent({
+      zone: 'Asia/Kolkata',
+      endTime: '10:30',
+      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30'), at('Asia/Kolkata', '2026-07-08T09:30')],
+    })
+    const mondaysOnly: EventFilters = { ...DEFAULT_FILTERS, daysOfWeek: [1] }
+
+    const entries = eventsToCalendarEntries([evt], mondaysOnly, RANGE)
+
+    expect(entries).toHaveLength(1)
+    expect(entries[0].start).toBe('2026-07-06 09:30')
   })
 })
