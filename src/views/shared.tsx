@@ -25,10 +25,10 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import {
   hasActivePlaceSearch,
-  markNearbyDismissed,
-  readNearbyDismissed,
-  shouldShowNearbyPrompt,
-} from '@/lib/nearby'
+  markGeolocationDismissed,
+  readGeolocationDismissed,
+  shouldShowGeolocationPrompt,
+} from '@/lib/geolocation'
 import {
   activeFilterCount,
   searchPath,
@@ -335,14 +335,18 @@ const NEARBY_RADIUS_KM = 25
 // ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
 // centred on the guess — preserving the active URL filters exactly as SearchField
 // does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
-// rather than the pinpoint zoom it uses for a bare centre. `shouldShowNearbyPrompt`
-// (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions. Only the ×
+// rather than the pinpoint zoom it uses for a bare centre. `shouldShowGeolocationPrompt`
+// (src/lib/geolocation.ts, fully unit-tested) owns the visibility conditions. Only the ×
 // persists a (session-scoped) dismissal; accepting merely navigates — the prompt
 // self-hides while you're viewing that area but returns once you leave it.
-export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, number] | null }) {
+export function GeolocationSuggestion({
+  regionCenter,
+}: {
+  regionCenter?: [number, number] | null
+}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
-  const [dismissed, setDismissed] = useState(readNearbyDismissed)
+  const [dismissed, setDismissed] = useState(readGeolocationDismissed)
   // Skip the passive lookup when it couldn't be shown anyway — dismissed, or a place
   // search is already active — so those cases never ping the third-party service.
   const activeSearch = hasActivePlaceSearch(searchParams)
@@ -357,7 +361,13 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
 
   const show = useMemo(
     () =>
-      shouldShowNearbyPrompt({ guess: ipLocation, dismissed, activeSearch, geojson, regionCenter }),
+      shouldShowGeolocationPrompt({
+        guess: ipLocation,
+        dismissed,
+        activeSearch,
+        geojson,
+        regionCenter,
+      }),
     [ipLocation, dismissed, activeSearch, geojson, regionCenter],
   )
 
@@ -384,7 +394,7 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
   }, [ipLocation, navigate, searchParams])
 
   const handleDismiss = useCallback(() => {
-    markNearbyDismissed()
+    markGeolocationDismissed()
     setDismissed(true)
   }, [])
 

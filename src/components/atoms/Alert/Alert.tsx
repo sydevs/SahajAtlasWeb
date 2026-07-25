@@ -18,7 +18,7 @@ const alert = tv({
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },
-    variant: { flat: '', bordered: 'border' },
+    variant: { flat: '', bordered: 'border-2' },
     // Top-align a two-line alert; vertically centre a single line of text.
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
     // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.

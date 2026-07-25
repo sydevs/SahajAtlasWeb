@@ -8,7 +8,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import {
   CloseButton,
   FilterButton,
-  NearbySuggestion,
+  GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -80,7 +80,7 @@ export function SearchView() {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion />
+        <GeolocationSuggestion />
         <DynamicEventsList
           hasSearchCenter={center !== undefined}
           latitude={latitude}

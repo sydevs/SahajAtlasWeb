@@ -15,7 +15,7 @@ import { validateWebUrl } from '@/lib/url'
 import {
   CloseButton,
   DrawerTitle,
-  NearbySuggestion,
+  GeolocationSuggestion,
   SearchButton,
   useFrameOnTop,
 } from '@/views/shared'
@@ -85,7 +85,7 @@ export function RegionView({ slug }: { slug: string }) {
         </div>
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion regionCenter={region.center} />
+        <GeolocationSuggestion regionCenter={region.center} />
         <List>
           {/* On a region with sub-regions, the online roll-up opens in its own drawer
               via this card, keeping the placeless classes out of the mixed list below. */}

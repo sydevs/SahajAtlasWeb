@@ -21,7 +21,7 @@ export const controlSurface = tv({
     variant: {
       solid: '',
       flat: '',
-      bordered: 'border bg-transparent',
+      bordered: 'border-2 bg-transparent',
       /** No surface until hovered — toolbar//header controls that must recede. */
       ghost: 'bg-transparent',
     },

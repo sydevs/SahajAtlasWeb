@@ -39,7 +39,11 @@
     "time": {
       "label": "Tijdstip",
       "start": "Vroegste starttijd",
-      "end": "Laatste starttijd"
+      "end": "Laatste starttijd",
+      "morning": "Ochtend",
+      "afternoon": "Middag",
+      "evening": "Avond",
+      "night": "Nacht"
     },
     "language": {
       "all": "Alle talen",

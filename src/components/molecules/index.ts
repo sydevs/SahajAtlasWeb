@@ -63,7 +63,7 @@ export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
 
 // GeolocationPrompt — the dismissible IP-geolocation "events near you" suggestion
-// shown above the list on the top-level views (wired by NearbySuggestion in
+// shown above the list on the top-level views (wired by GeolocationSuggestion in
 // views/shared).
 export { GeolocationPrompt } from './GeolocationPrompt'
 export type { GeolocationPromptProps } from './GeolocationPrompt'

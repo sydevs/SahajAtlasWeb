@@ -233,7 +233,7 @@ describe('resolveEventDisplay: status table', () => {
     expect(display.registration).toBe('hidden')
   })
 
-  it('Inactive — CMS flag: contact emphasized, no register, no directions, no nearby link', () => {
+  it('Inactive — CMS flag: no register, no directions, no nearby link', () => {
     const inactive = {
       eventType: 'offline' as const,
       inactive: true,
@@ -244,7 +244,6 @@ describe('resolveEventDisplay: status table', () => {
 
     expect(display.status).toBe('inactive')
     expect(display.registration).toBe('hidden')
-    expect(display.emphasizeContact).toBe(true)
     // No directions — an inactive venue has no precise location to route to.
     expect(display.actions).toEqual(['contact', 'share'])
     expect(display.showNearby).toBe(false)

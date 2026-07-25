@@ -1,4 +1,4 @@
-import type { DateRange, EventCadence, EventFilters, EventFormat } from '@/lib/shape'
+import type { DateRange, EventCadence, EventFilters, EventFormat, TimePeriod } from '@/lib/shape'
 
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
@@ -40,7 +40,7 @@ export const useSetFilters = () => {
     setFilters: (filters: EventFilters) => update(() => filters),
     setFormat: (format: EventFormat) => update((filters) => ({ ...filters, format })),
     setCadence: (cadence: EventCadence) => update((filters) => ({ ...filters, cadence })),
-    setTimeOfDay: (timeOfDay: [number, number]) => update((filters) => ({ ...filters, timeOfDay })),
+    setTimeOfDay: (timeOfDay: TimePeriod[]) => update((filters) => ({ ...filters, timeOfDay })),
     setDaysOfWeek: (daysOfWeek: number[]) => update((filters) => ({ ...filters, daysOfWeek })),
     setLanguages: (languages: string[]) => update((filters) => ({ ...filters, languages })),
     setDateRange: (dateRange: DateRange) => update((filters) => ({ ...filters, dateRange })),

@@ -39,7 +39,11 @@
     "time": {
       "label": "Uhrzeit",
       "start": "Früheste Startzeit",
-      "end": "Späteste Startzeit"
+      "end": "Späteste Startzeit",
+      "morning": "Morgen",
+      "afternoon": "Nachmittag",
+      "evening": "Abend",
+      "night": "Nacht"
     },
     "language": {
       "all": "Alle Sprachen",

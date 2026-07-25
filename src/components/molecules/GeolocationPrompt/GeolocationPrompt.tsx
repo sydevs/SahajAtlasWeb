@@ -19,7 +19,7 @@ export type GeolocationPromptProps = {
  * session. Announced politely (`role="status"`), not as an assertive alert — it's a
  * passive guess. Framed as a *guess* — "Looking for classes near %{city}?", never
  * "your location". Presentational only — the IP lookup, session-scoped dismissal,
- * and navigation live in `NearbySuggestion` (src/views/shared.tsx).
+ * and navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
  */
 export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation('common')

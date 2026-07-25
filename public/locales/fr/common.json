@@ -39,7 +39,11 @@
     "time": {
       "label": "Heure de la journée",
       "start": "Heure de début la plus tôt",
-      "end": "Heure de début la plus tard"
+      "end": "Heure de début la plus tard",
+      "morning": "Matin",
+      "afternoon": "Après-midi",
+      "evening": "Soir",
+      "night": "Nuit"
     },
     "language": {
       "all": "Toutes les langues",
