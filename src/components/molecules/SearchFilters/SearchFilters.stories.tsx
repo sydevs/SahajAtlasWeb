@@ -49,7 +49,7 @@ export const Default: Story = () => {
   return (
     <StoryWrapper>
       <StorySection
-        description="Format / Frequency / Day-of-week / Time-of-day (two-handle range) / Language (multi-select dropdown). A controlled form — it edits the given value and reports changes via onChange."
+        description="Format / Frequency / Day-of-week / Time-of-day (period toggles) / Language (multi-select dropdown). A controlled form — it edits the given value and reports changes via onChange."
         title="Event filters form"
       >
         <div className="max-w-sm rounded-lg border border-divider p-4">

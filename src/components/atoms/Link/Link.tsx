@@ -19,14 +19,15 @@ const link = tv({
     color: {
       foreground: 'text-foreground',
       primary: 'text-primary',
-      danger: 'text-danger',
-      default: 'text-inherit',
+      secondary: 'text-secondary',
+      contrast: 'text-contrast',
+      neutral: 'text-inherit',
     },
     // No `size` variant: a link sizes with the text it sits in. Callers that need
     // a different size set it on the surrounding block.
   },
   defaultVariants: {
-    color: 'default',
+    color: 'neutral',
   },
 })
 

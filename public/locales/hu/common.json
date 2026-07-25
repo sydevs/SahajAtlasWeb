@@ -38,8 +38,10 @@
     },
     "time": {
       "label": "Napszak",
-      "start": "Legkorábbi kezdési idő",
-      "end": "Legkésőbbi kezdési idő"
+      "morning": "Reggel",
+      "afternoon": "Délután",
+      "evening": "Este",
+      "night": "Éjszaka"
     },
     "language": {
       "all": "Minden nyelv",
@@ -81,5 +83,10 @@
   },
   "calendar": {
     "title": "Naptár"
-  }
+  },
+  "search": "Keresés",
+  "back": "Vissza",
+  "close": "Bezárás",
+  "explore": "Felfedezés",
+  "settings": "Beállítások"
 }

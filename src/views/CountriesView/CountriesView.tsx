@@ -18,7 +18,7 @@ import { validateWebUrl } from '@/lib/url'
 import {
   CollapseToggle,
   FilterButton,
-  NearbySuggestion,
+  GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -80,7 +80,7 @@ export function CountriesView() {
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion />
+        <GeolocationSuggestion />
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}

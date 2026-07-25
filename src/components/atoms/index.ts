@@ -37,6 +37,9 @@ export type { DropdownProps } from './Dropdown'
 export { Link } from './Link'
 export type { LinkProps } from './Link'
 
+export { RadioGroup } from './RadioGroup'
+export type { RadioGroupProps, RadioOption } from './RadioGroup'
+
 export { SearchableSelect } from './SearchableSelect'
 export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect'
 

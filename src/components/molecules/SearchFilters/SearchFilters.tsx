@@ -1,11 +1,10 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Dropdown } from '@/components/atoms/Dropdown'
-import { Slider } from '@/components/atoms/Slider'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { SearchableSelect } from '@/components/atoms/SearchableSelect'
 import { fieldChrome } from '@/components/atoms/Select'
@@ -13,14 +12,13 @@ import { DownArrowIcon } from '@/components/atoms/Icons'
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
-import { formatHour } from '@/lib'
+import { formatTimePeriods } from '@/lib'
 import {
   type EventCadence,
   type EventFilters,
   type EventFormat,
-  TIME_MAX,
-  TIME_MIN,
-  TIME_STEP,
+  type TimePeriod,
+  TIME_PERIODS,
   ancestorIds,
   dateWindow,
   indexRegions,
@@ -205,13 +203,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       .sort((a, b) => a.label.localeCompare(b.label, locale))
   }, [geojson, languageLabel, locale])
 
-  // Local draft for the time slider so a drag doesn't fire onChange on every tick —
-  // the draft is patched only on release (onValueCommit).
-  const [timeDraft, setTimeDraft] = useState(timeOfDay)
-
-  useEffect(() => setTimeDraft(timeOfDay), [timeOfDay])
-
-  const timeActive = isTimeRestricted(timeDraft)
+  const timeActive = isTimeRestricted(timeOfDay)
   // Show the selected language names in the trigger (truncated) so the selection is
   // visible at a glance, rather than an opaque count.
   const selectedLanguages = languages.map(
@@ -304,25 +296,27 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
 
       <FilterGroup
         active={timeActive}
-        hint={
-          timeActive
-            ? `${formatHour(locale, timeDraft[0])} – ${formatHour(locale, timeDraft[1])}`
-            : t('filters.any_time')
-        }
         label={t('filters.time.label')}
-        onClear={() => patch({ timeOfDay: [TIME_MIN, TIME_MAX] })}
+        onClear={() => patch({ timeOfDay: [] })}
       >
-        <div className="px-1 pt-1">
-          <Slider
-            max={TIME_MAX}
-            min={TIME_MIN}
-            minStepsBetweenThumbs={1}
-            step={TIME_STEP}
-            thumbLabels={[t('filters.time.start'), t('filters.time.end')]}
-            value={timeDraft}
-            onValueChange={(next) => setTimeDraft([next[0], next[1]])}
-            onValueCommit={(next) => patch({ timeOfDay: [next[0], next[1]] })}
-          />
+        <div className="flex flex-col gap-2">
+          <ToggleGroup
+            aria-label={t('filters.time.label')}
+            type="multiple"
+            value={timeOfDay}
+            onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
+          >
+            {TIME_PERIODS.map((period) => (
+              <ToggleGroupItem key={period} value={period}>
+                {t(`filters.time.${period}`)}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          {/* The times the selection covers — the same string the active-filter pill shows.
+              Empty for no selection (or a whole-day one), so fall back to "any time". */}
+          <p className="text-xs text-gray-11">
+            {formatTimePeriods(locale, timeOfDay) || t('filters.any_time')}
+          </p>
         </div>
       </FilterGroup>
 

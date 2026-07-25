@@ -34,19 +34,31 @@ export type ThemeMode = 'light' | 'dark'
 export type PaletteRoles = {
   primary?: string | null
   secondary?: string | null
+  contrast?: string | null
   background?: string | null
 }
 
+// The three themeable brand roles (each a seed → 12-step ramp). `background` is
+// derived differently (app-bg shade only), so it's kept separate.
+export const BRAND_ROLES = ['primary', 'secondary', 'contrast'] as const
+
 export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
 
-// A 12-step ramp (channels) plus the on-color for the solid (step 9).
-export type ColorScale = Record<Step, string> & { contrast: string }
+// A 12-step ramp (channels) plus `on`, the readable on-color for the solid
+// (step 9). Written to the `--{role}-on` var and surfaced to Tailwind as
+// `{role}-foreground`. (Named `on`, not `contrast`, so it doesn't collide with
+// the `contrast` brand role.)
+export type ColorScale = Record<Step, string> & { on: string }
 
-// The built-in (no-tenant) brand seeds — the SY teal / secondary orange. The
-// static defaults in globals.css are these run through buildScale(); the
-// palette.defaults.test.ts gate asserts they stay in sync, so a ladder change
-// can't silently desync the default theme from every tenant theme.
-export const DEFAULT_SEEDS = { primary: '#82b1ae', secondary: '#e08e79' } as const
+// The built-in (no-tenant) brand seeds — the SY teal primary, soft blue secondary,
+// warm contrast. The static defaults in globals.css are these run through
+// buildScale(); the palette.defaults.test.ts gate asserts they stay in sync, so a
+// ladder change can't silently desync the default theme from every tenant theme.
+export const DEFAULT_SEEDS = {
+  primary: '#1E6C71',
+  secondary: '#A1C3D7',
+  contrast: '#e08e79',
+} as const
 
 // Fixed per-step lightness (HSL L%) for steps 1–8 and 11–12. Steps 1–8 walk from
 // the near-white app background down through the borders; 11–12 are the text
@@ -128,7 +140,7 @@ export function buildScale(seedHex: string, mode: ThemeMode): ColorScale {
   const l9 = mode === 'dark' ? Math.max(l, DARK_MIN_LIGHTNESS) : Math.min(l, LIGHT_MAX_LIGHTNESS)
   const l10 = mode === 'dark' ? clamp(l9 + 6, 0, 95) : clamp(l9 - 6, 5, 100)
 
-  const scale = { contrast: foregroundFor(colord({ h, s: saturation, l: l9 })) } as ColorScale
+  const scale = { on: foregroundFor(colord({ h, s: saturation, l: l9 })) } as ColorScale
 
   for (let step = 1 as Step; step <= 12; step = (step + 1) as Step) {
     const stepL = step === 9 ? l9 : step === 10 ? l10 : ladder[step as Exclude<Step, 9 | 10>]
@@ -159,7 +171,7 @@ const setRole = (root: HTMLElement, token: string, seedHex: string, mode: ThemeM
 
   const scale = buildScale(seedHex, mode)
 
-  root.style.setProperty(`--${token}-contrast`, scale.contrast)
+  root.style.setProperty(`--${token}-on`, scale.on)
   for (let step = 1 as Step; step <= 12; step = (step + 1) as Step) {
     root.style.setProperty(`--${token}-${step}`, scale[step])
   }
@@ -172,8 +184,8 @@ const setRole = (root: HTMLElement, token: string, seedHex: string, mode: ThemeM
 // instead of leaving a stale override. (We can't blanket-clear the root's inline
 // style: the widget wrapper carries `display: contents` there.)
 const MANAGED_VARS = [
-  ...['primary', 'secondary'].flatMap((token) => [
-    `--${token}-contrast`,
+  ...BRAND_ROLES.flatMap((token) => [
+    `--${token}-on`,
     ...Array.from({ length: 12 }, (_, i) => `--${token}-${i + 1}`),
   ]),
   '--background',
@@ -188,6 +200,7 @@ export function applyPalette(root: HTMLElement, palette: PaletteRoles, mode: The
 
   if (palette.primary) setRole(root, 'primary', palette.primary, mode)
   if (palette.secondary) setRole(root, 'secondary', palette.secondary, mode)
+  if (palette.contrast) setRole(root, 'contrast', palette.contrast, mode)
 
   // The background surface is derived like every other role: the seed's hue and
   // (capped) saturation are honored, but the shade comes from the Radix ladder's

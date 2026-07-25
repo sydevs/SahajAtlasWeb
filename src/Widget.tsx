@@ -24,9 +24,9 @@ type WidgetProps = {
   map?: string
   // Per-embed brand palette (hex). Each role overrides the client record's
   // color; omitted roles fall back to the record, then the built-in default.
+  // (No `backgroundColor`: the page surface is a fixed default now.)
   primaryColor?: string
   secondaryColor?: string
-  backgroundColor?: string
 }
 
 export default function Widget({
@@ -36,7 +36,6 @@ export default function Widget({
   basePath,
   primaryColor,
   secondaryColor,
-  backgroundColor,
 }: WidgetProps) {
   if (!atlasAuth.apiKey) {
     atlasAuth.apiKey = apiKey
@@ -89,7 +88,7 @@ export default function Widget({
       >
         <App
           apiKey={apiKey}
-          brand={{ primary: primaryColor, secondary: secondaryColor, background: backgroundColor }}
+          brand={{ primary: primaryColor, secondary: secondaryColor }}
           defaultLocale={locale}
           hasMap={hasMap}
           themeRootRef={themeRootRef}
@@ -109,7 +108,6 @@ customElements.define(
       basePath: 'string',
       primaryColor: 'string',
       secondaryColor: 'string',
-      backgroundColor: 'string',
     },
   }),
 )

@@ -19,7 +19,7 @@ const seededParams = filtersToParams({
   format: 'online',
   cadence: 'WEEKLY',
   daysOfWeek: [1, 3, 5],
-  timeOfDay: [9, 17],
+  timeOfDay: ['morning', 'afternoon'],
   languages: ['en', 'fr'],
   dateRange: { start: null, end: null },
   region: null,

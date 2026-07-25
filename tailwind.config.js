@@ -9,7 +9,7 @@ const brandScale = (name) => ({
     Array.from({ length: 12 }, (_, i) => [i + 1, `hsl(var(--${name}-${i + 1}) / <alpha-value>)`]),
   ),
   DEFAULT: `hsl(var(--${name}-9) / <alpha-value>)`,
-  foreground: `hsl(var(--${name}-contrast) / <alpha-value>)`,
+  foreground: `hsl(var(--${name}-on) / <alpha-value>)`,
 })
 
 // Radix Colors neutral/status ramps come in as solid hex vars (globals.css imports
@@ -169,6 +169,10 @@ module.exports = {
         gray: radixScale('gray'),
         primary: brandScale('primary'),
         secondary: brandScale('secondary'),
+        // The third themeable brand role (default: orange). `neutral` is `gray`.
+        contrast: brandScale('contrast'),
+        // `danger` stays a FIXED red status ramp (never tenant-themed) for genuine
+        // error / destructive states — independent of the brand roles above.
         danger: {
           ...radixScale('red'),
           DEFAULT: 'var(--red-9)',

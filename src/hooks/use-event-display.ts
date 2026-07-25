@@ -61,31 +61,46 @@ const WEEK_NUMBER_KEYS = {
   '-1': 'recurrence.monthly_last',
 } as const
 
+type CalendarLineArgs = {
+  recurrenceLine: string | null
+  whenLine: string
+  time: string | null
+  hasNext: boolean
+}
+
 /**
- * Compose the compact calendar fact — the repeat pattern (or, for a one-off /
- * terminal event, the authoritative when-line) joined to the occurrence time
- * with a middot. The single place this line is built, shared by the list card
- * (`EventFacts`) and the map-pin hover popover (#72) so the two can never drift.
+ * The decomposed calendar fact — the lead line (`primary`) and the time that
+ * accompanies it (`null` when a one-off / terminal line has no upcoming time).
+ * The single place the recurrence-vs-when-line and `hasNext` gates live, so the
+ * one-line list card (via `composeCalendarLine`) and the two-line map-pin popover
+ * (`EventPinCard`, which stacks the parts instead of joining them) can never
+ * drift (#72).
  *
  * `time` is the surface's chosen time string — the start only (compact card /
  * popover) or the full start–end range (panel). `hasNext` gates the time onto a
  * one-off / terminal line, whose when-line already carries the date or message
  * and which may have no upcoming occurrence to time.
  */
-export function composeCalendarLine({
-  recurrenceLine,
-  whenLine,
-  time,
-  hasNext,
-}: {
-  recurrenceLine: string | null
-  whenLine: string
+export function calendarLineParts({ recurrenceLine, whenLine, time, hasNext }: CalendarLineArgs): {
+  primary: string
   time: string | null
-  hasNext: boolean
-}): string {
+} {
   return recurrenceLine
-    ? [recurrenceLine, time].filter(Boolean).join(' · ')
-    : [whenLine, hasNext ? time : null].filter(Boolean).join(' · ')
+    ? { primary: recurrenceLine, time }
+    : { primary: whenLine, time: hasNext ? time : null }
+}
+
+/**
+ * Compose the compact calendar fact — the repeat pattern (or, for a one-off /
+ * terminal event, the authoritative when-line) joined to the occurrence time
+ * with a middot. Delegates the gating to {@link calendarLineParts} so it shares a
+ * single source of truth with the map-pin popover (#72). Used by the list card
+ * (`EventFacts`).
+ */
+export function composeCalendarLine(args: CalendarLineArgs): string {
+  const { primary, time } = calendarLineParts(args)
+
+  return [primary, time].filter(Boolean).join(' · ')
 }
 
 /**

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Alert } from '@/components/atoms/Alert'
 import { LocationIcon } from '@/components/atoms/Icons'
 
-export type NearbyPromptProps = {
+export type GeolocationPromptProps = {
   /** The IP-guessed city, interpolated into the prompt's question. */
   city: string
   /** Accept the suggestion — navigate into the distance-ranked nearby search. */
@@ -14,14 +14,14 @@ export type NearbyPromptProps = {
 
 /**
  * The dismissible "events near you" suggestion shown above the list on the
- * top-level views: a single-line, primary-tinted `Alert` whose text is a button
+ * top-level views: a single-line, secondary-tinted `Alert` whose text is a button
  * into the distance-ranked search, with the Alert's × dismissing it for the
  * session. Announced politely (`role="status"`), not as an assertive alert — it's a
  * passive guess. Framed as a *guess* — "Looking for classes near %{city}?", never
  * "your location". Presentational only — the IP lookup, session-scoped dismissal,
- * and navigation live in `NearbySuggestion` (src/views/shared.tsx).
+ * and navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
  */
-export function NearbyPrompt({ city, onAccept, onClose }: NearbyPromptProps) {
+export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
   const { t } = useTranslation('common')
 
   // `px-4` matches the drawer header's horizontal padding so the prompt's icon/text
@@ -30,7 +30,7 @@ export function NearbyPrompt({ city, onAccept, onClose }: NearbyPromptProps) {
     <Alert
       className="px-4"
       closeLabel={t('nearby_prompt.dismiss')}
-      color="primary"
+      color="secondary"
       icon={<LocationIcon size={18} />}
       role="status"
       size="sm"

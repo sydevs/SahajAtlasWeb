@@ -11,8 +11,8 @@ import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { CalendarIcon, CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
-import { NearbyPrompt } from '@/components/molecules'
+import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
+import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -25,12 +25,13 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import {
   hasActivePlaceSearch,
-  markNearbyDismissed,
-  readNearbyDismissed,
-  shouldShowNearbyPrompt,
-} from '@/lib/nearby'
+  markGeolocationDismissed,
+  readGeolocationDismissed,
+  shouldShowGeolocationPrompt,
+} from '@/lib/geolocation'
 import {
   activeFilterCount,
+  searchPath,
   atlasDepth,
   calendarPath,
   filtersFromParams,
@@ -125,6 +126,20 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
       onClick={() => navigate(calendarPath(regionSlug))}
     >
       <CalendarIcon size={20} />
+    </Button>
+  )
+}
+
+// The search affordance for region headers (RegionView): jumps to the
+// distance-ranked search view. Renders the same header-control chrome as the
+// close/filter controls so the header reads as one set of buttons.
+export function SearchButton() {
+  const { t } = useTranslation('common')
+  const navigate = useAtlasNavigate()
+
+  return (
+    <Button {...HEADER_CONTROL} aria-label={t('search')} onClick={() => navigate(searchPath())}>
+      <SearchIcon size={20} />
     </Button>
   )
 }
@@ -325,7 +340,7 @@ export function EmptyEventList() {
 
   return (
     <div className="p-4">
-      <Alert color="default" description={t('filters.no_events')} />
+      <Alert color="neutral" description={t('filters.no_events')} />
     </div>
   )
 }
@@ -340,13 +355,18 @@ const NEARBY_RADIUS_KM = 25
 // ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
 // centred on the guess — preserving the active URL filters exactly as SearchField
 // does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
-// rather than the pinpoint zoom it uses for a bare centre. `shouldShowNearbyPrompt`
-// (src/lib/nearby.ts, fully unit-tested) owns the visibility conditions; dismissal
-// (× or accept) is session-scoped.
-export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, number] | null }) {
+// rather than the pinpoint zoom it uses for a bare centre. `shouldShowGeolocationPrompt`
+// (src/lib/geolocation.ts, fully unit-tested) owns the visibility conditions. Only the ×
+// persists a (session-scoped) dismissal; accepting merely navigates — the prompt
+// self-hides while you're viewing that area but returns once you leave it.
+export function GeolocationSuggestion({
+  regionCenter,
+}: {
+  regionCenter?: [number, number] | null
+}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
-  const [dismissed, setDismissed] = useState(readNearbyDismissed)
+  const [dismissed, setDismissed] = useState(readGeolocationDismissed)
   // Skip the passive lookup when it couldn't be shown anyway — dismissed, or a place
   // search is already active — so those cases never ping the third-party service.
   const activeSearch = hasActivePlaceSearch(searchParams)
@@ -361,7 +381,13 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
 
   const show = useMemo(
     () =>
-      shouldShowNearbyPrompt({ guess: ipLocation, dismissed, activeSearch, geojson, regionCenter }),
+      shouldShowGeolocationPrompt({
+        guess: ipLocation,
+        dismissed,
+        activeSearch,
+        geojson,
+        regionCenter,
+      }),
     [ipLocation, dismissed, activeSearch, geojson, regionCenter],
   )
 
@@ -379,20 +405,23 @@ export function NearbySuggestion({ regionCenter }: { regionCenter?: [number, num
       approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM).toString(),
     )
 
-    markNearbyDismissed()
-    // Also hide it immediately: accepting from /search → /search is a same-pathname
-    // nav, so NearbySuggestion doesn't remount to re-read the session flag on its own.
-    setDismissed(true)
+    // Accepting must NOT persist a dismissal — only the × does (handleDismiss).
+    // Zooming to the guess already hides the prompt on its own: the new URL carries
+    // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while you're looking at
+    // that area. Leaving the area (clearing the search) brings the suggestion back,
+    // so it keeps offering until the user actually dismisses it.
     navigate(`/search?${params.toString()}`)
   }, [ipLocation, navigate, searchParams])
 
   const handleDismiss = useCallback(() => {
-    markNearbyDismissed()
+    markGeolocationDismissed()
     setDismissed(true)
   }, [])
 
   // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
   if (!ipLocation || !show) return null
 
-  return <NearbyPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+  return (
+    <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+  )
 }

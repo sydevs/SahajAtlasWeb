@@ -16,7 +16,8 @@ import {
   CalendarButton,
   CloseButton,
   DrawerTitle,
-  NearbySuggestion,
+  GeolocationSuggestion,
+  SearchButton,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -76,15 +77,16 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar + close as one right-aligned control group; justify-between keeps
-            the title left. The calendar opens pre-scoped to this region. */}
+        {/* Calendar, search + close as one right-aligned control group; justify-between
+            keeps the title left. The calendar opens pre-scoped to this region. */}
         <div className="flex shrink-0 items-center gap-2">
           <CalendarButton regionSlug={region.slug} />
+          <SearchButton />
           <CloseButton />
         </div>
       </DrawerHeader>
       <DrawerBody>
-        <NearbySuggestion regionCenter={region.center} />
+        <GeolocationSuggestion regionCenter={region.center} />
         <List>
           {/* On a region with sub-regions, the online roll-up opens in its own drawer
               via this card, keeping the placeless classes out of the mixed list below. */}

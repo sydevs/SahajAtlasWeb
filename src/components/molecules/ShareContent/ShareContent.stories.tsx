@@ -61,31 +61,3 @@ export const Default: Story = () => (
 )
 
 Default.storyName = 'Share Content'
-
-/**
- * Playground — flip the `country` control to watch the share grid reorder to that
- * region (an empty value falls back to the universal default set).
- */
-export const Playground: Story<{ country: string }> = ({ country }) => (
-  <StoryWrapper>
-    <StorySection
-      description="Pick a viewer country to reorder the targets."
-      title="Region control"
-    >
-      <div className="max-w-sm">
-        <ShareContent country={country || undefined} label={label} url={url} />
-      </div>
-    </StorySection>
-
-    <div />
-  </StoryWrapper>
-)
-
-Playground.args = { country: 'RU' }
-Playground.argTypes = {
-  country: {
-    control: { type: 'select' },
-    options: ['', 'RU', 'BY', 'JP', 'IN', 'BR', 'US', 'DE', 'FR'],
-    defaultValue: 'RU',
-  },
-}

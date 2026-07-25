@@ -39,6 +39,16 @@ const ICONS = [
 
 const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
 
+// Every icon is drawn with `currentColor`, so it inherits the surrounding text
+// color — one glyph serves every palette role. `text-{role}-11` is the readable
+// on-surface step for the brand roles; neutral text uses `text-gray-12`.
+const PALETTE = [
+  { name: 'primary', className: 'text-primary-11' },
+  { name: 'secondary', className: 'text-secondary-11' },
+  { name: 'contrast', className: 'text-contrast-11' },
+  { name: 'neutral', className: 'text-gray-12' },
+] as const
+
 /**
  * Icons — the app's SVG icon set (actions, symbols, records) plus the
  * platform-keyed SocialIcon. Rendered as a labelled gallery at size 28.
@@ -63,6 +73,24 @@ export const Default: Story = () => (
             <SocialIcon platform={platform} size={28} />
             <span className="text-xs text-gray-11">{platform}</span>
           </div>
+        ))}
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role."
+      inContext={true}
+      title="Colour inheritance"
+    >
+      <div className="flex flex-col gap-3">
+        {PALETTE.map(({ name, className }) => (
+          <span key={name} className={`flex items-center gap-2 ${className}`}>
+            <CalendarIcon size={18} />
+            <LocationIcon size={18} />
+            <LanguageIcon size={18} />
+            <EventIcon size={18} />
+            <span className="text-sm font-medium">{name}</span>
+          </span>
         ))}
       </div>
     </StorySection>

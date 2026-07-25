@@ -38,8 +38,10 @@
     },
     "time": {
       "label": "Horário",
-      "start": "Horário de início mais cedo",
-      "end": "Horário de início mais tarde"
+      "morning": "Manhã",
+      "afternoon": "Tarde",
+      "evening": "Anoitecer",
+      "night": "Noite"
     },
     "language": {
       "all": "Todos os idiomas",
@@ -81,5 +83,10 @@
   },
   "calendar": {
     "title": "Calendário"
-  }
+  },
+  "search": "Buscar",
+  "back": "Voltar",
+  "close": "Fechar",
+  "explore": "Explorar",
+  "settings": "Configurações"
 }

@@ -106,6 +106,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 href={mapsUrl}
                 icon={<DirectionsIcon />}
                 label={t('actions.directions')}
+                variant="bordered"
               />,
             ]
           : []
@@ -119,6 +120,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                     ref={ref}
                     icon={<CalendarIcon />}
                     label={t('actions.add_calendar')}
+                    variant="bordered"
                     {...props}
                   />
                 )}
@@ -155,6 +157,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 href={event.website}
                 icon={<WebsiteIcon />}
                 label={t('actions.website')}
+                variant="bordered"
               />,
             ]
           : []
@@ -170,7 +173,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
               href={`tel:${event.contactPhone}`}
               icon={<CallIcon />}
               label={label}
-              variant={display.emphasizeContact ? 'solid' : 'flat'}
+              variant="bordered"
             />,
           ]
         }
@@ -183,7 +186,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 ref={ref}
                 icon={<CallIcon />}
                 label={label}
-                variant={display.emphasizeContact ? 'solid' : 'flat'}
+                variant="bordered"
                 {...props}
               />
             )}
@@ -199,6 +202,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
             key="share"
             icon={<ShareIcon size={20} />}
             label={t('actions.share')}
+            variant="bordered"
             onClick={() => navigate(`${basePath}/share`)}
           />,
         ]
