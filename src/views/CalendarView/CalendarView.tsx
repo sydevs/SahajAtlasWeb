@@ -26,6 +26,25 @@ import { CloseButton, DrawerTitle, FilterButton } from '@/views/shared'
 // theme is followed through the CSS-var overrides (not `isDark`) — so a background refetch
 // or host-locale change mid-view just won't live-update until the next navigation. The
 // header mirrors SearchView (Filter + Close).
+
+// Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
+// (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
+// locales to the closest one SX 2.36 ships; anything unmapped (incl. Hungarian, which
+// SX lacks) falls back to en-US chrome — our own header title stays localized via i18n.
+const SX_LOCALES: Record<string, string> = {
+  en: 'en-US',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  cs: 'cs-CZ',
+  nl: 'nl-NL',
+  ru: 'ru-RU',
+  uk: 'uk-UA',
+  'pt-BR': 'pt-BR',
+}
+
+const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
+
 export function CalendarView() {
   const { t } = useTranslation('common')
   const { locale } = useLocale()
@@ -44,9 +63,9 @@ export function CalendarView() {
     views: [createViewMonthGrid(), createViewWeek(), createViewList()],
     events,
     isDark: theme === 'dark',
-    // Schedule-X formats its own labels via Intl from this locale; our token overrides
+    // SX needs a supported BCP-47 code (see SX_LOCALES) or it throws; our token overrides
     // (globals.css) carry the light/dark + accent theming regardless of `isDark`.
-    locale,
+    locale: toScheduleXLocale(locale),
     callbacks: {
       // Each entry carries its event's route; open the matching EventView (the atlas
       // navigate stamps camera/depth like every other in-widget push).
