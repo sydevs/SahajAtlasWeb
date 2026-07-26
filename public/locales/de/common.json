@@ -75,6 +75,12 @@
     "copy_link": "Link kopieren",
     "copied": "Kopiert"
   },
+  "sort": {
+    "label": "Sortieren",
+    "recommended": "Empfohlen",
+    "closest": "Nächstgelegene",
+    "soonest": "Demnächst"
+  },
   "search": "Suchen",
   "back": "Zurück",
   "close": "Schließen",

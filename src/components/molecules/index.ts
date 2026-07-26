@@ -15,6 +15,16 @@ export type { SearchFiltersProps } from './SearchFilters'
 export { ActiveFilterPills } from './ActiveFilterPills'
 export type { ActiveFilterPillsProps } from './ActiveFilterPills'
 
+// ListToolbar — the controls row above a results list (a Filters button, plus a
+// SortMenu on the search results). A thin justify-between layout; the views supply
+// the controls.
+export { ListToolbar } from './ListToolbar'
+export type { ListToolbarProps } from './ListToolbar'
+
+// SortMenu — the results-list sort selector (Recommended / Closest / Soonest),
+// persisted in `?sort=`. A Radix DropdownMenu radio group (mirrors SettingsMenu).
+export { SortMenu } from './SortMenu'
+
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
 // ActionRow / ActionCircle — the labelled tonal-circle secondary actions under

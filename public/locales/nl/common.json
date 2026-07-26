@@ -75,6 +75,12 @@
     "copy_link": "Link kopiëren",
     "copied": "Gekopieerd"
   },
+  "sort": {
+    "label": "Sorteren",
+    "recommended": "Aanbevolen",
+    "closest": "Dichtstbijzijnd",
+    "soonest": "Eerstvolgende"
+  },
   "search": "Zoeken",
   "back": "Terug",
   "close": "Sluiten",

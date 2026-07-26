@@ -75,6 +75,12 @@
     "copy_link": "Kopírovat odkaz",
     "copied": "Zkopírováno"
   },
+  "sort": {
+    "label": "Seřadit",
+    "recommended": "Doporučené",
+    "closest": "Nejbližší",
+    "soonest": "Nejdříve"
+  },
   "search": "Hledat",
   "back": "Zpět",
   "close": "Zavřít",

@@ -74,9 +74,12 @@ export function CountriesView() {
           {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
         </Helmet>
       )}
+      {/* The country list is a browse index, not a filterable results list, so its
+          filter access lives as an icon control in the header (not a list toolbar);
+          sorting a country index is meaningless, so there's no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <FilterButton />
+        <FilterButton iconOnly />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
