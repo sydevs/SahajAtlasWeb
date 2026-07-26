@@ -149,12 +149,13 @@ export function CollapseToggle() {
   )
 }
 
-// The event-filters trigger for the list toolbar (SearchView + CountriesView): a
-// labeled ghost button that opens the filter drawer by navigating to `<current>/filters`
-// (root → `/filters`, `/search` → `/search/filters`), preserving the search query so
-// closing returns to the same search. The active-filter count rides in the label
-// (`Filters (2)`) rather than a badge, now that the control carries text.
-export function FilterButton() {
+// The event-filters trigger that opens the filter drawer by navigating to
+// `<current>/filters` (root → `/filters`, `/search` → `/search/filters`), preserving the
+// search query so closing returns to the same search. Two shapes over one nav + count:
+// the labeled ghost button for the list toolbar (SearchView), and — with `iconOnly` — an
+// icon-only header control carrying the active count as a badge (CountriesView's header),
+// so it reads as one set with the close/collapse chrome.
+export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { t } = useTranslation('common')
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -162,13 +163,26 @@ export function FilterButton() {
 
   const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
+  const open = () => navigate({ pathname: to, search: location.search })
+
+  if (iconOnly) {
+    return (
+      <Button {...HEADER_CONTROL} aria-label={label} className="relative" onClick={open}>
+        <FilterIcon size={20} />
+        {count > 0 && (
+          <span
+            aria-hidden
+            className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-xs font-semibold leading-none text-primary-foreground"
+          >
+            {count}
+          </span>
+        )}
+      </Button>
+    )
+  }
 
   return (
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={() => navigate({ pathname: to, search: location.search })}
-    >
+    <Button size="sm" variant="ghost" onClick={open}>
       <FilterIcon size={18} />
       {label}
     </Button>

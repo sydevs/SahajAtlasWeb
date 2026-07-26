@@ -5,7 +5,7 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, ListItem, ListToolbar } from '@/components/molecules'
+import { List, ListItem } from '@/components/molecules'
 import { MonitorIcon } from '@/components/atoms/Icons'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -19,7 +19,6 @@ import {
   CollapseToggle,
   FilterButton,
   GeolocationSuggestion,
-  SearchButton,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
@@ -75,16 +74,16 @@ export function CountriesView() {
           {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
         </Helmet>
       )}
+      {/* The country list is a browse index, not a filterable results list, so its
+          filter access lives as an icon control in the header (not a list toolbar);
+          sorting a country index is meaningless, so there's no sort menu here. */}
       <DrawerHeader>
         <SearchField />
-        <SearchButton />
+        <FilterButton iconOnly />
         <CollapseToggle />
       </DrawerHeader>
       <DrawerBody>
         <GeolocationSuggestion />
-        <ListToolbar>
-          <FilterButton />
-        </ListToolbar>
         <List>
           {/* Online classes belong to no country — a leading entry into the
               online-filtered search rather than a place in the list below. */}
