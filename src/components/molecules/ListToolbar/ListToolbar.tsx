@@ -19,5 +19,5 @@ export type ListToolbarProps = {
  * aligning it with the `px-6` (`listRow`) gutter of the list rows below.
  */
 export function ListToolbar({ children }: ListToolbarProps) {
-  return <div className="flex items-center justify-between gap-2 px-3">{children}</div>
+  return <div className="flex items-center justify-between gap-2 px-3 py-1">{children}</div>
 }
