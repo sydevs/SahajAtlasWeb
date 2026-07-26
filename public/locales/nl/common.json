@@ -84,6 +84,12 @@
   "calendar": {
     "title": "Kalender"
   },
+  "sort": {
+    "label": "Sorteren",
+    "recommended": "Aanbevolen",
+    "closest": "Dichtstbijzijnd",
+    "soonest": "Eerstvolgende"
+  },
   "search": "Zoeken",
   "back": "Terug",
   "close": "Sluiten",

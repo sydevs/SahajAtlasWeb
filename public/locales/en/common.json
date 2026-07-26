@@ -97,5 +97,11 @@
   },
   "calendar": {
     "title": "Calendar"
+  },
+  "sort": {
+    "label": "Sort",
+    "recommended": "Recommended",
+    "closest": "Closest",
+    "soonest": "Soonest"
   }
 }

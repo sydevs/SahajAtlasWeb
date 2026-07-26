@@ -108,8 +108,9 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   through a zod schema from `src/types/`. Keep that contract — see
   `.claude/rules/data-layer.md`.
 - **State**: zustand stores (`src/config/store.ts`) are the single source of truth
-  for the map view + registration draft; **search filters live in the URL query**
-  (`useEventFilters`/`useSetFilters` in `src/hooks/use-filters.ts`). Read stores with
+  for the map view + registration draft; **search filters and the list sort order
+  live in the URL query** (`useEventFilters`/`useSetFilters` in `src/hooks/use-filters.ts`;
+  `useSortOrder`/`useSetSortOrder` in `src/hooks/use-sort.ts`). Read stores with
   `useShallow` selectors in hot paths (the map). See `.claude/rules/i18n-and-state.md`.
 - **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
   `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open

@@ -84,6 +84,12 @@
   "calendar": {
     "title": "Calendário"
   },
+  "sort": {
+    "label": "Ordenar",
+    "recommended": "Recomendados",
+    "closest": "Mais próximos",
+    "soonest": "Mais próximos no tempo"
+  },
   "search": "Buscar",
   "back": "Voltar",
   "close": "Fechar",

@@ -84,6 +84,12 @@
   "calendar": {
     "title": "Naptár"
   },
+  "sort": {
+    "label": "Rendezés",
+    "recommended": "Ajánlott",
+    "closest": "Legközelebbi",
+    "soonest": "Leghamarabb"
+  },
   "search": "Keresés",
   "back": "Vissza",
   "close": "Bezárás",
