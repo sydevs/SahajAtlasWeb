@@ -229,13 +229,14 @@ export function DrawerStack() {
     return () => cancelAnimationFrame(raf)
   }, [hasMap, direction, parentPaths.length])
 
-  // The full-width calendar opens at the near-full snap on mobile — a month grid needs
-  // the height — while every other view keeps the third-height open snap. Runs only when
-  // the wide-ness (or direction) flips, i.e. navigating to/from the calendar, so it never
-  // fights a manual drag on a non-calendar view.
+  // The calendar opens at the near-full snap on mobile — its month grid AND its list both need
+  // the height — while every other view keeps the third-height open snap. Keyed on the view
+  // KIND (not `wide`), so switching the calendar between month/week/list keeps it tall rather
+  // than collapsing the list to the short snap; runs only when navigating to/from the calendar,
+  // so it never fights a manual drag on a non-calendar view.
   useEffect(() => {
-    if (direction === 'bottom') setSnap(wide ? WIDE_SNAP : OPEN_SNAP)
-  }, [wide, direction])
+    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
+  }, [direction, top?.kind])
 
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both
