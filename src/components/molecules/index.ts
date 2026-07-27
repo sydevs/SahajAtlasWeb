@@ -29,7 +29,7 @@ export { LoadingFallback, ErrorFallback } from './Fallbacks'
 
 // FormField — the label + control + help/error shell shared by the app's forms, and
 // `fieldErrorId`, the single definition of the aria-describedby id convention.
-export { FormField, fieldErrorId } from './FormField'
+export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
 export type { FormFieldProps } from './FormField'
 
 // ActionRow / ActionCircle — the labelled tonal-circle secondary actions under

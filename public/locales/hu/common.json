@@ -110,7 +110,12 @@
     "blocked": "A biztonsági ellenőrzést nem sikerült betölteni, ezért az űrlap nem küldhető el. Kérjük, írjon nekünk inkább ide:",
     "errors": {
       "email": "Adjon meg érvényes e-mail-címet.",
-      "message": "Írjon legalább %{min} karaktert."
+      "message": "Írjon legalább %{min} karaktert.",
+      "message_max": "Kérjük, maradjon %{max} karakter alatt."
     }
+  },
+  "error": {
+    "generic": "Valami hiba történt.",
+    "retry": "Újrapróbálkozás"
   }
 }

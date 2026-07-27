@@ -110,7 +110,12 @@
     "blocked": "De beveiligingscontrole kon niet worden geladen, dus dit formulier kan niet worden verzonden. Mail ons in plaats daarvan:",
     "errors": {
       "email": "Voer een geldig e-mailadres in.",
-      "message": "Schrijf minstens %{min} tekens."
+      "message": "Schrijf minstens %{min} tekens.",
+      "message_max": "Blijf onder de %{max} tekens."
     }
+  },
+  "error": {
+    "generic": "Er is iets misgegaan.",
+    "retry": "Opnieuw proberen"
   }
 }

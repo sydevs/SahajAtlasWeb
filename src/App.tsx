@@ -15,7 +15,7 @@ import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
-import { Mapbox } from '@/components/organisms'
+import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
@@ -28,16 +28,6 @@ import i18n from '@/config/i18n'
 // the controller land in their own chunk — zero cost to normal standalone/embedded use.
 const PreviewController = lazy(() =>
   import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
-)
-
-// The report-issue modal is reached only from the settings menu or an error CTA, and it
-// pulls in react-hook-form + zod, so it gets its own chunk rather than riding on every
-// embed's first load. Imported by path, not the organisms barrel, so the barrel's other
-// consumers don't drag it back into the main graph.
-const ReportIssueModal = lazy(() =>
-  import('@/components/organisms/ReportIssueForm/ReportIssueModal').then((m) => ({
-    default: m.ReportIssueModal,
-  })),
 )
 
 // ===== APP ===== //
@@ -92,16 +82,20 @@ export default function App({
             Lazy because it carries react-hook-form + the form, which most viewers never
             open; that costs nothing in the failures it exists for, since the Turnstile
             script and the eventual POST (#80) already need the network anyway. */}
-        {/* Its own boundary, because this one sits OUTSIDE the app's: Suspense catches
-            suspension, not errors, and a lazy chunk that 404s (a host page holding a
-            cached entry chunk across a redeploy) rejects during render. Unbounded, that
-            would unmount the whole widget on the host page — the reporting affordance
-            taking down the app it exists to report on. Failing to nothing is right here:
-            the modal is never on screen until asked for. */}
+        {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
+            ErrorFallback is on screen — which is exactly when a viewer most wants it.
+            That placement means nothing above would catch a throw from here, so it gets
+            its own boundary: unbounded, a render error would unmount the whole widget on
+            the host page — the reporting affordance taking down the app it reports on.
+            Failing to nothing is right, since it's off screen until asked for.
+
+            Not lazy-loaded: it renders at mount (to stay reachable from the error
+            fallbacks), so a chunk would be fetched immediately anyway, and its deps —
+            react-hook-form, zod — are already in the eager graph via the registration
+            form. Splitting it measured 0.6 kB gz LARGER across the first paint, for four
+            extra requests. */}
         <ErrorBoundary fallbackRender={() => null}>
-          <Suspense fallback={null}>
-            <ReportIssueModal apiKey={apiKey} />
-          </Suspense>
+          <ReportIssueModal apiKey={apiKey} />
         </ErrorBoundary>
       </BrandTheme>
     </Providers>

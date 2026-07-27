@@ -27,7 +27,12 @@ export type ErrorFallbackProps = {
  * the same narrowing DrawerErrorFallback uses, so one failure reads the same in both.
  */
 export function ErrorFallback({ error }: ErrorFallbackProps) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — react-i18next suspends by default while a namespace loads, and
+  // this fallback can render before any locale JSON has arrived (an embed with no
+  // api-key throws on the very first render). Suspending HERE would push the tree back to
+  // the parent's loading fallback and show nothing at all; an untranslated label beats a
+  // blank widget when the whole point is to surface the failure.
+  const { t } = useTranslation('common', { useSuspense: false })
   const description = errorMessage(error) ?? t('error.generic')
   const openReport = useReportModal((state) => state.openReport)
 

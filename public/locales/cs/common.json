@@ -110,7 +110,12 @@
     "blocked": "Bezpečnostní kontrolu se nepodařilo načíst, takže tento formulář nelze odeslat. Napište nám prosím na:",
     "errors": {
       "email": "Zadejte platnou e-mailovou adresu.",
-      "message": "Napište prosím alespoň %{min} znaků."
+      "message": "Napište prosím alespoň %{min} znaků.",
+      "message_max": "Zkraťte prosím text pod %{max} znaků."
     }
+  },
+  "error": {
+    "generic": "Něco se pokazilo.",
+    "retry": "Zkusit znovu"
   }
 }

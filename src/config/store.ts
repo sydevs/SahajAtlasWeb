@@ -131,10 +131,28 @@ type ReportModalState = {
   closeReport: () => void
 }
 
+// The control that opened the modal, so focus can return to it. Held outside the store's
+// reactive state — it's a DOM node read once on close, and writing it must not re-render.
+let reportOpener: HTMLElement | null = null
+
+/** The element that opened the report modal, if it's still in the document. */
+export const reportReturnFocus = (): HTMLElement | null =>
+  reportOpener?.isConnected ? reportOpener : null
+
 export const useReportModal = create<ReportModalState>((set) => ({
   open: false,
   error: null,
-  openReport: (error) => set(() => ({ open: true, error: error ?? null })),
+  openReport: (error) => {
+    // Captured at CLICK time, not on open: the settings menu unmounts its item before the
+    // dialog mounts, so by the time Radix records a "previously focused element" it would
+    // be <body> — and closing would drop a keyboard user at the top of the host page.
+    reportOpener =
+      typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+
+    set(() => ({ open: true, error: error ?? null }))
+  },
   // Clear the error too, so a later open from the settings menu can't inherit the
   // error context of an earlier, unrelated report.
   closeReport: () => set(() => ({ open: false, error: null })),

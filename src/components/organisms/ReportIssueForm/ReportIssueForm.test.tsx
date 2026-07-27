@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ReportIssueForm } from './ReportIssueForm'
 
+import { REPORT_MESSAGE_MAX } from '@/types/report'
+
 // Mock the i18n boundary so the SSR markup asserts on real copy without booting
 // i18next. `i18n` is stubbed too — useLocale (reached through useTurnstile) subscribes
 // to it. Node lane, no jsdom (see .claude/rules/tests.md).
@@ -47,6 +49,20 @@ describe('ReportIssueForm', () => {
     expect(html).toContain('Email')
     expect(html).not.toContain('Email *')
     expect(html).toContain('Optional — we can only reply if you leave one.')
+  })
+
+  it('announces the email caveat and caps the message at the schema ceiling', () => {
+    const html = renderToStaticMarkup(<ReportIssueForm context={context} onClose={noop} />)
+
+    // The help line is addressable, not just visible — an SR user hears the caveat.
+    expect(html).toContain('id="report-email-help"')
+    expect(html).toContain('aria-describedby="report-email-help"')
+    // A hard stop, so pasting a long stack trace can't leave submit silently disabled
+    // under a "write at least 10 characters" message.
+    // Case-insensitive: react-dom/server emits the prop name verbatim (`maxLength`),
+    // while the browser parses it as the lowercase `maxlength` attribute.
+    expect(html).toMatch(new RegExp(`maxlength="${REPORT_MESSAGE_MAX}"`, 'i'))
+    expect(html).toContain('aria-required="true"')
   })
 
   it('starts with submit disabled — there is no message and no captcha token yet', () => {

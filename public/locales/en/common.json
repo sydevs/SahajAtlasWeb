@@ -119,7 +119,8 @@
     "blocked": "The security check couldn't load, so this form can't be sent. Please email us instead:",
     "errors": {
       "email": "Enter a valid email address.",
-      "message": "Please write at least %{min} characters."
+      "message": "Please write at least %{min} characters.",
+      "message_max": "Please keep it under %{max} characters."
     }
   }
 }

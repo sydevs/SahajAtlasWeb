@@ -7,6 +7,31 @@ import { type ReactNode } from 'react'
  */
 export const fieldErrorId = (name?: string) => (name ? `${name}-error` : undefined)
 
+/**
+ * The `aria-describedby` target for a field's help text. Help is a hint the control must
+ * carry too — "optional, we can only reply if you fill this in" is exactly the sort of
+ * thing a screen-reader user needs and a sighted one gets for free — so it is addressable
+ * on the same convention as the error.
+ */
+export const fieldHelpId = (name?: string) => (name ? `${name}-help` : undefined)
+
+/**
+ * The full `aria-describedby` value for a control: its help text, its error, or both.
+ * Callers pass this straight to the control so the two ids can't be wired inconsistently.
+ */
+export const fieldDescribedBy = ({
+  name,
+  help,
+  error,
+}: {
+  name?: string
+  help?: boolean
+  error?: boolean
+}) =>
+  [help ? fieldHelpId(name) : undefined, error ? fieldErrorId(name) : undefined]
+    .filter(Boolean)
+    .join(' ') || undefined
+
 export type FormFieldProps = {
   label: ReactNode
   /** Appends the required marker to the label; the caller still marks the control. */
@@ -33,7 +58,11 @@ export function FormField({ label, required, help, error, htmlFor, children }: F
         {required && ' *'}
       </label>
       {children}
-      {help && !error && <span className="text-xs text-gray-11">{help}</span>}
+      {help && !error && (
+        <span className="text-xs text-gray-11" id={fieldHelpId(htmlFor)}>
+          {help}
+        </span>
+      )}
       {/* Carries the id the control points at with aria-describedby, so the error is
           announced with the field rather than being a red border and a floating
           sentence a screen reader never connects to it. */}

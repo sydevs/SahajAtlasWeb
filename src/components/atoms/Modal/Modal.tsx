@@ -44,6 +44,12 @@ export type ModalContentProps = {
   description?: ReactNode
   /** Accessible label for the × control; atoms take their copy as props, not from i18n. */
   closeLabel: string
+  /**
+   * Radix's focus-return target is whatever was focused when the dialog mounted, which
+   * isn't always the control that opened it (a menu item is gone by then). Handle this to
+   * send focus somewhere specific — `preventDefault()` then `.focus()` your own element.
+   */
+  onCloseAutoFocus?: (event: Event) => void
   children: ReactNode
   className?: string
 }
@@ -53,6 +59,7 @@ export function ModalContent({
   title,
   description,
   closeLabel,
+  onCloseAutoFocus,
   children,
   className,
 }: ModalContentProps) {
@@ -64,7 +71,11 @@ export function ModalContent({
   return (
     <Dialog.Portal container={overlayContainer()}>
       <Dialog.Overlay className={overlay} />
-      <Dialog.Content className={`${content} ${className ?? ''}`} {...describedBy}>
+      <Dialog.Content
+        className={`${content} ${className ?? ''}`}
+        onCloseAutoFocus={onCloseAutoFocus}
+        {...describedBy}
+      >
         <div className={header}>
           <div className="min-w-0 flex-1">
             <Dialog.Title className="text-base font-semibold">{title}</Dialog.Title>

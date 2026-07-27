@@ -60,7 +60,13 @@ function loadTurnstile(): Promise<void> {
     script.onload = () => resolve()
     // Fires when a host page's CSP omits challenges.cloudflare.com from `script-src`,
     // and on an ordinary network failure.
-    script.onerror = () => reject(new Error('Turnstile script could not be loaded'))
+    script.onerror = () => {
+      // Drop the dead tag: with `scriptPromise` cleared below, every reopen retries, and
+      // on a host page whose CSP blocks Cloudflare that would otherwise pile up an
+      // orphaned <script> (and a blocked request) in their <head> each time.
+      script.remove()
+      reject(new Error('Turnstile script could not be loaded'))
+    }
     document.head.appendChild(script)
   }).catch((error: unknown) => {
     scriptPromise = null
@@ -130,7 +136,14 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
           sitekey: SITE_KEY,
           theme,
           language: languageCode,
-          callback: (solved) => setToken(solved),
+          // Turnstile's `retry` defaults to `auto`, so a transient failure is followed by
+          // an automatic retry that solves. `blocked` therefore must NOT be a one-way
+          // latch: a solved challenge has to win the form back, or the user is left
+          // holding a valid token while the UI still offers only the mailto escape.
+          callback: (solved) => {
+            setToken(solved)
+            setStatus('ready')
+          },
           'error-callback': () => {
             setToken(null)
             setStatus('blocked')

@@ -15,7 +15,9 @@ export const ReportSchema = z.object({
    * empty string is accepted alongside a real address and read as "not given".
    * Used as `Reply-To` server-side (#80).
    */
-  email: z.string().email().or(z.literal('')).optional(),
+  // Trimmed first: a trailing space would otherwise fail `.email()` with an inline error
+  // pointing at a defect the viewer cannot see.
+  email: z.string().trim().email().or(z.literal('')).optional(),
   /** Trimmed first, so a whitespace-only message can't satisfy the minimum. */
   message: z.string().trim().min(REPORT_MESSAGE_MIN).max(REPORT_MESSAGE_MAX),
 })

@@ -110,7 +110,12 @@
     "blocked": "Die Sicherheitsprüfung konnte nicht geladen werden, daher kann dieses Formular nicht gesendet werden. Bitte schreiben Sie uns stattdessen:",
     "errors": {
       "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
-      "message": "Bitte schreiben Sie mindestens %{min} Zeichen."
+      "message": "Bitte schreiben Sie mindestens %{min} Zeichen.",
+      "message_max": "Bitte bleiben Sie unter %{max} Zeichen."
     }
+  },
+  "error": {
+    "generic": "Etwas ist schiefgelaufen.",
+    "retry": "Erneut versuchen"
   }
 }

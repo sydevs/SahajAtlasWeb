@@ -16,19 +16,24 @@ export function errorMessage(error: unknown): string | undefined {
   if (error == null) return undefined
   if (typeof error === 'string') return error || undefined
 
-  if (typeof error === 'object' && 'message' in error) {
-    const { message } = error as { message: unknown }
-
-    return typeof message === 'string' && message ? message : undefined
-  }
-
+  // Everything below can throw on a hostile value — a throwing `message` getter, a
+  // null-prototype object, a throwing `toString`/`Symbol.toPrimitive`. Both callers
+  // render this INSIDE an error boundary's own fallback, where a throw is unrecoverable
+  // and would blank the whole widget on the host page, so the one thing this must never
+  // do is throw. Anything it can't read becomes `undefined` and the caller's generic line.
   try {
-    return String(error) || undefined
+    if (typeof error === 'object' && 'message' in error) {
+      const { message } = error as { message: unknown }
+
+      return typeof message === 'string' && message ? message : undefined
+    }
+
+    const text = String(error)
+
+    // `String({})` is "[object Object]" — noise on screen and worse than useless as
+    // report context, so treat it as nothing to show.
+    return text && text !== '[object Object]' ? text : undefined
   } catch {
-    // `String(x)` is not total: a null-prototype object, or one with a throwing
-    // `toString`/`Symbol.toPrimitive`, raises a TypeError. Both callers render this
-    // INSIDE an error boundary's own fallback, where a throw is unrecoverable and would
-    // blank the whole widget — so the one thing this must never do is throw.
     return undefined
   }
 }

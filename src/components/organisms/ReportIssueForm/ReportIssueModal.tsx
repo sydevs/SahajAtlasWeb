@@ -8,7 +8,7 @@ import { ReportIssueForm } from './ReportIssueForm'
 
 import { Modal, ModalContent } from '@/components/atoms/Modal'
 import { clientQuery } from '@/config/api'
-import { useReportModal } from '@/config/store'
+import { reportReturnFocus, useReportModal } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { buildReportContext } from '@/lib/report'
 
@@ -49,6 +49,14 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
           closeLabel={t('close')}
           description={t('report.description')}
           title={t('report.title')}
+          onCloseAutoFocus={(event) => {
+            const opener = reportReturnFocus()
+
+            if (!opener) return
+
+            event.preventDefault()
+            opener.focus()
+          }}
         >
           <ReportIssueForm
             context={buildReportContext({

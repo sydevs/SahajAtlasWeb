@@ -101,13 +101,26 @@ describe('errorMessage', () => {
     expect(() => errorMessage(Object.create(null))).not.toThrow()
     expect(errorMessage(Object.create(null))).toBeUndefined()
 
-    const hostile = {
+    const hostileToString = {
       toString() {
         throw new Error('nope')
       },
     }
 
-    expect(() => errorMessage(hostile)).not.toThrow()
+    expect(() => errorMessage(hostileToString)).not.toThrow()
+
+    const hostileGetter = {
+      get message(): string {
+        throw new Error('nope')
+      },
+    }
+
+    expect(() => errorMessage(hostileGetter)).not.toThrow()
+  })
+
+  it('does not surface "[object Object]" as if it were a message', () => {
+    // `throw { code: 500 }` — noise on screen and useless as report context.
+    expect(errorMessage({ code: 500 })).toBeUndefined()
   })
 
   it('returns undefined when there is nothing worth showing', () => {

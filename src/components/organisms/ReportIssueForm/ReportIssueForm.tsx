@@ -10,9 +10,9 @@ import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
 import { Textarea } from '@/components/atoms/Textarea'
-import { FormField, fieldErrorId } from '@/components/molecules/FormField'
+import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 import { useTurnstile } from '@/hooks/use-turnstile'
-import { REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
+import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
 /** Where a viewer is directed when the captcha can't load and the form can't be sent. */
 const CONTACT_EMAIL = 'contact@sydevelopers.com'
@@ -93,6 +93,12 @@ export function ReportIssueForm({
   }
 
   const blocked = status === 'blocked'
+  // Both bounds get their own sentence: one "at least 10 characters" string shown for a
+  // too-LONG message would tell the user the opposite of what's wrong.
+  const messageError =
+    errors.message?.type === 'too_big'
+      ? t('report.errors.message_max', { max: REPORT_MESSAGE_MAX })
+      : t('report.errors.message', { min: REPORT_MESSAGE_MIN })
 
   return (
     <form
@@ -119,15 +125,22 @@ export function ReportIssueForm({
         <div className="flex flex-col gap-4 py-2">
           <FormField
             required
-            error={errors.message && t('report.errors.message', { min: REPORT_MESSAGE_MIN })}
+            error={errors.message && messageError}
             htmlFor="report-message"
             label={t('report.message_label')}
           >
             <Textarea
-              aria-describedby={errors.message ? fieldErrorId('report-message') : undefined}
+              aria-describedby={fieldDescribedBy({
+                name: 'report-message',
+                error: Boolean(errors.message),
+              })}
               aria-invalid={errors.message ? true : undefined}
+              aria-required="true"
               id="report-message"
               isInvalid={Boolean(errors.message)}
+              // A hard stop at the schema's ceiling. Without it, pasting a long stack
+              // trace — the very report this exists for — just disables submit.
+              maxLength={REPORT_MESSAGE_MAX}
               placeholder={t('report.message_placeholder')}
               rows={5}
               {...register('message')}
@@ -141,7 +154,13 @@ export function ReportIssueForm({
             label={t('report.email_label')}
           >
             <Input
-              aria-describedby={errors.email ? fieldErrorId('report-email') : undefined}
+              // Describe by the help line as well as any error, so the "optional, and we
+              // can only reply if you fill it in" caveat is announced, not just seen.
+              aria-describedby={fieldDescribedBy({
+                name: 'report-email',
+                help: true,
+                error: Boolean(errors.email),
+              })}
               aria-invalid={errors.email ? true : undefined}
               id="report-email"
               isInvalid={Boolean(errors.email)}

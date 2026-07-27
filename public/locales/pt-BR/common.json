@@ -110,7 +110,12 @@
     "blocked": "Não foi possível carregar a verificação de segurança, então este formulário não pode ser enviado. Escreva para nós:",
     "errors": {
       "email": "Digite um endereço de e-mail válido.",
-      "message": "Escreva pelo menos %{min} caracteres."
+      "message": "Escreva pelo menos %{min} caracteres.",
+      "message_max": "Use menos de %{max} caracteres."
     }
+  },
+  "error": {
+    "generic": "Algo deu errado.",
+    "retry": "Tentar novamente"
   }
 }
