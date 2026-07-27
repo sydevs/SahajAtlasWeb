@@ -165,14 +165,25 @@ export function DrawerStack() {
   const stripsRef = useRef<HTMLDivElement>(null)
 
   const entries = useMemo(() => resolveStack(location.pathname), [location.pathname])
-  const top = entries.at(-1) ?? null
+  // Filters over the full-width calendar (map mode) render as a separate modal drawer OVER
+  // the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile — rather
+  // than replacing it. So the calendar stays the base view and the trailing `filters` entry
+  // is peeled into the overlay below. (Map-less keeps the plain replace-stack behaviour.)
+  const filterOverlay =
+    hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
+  const baseEntries = useMemo(
+    () => (filterOverlay ? entries.slice(0, -1) : entries),
+    [filterOverlay, entries],
+  )
+
+  const top = baseEntries.at(-1) ?? null
   // The calendar is the one full-width view — it fills the widget (minus the floating
   // margins) instead of the ~22rem left panel (see the Drawer `wide` variant).
   const wide = top?.kind === 'calendar'
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
-    () => (entries.length === 0 ? [] : ['/', ...entries.slice(0, -1).map((e) => e.path)]),
-    [entries],
+    () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
+    [baseEntries],
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
@@ -258,11 +269,26 @@ export function DrawerStack() {
     [snap, canCollapse, parentPath, location, navigate, toStackTarget],
   )
 
+  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
+  // over — chronologically when there's in-widget history, else a direct climb (query kept).
+  const overlayControl = useMemo(
+    () => ({
+      collapsed: false,
+      canCollapse: false,
+      toggle: () => {},
+      dismiss: () =>
+        atlasDepth(location) > 0
+          ? navigate(-1)
+          : navigate({ pathname: '/calendar', search: location.search }),
+    }),
+    [location, navigate],
+  )
+
   const sheet = (
     <DrawerContent aria-label={t('free_meditation_classes')}>
       <AnimatePresence mode="popLayout">
         <motion.div
-          key={location.pathname}
+          key={top?.path ?? '/'}
           animate={{ opacity: 1 }}
           className="flex min-h-0 flex-1 flex-col"
           exit={{ opacity: 0 }}
@@ -278,6 +304,27 @@ export function DrawerStack() {
       </AnimatePresence>
     </DrawerContent>
   )
+
+  // The filter overlay drawer (map mode only): a modal panel over the mounted calendar —
+  // right at ≥md, bottom sheet on mobile — with its own control. FilterView's Apply/Clear
+  // navigate to /calendar too, which closes it.
+  const filterDrawer = filterOverlay ? (
+    <DrawerControlContext.Provider value={overlayControl}>
+      <Drawer
+        key="filter-overlay"
+        dismissible
+        modal
+        open
+        direction={isDesktop ? 'right' : 'bottom'}
+        handleOnly={isDesktop}
+        onOpenChange={(o) => !o && overlayControl.dismiss()}
+      >
+        <DrawerContent aria-label={t('filters.title')}>
+          <FilterView />
+        </DrawerContent>
+      </Drawer>
+    </DrawerControlContext.Provider>
+  ) : null
 
   // Map-less: one contained drawer fills the widget container (no map to reveal, so
   // no peek strips or snap ladder). Standalone owns the viewport (100dvh); embedded
@@ -386,6 +433,7 @@ export function DrawerStack() {
       >
         {sheet}
       </Drawer>
+      {filterDrawer}
     </DrawerControlContext.Provider>
   )
 }

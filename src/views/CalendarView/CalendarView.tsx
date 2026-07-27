@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
@@ -12,20 +12,13 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
-import { computeDayBoundaries, eventsToCalendarEntries, filtersKey } from '@/lib/shape'
-import { CloseButton, DrawerTitle, FilterButton } from '@/views/shared'
-
-// The full-width calendar (route `/calendar`, optionally `?region=<slug>`). Its entries
-// are the filtered feed (`getCalendarEvents`) expanded into one per upcoming occurrence
-// — timezone-correct, online events included — laid out on a Schedule-X month / week /
-// list(agenda) grid whose `--sx-*` tokens are mapped to our theme (see globals.css).
-// The view is placeless, so it never frames the map. Clicking an entry opens its
-// EventView. It suspends on the cache-once source, so the calendar is built with the
-// complete set on first render (Schedule-X captures its config once); changing filters
-// returns here via the origin-aware apply, which REMOUNTS the view with the new set, and
-// theme is followed through the CSS-var overrides (not `isDark`) — so a background refetch
-// or host-locale change mid-view just won't live-update until the next navigation. The
-// header mirrors SearchView (Filter + Close).
+import {
+  type EventFilters,
+  computeDayBoundaries,
+  eventsToCalendarEntries,
+  filtersKey,
+} from '@/lib/shape'
+import { CloseButton, DrawerLoading, DrawerTitle, FilterButton } from '@/views/shared'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -45,12 +38,43 @@ const SX_LOCALES: Record<string, string> = {
 
 const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
+// The full-width calendar (route `/calendar`, optionally `?region=<slug>`). Its entries
+// are the filtered feed (`getCalendarEvents`) expanded into one per upcoming occurrence
+// — timezone-correct, online events included — on a Schedule-X month / week / list(agenda)
+// grid whose `--sx-*` tokens are mapped to our theme (see globals.css). Placeless, so it
+// never frames the map; clicking an entry opens its EventView. The header mirrors
+// SearchView (Filter + Close); the Filter button opens FilterView as a right/bottom
+// overlay over this (still-mounted) view (see DrawerStack).
+//
+// The grid captures Schedule-X's config once, so it's split out and KEYED by the applied
+// filters: opening the filter overlay doesn't change the filters (the grid stays put), but
+// applying remounts CalendarGrid with fresh events + dayBoundaries. The header stays, and a
+// local Suspense keeps it visible while the new grid's (cache-once) source resolves.
 export function CalendarView() {
   const { t } = useTranslation('common')
+  const filters = useEventFilters()
+
+  return (
+    <>
+      <DrawerHeader className="max-w-none justify-between">
+        <DrawerTitle title={t('calendar.title')} />
+        {/* Filter + Close as one right-aligned icon group, matching SearchView. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <FilterButton iconOnly />
+          <CloseButton />
+        </div>
+      </DrawerHeader>
+      <Suspense fallback={<DrawerLoading />}>
+        <CalendarGrid key={filtersKey(filters)} filters={filters} />
+      </Suspense>
+    </>
+  )
+}
+
+function CalendarGrid({ filters }: { filters: EventFilters }) {
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
-  const filters = useEventFilters()
 
   const { data: source } = useSuspenseQuery({
     queryKey: ['calendar', filtersKey(filters), locale],
@@ -84,20 +108,10 @@ export function CalendarView() {
   })
 
   return (
-    <>
-      <DrawerHeader className="max-w-none justify-between">
-        <DrawerTitle title={t('calendar.title')} />
-        {/* Filter + Close as one right-aligned group, in the same order as SearchView. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <FilterButton />
-          <CloseButton />
-        </div>
-      </DrawerHeader>
-      <DrawerBody className="max-w-none overflow-hidden p-0">
-        <div className="sx-calendar">
-          <ScheduleXCalendar calendarApp={calendar} />
-        </div>
-      </DrawerBody>
-    </>
+    <DrawerBody className="max-w-none overflow-hidden p-0">
+      <div className="sx-calendar">
+        <ScheduleXCalendar calendarApp={calendar} />
+      </div>
+    </DrawerBody>
   )
 }
