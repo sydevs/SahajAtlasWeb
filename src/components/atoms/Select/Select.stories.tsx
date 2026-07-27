@@ -7,7 +7,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { Select, SelectItem } from './Select'
 
 export default {
-  title: 'Atoms',
+  title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
 const options = [
@@ -59,6 +59,29 @@ export const Default: Story = () => {
           <Select aria-label="Empty" placeholder="Choose a time…">
             {options.map((o) => (
               <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`searchable` adds a type-to-filter box above the list (the region filter); `highlight` primary-tints the trigger to flag an active/used field."
+        title="Searchable & highlighted"
+      >
+        <div className="max-w-xs">
+          <Select
+            searchable
+            aria-label="Region"
+            highlight={value !== ''}
+            placeholder="Choose a region…"
+            searchPlaceholder="Search…"
+            value={value}
+            onValueChange={setValue}
+          >
+            {options.map((o) => (
+              <SelectItem key={o.value} textValue={o.label} value={o.value}>
                 {o.label}
               </SelectItem>
             ))}

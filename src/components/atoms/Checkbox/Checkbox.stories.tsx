@@ -17,7 +17,7 @@ import {
 import { Checkbox } from './Checkbox'
 
 export default {
-  title: 'Atoms',
+  title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
 // Rows are the palette colors, plus a `disabled` row — the disabled appearance is
@@ -79,6 +79,21 @@ export const Default: Story = () => {
             Keep me informed about upcoming events and news
           </Checkbox>
         </div>
+      </StorySection>
+
+      <StorySection
+        description="`highlight` primary-tints the labelled row to flag an active/used field."
+        title="Highlighted"
+      >
+        <Checkbox
+          highlight
+          appearance="checkbox"
+          checked={a}
+          color="primary"
+          onCheckedChange={setA}
+        >
+          Show online classes
+        </Checkbox>
       </StorySection>
 
       <div />

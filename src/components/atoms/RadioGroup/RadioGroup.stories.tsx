@@ -6,7 +6,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { RadioGroup, type RadioOption } from './RadioGroup'
 
-export default { title: 'Atoms' } satisfies StoryDefault
+export default { title: 'Atoms / Inputs' } satisfies StoryDefault
 
 const options: RadioOption[] = [
   { value: 'a', label: 'This week — Wed, Jul 29' },
@@ -55,6 +55,22 @@ export const Default: Story = () => {
             options={options}
             value={collapsed}
             onChange={setCollapsed}
+          />
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`highlight` wraps the list in a primary tint to flag an active/used field."
+        title="Highlighted"
+      >
+        <div className="max-w-sm">
+          <RadioGroup
+            highlight
+            aria-label="Pick one (active)"
+            name="highlighted"
+            options={options.slice(0, 3)}
+            value={simple}
+            onChange={setSimple}
           />
         </div>
       </StorySection>
