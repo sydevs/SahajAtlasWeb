@@ -96,7 +96,9 @@ export function CalendarView() {
 }
 
 function CalendarGrid({ filters }: { filters: EventFilters }) {
-  const { t } = useTranslation('common')
+  // The "Online" term is the SAME one the list/detail views show for an online event's
+  // location (`events:display.online`) — no calendar-specific duplicate.
+  const { t } = useTranslation('events')
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
@@ -106,7 +108,7 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
     queryFn: () => api.getCalendarEvents(filters),
   })
 
-  const onlineLabel = t('calendar.online')
+  const onlineLabel = t('display.online')
   const events = useMemo(
     () => eventsToCalendarEntries(source, filters, { onlineLabel }),
     [source, filters, onlineLabel],

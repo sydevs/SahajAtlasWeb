@@ -136,37 +136,61 @@ describe('eventsToCalendarEntries', () => {
     expect(entry.title).toBe('Camden')
   })
 
-  it('prepends the "Online" term to an online program\'s label (and tags its calendar)', () => {
+  it('puts the "Online" term in the location (not the title) and tags its calendar', () => {
     const evt = makeEvent({
       eventType: 'online',
       regionName: 'London',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [withPlace] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, {
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, {
       ...RANGE,
       onlineLabel: 'Online',
     })
 
-    expect(withPlace.title).toBe('Online · London')
-    expect(withPlace.calendarId).toBe('online')
+    // The title is the place; "Online" rides the location field (the colour distinguishes it
+    // in the month/list views, which don't render location).
+    expect(entry.title).toBe('London')
+    expect(entry.location).toBe('Online')
+    expect(entry.calendarId).toBe('online')
 
-    // No place → just the term.
+    // Placeless online → the title falls back to the event title; the location still flags it.
     const placeless = makeEvent({
       eventType: 'online',
+      title: 'Weekly meditation',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [entry] = eventsToCalendarEntries([placeless], DEFAULT_FILTERS, {
+    const [bare] = eventsToCalendarEntries([placeless], DEFAULT_FILTERS, {
       ...RANGE,
       onlineLabel: 'Online',
     })
 
-    expect(entry.title).toBe('Online')
+    expect(bare.title).toBe('Weekly meditation')
+    expect(bare.location).toBe('Online')
   })
 
-  it('leaves offline entries untagged (no calendarId)', () => {
+  it('leaves offline entries untagged (no calendarId, no location)', () => {
     const evt = makeEvent({ regionName: 'London', occurrences: [at('UTC', '2026-07-06T09:30')] })
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)[0].calendarId).toBeUndefined()
+    expect(entry.calendarId).toBeUndefined()
+    expect(entry.location).toBeUndefined()
+  })
+
+  it('builds the online end time from the event-local endTime (converted, not applied in the viewer zone)', () => {
+    // Online event in New York (18:00–19:00 local); viewed from the runner's own zone. The
+    // span must stay the event's 1 hour — the endTime is applied in the EVENT zone and then
+    // converted, not read as `19:00` in the viewer zone (the pre-fix bug).
+    const evt = makeEvent({
+      eventType: 'online',
+      zone: 'America/New_York',
+      endTime: '19:00',
+      occurrences: [at('America/New_York', '2026-07-06T18:00')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
+    const start = DateTime.fromFormat(entry.start, 'yyyy-MM-dd HH:mm')
+    const end = DateTime.fromFormat(entry.end, 'yyyy-MM-dd HH:mm')
+
+    expect(end.diff(start, 'minutes').minutes).toBe(60)
   })
 
   it('falls back through region → locality → title when a source is missing', () => {

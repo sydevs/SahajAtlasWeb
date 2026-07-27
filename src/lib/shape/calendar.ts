@@ -2,7 +2,7 @@ import type { EventSchedule, EventType } from '@/types'
 
 import { DateTime } from 'luxon'
 
-import { eventTimeZone, withEndTime } from './event'
+import { eventTimeZone, scheduleTimeZone, withEndTime } from './event'
 import {
   type EventFilters,
   type TimePeriod,
@@ -42,25 +42,11 @@ const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | un
   return regionScoped ? locality || region : region || locality
 }
 
-/**
- * The concise label a calendar entry shows instead of the (often long) event title: the
- * event's place (see `placeOf`). Online programs prepend the "Online" term to the place
- * (`onlineLabel` — the caller passes the translated word), or read as just "Online" when
- * they carry no place. A placeless offline entry falls back to the title so it's never blank.
- */
-const calendarLabel = (
-  event: CalendarSourceEvent,
-  regionScoped: boolean,
-  onlineLabel?: string,
-): string => {
-  const place = placeOf(event, regionScoped)
-
-  if (event.eventType === 'online' && onlineLabel) {
-    return place ? `${onlineLabel} · ${place}` : onlineLabel
-  }
-
-  return place || event.title
-}
+// The concise label a calendar entry shows instead of the (often long) event title: the
+// event's place (see `placeOf`), or the title itself when it has no place. The "Online"
+// designation is NOT folded in here — it rides the SX `location` field (see the expansion).
+const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string =>
+  placeOf(event, regionScoped) || event.title
 
 /** One occurrence, in Schedule-X's wall-clock shape (`YYYY-MM-DD HH:mm`, no zone). */
 export type CalendarEntry = {
@@ -73,6 +59,9 @@ export type CalendarEntry = {
   path: string
   /** Schedule-X calendar id — set to `online` for online programs so they get their own colour. */
   calendarId?: string
+  /** Schedule-X `location` (shown with a pin in the week/day views) — the "Online" term for
+   *  online programs; the month/list views distinguish them by colour instead. */
+  location?: string
 }
 
 // Schedule-X reads a plain wall-clock string; we hand it the occurrence already
@@ -113,22 +102,32 @@ export const eventsToCalendarEntries = (
 
     if (!occurrences?.length) continue
 
-    const zone = eventTimeZone(event)
+    // Times display in the event's OWN zone for in-person classes and the VIEWER's zone for
+    // online ones (`eventTimeZone`, shared with the list/detail views). `endTime` is an
+    // event-LOCAL `HH:MM`, so the span is built in the event zone first, then both ends are
+    // converted to the display zone — mirroring how `resolveEventDisplay` derives `nextEnd`.
+    const displayZone = eventTimeZone(event)
+    const eventZone = event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
     const endTime = event.schedule?.endTime
-    const label = calendarLabel(event, regionScoped, opts?.onlineLabel)
-    const calendarId = event.eventType === 'online' ? 'online' : undefined
+    const label = calendarLabel(event, regionScoped)
+    // Online programs carry a distinct colour + the "Online" term in the SX `location` field.
+    const online = event.eventType === 'online'
+    const location = online ? opts?.onlineLabel : undefined
+    const calendarId = online ? 'online' : undefined
 
     for (const occurrence of occurrences) {
-      // Luxon compares by absolute instant, so the event-zone start and the viewer-zone
-      // bounds line up correctly regardless of their zones.
-      const start = DateTime.fromJSDate(occurrence, { zone })
+      // Read the occurrence in the event's own zone (so the event-local endTime applies to
+      // the right day), then convert to the display zone. Luxon compares by absolute instant,
+      // so the range/filter checks line up regardless of zone.
+      const eventStart = DateTime.fromJSDate(occurrence, { zone: eventZone })
+      const start = eventStart.setZone(displayZone)
 
       if (start < from || start > to) continue
       if (!occurrenceMatchesFilters(start, filters, floor)) continue
 
       // A same-minute (or unset) endTime leaves no visible span for the week/day views,
       // so fall back to a default duration when the end isn't strictly after the start.
-      const end = withEndTime(start, endTime)
+      const end = withEndTime(eventStart, endTime)?.setZone(displayZone)
       const finish = end && end > start ? end : start.plus(DEFAULT_DURATION)
 
       entries.push({
@@ -138,6 +137,7 @@ export const eventsToCalendarEntries = (
         end: finish.toFormat(SX_FORMAT),
         path: event.path,
         calendarId,
+        location,
       })
     }
   }
