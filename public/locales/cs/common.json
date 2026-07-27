@@ -64,9 +64,7 @@
     },
     "region": {
       "label": "Region",
-      "all": "Všechny regiony",
-      "search": "Hledat regiony…",
-      "empty": "Žádné regiony nenalezeny"
+      "all": "Všechny regiony"
     }
   },
   "search_placeholder": "Hledat události poblíž…",

@@ -23,7 +23,7 @@ reach for `@nextui-org/react`; it isn't a dependency.
 Before hand-rolling UI, in this order:
 
 1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip,
-   Drawer, Dropdown, Link, RadioGroup, SearchableSelect, Select, Slider, Spinner, ToggleGroup
+   Drawer, Dropdown, Link, RadioGroup, Select, Slider, Spinner, ToggleGroup
    already exist and carry the app's tokens and focus behaviour.
 2. **Check Radix** for an unstyled primitive to build on (`@radix-ui/react-*` —
    dialog, select, checkbox, switch, slider, toggle-group, dropdown-menu, label

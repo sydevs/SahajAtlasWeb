@@ -64,9 +64,7 @@
     },
     "region": {
       "label": "Regio",
-      "all": "Alle regio's",
-      "search": "Regio's zoeken…",
-      "empty": "Geen regio's gevonden"
+      "all": "Alle regio's"
     }
   },
   "search_placeholder": "Zoek evenementen in de buurt van…",

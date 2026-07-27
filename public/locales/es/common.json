@@ -64,9 +64,7 @@
     },
     "region": {
       "label": "Región",
-      "all": "Todas las regiones",
-      "search": "Buscar regiones…",
-      "empty": "No se encontraron regiones"
+      "all": "Todas las regiones"
     }
   },
   "search_placeholder": "Buscar eventos cerca de…",

@@ -57,9 +57,7 @@
     },
     "region": {
       "label": "Region",
-      "all": "All regions",
-      "search": "Search regions…",
-      "empty": "No regions found"
+      "all": "All regions"
     }
   },
   "free_meditation_class": "Free Meditation Class",

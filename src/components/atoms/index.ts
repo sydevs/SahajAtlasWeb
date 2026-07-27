@@ -40,9 +40,6 @@ export type { LinkProps } from './Link'
 export { RadioGroup } from './RadioGroup'
 export type { RadioGroupProps, RadioOption } from './RadioGroup'
 
-export { SearchableSelect } from './SearchableSelect'
-export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect'
-
 export { Select, SelectItem } from './Select'
 export type { SelectProps, SelectItemProps } from './Select'
 
