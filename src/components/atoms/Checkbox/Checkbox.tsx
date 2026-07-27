@@ -78,6 +78,8 @@ export type CheckboxProps = VariantProps<typeof toggle> & {
   onCheckedChange?: (checked: boolean) => void
   disabled?: boolean
   id?: string
+  /** Primary-tint the (labelled) control to flag an active/in-use field. */
+  highlight?: boolean
   /** Optional label rendered after the control. */
   children?: ReactNode
   className?: string
@@ -92,6 +94,7 @@ export function Checkbox({
   onCheckedChange,
   disabled,
   id,
+  highlight,
   children,
   className,
 }: CheckboxProps) {
@@ -134,7 +137,11 @@ export function Checkbox({
   if (!children) return control
 
   return (
-    <label className={`inline-flex cursor-pointer items-center gap-2 ${className ?? ''}`}>
+    <label
+      className={`inline-flex cursor-pointer items-center gap-2 ${
+        highlight ? 'rounded-md bg-primary-3 px-2 py-1 ring-1 ring-primary-6' : ''
+      } ${className ?? ''}`}
+    >
       {control}
       <span className="text-sm">{children}</span>
     </label>

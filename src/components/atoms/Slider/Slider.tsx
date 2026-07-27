@@ -13,6 +13,10 @@ const slider = tv({
     thumb:
       'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus',
   },
+  variants: {
+    /** Active-filter tint — a primary box around the slider so an in-use field stands out. */
+    highlight: { true: { root: 'rounded-md bg-primary-3 px-2 py-3 ring-1 ring-primary-6' } },
+  },
 })
 
 export type SliderProps = {
@@ -29,6 +33,8 @@ export type SliderProps = {
   /** Accessible label per thumb — a single string labels every thumb. Not a DOM
    *  `aria-label`: it fans out to each thumb, so it keeps a distinct name. */
   thumbLabels?: string | string[]
+  /** Primary-tint the slider to flag an active/in-use field. */
+  highlight?: boolean
   className?: string
 }
 
@@ -43,9 +49,10 @@ export function Slider({
   minStepsBetweenThumbs,
   disabled,
   thumbLabels,
+  highlight,
   className,
 }: SliderProps) {
-  const { root, track, range, thumb } = slider()
+  const { root, track, range, thumb } = slider({ highlight })
   // One thumb per value entry; falls back to a single thumb at the minimum.
   const thumbs = value ?? defaultValue ?? [min]
   const labelFor = (index: number) =>

@@ -21,6 +21,8 @@ const toggleGroup = tv({
         item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
       },
     },
+    /** Active-filter tint — a primary box around the group so an in-use field stands out. */
+    highlight: { true: { root: 'rounded-md bg-primary-3 p-1 ring-1 ring-primary-6' } },
   },
   defaultVariants: { joined: false },
 })
@@ -34,6 +36,8 @@ type ToggleGroupBaseProps = {
   'aria-label'?: string
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
+  /** Primary-tint the group to flag an active/in-use field. */
+  highlight?: boolean
   className?: string
   children: ReactNode
 }
@@ -60,11 +64,12 @@ export function ToggleGroup({
   disabled,
   'aria-label': ariaLabel,
   joined = false,
+  highlight,
   className,
   children,
   ...props
 }: ToggleGroupProps) {
-  const { root } = toggleGroup({ joined })
+  const { root } = toggleGroup({ joined, highlight })
 
   return (
     <ToggleGroupContext.Provider value={{ joined }}>
