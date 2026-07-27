@@ -116,7 +116,9 @@ export function Select({
           {searchable && (
             <div className="border-b border-gray-4 p-1">
               <input
-                aria-label={searchPlaceholder}
+                // Fall back to the field's own name so the filter box is never unlabelled,
+                // even if a caller omits `searchPlaceholder`.
+                aria-label={searchPlaceholder ?? ariaLabel}
                 className={fieldChrome({ className: 'h-8 px-2' })}
                 placeholder={searchPlaceholder}
                 type="text"
