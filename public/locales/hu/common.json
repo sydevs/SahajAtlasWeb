@@ -95,5 +95,22 @@
   "back": "Vissza",
   "close": "Bezárás",
   "explore": "Felfedezés",
-  "settings": "Beállítások"
+  "settings": "Beállítások",
+  "report": {
+    "title": "Hiba jelentése",
+    "description": "Írja meg, mi a probléma, és továbbítjuk a csapatnak.",
+    "message_label": "Mi a probléma?",
+    "message_placeholder": "Írja le, mit csinált, és mi tűnt hibásnak.",
+    "email_label": "E-mail",
+    "email_help": "Nem kötelező — csak akkor tudunk válaszolni, ha megadja.",
+    "email_placeholder": "on@pelda.hu",
+    "submit": "Jelentés küldése",
+    "cancel": "Mégse",
+    "sent": "Köszönjük — a jelentése úton van a csapathoz.",
+    "blocked": "A biztonsági ellenőrzést nem sikerült betölteni, ezért az űrlap nem küldhető el. Kérjük, írjon nekünk inkább ide:",
+    "errors": {
+      "email": "Adjon meg érvényes e-mail-címet.",
+      "message": "Írjon legalább %{min} karaktert."
+    }
+  }
 }

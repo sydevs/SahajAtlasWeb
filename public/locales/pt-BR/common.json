@@ -95,5 +95,22 @@
   "back": "Voltar",
   "close": "Fechar",
   "explore": "Explorar",
-  "settings": "Configurações"
+  "settings": "Configurações",
+  "report": {
+    "title": "Relatar um problema",
+    "description": "Conte-nos o que está errado e repassaremos à equipe.",
+    "message_label": "O que deu errado?",
+    "message_placeholder": "Descreva o que você estava fazendo e o que pareceu errado.",
+    "email_label": "E-mail",
+    "email_help": "Opcional — só podemos responder se você preencher.",
+    "email_placeholder": "voce@exemplo.com",
+    "submit": "Enviar relato",
+    "cancel": "Cancelar",
+    "sent": "Obrigado — seu relato está a caminho da equipe.",
+    "blocked": "Não foi possível carregar a verificação de segurança, então este formulário não pode ser enviado. Escreva para nós:",
+    "errors": {
+      "email": "Digite um endereço de e-mail válido.",
+      "message": "Escreva pelo menos %{min} caracteres."
+    }
+  }
 }

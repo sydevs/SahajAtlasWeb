@@ -114,6 +114,32 @@ export const useCalendarPosition = create<CalendarPositionState>((set) => ({
   setDate: (date) => set(() => ({ date })),
 }))
 
+// ===== REPORT MODAL ===== //
+
+// Open state for the report-issue modal (issue #79). Deliberately NOT part of the
+// URL-driven drawer stack: the modal is ephemeral, never appears in the URL,
+// `resolveStack` never sees it, and opening or closing it must neither push nor pop
+// history. It's a store rather than local state because its three triggers live in
+// unrelated subtrees — the settings cog, the app-level ErrorFallback, and the in-drawer
+// DrawerErrorFallback — and the two error CTAs must reach a modal host mounted OUTSIDE
+// the ErrorBoundary that is currently rendering them.
+type ReportModalState = {
+  open: boolean
+  /** Whatever was thrown, when opened from an error CTA — carried into the report context. */
+  error: string | null
+  openReport: (error?: string | null) => void
+  closeReport: () => void
+}
+
+export const useReportModal = create<ReportModalState>((set) => ({
+  open: false,
+  error: null,
+  openReport: (error) => set(() => ({ open: true, error: error ?? null })),
+  // Clear the error too, so a later open from the settings menu can't inherit the
+  // error context of an earlier, unrelated report.
+  closeReport: () => set(() => ({ open: false, error: null })),
+}))
+
 // ===== REGISTRATION DRAFT ===== //
 
 // In-progress registration form values, hoisted out of the form so a drawer

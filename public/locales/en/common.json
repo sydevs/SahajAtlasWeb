@@ -104,5 +104,22 @@
     "recommended": "Recommended",
     "closest": "Closest",
     "soonest": "Soonest"
+  },
+  "report": {
+    "title": "Report an issue",
+    "description": "Tell us what's wrong and we'll pass it on to the team.",
+    "message_label": "What went wrong?",
+    "message_placeholder": "Describe what you were doing and what looked wrong.",
+    "email_label": "Email",
+    "email_help": "Optional — we can only reply if you leave one.",
+    "email_placeholder": "you@example.com",
+    "submit": "Send report",
+    "cancel": "Cancel",
+    "sent": "Thank you — your report is on its way to the team.",
+    "blocked": "The security check couldn't load, so this form can't be sent. Please email us instead:",
+    "errors": {
+      "email": "Enter a valid email address.",
+      "message": "Please write at least %{min} characters."
+    }
   }
 }

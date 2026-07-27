@@ -40,6 +40,9 @@ export type { InputProps } from './Input'
 export { Link } from './Link'
 export type { LinkProps } from './Link'
 
+export { Modal, ModalContent, ModalBody, ModalFooter, ModalClose } from './Modal'
+export type { ModalProps, ModalContentProps } from './Modal'
+
 export { RadioGroup } from './RadioGroup'
 export type { RadioGroupProps, RadioOption } from './RadioGroup'
 

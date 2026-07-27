@@ -95,5 +95,22 @@
   "back": "Terug",
   "close": "Sluiten",
   "explore": "Verkennen",
-  "settings": "Instellingen"
+  "settings": "Instellingen",
+  "report": {
+    "title": "Een probleem melden",
+    "description": "Vertel ons wat er mis is, dan geven we het door aan het team.",
+    "message_label": "Wat ging er mis?",
+    "message_placeholder": "Beschrijf wat je deed en wat er mis leek te gaan.",
+    "email_label": "E-mail",
+    "email_help": "Optioneel — we kunnen alleen antwoorden als je dit invult.",
+    "email_placeholder": "jij@voorbeeld.nl",
+    "submit": "Melding versturen",
+    "cancel": "Annuleren",
+    "sent": "Bedankt — je melding is onderweg naar het team.",
+    "blocked": "De beveiligingscontrole kon niet worden geladen, dus dit formulier kan niet worden verzonden. Mail ons in plaats daarvan:",
+    "errors": {
+      "email": "Voer een geldig e-mailadres in.",
+      "message": "Schrijf minstens %{min} tekens."
+    }
+  }
 }

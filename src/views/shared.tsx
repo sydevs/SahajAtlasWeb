@@ -16,7 +16,7 @@ import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory } from '@/config/store'
+import { useCameraHistory, useReportModal } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -329,6 +329,7 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   const { t } = useTranslation('common')
   const { t: tEvents } = useTranslation('events')
   const navigate = useAtlasNavigate()
+  const openReport = useReportModal((state) => state.openReport)
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
@@ -345,6 +346,15 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
           still offers a way back into live inventory (issue #52). */}
       <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
         {tEvents('display.see_nearby')}
+      </Button>
+      {/* …and if it's us rather than the link, a way to tell us so, carrying the
+          thrown message as report context (issue #79). */}
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => openReport(error?.message ?? t('error.generic'))}
+      >
+        {t('report.title')}
       </Button>
     </DrawerBody>
   )

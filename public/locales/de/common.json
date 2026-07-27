@@ -95,5 +95,22 @@
   "back": "Zurück",
   "close": "Schließen",
   "explore": "Entdecken",
-  "settings": "Einstellungen"
+  "settings": "Einstellungen",
+  "report": {
+    "title": "Problem melden",
+    "description": "Sagen Sie uns, was nicht stimmt, und wir leiten es an das Team weiter.",
+    "message_label": "Was ist schiefgelaufen?",
+    "message_placeholder": "Beschreiben Sie, was Sie getan haben und was falsch aussah.",
+    "email_label": "E-Mail",
+    "email_help": "Optional — wir können nur antworten, wenn Sie sie angeben.",
+    "email_placeholder": "name@beispiel.de",
+    "submit": "Bericht senden",
+    "cancel": "Abbrechen",
+    "sent": "Vielen Dank — Ihr Bericht ist auf dem Weg zum Team.",
+    "blocked": "Die Sicherheitsprüfung konnte nicht geladen werden, daher kann dieses Formular nicht gesendet werden. Bitte schreiben Sie uns stattdessen:",
+    "errors": {
+      "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+      "message": "Bitte schreiben Sie mindestens %{min} Zeichen."
+    }
+  }
 }

@@ -15,7 +15,7 @@ import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
-import { Mapbox } from '@/components/organisms'
+import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
@@ -76,6 +76,11 @@ export default function App({
             />
           </ErrorBoundary>
         </Suspense>
+        {/* Mounted OUTSIDE the boundary and the suspense fence, so "Report an issue"
+            still opens while ErrorFallback is on screen — which is exactly when a
+            viewer most wants it. It never suspends: the client name it attaches is a
+            query-cache read, not a fetch. */}
+        <ReportIssueModal apiKey={apiKey} />
       </BrandTheme>
     </Providers>
   )
