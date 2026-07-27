@@ -28,8 +28,11 @@ import {
 // The Format + Frequency toggle options, in display order. The i18n leaf key for
 // each is just the lowercased value (`recurrenceType` is upper-case on the wire),
 // so no lookup map is needed.
-const FORMAT_OPTIONS: EventFormat[] = ['any', 'offline', 'online']
-const CADENCE_OPTIONS: EventCadence[] = ['any', 'DAILY', 'WEEKLY', 'MONTHLY', 'once']
+// The Format + Frequency toggles omit the "any" option — a single-select toggle can be
+// left unselected (= any), and the group's "Clear" resets it — so the toggle only shows
+// the real choices.
+const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
+const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
 // A labelled filter group — a heading (with an optional right-aligned hint, e.g.
 // the time readout) above its control. When the filter is `active`, a small
@@ -294,10 +297,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             ))}
           </ToggleGroup>
           {/* The times the selection covers — the same string the active-filter pill shows.
-              Empty for no selection (or a whole-day one), so fall back to "any time". */}
-          <p className="text-xs text-gray-11">
-            {formatTimePeriods(locale, timeOfDay) || t('filters.any_time')}
-          </p>
+              Hidden when nothing is selected (no "any time" placeholder). */}
+          {timeOfDay.length > 0 && (
+            <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
+          )}
         </div>
       </FilterGroup>
 

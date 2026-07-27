@@ -58,9 +58,9 @@ export function CalendarView() {
     <>
       <DrawerHeader className="max-w-none justify-between">
         <DrawerTitle title={t('calendar.title')} />
-        {/* Filter + Close as one right-aligned icon group, matching SearchView. */}
+        {/* Filter + Close as one right-aligned group, matching SearchView. */}
         <div className="flex shrink-0 items-center gap-2">
-          <FilterButton iconOnly />
+          <FilterButton />
           <CloseButton />
         </div>
       </DrawerHeader>
@@ -89,8 +89,12 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
     [events, filters.timeOfDay],
   )
 
+  const monthGrid = createViewMonthGrid()
+
   const calendar = useNextCalendarApp({
-    views: [createViewMonthGrid(), createViewWeek(), createViewList()],
+    views: [monthGrid, createViewWeek(), createViewList()],
+    // Open on the month view by default.
+    defaultView: monthGrid.name,
     events,
     // Undefined leaves Schedule-X's default grid (whole day).
     dayBoundaries,
