@@ -90,6 +90,27 @@ export const rememberCamera = (key: string): void => {
   useCameraHistory.getState().save(key, { zoom, latitude, longitude, selection, boundary })
 }
 
+// ===== CALENDAR POSITION ===== //
+
+// The full-width CalendarView's last view (`month-grid` / `week` / `list`) + focused
+// date, kept so applying a filter (which remounts the filters-keyed grid) or opening an
+// event and coming back doesn't reset Schedule-X to the month grid on today. Session-
+// scoped and non-reactive (getState/setState only) — like useCameraHistory, a write must
+// never re-render the calendar; the grid seeds from it once at mount. Cleared on reload.
+type CalendarPositionState = {
+  view: string | null
+  date: string | null
+  setView: (view: string) => void
+  setDate: (date: string) => void
+}
+
+export const useCalendarPosition = create<CalendarPositionState>((set) => ({
+  view: null,
+  date: null,
+  setView: (view) => set(() => ({ view })),
+  setDate: (date) => set(() => ({ date })),
+}))
+
 // ===== REGISTRATION DRAFT ===== //
 
 // In-progress registration form values, hoisted out of the form so a drawer

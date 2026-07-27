@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react'
+import { Suspense, useEffect, useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
@@ -8,6 +8,7 @@ import '@schedule-x/theme-default/dist/index.css'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import api from '@/config/api'
+import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -38,6 +39,14 @@ const SX_LOCALES: Record<string, string> = {
 
 const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
+// Schedule-X 2.36 has no public view-change callback, so we read the live view from the
+// app instance's internal `$app.calendarState.view` — a preact signal we subscribe to
+// (fires immediately + on every change). Typed defensively: if SX reshapes its internals
+// the optional chain yields undefined and the view simply falls back to the default.
+type ViewSignal = { subscribe: (fn: (view: string) => void) => () => void }
+const viewSignalOf = (app: unknown): ViewSignal | undefined =>
+  (app as { $app?: { calendarState?: { view?: ViewSignal } } } | null)?.$app?.calendarState?.view
+
 // The full-width calendar (route `/calendar`, optionally `?region=<slug>`). Its entries
 // are the filtered feed (`getCalendarEvents`) expanded into one per upcoming occurrence
 // — timezone-correct, online events included — on a Schedule-X month / week / list(agenda)
@@ -49,7 +58,9 @@ const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-
 // The grid captures Schedule-X's config once, so it's split out and KEYED by the applied
 // filters: opening the filter overlay doesn't change the filters (the grid stays put), but
 // applying remounts CalendarGrid with fresh events + dayBoundaries. The header stays, and a
-// local Suspense keeps it visible while the new grid's (cache-once) source resolves.
+// local Suspense keeps it visible while the new grid's (cache-once) source resolves. Across
+// that remount (and returning from an event) the view + focused date are restored from
+// `useCalendarPosition` so the calendar doesn't snap back to the month grid on today.
 export function CalendarView() {
   const { t } = useTranslation('common')
   const filters = useEventFilters()
@@ -90,11 +101,17 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
   )
 
   const monthGrid = createViewMonthGrid()
+  // Seed from the last position (view + focused date). Read once, non-reactively, for the
+  // capture-config-once hook; it's kept current by the callback + subscription below, so at
+  // the next remount (a filter apply captures config during *render*, before this grid
+  // unmounts) the seed is already up to date. Nulls fall back to the month grid on today.
+  const position = useCalendarPosition.getState()
 
   const calendar = useNextCalendarApp({
     views: [monthGrid, createViewWeek(), createViewList()],
-    // Open on the month view by default.
-    defaultView: monthGrid.name,
+    // Restore the last view (month by default).
+    defaultView: position.view ?? monthGrid.name,
+    selectedDate: position.date ?? undefined,
     events,
     // Undefined leaves Schedule-X's default grid (whole day).
     dayBoundaries,
@@ -108,8 +125,21 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
       onEventClick: (event) => {
         if (typeof event.path === 'string') navigate(event.path)
       },
+      // Persist the focused date as the user pages through the calendar.
+      onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
     },
   })
+
+  // Persist the current view continuously (SX exposes no callback for it — see viewSignalOf).
+  // `calendar` is null until useNextCalendarApp's mount effect resolves, so re-subscribe when
+  // it becomes the instance; subscribe fires immediately then on each view switch.
+  useEffect(() => {
+    const view = viewSignalOf(calendar)
+
+    return view?.subscribe((next) => {
+      if (next) useCalendarPosition.getState().setView(next)
+    })
+  }, [calendar])
 
   return (
     <DrawerBody className="max-w-none overflow-hidden p-0">
