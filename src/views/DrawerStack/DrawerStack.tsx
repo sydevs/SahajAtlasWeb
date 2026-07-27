@@ -17,6 +17,7 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { SettingsMenu } from '@/components/molecules'
 import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
+import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
 import { type StackEntry, atlasDepth, dismissAction, resolveStack } from '@/lib/shape'
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
@@ -178,8 +179,12 @@ export function DrawerStack() {
 
   const top = baseEntries.at(-1) ?? null
   // The calendar is the one full-width view — it fills the widget (minus the floating
-  // margins) instead of the ~22rem left panel (see the Drawer `wide` variant).
-  const wide = top?.kind === 'calendar'
+  // margins) instead of the ~22rem left panel (see the Drawer `wide` variant) — EXCEPT in
+  // its list (agenda) view, which is a single narrow column and reads better at the regular
+  // width. The live Schedule-X view is mirrored into `useCalendarPosition` (read reactively
+  // here so switching month↔list resizes the drawer; date changes don't re-render this).
+  const calendarView = useCalendarPosition((s) => s.view)
+  const wide = top?.kind === 'calendar' && calendarView !== 'list'
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
     () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),

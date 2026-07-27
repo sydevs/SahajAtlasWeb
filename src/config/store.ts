@@ -94,9 +94,12 @@ export const rememberCamera = (key: string): void => {
 
 // The full-width CalendarView's last view (`month-grid` / `week` / `list`) + focused
 // date, kept so applying a filter (which remounts the filters-keyed grid) or opening an
-// event and coming back doesn't reset Schedule-X to the month grid on today. Session-
-// scoped and non-reactive (getState/setState only) — like useCameraHistory, a write must
-// never re-render the calendar; the grid seeds from it once at mount. Cleared on reload.
+// event and coming back doesn't reset Schedule-X to the month grid on today. Session-scoped
+// and cleared on reload. The grid SEEDS from it once at mount (via getState) and writes both
+// fields imperatively as the user navigates — so a write never re-renders the calendar. The
+// `view` is additionally read reactively (a selector) by DrawerStack to size the drawer
+// (list view → regular width); `date` is only ever read via getState, so its frequent writes
+// stay render-free.
 type CalendarPositionState = {
   view: string | null
   date: string | null
