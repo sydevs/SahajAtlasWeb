@@ -26,6 +26,24 @@ export type CalendarSourceEvent = {
   path: string
   eventType: EventType
   schedule?: EventSchedule | null
+  /** The event's parent region name — the default (concise) calendar label. */
+  regionName?: string | null
+  /** The event's locality (address city) — the label when the calendar is region-scoped. */
+  locality?: string | null
+}
+
+/**
+ * The concise place label a calendar entry shows instead of the (often long) event title:
+ * the event's parent region name, or — when the calendar is already scoped to a region, so
+ * every entry shares it and the region name is redundant — the locality from the address.
+ * Falls through the alternatives, then the title, so an entry is never blank.
+ */
+const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string => {
+  const region = event.regionName?.trim() || undefined
+  const locality = event.locality?.trim() || undefined
+  const preferred = regionScoped ? locality : region
+
+  return preferred || region || locality || event.title
 }
 
 /** One occurrence, in Schedule-X's wall-clock shape (`YYYY-MM-DD HH:mm`, no zone). */
@@ -67,6 +85,9 @@ export const eventsToCalendarEntries = (
   const from = range?.from ?? DateTime.now().startOf('day')
   const to = range?.to ?? from.plus({ months: 12 })
   const floor = dateFloor(filters, range?.today ?? from.toISODate() ?? undefined)
+  // When a region is selected every entry sits under it, so the region name would be the
+  // same for all — show the finer-grained locality instead (computed per event below).
+  const regionScoped = filters.region != null
   const entries: CalendarEntry[] = []
 
   for (const event of events) {
@@ -76,6 +97,7 @@ export const eventsToCalendarEntries = (
 
     const zone = eventTimeZone(event)
     const endTime = event.schedule?.endTime
+    const label = calendarLabel(event, regionScoped)
 
     for (const occurrence of occurrences) {
       // Luxon compares by absolute instant, so the event-zone start and the viewer-zone
@@ -92,7 +114,7 @@ export const eventsToCalendarEntries = (
 
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
-        title: event.title,
+        title: label,
         start: start.toFormat(SX_FORMAT),
         end: finish.toFormat(SX_FORMAT),
         path: event.path,

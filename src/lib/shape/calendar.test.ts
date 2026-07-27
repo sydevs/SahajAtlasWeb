@@ -18,12 +18,16 @@ const makeEvent = (opts: {
   eventType?: 'offline' | 'online'
   zone?: string | null
   endTime?: string | null
+  regionName?: string | null
+  locality?: string | null
   occurrences: DateTime[]
 }): CalendarSourceEvent => ({
   id: opts.id ?? 1,
   title: opts.title ?? 'Meditation',
   path: opts.path ?? '/1',
   eventType: opts.eventType ?? 'offline',
+  regionName: opts.regionName ?? null,
+  locality: opts.locality ?? null,
   schedule: {
     firstDate: opts.occurrences[0]?.toJSDate() ?? new Date('2026-01-01T00:00:00Z'),
     firstDate_tz: opts.zone === undefined ? 'Asia/Kolkata' : opts.zone,
@@ -104,6 +108,48 @@ describe('eventsToCalendarEntries', () => {
     expect(
       eventsToCalendarEntries([makeEvent({ occurrences: [] })], DEFAULT_FILTERS, RANGE),
     ).toEqual([])
+  })
+
+  it('labels entries with the parent region name (not the event title) by default', () => {
+    const evt = makeEvent({
+      title: 'Weekly Sahaja Yoga meditation for beginners',
+      regionName: 'London',
+      locality: 'Camden',
+      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
+
+    expect(entry.title).toBe('London')
+  })
+
+  it('labels entries with the locality when the calendar is scoped to a region', () => {
+    const evt = makeEvent({
+      title: 'Weekly Sahaja Yoga meditation for beginners',
+      regionName: 'London',
+      locality: 'Camden',
+      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
+    })
+    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
+
+    const [entry] = eventsToCalendarEntries([evt], scoped, RANGE)
+
+    expect(entry.title).toBe('Camden')
+  })
+
+  it('falls back through region → locality → title when a source is missing', () => {
+    // Region-scoped but no locality → the region name; neither present → the title.
+    const noLocality = makeEvent({
+      regionName: 'London',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const bare = makeEvent({
+      title: 'Just the title',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
+
+    expect(eventsToCalendarEntries([noLocality], scoped, RANGE)[0].title).toBe('London')
+    expect(eventsToCalendarEntries([bare], DEFAULT_FILTERS, RANGE)[0].title).toBe('Just the title')
   })
 
   it('trims occurrences to the active day filter (not just event-level match)', () => {
