@@ -19,7 +19,6 @@ const slider = tv({
     // no wrapper and no padding, so the layout never shifts.
     highlight: {
       true: { track: 'bg-primary-6', thumb: 'border-primary-7' },
-      false: {},
     },
   },
 })

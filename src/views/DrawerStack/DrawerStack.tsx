@@ -281,8 +281,11 @@ export function DrawerStack() {
       collapsed: false,
       canCollapse: false,
       toggle: () => {},
+      // Same back-vs-climb decision as `control` (via `dismissAction`), but the overlay is
+      // always parented to the calendar (`hasParent: true` → never 'collapse'), so 'fallback'
+      // climbs to `/calendar` directly, keeping its query.
       dismiss: () =>
-        atlasDepth(location) > 0
+        dismissAction({ hasParent: true, depth: atlasDepth(location) }) === 'back'
           ? navigate(-1)
           : navigate({ pathname: '/calendar', search: location.search }),
     }),

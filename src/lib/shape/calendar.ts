@@ -38,9 +38,8 @@ export type CalendarSourceEvent = {
 const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | undefined => {
   const region = event.regionName?.trim() || undefined
   const locality = event.locality?.trim() || undefined
-  const preferred = regionScoped ? locality : region
 
-  return preferred || region || locality
+  return regionScoped ? locality || region : region || locality
 }
 
 /**

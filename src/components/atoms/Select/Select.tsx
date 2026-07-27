@@ -1,4 +1,4 @@
-import { Children, isValidElement, type ReactNode, useState } from 'react'
+import { Children, isValidElement, type ReactNode, useMemo, useState } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import { tv } from 'tailwind-variants'
 
@@ -77,9 +77,12 @@ export function Select({
 }: SelectProps) {
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
-  const filtered =
-    searchable && q ? Children.toArray(children).filter((c) => itemMatches(c, q)) : children
-  const noMatches = searchable && q !== '' && Children.count(filtered) === 0
+  // Flatten the options once; only re-flatten when the option set changes, not on every
+  // keystroke (the query lives in this component's own state, so typing re-renders it).
+  const items = useMemo(() => Children.toArray(children), [children])
+  const matches = searchable && q ? items.filter((c) => itemMatches(c, q)) : null
+  const filtered = matches ?? children
+  const noMatches = matches?.length === 0
 
   return (
     <RadixSelect.Root

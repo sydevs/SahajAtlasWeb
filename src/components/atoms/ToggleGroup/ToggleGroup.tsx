@@ -28,7 +28,6 @@ const toggleGroup = tv({
       true: {
         item: 'border-primary-6 bg-primary-3 text-primary-11 hover:bg-primary-4',
       },
-      false: {},
     },
   },
   defaultVariants: { joined: false },

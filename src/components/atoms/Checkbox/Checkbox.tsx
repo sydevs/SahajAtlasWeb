@@ -37,7 +37,7 @@ const toggle = tv({
     },
     // Active-filter tint: primary-colour the UNCHECKED track (checked keeps its solid
     // fill above) so an in-use field stands out — a colour change only, no wrapper.
-    highlight: { true: { root: 'bg-primary-6' }, false: {} },
+    highlight: { true: { root: 'bg-primary-6' } },
   },
   defaultVariants: { color: 'primary', size: 'md' },
 })
@@ -71,7 +71,7 @@ const box = tv({
     },
     // Active-filter tint: primary-colour the UNCHECKED box (checked keeps its solid fill
     // above) so an in-use field stands out — a colour change only, no wrapper.
-    highlight: { true: { root: 'border-primary-7 bg-primary-3' }, false: {} },
+    highlight: { true: { root: 'border-primary-7 bg-primary-3' } },
   },
   defaultVariants: { color: 'primary', size: 'md' },
 })

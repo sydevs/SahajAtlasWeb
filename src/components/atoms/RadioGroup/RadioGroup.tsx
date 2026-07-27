@@ -24,7 +24,7 @@ const radioOption = tv({
       true: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
       false: 'border-gray-7 text-foreground hover:bg-gray-2',
     },
-    highlight: { true: '', false: '' },
+    highlight: { true: '' },
   },
   compoundVariants: [
     {
