@@ -255,3 +255,14 @@
   height: 100%;
   width: 100%;
 }
+
+/* Suppress Schedule-X's per-event "grow in" animation (`sx-grow-event` on `.is-event-new`).
+   The CalendarGrid remounts when the filters change (to refresh events + dayBoundaries),
+   which otherwise replays this grow on every entry — a distracting reanimation on each
+   filter apply. Month-page/week slide transitions are left intact. */
+.sx-calendar .sx__month-grid-event.is-event-new,
+.sx-calendar .sx__month-agenda-event.is-event-new,
+.sx-calendar .sx__time-grid-event.is-event-new,
+.sx-calendar .sx__date-grid-event.is-event-new {
+  animation: none;
+}
