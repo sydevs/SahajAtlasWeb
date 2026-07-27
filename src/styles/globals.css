@@ -260,27 +260,40 @@
   width: 100%;
 }
 
-/* The calendar's controls live in Schedule-X's own header bar — our title (left) + Filter /
-   Close (right) are injected via `customComponents`, replacing a separate drawer header so the
-   two no longer stack. Center every header item (SX defaults to flex-start) so our controls
-   line up with the built-in Today / nav / view-selector. The DrawerBody provides the
-   horizontal inset (px-4, matching other views), so drop the header's own left/right padding
-   to keep its controls flush with the grid below. */
+/* Drop Schedule-X's own border on the calendar body — the DrawerBody's `p-4` already frames
+   it, and the outline (more visible in dark mode) broke the look of that padding. */
+.sx-calendar .sx__calendar {
+  border: none;
+}
+
+/* Center every header item (SX defaults to flex-start) so our controls line up with the
+   built-in Today / nav / view-selector. The DrawerBody provides the padding (`p-4`, matching
+   other views), so drop the header's own padding to keep it flush with the grid below. */
 .sx-calendar .sx__calendar-header {
   align-items: center;
-  padding-inline: 0;
+  padding: 0;
 }
 
 /* Give Schedule-X's header controls (Today, prev/next nav, view selector) our ghost-button
-   feel: borderless, muted text, and a primary-tinted surface on hover, with our corner radius.
-   The `.sx-calendar` prefix outranks SX's own button rules. */
+   feel: same height + horizontal padding as our `sm` buttons, borderless, muted text, and a
+   primary-tinted surface on hover. The `.sx-calendar` prefix outranks SX's own button rules. */
 .sx-calendar .sx__today-button,
 .sx-calendar .sx__view-selection-selected-item {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding: 0 0.75rem;
   border: none;
   color: hsl(var(--gray-11));
   border-radius: 0.375rem;
+  font-size: 0.875rem;
 }
+/* The chevrons are icon-only, so square them to our icon-button size (`w-8 h-8`). */
 .sx-calendar .sx__chevron-wrapper {
+  min-height: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  width: 2rem;
   border-radius: 0.375rem;
 }
 .sx-calendar .sx__today-button:hover,
