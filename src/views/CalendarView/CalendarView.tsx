@@ -6,9 +6,10 @@ import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x
 
 import '@schedule-x/theme-default/dist/index.css'
 
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import api from '@/config/api'
 import { useCalendarPosition } from '@/config/store'
+import { useIsDesktop } from '@/config/responsive'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -19,7 +20,7 @@ import {
   eventsToCalendarEntries,
   filtersKey,
 } from '@/lib/shape'
-import { CloseButton, DrawerLoading, FilterButton } from '@/views/shared'
+import { CloseButton, DrawerLoading, DrawerTitle, FilterButton } from '@/views/shared'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -60,16 +61,16 @@ type ViewSignal = { subscribe: (fn: (view: string) => void) => () => void }
 const viewSignalOf = (app: unknown): ViewSignal | undefined =>
   (app as { $app?: { calendarState?: { view?: ViewSignal } } } | null)?.$app?.calendarState?.view
 
-// ── Merged header ──
-// Rather than stack our own DrawerHeader ABOVE Schedule-X's built-in header bar (two rows,
-// wasted vertical space), we render our title + Filter/Close INTO that bar via SX's header
-// slots (`customComponents`). SX portals these from our React tree, so they keep Router /
-// i18n / drawer (`useDrawerControl`) context and behave exactly like the old header controls.
-// SX's own Today / prev-next / date-range / view-selector stay put between them.
+// ── Merged header (roomy desktop grids only) ──
+// On a wide desktop month/week grid we render our title + Filter/Close INTO Schedule-X's own
+// header bar (`customComponents`) so the two headers collapse into one row. SX portals these
+// from our React tree, so they keep Router / i18n / drawer (`useDrawerControl`) context and
+// behave exactly like the old header controls. (On mobile or the narrow list view we fall back
+// to a separate stacked DrawerHeader — see CalendarView — so this row can't get crowded.)
 function CalendarHeaderTitle() {
   const { t } = useTranslation('common')
 
-  return <h2 className="self-center truncate text-base font-semibold">{t('calendar.title')}</h2>
+  return <h2 className="self-center truncate text-lg font-semibold">{t('calendar.title')}</h2>
 }
 
 function CalendarHeaderActions() {
@@ -91,28 +92,45 @@ const CALENDAR_HEADER = {
 // are the filtered feed (`getCalendarEvents`) expanded into one per upcoming occurrence
 // — timezone-correct, online events included — on a Schedule-X month / week / list(agenda)
 // grid whose `--sx-*` tokens are mapped to our theme (see globals.css). Placeless, so it
-// never frames the map; clicking an entry opens its EventView. There is NO separate drawer
-// header: the title + Filter + Close live in SX's own header bar (see CALENDAR_HEADER), so
-// the two headers collapse into one row. The Filter button opens FilterView as a right/bottom
-// overlay over this (still-mounted) view (see DrawerStack).
+// never frames the map; clicking an entry opens its EventView. The Filter button opens
+// FilterView as a right/bottom overlay over this (still-mounted) view (see DrawerStack).
 //
-// The grid captures Schedule-X's config once, so it's split out and KEYED by the applied
-// filters: opening the filter overlay doesn't change the filters (the grid stays put), but
-// applying remounts CalendarGrid with fresh events + dayBoundaries, and a local Suspense keeps
-// the drawer filled while the new grid's (cache-once) source resolves. Across that remount
-// (and returning from an event) the view + focused date are restored from `useCalendarPosition`
-// so the calendar doesn't snap back to the month grid on today.
+// Header layout is responsive: on a roomy desktop month/week grid the title + Filter/Close
+// merge INTO Schedule-X's header bar (one row, see CALENDAR_HEADER); on mobile OR the narrow
+// list view we keep a separate DrawerHeader stacked above SX's own header. The grid is KEYED
+// by the applied filters AND that `merged` flag, so it captures Schedule-X's config (incl. the
+// header slots) once and cleanly re-registers on a flip. A local Suspense keeps the drawer
+// filled while the (cache-once) source resolves; across a remount (and returning from an event)
+// the view + focused date are restored from `useCalendarPosition`.
 export function CalendarView() {
+  const { t } = useTranslation('common')
   const filters = useEventFilters()
+  const isDesktop = useIsDesktop()
+  // Read reactively so a month↔list switch re-lays out the header (see also DrawerStack, which
+  // reads the same value to resize the drawer). Merge only on a roomy desktop non-list grid.
+  const view = useCalendarPosition((s) => s.view)
+  const merged = isDesktop && view !== 'list'
 
   return (
-    <Suspense fallback={<DrawerLoading />}>
-      <CalendarGrid key={filtersKey(filters)} filters={filters} />
-    </Suspense>
+    <>
+      {!merged && (
+        <DrawerHeader className="max-w-none justify-between">
+          <DrawerTitle title={t('calendar.title')} />
+          {/* Filter + Close as one right-aligned group, matching SearchView. */}
+          <div className="flex shrink-0 items-center gap-2">
+            <FilterButton />
+            <CloseButton />
+          </div>
+        </DrawerHeader>
+      )}
+      <Suspense fallback={<DrawerLoading />}>
+        <CalendarGrid key={`${filtersKey(filters)}:${merged}`} filters={filters} merged={merged} />
+      </Suspense>
+    </>
   )
 }
 
-function CalendarGrid({ filters }: { filters: EventFilters }) {
+function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: boolean }) {
   // The "Online" term is the SAME one the list/detail views show for an online event's
   // location (`events:display.online`) — no calendar-specific duplicate.
   const { t } = useTranslation('events')
@@ -181,9 +199,13 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
   }, [calendar])
 
   return (
-    <DrawerBody className="max-w-none overflow-hidden p-0">
+    <DrawerBody className="max-w-none overflow-hidden px-4 pb-4">
       <div className="sx-calendar">
-        <ScheduleXCalendar calendarApp={calendar} customComponents={CALENDAR_HEADER} />
+        {/* Merge our controls into SX's header only on a roomy desktop grid (see CalendarView). */}
+        <ScheduleXCalendar
+          calendarApp={calendar}
+          customComponents={merged ? CALENDAR_HEADER : undefined}
+        />
       </div>
     </DrawerBody>
   )

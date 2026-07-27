@@ -263,9 +263,32 @@
 /* The calendar's controls live in Schedule-X's own header bar — our title (left) + Filter /
    Close (right) are injected via `customComponents`, replacing a separate drawer header so the
    two no longer stack. Center every header item (SX defaults to flex-start) so our controls
-   line up with the built-in Today / nav / view-selector. */
+   line up with the built-in Today / nav / view-selector. The DrawerBody provides the
+   horizontal inset (px-4, matching other views), so drop the header's own left/right padding
+   to keep its controls flush with the grid below. */
 .sx-calendar .sx__calendar-header {
   align-items: center;
+  padding-inline: 0;
+}
+
+/* Give Schedule-X's header controls (Today, prev/next nav, view selector) our ghost-button
+   feel: borderless, muted text, and a primary-tinted surface on hover, with our corner radius.
+   The `.sx-calendar` prefix outranks SX's own button rules. */
+.sx-calendar .sx__today-button,
+.sx-calendar .sx__view-selection-selected-item {
+  border: none;
+  color: hsl(var(--gray-11));
+  border-radius: 0.375rem;
+}
+.sx-calendar .sx__chevron-wrapper {
+  border-radius: 0.375rem;
+}
+.sx-calendar .sx__today-button:hover,
+.sx-calendar .sx__today-button:focus,
+.sx-calendar .sx__view-selection-selected-item:hover,
+.sx-calendar .sx__chevron-wrapper:hover {
+  background-color: hsl(var(--primary-3));
+  color: hsl(var(--foreground));
 }
 
 /* Suppress Schedule-X's per-event "grow in" animation (`sx-grow-event` on `.is-event-new`).
