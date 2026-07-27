@@ -64,12 +64,14 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `Chip/`               | `Chip`                                               | Pure presentational atom; brand-token styling (`tv()`). `onClose`/`closeLabel` are a union — a close button always has a label          |
 | `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Body`/`Footer`/`Close` | vaul drawer; left ≥md / bottom sheet on mobile, non-modal; portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction |
 | `Dropdown/`           | `Dropdown`                                           | Floating-UI **popover shell**: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`)            |
+| `Input/`              | `Input`                                              | Native `<input>` on the shared `fieldChrome` recipe (forwards its ref for react-hook-form); `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                               | Router link, or `<a>` for external/`mailto:`/`tel:`; forwards a ref (used as a whole-card hit target)                                    |
 | `RadioGroup/`         | `RadioGroup`, `RadioOption`                          | Controlled radio list as selectable cards (native `<input type="radio">`); optional `collapseAfter` hides the tail behind a reveal link. Callers pass `label` nodes — no domain logic (the registration date picker) |
-| `Select/`             | `Select`, `SelectItem`, `fieldChrome`                | Radix select on brand tokens. `fieldChrome` is the shared input recipe (also used by the registration fields + filter date bounds)      |
+| `Select/`             | `Select`, `SelectItem`, `fieldChrome`                | Radix select on brand tokens; optional `searchable` adds a type-to-filter box over the items (the region filter), `highlight` tints an active field. `fieldChrome` is the shared input recipe (also used by Input/Textarea + the filter date bounds) |
 | `Slider/`             | `Slider`                                             | Radix slider; `thumbLabels` labels each thumb. Currently unused by the app (the time-of-day filter moved to period toggles)              |
 | `Spinner/`            | `Spinner`                                            | SVG spinner; `decorative` drops the live region when the parent already announces busy (Button)                                         |
-| `ToggleGroup/`        | `ToggleGroup`, `ToggleGroupItem`                     | Radix toggle group — the filter panel's format / frequency / day / time-of-day pills                                                    |
+| `Textarea/`           | `Textarea`                                           | The multiline sibling of Input on the same `fieldChrome` recipe (`multiline` variant); same `isInvalid` / `highlight` props             |
+| `ToggleGroup/`        | `ToggleGroup`, `ToggleGroupItem`                     | Radix toggle group — the filter panel's format / frequency / day / time-of-day pills. `highlight` primary-tints the *unselected* items to flag an active field |
 
 **Molecules** (`src/components/molecules/`)
 

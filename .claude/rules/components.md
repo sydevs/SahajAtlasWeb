@@ -23,8 +23,12 @@ reach for `@nextui-org/react`; it isn't a dependency.
 Before hand-rolling UI, in this order:
 
 1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip,
-   Drawer, Dropdown, Link, RadioGroup, Select, Slider, Spinner, ToggleGroup
-   already exist and carry the app's tokens and focus behaviour.
+   Drawer, Dropdown, Input, Link, RadioGroup, Select, Slider, Spinner, Textarea,
+   ToggleGroup already exist and carry the app's tokens and focus behaviour.
+   Input/Textarea wrap the native controls on the shared `fieldChrome` recipe;
+   Select can be `searchable` (type-to-filter); the form controls take a
+   `highlight` prop that primary-tints their *unselected* state (no layout shift)
+   to flag an active filter field.
 2. **Check Radix** for an unstyled primitive to build on (`@radix-ui/react-*` —
    dialog, select, checkbox, switch, slider, toggle-group, dropdown-menu, label
    are installed). Radix owns the interaction/ARIA; we own the Tailwind skin.

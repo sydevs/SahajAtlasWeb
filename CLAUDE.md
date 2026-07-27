@@ -34,6 +34,7 @@ event hierarchy.
 | State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
 | i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |
 | Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
+| Calendar       | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) — the full-width CalendarView's month/week/list grid |
 | Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets) |
 | Embedding      | `@r2wc/react-to-web-component` (`src/Widget.tsx`), CSS injected by JS for shadow-free embedding |
 | Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects` |
@@ -91,7 +92,7 @@ src/
   views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Calendar/Region/Event/Registration/Share
   config/
     api/              # axios client + zod-parsed fetchers (fetch.ts, mutate.ts, auth.ts)
-    store.ts          # zustand stores (view / registration-draft; filters live in the URL)
+    store.ts          # zustand stores (view / registration-draft / calendar-position; filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
     site.ts, responsive.ts

@@ -44,7 +44,7 @@ alwaysApply: false
 
 ## zustand stores (`src/config/store.ts`)
 
-Three stores, each the single source of truth for its slice:
+Four stores, each the single source of truth for its slice:
 
 - **`useViewState`** — map camera (`zoom/latitude/longitude`), current
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`
@@ -57,6 +57,13 @@ Three stores, each the single source of truth for its slice:
   an in-widget push and read on a POP by `useFrameOnTop` to **restore** the viewport
   the user left. Non-reactive — accessed via `getState()` only, so a write never
   re-renders the map — and FIFO-capped so a long embedded session stays bounded.
+- **`useCalendarPosition`** — the full-width CalendarView's last Schedule-X `view`
+  (`month-grid`/`week`/`list`) + focused `date`, so a filter apply (which remounts the
+  filters-keyed grid) or returning from an event doesn't reset the grid to the month
+  view on today. The grid seeds from it once at mount (`getState`) and writes both
+  fields imperatively as the user navigates, so a write never re-renders the calendar;
+  `view` is *additionally* read reactively (a selector) by `DrawerStack` to size the
+  drawer (list view → regular width, month/week → full-width). Session-scoped.
 
 Three slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:
