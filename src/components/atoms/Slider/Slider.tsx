@@ -14,8 +14,13 @@ const slider = tv({
       'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
-    /** Active-filter tint — a primary box around the slider so an in-use field stands out. */
-    highlight: { true: { root: 'rounded-md bg-primary-3 px-2 py-3 ring-1 ring-primary-6' } },
+    // Active-filter tint: primary-colour the UNFILLED track + thumb border (the filled
+    // range keeps its solid primary) so an in-use field stands out — a colour change only,
+    // no wrapper and no padding, so the layout never shifts.
+    highlight: {
+      true: { track: 'bg-primary-6', thumb: 'border-primary-7' },
+      false: {},
+    },
   },
 })
 

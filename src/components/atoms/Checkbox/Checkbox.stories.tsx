@@ -82,18 +82,23 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`highlight` primary-tints the labelled row to flag an active/used field."
+        description="`highlight` primary-tints the UNCHECKED control (no layout shift); once checked it keeps its solid fill."
         title="Highlighted"
       >
-        <Checkbox
-          highlight
-          appearance="checkbox"
-          checked={a}
-          color="primary"
-          onCheckedChange={setA}
-        >
-          Show online classes
-        </Checkbox>
+        <div className="flex flex-col gap-3">
+          <Checkbox highlight checked={b} color="primary" onCheckedChange={setB}>
+            Highlighted switch
+          </Checkbox>
+          <Checkbox
+            highlight
+            appearance="checkbox"
+            checked={c}
+            color="primary"
+            onCheckedChange={setC}
+          >
+            Highlighted checkbox
+          </Checkbox>
+        </div>
       </StorySection>
 
       <div />

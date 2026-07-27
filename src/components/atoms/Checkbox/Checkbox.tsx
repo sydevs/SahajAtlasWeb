@@ -35,6 +35,9 @@ const toggle = tv({
       sm: { root: 'h-5 w-9', thumb: 'h-4 w-4 data-[state=checked]:translate-x-[18px]' },
       md: { root: 'h-6 w-11', thumb: 'h-5 w-5 data-[state=checked]:translate-x-[22px]' },
     },
+    // Active-filter tint: primary-colour the UNCHECKED track (checked keeps its solid
+    // fill above) so an in-use field stands out — a colour change only, no wrapper.
+    highlight: { true: { root: 'bg-primary-6' }, false: {} },
   },
   defaultVariants: { color: 'primary', size: 'md' },
 })
@@ -66,6 +69,9 @@ const box = tv({
       sm: { root: 'h-4 w-4' },
       md: { root: 'h-5 w-5' },
     },
+    // Active-filter tint: primary-colour the UNCHECKED box (checked keeps its solid fill
+    // above) so an in-use field stands out — a colour change only, no wrapper.
+    highlight: { true: { root: 'border-primary-7 bg-primary-3' }, false: {} },
   },
   defaultVariants: { color: 'primary', size: 'md' },
 })
@@ -78,7 +84,7 @@ export type CheckboxProps = VariantProps<typeof toggle> & {
   onCheckedChange?: (checked: boolean) => void
   disabled?: boolean
   id?: string
-  /** Primary-tint the (labelled) control to flag an active/in-use field. */
+  /** Primary-tint the unchecked control to flag an active/in-use field (no layout shift). */
   highlight?: boolean
   /** Optional label rendered after the control. */
   children?: ReactNode
@@ -101,7 +107,7 @@ export function Checkbox({
   let control: ReactNode
 
   if (appearance === 'checkbox') {
-    const { root, indicator } = box({ color, size })
+    const { root, indicator } = box({ color, size, highlight })
 
     control = (
       <RadixCheckbox.Root
@@ -118,7 +124,7 @@ export function Checkbox({
       </RadixCheckbox.Root>
     )
   } else {
-    const { root, thumb } = toggle({ color, size })
+    const { root, thumb } = toggle({ color, size, highlight })
 
     control = (
       <RadixSwitch.Root
@@ -137,11 +143,7 @@ export function Checkbox({
   if (!children) return control
 
   return (
-    <label
-      className={`inline-flex cursor-pointer items-center gap-2 ${
-        highlight ? 'rounded-md bg-primary-3 px-2 py-1 ring-1 ring-primary-6' : ''
-      } ${className ?? ''}`}
-    >
+    <label className={`inline-flex cursor-pointer items-center gap-2 ${className ?? ''}`}>
       {control}
       <span className="text-sm">{children}</span>
     </label>

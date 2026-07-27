@@ -21,15 +21,25 @@ const toggleGroup = tv({
         item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
       },
     },
-    /** Active-filter tint — a primary box around the group so an in-use field stands out. */
-    highlight: { true: { root: 'rounded-md bg-primary-3 p-1 ring-1 ring-primary-6' } },
+    // Active-filter tint: primary-colour the UNSELECTED items (the selected item keeps its
+    // solid `data-[state=on]` fill) so an in-use field stands out — a colour change only,
+    // no wrapper and no size change, so the layout never shifts.
+    highlight: {
+      true: {
+        item: 'border-primary-6 bg-primary-3 text-primary-11 hover:bg-primary-4',
+      },
+      false: {},
+    },
   },
   defaultVariants: { joined: false },
 })
 
-// Lets ToggleGroupItem pick up the parent's `joined` styling without threading it
-// through every item (mirrors the Drawer atom's slot context).
-const ToggleGroupContext = createContext<{ joined: boolean }>({ joined: false })
+// Lets ToggleGroupItem pick up the parent's `joined` + `highlight` styling without
+// threading them through every item (mirrors the Drawer atom's slot context).
+const ToggleGroupContext = createContext<{ joined: boolean; highlight: boolean }>({
+  joined: false,
+  highlight: false,
+})
 
 type ToggleGroupBaseProps = {
   disabled?: boolean
@@ -69,10 +79,12 @@ export function ToggleGroup({
   children,
   ...props
 }: ToggleGroupProps) {
-  const { root } = toggleGroup({ joined, highlight })
+  // The tint lives on the items (see the `highlight` variant), so the root itself is
+  // unstyled by it — pass `highlight` down through context for the items to read.
+  const { root } = toggleGroup({ joined })
 
   return (
-    <ToggleGroupContext.Provider value={{ joined }}>
+    <ToggleGroupContext.Provider value={{ joined, highlight: highlight ?? false }}>
       {/* `props` is the discriminated (type/value/onValueChange) union, which is
           assignable to Radix's own overload union — so one Root, no per-type arms. */}
       <RadixToggleGroup.Root
@@ -102,8 +114,8 @@ export function ToggleGroupItem({
   className,
   children,
 }: ToggleGroupItemProps) {
-  const { joined } = useContext(ToggleGroupContext)
-  const { item } = toggleGroup({ joined })
+  const { joined, highlight } = useContext(ToggleGroupContext)
+  const { item } = toggleGroup({ joined, highlight })
 
   return (
     <RadixToggleGroup.Item

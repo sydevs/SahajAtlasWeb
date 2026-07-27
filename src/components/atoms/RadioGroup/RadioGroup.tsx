@@ -15,6 +15,8 @@ export type RadioOption = {
 
 // The selected option fills with the primary solid — reading like a selected
 // ToggleGroup item — rather than a faint tint, so the choice is unmistakable.
+// `highlight` primary-tints the UNSELECTED cards (a colour change only — no wrapper,
+// no size change) so an active field stands out without shifting the layout.
 const radioOption = tv({
   base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
   variants: {
@@ -22,7 +24,15 @@ const radioOption = tv({
       true: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
       false: 'border-gray-7 text-foreground hover:bg-gray-2',
     },
+    highlight: { true: '', false: '' },
   },
+  compoundVariants: [
+    {
+      checked: false,
+      highlight: true,
+      class: 'border-primary-7 bg-primary-3 text-primary-12 hover:bg-primary-4',
+    },
+  ],
 })
 
 export type RadioGroupProps = {
@@ -65,18 +75,14 @@ export function RadioGroup({
     <div
       aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
-      className={clsx(
-        'flex flex-col gap-2',
-        highlight && 'rounded-md bg-primary-3 p-2 ring-1 ring-primary-6',
-        className,
-      )}
+      className={clsx('flex flex-col gap-2', className)}
       role="radiogroup"
     >
       {visible.map((option) => {
         const checked = value === option.value
 
         return (
-          <label key={option.value} className={radioOption({ checked })}>
+          <label key={option.value} className={radioOption({ checked, highlight })}>
             <input
               checked={checked}
               className="h-4 w-4 shrink-0 accent-primary"
