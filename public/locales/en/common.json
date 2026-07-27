@@ -96,7 +96,8 @@
     "copied": "Copied"
   },
   "calendar": {
-    "title": "Calendar"
+    "title": "Calendar",
+    "online": "Online"
   },
   "sort": {
     "label": "Sort",

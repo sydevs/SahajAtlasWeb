@@ -39,6 +39,19 @@ const SX_LOCALES: Record<string, string> = {
 
 const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
+// Online programs get their own colour (the secondary ramp) so they stand out from in-person
+// events on the grid; entries built with `calendarId: 'online'` (see eventsToCalendarEntries)
+// pick it up. Light + dark share the same token strings — our `--secondary-*` CSS vars adapt
+// to the theme on the `.sx-calendar` wrapper, so SX's own isDark colour switch isn't needed.
+const ONLINE_COLORS = {
+  main: 'hsl(var(--secondary-9))',
+  container: 'hsl(var(--secondary-4))',
+  onContainer: 'hsl(var(--secondary-11))',
+}
+const CALENDARS = {
+  online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
+}
+
 // Schedule-X 2.36 has no public view-change callback, so we read the live view from the
 // app instance's internal `$app.calendarState.view` — a preact signal we subscribe to
 // (fires immediately + on every change). Typed defensively: if SX reshapes its internals
@@ -83,6 +96,7 @@ export function CalendarView() {
 }
 
 function CalendarGrid({ filters }: { filters: EventFilters }) {
+  const { t } = useTranslation('common')
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
@@ -92,7 +106,11 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
     queryFn: () => api.getCalendarEvents(filters),
   })
 
-  const events = useMemo(() => eventsToCalendarEntries(source, filters), [source, filters])
+  const onlineLabel = t('calendar.online')
+  const events = useMemo(
+    () => eventsToCalendarEntries(source, filters, { onlineLabel }),
+    [source, filters, onlineLabel],
+  )
   // Frame the week/day grid to the selected time-of-day periods, or (unfiltered) to the
   // events themselves — 1 h either side of the earliest/latest occurrence.
   const dayBoundaries = useMemo(
@@ -113,6 +131,8 @@ function CalendarGrid({ filters }: { filters: EventFilters }) {
     defaultView: position.view ?? monthGrid.name,
     selectedDate: position.date ?? undefined,
     events,
+    // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
+    calendars: CALENDARS,
     // Undefined leaves Schedule-X's default grid (whole day).
     dayBoundaries,
     isDark: theme === 'dark',

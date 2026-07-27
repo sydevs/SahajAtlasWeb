@@ -82,7 +82,8 @@
     "copied": "Copiado"
   },
   "calendar": {
-    "title": "Calendario"
+    "title": "Calendario",
+    "online": "En línea"
   },
   "sort": {
     "label": "Ordenar",

@@ -136,6 +136,39 @@ describe('eventsToCalendarEntries', () => {
     expect(entry.title).toBe('Camden')
   })
 
+  it('prepends the "Online" term to an online program\'s label (and tags its calendar)', () => {
+    const evt = makeEvent({
+      eventType: 'online',
+      regionName: 'London',
+      occurrences: [at('UTC', '2026-07-06T18:00')],
+    })
+    const [withPlace] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, {
+      ...RANGE,
+      onlineLabel: 'Online',
+    })
+
+    expect(withPlace.title).toBe('Online · London')
+    expect(withPlace.calendarId).toBe('online')
+
+    // No place → just the term.
+    const placeless = makeEvent({
+      eventType: 'online',
+      occurrences: [at('UTC', '2026-07-06T18:00')],
+    })
+    const [entry] = eventsToCalendarEntries([placeless], DEFAULT_FILTERS, {
+      ...RANGE,
+      onlineLabel: 'Online',
+    })
+
+    expect(entry.title).toBe('Online')
+  })
+
+  it('leaves offline entries untagged (no calendarId)', () => {
+    const evt = makeEvent({ regionName: 'London', occurrences: [at('UTC', '2026-07-06T09:30')] })
+
+    expect(eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)[0].calendarId).toBeUndefined()
+  })
+
   it('falls back through region → locality → title when a source is missing', () => {
     // Region-scoped but no locality → the region name; neither present → the title.
     const noLocality = makeEvent({

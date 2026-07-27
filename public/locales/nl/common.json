@@ -82,7 +82,8 @@
     "copied": "Gekopieerd"
   },
   "calendar": {
-    "title": "Kalender"
+    "title": "Kalender",
+    "online": "Online"
   },
   "sort": {
     "label": "Sorteren",

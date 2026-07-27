@@ -32,18 +32,35 @@ export type CalendarSourceEvent = {
   locality?: string | null
 }
 
-/**
- * The concise place label a calendar entry shows instead of the (often long) event title:
- * the event's parent region name, or — when the calendar is already scoped to a region, so
- * every entry shares it and the region name is redundant — the locality from the address.
- * Falls through the alternatives, then the title, so an entry is never blank.
- */
-const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string => {
+// The event's place (parent region name, or — when the calendar is already scoped to a
+// region so every entry shares it — the finer-grained address locality). No title fallback
+// here: the caller decides what a placeless entry reads as.
+const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | undefined => {
   const region = event.regionName?.trim() || undefined
   const locality = event.locality?.trim() || undefined
   const preferred = regionScoped ? locality : region
 
-  return preferred || region || locality || event.title
+  return preferred || region || locality
+}
+
+/**
+ * The concise label a calendar entry shows instead of the (often long) event title: the
+ * event's place (see `placeOf`). Online programs prepend the "Online" term to the place
+ * (`onlineLabel` — the caller passes the translated word), or read as just "Online" when
+ * they carry no place. A placeless offline entry falls back to the title so it's never blank.
+ */
+const calendarLabel = (
+  event: CalendarSourceEvent,
+  regionScoped: boolean,
+  onlineLabel?: string,
+): string => {
+  const place = placeOf(event, regionScoped)
+
+  if (event.eventType === 'online' && onlineLabel) {
+    return place ? `${onlineLabel} · ${place}` : onlineLabel
+  }
+
+  return place || event.title
 }
 
 /** One occurrence, in Schedule-X's wall-clock shape (`YYYY-MM-DD HH:mm`, no zone). */
@@ -55,6 +72,8 @@ export type CalendarEntry = {
   end: string
   /** The event's route, carried through so a click opens the right EventView. */
   path: string
+  /** Schedule-X calendar id — set to `online` for online programs so they get their own colour. */
+  calendarId?: string
 }
 
 // Schedule-X reads a plain wall-clock string; we hand it the occurrence already
@@ -80,11 +99,11 @@ const DEFAULT_DURATION = { hours: 1 }
 export const eventsToCalendarEntries = (
   events: CalendarSourceEvent[],
   filters: EventFilters,
-  range?: { from?: DateTime; to?: DateTime; today?: string },
+  opts?: { from?: DateTime; to?: DateTime; today?: string; onlineLabel?: string },
 ): CalendarEntry[] => {
-  const from = range?.from ?? DateTime.now().startOf('day')
-  const to = range?.to ?? from.plus({ months: 12 })
-  const floor = dateFloor(filters, range?.today ?? from.toISODate() ?? undefined)
+  const from = opts?.from ?? DateTime.now().startOf('day')
+  const to = opts?.to ?? from.plus({ months: 12 })
+  const floor = dateFloor(filters, opts?.today ?? from.toISODate() ?? undefined)
   // When a region is selected every entry sits under it, so the region name would be the
   // same for all — show the finer-grained locality instead (computed per event below).
   const regionScoped = filters.region != null
@@ -97,7 +116,8 @@ export const eventsToCalendarEntries = (
 
     const zone = eventTimeZone(event)
     const endTime = event.schedule?.endTime
-    const label = calendarLabel(event, regionScoped)
+    const label = calendarLabel(event, regionScoped, opts?.onlineLabel)
+    const calendarId = event.eventType === 'online' ? 'online' : undefined
 
     for (const occurrence of occurrences) {
       // Luxon compares by absolute instant, so the event-zone start and the viewer-zone
@@ -118,6 +138,7 @@ export const eventsToCalendarEntries = (
         start: start.toFormat(SX_FORMAT),
         end: finish.toFormat(SX_FORMAT),
         path: event.path,
+        calendarId,
       })
     }
   }
