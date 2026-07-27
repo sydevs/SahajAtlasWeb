@@ -44,7 +44,7 @@ alwaysApply: false
 
 ## zustand stores (`src/config/store.ts`)
 
-Four stores, each the single source of truth for its slice:
+Five stores, each the single source of truth for its slice:
 
 - **`useViewState`** — map camera (`zoom/latitude/longitude`), current
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`
@@ -64,6 +64,13 @@ Four stores, each the single source of truth for its slice:
   fields imperatively as the user navigates, so a write never re-renders the calendar;
   `view` is *additionally* read reactively (a selector) by `DrawerStack` to size the
   drawer (list view → regular width, month/week → full-width). Session-scoped.
+- **`useReportModal`** — whether the report-issue modal is open, plus the thrown
+  message when it was opened from an error CTA. A store rather than local state
+  because its three triggers sit in unrelated subtrees (the settings cog,
+  `ErrorFallback`, `DrawerErrorFallback`) and the two error CTAs must reach a host
+  mounted **outside** the ErrorBoundary that's rendering them (`App.tsx`). It is
+  **not** part of the drawer stack: it never appears in the URL, `resolveStack`
+  never sees it, and opening/closing it neither pushes nor pops history.
 
 Three slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:

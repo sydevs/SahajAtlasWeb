@@ -84,7 +84,7 @@ src/
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
   providers.tsx       # React Query + Helmet + theme providers
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
-    atoms/            # Primitives: Drawer/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
+    atoms/            # Primitives: Drawer/, Modal/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
     molecules/        # Compositions: Toolbar/, List/, ListItem/, EventListItem/, EventTime|Share|Images|Soon/, EventMetadata/, Fallbacks/
     organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
@@ -146,6 +146,8 @@ matched by `*.local`). Full list in `.claude/docs/environment.md`. Key vars:
 - `VITE_HOST` — origin used to load `public/locales` over HTTP
 - `VITE_SAHAJCLOUD_API_KEY` — published `sahaj-atlas-client` API key passed to the widget in dev
 - `VITE_FATHOM_ID` — Fathom analytics site id (optional)
+- `VITE_TURNSTILE_SITE_KEY` — Cloudflare Turnstile **site** key for the report-issue
+  form (public by design; `.env` ships the always-passes test key)
 
 **Never** commit real secrets. `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) and other
 non-`VITE_` secrets must never appear in client code — the bundle is public.

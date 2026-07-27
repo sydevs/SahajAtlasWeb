@@ -23,9 +23,11 @@ reach for `@nextui-org/react`; it isn't a dependency.
 Before hand-rolling UI, in this order:
 
 1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip,
-   Drawer, Dropdown, Input, Link, RadioGroup, Select, Slider, Spinner, Textarea,
-   ToggleGroup already exist and carry the app's tokens and focus behaviour.
-   Input/Textarea wrap the native controls on the shared `fieldChrome` recipe;
+   Drawer, Dropdown, Input, Link, Modal, RadioGroup, Select, Slider, Spinner,
+   Textarea, ToggleGroup already exist and carry the app's tokens and focus
+   behaviour. Drawer (vaul) is the surface for anything that's a *place* in the
+   URL-driven stack; Modal (Radix Dialog) is the ephemeral one that never touches
+   the URL or history. Input/Textarea wrap the native controls on the shared `fieldChrome` recipe;
    Select can be `searchable` (type-to-filter); the form controls take a
    `highlight` prop that primary-tints their *unselected* state (no layout shift)
    to flag an active filter field.
