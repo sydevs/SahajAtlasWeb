@@ -1,6 +1,6 @@
 import type { ReportContext, ReportPayload } from '@/lib/report'
 
-import { type ReactNode, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,7 @@ import { Button } from '@/components/atoms/Button'
 import { Input } from '@/components/atoms/Input'
 import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
 import { Textarea } from '@/components/atoms/Textarea'
+import { FormField, fieldErrorId } from '@/components/molecules/FormField'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
@@ -116,14 +117,14 @@ export function ReportIssueForm({
     >
       <ModalBody>
         <div className="flex flex-col gap-4 py-2">
-          <Field
+          <FormField
             required
             error={errors.message && t('report.errors.message', { min: REPORT_MESSAGE_MIN })}
             htmlFor="report-message"
             label={t('report.message_label')}
           >
             <Textarea
-              aria-describedby={errors.message ? 'report-message-error' : undefined}
+              aria-describedby={errors.message ? fieldErrorId('report-message') : undefined}
               aria-invalid={errors.message ? true : undefined}
               id="report-message"
               isInvalid={Boolean(errors.message)}
@@ -131,16 +132,16 @@ export function ReportIssueForm({
               rows={5}
               {...register('message')}
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             error={errors.email && t('report.errors.email')}
             help={t('report.email_help')}
             htmlFor="report-email"
             label={t('report.email_label')}
           >
             <Input
-              aria-describedby={errors.email ? 'report-email-error' : undefined}
+              aria-describedby={errors.email ? fieldErrorId('report-email') : undefined}
               aria-invalid={errors.email ? true : undefined}
               id="report-email"
               isInvalid={Boolean(errors.email)}
@@ -148,7 +149,7 @@ export function ReportIssueForm({
               type="email"
               {...register('email')}
             />
-          </Field>
+          </FormField>
 
           {/* Kept mounted even when blocked: the hook renders the challenge into it
               once Turnstile becomes available, and an empty div costs nothing. */}
@@ -177,42 +178,5 @@ export function ReportIssueForm({
         )}
       </ModalFooter>
     </form>
-  )
-}
-
-// Label + control + help/error, kept private to this form. Mirrors RegistrationForm's
-// `Field`, plus a `help` line for the "we can only reply if you fill this in" note.
-function Field({
-  label,
-  required,
-  help,
-  error,
-  htmlFor,
-  children,
-}: {
-  label: ReactNode
-  required?: boolean
-  help?: ReactNode
-  error?: ReactNode
-  htmlFor: string
-  children: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium" htmlFor={htmlFor}>
-        {label}
-        {required && ' *'}
-      </label>
-      {children}
-      {help && !error && <span className="text-xs text-gray-11">{help}</span>}
-      {/* Carries the id the control points at with aria-describedby, so the error is
-          announced with the field rather than being a red border and a floating
-          sentence a screen reader never connects to it. */}
-      {error && (
-        <span className="text-xs text-danger-11" id={`${htmlFor}-error`}>
-          {error}
-        </span>
-      )}
-    </div>
   )
 }

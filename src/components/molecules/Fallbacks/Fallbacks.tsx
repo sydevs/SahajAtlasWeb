@@ -4,6 +4,7 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button } from '@/components/atoms/Button'
 import { useReportModal } from '@/config/store'
+import { errorMessage } from '@/lib/report'
 
 export function LoadingFallback() {
   const { t } = useTranslation('common')
@@ -21,14 +22,13 @@ export type ErrorFallbackProps = {
 }
 
 /**
- * The app-level error-boundary fallback. It must never throw itself, so the
- * thrown value is narrowed rather than dereferenced: a thrown string or a
- * rejected non-Error would make `error.message` render `undefined` — or throw
- * inside the boundary's own fallback, which React cannot recover from.
+ * The app-level error-boundary fallback. It must never throw itself, so the thrown
+ * value is narrowed by the shared `errorMessage` helper rather than dereferenced —
+ * the same narrowing DrawerErrorFallback uses, so one failure reads the same in both.
  */
 export function ErrorFallback({ error }: ErrorFallbackProps) {
   const { t } = useTranslation('common')
-  const description = error instanceof Error ? error.message : String(error)
+  const description = errorMessage(error) ?? t('error.generic')
   const openReport = useReportModal((state) => state.openReport)
 
   return (

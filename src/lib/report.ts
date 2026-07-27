@@ -1,6 +1,31 @@
 import type { Report } from '@/types/report'
 
 /**
+ * Narrow an unknown thrown value to a displayable message.
+ *
+ * A rejection need not be an `Error` — a thrown string, or a plain object, would make
+ * `error.message` render `undefined` (or throw inside an error fallback, which React
+ * can't recover from). Both fallbacks route through this so the SAME failure produces
+ * the same text on screen and the same `error` in a report, rather than one of them
+ * silently substituting a generic line.
+ *
+ * Returns `undefined` when there's nothing meaningful to show, leaving the caller to
+ * supply its own localized generic sentence.
+ */
+export function errorMessage(error: unknown): string | undefined {
+  if (error == null) return undefined
+  if (typeof error === 'string') return error || undefined
+
+  if (typeof error === 'object' && 'message' in error) {
+    const { message } = error as { message: unknown }
+
+    return typeof message === 'string' && message ? message : undefined
+  }
+
+  return String(error) || undefined
+}
+
+/**
  * The context auto-attached to every issue report — everything the viewer shouldn't
  * have to type. Assembled from the widget's own route plus the host page's globals, so
  * a report arrives with enough to reproduce it (issue #79).

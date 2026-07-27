@@ -15,7 +15,7 @@ import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
-import { Mapbox, ReportIssueModal } from '@/components/organisms'
+import { Mapbox } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
@@ -28,6 +28,16 @@ import i18n from '@/config/i18n'
 // the controller land in their own chunk — zero cost to normal standalone/embedded use.
 const PreviewController = lazy(() =>
   import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
+)
+
+// The report-issue modal is reached only from the settings menu or an error CTA, and it
+// pulls in react-hook-form + zod, so it gets its own chunk rather than riding on every
+// embed's first load. Imported by path, not the organisms barrel, so the barrel's other
+// consumers don't drag it back into the main graph.
+const ReportIssueModal = lazy(() =>
+  import('@/components/organisms/ReportIssueForm/ReportIssueModal').then((m) => ({
+    default: m.ReportIssueModal,
+  })),
 )
 
 // ===== APP ===== //
@@ -76,11 +86,15 @@ export default function App({
             />
           </ErrorBoundary>
         </Suspense>
-        {/* Mounted OUTSIDE the boundary and the suspense fence, so "Report an issue"
-            still opens while ErrorFallback is on screen — which is exactly when a
-            viewer most wants it. It never suspends: the client name it attaches is a
-            query-cache read, not a fetch. */}
-        <ReportIssueModal apiKey={apiKey} />
+        {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
+            ErrorFallback is on screen — which is exactly when a viewer most wants it —
+            with its own Suspense fence so the lazy chunk can't suspend the app's.
+            Lazy because it carries react-hook-form + the form, which most viewers never
+            open; that costs nothing in the failures it exists for, since the Turnstile
+            script and the eventual POST (#80) already need the network anyway. */}
+        <Suspense fallback={null}>
+          <ReportIssueModal apiKey={apiKey} />
+        </Suspense>
       </BrandTheme>
     </Providers>
   )

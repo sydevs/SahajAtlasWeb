@@ -37,25 +37,30 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
   const error = useReportModal((state) => state.error)
   const closeReport = useReportModal((state) => state.closeReport)
 
-  const client = queryClient.getQueryData<Client>(clientQuery(apiKey).queryKey)
-
   return (
+    // Everything inside is built only while the modal is open. This host is mounted for
+    // the app's whole life and calls useLocation(), so it re-renders on every navigation,
+    // filter and sort change — and JSX children are ordinary evaluated arguments, so an
+    // ungated `buildReportContext(...)` would read the browser globals and allocate a
+    // context on each of those, to be thrown away unopened.
     <Modal open={open} onOpenChange={(next) => !next && closeReport()}>
-      <ModalContent
-        closeLabel={t('close')}
-        description={t('report.description')}
-        title={t('report.title')}
-      >
-        <ReportIssueForm
-          context={buildReportContext({
-            path: location.pathname,
-            locale,
-            client: client?.name,
-            error,
-          })}
-          onClose={closeReport}
-        />
-      </ModalContent>
+      {open && (
+        <ModalContent
+          closeLabel={t('close')}
+          description={t('report.description')}
+          title={t('report.title')}
+        >
+          <ReportIssueForm
+            context={buildReportContext({
+              path: location.pathname,
+              locale,
+              client: queryClient.getQueryData<Client>(clientQuery(apiKey).queryKey)?.name,
+              error,
+            })}
+            onClose={closeReport}
+          />
+        </ModalContent>
+      )}
     </Modal>
   )
 }

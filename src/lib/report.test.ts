@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildReportContext } from './report'
+import { buildReportContext, errorMessage } from './report'
 
 // The browser-derived fields are injected here — the node lane has no window/navigator,
 // which is exactly the case the guards in `report.ts` exist for.
@@ -54,5 +54,28 @@ describe('buildReportContext', () => {
     // `navigator` IS defined in node 18+ (as "Node.js/<major>"), so assert the type
     // rather than a value that would differ between the browser and the runner.
     expect(typeof context.userAgent).toBe('string')
+  })
+})
+
+describe('errorMessage', () => {
+  it('reads the message off an Error', () => {
+    expect(errorMessage(new Error('Not Found'))).toBe('Not Found')
+  })
+
+  it('handles the non-Error values a rejection can carry', () => {
+    // A thrown string, and a plain object with a message — both would render as
+    // `undefined` if a fallback just dereferenced `.message`.
+    expect(errorMessage('boom')).toBe('boom')
+    expect(errorMessage({ message: 'from a plain object' })).toBe('from a plain object')
+    expect(errorMessage(404)).toBe('404')
+  })
+
+  it('returns undefined when there is nothing worth showing', () => {
+    // The caller substitutes its own localized generic line for each of these.
+    expect(errorMessage(null)).toBeUndefined()
+    expect(errorMessage(undefined)).toBeUndefined()
+    expect(errorMessage('')).toBeUndefined()
+    expect(errorMessage(new Error(''))).toBeUndefined()
+    expect(errorMessage({ message: 42 })).toBeUndefined()
   })
 })
