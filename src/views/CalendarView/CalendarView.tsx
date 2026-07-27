@@ -12,7 +12,7 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
-import { eventsToCalendarEntries, filtersKey } from '@/lib/shape'
+import { computeDayBoundaries, eventsToCalendarEntries, filtersKey } from '@/lib/shape'
 import { CloseButton, DrawerTitle, FilterButton } from '@/views/shared'
 
 // The full-width calendar (route `/calendar`, optionally `?region=<slug>`). Its entries
@@ -58,10 +58,18 @@ export function CalendarView() {
   })
 
   const events = useMemo(() => eventsToCalendarEntries(source, filters), [source, filters])
+  // Frame the week/day grid to the selected time-of-day periods, or (unfiltered) to the
+  // events themselves — 1 h either side of the earliest/latest occurrence.
+  const dayBoundaries = useMemo(
+    () => computeDayBoundaries(events, filters.timeOfDay),
+    [events, filters.timeOfDay],
+  )
 
   const calendar = useNextCalendarApp({
     views: [createViewMonthGrid(), createViewWeek(), createViewList()],
     events,
+    // Undefined leaves Schedule-X's default grid (whole day).
+    dayBoundaries,
     isDark: theme === 'dark',
     // SX needs a supported BCP-47 code (see SX_LOCALES) or it throws; our token overrides
     // (globals.css) carry the light/dark + accent theming regardless of `isDark`.

@@ -3,7 +3,13 @@ import type { EventSchedule, EventType } from '@/types'
 import { DateTime } from 'luxon'
 
 import { eventTimeZone, withEndTime } from './event'
-import { type EventFilters, dateFloor, occurrenceMatchesFilters } from './filters'
+import {
+  type EventFilters,
+  type TimePeriod,
+  dateFloor,
+  occurrenceMatchesFilters,
+  timePeriodRanges,
+} from './filters'
 
 /**
  * Feed → calendar-entry expansion. SahajCloud pre-computes each event's recurrence
@@ -95,4 +101,64 @@ export const eventsToCalendarEntries = (
   }
 
   return entries
+}
+
+const clampHour = (hour: number): number => Math.max(0, Math.min(24, hour))
+
+// An `HH:00` bound Schedule-X's `dayBoundaries` reads (it accepts an overnight span
+// where start > end).
+const hhmm = (hour: number): string => `${String(clampHour(hour)).padStart(2, '0')}:00`
+
+// The wall-clock hour (fractional) of an entry's `YYYY-MM-DD HH:mm` bound.
+const entryHour = (wallClock: string): number => {
+  const [hour, minute] = (wallClock.split(' ')[1] ?? '').split(':').map(Number)
+
+  return (hour || 0) + (minute || 0) / 60
+}
+
+/**
+ * The week/day time-grid bounds to frame the visible hours (Schedule-X `dayBoundaries`),
+ * or `undefined` to leave its default:
+ *
+ * - **Time-of-day filter set** → span the selected period(s). A single range (including a
+ *   night span that wraps midnight, e.g. `21:00`–`06:00`) frames the grid directly;
+ *   several non-wrapping ranges span from the earliest start to the latest end.
+ * - **Otherwise** → hug the entries: 1 h before the earliest occurrence start and 1 h
+ *   after the latest end (an overnight entry counts to the day's end). Undefined when there
+ *   are no entries.
+ */
+export const computeDayBoundaries = (
+  entries: CalendarEntry[],
+  timeOfDay: readonly TimePeriod[],
+): { start: string; end: string } | undefined => {
+  if (timeOfDay.length > 0) {
+    const ranges = timePeriodRanges(timeOfDay)
+
+    if (ranges.length === 1) return { start: hhmm(ranges[0][0]), end: hhmm(ranges[0][1]) }
+    if (ranges.length > 1 && !ranges.some(([s, e]) => s > e)) {
+      return {
+        start: hhmm(Math.min(...ranges.map(([s]) => s))),
+        end: hhmm(Math.max(...ranges.map(([, e]) => e))),
+      }
+    }
+
+    return undefined // whole-day cover, or an ambiguous wrap → Schedule-X default
+  }
+
+  let earliest = 24
+  let latest = 0
+
+  for (const entry of entries) {
+    const start = entryHour(entry.start)
+    let end = entryHour(entry.end)
+
+    if (end <= start) end = 24 // an overnight entry ends the next day — count to day's end
+
+    earliest = Math.min(earliest, start)
+    latest = Math.max(latest, end)
+  }
+
+  if (earliest >= latest) return undefined // no entries
+
+  return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
 }

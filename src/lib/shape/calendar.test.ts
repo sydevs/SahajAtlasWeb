@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
-import { eventsToCalendarEntries, type CalendarSourceEvent } from './calendar'
+import {
+  computeDayBoundaries,
+  eventsToCalendarEntries,
+  type CalendarEntry,
+  type CalendarSourceEvent,
+} from './calendar'
 import { DEFAULT_FILTERS, type EventFilters } from './filters'
 
 const at = (zone: string, iso: string) => DateTime.fromISO(iso, { zone })
@@ -115,5 +120,53 @@ describe('eventsToCalendarEntries', () => {
 
     expect(entries).toHaveLength(1)
     expect(entries[0].start).toBe('2026-07-06 09:30')
+  })
+})
+
+describe('computeDayBoundaries', () => {
+  const entry = (start: string, end: string): CalendarEntry => ({
+    id: start,
+    title: 'x',
+    start,
+    end,
+    path: '/1',
+  })
+
+  it('frames to the events (1h either side) when no time filter is set', () => {
+    const entries = [
+      entry('2026-07-06 09:30', '2026-07-06 10:30'),
+      entry('2026-07-06 14:00', '2026-07-06 15:00'),
+    ]
+
+    expect(computeDayBoundaries(entries, [])).toEqual({ start: '08:00', end: '16:00' })
+  })
+
+  it('counts an overnight event to the day end', () => {
+    const entries = [entry('2026-07-06 23:00', '2026-07-07 00:30')]
+
+    expect(computeDayBoundaries(entries, [])).toEqual({ start: '22:00', end: '24:00' })
+  })
+
+  it('is undefined with no entries and no filter', () => {
+    expect(computeDayBoundaries([], [])).toBeUndefined()
+  })
+
+  it('spans a single selected period, ignoring the events', () => {
+    expect(computeDayBoundaries([], ['morning'])).toEqual({ start: '06:00', end: '12:00' })
+  })
+
+  it('spans multiple non-wrapping periods from earliest to latest', () => {
+    expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
+      start: '06:00',
+      end: '21:00',
+    })
+  })
+
+  it('frames an overnight (night) period as start > end', () => {
+    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '21:00', end: '06:00' })
+  })
+
+  it('is undefined when every period is selected (whole day)', () => {
+    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening', 'night'])).toBeUndefined()
   })
 })
