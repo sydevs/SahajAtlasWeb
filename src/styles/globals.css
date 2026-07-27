@@ -256,6 +256,14 @@
   width: 100%;
 }
 
+/* The calendar's controls live in Schedule-X's own header bar — our title (left) + Filter /
+   Close (right) are injected via `customComponents`, replacing a separate drawer header so the
+   two no longer stack. Center every header item (SX defaults to flex-start) so our controls
+   line up with the built-in Today / nav / view-selector. */
+.sx-calendar .sx__calendar-header {
+  align-items: center;
+}
+
 /* Suppress Schedule-X's per-event "grow in" animation (`sx-grow-event` on `.is-event-new`).
    The CalendarGrid remounts when the filters change (to refresh events + dayBoundaries),
    which otherwise replays this grow on every entry — a distracting reanimation on each
