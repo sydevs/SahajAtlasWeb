@@ -2,12 +2,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
-import {
-  createViewDay,
-  createViewList,
-  createViewMonthGrid,
-  createViewWeek,
-} from '@schedule-x/calendar'
+import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
 
 import '@schedule-x/theme-default/dist/index.css'
 
@@ -64,6 +59,12 @@ const CALENDARS = {
 type ViewSignal = { subscribe: (fn: (view: string) => void) => () => void }
 const viewSignalOf = (app: unknown): ViewSignal | undefined =>
   (app as { $app?: { calendarState?: { view?: ViewSignal } } } | null)?.$app?.calendarState?.view
+
+// SX 2.36 has no public `setView`, so we reach the internal `calendarState.setView(view, date)`
+// (defensively, like viewSignalOf) to drive the month grid's "+N more" into the list view.
+type CalendarStateApi = { setView: (view: string, date: string) => void }
+const calendarStateOf = (app: unknown): CalendarStateApi | undefined =>
+  (app as { $app?: { calendarState?: CalendarStateApi } } | null)?.$app?.calendarState
 
 // Minimum calendar width (px) to merge our controls into Schedule-X's header row; below it we
 // keep the stacked DrawerHeader. Measured on the container, not the viewport (see CalendarView).
@@ -165,6 +166,9 @@ function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: bool
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
+  // Holds the live calendar app for callbacks captured before it exists (kept current in the
+  // effect below) — the "+N more" handler needs it to switch views.
+  const calendarRef = useRef<unknown>(null)
 
   const { data: source } = useSuspenseQuery({
     queryKey: ['calendar', filtersKey(filters), locale],
@@ -191,9 +195,7 @@ function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: bool
   const position = useCalendarPosition.getState()
 
   const calendar = useNextCalendarApp({
-    // The Day view backs the month grid's "+N more" link (Schedule-X switches to it for that
-    // date; without it registered the link is a no-op) as well as being selectable itself.
-    views: [monthGrid, createViewWeek(), createViewDay(), createViewList()],
+    views: [monthGrid, createViewWeek(), createViewList()],
     // Restore the last view (month by default).
     defaultView: position.view ?? monthGrid.name,
     selectedDate: position.date ?? undefined,
@@ -214,6 +216,9 @@ function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: bool
       },
       // Persist the focused date as the user pages through the calendar.
       onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
+      // The month grid's "+N more" jumps to the list view focused on that day (rather than a
+      // separate Day view), so every event for the day is visible in one place.
+      onClickPlusEvents: (date) => calendarStateOf(calendarRef.current)?.setView('list', date),
     },
     weekOptions: {
       eventWidth: 98,
@@ -224,6 +229,7 @@ function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: bool
   // `calendar` is null until useNextCalendarApp's mount effect resolves, so re-subscribe when
   // it becomes the instance; subscribe fires immediately then on each view switch.
   useEffect(() => {
+    calendarRef.current = calendar
     const view = viewSignalOf(calendar)
 
     return view?.subscribe((next) => {
