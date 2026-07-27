@@ -53,6 +53,10 @@ function loadTurnstile(): Promise<void> {
     script.src = SCRIPT_URL
     script.async = true
     script.defer = true
+    // Cloudflare learns the embedding hostname regardless (that's how the domain check
+    // works), but a host page that opts into `unsafe-url` referrers would otherwise leak
+    // its full path + query on this request too. Send the origin only.
+    script.referrerPolicy = 'strict-origin'
     script.onload = () => resolve()
     // Fires when a host page's CSP omits challenges.cloudflare.com from `script-src`,
     // and on an ordinary network failure.
@@ -110,7 +114,17 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
 
     loadTurnstile()
       .then(() => {
-        if (cancelled || !containerRef.current || !window.turnstile) return
+        if (cancelled) return
+
+        // The script can "load" without giving us an API — a content blocker or an
+        // enterprise proxy that answers 200 with a stub does exactly this. Treat a
+        // missing API as blocked; returning early would strand `status` on 'loading',
+        // leaving a permanently disabled submit and no mailto escape.
+        if (!containerRef.current || !window.turnstile) {
+          setStatus('blocked')
+
+          return
+        }
 
         widgetId = window.turnstile.render(containerRef.current, {
           sitekey: SITE_KEY,
@@ -123,7 +137,10 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
           },
           'expired-callback': () => setToken(null),
         })
-        setStatus('ready')
+        // `render` returns undefined rather than a widget id when it refuses — most
+        // often a sitekey the embedding domain isn't registered for. No widget means no
+        // token, so that is blocked, not ready.
+        setStatus(widgetId ? 'ready' : 'blocked')
       })
       .catch(() => {
         if (!cancelled) setStatus('blocked')

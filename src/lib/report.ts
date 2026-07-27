@@ -22,7 +22,15 @@ export function errorMessage(error: unknown): string | undefined {
     return typeof message === 'string' && message ? message : undefined
   }
 
-  return String(error) || undefined
+  try {
+    return String(error) || undefined
+  } catch {
+    // `String(x)` is not total: a null-prototype object, or one with a throwing
+    // `toString`/`Symbol.toPrimitive`, raises a TypeError. Both callers render this
+    // INSIDE an error boundary's own fallback, where a throw is unrecoverable and would
+    // blank the whole widget — so the one thing this must never do is throw.
+    return undefined
+  }
 }
 
 /**
@@ -55,10 +63,37 @@ export type ReportContextInput = {
   userAgent?: string
 }
 
+/**
+ * The host page, as origin + path only.
+ *
+ * Deliberately NOT `location.href`: we're embedded on sites we don't control, and a
+ * host's own query or fragment can carry a password-reset token, an OAuth
+ * `#access_token`, or an email address. A report is emailed onward to admins (#80), so
+ * anything captured here lands in mailboxes and logs under a far weaker posture than the
+ * page it came from. Nothing diagnostic is lost — the in-widget route travels separately
+ * as `path`.
+ */
+const hostPageUrl = () => {
+  if (typeof window === 'undefined') return ''
+
+  try {
+    const url = new URL(window.location.href)
+
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return ''
+  }
+}
+
 // Read behind a guard: the unit lane runs in node and a host may server-render the
-// widget, so neither global is a given.
-const hostPageUrl = () => (typeof window === 'undefined' ? '' : window.location.href)
+// widget, so this global is not a given.
 const browserAgent = () => (typeof navigator === 'undefined' ? '' : navigator.userAgent)
+
+/**
+ * Cap for the thrown message. It's server-controlled text — a zod parse failure
+ * serializes every issue and runs to multiple KB — and it rides along in the payload.
+ */
+const MAX_ERROR_LENGTH = 500
 
 /**
  * Pure given its inputs — the browser-derived fields default from the live globals but
@@ -80,7 +115,7 @@ export function buildReportContext({
     locale,
     userAgent,
     ...(client ? { client } : {}),
-    ...(error ? { error } : {}),
+    ...(error ? { error: error.slice(0, MAX_ERROR_LENGTH) } : {}),
   }
 }
 

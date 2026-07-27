@@ -92,9 +92,17 @@ export default function App({
             Lazy because it carries react-hook-form + the form, which most viewers never
             open; that costs nothing in the failures it exists for, since the Turnstile
             script and the eventual POST (#80) already need the network anyway. */}
-        <Suspense fallback={null}>
-          <ReportIssueModal apiKey={apiKey} />
-        </Suspense>
+        {/* Its own boundary, because this one sits OUTSIDE the app's: Suspense catches
+            suspension, not errors, and a lazy chunk that 404s (a host page holding a
+            cached entry chunk across a redeploy) rejects during render. Unbounded, that
+            would unmount the whole widget on the host page — the reporting affordance
+            taking down the app it exists to report on. Failing to nothing is right here:
+            the modal is never on screen until asked for. */}
+        <ErrorBoundary fallbackRender={() => null}>
+          <Suspense fallback={null}>
+            <ReportIssueModal apiKey={apiKey} />
+          </Suspense>
+        </ErrorBoundary>
       </BrandTheme>
     </Providers>
   )
