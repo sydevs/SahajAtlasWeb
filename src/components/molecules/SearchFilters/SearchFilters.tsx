@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Dropdown } from '@/components/atoms/Dropdown'
+import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { Select, SelectItem, fieldChrome } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
@@ -93,19 +94,22 @@ function DateBound({
   value,
   min,
   max,
+  highlight,
   onChange,
 }: {
   label: string
   value: string
   min: string
   max: string
+  highlight?: boolean
   onChange: (value: string | null) => void
 }) {
   return (
     <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
       {label}
-      <input
-        className={fieldChrome({ className: 'px-2' })}
+      <Input
+        className="px-2"
+        highlight={highlight}
         max={max}
         min={min}
         type="date"
@@ -227,6 +231,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         <ToggleGroup
           joined
           aria-label={t('filters.format.label')}
+          highlight={format !== 'any'}
           type="single"
           value={format}
           onValueChange={(next) => next && patch({ format: next as EventFormat })}
@@ -247,6 +252,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         <ToggleGroup
           joined
           aria-label={t('filters.cadence.label')}
+          highlight={cadence !== 'any'}
           type="single"
           value={cadence}
           onValueChange={(next) => next && patch({ cadence: next as EventCadence })}
@@ -266,6 +272,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <ToggleGroup
           aria-label={t('filters.days.label')}
+          highlight={daysOfWeek.length > 0}
           type="multiple"
           value={daysOfWeek.map(String)}
           onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
@@ -286,6 +293,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         <div className="flex flex-col gap-2">
           <ToggleGroup
             aria-label={t('filters.time.label')}
+            highlight={timeActive}
             type="multiple"
             value={timeOfDay}
             onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
@@ -311,6 +319,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <div className="flex items-end gap-2">
           <DateBound
+            highlight={dateRange.start !== null}
             label={t('filters.dates.from')}
             max={dateRange.end ?? dateMax}
             min={dateMin}
@@ -318,6 +327,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
           />
           <DateBound
+            highlight={dateRange.end !== null}
             label={t('filters.dates.to')}
             max={dateMax}
             min={dateRange.start ?? dateMin}
@@ -340,7 +350,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             aria-label={t('filters.language.label')}
             role="dialog"
             trigger={
-              <span className={fieldChrome({ trigger: true })}>
+              <span className={fieldChrome({ trigger: true, highlight: languages.length > 0 })}>
                 <span className="truncate">{languageTriggerLabel}</span>
                 <DownArrowIcon className="h-4 w-4 shrink-0 opacity-70" />
               </span>
@@ -378,8 +388,12 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           onClear={() => patch({ region: null })}
         >
           <Select
+            searchable
             aria-label={t('filters.region.label')}
+            emptyLabel={t('filters.region.empty')}
+            highlight={region !== null}
             placeholder={t('filters.region.all')}
+            searchPlaceholder={t('filters.region.search')}
             value={region ?? undefined}
             onValueChange={(next) => patch({ region: next })}
           >

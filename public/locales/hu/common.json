@@ -64,7 +64,9 @@
     },
     "region": {
       "label": "Régió",
-      "all": "Minden régió"
+      "all": "Minden régió",
+      "search": "Régiók keresése…",
+      "empty": "Nincsenek régiók"
     }
   },
   "search_placeholder": "Események keresése a közelben…",

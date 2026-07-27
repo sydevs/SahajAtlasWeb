@@ -64,7 +64,9 @@
     },
     "region": {
       "label": "Region",
-      "all": "Alle Regionen"
+      "all": "Alle Regionen",
+      "search": "Regionen suchen…",
+      "empty": "Keine Regionen gefunden"
     }
   },
   "search_placeholder": "Veranstaltungen suchen in …",
