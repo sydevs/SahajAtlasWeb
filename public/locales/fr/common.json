@@ -90,7 +90,8 @@
       "month": "Mois",
       "week": "Semaine",
       "list": "Liste"
-    }
+    },
+    "pick_date": "Choisir une date"
   },
   "sort": {
     "label": "Trier",

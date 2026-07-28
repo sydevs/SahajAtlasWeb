@@ -90,7 +90,8 @@
       "month": "Hónap",
       "week": "Hét",
       "list": "Lista"
-    }
+    },
+    "pick_date": "Dátum kiválasztása"
   },
   "sort": {
     "label": "Rendezés",

@@ -90,7 +90,8 @@
       "month": "Měsíc",
       "week": "Týden",
       "list": "Seznam"
-    }
+    },
+    "pick_date": "Vybrat datum"
   },
   "sort": {
     "label": "Seřadit",

@@ -104,7 +104,8 @@
       "month": "Month",
       "week": "Week",
       "list": "List"
-    }
+    },
+    "pick_date": "Pick a date"
   },
   "sort": {
     "label": "Sort",

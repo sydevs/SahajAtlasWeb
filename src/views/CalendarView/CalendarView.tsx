@@ -1,4 +1,4 @@
-import { type MutableRefObject, Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
@@ -12,6 +12,7 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { RightArrowIcon } from '@/components/atoms/Icons'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
+import { ActiveFilterPills } from '@/components/molecules'
 import api from '@/config/api'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -24,7 +25,7 @@ import {
   eventsToCalendarEntries,
   filtersKey,
 } from '@/lib/shape'
-import { CloseButton, DrawerLoading, DrawerTitle, FilterButton } from '@/views/shared'
+import { CloseButton, DrawerLoading, FilterButton } from '@/views/shared'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -64,19 +65,29 @@ const VIEW_LIST = 'list'
 
 type CalendarControls = ReturnType<typeof createCalendarControlsPlugin>
 
+// The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are live
+// before the grid mounts (the header sits above the Suspense). So each action updates the store
+// FIRST — that's what re-renders the header (label + active view) and what the grid seeds from
+// when it (re)mounts — then best-effort calls the plugin to move the *mounted* calendar. Wrapped
+// because a plugin call before onRender throws; the store write already recorded the intent.
+const drive = (controls: CalendarControls, fn: (c: CalendarControls) => void) => {
+  try {
+    fn(controls)
+  } catch {
+    // The grid isn't mounted yet — the store write above will be applied when it seeds.
+  }
+}
+
 // We DRIVE Schedule-X from our own header rather than styling its built-in one (whose date
 // picker / view dropdown / nav we kept fighting): the `calendar-controls` plugin is a public
-// API (`setView`/`setDate`/`getRange`/…), so the header is built from our own atoms — one
-// consistent drawer header — and SX's header bar is hidden in globals.css.
-function CalendarControls({
-  controlsRef,
-}: {
-  controlsRef: MutableRefObject<CalendarControls | null>
-}) {
+// API (`setView`/`setDate`/`getRange`/…), so the header is our own atoms — one consistent
+// drawer header — and SX's header bar is hidden in globals.css.
+function CalendarControls({ controls }: { controls: CalendarControls }) {
   const { t } = useTranslation('common')
   const { locale } = useLocale()
   const view = useCalendarPosition((s) => s.view) ?? VIEW_MONTH
   const date = useCalendarPosition((s) => s.date)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   // The focused month + year, localized straight from luxon (no per-month i18n key needed).
   const iso = date ?? DateTime.now().toISODate()
@@ -84,38 +95,60 @@ function CalendarControls({
     ? DateTime.fromISO(iso).setLocale(locale).toLocaleString({ month: 'long', year: 'numeric' })
     : ''
 
-  const selectView = (next: string) => {
-    if (!next) return
-    controlsRef.current?.setView(next)
-    useCalendarPosition.getState().setView(next)
+  const applyDate = (next: string) => {
+    useCalendarPosition.getState().setDate(next)
+    drive(controls, (c) => c.setDate(next))
   }
 
-  // Page one period by anchoring off the current visible range's edge — view-agnostic, so the
-  // same handler moves a month, a week, or the list window.
+  const selectView = (next: string) => {
+    if (!next) return
+    useCalendarPosition.getState().setView(next)
+    drive(controls, (c) => c.setView(next))
+  }
+
+  // Page one period off the focused date — a month in month view, a week in week view, a day in
+  // list view (matching the built-in nav's semantics per view).
   const step = (dir: -1 | 1) => {
-    const controls = controlsRef.current
-    const range = controls?.getRange()
+    const from = date ?? DateTime.now().toISODate()
 
-    if (!controls || !range) return
+    if (!from) return
 
-    const to = DateTime.fromISO(dir === 1 ? range.end : range.start)
-      .plus({ days: dir })
-      .toISODate()
+    const base = DateTime.fromISO(from)
+    const moved =
+      view === VIEW_MONTH
+        ? base.plus({ months: dir })
+        : view === VIEW_WEEK
+          ? base.plus({ weeks: dir })
+          : base.plus({ days: dir })
+    const next = moved.toISODate()
 
-    if (to) controls.setDate(to)
+    if (next) applyDate(next)
   }
 
   const goToday = () => {
     const today = DateTime.now().toISODate()
 
-    if (today) controlsRef.current?.setDate(today)
+    if (today) applyDate(today)
   }
 
   return (
     <>
-      <div className="flex min-w-0 items-center gap-2">
-        <DrawerTitle title={t('calendar.title')} />
-        <div className="flex shrink-0 items-center gap-0.5">
+      {/* Mode picker — first item, so it holds the top row when the rest wraps below. */}
+      <ToggleGroup
+        joined
+        aria-label={t('calendar.title')}
+        type="single"
+        value={view}
+        onValueChange={selectView}
+      >
+        <ToggleGroupItem value={VIEW_MONTH}>{t('calendar.views.month')}</ToggleGroupItem>
+        <ToggleGroupItem value={VIEW_WEEK}>{t('calendar.views.week')}</ToggleGroupItem>
+        <ToggleGroupItem value={VIEW_LIST}>{t('calendar.views.list')}</ToggleGroupItem>
+      </ToggleGroup>
+
+      {/* Nav + date + filter — wraps to a second line on narrow widths, one line on large. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-0.5">
           <Button
             isIconOnly
             aria-label={t('calendar.previous')}
@@ -138,23 +171,34 @@ function CalendarControls({
             <RightArrowIcon className="h-4 w-4" />
           </Button>
         </div>
-        <span className="truncate text-sm font-medium">{label}</span>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <ToggleGroup
-          joined
-          aria-label={t('calendar.title')}
-          type="single"
-          value={view}
-          onValueChange={selectView}
-        >
-          <ToggleGroupItem value={VIEW_MONTH}>{t('calendar.views.month')}</ToggleGroupItem>
-          <ToggleGroupItem value={VIEW_WEEK}>{t('calendar.views.week')}</ToggleGroupItem>
-          <ToggleGroupItem value={VIEW_LIST}>{t('calendar.views.list')}</ToggleGroupItem>
-        </ToggleGroup>
+
+        {/* The focused month/year; clicking opens the browser's native date picker (the input
+            overlays the button so the picker anchors to it, but stays click-through). */}
+        <div className="relative">
+          <button
+            className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"
+            type="button"
+            onClick={() => dateInputRef.current?.showPicker?.()}
+          >
+            {label}
+          </button>
+          <input
+            ref={dateInputRef}
+            aria-label={t('calendar.pick_date')}
+            className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+            tabIndex={-1}
+            type="date"
+            value={iso ?? ''}
+            onChange={(event) => event.target.value && applyDate(event.target.value)}
+          />
+        </div>
+
         <FilterButton />
-        <CloseButton />
       </div>
+
+      {/* Close — pinned top-right so it sits in the same spot as every other drawer, even when
+          the header wraps to two rows. */}
+      <CloseButton className="absolute end-4 top-4" />
     </>
   )
 }
@@ -167,25 +211,26 @@ function CalendarControls({
 // FilterView as a right/bottom overlay over this (still-mounted) view (see DrawerStack).
 //
 // Our own header (CalendarControls) drives the calendar via the calendar-controls plugin, so
-// SX's built-in header is hidden — one consistent drawer header for every width, no merge. The
-// grid is KEYED by the applied filters so it captures Schedule-X's config once and remounts
-// with fresh events + dayBoundaries on apply; a local Suspense keeps the drawer filled while
-// the (cache-once) source resolves. Across that remount (and returning from an event) the view
-// + focused date are restored from `useCalendarPosition` (seeded here, updated by the header +
-// the `onSelectedDateUpdate` callback).
+// SX's built-in header is hidden — one consistent drawer header for every width. The plugin is
+// created here and shared with the header, and the grid is KEYED by the applied filters so it
+// captures Schedule-X's config once and remounts with fresh events + dayBoundaries on apply
+// (the shared plugin re-binds to the new instance). A local Suspense keeps the header + pills
+// visible while the (cache-once) source resolves; across a remount (and returning from an event)
+// the view + focused date are restored from `useCalendarPosition`.
 export function CalendarView() {
   const filters = useEventFilters()
-  // The plugin lives with the grid (below the Suspense); the header, rendered above it, reaches
-  // it through this ref (null until the grid mounts — its buttons no-op during the brief load).
-  const controlsRef = useRef<CalendarControls | null>(null)
+  // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
+  // across filter-apply remounts — the grid re-binds the same plugin to each new instance.
+  const controls = useMemo(() => createCalendarControlsPlugin(), [])
 
   return (
     <>
-      <DrawerHeader className="max-w-none flex-wrap justify-between gap-x-3 gap-y-2">
-        <CalendarControls controlsRef={controlsRef} />
+      <DrawerHeader className="relative max-w-none flex-wrap items-center gap-x-3 gap-y-2 pe-12">
+        <CalendarControls controls={controls} />
       </DrawerHeader>
+      <ActiveFilterPills />
       <Suspense fallback={<DrawerLoading />}>
-        <CalendarGrid key={filtersKey(filters)} controlsRef={controlsRef} filters={filters} />
+        <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
       </Suspense>
     </>
   )
@@ -193,10 +238,10 @@ export function CalendarView() {
 
 function CalendarGrid({
   filters,
-  controlsRef,
+  controls,
 }: {
   filters: EventFilters
-  controlsRef: MutableRefObject<CalendarControls | null>
+  controls: CalendarControls
 }) {
   // The "Online" term is the SAME one the list/detail views show for an online event's
   // location (`events:display.online`) — no calendar-specific duplicate.
@@ -223,9 +268,6 @@ function CalendarGrid({
   )
 
   const monthGrid = createViewMonthGrid()
-  // The public control surface our header drives (setView/setDate/getRange). Created per mount
-  // (stable within it) and exposed to the header via the ref effect below.
-  const controls = useMemo(() => createCalendarControlsPlugin(), [])
   // Seed from the last position (view + focused date). Read once, non-reactively, for the
   // capture-config-once hook; kept current by the header + the callback below, so at the next
   // remount (a filter apply captures config during *render*) the seed is already up to date.
@@ -268,15 +310,6 @@ function CalendarGrid({
     },
     [controls],
   )
-
-  // Publish the controls to the header (rendered above this grid) for the lifetime of the mount.
-  useEffect(() => {
-    controlsRef.current = controls
-
-    return () => {
-      controlsRef.current = null
-    }
-  }, [controls, controlsRef])
 
   return (
     <DrawerBody className="max-w-none overflow-hidden p-4">
