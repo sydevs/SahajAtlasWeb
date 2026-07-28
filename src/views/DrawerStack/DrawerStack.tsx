@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   Suspense,
+  startTransition,
   useCallback,
   useEffect,
   useMemo,
@@ -267,9 +268,18 @@ export function DrawerStack() {
           depth: atlasDepth(location),
         })
 
+        // Mark the dismiss navigation as a transition: unmounting a heavy view (the calendar's
+        // large grid) otherwise reconciles synchronously and freezes the click for a beat
+        // ("nothing happened"). As a transition React keeps the UI responsive and swaps when ready.
         if (action === 'collapse') setSnap(PEEK_SNAP)
-        else if (action === 'back') navigate(-1)
-        else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
+        else if (action === 'back')
+          startTransition(() => {
+            navigate(-1)
+          })
+        else if (parentPath)
+          startTransition(() => {
+            navigate(toStackTarget(parentPath)) // 'fallback'
+          })
       },
     }),
     [snap, canCollapse, parentPath, location, navigate, toStackTarget],
