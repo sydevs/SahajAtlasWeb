@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { CalendarSourceEvent } from '@/lib/shape'
 
 import { useMemo } from 'react'
+import { DateTime } from 'luxon'
 
 import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness } from '@/views/story-harness'
@@ -12,16 +13,21 @@ import { DEFAULT_FILTERS, filtersKey, filtersToParams } from '@/lib/shape'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// An occurrence `dayOffset` days from now at `hh:mm` — anchored to render time so the
-// occurrences land inside the calendar's (today-anchored) visible window.
-const at = (dayOffset: number, hour: number, minute = 0): Date => {
-  const date = new Date()
+// The zone the physical classes are authored in (they carry their own IANA zone); the online
+// one is authored in UTC — its `firstDate_tz` is null, which the expansion reads as UTC.
+const EVENT_ZONE = 'Europe/London'
 
-  date.setDate(date.getDate() + dayOffset)
-  date.setHours(hour, minute, 0, 0)
-
-  return date
-}
+// An occurrence `dayOffset` days from now at `hh:mm` IN `zone` — anchored to render time so the
+// occurrences land inside the calendar's (today-anchored) visible window. Building the instant
+// in the event's OWN zone (not machine-local time) keeps the mock timezone-robust: the event's
+// wall-clock start is exactly `hh:mm`, so the event-local `endTime` always lands the same day
+// whatever zone the dev machine is in — no occurrence renders as a multi-day span.
+const at = (dayOffset: number, hour: number, minute: number, zone: string): Date =>
+  DateTime.now()
+    .setZone(zone)
+    .plus({ days: dayOffset })
+    .set({ hour, minute, second: 0, millisecond: 0 })
+    .toJSDate()
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -35,22 +41,27 @@ const weekly = (
   hour: number,
   minute = 0,
   online = false,
-): CalendarSourceEvent => ({
-  id,
-  title: `${city} meditation class`,
-  path: `/${id}`,
-  eventType: online ? 'online' : 'offline',
-  regionName: city,
-  locality: city,
-  schedule: {
-    firstDate: at(dayOffset, hour, minute),
-    // Online events read in the viewer's zone (null tz); physical ones in their own.
-    firstDate_tz: online ? null : 'Europe/London',
-    endTime: `${pad(hour + 1)}:${pad(minute)}`,
-    recurrenceType: 'WEEKLY',
-    upcomingDates: [0, 7, 14, 21].map((week) => at(dayOffset + week, hour, minute)),
-  },
-})
+): CalendarSourceEvent => {
+  // Online events read in the viewer's zone (null tz → the expansion treats the stored instant
+  // as UTC); physical ones in their own. Author each occurrence in that same zone.
+  const zone = online ? 'utc' : EVENT_ZONE
+
+  return {
+    id,
+    title: `${city} meditation class`,
+    path: `/${id}`,
+    eventType: online ? 'online' : 'offline',
+    regionName: city,
+    locality: city,
+    schedule: {
+      firstDate: at(dayOffset, hour, minute, zone),
+      firstDate_tz: online ? null : EVENT_ZONE,
+      endTime: `${pad(hour + 1)}:${pad(minute)}`,
+      recurrenceType: 'WEEKLY',
+      upcomingDates: [0, 7, 14, 21].map((week) => at(dayOffset + week, hour, minute, zone)),
+    },
+  }
+}
 
 // A realistic slice of the seeded UK feed — a mix of morning and evening weekly classes across
 // several cities (one online), plus a one-off weekend workshop.
@@ -59,7 +70,10 @@ const mockCalendarEvents = (): CalendarSourceEvent[] => [
   weekly(2, 'Slough', 1, 11, 30),
   weekly(3, 'Bath', 2, 18, 30),
   weekly(4, 'Sheffield', 2, 19, 0),
-  weekly(5, 'London', 3, 18, 0, true),
+  // The online class is authored near noon UTC: it displays in the VIEWER's zone, and noon is
+  // farthest from midnight either way, so its 1h span stays single-day across the plausible
+  // reviewer band (US Pacific … India) rather than straddling a far-eastern viewer's midnight.
+  weekly(5, 'London', 3, 12, 0, true),
   weekly(6, 'Edinburgh', 4, 11, 30),
   weekly(7, 'Leeds', 5, 19, 0),
   {
@@ -70,11 +84,11 @@ const mockCalendarEvents = (): CalendarSourceEvent[] => [
     regionName: 'Cambridge',
     locality: 'Cambridge',
     schedule: {
-      firstDate: at(6, 14, 0),
-      firstDate_tz: 'Europe/London',
+      firstDate: at(6, 14, 0, EVENT_ZONE),
+      firstDate_tz: EVENT_ZONE,
       endTime: '16:00',
       recurrenceType: null,
-      upcomingDates: [at(6, 14, 0)],
+      upcomingDates: [at(6, 14, 0, EVENT_ZONE)],
     },
   },
 ]
