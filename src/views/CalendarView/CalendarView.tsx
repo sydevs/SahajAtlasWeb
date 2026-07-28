@@ -63,18 +63,19 @@ const VIEW_MONTH = 'month-grid'
 const VIEW_WEEK = 'week'
 const VIEW_LIST = 'list'
 
-type CalendarControls = ReturnType<typeof createCalendarControlsPlugin>
+type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
 // The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are live
 // before the grid mounts (the header sits above the Suspense). So each action updates the store
 // FIRST — that's what re-renders the header (label + active view) and what the grid seeds from
 // when it (re)mounts — then best-effort calls the plugin to move the *mounted* calendar. Wrapped
-// because a plugin call before onRender throws; the store write already recorded the intent.
-const drive = (controls: CalendarControls, fn: (c: CalendarControls) => void) => {
+// because a plugin call before its `onRender` throws a TypeError (no `$app` yet); the store write
+// above already recorded the intent, and the seed applies it on mount.
+const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin) => void) => {
   try {
     fn(controls)
   } catch {
-    // The grid isn't mounted yet — the store write above will be applied when it seeds.
+    // Pre-mount: the plugin has no `$app` yet — the store write above seeds it on mount.
   }
 }
 
@@ -82,18 +83,18 @@ const drive = (controls: CalendarControls, fn: (c: CalendarControls) => void) =>
 // picker / view dropdown / nav we kept fighting): the `calendar-controls` plugin is a public
 // API (`setView`/`setDate`/`getRange`/…), so the header is our own atoms — one consistent
 // drawer header — and SX's header bar is hidden in globals.css.
-function CalendarControls({ controls }: { controls: CalendarControls }) {
+function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { t } = useTranslation('common')
   const { locale } = useLocale()
   const view = useCalendarPosition((s) => s.view) ?? VIEW_MONTH
   const date = useCalendarPosition((s) => s.date)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // The header label, localized straight from luxon (no per-month i18n key): the month + year
-  // in month view, but the specific focused date (condensed month) in the week + list views —
-  // for the week that's the week's first day.
-  const iso = date ?? DateTime.now().toISODate()
-  const dt = iso ? DateTime.fromISO(iso).setLocale(locale) : null
+  // The focused date (falls back to today until the grid reports one). The header label,
+  // localized straight from luxon (no per-month i18n key), shows the month + year in month view,
+  // but the specific date (condensed month) in the week + list views — for the week its first day.
+  const focused = date ?? DateTime.now().toISODate()
+  const dt = focused ? DateTime.fromISO(focused).setLocale(locale) : null
   const label = !dt
     ? ''
     : view === VIEW_MONTH
@@ -118,11 +119,9 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
   // Page one period off the focused date — a month in month view, a week in week view, a day in
   // list view (matching the built-in nav's semantics per view).
   const step = (dir: -1 | 1) => {
-    const from = date ?? DateTime.now().toISODate()
+    if (!focused) return
 
-    if (!from) return
-
-    const base = DateTime.fromISO(from)
+    const base = DateTime.fromISO(focused)
     const moved =
       view === VIEW_MONTH
         ? base.plus({ months: dir })
@@ -179,7 +178,7 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
               className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
               tabIndex={-1}
               type="date"
-              value={iso ?? ''}
+              value={focused ?? ''}
               onChange={(event) => event.target.value && applyDate(event.target.value)}
             />
           </div>
@@ -243,7 +242,7 @@ function CalendarGrid({
   controls,
 }: {
   filters: EventFilters
-  controls: CalendarControls
+  controls: CalendarControlsPlugin
 }) {
   // The "Online" term is the SAME one the list/detail views show for an online event's
   // location (`events:display.online`) — no calendar-specific duplicate.
@@ -269,7 +268,6 @@ function CalendarGrid({
     [events, filters.timeOfDay],
   )
 
-  const monthGrid = createViewMonthGrid()
   // Seed from the last position (view + focused date). Read once, non-reactively, for the
   // capture-config-once hook; kept current by the header + the callback below, so at the next
   // remount (a filter apply captures config during *render*) the seed is already up to date.
@@ -277,9 +275,9 @@ function CalendarGrid({
 
   const calendar = useNextCalendarApp(
     {
-      views: [monthGrid, createViewWeek(), createViewList()],
+      views: [createViewMonthGrid(), createViewWeek(), createViewList()],
       // Restore the last view (month by default).
-      defaultView: position.view ?? monthGrid.name,
+      defaultView: position.view ?? VIEW_MONTH,
       selectedDate: position.date ?? undefined,
       events,
       // Online programs render in the secondary colour (see CALENDARS + `calendarId`).

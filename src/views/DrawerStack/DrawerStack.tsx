@@ -272,13 +272,10 @@ export function DrawerStack() {
         // large grid) otherwise reconciles synchronously and freezes the click for a beat
         // ("nothing happened"). As a transition React keeps the UI responsive and swaps when ready.
         if (action === 'collapse') setSnap(PEEK_SNAP)
-        else if (action === 'back')
+        else
           startTransition(() => {
-            navigate(-1)
-          })
-        else if (parentPath)
-          startTransition(() => {
-            navigate(toStackTarget(parentPath)) // 'fallback'
+            if (action === 'back') navigate(-1)
+            else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
           })
       },
     }),

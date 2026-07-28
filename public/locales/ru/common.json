@@ -83,7 +83,6 @@
   },
   "calendar": {
     "title": "Календарь",
-    "today": "Сегодня",
     "previous": "Назад",
     "next": "Вперёд",
     "views": {

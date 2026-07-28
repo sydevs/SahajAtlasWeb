@@ -97,7 +97,6 @@
   },
   "calendar": {
     "title": "Calendar",
-    "today": "Today",
     "previous": "Previous",
     "next": "Next",
     "views": {

@@ -2,9 +2,9 @@ import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { CalendarSourceEvent } from '@/lib/shape'
 
-import { useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router'
+import { useMemo } from 'react'
 
+import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness } from '@/views/story-harness'
 import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { useLocale } from '@/hooks/use-locale'
@@ -86,18 +86,7 @@ const activeFilters = {
   format: 'offline' as const,
   timeOfDay: ['evening' as const],
 }
-
-// Seed the applied filters into the URL (their source of truth) on the decorator's own router —
-// react-router v7 forbids nesting a second <Router>.
-function SeedFilters({ children }: { children: React.ReactNode }) {
-  const [, setSearchParams] = useSearchParams()
-
-  useEffect(() => {
-    setSearchParams(filtersToParams(activeFilters), { replace: true })
-  }, [setSearchParams])
-
-  return <>{children}</>
-}
+const activeParams = filtersToParams(activeFilters)
 
 /**
  * CalendarView — the full-width month / week / list surface. Events are the (mocked) filtered
@@ -111,8 +100,8 @@ export const Default: Story = () => {
   return (
     <ViewHarness
       seed={(client: QueryClient) => {
-        // Seed the default key (initial render) AND the active-filter key (once SeedFilters sets
-        // the URL) so the calendar resolves from cache either way.
+        // Seed the default key (initial render) AND the active-filter key (once the params are
+        // seeded into the URL) so the calendar resolves from cache either way.
         for (const filters of [DEFAULT_FILTERS, activeFilters]) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
@@ -122,9 +111,9 @@ export const Default: Story = () => {
       }}
       seedKey="calendar"
     >
-      <SeedFilters>
+      <SeedSearchParams params={activeParams}>
         <CalendarView />
-      </SeedFilters>
+      </SeedSearchParams>
     </ViewHarness>
   )
 }
