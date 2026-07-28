@@ -37,6 +37,9 @@ export type SelectProps = {
   disabled?: boolean
   placeholder?: string
   'aria-label'?: string
+  /** Id of the field's error/description text, forwarded to the trigger for screen readers. */
+  'aria-describedby'?: string
+  /** Danger-border the trigger + set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the trigger to flag an active/in-use field. */
   highlight?: boolean
@@ -53,6 +56,7 @@ export function Select({
   disabled,
   placeholder,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   isInvalid,
   highlight,
   children,
@@ -67,6 +71,8 @@ export function Select({
       onValueChange={onValueChange}
     >
       <RadixSelect.Trigger
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         onBlur={onBlur}

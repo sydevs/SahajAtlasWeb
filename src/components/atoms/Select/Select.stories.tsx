@@ -38,7 +38,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`isInvalid` is the registration form's error affordance (paired there with aria-invalid + aria-describedby); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
+        description="`isInvalid` danger-borders the trigger + sets aria-invalid (pair with an aria-describedby error message); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
         title="States"
       >
         <div className="flex max-w-md flex-col gap-3">

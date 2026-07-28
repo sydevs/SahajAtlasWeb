@@ -49,10 +49,20 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`highlight` primary-tints the trigger to flag an active/used field (no layout shift); `disabled` dims and blocks it; with no value the placeholder shows."
+        description="`isInvalid` danger-borders the trigger + sets aria-invalid; `highlight` primary-tints an active/used field (no layout shift); `disabled` dims and blocks it; with no value the placeholder shows."
         title="States"
       >
         <div className="flex max-w-xs flex-col gap-3">
+          <Combobox
+            isInvalid
+            aria-describedby="region-error"
+            aria-label="Invalid region"
+            options={options}
+            placeholder="All regions"
+            searchPlaceholder="Search regions…"
+            value={value}
+            onValueChange={setValue}
+          />
           <Combobox
             highlight
             aria-label="Highlighted region"

@@ -35,10 +35,14 @@ export type ComboboxProps = {
   searchPlaceholder?: string
   /** Shown when the query matches no option. */
   emptyLabel?: string
+  /** Danger-border the trigger + set `aria-invalid` to flag a validation error. */
+  isInvalid?: boolean
   /** Primary-tint the trigger to flag an active/in-use field. */
   highlight?: boolean
   disabled?: boolean
   'aria-label'?: string
+  /** Id of the field's error/description text, forwarded to the trigger for screen readers. */
+  'aria-describedby'?: string
   className?: string
 }
 
@@ -52,9 +56,11 @@ export function Combobox({
   placeholder,
   searchPlaceholder,
   emptyLabel,
+  isInvalid,
   highlight,
   disabled,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   className,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
@@ -78,8 +84,10 @@ export function Combobox({
       }}
     >
       <Popover.Trigger
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
-        className={fieldChrome({ highlight, trigger: true, className })}
+        className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         disabled={disabled}
         role="combobox"
       >

@@ -25,12 +25,20 @@ const radioOption = tv({
       false: 'border-gray-7 text-foreground hover:bg-gray-2',
     },
     highlight: { true: '' },
+    // Danger-border the unselected cards (a colour change only, no layout shift) — the group
+    // also sets `aria-invalid`. Listed after `highlight` so an error wins the border colour.
+    isInvalid: { true: '' },
   },
   compoundVariants: [
     {
       checked: false,
       highlight: true,
       class: 'border-primary-7 bg-primary-3 text-primary-12 hover:bg-primary-4',
+    },
+    {
+      checked: false,
+      isInvalid: true,
+      class: 'border-danger-7',
     },
   ],
 })
@@ -43,6 +51,9 @@ export type RadioGroupProps = {
   onChange: (value: string) => void
   onBlur?: () => void
   'aria-label'?: string
+  /** Id of the group's error/description text, forwarded for screen readers. */
+  'aria-describedby'?: string
+  /** Danger-border the group + set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the group to flag it as an active/used field (mirrors the other atoms). */
   highlight?: boolean
@@ -60,6 +71,7 @@ export function RadioGroup({
   onChange,
   onBlur,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   isInvalid,
   highlight,
   collapseAfter,
@@ -73,6 +85,7 @@ export function RadioGroup({
 
   return (
     <div
+      aria-describedby={describedBy}
       aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
       className={clsx('flex flex-col gap-2', className)}
@@ -82,7 +95,7 @@ export function RadioGroup({
         const checked = value === option.value
 
         return (
-          <label key={option.value} className={radioOption({ checked, highlight })}>
+          <label key={option.value} className={radioOption({ checked, highlight, isInvalid })}>
             <input
               checked={checked}
               className="h-4 w-4 shrink-0 accent-primary"

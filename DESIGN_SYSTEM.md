@@ -62,16 +62,36 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `Button/`             | `Button`, `controlSurface`                           | The app's one control, so there is no separate IconButton: `radius` (`sm`/`full`, same vocabulary as Chip) sets the corner on any button, and `isIconOnly` squares the width against the size scale. `<button>`, or `<a>` when given `href` (that arm omits `disabled` — an anchor has no disabled state). `controlSurface` is the shared colour × variant recipe |
 | `Checkbox/`           | `Checkbox`                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`); the checkbox appearance backs the registration consent field |
 | `Chip/`               | `Chip`                                               | Pure presentational atom; brand-token styling (`tv()`). `onClose`/`closeLabel` are a union — a close button always has a label          |
+| `Combobox/`           | `Combobox`, `ComboboxOption`                         | Search-in-the-field single-select (Radix Popover + cmdk) — the region filter. Type to filter by label **or** `hint`, click to select; the trigger shows only the short label. Radix's portal survives the modal calendar filter sheet (where a Floating-UI popover is pointer-locked out) |
 | `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Body`/`Footer`/`Close` | vaul drawer; left ≥md / bottom sheet on mobile, non-modal; portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction |
 | `Dropdown/`           | `Dropdown`                                           | Floating-UI **popover shell**: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`)            |
 | `Input/`              | `Input`                                              | Native `<input>` on the shared `fieldChrome` recipe (forwards its ref for react-hook-form); `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                               | Router link, or `<a>` for external/`mailto:`/`tel:`; forwards a ref (used as a whole-card hit target)                                    |
 | `RadioGroup/`         | `RadioGroup`, `RadioOption`                          | Controlled radio list as selectable cards (native `<input type="radio">`); optional `collapseAfter` hides the tail behind a reveal link. Callers pass `label` nodes — no domain logic (the registration date picker) |
-| `Select/`             | `Select`, `SelectItem`, `fieldChrome`                | Radix select on brand tokens; optional `searchable` adds a type-to-filter box over the items (the region filter), `highlight` tints an active field. `fieldChrome` is the shared input recipe (also used by Input/Textarea + the filter date bounds) |
+| `Select/`             | `Select`, `SelectItem`, `fieldChrome`                | Radix select on brand tokens (for a type-to-filter picker use `Combobox` instead). `fieldChrome` is the shared input recipe (also used by Input/Textarea/Combobox + the filter date bounds) |
 | `Slider/`             | `Slider`                                             | Radix slider; `thumbLabels` labels each thumb. Currently unused by the app (the time-of-day filter moved to period toggles)              |
 | `Spinner/`            | `Spinner`                                            | SVG spinner; `decorative` drops the live region when the parent already announces busy (Button)                                         |
 | `Textarea/`           | `Textarea`                                           | The multiline sibling of Input on the same `fieldChrome` recipe (`multiline` variant); same `isInvalid` / `highlight` props             |
 | `ToggleGroup/`        | `ToggleGroup`, `ToggleGroupItem`                     | Radix toggle group — the filter panel's format / frequency / day / time-of-day pills. `highlight` primary-tints the *unselected* items to flag an active field |
+
+**Input atoms share one error/active-state interface.** Every form-control atom
+(`Input`, `Textarea`, `Select`, `Combobox`, `Checkbox`, `RadioGroup`,
+`ToggleGroup`, `Slider`) takes the same two boolean props, applied as a **colour
+change only — never a layout shift** (border/ring/tint swaps, mirroring how the
+tokens fill an active control):
+
+- **`isInvalid`** — flags a validation error: a danger visual **and** the atom
+  sets `aria-invalid` on its own control (the atom owns the a11y attribute, so a
+  caller can't forget it). Pair it with **`aria-describedby`** (also accepted by
+  every input atom) pointing at the field's error text — the error **message**
+  and that id live in the form/field wrapper (see RegistrationForm's `Field`),
+  not the atom, which stays presentational.
+- **`highlight`** — primary-tints the *unselected/empty* state to flag an
+  active/in-use field (the filter panel's affordance).
+
+`isInvalid` wins the border colour where both are set. `fieldChrome`'s
+`isInvalid` variant is the shared source for the text-field atoms; the
+Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 
 **Molecules** (`src/components/molecules/`)
 

@@ -70,6 +70,26 @@ export const Default: Story = () => {
         </ToggleGroup>
       </StorySection>
 
+      <StorySection
+        description="`isInvalid` danger-borders the items + sets aria-invalid on the group. Pair with an aria-describedby error message."
+        title="Invalid"
+      >
+        <ToggleGroup
+          isInvalid
+          aria-describedby="days-error"
+          aria-label="Days (error)"
+          type="multiple"
+          value={days}
+          onValueChange={setDays}
+        >
+          {WEEKDAYS.map((day, index) => (
+            <ToggleGroupItem key={index} value={String(index + 1)}>
+              {day}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </StorySection>
+
       <div />
     </StoryWrapper>
   )

@@ -101,6 +101,26 @@ export const Default: Story = () => {
         </div>
       </StorySection>
 
+      <StorySection
+        description="`isInvalid` flags a validation error + sets aria-invalid — a danger ring on the switch, a danger border on the box (no layout shift). Pair with an aria-describedby error message."
+        title="Invalid"
+      >
+        <div className="flex flex-col gap-3">
+          <Checkbox isInvalid checked={b} color="primary" onCheckedChange={setB}>
+            Invalid switch
+          </Checkbox>
+          <Checkbox
+            isInvalid
+            appearance="checkbox"
+            checked={c}
+            color="primary"
+            onCheckedChange={setC}
+          >
+            I accept the terms
+          </Checkbox>
+        </div>
+      </StorySection>
+
       <div />
     </StoryWrapper>
   )

@@ -75,6 +75,23 @@ export const Default: Story = () => {
         </div>
       </StorySection>
 
+      <StorySection
+        description="`isInvalid` danger-borders the unselected cards + sets aria-invalid on the group. Pair with an aria-describedby error message."
+        title="Invalid"
+      >
+        <div className="max-w-sm">
+          <RadioGroup
+            isInvalid
+            aria-describedby="date-error"
+            aria-label="Pick one (error)"
+            name="invalid"
+            options={options.slice(0, 3)}
+            value={simple}
+            onChange={setSimple}
+          />
+        </div>
+      </StorySection>
+
       <div />
     </StoryWrapper>
   )
