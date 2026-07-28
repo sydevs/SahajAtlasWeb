@@ -82,7 +82,15 @@
     "copied": "Másolva"
   },
   "calendar": {
-    "title": "Naptár"
+    "title": "Naptár",
+    "today": "Ma",
+    "previous": "Előző",
+    "next": "Következő",
+    "views": {
+      "month": "Hónap",
+      "week": "Hét",
+      "list": "Lista"
+    }
   },
   "sort": {
     "label": "Rendezés",

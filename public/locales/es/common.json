@@ -82,7 +82,15 @@
     "copied": "Copiado"
   },
   "calendar": {
-    "title": "Calendario"
+    "title": "Calendario",
+    "today": "Hoy",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "views": {
+      "month": "Mes",
+      "week": "Semana",
+      "list": "Lista"
+    }
   },
   "sort": {
     "label": "Ordenar",

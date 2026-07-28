@@ -64,6 +64,9 @@ importers:
       '@schedule-x/calendar':
         specifier: 2.36.0
         version: 2.36.0(@preact/signals@2.10.0(preact@10.29.7))(preact@10.29.7)
+      '@schedule-x/calendar-controls':
+        specifier: 2.36.0
+        version: 2.36.0
       '@schedule-x/react':
         specifier: 2.36.0
         version: 2.36.0(@schedule-x/calendar@2.36.0(@preact/signals@2.10.0(preact@10.29.7))(preact@10.29.7))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1698,6 +1701,9 @@ packages:
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
+
+  '@schedule-x/calendar-controls@2.36.0':
+    resolution: {integrity: sha512-ZZP7XCn7kyD4iTcWCJPEx8RdnVCC+LRD4iXt4/MdopBANWeB3MpL6QuoE+MdtM+W7ZjrmMBgjngGSZeOvAEiBw==}
 
   '@schedule-x/calendar@2.36.0':
     resolution: {integrity: sha512-UqPMoxjok3SFNvgx1+PY5Whmoig+gU7sjy80z68A9QQ1FjIt1Q3ODPZKdA3G0spDss9lDtKilpO393vWpXJyfg==}
@@ -6631,6 +6637,8 @@ snapshots:
     optional: true
 
   '@rtsao/scc@1.1.0': {}
+
+  '@schedule-x/calendar-controls@2.36.0': {}
 
   '@schedule-x/calendar@2.36.0(@preact/signals@2.10.0(preact@10.29.7))(preact@10.29.7)':
     dependencies:

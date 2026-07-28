@@ -96,7 +96,15 @@
     "copied": "Copied"
   },
   "calendar": {
-    "title": "Calendar"
+    "title": "Calendar",
+    "today": "Today",
+    "previous": "Previous",
+    "next": "Next",
+    "views": {
+      "month": "Month",
+      "week": "Week",
+      "list": "List"
+    }
   },
   "sort": {
     "label": "Sort",

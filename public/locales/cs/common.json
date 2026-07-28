@@ -82,7 +82,15 @@
     "copied": "Zkopírováno"
   },
   "calendar": {
-    "title": "Kalendář"
+    "title": "Kalendář",
+    "today": "Dnes",
+    "previous": "Předchozí",
+    "next": "Další",
+    "views": {
+      "month": "Měsíc",
+      "week": "Týden",
+      "list": "Seznam"
+    }
   },
   "sort": {
     "label": "Seřadit",

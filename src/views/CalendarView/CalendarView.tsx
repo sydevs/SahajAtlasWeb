@@ -1,12 +1,17 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { type MutableRefObject, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { DateTime } from 'luxon'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
 import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
+import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 
 import '@schedule-x/theme-default/dist/index.css'
 
+import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { RightArrowIcon } from '@/components/atoms/Icons'
+import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import api from '@/config/api'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -24,7 +29,7 @@ import { CloseButton, DrawerLoading, DrawerTitle, FilterButton } from '@/views/s
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
 // locales to the closest one SX 2.36 ships; anything unmapped (incl. Hungarian, which
-// SX lacks) falls back to en-US chrome — our own header title stays localized via i18n.
+// SX lacks) falls back to en-US chrome — our own header is fully localized via i18n.
 const SX_LOCALES: Record<string, string> = {
   en: 'en-US',
   de: 'de-DE',
@@ -52,123 +57,153 @@ const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
 
-// Schedule-X 2.36 has no public view-change callback, so we read the live view from the
-// app instance's internal `$app.calendarState.view` — a preact signal we subscribe to
-// (fires immediately + on every change). Typed defensively: if SX reshapes its internals
-// the optional chain yields undefined and the view simply falls back to the default.
-type ViewSignal = { subscribe: (fn: (view: string) => void) => () => void }
-const viewSignalOf = (app: unknown): ViewSignal | undefined =>
-  (app as { $app?: { calendarState?: { view?: ViewSignal } } } | null)?.$app?.calendarState?.view
+// The registered Schedule-X view names — the picker's values and what we persist/restore.
+const VIEW_MONTH = 'month-grid'
+const VIEW_WEEK = 'week'
+const VIEW_LIST = 'list'
 
-// SX 2.36 has no public `setView`, so we reach the internal `calendarState.setView(view, date)`
-// (defensively, like viewSignalOf) to drive the month grid's "+N more" into the list view.
-type CalendarStateApi = { setView: (view: string, date: string) => void }
-const calendarStateOf = (app: unknown): CalendarStateApi | undefined =>
-  (app as { $app?: { calendarState?: CalendarStateApi } } | null)?.$app?.calendarState
+type CalendarControls = ReturnType<typeof createCalendarControlsPlugin>
 
-// Minimum calendar width (px) to merge our controls into Schedule-X's header row; below it we
-// keep the stacked DrawerHeader. Measured on the container, not the viewport (see CalendarView).
-const MERGE_MIN_WIDTH = 768
-
-// ── Merged header (wide grids only) ──
-// On a wide month/week grid we render our title + Filter/Close INTO Schedule-X's own header bar
-// (`customComponents`) so the two headers collapse into one row. SX portals these from our React
-// tree, so they keep Router / i18n / drawer (`useDrawerControl`) context and behave exactly like
-// the old header controls. (On a narrow calendar or the list view we fall back to a separate
-// stacked DrawerHeader — see CalendarView — so this row can't get crowded.)
-function CalendarHeaderTitle() {
+// We DRIVE Schedule-X from our own header rather than styling its built-in one (whose date
+// picker / view dropdown / nav we kept fighting): the `calendar-controls` plugin is a public
+// API (`setView`/`setDate`/`getRange`/…), so the header is built from our own atoms — one
+// consistent drawer header — and SX's header bar is hidden in globals.css.
+function CalendarControls({
+  controlsRef,
+}: {
+  controlsRef: MutableRefObject<CalendarControls | null>
+}) {
   const { t } = useTranslation('common')
+  const { locale } = useLocale()
+  const view = useCalendarPosition((s) => s.view) ?? VIEW_MONTH
+  const date = useCalendarPosition((s) => s.date)
 
-  return <h2 className="self-center truncate text-lg font-semibold">{t('calendar.title')}</h2>
-}
+  // The focused month + year, localized straight from luxon (no per-month i18n key needed).
+  const iso = date ?? DateTime.now().toISODate()
+  const label = iso
+    ? DateTime.fromISO(iso).setLocale(locale).toLocaleString({ month: 'long', year: 'numeric' })
+    : ''
 
-function CalendarHeaderActions() {
+  const selectView = (next: string) => {
+    if (!next) return
+    controlsRef.current?.setView(next)
+    useCalendarPosition.getState().setView(next)
+  }
+
+  // Page one period by anchoring off the current visible range's edge — view-agnostic, so the
+  // same handler moves a month, a week, or the list window.
+  const step = (dir: -1 | 1) => {
+    const controls = controlsRef.current
+    const range = controls?.getRange()
+
+    if (!controls || !range) return
+
+    const to = DateTime.fromISO(dir === 1 ? range.end : range.start)
+      .plus({ days: dir })
+      .toISODate()
+
+    if (to) controls.setDate(to)
+  }
+
+  const goToday = () => {
+    const today = DateTime.now().toISODate()
+
+    if (today) controlsRef.current?.setDate(today)
+  }
+
   return (
-    <div className="flex shrink-0 items-center gap-2 self-center">
-      <FilterButton />
-      <CloseButton />
-    </div>
+    <>
+      <div className="flex min-w-0 items-center gap-2">
+        <DrawerTitle title={t('calendar.title')} />
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            isIconOnly
+            aria-label={t('calendar.previous')}
+            size="sm"
+            variant="ghost"
+            onClick={() => step(-1)}
+          >
+            <RightArrowIcon className="h-4 w-4 rotate-180" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={goToday}>
+            {t('calendar.today')}
+          </Button>
+          <Button
+            isIconOnly
+            aria-label={t('calendar.next')}
+            size="sm"
+            variant="ghost"
+            onClick={() => step(1)}
+          >
+            <RightArrowIcon className="h-4 w-4" />
+          </Button>
+        </div>
+        <span className="truncate text-sm font-medium">{label}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <ToggleGroup
+          joined
+          aria-label={t('calendar.title')}
+          type="single"
+          value={view}
+          onValueChange={selectView}
+        >
+          <ToggleGroupItem value={VIEW_MONTH}>{t('calendar.views.month')}</ToggleGroupItem>
+          <ToggleGroupItem value={VIEW_WEEK}>{t('calendar.views.week')}</ToggleGroupItem>
+          <ToggleGroupItem value={VIEW_LIST}>{t('calendar.views.list')}</ToggleGroupItem>
+        </ToggleGroup>
+        <FilterButton />
+        <CloseButton />
+      </div>
+    </>
   )
-}
-
-// A stable (module-level) map so the React adapter doesn't re-register the slots each render.
-const CALENDAR_HEADER = {
-  headerContentLeftPrepend: CalendarHeaderTitle,
-  headerContentRightAppend: CalendarHeaderActions,
 }
 
 // The full-width calendar (route `/calendar`, optionally `?region=<slug>`). Its entries
 // are the filtered feed (`getCalendarEvents`) expanded into one per upcoming occurrence
-// — timezone-correct, online events included — on a Schedule-X month / week / day / list(agenda)
+// — timezone-correct, online events included — on a Schedule-X month / week / list(agenda)
 // grid whose `--sx-*` tokens are mapped to our theme (see globals.css). Placeless, so it
 // never frames the map; clicking an entry opens its EventView. The Filter button opens
 // FilterView as a right/bottom overlay over this (still-mounted) view (see DrawerStack).
 //
-// Header layout is responsive to the calendar's OWN width (measured, so it's right in embeds
-// too — a wide host page with a narrow widget slot would fool a viewport media query): on a
-// wide month/week grid the title + Filter/Close merge INTO Schedule-X's header bar (one row,
-// see CALENDAR_HEADER); on a narrow calendar OR the single-column list view we keep a separate
-// DrawerHeader stacked above SX's own header, so a header always shows. The grid is KEYED by the
-// applied filters AND that `merged` flag, so it captures Schedule-X's config (incl. the header
-// slots) once and cleanly re-registers on a flip; a local Suspense keeps the drawer filled while
-// the (cache-once) source resolves, and across a remount (and returning from an event) the view
-// + focused date are restored from `useCalendarPosition`.
+// Our own header (CalendarControls) drives the calendar via the calendar-controls plugin, so
+// SX's built-in header is hidden — one consistent drawer header for every width, no merge. The
+// grid is KEYED by the applied filters so it captures Schedule-X's config once and remounts
+// with fresh events + dayBoundaries on apply; a local Suspense keeps the drawer filled while
+// the (cache-once) source resolves. Across that remount (and returning from an event) the view
+// + focused date are restored from `useCalendarPosition` (seeded here, updated by the header +
+// the `onSelectedDateUpdate` callback).
 export function CalendarView() {
-  const { t } = useTranslation('common')
   const filters = useEventFilters()
-  // Read the view reactively so a month↔list switch re-lays out the header (DrawerStack reads the
-  // same value to resize the drawer). Merge only when the calendar itself is wide enough for one
-  // roomy row — below the threshold, or in the list view, stay stacked. Defaults to stacked until
-  // measured (the safe direction: a header always shows).
-  const view = useCalendarPosition((s) => s.view)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [wideEnough, setWideEnough] = useState(false)
-
-  useEffect(() => {
-    const el = containerRef.current
-
-    if (!el) return
-
-    const observer = new ResizeObserver((entries) => {
-      setWideEnough(entries[0].contentRect.width >= MERGE_MIN_WIDTH)
-    })
-
-    observer.observe(el)
-
-    return () => observer.disconnect()
-  }, [])
-
-  const merged = wideEnough && view !== 'list'
+  // The plugin lives with the grid (below the Suspense); the header, rendered above it, reaches
+  // it through this ref (null until the grid mounts — its buttons no-op during the brief load).
+  const controlsRef = useRef<CalendarControls | null>(null)
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 flex-col">
-      {!merged && (
-        <DrawerHeader className="max-w-none justify-between">
-          <DrawerTitle title={t('calendar.title')} />
-          {/* Filter + Close as one right-aligned group, matching SearchView. */}
-          <div className="flex shrink-0 items-center gap-2">
-            <FilterButton />
-            <CloseButton />
-          </div>
-        </DrawerHeader>
-      )}
+    <>
+      <DrawerHeader className="max-w-none flex-wrap justify-between gap-x-3 gap-y-2">
+        <CalendarControls controlsRef={controlsRef} />
+      </DrawerHeader>
       <Suspense fallback={<DrawerLoading />}>
-        <CalendarGrid key={`${filtersKey(filters)}:${merged}`} filters={filters} merged={merged} />
+        <CalendarGrid key={filtersKey(filters)} controlsRef={controlsRef} filters={filters} />
       </Suspense>
-    </div>
+    </>
   )
 }
 
-function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: boolean }) {
+function CalendarGrid({
+  filters,
+  controlsRef,
+}: {
+  filters: EventFilters
+  controlsRef: MutableRefObject<CalendarControls | null>
+}) {
   // The "Online" term is the SAME one the list/detail views show for an online event's
   // location (`events:display.online`) — no calendar-specific duplicate.
   const { t } = useTranslation('events')
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
-  // Holds the live calendar app for callbacks captured before it exists (kept current in the
-  // effect below) — the "+N more" handler needs it to switch views.
-  const calendarRef = useRef<unknown>(null)
 
   const { data: source } = useSuspenseQuery({
     queryKey: ['calendar', filtersKey(filters), locale],
@@ -188,63 +223,65 @@ function CalendarGrid({ filters, merged }: { filters: EventFilters; merged: bool
   )
 
   const monthGrid = createViewMonthGrid()
+  // The public control surface our header drives (setView/setDate/getRange). Created per mount
+  // (stable within it) and exposed to the header via the ref effect below.
+  const controls = useMemo(() => createCalendarControlsPlugin(), [])
   // Seed from the last position (view + focused date). Read once, non-reactively, for the
-  // capture-config-once hook; it's kept current by the callback + subscription below, so at
-  // the next remount (a filter apply captures config during *render*, before this grid
-  // unmounts) the seed is already up to date. Nulls fall back to the month grid on today.
+  // capture-config-once hook; kept current by the header + the callback below, so at the next
+  // remount (a filter apply captures config during *render*) the seed is already up to date.
   const position = useCalendarPosition.getState()
 
-  const calendar = useNextCalendarApp({
-    views: [monthGrid, createViewWeek(), createViewList()],
-    // Restore the last view (month by default).
-    defaultView: position.view ?? monthGrid.name,
-    selectedDate: position.date ?? undefined,
-    events,
-    // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
-    calendars: CALENDARS,
-    // Undefined leaves Schedule-X's default grid (whole day).
-    dayBoundaries,
-    isDark: theme === 'dark',
-    // SX needs a supported BCP-47 code (see SX_LOCALES) or it throws; our token overrides
-    // (globals.css) carry the light/dark + accent theming regardless of `isDark`.
-    locale: toScheduleXLocale(locale),
-    callbacks: {
-      // Each entry carries its event's route; open the matching EventView (the atlas
-      // navigate stamps camera/depth like every other in-widget push).
-      onEventClick: (event) => {
-        if (typeof event.path === 'string') navigate(event.path)
+  const calendar = useNextCalendarApp(
+    {
+      views: [monthGrid, createViewWeek(), createViewList()],
+      // Restore the last view (month by default).
+      defaultView: position.view ?? monthGrid.name,
+      selectedDate: position.date ?? undefined,
+      events,
+      // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
+      calendars: CALENDARS,
+      // Undefined leaves Schedule-X's default grid (whole day).
+      dayBoundaries,
+      isDark: theme === 'dark',
+      // SX needs a supported BCP-47 code (see SX_LOCALES) or it throws; our token overrides
+      // (globals.css) carry the light/dark + accent theming regardless of `isDark`.
+      locale: toScheduleXLocale(locale),
+      callbacks: {
+        // Each entry carries its event's route; open the matching EventView (the atlas
+        // navigate stamps camera/depth like every other in-widget push).
+        onEventClick: (event) => {
+          if (typeof event.path === 'string') navigate(event.path)
+        },
+        // Persist the focused date as the user pages through the calendar (drives the header label).
+        onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
+        // The month grid's "+N more" jumps to the list view focused on that day.
+        onClickPlusEvents: (date) => {
+          controls.setDate(date)
+          controls.setView(VIEW_LIST)
+          useCalendarPosition.getState().setDate(date)
+          useCalendarPosition.getState().setView(VIEW_LIST)
+        },
       },
-      // Persist the focused date as the user pages through the calendar.
-      onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date),
-      // The month grid's "+N more" jumps to the list view focused on that day (rather than a
-      // separate Day view), so every event for the day is visible in one place.
-      onClickPlusEvents: (date) => calendarStateOf(calendarRef.current)?.setView('list', date),
+      weekOptions: {
+        eventWidth: 98,
+      },
     },
-    weekOptions: {
-      eventWidth: 98,
-    },
-  })
+    [controls],
+  )
 
-  // Persist the current view continuously (SX exposes no callback for it — see viewSignalOf).
-  // `calendar` is null until useNextCalendarApp's mount effect resolves, so re-subscribe when
-  // it becomes the instance; subscribe fires immediately then on each view switch.
+  // Publish the controls to the header (rendered above this grid) for the lifetime of the mount.
   useEffect(() => {
-    calendarRef.current = calendar
-    const view = viewSignalOf(calendar)
+    controlsRef.current = controls
 
-    return view?.subscribe((next) => {
-      if (next) useCalendarPosition.getState().setView(next)
-    })
-  }, [calendar])
+    return () => {
+      controlsRef.current = null
+    }
+  }, [controls, controlsRef])
 
   return (
     <DrawerBody className="max-w-none overflow-hidden p-4">
       <div className="sx-calendar">
-        {/* Merge our controls into SX's header only on a wide grid (see CalendarView). */}
-        <ScheduleXCalendar
-          calendarApp={calendar}
-          customComponents={merged ? CALENDAR_HEADER : undefined}
-        />
+        <ScheduleXCalendar calendarApp={calendar} />
       </div>
     </DrawerBody>
   )

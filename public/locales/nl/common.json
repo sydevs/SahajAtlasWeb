@@ -82,7 +82,15 @@
     "copied": "Gekopieerd"
   },
   "calendar": {
-    "title": "Kalender"
+    "title": "Kalender",
+    "today": "Vandaag",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "views": {
+      "month": "Maand",
+      "week": "Week",
+      "list": "Lijst"
+    }
   },
   "sort": {
     "label": "Sorteren",
