@@ -12,6 +12,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import {
   DEFAULT_FILTERS,
+  type EventFilters,
   filtersKey,
   filtersToParams,
   hasActiveFilters,
@@ -29,14 +30,16 @@ import { CloseButton, DrawerTitle } from '@/views/shared'
 // map — and closes the drawer, showing how many events the draft matches. "Clear
 // all" resets everything AND applies + closes. The per-filter clears inside the
 // form stay draft-only.
-export function FilterView() {
+// `initialDraft` seeds the form's draft for previews/tests (so a story can open in a filled,
+// unapplied "dirty" state); the app renders `<FilterView />`, starting from the applied filters.
+export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {}) {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
   const applied = useEventFilters()
 
   // Start from the applied filters; discarded on close unless the user applies.
-  const [draft, setDraft] = useState(applied)
+  const [draft, setDraft] = useState(initialDraft ?? applied)
   // Region cut for the live count, from the draft's selected region (see matchesFilters).
   const matchesRegion = useRegionMatcher(draft.region)
 
