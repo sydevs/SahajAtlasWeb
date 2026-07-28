@@ -63,7 +63,10 @@ const dropdownTrigger = tv({
 })
 
 const dropdownPanel = tv({
-  base: 'z-50 rounded-lg border border-gray-6 bg-gray-2 shadow-xl',
+  // `pointer-events-auto` keeps the panel clickable when it opens inside a *modal* drawer
+  // (the calendar's filter sheet): Radix Dialog's modal mode sets `pointer-events: none` on
+  // the body, which this portaled sibling would otherwise inherit and swallow every click.
+  base: 'pointer-events-auto z-50 rounded-lg border border-gray-6 bg-gray-2 shadow-xl',
   variants: {
     // `full` matches the trigger width via the floating-ui size middleware, so it
     // imposes no min-width of its own.
