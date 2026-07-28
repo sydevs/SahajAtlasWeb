@@ -89,11 +89,20 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
   const date = useCalendarPosition((s) => s.date)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // The focused month + year, localized straight from luxon (no per-month i18n key needed).
+  // The header label, localized straight from luxon (no per-month i18n key): the month + year
+  // in month view, but the specific focused date (condensed month) in the week + list views —
+  // for the week that's the week's first day.
   const iso = date ?? DateTime.now().toISODate()
-  const label = iso
-    ? DateTime.fromISO(iso).setLocale(locale).toLocaleString({ month: 'long', year: 'numeric' })
-    : ''
+  const dt = iso ? DateTime.fromISO(iso).setLocale(locale) : null
+  const label = !dt
+    ? ''
+    : view === VIEW_MONTH
+      ? dt.toLocaleString({ month: 'long', year: 'numeric' })
+      : (view === VIEW_WEEK ? dt.startOf('week') : dt).toLocaleString({
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
 
   const applyDate = (next: string) => {
     useCalendarPosition.getState().setDate(next)
@@ -125,12 +134,6 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
     if (next) applyDate(next)
   }
 
-  const goToday = () => {
-    const today = DateTime.now().toISODate()
-
-    if (today) applyDate(today)
-  }
-
   return (
     <>
       {/* Mode picker — first item, so it holds the top row when the rest wraps below. */}
@@ -146,7 +149,7 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
         <ToggleGroupItem value={VIEW_LIST}>{t('calendar.views.list')}</ToggleGroupItem>
       </ToggleGroup>
 
-      {/* Nav + date + filter — wraps to a second line on narrow widths, one line on large. */}
+      {/* Nav + filter — wraps to a second line on narrow widths, one line on large. */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-0.5">
           <Button
@@ -158,9 +161,29 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
           >
             <RightArrowIcon className="h-4 w-4 rotate-180" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={goToday}>
-            {t('calendar.today')}
-          </Button>
+
+          {/* The focused date sits between the arrows; clicking opens the browser's native
+              picker (which has its own Today button, so we don't need a separate one). The
+              input overlays the button so the picker anchors to it, but stays click-through. */}
+          <div className="relative">
+            <button
+              className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"
+              type="button"
+              onClick={() => dateInputRef.current?.showPicker?.()}
+            >
+              {label}
+            </button>
+            <input
+              ref={dateInputRef}
+              aria-label={t('calendar.pick_date')}
+              className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+              tabIndex={-1}
+              type="date"
+              value={iso ?? ''}
+              onChange={(event) => event.target.value && applyDate(event.target.value)}
+            />
+          </div>
+
           <Button
             isIconOnly
             aria-label={t('calendar.next')}
@@ -170,27 +193,6 @@ function CalendarControls({ controls }: { controls: CalendarControls }) {
           >
             <RightArrowIcon className="h-4 w-4" />
           </Button>
-        </div>
-
-        {/* The focused month/year; clicking opens the browser's native date picker (the input
-            overlays the button so the picker anchors to it, but stays click-through). */}
-        <div className="relative">
-          <button
-            className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"
-            type="button"
-            onClick={() => dateInputRef.current?.showPicker?.()}
-          >
-            {label}
-          </button>
-          <input
-            ref={dateInputRef}
-            aria-label={t('calendar.pick_date')}
-            className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
-            tabIndex={-1}
-            type="date"
-            value={iso ?? ''}
-            onChange={(event) => event.target.value && applyDate(event.target.value)}
-          />
         </div>
 
         <FilterButton />
