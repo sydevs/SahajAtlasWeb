@@ -2,7 +2,7 @@ import type { FeatureCollection, Geometry } from 'geojson'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
@@ -24,6 +24,7 @@ import {
   hoveredAreaLayer,
   boundsLayer,
 } from './layers'
+import { registerMarkerImages } from './markers'
 
 import { CalendarIcon } from '@/components/atoms/Icons'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
@@ -204,6 +205,14 @@ export function Mapbox() {
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
   })
+
+  // Supply the app's own pin/cluster images (see markers.ts — the two Studio styles
+  // carry different sprites, and the dark one has no single-event pin at all). One
+  // subscription per map instance covers the theme switch too: swapping the style
+  // drops runtime images and re-fires `styleimagemissing`.
+  useEffect(() => {
+    if (mapbox) return registerMarkerImages(mapbox)
+  }, [mapbox])
 
   // The individual event pin (unclustered-point) currently under the pointer, for
   // the timing popover — never a cluster. Cleared when the pointer moves to empty
