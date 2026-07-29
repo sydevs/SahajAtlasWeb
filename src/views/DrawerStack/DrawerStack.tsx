@@ -42,15 +42,23 @@ const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
-// How far each stacked ancestor peeks out behind the active sheet.
-const PEEK_MOBILE = 5 // px above the sheet's top edge
-const PEEK_DESKTOP = 6 // px to the right of the left panel
+// How far each stacked ancestor peeks out behind the active sheet. Wide enough to
+// read as a deliberate stack of cards from across the screen (the earlier few-pixel
+// sliver was easy to mistake for a border), while still leaving the active sheet
+// unambiguously on top.
+const PEEK_MOBILE = 10 // px above the sheet's top edge
+const PEEK_DESKTOP = 12 // px to the right of the left panel
 
 // One uniform peek width per stack: every ancestor shares the same gap, and that gap
 // shrinks as the TOTAL depth grows — so each level stays evenly spaced while a taller
 // stack reads denser. `base` is the single-ancestor gap; strip d sits at `d · gap`.
-const PEEK_DECAY = 0.7
+const PEEK_DECAY = 0.78
 const perLevelPeek = (total: number, base: number) => base * Math.pow(PEEK_DECAY, total - 1)
+
+// Opacity of the stacked ancestors, fading with depth so the stack recedes rather
+// than competing with the active sheet. The nearest ancestor is nearly solid, so its
+// peeking edge reads as a panel; deeper ones drop away but never vanish.
+const peekOpacity = (depth: number) => Math.max(0.25, 0.8 - (depth - 1) * 0.2)
 
 type Direction = 'left' | 'bottom'
 
@@ -401,7 +409,7 @@ export function DrawerStack() {
               direction={direction}
               gap={peekGap}
               label={t('back')}
-              opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
+              opacity={peekOpacity(depth)}
               zIndex={30 + i}
               onClick={() => navigate(toStackTarget(path))}
             />
@@ -426,8 +434,14 @@ export function DrawerStack() {
                 bump the cog to top-4 to line up with the drawer's top edge. Hidden on
                 the full-width calendar — a focused view with no clean corner for the
                 floating cog; settings stay reachable from every other view. */}
+            {/* The inline-start gap clears the PEEK STRIPS, not just the drawer: the
+                deepest stack pushes an ancestor ~23px past the panel edge
+                (`PEEK_DESKTOP` × the decay series above), so the cog sits 2rem out
+                — 3rem at ≥lg, where the drawer itself is already inset by 1rem. That
+                leaves ~9px of air at the deepest stack; a tighter gap and the strips
+                render under the cog. */}
             {!wide && (
-              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
             )}
           </>,
           target,
