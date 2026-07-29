@@ -116,17 +116,21 @@
   --background: 0 0% 7%;
 }
 
+/* The bullets sit ON the photo (the carousel is full-bleed and flush with the
+   bottom of the view), so they can't be themed off the widget's palette — they have
+   to survive any image under them. Hence white rather than brand primary, with a
+   dark halo: a bright sky or a white wall is exactly where a tinted or plain-white
+   bullet disappears, and the earlier `shadow-md` was far too soft to save it. */
 .swiper-pagination-bullet {
-  @apply shadow-md;
+  box-shadow:
+    0 0 2px rgb(0 0 0 / 0.7),
+    0 1px 3px rgb(0 0 0 / 0.5);
 }
 
-/* Resolve the active-bullet color HERE — inside the themed wrapper — so it picks
-   up the widget's brand primary rather than :root's default theme value. Inactive
-   bullets use the theme foreground so they stay visible in both light and dark. */
 .swiper {
-  --swiper-theme-color: hsl(var(--primary-9));
-  --swiper-pagination-bullet-inactive-color: var(--gray-12);
-  --swiper-pagination-bullet-inactive-opacity: 0.4;
+  --swiper-theme-color: #fff;
+  --swiper-pagination-bullet-inactive-color: #fff;
+  --swiper-pagination-bullet-inactive-opacity: 0.5;
 }
 
 /* vaul disables text selection on the drawer for pointer devices (to keep drag
@@ -165,9 +169,9 @@
      retune any carousel the host page runs. `.swiper` only ever exists inside
      our own ImageCarousel. */
   .swiper {
-    /* Sit the pagination clear of the image; bullet size/shape are Swiper's own
-       defaults (round, clickable) — no custom bar styling. */
-    --swiper-pagination-bottom: 1rem;
+    /* Inset the pagination INTO the bottom of the image; bullet size/shape are
+       Swiper's own defaults (round, clickable) — no custom bar styling. */
+    --swiper-pagination-bottom: 0.75rem;
   }
 
   /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host

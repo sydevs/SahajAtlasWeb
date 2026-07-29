@@ -57,11 +57,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         pagination={carousel && { clickable: true }}
       >
         {slides.map((slide, index) => (
-          // Bottom padding only reserves room for the pagination bullets, so it's
-          // sized to them (~16px of bullet + air) and skipped entirely for a lone
-          // image, which has no bullets — it was 40px either way, which read as
-          // dead space under the last thing in a view.
-          <SwiperSlide key={slide.src} className={carousel ? 'pb-6' : undefined}>
+          // No bottom padding: the bullets sit OVER the image (see globals.css), so
+          // the slide is the image and nothing else. Reserving a band below it just
+          // put dead space under the last thing in a view — and sizing that band to
+          // the bullets left them butted against the image's edge instead.
+          <SwiperSlide key={slide.src}>
             <button
               aria-label={slide.alt ?? t('details.view_photo')}
               className="block w-full cursor-zoom-in"
