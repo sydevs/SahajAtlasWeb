@@ -22,16 +22,19 @@ reach for `@nextui-org/react`; it isn't a dependency.
 
 Before hand-rolling UI, in this order:
 
-1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip,
+1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip, Combobox,
    Drawer, Dropdown, Input, Link, RadioGroup, Select, Slider, Spinner, Textarea,
    ToggleGroup already exist and carry the app's tokens and focus behaviour.
    Input/Textarea wrap the native controls on the shared `fieldChrome` recipe;
-   Select can be `searchable` (type-to-filter); the form controls take a
-   `highlight` prop that primary-tints their *unselected* state (no layout shift)
-   to flag an active filter field.
+   `Combobox` is the search-in-the-field picker (Radix Popover + cmdk — the region
+   filter), `Select` the plain list picker. Every form-control atom shares one
+   error/active-state interface: **`isInvalid`** (danger visual + `aria-invalid`,
+   with `aria-describedby` for the error text) and **`highlight`** (primary-tints
+   the *unselected* state, no layout shift, to flag an active filter) — see
+   `DESIGN_SYSTEM.md`.
 2. **Check Radix** for an unstyled primitive to build on (`@radix-ui/react-*` —
-   dialog, select, checkbox, switch, slider, toggle-group, dropdown-menu, label
-   are installed). Radix owns the interaction/ARIA; we own the Tailwind skin.
+   dialog, select, popover, checkbox, switch, slider, toggle-group, dropdown-menu,
+   label are installed). Radix owns the interaction/ARIA; we own the Tailwind skin.
 3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
 
 Fewer custom components means less maintenance and a consistent look.
