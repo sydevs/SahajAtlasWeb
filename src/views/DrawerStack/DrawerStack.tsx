@@ -20,7 +20,7 @@ import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
-import { type StackEntry, atlasDepth, dismissAction, resolveStack } from '@/lib/shape'
+import { type StackEntry, atlasDepth, dismissAction, dismissDepth, resolveStack } from '@/lib/shape'
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
@@ -201,6 +201,23 @@ export function DrawerStack() {
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
+
+  // The stack must show the panels a repeated X actually goes through, which is a
+  // history question, not a URL one (see `dismissDepth`). `entryAncestors` is the
+  // structural height of the last depth-0 location — remembered here because once
+  // we've pushed past it the URL no longer tells us where the widget came in.
+  const depth = atlasDepth(location)
+  const [entryAncestors, setEntryAncestors] = useState(parentPaths.length)
+
+  useEffect(() => {
+    if (depth === 0) setEntryAncestors(parentPaths.length)
+  }, [depth, parentPaths.length])
+
+  // Strips are the FIRST n ancestors (root-first): with history in play the nearest
+  // URL ancestor may not be where back actually lands, but the root end of the chain
+  // is, so counting from the root keeps the click targets closest to the truth.
+  const stackDepth = dismissDepth({ depth, entryAncestors, ancestors: parentPaths.length })
+  const stackPaths = useMemo(() => parentPaths.slice(0, stackDepth), [parentPaths, stackDepth])
 
   // Mirror the active sheet's live top onto the peek strips AND the sheet
   // itself every frame, so both track a drag without waiting for the snap to
@@ -390,26 +407,23 @@ export function DrawerStack() {
   const target = overlayContainer()
   // One uniform per-level peek width for the whole stack, tighter the deeper it goes —
   // computed once here (it's a stack constant) rather than per strip.
-  const peekGap = perLevelPeek(
-    parentPaths.length,
-    direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE,
-  )
+  const peekGap = perLevelPeek(stackDepth, direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE)
   // Always render the container + AnimatePresence (even at 0 ancestors) so a removed
   // strip animates out on the way back to the root instead of vanishing.
   const strips = (
     <div ref={stripsRef}>
       <AnimatePresence>
-        {parentPaths.map((path, i) => {
-          const depth = parentPaths.length - i
+        {stackPaths.map((path, i) => {
+          const stripDepth = stackPaths.length - i
 
           return (
             <PeekStrip
               key={path}
-              depth={depth}
+              depth={stripDepth}
               direction={direction}
               gap={peekGap}
               label={t('back')}
-              opacity={peekOpacity(depth)}
+              opacity={peekOpacity(stripDepth)}
               zIndex={30 + i}
               onClick={() => navigate(toStackTarget(path))}
             />
