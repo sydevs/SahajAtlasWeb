@@ -116,7 +116,10 @@ change should surface as a parse error, not a deep runtime crash.
   (`usePrefetchEvent`) and a region's first few cards on idle (`usePrefetchEvents`), so
   opening an event is a cache hit, not a cold `findByID`. Build the key through the
   `eventQuery(id, locale)` factory (`config/api`) so the prefetch and the view's
-  suspense read can't drift.
+  suspense read can't drift. The distance-ranked results list has the same contract in
+  **`eventsQuery(latitude, longitude, filters, locale)`** — the quantized centre +
+  `filtersKey` + locale, shared with the SearchView story's cache seed (a seed under a
+  divergent key silently misses and the story hits the network instead of rendering).
 
 ## Errors
 

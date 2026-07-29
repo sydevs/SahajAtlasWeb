@@ -91,12 +91,16 @@ src/
     <tier>/index.ts   # one barrel per tier
   views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Calendar/Region/Event/Registration/Share
   config/
-    api/              # axios client + zod-parsed fetchers (fetch.ts, mutate.ts, auth.ts)
+    api/              # PayloadSDK client + zod-parsed fetchers (client.ts, fetch.ts, mutate.ts, auth.ts) + query factories (index.ts)
     store.ts          # zustand stores (view / registration-draft / calendar-position; filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
     site.ts, responsive.ts
   hooks/              # use-locale, use-mapbox, use-map-controller, use-theme
+  lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
+                      # entity codecs (filters, sort, path, country, hierarchy); geo/camera/ics
+                      # the maths; share/platforms.ts + country-sites.ts the static
+                      # country-keyed tables (that's where such data belongs, not a src/data/)
   types/              # zod schemas + inferred types per entity
 public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 ```

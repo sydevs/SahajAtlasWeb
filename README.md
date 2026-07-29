@@ -23,11 +23,18 @@ sends a CSP, allow:
 ```
 script-src  https://challenges.cloudflare.com
 frame-src   https://challenges.cloudflare.com
+img-src     https://react-circle-flags.pages.dev
 ```
 
-Without those the widget degrades gracefully rather than breaking: the form detects the
-blocked challenge and offers a `mailto:` address instead of a submit button. Everything
-else — the map, search, event pages, registration — is unaffected.
+Without the first two the widget degrades gracefully rather than breaking: the form
+detects the blocked challenge and offers a `mailto:` address instead of a submit button.
+Everything else — the map, search, event pages, registration — is unaffected.
+
+`img-src` covers the country flags (`react-circle-flags` serves them as SVGs from its
+own CDN) on the country list and on the country-website offer a search shows when a
+country lists no classes. Blocking it costs only the flag glyphs; the lists and the
+offer still render, and the requests carry `referrer-policy: no-referrer`, so your
+page's URL is never sent there.
 
 ## Stack
 
