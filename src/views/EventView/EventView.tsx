@@ -26,9 +26,9 @@ const EventDetails = lazy(() =>
   import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
 )
 
-// A single event (route `<event-path>`). The header (title + chips + timing) is
-// the mobile sheet's 80px peek payload and stays pinned above the scrolling
-// body. On the mobile map sheet, Register lives in a sticky bottom bar pinned
+// A single event (route `<event-path>`). The header (the title) is the mobile
+// sheet's 80px peek payload and stays pinned above the scrolling body; the chips
+// and facts lead the body. On the mobile map sheet, Register lives in a sticky bar pinned
 // to the viewport edge (via the live `--sy-sheet-top` mirror) so scrolling the
 // description can never hide the KPI (issue #52, WS4); elsewhere it renders
 // inline in the panel order.

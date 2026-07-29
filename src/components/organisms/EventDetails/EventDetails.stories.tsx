@@ -20,8 +20,8 @@ import {
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
-// Full panel anatomy: header (title · chips · timing) over the body (facts →
-// Register → actions → images → About), as EventView composes them.
+// Full panel anatomy: header (the title) over the body (chips → facts → Register
+// → actions → About → images), as EventView composes them.
 function Panel({ event }: { event: Event }) {
   return (
     <div className="max-w-md border border-divider">

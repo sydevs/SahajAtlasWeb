@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { EventRegisterBar } from './EventRegister'
 
 import { EventActions } from '@/components/molecules/EventActions'
+import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { lexicalToHtml } from '@/lib/shape'
@@ -40,10 +41,10 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * The event panel body, in the issue #52 order: facts (plain text) → Register →
- * microcopy → secondary actions → images → About. The title/chip header is a
- * separate component (EventHeader) rendered outside the scrolling drawer body,
- * so the peek/pinned header always carries the triage payload.
+ * The event panel body, in the issue #52 order: chips → facts (plain text) →
+ * Register → microcopy → secondary actions → images → About. Only the title is a
+ * separate component (EventHeader), rendered outside the scrolling drawer body so
+ * it stays pinned; the triage chips lead the body.
  */
 export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
   const { t } = useTranslation('events')
@@ -70,6 +71,11 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
     // bottom padding away with it: the images sit flush against the end of the
     // view rather than floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-6 pt-2 ${hasImages ? '' : 'pb-10'}`}>
+      {/* The triage chips open the body rather than riding under the title in the
+          pinned header. `-mb-2` pulls the facts back up: the chips are a short row
+          and the container's `gap-4` plus the facts' own `my-2` left them floating. */}
+      <EventChips className="-mb-2" event={event} variant="default" />
+
       {/* Extra breathing room around the when/where facts, above the register CTA. */}
       <EventFacts className="my-2" event={event} />
 
