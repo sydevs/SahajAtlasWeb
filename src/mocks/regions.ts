@@ -1,7 +1,7 @@
 // Region / country / geojson fixtures for the view stories. Type-valid against the
 // zod-inferred entity types — the view stories seed these straight into the React
 // Query cache (bypassing the fetchers' zod parse), so TypeScript is the guard.
-import type { EventSlim, Geojson, Region, RegionListItem, RegionRef } from '@/types'
+import type { EventSlim, Geojson, Region, RegionListItem, RegionNode, RegionRef } from '@/types'
 
 import { mockEventSlim, mockEventSlimOnline, mockEventVariants } from './events'
 
@@ -30,6 +30,34 @@ export const mockCountries: RegionListItem[] = [
   { id: 9010, slug: 'spain', level: 'country', name: 'Spain', countryCode: 'ES', eventCount: 52, path: '/spain' }, // prettier-ignore
   { id: 9011, slug: 'netherlands', level: 'country', name: 'Netherlands', countryCode: 'NL', eventCount: 38, path: '/netherlands' }, // prettier-ignore
   { id: 9012, slug: 'romania', level: 'country', name: 'Romania', countryCode: 'RO', eventCount: 61, path: '/romania' }, // prettier-ignore
+]
+
+/**
+ * The wholesale region tree (`['regions']`) — the cache-once dict the region filter's
+ * options, the region matcher, and the country-website check all read. Seeded for
+ * every view story by the harness.
+ *
+ * Country slugs are the **lowercase ISO code** (`gb`, `in`), matching the live data
+ * post-SahajCloud#556 rather than `mockCountries`' display slugs — the ISO-slug
+ * invariant is exactly what `countryHasPrograms` looks a country up by. Ids match
+ * `mockCountries`, and the two UK descendants match the feed's own region refs
+ * (`mockEventSlim.region`, id 8001), so a feed feature really does resolve two levels
+ * under `gb`. Iceland is deliberately absent: it's the program-less country the
+ * country-website offer exists for.
+ */
+export const mockRegionNodes: RegionNode[] = [
+  ...mockCountries.map<RegionNode>(({ id, name, countryCode }) => ({
+    id,
+    slug: (countryCode ?? '').toLowerCase(),
+    name,
+    subtitle: null,
+    level: 'country',
+    parent: null,
+    webPath: `/${(countryCode ?? '').toLowerCase()}`,
+    webUrl: null,
+  })),
+  { id: 8000, slug: 'cambridgeshire', name: 'Cambridgeshire', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/cambridgeshire', webUrl: null }, // prettier-ignore
+  { id: 8001, slug: 'cambridge', name: 'Cambridge', subtitle: 'Cambridgeshire', level: 'city', parent: 8000, webPath: '/gb/cambridgeshire/cambridge', webUrl: null }, // prettier-ignore
 ]
 
 /** A couple of child rows shown inside the mixed region, alongside its own events. */

@@ -2,10 +2,13 @@ import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { EventSlim } from '@/types'
 
+import { useMemo } from 'react'
+
+import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness, mockEventVariants } from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
-import { DEFAULT_FILTERS, filtersKey } from '@/lib/shape'
+import { DEFAULT_FILTERS, filtersFromParams, filtersKey } from '@/lib/shape'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -13,33 +16,85 @@ export default { title: 'Views' } satisfies StoryDefault
 // (0, 0), so DynamicEventsList keys on `['events', '0.00', '0.00', filtersKey, locale]`.
 const CENTER = ['0.00', '0.00'] as const
 
-const EXAMPLES: Record<string, EventSlim[]> = {
-  Results: mockEventVariants,
-  Empty: [],
+/** A previewable state: the URL query it needs, and the list that query resolves to. */
+type Example = {
+  /** The case's `?…` query (`''` for the bare, unparameterized search). */
+  search: string
+  events: EventSlim[]
+}
+
+// Reykjavík, marked as a search in Iceland. Iceland is absent from the seeded region
+// tree (`mockRegionNodes`), so `countryHasPrograms` says it lists none and the empty
+// state becomes the country-website offer rather than "No events found."
+const ICELAND = 'q=Iceland&center=-21.9,64.1&cc=IS'
+
+// Three applied filters, so the toolbar carries a "(3)" badge and the pills row
+// renders. Like the CalendarView story, the events are pre-seeded regardless of the
+// filters — these are for the pill UI, not to cut the list — so the seeded set is the
+// in-person variants within the 500 km cap: a filtered-looking list with no distance
+// pill competing for attention.
+const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
+
+const EXAMPLES: Record<string, Example> = {
+  Results: { search: '', events: mockEventVariants },
+  Empty: { search: '', events: [] },
+  'Country website': { search: ICELAND, events: [] },
+  Filtered: {
+    search: FILTERED,
+    events: mockEventVariants.filter(
+      (event) => event.eventType === 'offline' && (event.distance ?? 0) < 500,
+    ),
+  },
 }
 
 type ExampleKey = keyof typeof EXAMPLES
 
+// The events key SearchView reads for a given query — `?center=lng,lat` quantized to
+// 2 dp (latitude first), or the view-state default — plus that query's own filters.
+// Derived from the SAME string the params are seeded from, so seed and read can't drift.
+const eventsKey = (search: string, locale: string) => {
+  const params = new URLSearchParams(search)
+  const [longitude, latitude] = (params.get('center') ?? '').split(',').map(Number)
+  const located = Number.isFinite(latitude) && Number.isFinite(longitude)
+  const center = located ? ([latitude.toFixed(2), longitude.toFixed(2)] as const) : CENTER
+
+  return ['events', center[0], center[1], filtersKey(filtersFromParams(params)), locale]
+}
+
 /**
- * SearchView — the distance-ranked results screen: the geocoder + filter header
- * over the event list (with the "within 500 km" cap). Filters are all default here.
- * "Empty" shows the no-results state.
+ * SearchView — the distance-ranked results screen: the geocoder + filter header over
+ * the event list (with the "within 500 km" cap). "Empty" is the no-results state;
+ * "Country website" the offer that replaces it when the searched country lists no
+ * programs at all; "Filtered" the toolbar badge + active-filter pills over a list.
+ *
+ * Cases that need a URL seed it onto the decorator's OWN router via `SeedSearchParams`
+ * (react-router v7 throws on a nested `<Router>`), which lands one render in — so each
+ * case seeds both the default key the first render reads and the key its own params
+ * resolve to, and neither render ever reaches the absent backend.
  */
 export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const events = EXAMPLES[example]
+  const { search, events } = EXAMPLES[example]
+  // Stable per case — SeedSearchParams keys its effect on this, so a fresh object
+  // every render would re-seed the URL in a loop.
+  const params = useMemo(() => new URLSearchParams(search), [search])
 
   return (
     <ViewHarness
-      seed={(client: QueryClient) =>
+      seed={(client: QueryClient) => {
+        // The default key (first render, before the params land) AND the case's own
+        // key, so the list resolves from cache either way.
         client.setQueryData<EventSlim[]>(
           ['events', CENTER[0], CENTER[1], filtersKey(DEFAULT_FILTERS), locale],
           events,
         )
-      }
+        client.setQueryData<EventSlim[]>(eventsKey(search, locale), events)
+      }}
       seedKey={example}
     >
-      <SearchView />
+      <SeedSearchParams params={params}>
+        <SearchView />
+      </SeedSearchParams>
     </ViewHarness>
   )
 }
