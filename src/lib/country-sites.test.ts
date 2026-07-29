@@ -25,8 +25,22 @@ describe('COUNTRY_SITES', () => {
 
   it('points every entry at an http(s) URL', () => {
     for (const [code, url] of entries) {
-      expect(new URL(url).protocol, code).toMatch(/^https?:$/)
+      // The record's value type admits `undefined` (a miss is the common lookup), so
+      // an entry that IS present must actually carry a URL.
+      expect(url, code).toBeDefined()
+      expect(new URL(url!).protocol, code).toMatch(/^https?:$/)
     }
+  })
+
+  it('keeps plaintext http to the 14 countries with no working HTTPS', () => {
+    // Every other entry was probed and upgraded, so a viewer is never handed a
+    // MITM-able hop to a site the widget just vouched for. If a refresh re-introduces
+    // a plaintext URL, this fails and the new one has to be probed too.
+    const plaintext = entries.filter(([, url]) => url?.startsWith('http://')).map(([code]) => code)
+
+    expect(plaintext.sort()).toEqual(
+      ['AR', 'CL', 'CN', 'EE', 'GH', 'GR', 'HR', 'KE', 'KZ', 'LV', 'MT', 'MX', 'NZ', 'TR'].sort(),
+    )
   })
 
   it('resolves a localized country name for every key', () => {

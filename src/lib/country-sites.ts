@@ -13,75 +13,86 @@
 /**
  * ISO alpha-2 (**uppercase**) → the country's own site. Exported for its spec and
  * for story fixtures; read it through `countrySite` so the casing is handled.
+ * Typed with `| undefined` because a miss is the common case — most of the world
+ * isn't in here, and `noUncheckedIndexedAccess` is off, so a bare index would
+ * otherwise type as `string` and hand a consumer an `undefined` href.
  *
  * ~4 KB of static strings: no fetch, no CMS round trip. Notes on the data, so a
  * refresh doesn't "fix" them by mistake:
  *
- * - 57 of the 95 are plain `http://`, kept verbatim as published (a top-level `http`
- *   link opened in a new tab is not mixed content, though it is MITM-exposed — no
- *   guessing at `https` here, since a wrong guess is a dead link).
+ * - The source page publishes 57 of these as plain `http://`. Each was probed over
+ *   HTTPS and the 43 that answer 200 without downgrading are stored as `https://`,
+ *   so the widget never hands a viewer a MITM-able hop to a site it just vouched
+ *   for. The **14** with no working HTTPS today — `AR CL CN EE GH GR HR KE KZ LV MT
+ *   MX NZ TR` — stay `http://` as published rather than becoming dead links; re-probe
+ *   them on the next refresh instead of assuming either way.
  * - ~20 point at a Facebook / Blogspot / WordPress page rather than a domain —
  *   that IS the country's presence.
  * - One site can cover several countries: `farsimeditation.com` serves
  *   `AF`/`IR`/`TJ`/`TM`/`UZ`, `sahajayogameditationafrica.com` serves `MG`/`MZ`/`TG`/`ZA`.
  * - `AW`/`HK`/`NC`/`PF`/`TW` are non-sovereign territories, kept because Mapbox's
  *   geocoder still reports them as a `country_code`.
+ * - A handful sit on free-tier subdomains (`*.weebly.com`, `*.blogspot.com`,
+ *   `freeservers.com`): those names are re-registrable if the account lapses, and
+ *   this table is compile-time, so replacing one needs a rebuild + a redeploy of
+ *   every host. Moving the mapping into SahajCloud (issue #82, out of scope) is what
+ *   would make it editable.
  *
  * It's a snapshot — link rot is expected and out of scope (see issue #82).
  */
-export const COUNTRY_SITES: Record<string, string> = {
-  AD: 'http://sahajayogaandorra.org',
+export const COUNTRY_SITES: Record<string, string | undefined> = {
+  AD: 'https://sahajayogaandorra.org',
   AE: 'https://sahajayogauae.yoga',
   AF: 'https://farsimeditation.com',
   AL: 'https://www.facebook.com/SahajaYogaAlbania/',
   AR: 'http://sahajayoga-cba.freeservers.com/',
-  AT: 'http://www.sahajayoga.at/index.php',
+  AT: 'https://www.sahajayoga.at/index.php',
   AU: 'https://meditateforfree.au',
   AW: 'https://www.facebook.com/SahajaMeditationAruba',
   BA: 'https://www.facebook.com/sahajayogabosna/',
-  BD: 'http://bangladesh.sahajaworld.org/english/index.htm',
-  BE: 'http://www.sahajayoga.be/',
-  BG: 'http://www.sahajayoga-bg.org/',
-  BH: 'http://sahajayogabahrain.com',
+  BD: 'https://bangladesh.sahajaworld.org/english/index.htm',
+  BE: 'https://www.sahajayoga.be/',
+  BG: 'https://www.sahajayoga-bg.org/',
+  BH: 'https://sahajayogabahrain.com',
   BO: 'https://www.facebook.com/sahajayogabolivia/',
-  BR: 'http://www.sahajayoga.org.br/',
-  BY: 'http://sahajayoga.by/',
+  BR: 'https://www.sahajayoga.org.br/',
+  BY: 'https://sahajayoga.by/',
   CA: 'https://www.sahajayoga.ca/',
-  CH: 'http://www.sahajayoga.ch/en/',
+  CH: 'https://www.sahajayoga.ch/en/',
   CL: 'http://www.sahajayoga.cl/',
   CN: 'http://www.sahajayoga.org.cn/',
   CO: 'https://www.sahaja-yoga.co',
   CY: 'https://sahajayogacyprus.wordpress.com/',
-  CZ: 'http://www.nirmala.cz/',
+  CZ: 'https://www.nirmala.cz/',
   DE: 'https://www.sahajayoga.de',
-  DK: 'http://sahajayoga.dk/',
+  DK: 'https://sahajayoga.dk/',
   EC: 'https://www.facebook.com/Sahaja-Yoga-Ecuador-109546592481416/',
   EE: 'http://www.sahajayogaparnu.ee/',
-  ES: 'http://sahajayoga.es/',
-  FI: 'http://www.jooga.org/',
-  FJ: 'http://www.meditation.com.fj/',
-  FR: 'http://sahajayoga.fr/',
+  ES: 'https://sahajayoga.es/',
+  FI: 'https://www.jooga.org/',
+  FJ: 'https://www.meditation.com.fj/',
+  FR: 'https://sahajayoga.fr/',
   GA: 'https://www.sahajayogaafrica.com/gabon',
-  GB: 'http://www.sahajayoga.org.uk/',
+  GB: 'https://www.sahajayoga.org.uk/',
   GH: 'http://www.meditationghana.com/',
   GR: 'http://www.sahajayoga.gr/en/',
   HK: 'https://www.freemeditation.hk',
   HR: 'http://www.sahajayogacroatia.org/',
   HU: 'https://sahajajoga.hu/',
   ID: 'https://www.sahajayoga-id.com/',
-  IE: 'http://www.sahajayoga.ie/',
-  IL: 'http://www.sahajayoga.org.il/',
-  IN: 'http://www.sahajayoga.org.in/',
+  IE: 'https://www.sahajayoga.ie/',
+  IL: 'https://www.sahajayoga.org.il/',
+  IN: 'https://www.sahajayoga.org.in/',
   IR: 'https://farsimeditation.com/',
   IS: 'https://sahajayoga.is/',
-  IT: 'http://www.sahajayoga.it/',
-  JP: 'http://www.sahajayogajp.org/',
+  IT: 'https://www.sahajayoga.it/',
+  JP: 'https://www.sahajayogajp.org/',
   KE: 'http://www.meditationkenya.com/',
   KH: 'https://www.facebook.com/Sahaja-Yoga-Cambodia',
   KR: 'https://meditatekorea.com/',
-  KW: 'http://sahajayogakuwait.blogspot.com.au/',
+  KW: 'https://sahajayogakuwait.blogspot.com.au/',
   KZ: 'http://kazakhstan.sahajayoga.ru/',
-  LT: 'http://www.sahadzajoga.lt/',
+  LT: 'https://www.sahadzajoga.lt/',
   LU: 'https://www.facebook.com/sahajayogaluxembourg/',
   LV: 'http://sahadza.weebly.com/',
   MD: 'https://sahajayogamoldova.weebly.com/',
@@ -89,42 +100,42 @@ export const COUNTRY_SITES: Record<string, string> = {
   MT: 'http://sahajayoga.com.mt/',
   MX: 'http://www.sahajayoga.org/worldwidecontacts/country.asp?ID=140',
   MY: 'https://sahajayogamy.org',
-  MZ: 'http://sahajayogameditationafrica.com/',
+  MZ: 'https://sahajayogameditationafrica.com/',
   NC: 'https://www.facebook.com/Sahaja-Yoga-Noum%C3%A9a-477754978957524/',
   NG: 'https://www.sahajayogaafrica.com/nigeria',
-  NL: 'http://www.sahajayoga.nl/',
-  NO: 'http://www.sahajayoga.no/',
-  NP: 'http://sahajayoganepal.org/',
+  NL: 'https://www.sahajayoga.nl/',
+  NO: 'https://www.sahajayoga.no/',
+  NP: 'https://sahajayoganepal.org/',
   NZ: 'http://www.freemeditationnz.com/',
   OM: 'https://www.facebook.com/omansahajayoga/',
   PE: 'https://www.facebook.com/SahajaYogaPeru/',
   PF: 'https://sahajayogatahitidotorg.wordpress.com',
-  PG: 'http://www.meditation-png.com',
-  PH: 'http://www.sahajayoga-ph.com/',
+  PG: 'https://www.meditation-png.com',
+  PH: 'https://www.sahajayoga-ph.com/',
   PK: 'https://www.facebook.com/Sahaja-Yoga-Pakistan-1580040902271884/',
-  PL: 'http://sahajayoga.pl/',
+  PL: 'https://sahajayoga.pl/',
   PT: 'https://www.facebook.com/sahajayogalisboa/',
-  RO: 'http://www.sahajayoga.ro/',
-  RS: 'http://www.sahajasrbija.org/',
-  RU: 'http://sahajayoga.ru/',
-  SE: 'http://www.sahajayoga.se/',
-  SG: 'http://www.singaporemeditation.org/',
-  SI: 'http://www.jogaslovenija.org/',
-  SK: 'http://www.sahadzajoga.sk',
-  TG: 'http://sahajayogameditationafrica.com/',
+  RO: 'https://www.sahajayoga.ro/',
+  RS: 'https://www.sahajasrbija.org/',
+  RU: 'https://sahajayoga.ru/',
+  SE: 'https://www.sahajayoga.se/',
+  SG: 'https://www.singaporemeditation.org/',
+  SI: 'https://www.jogaslovenija.org/',
+  SK: 'https://www.sahadzajoga.sk',
+  TG: 'https://sahajayogameditationafrica.com/',
   TH: 'https://www.facebook.com/SahajaYogaThailand',
   TJ: 'https://farsimeditation.com/',
   TM: 'https://farsimeditation.com/',
-  TO: 'http://www.meditation.to',
+  TO: 'https://www.meditation.to',
   TR: 'http://www.sahajayoga.com.tr/',
-  TW: 'http://www.sahajayoga-tw.com/',
-  UA: 'http://www.sahajayoga.org.ua/',
+  TW: 'https://www.sahajayoga-tw.com/',
+  UA: 'https://www.sahajayoga.org.ua/',
   US: 'https://us.sahajayoga.org',
   UY: 'https://www.facebook.com/sahajayogauruguay/',
   UZ: 'https://farsimeditation.com/',
-  VE: 'http://sahajayogavenezuelameditacion.blogspot.com.au/',
+  VE: 'https://sahajayogavenezuelameditacion.blogspot.com.au/',
   VN: 'https://sahajayoga.vn',
-  ZA: 'http://www.sahajayogameditationafrica.com/',
+  ZA: 'https://www.sahajayogameditationafrica.com/',
 }
 
 /**

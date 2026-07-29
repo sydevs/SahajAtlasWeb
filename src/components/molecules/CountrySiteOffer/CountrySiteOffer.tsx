@@ -43,6 +43,9 @@ export function CountrySiteOffer({ countryCode, href }: CountrySiteOfferProps) {
         <CircleFlag
           className="h-5 w-5 rounded-full border border-divider bg-divider"
           countryCode={countryCode.toLowerCase()}
+          // The flag SVG loads from react-circle-flags' own CDN, so without this the
+          // embedding host's URL rides along to a third party on every render.
+          referrerPolicy="no-referrer"
         />
       }
     >

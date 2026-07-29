@@ -4,13 +4,17 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { CountrySiteOffer } from './CountrySiteOffer'
 
-import { COUNTRY_SITES } from '@/lib/country-sites'
+import { countrySite } from '@/lib/country-sites'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
-// A spread of the real mapping: a plain `https` domain, a `http://` entry kept as
-// published, a Facebook page, and a shared multi-country site.
-const EXAMPLES = ['IS', 'GB', 'TH', 'UZ']
+// A spread of the real mapping: a plain domain, one of the 14 still on `http://`, a
+// Facebook page, and a site shared by several countries. Read through `countrySite`,
+// so a code dropped from the table in a future refresh renders nothing rather than an
+// `undefined` href.
+const EXAMPLES = ['IS', 'TR', 'TH', 'UZ']
+  .map((countryCode) => ({ countryCode, href: countrySite(countryCode) }))
+  .filter((example): example is { countryCode: string; href: string } => Boolean(example.href))
 
 /**
  * CountrySiteOffer — the next step shown when a search lands in a country that lists
@@ -26,8 +30,8 @@ export const Default: Story = () => (
       title="Country website offer"
     >
       <div className="flex max-w-sm flex-col gap-4">
-        {EXAMPLES.map((code) => (
-          <CountrySiteOffer key={code} countryCode={code} href={COUNTRY_SITES[code]} />
+        {EXAMPLES.map((example) => (
+          <CountrySiteOffer key={example.countryCode} {...example} />
         ))}
       </div>
     </StorySection>

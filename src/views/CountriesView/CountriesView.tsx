@@ -105,6 +105,9 @@ export function CountriesView() {
                   <CircleFlag
                     className="h-full w-full rounded-full border border-divider bg-divider"
                     countryCode={country.countryCode.toLocaleLowerCase()}
+                    // Matches CountrySiteOffer: the flag SVG comes from
+                    // react-circle-flags' CDN, and the host page's URL shouldn't.
+                    referrerPolicy="no-referrer"
                   />
                 ) : undefined
               }

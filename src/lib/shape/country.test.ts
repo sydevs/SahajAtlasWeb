@@ -79,4 +79,14 @@ describe('isoCountryCode', () => {
     expect(isoCountryCode(null)).toBeUndefined()
     expect(isoCountryCode(undefined)).toBeUndefined()
   })
+
+  it('stays anchored — this is the only gate on an attacker-supplied ?cc', () => {
+    // The result indexes `COUNTRY_SITES` and becomes a path segment in the flag CDN
+    // URL, so an unanchored future edit (`/^[A-Za-z]{2}/`) must fail loudly here
+    // rather than quietly letting a separator or a newline through.
+    expect(isoCountryCode('gb/')).toBeUndefined()
+    expect(isoCountryCode('gb\n')).toBeUndefined()
+    expect(isoCountryCode('gb.')).toBeUndefined()
+    expect(isoCountryCode(' gb')).toBeUndefined()
+  })
 })
