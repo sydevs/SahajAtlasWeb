@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import {
   CheckIcon,
+  HelpIcon,
   LanguageIcon,
   MonitorIcon,
   MoonFilledIcon,
@@ -12,6 +13,7 @@ import {
   SunFilledIcon,
 } from '@/components/atoms/Icons'
 import { supportedLanguages } from '@/config/i18n'
+import { useReportModal } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
@@ -49,6 +51,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const { t } = useTranslation('common')
   const { locale, setLocale, languageNames } = useLocale()
   const { preference, setPreference } = useThemePreference()
+  const openReport = useReportModal((state) => state.openReport)
   const container = overlayContainer()
 
   const themes: { value: ThemePreference; label: string; icon: ReactNode }[] = [
@@ -115,6 +118,15 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
+
+          <DropdownMenu.Separator className="my-1 h-px bg-divider" />
+
+          {/* A plain row rather than a submenu: it hands off to the report modal, which
+              is ephemeral state, not a setting to pick from a list (issue #79). */}
+          <DropdownMenu.Item className={item} onSelect={() => openReport()}>
+            <HelpIcon size={18} />
+            <span>{t('report.title')}</span>
+          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

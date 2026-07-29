@@ -16,6 +16,7 @@ secret that ends up in the bundle.
 | --------------------------- | ------------ | ------- |
 | `VITE_SAHAJCLOUD_URL`       | `.env`       | SahajCloud origin; the client appends `/api` (`https://cloud.sydevelopers.com`; local backend: `http://localhost:3000`) |
 | `VITE_HOST`                 | `.env`       | Origin used to load `public/locales/<lng>/<ns>.json` over HTTP |
+| `VITE_TURNSTILE_SITE_KEY`   | `.env`       | Cloudflare Turnstile **site** key for the report-issue form — public by design (the secret half lives in SahajCloud), so it's committed. `.env` holds Cloudflare's always-passes test key `1x00000000000000000000AA` for dev/Ladle/CI; production overrides it in the Cloudflare Pages environment. Unset ⇒ the form degrades to the `mailto:` fallback |
 | `VITE_MAPBOX_ACCESSTOKEN`   | `.env.local` | Mapbox GL **public** token (`pk.…`) — safe to ship in the bundle |
 | `VITE_SAHAJCLOUD_API_KEY`   | `.env.local` | Published `sahaj-atlas-client` API key the widget uses in dev (passed as the `apiKey` prop; sent as `Authorization: clients API-Key …`) |
 | `VITE_FATHOM_ID`            | `.env.local` | Fathom analytics site id (optional; analytics disabled if unset / on localhost) |

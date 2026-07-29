@@ -12,6 +12,12 @@ export type { MapSearchProps } from './Mapbox'
 export { DynamicEventsList } from './EventsList'
 export type { DynamicEventsListProps } from './EventsList'
 
+// Only the mounted host is public; the form inside it is module-private (see the
+// folder's index.ts). Unlike the code-split families below it is a normal static import:
+// App mounts it at load so the error fallbacks can reach it.
+export { ReportIssueModal } from './ReportIssueForm'
+export type { ReportIssueModalProps } from './ReportIssueForm'
+
 // NOTE: EventDetails / RegistrationForm are deliberately NOT re-exported. The
 // EventView drawer view lazy-loads EventDetails
 // (`lazy(() => import('@/components/organisms/EventDetails'))` in

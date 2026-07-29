@@ -5,6 +5,7 @@ export * from './geojson'
 export * from './ip-location'
 export * from './region'
 export * from './registration'
+export * from './report'
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number

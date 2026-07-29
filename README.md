@@ -12,6 +12,23 @@ Mapbox experience with a country → region → area → venue → event hierarc
 The same build also runs standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx`, demoed in `demo.html`.
 
+### Content-Security-Policy for embedding hosts
+
+The widget's **Report an issue** form is protected by a
+[Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) captcha, which
+loads a script from Cloudflare into your page — lazily, only when a viewer actually
+opens the form, so a visitor who never reports anything never fetches it. If your page
+sends a CSP, allow:
+
+```
+script-src  https://challenges.cloudflare.com
+frame-src   https://challenges.cloudflare.com
+```
+
+Without those the widget degrades gracefully rather than breaking: the form detects the
+blocked challenge and offers a `mailto:` address instead of a submit button. Everything
+else — the map, search, event pages, registration — is unaffected.
+
 ## Stack
 
 - [Vite](https://vitejs.dev/guide/) (rolldown) + React 18 + TypeScript (strict)

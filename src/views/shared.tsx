@@ -16,13 +16,14 @@ import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory } from '@/config/store'
+import { useCameraHistory, useReportModal } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
+import { errorMessage } from '@/lib/report'
 import {
   hasActivePlaceSearch,
   markGeolocationDismissed,
@@ -329,15 +330,15 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   const { t } = useTranslation('common')
   const { t: tEvents } = useTranslation('events')
   const navigate = useAtlasNavigate()
+  const openReport = useReportModal((state) => state.openReport)
+  // One narrowing for both the banner and the report context — via the same shared
+  // helper the app-level ErrorFallback uses, so a given failure reads identically
+  // wherever it surfaces.
+  const description = errorMessage(error) ?? t('error.generic')
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
-      <Alert
-        align="start"
-        className="max-w-xs"
-        color="danger"
-        description={error?.message ?? t('error.generic')}
-      />
+      <Alert align="start" className="max-w-xs" color="danger" description={description} />
       <Button variant="flat" onClick={resetErrorBoundary}>
         {t('error.retry')}
       </Button>
@@ -345,6 +346,11 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
           still offers a way back into live inventory (issue #52). */}
       <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
         {tEvents('display.see_nearby')}
+      </Button>
+      {/* …and if it's us rather than the link, a way to tell us so, carrying the
+          thrown message as report context (issue #79). */}
+      <Button size="sm" variant="ghost" onClick={() => openReport(description)}>
+        {t('report.title')}
       </Button>
     </DrawerBody>
   )

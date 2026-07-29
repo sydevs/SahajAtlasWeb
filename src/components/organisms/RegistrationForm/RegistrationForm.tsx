@@ -16,6 +16,7 @@ import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
+import { FormField, fieldErrorId } from '@/components/molecules/FormField'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import preview from '@/config/preview'
@@ -184,44 +185,10 @@ export function RegistrationForm({
   )
 }
 
-// Label + control + error, kept private to the registration form. The control's
-// chrome comes from the shared `fieldChrome` recipe so these inputs match the
-// Select and the filter date bounds.
-
-/** `aria-describedby` target for a field's error text — see `Field`. */
-const errorId = (name?: string) => (name ? `${name}-error` : undefined)
-
-function Field({
-  label,
-  required,
-  error,
-  htmlFor,
-  children,
-}: {
-  label: ReactNode
-  required?: boolean
-  error?: ReactNode
-  htmlFor?: string
-  children: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium" htmlFor={htmlFor}>
-        {label}
-        {required && ' *'}
-      </label>
-      {children}
-      {/* Carries the id the control points at with aria-describedby, so the
-          error is announced with the field rather than being a red border and
-          a floating sentence a screen reader never connects to it. */}
-      {error && (
-        <span className="text-xs text-danger-11" id={errorId(htmlFor)}>
-          {error}
-        </span>
-      )}
-    </div>
-  )
-}
+// The label + control + error shell is the shared `FormField` molecule (also used by the
+// report-issue form), so the required marker and the aria-describedby id convention are
+// defined once. The control's chrome comes from the shared `fieldChrome` recipe, so
+// these inputs match the Select and the filter date bounds.
 
 function LabeledInput({
   label,
@@ -237,16 +204,16 @@ function LabeledInput({
   registration: UseFormRegisterReturn
 }) {
   return (
-    <Field error={error} htmlFor={registration.name} label={label} required={required}>
+    <FormField error={error} htmlFor={registration.name} label={label} required={required}>
       <input
-        aria-describedby={error ? errorId(registration.name) : undefined}
+        aria-describedby={error ? fieldErrorId(registration.name) : undefined}
         aria-invalid={error ? true : undefined}
         className={fieldChrome({ isInvalid: Boolean(error) })}
         id={registration.name}
         type={type}
         {...registration}
       />
-    </Field>
+    </FormField>
   )
 }
 
@@ -260,16 +227,16 @@ function LabeledTextarea({
   registration: UseFormRegisterReturn
 }) {
   return (
-    <Field error={error} htmlFor={registration.name} label={label}>
+    <FormField error={error} htmlFor={registration.name} label={label}>
       <textarea
-        aria-describedby={error ? errorId(registration.name) : undefined}
+        aria-describedby={error ? fieldErrorId(registration.name) : undefined}
         aria-invalid={error ? true : undefined}
         className={fieldChrome({ isInvalid: Boolean(error), multiline: true })}
         id={registration.name}
         rows={3}
         {...registration}
       />
-    </Field>
+    </FormField>
   )
 }
 
@@ -310,7 +277,7 @@ function RegistrationFields({
         defaultValue={upcomingDates[0]?.toISOString() as unknown as Date}
         name="startingAt"
         render={({ field }) => (
-          <Field
+          <FormField
             required
             error={errors.startingAt && t('errors.starting_at')}
             label={t('registration.starting_date')}
@@ -326,7 +293,7 @@ function RegistrationFields({
               onBlur={field.onBlur}
               onChange={field.onChange}
             />
-          </Field>
+          </FormField>
         )}
         rules={{ required: true }}
       />

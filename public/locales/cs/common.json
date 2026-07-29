@@ -102,5 +102,27 @@
   "back": "Zpět",
   "close": "Zavřít",
   "explore": "Prozkoumat",
-  "settings": "Nastavení"
+  "settings": "Nastavení",
+  "report": {
+    "title": "Nahlásit problém",
+    "description": "Napište nám, co je špatně, a my to předáme týmu.",
+    "message_label": "Co se pokazilo?",
+    "message_placeholder": "Popište, co jste dělali a co vypadalo špatně.",
+    "email_label": "E-mail",
+    "email_help": "Nepovinné — odpovědět můžeme jen tehdy, pokud jej vyplníte.",
+    "email_placeholder": "vy@example.com",
+    "submit": "Odeslat hlášení",
+    "cancel": "Zrušit",
+    "sent": "Děkujeme — vaše hlášení je na cestě k týmu.",
+    "blocked": "Bezpečnostní kontrolu se nepodařilo načíst, takže tento formulář nelze odeslat. Napište nám prosím na:",
+    "errors": {
+      "email": "Zadejte platnou e-mailovou adresu.",
+      "message": "Napište prosím alespoň %{min} znaků.",
+      "message_max": "Zkraťte prosím text pod %{max} znaků."
+    }
+  },
+  "error": {
+    "generic": "Něco se pokazilo.",
+    "retry": "Zkusit znovu"
+  }
 }

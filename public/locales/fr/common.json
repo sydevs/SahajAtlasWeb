@@ -102,5 +102,27 @@
   "back": "Retour",
   "close": "Fermer",
   "explore": "Explorer",
-  "settings": "Paramètres"
+  "settings": "Paramètres",
+  "report": {
+    "title": "Signaler un problème",
+    "description": "Dites-nous ce qui ne va pas et nous le transmettrons à l'équipe.",
+    "message_label": "Qu'est-ce qui ne va pas ?",
+    "message_placeholder": "Décrivez ce que vous faisiez et ce qui semblait incorrect.",
+    "email_label": "E-mail",
+    "email_help": "Facultatif — nous ne pouvons répondre que si vous le renseignez.",
+    "email_placeholder": "vous@exemple.com",
+    "submit": "Envoyer le signalement",
+    "cancel": "Annuler",
+    "sent": "Merci — votre signalement est en route vers l’équipe.",
+    "blocked": "La vérification de sécurité n’a pas pu se charger, ce formulaire ne peut donc pas être envoyé. Écrivez-nous plutôt à :",
+    "errors": {
+      "email": "Saisissez une adresse e-mail valide.",
+      "message": "Veuillez écrire au moins %{min} caractères.",
+      "message_max": "Veuillez rester sous %{max} caractères."
+    }
+  },
+  "error": {
+    "generic": "Une erreur s'est produite.",
+    "retry": "Réessayer"
+  }
 }

@@ -102,5 +102,27 @@
   "back": "Atrás",
   "close": "Cerrar",
   "explore": "Explorar",
-  "settings": "Ajustes"
+  "settings": "Ajustes",
+  "report": {
+    "title": "Informar de un problema",
+    "description": "Cuéntanos qué falla y lo trasladaremos al equipo.",
+    "message_label": "¿Qué ha fallado?",
+    "message_placeholder": "Describe qué estabas haciendo y qué se veía mal.",
+    "email_label": "Correo electrónico",
+    "email_help": "Opcional: solo podemos responderte si lo indicas.",
+    "email_placeholder": "tu@ejemplo.com",
+    "submit": "Enviar informe",
+    "cancel": "Cancelar",
+    "sent": "Gracias: tu informe va camino del equipo.",
+    "blocked": "No se ha podido cargar la verificación de seguridad, así que no se puede enviar este formulario. Escríbenos a:",
+    "errors": {
+      "email": "Introduce una dirección de correo válida.",
+      "message": "Escribe al menos %{min} caracteres.",
+      "message_max": "No superes los %{max} caracteres."
+    }
+  },
+  "error": {
+    "generic": "Algo ha salido mal.",
+    "retry": "Reintentar"
+  }
 }

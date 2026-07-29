@@ -67,6 +67,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `Dropdown/`           | `Dropdown`                                           | Floating-UI **popover shell**: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`)            |
 | `Input/`              | `Input`                                              | Native `<input>` on the shared `fieldChrome` recipe (forwards its ref for react-hook-form); `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                               | Router link, or `<a>` for external/`mailto:`/`tel:`; forwards a ref (used as a whole-card hit target)                                    |
+| `Modal/`              | `Modal`, `ModalContent`/`Body`/`Footer`/`Close`      | Radix Dialog centred sheet; portals into the themed root. `ModalContent` owns the header (title, optional description, ×) so there is exactly one `Dialog.Title`. Ephemeral only — anything that is a *place* is a Drawer, since the modal never touches the URL or history |
 | `RadioGroup/`         | `RadioGroup`, `RadioOption`                          | Controlled radio list as selectable cards (native `<input type="radio">`); optional `collapseAfter` hides the tail behind a reveal link. Callers pass `label` nodes — no domain logic (the registration date picker) |
 | `Select/`             | `Select`, `SelectItem`, `fieldChrome`                | Radix select on brand tokens (for a type-to-filter picker use `Combobox` instead). `fieldChrome` is the shared input recipe (also used by Input/Textarea/Combobox + the filter date bounds) |
 | `Slider/`             | `Slider`                                             | Radix slider; `thumbLabels` labels each thumb. Currently unused by the app (the time-of-day filter moved to period toggles)              |
@@ -87,8 +88,9 @@ tokens fill an active control):
   solid — not just the unselected border — so an errored field reads as wrong
   whether or not it has a value. Pair it with **`aria-describedby`** (also
   accepted by every input atom) pointing at the field's error text — the error
-  **message** and that id live in the form/field wrapper (see RegistrationForm's
-  `Field`), not the atom, which stays presentational.
+  **message** and that id live in the `FormField` molecule, not the atom, which
+  stays presentational. Build the id with `fieldErrorId` / `fieldHelpId` (or let
+  `fieldDescribedBy` compose both) rather than hand-writing the suffix.
 - **`highlight`** — primary-tints the *unselected/empty* state to flag an
   active/in-use field (the filter panel's affordance).
 
@@ -108,6 +110,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | `EventFacts/`        | `EventFacts`, `EventSummary`       | The shared calendar/location fact block. `variant="compact"` for result cards; `variant="card"` is the boxed details card, wrapped by `EventSummary` (title + embed backlink) on the share/registration drawers |
 | `EventMetadata/`     | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
 | `Fallbacks/`         | `LoadingFallback`, `ErrorFallback` | Suspense / error-boundary fallbacks (compose `Alert`/`Spinner`)                               |
+| `FormField/`         | `FormField`, `fieldErrorId`, `fieldHelpId`, `fieldDescribedBy` | Label + control + help/error shell shared by the registration and report forms; owns the required marker and the `aria-describedby` id convention |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`           | Generic Swiper carousel (`slides`); folds in the lazy YARL lightbox (own chunk)               |
 | `List/`              | `List`, `listRow`                  | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome + gutter          |
 | `GeolocationPrompt/` | `GeolocationPrompt`                | The IP-geolocated "events near you?" suggestion line                                          |
