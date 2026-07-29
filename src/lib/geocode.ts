@@ -1,23 +1,6 @@
 import type { GeocodingFeature, GeocodingFeatureContextComponent } from '@mapbox/search-js-core'
 
-// Reading a country out of a geocoder result, and the one canonical form for an
-// ISO alpha-2 code across the app.
-
-/**
- * A country code normalized to the app's canonical form: **uppercase** alpha-2, or
- * `undefined` for anything else.
- *
- * Upper is canonical because `Intl.DisplayNames({ type: 'region' })` is
- * case-sensitive — `.of('gb')` echoes back `"gb"` while `.of('GB')` resolves
- * "United Kingdom" — and `COUNTRY_SITES` is keyed the same way. Callers that need
- * lower (`CircleFlag`, a region slug) lowercase it at the call site.
- *
- * Guarding the shape here means a malformed value (an un-migrated region slug, a
- * hand-typed `?cc=USA`) yields no country rather than throwing downstream in
- * `Intl.DisplayNames` / `CircleFlag`.
- */
-export const isoCountryCode = (value: string | null | undefined): string | undefined =>
-  typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value.toUpperCase() : undefined
+import { isoCountryCode } from '@/lib/shape'
 
 /**
  * The ISO alpha-2 country a geocoded feature sits in, or `undefined` when the
@@ -27,11 +10,14 @@ export const isoCountryCode = (value: string | null | undefined): string | undef
  * for *every* level — a country-level result's own context describes itself — so
  * one read covers both "searched a country" and "searched a town in one".
  *
- * The read widens the country context locally rather than the vendor type app-wide:
+ * The country context is widened locally rather than the vendor type app-wide:
  * `GeocodingFeatureContextComponent` declares only `mapbox_id`/`name`/`wikidata_id`,
  * even though the API documents (and returns) `country_code`/`country_code_alpha_3`
- * on the country component. `isoCountryCode` still validates whatever comes back,
- * so an absent or non-conforming value yields `undefined` rather than propagating.
+ * on the country component. It has to be an *intersection* rather than a bare
+ * `{ country_code?: string }` — the two share no declared property, so TS rejects the
+ * assignment outright. Optional-chained because this is remote data: the vendor types
+ * mark `properties`/`context` required, but a shape change shouldn't throw out of a
+ * search callback, and `isoCountryCode` validates whatever does come back.
  */
 type CountryContext = GeocodingFeatureContextComponent & { country_code?: string }
 

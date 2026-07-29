@@ -8,10 +8,9 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
-import { clientQuery } from '@/config/api'
+import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { regionsQuery } from '@/config/api'
 import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view

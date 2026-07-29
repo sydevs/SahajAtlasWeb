@@ -1,17 +1,21 @@
+// National Sahaja Yoga websites, offered when a search lands in a country that
+// lists no programs at all (issue #82). A hand-maintained ISO alpha-2 → URL table
+// with a case-normalizing accessor, mirroring `PLATFORMS_BY_COUNTRY` /
+// `platformsForCountry` in `./share/platforms.ts` — the same shape of static,
+// country-keyed data this app already carries.
+//
+// Source: https://shrimataji.org/map/world.html — scraped 2026-07-29 (96 rows →
+// 95 countries; the continent-level "Africa" row isn't a country and is dropped).
+// English names were resolved to canonical alpha-2 via `Intl.DisplayNames`, legacy
+// aliases excluded (`GB`≠`UK`, `RS`≠`CS`/`YU`, `DE`≠`DD`, `FR`≠`FX`, `RU`≠`SU`),
+// with overrides for the page's own typos ("Switerland" → `CH`, "Tajikestan" → `TJ`).
+
 /**
- * National Sahaja Yoga websites, keyed by ISO 3166-1 alpha-2 country code.
+ * ISO alpha-2 (**uppercase**) → the country's own site. Exported for its spec and
+ * for story fixtures; read it through `countrySite` so the casing is handled.
  *
- * Source: https://shrimataji.org/map/world.html — scraped 2026-07-29 (96 rows →
- * 95 countries; the continent-level "Africa" row isn't a country and is dropped).
- * English names were resolved to canonical alpha-2 via `Intl.DisplayNames`, legacy
- * aliases excluded (`GB`≠`UK`, `RS`≠`CS`/`YU`, `DE`≠`DD`, `FR`≠`FX`, `RU`≠`SU`),
- * with overrides for the page's own typos ("Switerland" → `CH`, "Tajikestan" → `TJ`).
- *
- * Keys are **uppercase** — the canonical form `isoCountryCode` (src/lib/geocode.ts)
- * normalizes to, so a `?cc` value and a country slug both look up directly.
- *
- * This is ~4 KB of static strings tree-shaken into the bundle: no fetch, no CMS
- * round trip. Notes on the data, so a refresh doesn't "fix" them by mistake:
+ * ~4 KB of static strings: no fetch, no CMS round trip. Notes on the data, so a
+ * refresh doesn't "fix" them by mistake:
  *
  * - 45 entries are plain `http://`, kept verbatim as published (a top-level `http`
  *   link opened in a new tab is not mixed content).
@@ -121,3 +125,12 @@ export const COUNTRY_SITES: Record<string, string> = {
   VN: 'https://sahajayoga.vn',
   ZA: 'http://www.sahajayogameditationafrica.com/',
 }
+
+/**
+ * The country's own site, or `undefined` when it isn't one of the 95 (most of the
+ * world isn't). Case-insensitive by construction — like `platformsForCountry`, so
+ * neither a lowercase region slug nor an uppercase `?cc` has to be normalized at
+ * the call site.
+ */
+export const countrySite = (code?: string | null): string | undefined =>
+  (code && COUNTRY_SITES[code.toUpperCase()]) || undefined

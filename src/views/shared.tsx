@@ -23,7 +23,7 @@ import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
-import { geocodeCountryCode, isoCountryCode } from '@/lib/geocode'
+import { geocodeCountryCode } from '@/lib/geocode'
 import { errorMessage } from '@/lib/report'
 import {
   hasActivePlaceSearch,
@@ -32,12 +32,14 @@ import {
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
+  SEARCH_COUNTRY_PARAM,
   activeFilterCount,
   searchPath,
   atlasDepth,
   calendarPath,
   filtersFromParams,
   filtersToParams,
+  isoCountryCode,
   resolvePath,
   sortFromParams,
   sortToParams,
@@ -253,7 +255,7 @@ export function SearchField() {
       // country-less feature.
       const countryCode = geocodeCountryCode(value)
 
-      if (countryCode) params.set('cc', countryCode)
+      if (countryCode) params.set(SEARCH_COUNTRY_PARAM, countryCode)
 
       navigate(`/search?${params.toString()}`)
     },
@@ -449,7 +451,7 @@ export function GeolocationSuggestion({
     // lands in a program-less country gets the offer too.
     const countryCode = isoCountryCode(ipLocation.country_code)
 
-    if (countryCode) params.set('cc', countryCode)
+    if (countryCode) params.set(SEARCH_COUNTRY_PARAM, countryCode)
 
     // Accepting must NOT persist a dismissal — only the × does (handleDismiss).
     // Zooming to the guess already hides the prompt on its own: the new URL carries

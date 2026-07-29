@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { COUNTRY_SITES } from './country-sites'
+import { COUNTRY_SITES, countrySite } from './country-sites'
 
 // The mapping is hand-scraped static data, so the contract it has to hold is
 // mechanical: canonical uppercase alpha-2 keys (what `isoCountryCode` normalizes a
@@ -25,7 +25,6 @@ describe('COUNTRY_SITES', () => {
 
   it('points every entry at an http(s) URL', () => {
     for (const [code, url] of entries) {
-      expect(() => new URL(url), code).not.toThrow()
       expect(new URL(url).protocol, code).toMatch(/^https?:$/)
     }
   })
@@ -38,5 +37,21 @@ describe('COUNTRY_SITES', () => {
       // back would mean the key isn't a region Intl knows.
       expect(names.of(code), code).not.toBe(code)
     }
+  })
+})
+
+describe('countrySite', () => {
+  it('looks a country up whatever the casing — a lowercase slug or an uppercase ?cc', () => {
+    expect(countrySite('IS')).toBe(COUNTRY_SITES.IS)
+    expect(countrySite('is')).toBe(COUNTRY_SITES.IS)
+  })
+
+  it('is undefined for a country with no site, and for no country at all', () => {
+    // Angola is a real country the list doesn't cover — the "keeps today's empty
+    // state" case.
+    expect(countrySite('AO')).toBeUndefined()
+    expect(countrySite('')).toBeUndefined()
+    expect(countrySite(null)).toBeUndefined()
+    expect(countrySite(undefined)).toBeUndefined()
   })
 })

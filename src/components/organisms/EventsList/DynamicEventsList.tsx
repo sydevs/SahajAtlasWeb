@@ -1,9 +1,8 @@
 import type { SortOrder } from '@/lib/shape'
 
 import { useMemo } from 'react'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
-import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { EventsList } from './EventsList'
@@ -11,24 +10,20 @@ import { EventsList } from './EventsList'
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { CountrySiteOffer } from '@/components/molecules/CountrySiteOffer'
 import { Alert } from '@/components/atoms/Alert'
-import { COUNTRY_SITES } from '@/data/country-sites'
 import { isSoon } from '@/lib'
-import { isoCountryCode } from '@/lib/geocode'
 import { EventSlim } from '@/types'
 import {
   byDistance,
   byNextOccurrence,
-  countryHasPrograms,
-  filtersKey,
   hasActiveFilters,
   isOnline,
   nextOccurrence,
 } from '@/lib/shape'
+import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useSortOrder } from '@/hooks/use-sort'
-import api, { regionsQuery } from '@/config/api'
-import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { eventsQuery } from '@/config/api'
 import i18n from '@/config/i18n'
 
 // Cap the search results at this distance from a searched location; when farther
@@ -93,13 +88,10 @@ export function DynamicEventsList({
   const filters = useEventFilters()
   const { locale } = useLocale()
 
-  const { data: events } = useSuspenseQuery({
-    // Latitude/longitude are rounded to reduce re-fetching when the map moves; the
-    // locale keys the (localized) titles the list shows, so a switch refetches. Sort
-    // is deliberately NOT in the key — it's presentation, applied below in a memo.
-    queryKey: ['events', latitude.toFixed(2), longitude.toFixed(2), filtersKey(filters), locale],
-    queryFn: () => api.getEvents(latitude, longitude, filters),
-  })
+  // Through the shared `eventsQuery` factory so the SearchView story seeds the exact
+  // key this reads (see config/api) — the quantized centre, the filters, and the
+  // locale, with sort deliberately absent (it's re-applied client-side below).
+  const { data: events } = useSuspenseQuery(eventsQuery(latitude, longitude, filters, locale))
 
   // Apply the URL-selected ordering to the fetched list. Memoized on the fetched
   // reference + the order, so re-sorting is a cheap client-side reorder, never a
@@ -150,32 +142,12 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
   const active = hasActiveFilters(useEventFilters())
   const { clearFilters } = useSetFilters()
-  const [searchParams] = useSearchParams()
+  const countrySite = useCountrySite()
 
-  // `?cc` is written by the search field / accepted geolocation suggestion, so this
-  // only ever resolves on /search — no other list surface changes behaviour.
-  const countryCode = isoCountryCode(searchParams.get('cc'))
-  const site = countryCode ? COUNTRY_SITES[countryCode] : undefined
-
-  // Both are cache-once reads warmed at bootstrap (`api.warmCaches`); until they
-  // land, `countryHasPrograms` answers false-y and the offer simply doesn't show.
-  const { data: regions } = useQuery({ ...regionsQuery(), enabled: site !== undefined })
-  const { data: geojson } = useQuery({
-    queryKey: ['geojson'],
-    queryFn: () => api.getGeojson(),
-    staleTime: GEOJSON_STALE_TIME,
-    enabled: site !== undefined,
-  })
-
-  if (
-    countryCode &&
-    site &&
-    geojson &&
-    !countryHasPrograms(regions, geojson.features, countryCode)
-  ) {
+  if (countrySite) {
     return (
       <div className="p-4">
-        <CountrySiteOffer countryCode={countryCode} href={site} />
+        <CountrySiteOffer {...countrySite} />
       </div>
     )
   }

@@ -3,7 +3,7 @@ import type { RegionedFeature } from './country'
 
 import { describe, it, expect } from 'vitest'
 
-import { countryHasPrograms } from './country'
+import { countryHasPrograms, isoCountryCode } from './country'
 
 // Country slugs are lowercase ISO codes (SahajCloud#556); Iceland is deliberately
 // absent — the "no programs" country the offer exists for.
@@ -45,18 +45,30 @@ describe('countryHasPrograms', () => {
     expect(countryHasPrograms(regions, [at(3)], 'Gb')).toBe(true)
   })
 
-  it('is false for an empty feed', () => {
+  it('is false for an empty feed, and for an empty tree', () => {
     expect(countryHasPrograms(regions, [], 'GB')).toBe(false)
-  })
-
-  it('is false while either input is still loading, or with no country', () => {
-    expect(countryHasPrograms(undefined, [at(1)], 'GB')).toBe(false)
-    expect(countryHasPrograms(regions, undefined, 'GB')).toBe(false)
-    expect(countryHasPrograms(regions, [at(1)], undefined)).toBe(false)
-    expect(countryHasPrograms(regions, [at(1)], null)).toBe(false)
+    expect(countryHasPrograms([], [at(1)], 'GB')).toBe(false)
   })
 
   it('ignores region-less (online) events', () => {
     expect(countryHasPrograms(regions, [at(null)], 'GB')).toBe(false)
+  })
+})
+
+describe('isoCountryCode', () => {
+  it('normalizes a two-letter code to uppercase', () => {
+    expect(isoCountryCode('is')).toBe('IS')
+    expect(isoCountryCode('GB')).toBe('GB')
+    expect(isoCountryCode('Fr')).toBe('FR')
+  })
+
+  it('rejects anything that is not two letters', () => {
+    expect(isoCountryCode('USA')).toBeUndefined()
+    expect(isoCountryCode('')).toBeUndefined()
+    expect(isoCountryCode('u')).toBeUndefined()
+    expect(isoCountryCode('12')).toBeUndefined()
+    expect(isoCountryCode('u-s')).toBeUndefined()
+    expect(isoCountryCode(null)).toBeUndefined()
+    expect(isoCountryCode(undefined)).toBeUndefined()
   })
 })

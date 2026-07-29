@@ -6,6 +6,7 @@ import { ListToolbar, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
+import { parseCenter } from '@/lib/shape'
 import {
   CloseButton,
   FilterButton,
@@ -13,13 +14,6 @@ import {
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
-
-const parsePair = (value: string | null): [number, number] | undefined => {
-  if (!value) return undefined
-  const [a, b] = value.split(',').map(Number)
-
-  return Number.isFinite(a) && Number.isFinite(b) ? [a, b] : undefined
-}
 
 // A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or
 // truncated hand-typed value resolves to `undefined` so framing falls back to the
@@ -44,7 +38,7 @@ export function SearchView() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { frameSearch } = useMapController()
 
-  const center = parsePair(searchParams.get('center'))
+  const center = parseCenter(searchParams.get('center'))
   const bounds = parseBounds(searchParams.get('bbox'))
 
   // Snapshot the map centre once so ranking is stable while the user pans.

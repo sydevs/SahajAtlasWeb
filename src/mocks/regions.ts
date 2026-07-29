@@ -46,18 +46,15 @@ export const mockCountries: RegionListItem[] = [
  * country-website offer exists for.
  */
 export const mockRegionNodes: RegionNode[] = [
-  ...mockCountries.map<RegionNode>(({ id, name, countryCode }) => ({
-    id,
-    slug: (countryCode ?? '').toLowerCase(),
-    name,
-    subtitle: null,
-    level: 'country',
-    parent: null,
-    webPath: `/${(countryCode ?? '').toLowerCase()}`,
-    webUrl: null,
-  })),
+  ...mockCountries.map<RegionNode>(({ id, name, countryCode }) => {
+    const slug = (countryCode ?? '').toLowerCase()
+
+    return { id, slug, name, subtitle: null, level: 'country', parent: null, webPath: `/${slug}`, webUrl: null } // prettier-ignore
+  }),
   { id: 8000, slug: 'cambridgeshire', name: 'Cambridgeshire', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/cambridgeshire', webUrl: null }, // prettier-ignore
-  { id: 8001, slug: 'cambridge', name: 'Cambridge', subtitle: 'Cambridgeshire', level: 'city', parent: 8000, webPath: '/gb/cambridgeshire/cambridge', webUrl: null }, // prettier-ignore
+  // The feed's own city ref, so the tree provably contains the region
+  // `mockGeojson`'s located feature carries — renumber it there and this follows.
+  { ...mockEventSlim.region, parent: 8000 },
 ]
 
 /** A couple of child rows shown inside the mixed region, alongside its own events. */

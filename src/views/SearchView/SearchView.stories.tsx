@@ -8,13 +8,13 @@ import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness, mockEventVariants } from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
-import { DEFAULT_FILTERS, filtersFromParams, filtersKey } from '@/lib/shape'
+import { eventsQuery } from '@/config/api'
+import { filtersFromParams, parseCenter } from '@/lib/shape'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// With no `?center` in the URL, SearchView ranks from the view-state default
-// (0, 0), so DynamicEventsList keys on `['events', '0.00', '0.00', filtersKey, locale]`.
-const CENTER = ['0.00', '0.00'] as const
+// With no `?center` in the URL, SearchView ranks from the view-state default (0, 0).
+const DEFAULT_CENTER: [number, number] = [0, 0]
 
 /** A previewable state: the URL query it needs, and the list that query resolves to. */
 type Example = {
@@ -49,16 +49,14 @@ const EXAMPLES: Record<string, Example> = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
-// The events key SearchView reads for a given query — `?center=lng,lat` quantized to
-// 2 dp (latitude first), or the view-state default — plus that query's own filters.
-// Derived from the SAME string the params are seeded from, so seed and read can't drift.
+// The events key SearchView reads for a given query — through the same `eventsQuery`
+// factory the list itself uses, fed the `?center` and filters decoded from that query
+// by the same codecs the view uses. Seed and read therefore cannot drift.
 const eventsKey = (search: string, locale: string) => {
   const params = new URLSearchParams(search)
-  const [longitude, latitude] = (params.get('center') ?? '').split(',').map(Number)
-  const located = Number.isFinite(latitude) && Number.isFinite(longitude)
-  const center = located ? ([latitude.toFixed(2), longitude.toFixed(2)] as const) : CENTER
+  const [longitude, latitude] = parseCenter(params.get('center')) ?? DEFAULT_CENTER
 
-  return ['events', center[0], center[1], filtersKey(filtersFromParams(params)), locale]
+  return eventsQuery(latitude, longitude, filtersFromParams(params), locale).queryKey
 }
 
 /**
@@ -82,13 +80,12 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   return (
     <ViewHarness
       seed={(client: QueryClient) => {
-        // The default key (first render, before the params land) AND the case's own
-        // key, so the list resolves from cache either way.
-        client.setQueryData<EventSlim[]>(
-          ['events', CENTER[0], CENTER[1], filtersKey(DEFAULT_FILTERS), locale],
-          events,
-        )
-        client.setQueryData<EventSlim[]>(eventsKey(search, locale), events)
+        // The bare key the first render reads (before the params land) AND the case's
+        // own key, so the list resolves from cache either way. A case with no query
+        // needs only the one.
+        for (const query of new Set(['', search])) {
+          client.setQueryData<EventSlim[]>(eventsKey(query, locale), events)
+        }
       }}
       seedKey={example}
     >

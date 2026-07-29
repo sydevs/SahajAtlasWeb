@@ -1,5 +1,6 @@
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
+import { isoCountryCode } from '@/lib/shape'
 
 /**
  * The viewer's country as an ISO alpha-2 code, for region-aware share ordering
@@ -17,11 +18,10 @@ export function useViewerCountry(): string | undefined {
   const ip = useIpLocation(false)
   const { locale } = useLocale()
 
-  if (ip?.country_code) return ip.country_code.toUpperCase()
-
-  // Most of our locales are language-only (`en`, `ru`, …) and have no region
-  // subtag — those simply fall through to `undefined` → the default set.
-  const subtag = locale.split('-')[1]
-
-  return subtag?.length === 2 ? subtag.toUpperCase() : undefined
+  // Both sources go through the shared `isoCountryCode` guard, so a malformed value
+  // from either resolves to `undefined` → the default platform set, rather than a bogus
+  // "country code" (the third-party lookup returning `"usa"`, an odd locale tag). Most
+  // of our locales are language-only (`en`, `ru`, …) and carry no region subtag at all,
+  // so they fall through to the default too.
+  return isoCountryCode(ip?.country_code) ?? isoCountryCode(locale.split('-')[1])
 }

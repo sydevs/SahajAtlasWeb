@@ -4,7 +4,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { CountrySiteOffer } from './CountrySiteOffer'
 
-import { COUNTRY_SITES } from '@/data/country-sites'
+import { COUNTRY_SITES } from '@/lib/country-sites'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 

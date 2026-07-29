@@ -14,7 +14,6 @@ import type { Position } from 'geojson'
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
-import { isoCountryCode } from '@/lib/geocode'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import {
   ancestorIds,
@@ -27,6 +26,7 @@ import {
   DEFAULT_FILTERS,
   indexRegions,
   isOnline,
+  isoCountryCode,
   matchesFilters,
   parentOf,
   partitionUnder,
@@ -276,7 +276,7 @@ export const regionRoute = (node: RegionNode): string => safePath(node.webPath) 
 
 // ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
 // the country slug *is* the ISO code, so it's derived straight from the slug — no
-// more `legacyData` fallback. `isoCountryCode` (@/lib/geocode) owns the guard +
+// more `legacyData` fallback. `isoCountryCode` (@/lib/shape/country) owns the guard +
 // uppercase normalization, shared with the searched-country reader, so a non-ISO
 // slug — e.g. an un-migrated local dev seed — yields no flag rather than an error.
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
