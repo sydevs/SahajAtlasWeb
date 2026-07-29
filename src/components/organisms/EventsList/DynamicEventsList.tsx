@@ -1,19 +1,24 @@
 import type { SortOrder } from '@/lib/shape'
 
 import { useMemo } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
+import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { EventsList } from './EventsList'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
+import { CountrySiteOffer } from '@/components/molecules/CountrySiteOffer'
 import { Alert } from '@/components/atoms/Alert'
+import { COUNTRY_SITES } from '@/data/country-sites'
 import { isSoon } from '@/lib'
+import { isoCountryCode } from '@/lib/geocode'
 import { EventSlim } from '@/types'
 import {
   byDistance,
   byNextOccurrence,
+  countryHasPrograms,
   filtersKey,
   hasActiveFilters,
   isOnline,
@@ -22,7 +27,8 @@ import {
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useSortOrder } from '@/hooks/use-sort'
-import api from '@/config/api'
+import api, { regionsQuery } from '@/config/api'
+import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import i18n from '@/config/i18n'
 
 // Cap the search results at this distance from a searched location; when farther
@@ -125,14 +131,54 @@ export function DynamicEventsList({
   )
 }
 
-// Shown when no events match. When the distance cap (not the filters) is what
-// emptied the list, say so — the "< N km" pill above is how the user reveals the
-// far events. Otherwise offer a "clear all filters" action when filters are the
-// reason.
+// Shown when no events match, in the order the reasons actually explain the empty
+// list:
+//
+//  1. The searched country lists NO programs at all — offer its own national site
+//     (issue #82). First because it's the only filter- and distance-independent
+//     reason: `getEvents` returns the nearest matches with no distance cap, so a
+//     program-less country's nearest results are usually a thousand km away, which
+//     would light the "< N km" cap below and bury the one useful next step. That the
+//     country is empty is a fact about the feed, not about the current filters — so
+//     it's answered from the FULL feed (`countryHasPrograms`), and it holds whether or
+//     not filters are applied (the pills above still offer to clear them).
+//  2. The distance cap (not the filters) emptied the list — say so; the "< N km"
+//     pill above is how the user reveals the far events.
+//  3. Otherwise: "no results" with a "clear all filters" action when filters are the
+//     reason, else the plain "no events" line.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
   const active = hasActiveFilters(useEventFilters())
   const { clearFilters } = useSetFilters()
+  const [searchParams] = useSearchParams()
+
+  // `?cc` is written by the search field / accepted geolocation suggestion, so this
+  // only ever resolves on /search — no other list surface changes behaviour.
+  const countryCode = isoCountryCode(searchParams.get('cc'))
+  const site = countryCode ? COUNTRY_SITES[countryCode] : undefined
+
+  // Both are cache-once reads warmed at bootstrap (`api.warmCaches`); until they
+  // land, `countryHasPrograms` answers false-y and the offer simply doesn't show.
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: site !== undefined })
+  const { data: geojson } = useQuery({
+    queryKey: ['geojson'],
+    queryFn: () => api.getGeojson(),
+    staleTime: GEOJSON_STALE_TIME,
+    enabled: site !== undefined,
+  })
+
+  if (
+    countryCode &&
+    site &&
+    geojson &&
+    !countryHasPrograms(regions, geojson.features, countryCode)
+  ) {
+    return (
+      <div className="p-4">
+        <CountrySiteOffer countryCode={countryCode} href={site} />
+      </div>
+    )
+  }
 
   if (nearbyKm !== undefined) {
     return (

@@ -124,5 +124,9 @@
   "error": {
     "generic": "Něco se pokazilo.",
     "retry": "Zkusit znovu"
+  },
+  "country_site": {
+    "title": "V %{country} zatím nejsou uvedeny žádné kurzy.",
+    "cta": "Přejít na web %{country}"
   }
 }

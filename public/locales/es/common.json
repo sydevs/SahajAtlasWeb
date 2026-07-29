@@ -124,5 +124,9 @@
   "error": {
     "generic": "Algo ha salido mal.",
     "retry": "Reintentar"
+  },
+  "country_site": {
+    "title": "Todavía no hay clases registradas en %{country}.",
+    "cta": "Visitar el sitio web de %{country}"
   }
 }

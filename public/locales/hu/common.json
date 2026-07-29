@@ -124,5 +124,9 @@
   "error": {
     "generic": "Valami hiba történt.",
     "retry": "Újrapróbálkozás"
+  },
+  "country_site": {
+    "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",
+    "cta": "%{country} weboldalának megnyitása"
   }
 }

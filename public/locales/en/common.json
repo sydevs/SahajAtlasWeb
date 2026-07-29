@@ -129,5 +129,9 @@
       "message": "Please write at least %{min} characters.",
       "message_max": "Please keep it under %{max} characters."
     }
+  },
+  "country_site": {
+    "title": "No classes listed in %{country} yet.",
+    "cta": "Visit the %{country} website"
   }
 }

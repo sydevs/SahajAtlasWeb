@@ -23,6 +23,7 @@ import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
+import { geocodeCountryCode, isoCountryCode } from '@/lib/geocode'
 import { errorMessage } from '@/lib/report'
 import {
   hasActivePlaceSearch,
@@ -211,10 +212,13 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 }
 
 // The URL-only state that survives a new place search — the applied filters and the
-// list sort (both presentation, not location). Re-encoding through the two codecs drops
-// the searched-location params (`q`/`center`/`bbox`/`all`); the caller then sets the new
-// location. Shared by SearchField + GeolocationSuggestion so a re-search never silently
-// clears either slice.
+// list sort (both presentation, not location). Re-encoding through the two codecs from
+// an EMPTY base drops every searched-location param (`q`/`center`/`bbox`/`cc`/`all`) by
+// construction; the caller then sets the new location. That's what keeps the previous
+// country's `?cc` from leaking into the next search (it would offer the wrong country's
+// website). Shared by SearchField + GeolocationSuggestion so a re-search never silently
+// clears either slice — and a filter edit, which merges onto the current params
+// (`filtersToParams(…, prev)`), preserves the searched country instead.
 function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
   return sortToParams(
     sortFromParams(searchParams),
@@ -242,6 +246,15 @@ export function SearchField() {
         'center',
         `${value.properties.coordinates.longitude},${value.properties.coordinates.latitude}`,
       )
+
+      // The country the place sits in, so an empty result set can offer that
+      // country's own site (issue #82). Present for a country-level result and for a
+      // town within one; absent (so simply not written) for an ocean or a
+      // country-less feature.
+      const countryCode = geocodeCountryCode(value)
+
+      if (countryCode) params.set('cc', countryCode)
+
       navigate(`/search?${params.toString()}`)
     },
     [navigate, searchParams],
@@ -430,6 +443,13 @@ export function GeolocationSuggestion({
       'bbox',
       approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM).toString(),
     )
+
+    // Same searched-country marker SearchField writes — the guess already carries the
+    // code (it also orders an event's share targets), so an accepted suggestion that
+    // lands in a program-less country gets the offer too.
+    const countryCode = isoCountryCode(ipLocation.country_code)
+
+    if (countryCode) params.set('cc', countryCode)
 
     // Accepting must NOT persist a dismissal — only the × does (handleDismiss).
     // Zooming to the guess already hides the prompt on its own: the new URL carries
