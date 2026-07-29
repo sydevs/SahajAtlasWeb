@@ -29,10 +29,13 @@ const toggleGroup = tv({
         item: 'border-primary-6 bg-primary-3 text-primary-11 hover:bg-primary-4',
       },
     },
-    // Validation error: danger-border the items (colour change only, no layout shift). The
-    // root also sets `aria-invalid`.
+    // Validation error: recolour to danger — the unselected items get a danger border and the
+    // SELECTED item swaps its primary fill for the danger solid (colour change only, no layout
+    // shift). The root also sets `aria-invalid`.
     isInvalid: {
-      true: { item: 'border-danger-7' },
+      true: {
+        item: 'border-danger-7 data-[state=on]:border-danger-9 data-[state=on]:bg-danger-9 data-[state=on]:text-danger-foreground',
+      },
     },
   },
   defaultVariants: { joined: false },

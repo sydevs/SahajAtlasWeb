@@ -25,8 +25,9 @@ const radioOption = tv({
       false: 'border-gray-7 text-foreground hover:bg-gray-2',
     },
     highlight: { true: '' },
-    // Danger-border the unselected cards (a colour change only, no layout shift) — the group
-    // also sets `aria-invalid`. Listed after `highlight` so an error wins the border colour.
+    // Recolour to danger — the unselected cards get a danger border, the SELECTED card swaps
+    // its primary fill for the danger solid (colour change only, no layout shift). The group
+    // also sets `aria-invalid`. Listed after `highlight` so an error wins the colours.
     isInvalid: { true: '' },
   },
   compoundVariants: [
@@ -39,6 +40,11 @@ const radioOption = tv({
       checked: false,
       isInvalid: true,
       class: 'border-danger-7',
+    },
+    {
+      checked: true,
+      isInvalid: true,
+      class: 'border-danger-9 bg-danger-9 text-danger-foreground',
     },
   ],
 })

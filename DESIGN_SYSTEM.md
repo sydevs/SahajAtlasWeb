@@ -82,10 +82,13 @@ tokens fill an active control):
 
 - **`isInvalid`** — flags a validation error: a danger visual **and** the atom
   sets `aria-invalid` on its own control (the atom owns the a11y attribute, so a
-  caller can't forget it). Pair it with **`aria-describedby`** (also accepted by
-  every input atom) pointing at the field's error text — the error **message**
-  and that id live in the form/field wrapper (see RegistrationForm's `Field`),
-  not the atom, which stays presentational.
+  caller can't forget it). On **filled** controls (ToggleGroup, RadioGroup,
+  Slider, Checkbox) the *selected* fill swaps its primary solid for the danger
+  solid — not just the unselected border — so an errored field reads as wrong
+  whether or not it has a value. Pair it with **`aria-describedby`** (also
+  accepted by every input atom) pointing at the field's error text — the error
+  **message** and that id live in the form/field wrapper (see RegistrationForm's
+  `Field`), not the atom, which stays presentational.
 - **`highlight`** — primary-tints the *unselected/empty* state to flag an
   active/in-use field (the filter panel's affordance).
 

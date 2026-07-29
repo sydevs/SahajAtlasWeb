@@ -20,11 +20,12 @@ const slider = tv({
     highlight: {
       true: { track: 'bg-primary-6', thumb: 'border-primary-7' },
     },
-    // Validation error: danger-tint the track + thumb border (colour change only). The root
-    // also sets `aria-invalid`. Provided for interface parity with the other input atoms —
-    // a slider always holds an in-range value, so it rarely errors in practice.
+    // Validation error: recolour to danger — the unfilled track + thumb border AND the filled
+    // range swap their primary for danger (colour change only). The root also sets
+    // `aria-invalid`. Provided for interface parity with the other input atoms — a slider
+    // always holds an in-range value, so it rarely errors in practice.
     isInvalid: {
-      true: { track: 'bg-danger-6', thumb: 'border-danger-7' },
+      true: { track: 'bg-danger-6', range: 'bg-danger-9', thumb: 'border-danger-7' },
     },
   },
 })
