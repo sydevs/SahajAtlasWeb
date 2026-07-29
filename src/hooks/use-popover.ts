@@ -69,5 +69,17 @@ export function usePopover({
     useRole(context, { role }),
   ])
 
-  return { isOpen, setIsOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps }
+  return {
+    isOpen,
+    setIsOpen,
+    refs,
+    // `pointerEvents: 'auto'` keeps the panel clickable when it opens inside a MODAL Radix layer
+    // (the calendar's modal filter drawer sets `pointer-events: none` on the body, which this
+    // portaled sibling would otherwise inherit and swallow every click). A no-op outside a modal,
+    // so every popover surface (Dropdown, EventActions) gets the immunity for free.
+    floatingStyles: { ...floatingStyles, pointerEvents: 'auto' as const },
+    context,
+    getReferenceProps,
+    getFloatingProps,
+  }
 }

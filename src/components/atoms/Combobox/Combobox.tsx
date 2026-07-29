@@ -3,7 +3,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from 'cmdk'
 
 import { overlayContainer } from '@/lib/overlay'
-import { fieldChrome } from '@/components/atoms/Select/Select'
+import { fieldChrome } from '@/components/atoms/Select'
 import { CheckIcon, DownArrowIcon, SearchIcon } from '@/components/atoms/Icons'
 
 // A single-select combobox: the search happens in the field itself (a text input in the
