@@ -25,8 +25,20 @@ import { type RegionTreeNode, indexRegions, subtreeIds } from './hierarchy'
 export const isoCountryCode = (value: string | null | undefined): string | undefined =>
   typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value.toUpperCase() : undefined
 
-/** The minimal feed-feature shape the check needs: each event's direct region. */
-export type RegionedFeature = { properties: { region?: { id: number } | null } }
+/**
+ * The minimal region-tree shape the country lookup needs — `RegionTreeNode` plus the
+ * `level` the slug match is qualified by. Structural (not `RegionNode`) to keep this
+ * module free of the entity types, like `hierarchy.ts`.
+ */
+export type CountryTreeNode = RegionTreeNode & { level: string }
+
+/**
+ * The minimal feed-feature shape the check needs: each event's direct region, which
+ * the feed always carries (`AgnosticFeedEventSchema.region` is required and
+ * non-nullable) — including for online events, which belong to no *place* but are
+ * still listed under a region.
+ */
+export type RegionedFeature = { properties: { region: { id: number } } }
 
 /**
  * Whether any event in `features` falls under `countryCode`'s region subtree.
@@ -49,7 +61,7 @@ export type RegionedFeature = { properties: { region?: { id: number } | null } }
  * redefining "has programs".
  */
 export const countryHasPrograms = (
-  regions: RegionTreeNode[],
+  regions: CountryTreeNode[],
   features: readonly RegionedFeature[],
   countryCode: string,
 ): boolean => {
@@ -57,12 +69,12 @@ export const countryHasPrograms = (
   const country = index.bySlug.get(countryCode.toLowerCase())
 
   // A country absent from the tree has no programs by definition — that's exactly
-  // the case the offer exists to catch.
-  if (!country) return false
+  // the case the offer exists to catch. `level` qualifies the match because slugs are
+  // unique across the WHOLE tree, not per level: without it a two-letter slug at any
+  // level (a city `as`) would answer for its namesake country (American Samoa).
+  if (country?.level !== 'country') return false
 
   const subtree = subtreeIds(index, country.id)
 
-  return features.some(
-    (feature) => feature.properties.region != null && subtree.has(feature.properties.region.id),
-  )
+  return features.some((feature) => subtree.has(feature.properties.region.id))
 }

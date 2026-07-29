@@ -80,10 +80,11 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   return (
     <ViewHarness
       seed={(client: QueryClient) => {
-        // The bare key the first render reads (before the params land) AND the case's
-        // own key, so the list resolves from cache either way. A case with no query
-        // needs only the one.
-        for (const query of new Set(['', search])) {
+        // Seed this case's list under EVERY case's key. `SeedSearchParams` lands one
+        // render in, so switching the Example control re-creates the client while the
+        // *previous* case's URL is still live — seeding only this case's key would
+        // miss on that first render and fire a real request at the absent backend.
+        for (const query of new Set(['', ...Object.values(EXAMPLES).map((e) => e.search)])) {
           client.setQueryData<EventSlim[]>(eventsKey(query, locale), events)
         }
       }}

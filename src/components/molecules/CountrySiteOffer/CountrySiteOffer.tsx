@@ -31,17 +31,20 @@ export function CountrySiteOffer({ countryCode, href }: CountrySiteOfferProps) {
   // resolves or returns the code — it can't throw here.
   const country = regionNames.of(countryCode) ?? countryCode
 
+  // The copy goes in Alert's `description` slot, not `title`: the empty states this
+  // replaces ("No events found.", "No events within N km.") use the same slot, so it
+  // reads at their weight instead of shouting over them.
   return (
     <Alert
       align="start"
       color="neutral"
+      description={t('country_site.title', { country })}
       icon={
         <CircleFlag
           className="h-5 w-5 rounded-full border border-divider bg-divider"
           countryCode={countryCode.toLowerCase()}
         />
       }
-      title={t('country_site.title', { country })}
     >
       <Link
         isExternal

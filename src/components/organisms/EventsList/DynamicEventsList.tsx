@@ -127,13 +127,13 @@ export function DynamicEventsList({
 // list:
 //
 //  1. The searched country lists NO programs at all — offer its own national site
-//     (issue #82). First because it's the only filter- and distance-independent
-//     reason: `getEvents` returns the nearest matches with no distance cap, so a
-//     program-less country's nearest results are usually a thousand km away, which
-//     would light the "< N km" cap below and bury the one useful next step. That the
-//     country is empty is a fact about the feed, not about the current filters — so
-//     it's answered from the FULL feed (`countryHasPrograms`), and it holds whether or
-//     not filters are applied (the pills above still offer to clear them).
+//     (issue #82). Ahead of the distance cap because `getEvents` returns the nearest
+//     matches with no distance limit, so a program-less country's nearest results are
+//     usually a thousand km away: the "< N km" branch below would fire for virtually
+//     every such search and bury the one useful next step. `useCountrySite` answers
+//     from the FULL feed, and stands down while any filter is active — an empty list
+//     under filters is explained by the filters, and case 3 owns the "clear all"
+//     escape hatch, so the offer waits rather than replacing it.
 //  2. The distance cap (not the filters) emptied the list — say so; the "< N km"
 //     pill above is how the user reveals the far events.
 //  3. Otherwise: "no results" with a "clear all filters" action when filters are the

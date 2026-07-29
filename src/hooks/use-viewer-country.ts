@@ -18,10 +18,11 @@ export function useViewerCountry(): string | undefined {
   const ip = useIpLocation(false)
   const { locale } = useLocale()
 
-  // Both sources go through the shared `isoCountryCode` guard, so a malformed value
-  // from either resolves to `undefined` → the default platform set, rather than a bogus
-  // "country code" (the third-party lookup returning `"usa"`, an odd locale tag). Most
-  // of our locales are language-only (`en`, `ru`, …) and carry no region subtag at all,
-  // so they fall through to the default too.
+  // Both sources go through the shared `isoCountryCode` guard, so anything that isn't
+  // a canonical alpha-2 falls through to the default platform set rather than becoming
+  // a bogus "country code". The IP code is already length-checked at the zod boundary
+  // (`IpLocationSchema`), so this only tightens it to *letters*; the belt-and-braces is
+  // in having one guard for both sources. Most of our locales are language-only (`en`,
+  // `ru`, …) with no region subtag at all, so they resolve to the default too.
   return isoCountryCode(ip?.country_code) ?? isoCountryCode(locale.split('-')[1])
 }

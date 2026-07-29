@@ -1,10 +1,17 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
+import { useEventFilters } from '@/hooks/use-filters'
 import { countrySite } from '@/lib/country-sites'
-import { SEARCH_COUNTRY_PARAM, countryHasPrograms, isoCountryCode } from '@/lib/shape'
+import {
+  SEARCH_COUNTRY_PARAM,
+  countryHasPrograms,
+  hasActiveFilters,
+  isoCountryCode,
+} from '@/lib/shape'
 
 /** The country whose own website to offer, ready to hand to `CountrySiteOffer`. */
 export type CountrySite = { countryCode: string; href: string }
@@ -15,12 +22,17 @@ export type CountrySite = { countryCode: string; href: string }
  * the empty state itself stays presentational (mirrors `useRegionMatcher`, which
  * composes the same `['regions']` read with a pure `@/lib/shape` predicate).
  *
- * Resolves only when all three hold:
+ * Resolves only when all of these hold:
  *
  *  1. the search carries a country (`?cc`, written by the geocoder field / accepted IP
  *     suggestion — so this is inert on every surface but `/search`);
  *  2. that country is one of the 95 with a site;
- *  3. it lists **zero** programs in the full feed — genuinely absent, not filtered out.
+ *  3. it lists **zero** programs in the full feed — genuinely absent, not filtered out;
+ *  4. **no filter is active.** An empty list under active filters is explained by the
+ *     filters, and that state owns the "clear all" escape hatch — so the offer waits
+ *     until the filters are cleared rather than replacing it. This also keeps a
+ *     *region* filter from producing a nonsense offer: it re-points the query at
+ *     another place entirely, so `?cc` no longer describes what came back empty.
  *
  * Both cache-once reads are warmed at bootstrap (`api.warmCaches`) and already have
  * ungated observers on this screen (`ActiveFilterPills`, `GeolocationSuggestion`), so
@@ -30,6 +42,7 @@ export type CountrySite = { countryCode: string; href: string }
  */
 export const useCountrySite = (): CountrySite | undefined => {
   const [searchParams] = useSearchParams()
+  const filters = useEventFilters()
   const countryCode = isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM))
   const href = countrySite(countryCode)
 
@@ -40,9 +53,15 @@ export const useCountrySite = (): CountrySite | undefined => {
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  if (!countryCode || !href || !regions || !geojson) return undefined
+  // Memoized because the feed scan builds a region index + subtree set, and this
+  // renders under a URL that churns: the geocoder field rewrites `?q` on every
+  // keystroke, so an unmemoized scan would rebuild the whole index per character.
+  return useMemo(() => {
+    if (!countryCode || !href || !regions || !geojson) return undefined
+    if (hasActiveFilters(filters)) return undefined
 
-  return countryHasPrograms(regions, geojson.features, countryCode)
-    ? undefined
-    : { countryCode, href }
+    return countryHasPrograms(regions, geojson.features, countryCode)
+      ? undefined
+      : { countryCode, href }
+  }, [countryCode, href, regions, geojson, filters])
 }

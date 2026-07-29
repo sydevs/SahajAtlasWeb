@@ -17,8 +17,9 @@
  * ~4 KB of static strings: no fetch, no CMS round trip. Notes on the data, so a
  * refresh doesn't "fix" them by mistake:
  *
- * - 45 entries are plain `http://`, kept verbatim as published (a top-level `http`
- *   link opened in a new tab is not mixed content).
+ * - 57 of the 95 are plain `http://`, kept verbatim as published (a top-level `http`
+ *   link opened in a new tab is not mixed content, though it is MITM-exposed — no
+ *   guessing at `https` here, since a wrong guess is a dead link).
  * - ~20 point at a Facebook / Blogspot / WordPress page rather than a domain —
  *   that IS the country's presence.
  * - One site can cover several countries: `farsimeditation.com` serves

@@ -46,10 +46,13 @@ export const mockCountries: RegionListItem[] = [
  * country-website offer exists for.
  */
 export const mockRegionNodes: RegionNode[] = [
-  ...mockCountries.map<RegionNode>(({ id, name, countryCode }) => {
-    const slug = (countryCode ?? '').toLowerCase()
+  // Every `mockCountries` row carries a `countryCode`; a row without one would slug to
+  // `''` and collide with the next, so it's dropped rather than silently folded in.
+  ...mockCountries.flatMap<RegionNode>(({ id, name, countryCode }) => {
+    if (!countryCode) return []
+    const slug = countryCode.toLowerCase()
 
-    return { id, slug, name, subtitle: null, level: 'country', parent: null, webPath: `/${slug}`, webUrl: null } // prettier-ignore
+    return [{ id, slug, name, subtitle: null, level: 'country', parent: null, webPath: `/${slug}`, webUrl: null }] // prettier-ignore
   }),
   { id: 8000, slug: 'cambridgeshire', name: 'Cambridgeshire', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/cambridgeshire', webUrl: null }, // prettier-ignore
   // The feed's own city ref, so the tree provably contains the region

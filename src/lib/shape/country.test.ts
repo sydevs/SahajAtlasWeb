@@ -1,23 +1,22 @@
-import type { RegionTreeNode } from './hierarchy'
-import type { RegionedFeature } from './country'
+import type { CountryTreeNode, RegionedFeature } from './country'
 
 import { describe, it, expect } from 'vitest'
 
 import { countryHasPrograms, isoCountryCode } from './country'
 
 // Country slugs are lowercase ISO codes (SahajCloud#556); Iceland is deliberately
-// absent — the "no programs" country the offer exists for.
-const regions: RegionTreeNode[] = [
-  { id: 1, slug: 'gb' },
-  { id: 2, slug: 'cambridgeshire', parent: 1 },
-  { id: 3, slug: 'cambridge', parent: 2 },
-  { id: 4, slug: 'de' },
-  { id: 5, slug: 'berlin', parent: 4 },
+// absent — the "no programs" country the offer exists for. `as` is a two-letter slug
+// at CITY level, standing in for a namesake country code (American Samoa).
+const regions: CountryTreeNode[] = [
+  { id: 1, slug: 'gb', level: 'country' },
+  { id: 2, slug: 'cambridgeshire', level: 'region', parent: 1 },
+  { id: 3, slug: 'cambridge', level: 'city', parent: 2 },
+  { id: 4, slug: 'de', level: 'country' },
+  { id: 5, slug: 'berlin', level: 'city', parent: 4 },
+  { id: 6, slug: 'as', level: 'city', parent: 1 },
 ]
 
-const at = (regionId: number | null): RegionedFeature => ({
-  properties: { region: regionId === null ? null : { id: regionId } },
-})
+const at = (regionId: number): RegionedFeature => ({ properties: { region: { id: regionId } } })
 
 describe('countryHasPrograms', () => {
   it('is false for a country absent from the region tree', () => {
@@ -50,8 +49,17 @@ describe('countryHasPrograms', () => {
     expect(countryHasPrograms([], [at(1)], 'GB')).toBe(false)
   })
 
-  it('ignores region-less (online) events', () => {
-    expect(countryHasPrograms(regions, [at(null)], 'GB')).toBe(false)
+  it('counts an online class listed under the country — it is still a program', () => {
+    // Online events belong to no *place*, but the feed still files them under a
+    // region, so a country whose only listing is an online class isn't empty and
+    // must not be offered its own website.
+    expect(countryHasPrograms(regions, [at(1)], 'GB')).toBe(true)
+  })
+
+  it('only matches a COUNTRY node, never a namesake slug at another level', () => {
+    // `as` is a city here. Without the level check its events would answer for
+    // American Samoa, wrongly suppressing that country's offer.
+    expect(countryHasPrograms(regions, [at(6)], 'AS')).toBe(false)
   })
 })
 
