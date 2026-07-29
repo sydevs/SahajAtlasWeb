@@ -1,10 +1,8 @@
 {
   "actions": {
-    "add_calendar": "Přidat do kalendáře",
     "contact": "Kontakt",
     "copy": "Kopírovat",
     "directions": "Trasa",
-    "download_ics": "Stáhnout soubor .ics",
     "share": "Sdílet",
     "website": "Web"
   },

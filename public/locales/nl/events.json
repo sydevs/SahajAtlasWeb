@@ -1,10 +1,8 @@
 {
   "actions": {
-    "add_calendar": "In agenda",
     "contact": "Contact",
     "copy": "Kopiëren",
     "directions": "Route",
-    "download_ics": ".ics-bestand downloaden",
     "share": "Delen",
     "website": "Website"
   },

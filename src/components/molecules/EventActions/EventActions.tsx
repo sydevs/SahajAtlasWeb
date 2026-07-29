@@ -1,35 +1,30 @@
-import { type ReactNode } from 'react'
 import { FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
-import {
-  CalendarIcon,
-  CallIcon,
-  DirectionsIcon,
-  ShareIcon,
-  WebsiteIcon,
-} from '@/components/atoms/Icons'
-import { Link } from '@/components/atoms/Link'
+import { CallIcon, DirectionsIcon, ShareIcon, WebsiteIcon } from '@/components/atoms/Icons'
 import { useIsDesktop } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { usePopover } from '@/hooks/use-popover'
-import { buildEventIcs, buildGoogleCalendarUrl, directionsUrl } from '@/lib'
-import { lexicalToText } from '@/lib/shape'
+import { directionsUrl } from '@/lib'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
-// A small popover shell shared by the contact and add-to-calendar actions —
-// the same @floating-ui pattern as the Dropdown atom: portaled (never clipped
-// by the scrolling panel), viewport-aware, dismissed on outside click/Esc.
-function ActionPopover({
-  trigger,
-  children,
+// The desktop contact action: the circle plus a popover carrying the number and
+// a copy affordance (a raw `tel:` link is a desktop dead end). Same @floating-ui
+// pattern as the Dropdown atom — portaled (never clipped by the scrolling
+// panel), viewport-aware, dismissed on outside click/Esc. A component of its own
+// because the hook can't run inside the action `flatMap` below.
+function ContactPopover({
+  label,
+  name,
+  phone,
 }: {
-  trigger: (ref: (node: HTMLElement | null) => void, props: Record<string, unknown>) => ReactNode
-  children: ReactNode
+  label: string
+  name?: string | null
+  phone: string
 }) {
   const { isOpen, refs, floatingStyles, getReferenceProps, getFloatingProps } = usePopover({
     placement: 'top',
@@ -38,7 +33,13 @@ function ActionPopover({
 
   return (
     <>
-      {trigger(refs.setReference, getReferenceProps())}
+      <ActionCircle
+        ref={refs.setReference}
+        icon={<CallIcon />}
+        label={label}
+        variant="bordered"
+        {...getReferenceProps()}
+      />
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
           <div
@@ -47,31 +48,13 @@ function ActionPopover({
             style={floatingStyles}
             {...getFloatingProps()}
           >
-            {children}
+            {name && <div className="text-sm font-medium">{name}</div>}
+            <CopyField value={phone} />
           </div>
         </FloatingPortal>
       )}
     </>
   )
-}
-
-/** Trigger an .ics download for the event (no network — built client-side). */
-function downloadIcs(event: Event, location: string) {
-  const ics = buildEventIcs({
-    id: event.id,
-    title: event.title,
-    schedule: event.schedule!,
-    location: location || null,
-    description: lexicalToText(event.description) || null,
-    url: event.webUrl,
-  })
-  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }))
-  const anchor = document.createElement('a')
-
-  anchor.href = url
-  anchor.download = `sahaj-atlas-event-${event.id}.ics`
-  anchor.click()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export type EventActionsProps = {
@@ -83,17 +66,15 @@ export type EventActionsProps = {
 /**
  * The secondary action row (issue #52, WS3): equal-weight labelled tonal
  * circles, set per resolver state. Contact is `tel:` on touch and a popover
- * with the number + copy on desktop (a raw tel: link is a desktop dead end);
- * Add-to-calendar offers the Google template link and the .ics download.
+ * with the number + copy on desktop (a raw tel: link is a desktop dead end).
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
   const { t } = useTranslation('events')
   const navigate = useAtlasNavigate()
   const isDesktop = useIsDesktop()
-  const { display, whereLine } = useEventDisplay(event)
+  const { display } = useEventDisplay(event)
 
   const mapsUrl = directionsUrl(event.address)
-  const canCalendar = Boolean(event.schedule)
 
   const circles = display.actions.flatMap((action) => {
     switch (action) {
@@ -108,44 +89,6 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 label={t('actions.directions')}
                 variant="bordered"
               />,
-            ]
-          : []
-      case 'calendar':
-        return canCalendar
-          ? [
-              <ActionPopover
-                key="calendar"
-                trigger={(ref, props) => (
-                  <ActionCircle
-                    ref={ref}
-                    icon={<CalendarIcon />}
-                    label={t('actions.add_calendar')}
-                    variant="bordered"
-                    {...props}
-                  />
-                )}
-              >
-                <Link
-                  isExternal
-                  className="text-sm font-medium text-foreground"
-                  href={buildGoogleCalendarUrl({
-                    id: event.id,
-                    title: event.title,
-                    schedule: event.schedule!,
-                    location: whereLine || null,
-                    url: event.webUrl,
-                  })}
-                >
-                  Google Calendar
-                </Link>
-                <button
-                  className="text-start text-sm font-medium text-foreground hover:text-primary-11"
-                  type="button"
-                  onClick={() => downloadIcs(event, whereLine)}
-                >
-                  {t('actions.download_ics')}
-                </button>
-              </ActionPopover>,
             ]
           : []
       case 'website':
@@ -179,21 +122,12 @@ export function EventActions({ event, basePath }: EventActionsProps) {
         }
 
         return [
-          <ActionPopover
+          <ContactPopover
             key="contact"
-            trigger={(ref, props) => (
-              <ActionCircle
-                ref={ref}
-                icon={<CallIcon />}
-                label={label}
-                variant="bordered"
-                {...props}
-              />
-            )}
-          >
-            {event.contactName && <div className="text-sm font-medium">{event.contactName}</div>}
-            <CopyField value={event.contactPhone} />
-          </ActionPopover>,
+            label={label}
+            name={event.contactName}
+            phone={event.contactPhone}
+          />,
         ]
       }
       case 'share':

@@ -33,7 +33,7 @@ export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormFi
 export type { FormFieldProps } from './FormField'
 
 // ActionRow / ActionCircle — the labelled tonal-circle secondary actions under
-// an event's Register CTA (Directions / Add to calendar / Contact / Share).
+// an event's Register CTA (Directions / Website / Contact / Share).
 export { ActionRow, ActionCircle } from './ActionRow'
 export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 

@@ -1,10 +1,8 @@
 {
   "actions": {
-    "add_calendar": "В календарь",
     "contact": "Связаться",
     "copy": "Копировать",
     "directions": "Маршрут",
-    "download_ics": "Скачать файл .ics",
     "share": "Поделиться",
     "website": "Сайт"
   },

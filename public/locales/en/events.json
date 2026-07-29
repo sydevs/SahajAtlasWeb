@@ -1,10 +1,8 @@
 {
   "actions": {
-    "add_calendar": "Add to calendar",
     "contact": "Contact",
     "copy": "Copy",
     "directions": "Directions",
-    "download_ics": "Download .ics file",
     "share": "Share",
     "website": "Website"
   },

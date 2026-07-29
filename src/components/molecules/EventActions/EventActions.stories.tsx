@@ -29,13 +29,12 @@ function Panel({ event }: { event: Event }) {
  * EventActions — the secondary action row under an event's Register CTA. The
  * set is chosen by the display resolver per state; Contact and Website only
  * appear when the CMS carries them, and Directions only for a physical venue.
- * Contact is a `tel:` link on touch and a number + copy popover on desktop;
- * Add to calendar opens a Google link / .ics download.
+ * Contact is a `tel:` link on touch and a number + copy popover on desktop.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The full set — Directions · Add to calendar · Website · Contact · Share — on one line."
+      description="The full set — Directions · Website · Contact · Share — on one line."
       title="Physical event"
     >
       <Panel event={mockEvent} />

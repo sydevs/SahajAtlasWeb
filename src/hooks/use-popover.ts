@@ -15,7 +15,7 @@ import {
 } from '@floating-ui/react'
 
 // The floating-ui setup shared by every popover surface in the app: the Dropdown
-// atom's panel and EventActions' contact / add-to-calendar popovers. Both used to
+// atom's panel and EventActions' desktop contact popover. Both used to
 // spell out the same useFloating + offset(8)/flip/shift + click/dismiss/role
 // stack; EventActions' copy even carried a comment conceding it was "the same
 // pattern as the Dropdown atom".

@@ -391,7 +391,6 @@ describe('resolveEventDisplay: edge cases', () => {
 
     expect(resolveEventDisplay(withContact, at('2026-07-15T10:00:00')).actions).toEqual([
       'directions',
-      'calendar',
       'contact',
       'share',
     ])
@@ -400,6 +399,6 @@ describe('resolveEventDisplay: edge cases', () => {
         { ...withContact, eventType: 'online' as const },
         at('2026-07-15T10:00:00'),
       ).actions,
-    ).toEqual(['calendar', 'contact', 'share'])
+    ).toEqual(['contact', 'share'])
   })
 })
