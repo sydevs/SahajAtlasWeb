@@ -7,6 +7,9 @@ export type { StoryWrapperProps } from './StoryWrapper'
 export { StorySection } from './StorySection'
 export type { StorySectionProps } from './StorySection'
 
+export { SeedSearchParams } from './SeedSearchParams'
+export type { SeedSearchParamsProps } from './SeedSearchParams'
+
 export {
   StoryGrid,
   StoryGridHeader,

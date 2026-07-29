@@ -216,15 +216,19 @@
    with no second palette. Outside a Tailwind layer so the overrides always win. */
 .sx-calendar {
   --sx-color-primary: hsl(var(--primary-9));
-  --sx-color-on-primary: hsl(var(--primary-contrast));
+  /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
+     dark: black — the same on-color the solid Button uses), NOT a `--*-contrast` token, which
+     doesn't exist: that resolved to an invalid colour and fell back to black, which was only
+     legible on dark mode's lighter primary-9 (the today-highlight readability bug). */
+  --sx-color-on-primary: hsl(var(--primary-on));
   --sx-color-primary-container: hsl(var(--primary-4));
   --sx-color-on-primary-container: hsl(var(--primary-11));
   --sx-color-secondary: hsl(var(--secondary-9));
-  --sx-color-on-secondary: hsl(var(--secondary-contrast));
+  --sx-color-on-secondary: hsl(var(--secondary-on));
   --sx-color-secondary-container: hsl(var(--secondary-4));
   --sx-color-on-secondary-container: hsl(var(--secondary-11));
   --sx-color-tertiary: hsl(var(--primary-9));
-  --sx-color-on-tertiary: hsl(var(--primary-contrast));
+  --sx-color-on-tertiary: hsl(var(--primary-on));
   --sx-color-tertiary-container: hsl(var(--primary-4));
   --sx-color-on-tertiary-container: hsl(var(--primary-11));
   --sx-color-surface: hsl(var(--background));
@@ -254,6 +258,19 @@
 .sx-calendar .sx__calendar {
   height: 100%;
   width: 100%;
+}
+
+/* Drop Schedule-X's own border on the calendar body — the DrawerBody's `p-4` already frames
+   it, and the outline (more visible in dark mode) broke the look of that padding. */
+.sx-calendar .sx__calendar {
+  border: none;
+}
+
+/* Hide Schedule-X's built-in header bar entirely — we drive the calendar from our own header
+   (CalendarControls) via the calendar-controls plugin, so SX's Today / nav / date-picker /
+   view-selector are unused. Keeps us out of the CSS-override battle with its chrome. */
+.sx-calendar .sx__calendar-header {
+  display: none;
 }
 
 /* Suppress Schedule-X's per-event "grow in" animation (`sx-grow-event` on `.is-event-new`).

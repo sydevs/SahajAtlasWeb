@@ -83,7 +83,14 @@
   },
   "calendar": {
     "title": "Calendario",
-    "online": "En línea"
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "views": {
+      "month": "Mes",
+      "week": "Semana",
+      "list": "Lista"
+    },
+    "pick_date": "Elegir fecha"
   },
   "sort": {
     "label": "Ordenar",

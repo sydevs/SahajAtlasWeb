@@ -21,6 +21,9 @@ export type { CheckboxProps } from './Checkbox'
 export { Chip } from './Chip'
 export type { ChipProps } from './Chip'
 
+export { Combobox } from './Combobox'
+export type { ComboboxProps, ComboboxOption } from './Combobox'
+
 export {
   Drawer,
   DrawerContent,

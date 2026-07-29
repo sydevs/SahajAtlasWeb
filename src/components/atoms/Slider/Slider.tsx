@@ -20,6 +20,13 @@ const slider = tv({
     highlight: {
       true: { track: 'bg-primary-6', thumb: 'border-primary-7' },
     },
+    // Validation error: recolour to danger — the unfilled track + thumb border AND the filled
+    // range swap their primary for danger (colour change only). The root also sets
+    // `aria-invalid`. Provided for interface parity with the other input atoms — a slider
+    // always holds an in-range value, so it rarely errors in practice.
+    isInvalid: {
+      true: { track: 'bg-danger-6', range: 'bg-danger-9', thumb: 'border-danger-7' },
+    },
   },
 })
 
@@ -39,6 +46,10 @@ export type SliderProps = {
   thumbLabels?: string | string[]
   /** Primary-tint the slider to flag an active/in-use field. */
   highlight?: boolean
+  /** Danger-tint the slider + set `aria-invalid` to flag a validation error. */
+  isInvalid?: boolean
+  /** Id of the field's error/description text, forwarded for screen readers. */
+  'aria-describedby'?: string
   className?: string
 }
 
@@ -54,9 +65,11 @@ export function Slider({
   disabled,
   thumbLabels,
   highlight,
+  isInvalid,
+  'aria-describedby': describedBy,
   className,
 }: SliderProps) {
-  const { root, track, range, thumb } = slider({ highlight })
+  const { root, track, range, thumb } = slider({ highlight, isInvalid })
   // One thumb per value entry; falls back to a single thumb at the minimum.
   const thumbs = value ?? defaultValue ?? [min]
   const labelFor = (index: number) =>
@@ -64,6 +77,8 @@ export function Slider({
 
   return (
     <RadixSlider.Root
+      aria-describedby={describedBy}
+      aria-invalid={isInvalid || undefined}
       className={root({ className })}
       defaultValue={defaultValue}
       disabled={disabled}

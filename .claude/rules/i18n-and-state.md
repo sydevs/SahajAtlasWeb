@@ -57,20 +57,26 @@ Five stores, each the single source of truth for its slice:
   an in-widget push and read on a POP by `useFrameOnTop` to **restore** the viewport
   the user left. Non-reactive — accessed via `getState()` only, so a write never
   re-renders the map — and FIFO-capped so a long embedded session stays bounded.
-- **`useCalendarPosition`** — the full-width CalendarView's last Schedule-X `view`
+- **`useCalendarPosition`** — the CalendarView's last Schedule-X `view`
   (`month-grid`/`week`/`list`) + focused `date`, so a filter apply (which remounts the
   filters-keyed grid) or returning from an event doesn't reset the grid to the month
-  view on today. The grid seeds from it once at mount (`getState`) and writes both
-  fields imperatively as the user navigates, so a write never re-renders the calendar;
-  `view` is *additionally* read reactively (a selector) by `DrawerStack` to size the
-  drawer (list view → regular width, month/week → full-width). Session-scoped.
+  view on today. The grid **seeds** from it once at mount (`getState`) — a write never
+  re-renders the *grid* — and both fields are written imperatively as the user navigates
+  (the header's controls call `setView`; the SX `onSelectedDateUpdate` callback calls
+  `setDate`). It's read **reactively** (selectors) by the CalendarView's own header
+  (`CalendarControls` — highlights the active view in the picker, formats the month/year
+  label) and by `DrawerStack` (to size the drawer: list view → regular width, month/week →
+  full-width). The header drives Schedule-X through the **`calendar-controls` plugin** (a
+  public API), so there's no reach into SX internals. Session-scoped.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when it was opened from an error CTA. A store rather than local state
   because its three triggers sit in unrelated subtrees (the settings cog,
   `ErrorFallback`, `DrawerErrorFallback`) and the two error CTAs must reach a host
   mounted **outside** the ErrorBoundary that's rendering them (`App.tsx`). It is
   **not** part of the drawer stack: it never appears in the URL, `resolveStack`
-  never sees it, and opening/closing it neither pushes nor pops history.
+  never sees it, and opening/closing it neither pushes nor pops history. The
+  element that opened it is kept beside the store (non-reactive) so focus can
+  return there on close.
 
 Three slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:

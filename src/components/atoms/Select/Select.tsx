@@ -1,4 +1,4 @@
-import { Children, isValidElement, type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import { tv } from 'tailwind-variants'
 
@@ -6,10 +6,10 @@ import { overlayContainer } from '@/lib/overlay'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 
 // Shared chrome for every field-like control: this Select's trigger, the registration
-// inputs/textarea (Input/Textarea atoms), and the date bounds. It was previously several
-// hand-copied strings that had drifted to different corner radii on inputs that stack in
-// the same form. `isInvalid` is a variant here so no caller re-implements the border
-// ternary; `highlight` tints the field primary to flag an active filter (see FilterView).
+// inputs/textarea (Input/Textarea atoms), the date bounds, and the Combobox trigger. It was
+// previously several hand-copied strings that had drifted to different corner radii on inputs
+// that stack in the same form. `isInvalid` is a variant here so no caller re-implements the
+// border ternary; `highlight` tints the field primary to flag an active filter (see FilterView).
 export const fieldChrome = tv({
   base: 'w-full rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
@@ -26,8 +26,8 @@ export const fieldChrome = tv({
 
 // A select built on @radix-ui/react-select. Controlled via value/onValueChange (pair with
 // react-hook-form's Controller for forms). The listbox portals into the theme root so it
-// stays brand/light-dark themed. With `searchable`, a filter input at the top of the list
-// narrows the options as you type (matched against each SelectItem's `textValue`/`value`).
+// stays brand/light-dark themed. For a type-to-filter picker (search in the field itself),
+// use the Combobox atom instead.
 export type SelectProps = {
   value?: string
   defaultValue?: string
@@ -37,25 +37,14 @@ export type SelectProps = {
   disabled?: boolean
   placeholder?: string
   'aria-label'?: string
+  /** Id of the field's error/description text, forwarded to the trigger for screen readers. */
+  'aria-describedby'?: string
+  /** Danger-border the trigger + set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
   /** Primary-tint the trigger to flag an active/in-use field. */
   highlight?: boolean
-  /** Show a type-to-filter input at the top of the list. */
-  searchable?: boolean
-  /** Placeholder for the filter input (searchable only). */
-  searchPlaceholder?: string
-  /** Shown when the filter matches no option (searchable only). */
-  emptyLabel?: string
   children: ReactNode
   className?: string
-}
-
-// Does a SelectItem child match the filter query (by its textValue, else its value)?
-const itemMatches = (child: ReactNode, query: string): boolean => {
-  if (!isValidElement<SelectItemProps>(child)) return false
-  const { textValue, value } = child.props
-
-  return `${textValue ?? value ?? ''}`.toLowerCase().includes(query)
 }
 
 export function Select({
@@ -67,34 +56,23 @@ export function Select({
   disabled,
   placeholder,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   isInvalid,
   highlight,
-  searchable,
-  searchPlaceholder,
-  emptyLabel,
   children,
   className,
 }: SelectProps) {
-  const [query, setQuery] = useState('')
-  const q = query.trim().toLowerCase()
-  // Flatten the options once; only re-flatten when the option set changes, not on every
-  // keystroke (the query lives in this component's own state, so typing re-renders it).
-  const items = useMemo(() => Children.toArray(children), [children])
-  const matches = searchable && q ? items.filter((c) => itemMatches(c, q)) : null
-  const filtered = matches ?? children
-  const noMatches = matches?.length === 0
-
   return (
     <RadixSelect.Root
       defaultValue={defaultValue}
       disabled={disabled}
       name={name}
       value={value}
-      // Clear the filter each time the list closes, so it reopens showing everything.
-      onOpenChange={(open) => !open && setQuery('')}
       onValueChange={onValueChange}
     >
       <RadixSelect.Trigger
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         onBlur={onBlur}
@@ -113,32 +91,8 @@ export function Select({
           position="popper"
           sideOffset={4}
         >
-          {searchable && (
-            <div className="border-b border-gray-4 p-1">
-              <input
-                // Fall back to the field's own name so the filter box is never unlabelled,
-                // even if a caller omits `searchPlaceholder`.
-                aria-label={searchPlaceholder ?? ariaLabel}
-                className={fieldChrome({ className: 'h-8 px-2' })}
-                placeholder={searchPlaceholder}
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                // Keep typed characters in the input; let Radix own navigation + close.
-                onKeyDown={(event) => {
-                  if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) {
-                    event.stopPropagation()
-                  }
-                }}
-              />
-            </div>
-          )}
           <RadixSelect.Viewport className="min-h-0 flex-1 overflow-y-auto p-1">
-            {noMatches ? (
-              <p className="px-2 py-3 text-center text-sm text-gray-11">{emptyLabel}</p>
-            ) : (
-              filtered
-            )}
+            {children}
           </RadixSelect.Viewport>
         </RadixSelect.Content>
       </RadixSelect.Portal>

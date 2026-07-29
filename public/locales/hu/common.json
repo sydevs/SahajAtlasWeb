@@ -83,7 +83,14 @@
   },
   "calendar": {
     "title": "Naptár",
-    "online": "Online"
+    "previous": "Előző",
+    "next": "Következő",
+    "views": {
+      "month": "Hónap",
+      "week": "Hét",
+      "list": "Lista"
+    },
+    "pick_date": "Dátum kiválasztása"
   },
   "sort": {
     "label": "Rendezés",

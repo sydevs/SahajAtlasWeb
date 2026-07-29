@@ -97,7 +97,14 @@
   },
   "calendar": {
     "title": "Calendar",
-    "online": "Online"
+    "previous": "Previous",
+    "next": "Next",
+    "views": {
+      "month": "Month",
+      "week": "Week",
+      "list": "List"
+    },
+    "pick_date": "Pick a date"
   },
   "sort": {
     "label": "Sort",

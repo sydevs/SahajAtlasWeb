@@ -69,6 +69,21 @@ One flexible section component (title, optional description, automatic divider).
 - `variant="scrollable"` → fixed 600px scroll area.
 - `inContext` → "In Context - " prefix + bold top border (use for **Examples**).
 
+### SeedSearchParams (filter-driven stories)
+
+Seeds URL search params (the filters' source of truth, read via `useEventFilters`) onto the
+decorator's own router — react-router v7 forbids nesting a second `<Router>`. Pass a **stable**
+`params` (module-level `filtersToParams(...)`) so it seeds once. Used by the ActiveFilterPills +
+CalendarView stories to preview the applied-filter state.
+
+```tsx
+import { SeedSearchParams } from '../../ladle'
+
+const params = filtersToParams({ ...DEFAULT_FILTERS, format: 'online' })
+
+;<SeedSearchParams params={params}>{/* view/component under test */}</SeedSearchParams>
+```
+
 ### StoryGrid (matrices)
 
 For multi-dimensional atom matrices (e.g. colour × state). Mobile-first: stacks

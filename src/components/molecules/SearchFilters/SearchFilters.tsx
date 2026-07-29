@@ -4,10 +4,11 @@ import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
+import { Combobox } from '@/components/atoms/Combobox'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { Select, SelectItem, fieldChrome } from '@/components/atoms/Select'
+import { fieldChrome } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -379,33 +380,24 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         )}
       </FilterGroup>
 
-      {/* Region is a plain list picker (not a free-text combobox): you choose from the
-          CMS regions present in the feed, nothing else. Clearing is the group's "Clear". */}
+      {/* Region is a combobox: you type in the field to filter the CMS regions present in
+          the feed (by name or breadcrumb) and click one. Clearing is the group's "Clear". */}
       {regionOptions.length > 0 && (
         <FilterGroup
           active={region !== null}
           label={t('filters.region.label')}
           onClear={() => patch({ region: null })}
         >
-          <Select
-            searchable
+          <Combobox
             aria-label={t('filters.region.label')}
             emptyLabel={t('filters.region.empty')}
             highlight={region !== null}
+            options={regionOptions}
             placeholder={t('filters.region.all')}
             searchPlaceholder={t('filters.region.search')}
             value={region ?? undefined}
             onValueChange={(next) => patch({ region: next })}
-          >
-            {regionOptions.map((option) => (
-              <SelectItem key={option.value} textValue={option.label} value={option.value}>
-                <span className="block truncate">{option.label}</span>
-                {option.hint && (
-                  <span className="block truncate text-xs text-gray-11">{option.hint}</span>
-                )}
-              </SelectItem>
-            ))}
-          </Select>
+          />
         </FilterGroup>
       )}
     </div>

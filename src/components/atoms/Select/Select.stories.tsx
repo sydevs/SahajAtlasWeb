@@ -38,7 +38,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`isInvalid` is the registration form's error affordance (paired there with aria-invalid + aria-describedby); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
+        description="`isInvalid` danger-borders the trigger + sets aria-invalid (pair with an aria-describedby error message); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
         title="States"
       >
         <div className="flex max-w-md flex-col gap-3">
@@ -67,21 +67,13 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`searchable` adds a type-to-filter box above the list (the region filter); `highlight` primary-tints the trigger to flag an active/used field."
-        title="Searchable & highlighted"
+        description="`highlight` primary-tints the trigger to flag an active/used field (no layout shift). For a type-to-filter picker, use the Combobox atom instead."
+        title="Highlighted"
       >
         <div className="max-w-xs">
-          <Select
-            searchable
-            aria-label="Region"
-            highlight={value !== ''}
-            placeholder="Choose a region…"
-            searchPlaceholder="Search…"
-            value={value}
-            onValueChange={setValue}
-          >
+          <Select highlight aria-label="Class time" value={value} onValueChange={setValue}>
             {options.map((o) => (
-              <SelectItem key={o.value} textValue={o.label} value={o.value}>
+              <SelectItem key={o.value} value={o.value}>
                 {o.label}
               </SelectItem>
             ))}

@@ -83,7 +83,14 @@
   },
   "calendar": {
     "title": "Kalender",
-    "online": "Online"
+    "previous": "Zurück",
+    "next": "Weiter",
+    "views": {
+      "month": "Monat",
+      "week": "Woche",
+      "list": "Liste"
+    },
+    "pick_date": "Datum wählen"
   },
   "sort": {
     "label": "Sortieren",

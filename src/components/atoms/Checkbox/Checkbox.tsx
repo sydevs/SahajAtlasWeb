@@ -38,6 +38,14 @@ const toggle = tv({
     // Active-filter tint: primary-colour the UNCHECKED track (checked keeps its solid
     // fill above) so an in-use field stands out — a colour change only, no wrapper.
     highlight: { true: { root: 'bg-primary-6' } },
+    // Validation error: recolour to danger — the CHECKED track swaps its primary fill for the
+    // danger solid, plus a danger ring so an unchecked switch still reads as errored (no layout
+    // shift). The control also sets `aria-invalid`.
+    isInvalid: {
+      true: {
+        root: 'ring-2 ring-danger-7 data-[state=checked]:bg-danger-9 dark:data-[state=checked]:bg-danger-9',
+      },
+    },
   },
   defaultVariants: { color: 'primary', size: 'md' },
 })
@@ -72,6 +80,14 @@ const box = tv({
     // Active-filter tint: primary-colour the UNCHECKED box (checked keeps its solid fill
     // above) so an in-use field stands out — a colour change only, no wrapper.
     highlight: { true: { root: 'border-primary-7 bg-primary-3' } },
+    // Validation error: recolour to danger — the unchecked box border AND the CHECKED box's
+    // primary fill/border/check swap for the danger solid (colour change only). The control
+    // also sets `aria-invalid`.
+    isInvalid: {
+      true: {
+        root: 'border-danger-7 data-[state=checked]:border-danger-9 data-[state=checked]:bg-danger-9 data-[state=checked]:text-danger-foreground dark:data-[state=checked]:border-danger-9 dark:data-[state=checked]:bg-danger-9 dark:data-[state=checked]:text-danger-foreground',
+      },
+    },
   },
   defaultVariants: { color: 'primary', size: 'md' },
 })
@@ -86,6 +102,10 @@ export type CheckboxProps = VariantProps<typeof toggle> & {
   id?: string
   /** Primary-tint the unchecked control to flag an active/in-use field (no layout shift). */
   highlight?: boolean
+  /** Danger-tint the control + set `aria-invalid` to flag a validation error (no layout shift). */
+  isInvalid?: boolean
+  /** Id of the field's error/description text, forwarded for screen readers. */
+  'aria-describedby'?: string
   /** Optional label rendered after the control. */
   children?: ReactNode
   className?: string
@@ -101,16 +121,20 @@ export function Checkbox({
   disabled,
   id,
   highlight,
+  isInvalid,
+  'aria-describedby': describedBy,
   children,
   className,
 }: CheckboxProps) {
   let control: ReactNode
 
   if (appearance === 'checkbox') {
-    const { root, indicator } = box({ color, size, highlight })
+    const { root, indicator } = box({ color, size, highlight, isInvalid })
 
     control = (
       <RadixCheckbox.Root
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}
@@ -124,10 +148,12 @@ export function Checkbox({
       </RadixCheckbox.Root>
     )
   } else {
-    const { root, thumb } = toggle({ color, size, highlight })
+    const { root, thumb } = toggle({ color, size, highlight, isInvalid })
 
     control = (
       <RadixSwitch.Root
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         checked={checked}
         className={root({ className: children ? undefined : className })}
         defaultChecked={defaultChecked}

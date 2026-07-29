@@ -83,7 +83,14 @@
   },
   "calendar": {
     "title": "Calendrier",
-    "online": "En ligne"
+    "previous": "Précédent",
+    "next": "Suivant",
+    "views": {
+      "month": "Mois",
+      "week": "Semaine",
+      "list": "Liste"
+    },
+    "pick_date": "Choisir une date"
   },
   "sort": {
     "label": "Trier",

@@ -83,7 +83,14 @@
   },
   "calendar": {
     "title": "Kalendář",
-    "online": "Online"
+    "previous": "Předchozí",
+    "next": "Další",
+    "views": {
+      "month": "Měsíc",
+      "week": "Týden",
+      "list": "Seznam"
+    },
+    "pick_date": "Vybrat datum"
   },
   "sort": {
     "label": "Seřadit",

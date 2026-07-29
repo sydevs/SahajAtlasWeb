@@ -36,9 +36,12 @@ export const Default: Story = () => {
         </div>
       </StorySection>
 
-      <StorySection description="`isInvalid` swaps to the danger border." title="Invalid">
+      <StorySection
+        description="`isInvalid` swaps to the danger border + sets aria-invalid (pair with an aria-describedby error message)."
+        title="Invalid"
+      >
         <div className="max-w-sm">
-          <Textarea isInvalid defaultValue="Too short" rows={4} />
+          <Textarea isInvalid aria-describedby="bio-error" defaultValue="Too short" rows={4} />
         </div>
       </StorySection>
 

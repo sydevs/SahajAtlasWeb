@@ -68,6 +68,21 @@ export const Default: Story = () => {
         </div>
       </StorySection>
 
+      <StorySection
+        description="`isInvalid` danger-tints the track + thumb + sets aria-invalid — provided for parity with the other input atoms, though a slider rarely errors."
+        title="Invalid"
+      >
+        <div className="max-w-sm">
+          <Slider
+            isInvalid
+            aria-describedby="volume-error"
+            thumbLabels="Volume"
+            value={single}
+            onValueChange={setSingle}
+          />
+        </div>
+      </StorySection>
+
       <div />
     </StoryWrapper>
   )
