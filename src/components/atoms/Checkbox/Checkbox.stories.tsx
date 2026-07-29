@@ -20,15 +20,13 @@ export default {
   title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
-// Rows are the palette colors, plus a `disabled` row — the disabled appearance is
-// color-independent (a flat opacity), so one row stands in for all four. Columns
-// are the two appearances the single control offers.
+// Rows are the palette colors. Columns are the two appearances the single control
+// offers. (Disabled gets its own section below — it repaints on the neutral ramp, so
+// it's color-independent and needs both states side by side to be judged.)
 const rows = [
   { color: 'primary' as const },
   { color: 'secondary' as const },
   { color: 'contrast' as const },
-  { color: 'neutral' as const },
-  { color: 'primary' as const, disabled: true, label: 'disabled' },
 ]
 
 /** Checkbox — one Radix control with a `switch` or `checkbox` appearance. */
@@ -39,10 +37,7 @@ export const Default: Story = () => {
 
   return (
     <StoryWrapper>
-      <StorySection
-        description="Appearance × colour, all checked (disabled is color-independent)."
-        title="Appearance × colour"
-      >
+      <StorySection description="Appearance × colour, all checked." title="Appearance × colour">
         <StoryGrid>
           <StoryGridHeader>
             <StoryGridHeaderRow>
@@ -52,14 +47,50 @@ export const Default: Story = () => {
             </StoryGridHeaderRow>
           </StoryGridHeader>
           <StoryGridBody>
-            {rows.map(({ color, disabled, label }) => (
-              <StoryGridRow key={label ?? color}>
-                <StoryGridCell isLabel>{label ?? color}</StoryGridCell>
+            {rows.map(({ color }) => (
+              <StoryGridRow key={color}>
+                <StoryGridCell isLabel>{color}</StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked color={color} disabled={disabled} />
+                  <Checkbox checked color={color} />
                 </StoryGridCell>
                 <StoryGridCell>
-                  <Checkbox checked appearance="checkbox" color={color} disabled={disabled} />
+                  <Checkbox checked appearance="checkbox" color={color} />
+                </StoryGridCell>
+              </StoryGridRow>
+            ))}
+          </StoryGridBody>
+        </StoryGrid>
+      </StorySection>
+
+      <StorySection
+        description="Disabled repaints on the neutral ramp rather than fading the brand fill — so `on` stays readable as on, and `off` can't be confused with the enabled-unchecked control above it."
+        title="Enabled vs disabled"
+      >
+        <StoryGrid>
+          <StoryGridHeader>
+            <StoryGridHeaderRow>
+              <StoryGridHeaderCell />
+              <StoryGridHeaderCell>Switch off</StoryGridHeaderCell>
+              <StoryGridHeaderCell>Switch on</StoryGridHeaderCell>
+              <StoryGridHeaderCell>Checkbox off</StoryGridHeaderCell>
+              <StoryGridHeaderCell>Checkbox on</StoryGridHeaderCell>
+            </StoryGridHeaderRow>
+          </StoryGridHeader>
+          <StoryGridBody>
+            {[false, true].map((disabled) => (
+              <StoryGridRow key={String(disabled)}>
+                <StoryGridCell isLabel>{disabled ? 'disabled' : 'enabled'}</StoryGridCell>
+                <StoryGridCell>
+                  <Checkbox checked={false} disabled={disabled} />
+                </StoryGridCell>
+                <StoryGridCell>
+                  <Checkbox checked disabled={disabled} />
+                </StoryGridCell>
+                <StoryGridCell>
+                  <Checkbox appearance="checkbox" checked={false} disabled={disabled} />
+                </StoryGridCell>
+                <StoryGridCell>
+                  <Checkbox checked appearance="checkbox" disabled={disabled} />
                 </StoryGridCell>
               </StoryGridRow>
             ))}
