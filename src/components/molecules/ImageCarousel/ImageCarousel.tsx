@@ -57,7 +57,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         pagination={carousel && { clickable: true }}
       >
         {slides.map((slide, index) => (
-          <SwiperSlide key={slide.src} className="pb-10">
+          // Bottom padding only reserves room for the pagination bullets, so it's
+          // sized to them (~16px of bullet + air) and skipped entirely for a lone
+          // image, which has no bullets — it was 40px either way, which read as
+          // dead space under the last thing in a view.
+          <SwiperSlide key={slide.src} className={carousel ? 'pb-6' : undefined}>
             <button
               aria-label={slide.alt ?? t('details.view_photo')}
               className="block w-full cursor-zoom-in"
