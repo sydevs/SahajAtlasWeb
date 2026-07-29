@@ -83,13 +83,14 @@ export function Combobox({
         if (!next) setQuery('')
       }}
     >
+      {/* A disclosure button (Radix supplies aria-expanded/aria-haspopup) — the actual combobox
+          is cmdk's CommandInput inside, so role="combobox" doesn't belong on the trigger too. */}
       <Popover.Trigger
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
         className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         disabled={disabled}
-        role="combobox"
       >
         <span className={`truncate ${selected ? '' : 'text-gray-11'}`}>
           {selected?.label ?? placeholder}
