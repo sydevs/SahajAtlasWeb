@@ -4,11 +4,13 @@ import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
+import { Combobox } from '@/components/atoms/Combobox'
 import { Dropdown } from '@/components/atoms/Dropdown'
+import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
 import { DownArrowIcon } from '@/components/atoms/Icons'
-import api from '@/config/api'
+import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
@@ -18,7 +20,9 @@ import {
   type EventFormat,
   type TimePeriod,
   TIME_PERIODS,
+  ancestorIds,
   dateWindow,
+  indexRegions,
   isDateRestricted,
   isTimeRestricted,
 } from '@/lib/shape'
@@ -26,8 +30,11 @@ import {
 // The Format + Frequency toggle options, in display order. The i18n leaf key for
 // each is just the lowercased value (`recurrenceType` is upper-case on the wire),
 // so no lookup map is needed.
-const FORMAT_OPTIONS: EventFormat[] = ['any', 'offline', 'online']
-const CADENCE_OPTIONS: EventCadence[] = ['any', 'DAILY', 'WEEKLY', 'MONTHLY', 'once']
+// The Format + Frequency toggles omit the "any" option — a single-select toggle can be
+// left unselected (= any), and the group's "Clear" resets it — so the toggle only shows
+// the real choices.
+const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
+const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
 // A labelled filter group — a heading (with an optional right-aligned hint, e.g.
 // the time readout) above its control. When the filter is `active`, a small
@@ -88,19 +95,22 @@ function DateBound({
   value,
   min,
   max,
+  highlight,
   onChange,
 }: {
   label: string
   value: string
   min: string
   max: string
+  highlight?: boolean
   onChange: (value: string | null) => void
 }) {
   return (
     <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-gray-11">
       {label}
-      <input
-        className={fieldChrome({ className: 'px-2' })}
+      <Input
+        className="px-2"
+        highlight={highlight}
         max={max}
         min={min}
         type="date"
@@ -131,7 +141,7 @@ export type SearchFiltersProps = {
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = value
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = value
 
   // Patch one or more fields of the current draft.
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })
@@ -141,6 +151,40 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
   })
+
+  const { data: regions } = useQuery(regionsQuery())
+
+  // Region options: every region present in the feed (any level with events under
+  // it), labelled with a breadcrumb hint so same-named places are distinguishable.
+  // The region cut itself (self + descendants) lives in `buildRegionMatcher`.
+  const regionOptions = useMemo(() => {
+    if (!regions?.length || !geojson) return []
+
+    const index = indexRegions(regions)
+    // Many features share a region, so expand ancestry once per DISTINCT region id
+    // rather than once per feature.
+    const directRegionIds = new Set(geojson.features.map((f) => f.properties.region.id))
+    const present = new Set<number>()
+
+    for (const id of directRegionIds) {
+      for (const ancestorId of ancestorIds(index, id)) present.add(ancestorId)
+    }
+
+    return regions
+      .filter((node) => present.has(node.id))
+      .map((node) => ({
+        value: node.slug,
+        label: node.name ?? node.slug,
+        hint:
+          ancestorIds(index, node.id)
+            .slice(1) // drop self → parent … country
+            .map((id) => index.byId.get(id)?.name)
+            .filter((name): name is string => Boolean(name))
+            .reverse() // country → … → parent (top-down breadcrumb)
+            .join(' · ') || undefined,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, locale))
+  }, [regions, geojson, locale])
 
   // Mon-first weekday pills; luxon's `Info.weekdays` is 1 (Mon)–7 (Sun), matching
   // the store's day encoding, so the value is the index + 1. `short` (3-char)
@@ -188,6 +232,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         <ToggleGroup
           joined
           aria-label={t('filters.format.label')}
+          highlight={format !== 'any'}
           type="single"
           value={format}
           onValueChange={(next) => next && patch({ format: next as EventFormat })}
@@ -208,6 +253,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         <ToggleGroup
           joined
           aria-label={t('filters.cadence.label')}
+          highlight={cadence !== 'any'}
           type="single"
           value={cadence}
           onValueChange={(next) => next && patch({ cadence: next as EventCadence })}
@@ -227,6 +273,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <ToggleGroup
           aria-label={t('filters.days.label')}
+          highlight={daysOfWeek.length > 0}
           type="multiple"
           value={daysOfWeek.map(String)}
           onValueChange={(next) => patch({ daysOfWeek: next.map(Number) })}
@@ -247,6 +294,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         <div className="flex flex-col gap-2">
           <ToggleGroup
             aria-label={t('filters.time.label')}
+            highlight={timeActive}
             type="multiple"
             value={timeOfDay}
             onValueChange={(next) => patch({ timeOfDay: next as TimePeriod[] })}
@@ -258,10 +306,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             ))}
           </ToggleGroup>
           {/* The times the selection covers — the same string the active-filter pill shows.
-              Empty for no selection (or a whole-day one), so fall back to "any time". */}
-          <p className="text-xs text-gray-11">
-            {formatTimePeriods(locale, timeOfDay) || t('filters.any_time')}
-          </p>
+              Hidden when nothing is selected (no "any time" placeholder). */}
+          {timeOfDay.length > 0 && (
+            <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
+          )}
         </div>
       </FilterGroup>
 
@@ -272,6 +320,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <div className="flex items-end gap-2">
           <DateBound
+            highlight={dateRange.start !== null}
             label={t('filters.dates.from')}
             max={dateRange.end ?? dateMax}
             min={dateMin}
@@ -279,6 +328,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
           />
           <DateBound
+            highlight={dateRange.end !== null}
             label={t('filters.dates.to')}
             max={dateMax}
             min={dateRange.start ?? dateMin}
@@ -301,7 +351,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             aria-label={t('filters.language.label')}
             role="dialog"
             trigger={
-              <span className={fieldChrome({ trigger: true })}>
+              <span className={fieldChrome({ trigger: true, highlight: languages.length > 0 })}>
                 <span className="truncate">{languageTriggerLabel}</span>
                 <DownArrowIcon className="h-4 w-4 shrink-0 opacity-70" />
               </span>
@@ -329,6 +379,27 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           </Dropdown>
         )}
       </FilterGroup>
+
+      {/* Region is a combobox: you type in the field to filter the CMS regions present in
+          the feed (by name or breadcrumb) and click one. Clearing is the group's "Clear". */}
+      {regionOptions.length > 0 && (
+        <FilterGroup
+          active={region !== null}
+          label={t('filters.region.label')}
+          onClear={() => patch({ region: null })}
+        >
+          <Combobox
+            aria-label={t('filters.region.label')}
+            emptyLabel={t('filters.region.empty')}
+            highlight={region !== null}
+            options={regionOptions}
+            placeholder={t('filters.region.all')}
+            searchPlaceholder={t('filters.region.search')}
+            value={region ?? undefined}
+            onValueChange={(next) => patch({ region: next })}
+          />
+        </FilterGroup>
+      )}
     </div>
   )
 }

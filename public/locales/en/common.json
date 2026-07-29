@@ -54,6 +54,12 @@
       "pill_from": "From %{date}",
       "pill_until": "Until %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Region",
+      "all": "All regions",
+      "search": "Search regions…",
+      "empty": "No regions found"
     }
   },
   "free_meditation_class": "Free Meditation Class",
@@ -88,6 +94,17 @@
     "native": "Share…",
     "copy_link": "Copy link",
     "copied": "Copied"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "previous": "Previous",
+    "next": "Next",
+    "views": {
+      "month": "Month",
+      "week": "Week",
+      "list": "List"
+    },
+    "pick_date": "Pick a date"
   },
   "sort": {
     "label": "Sort",

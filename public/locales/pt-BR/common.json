@@ -61,6 +61,12 @@
       "pill_from": "A partir de %{date}",
       "pill_until": "Até %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Região",
+      "all": "Todas as regiões",
+      "search": "Buscar regiões…",
+      "empty": "Nenhuma região encontrada"
     }
   },
   "search_placeholder": "Buscar eventos perto de…",
@@ -74,6 +80,17 @@
     "native": "Compartilhar…",
     "copy_link": "Copiar link",
     "copied": "Copiado"
+  },
+  "calendar": {
+    "title": "Calendário",
+    "previous": "Anterior",
+    "next": "Próximo",
+    "views": {
+      "month": "Mês",
+      "week": "Semana",
+      "list": "Lista"
+    },
+    "pick_date": "Escolher data"
   },
   "sort": {
     "label": "Ordenar",

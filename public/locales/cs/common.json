@@ -61,6 +61,12 @@
       "pill_from": "Od %{date}",
       "pill_until": "Do %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Region",
+      "all": "Všechny regiony",
+      "search": "Hledat regiony…",
+      "empty": "Žádné regiony nenalezeny"
     }
   },
   "search_placeholder": "Hledat události poblíž…",
@@ -74,6 +80,17 @@
     "native": "Sdílet…",
     "copy_link": "Kopírovat odkaz",
     "copied": "Zkopírováno"
+  },
+  "calendar": {
+    "title": "Kalendář",
+    "previous": "Předchozí",
+    "next": "Další",
+    "views": {
+      "month": "Měsíc",
+      "week": "Týden",
+      "list": "Seznam"
+    },
+    "pick_date": "Vybrat datum"
   },
   "sort": {
     "label": "Seřadit",

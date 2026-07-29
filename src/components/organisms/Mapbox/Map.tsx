@@ -30,6 +30,7 @@ import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
 import { useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { hasActiveFilters, matchesFilters, safePath, todayISO } from '@/lib/shape'
@@ -194,6 +195,9 @@ export function Mapbox() {
   // The active filters (stable identity — this is the hot render path). Applied to
   // the feed below so the pins + cluster counts match the list.
   const filters = useEventFilters()
+  // The region cut (self + descendants), resolved from the cache-once region tree.
+  // Undefined unless a region is selected, so pan/zoom never rebuilds it.
+  const matchesRegion = useRegionMatcher(filters.region)
 
   const { data } = useQuery({
     queryKey: ['geojson'],
@@ -215,11 +219,11 @@ export function Mapbox() {
 
     const today = todayISO()
     const features = hasActiveFilters(filters)
-      ? data.features.filter((f) => matchesFilters(f.properties, filters, today))
+      ? data.features.filter((f) => matchesFilters(f.properties, filters, today, matchesRegion))
       : data.features
 
     return toMapSource(features)
-  }, [data, filters])
+  }, [data, filters, matchesRegion])
 
   // Re-join the hovered pin's id to the FULL feed event (the map source is trimmed
   // to id + webPath), reading the same `['geojson']` cache the pins come from, and

@@ -81,14 +81,28 @@ const drawer = tv({
         content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
       },
     },
+    // A full-width surface (CalendarView) instead of the ~22rem left panel — so a
+    // month grid is legible. Only meaningful with the anchored `left` panel (map
+    // mode ≥md); the bottom sheet is already full-width and `filled` (map-less)
+    // already fills the container, so both ignore it (see the compound below).
+    wide: { true: {}, false: {} },
   },
   compoundVariants: [
     // The bottom sheet shows a drag handle that already spaces the header from the
     // sheet's top edge, so relax the header's top padding for a balanced handle→header
     // gap. Not when `filled` hides the handle (map-less), where the header owns the top.
     { direction: 'bottom', mode: 'anchored', class: { header: 'pt-2' } },
+    // Wide + the anchored left panel: fill the container (flush at md, floating at lg)
+    // rather than the narrow left panel. `!important` overrides the left variant's
+    // fixed width + edge insets, mirroring how `filled` overrides them map-less.
+    {
+      direction: 'left',
+      mode: 'anchored',
+      wide: true,
+      class: { content: '!inset-0 !w-auto !max-w-none lg:!inset-4' },
+    },
   ],
-  defaultVariants: { direction: 'bottom', mode: 'anchored' },
+  defaultVariants: { direction: 'bottom', mode: 'anchored', wide: false },
 })
 
 type DrawerSlots = ReturnType<typeof drawer>
@@ -139,13 +153,14 @@ export function Drawer({
   dismissible = true,
   handleOnly = false,
   mode = 'anchored',
+  wide = false,
   snapPoints,
   activeSnapPoint,
   setActiveSnapPoint,
   container,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction, mode })
+  const slots = drawer({ direction, mode, wide })
 
   // Pass snap props unconditionally (undefined = no snap points) so the
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.

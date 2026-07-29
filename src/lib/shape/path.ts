@@ -62,6 +62,14 @@ export const isCanonicalPath = (pathname: string, target: string): boolean =>
 export const searchPath = (center?: [number, number]): string =>
   center ? `/search?center=${center[0]},${center[1]}` : '/search'
 
+/**
+ * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the
+ * wire format together with the region filter codec so producers (the RegionView entry
+ * button) never hand-roll it.
+ */
+export const calendarPath = (regionSlug?: string): string =>
+  regionSlug ? `/calendar?region=${encodeURIComponent(regionSlug)}` : '/calendar'
+
 /** What an incoming pathname resolves to, keyed off its terminal segment. */
 export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
 
@@ -88,8 +96,8 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 }
 
 /**
- * Words that are never a region slug. `search` / `filters` / `register` / `share` /
- * `online` are our own routed views (a CMS region slug can never silently shadow them
+ * Words that are never a region slug. `search` / `calendar` / `filters` / `register` /
+ * `share` / `online` are our own routed views (a CMS region slug can never silently shadow them
  * — the guard); `preview` is the live-preview boot route (issue #40 — captured in
  * `main.tsx`, carries no drawer of its own); `events` / `areas` / `regions` / `venues`
  * are legacy URL prefixes that carry no drawer of their own. Kept lowercase; matched
@@ -97,6 +105,7 @@ export const resolvePath = (pathname: string): ResolvedPath => {
  */
 export const RESERVED_SLUGS = new Set([
   'search',
+  'calendar',
   'filters',
   'register',
   'share',
@@ -111,6 +120,7 @@ export const RESERVED_SLUGS = new Set([
 /** One open drawer, derived from a path prefix. The DrawerStack renders one per entry. */
 export type StackEntry =
   | { kind: 'search'; path: string }
+  | { kind: 'calendar'; path: string }
   | { kind: 'filters'; path: string }
   | { kind: 'region'; slug: string; path: string }
   | { kind: 'event'; id: number; path: string }
@@ -138,6 +148,7 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     const word = segment.toLowerCase()
 
     if (word === 'search') entries.push({ kind: 'search', path })
+    else if (word === 'calendar') entries.push({ kind: 'calendar', path })
     else if (word === 'filters') entries.push({ kind: 'filters', path })
     else if (word === 'register') entries.push({ kind: 'register', eventPath: parentPath, path })
     else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })

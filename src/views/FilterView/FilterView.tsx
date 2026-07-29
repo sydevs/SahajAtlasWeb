@@ -9,12 +9,15 @@ import { SearchFilters } from '@/components/molecules'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import {
   DEFAULT_FILTERS,
+  type EventFilters,
   filtersKey,
   filtersToParams,
   hasActiveFilters,
   matchesFilters,
+  parentOf,
   todayISO,
 } from '@/lib/shape'
 import { CloseButton, DrawerTitle } from '@/views/shared'
@@ -27,14 +30,18 @@ import { CloseButton, DrawerTitle } from '@/views/shared'
 // map — and closes the drawer, showing how many events the draft matches. "Clear
 // all" resets everything AND applies + closes. The per-filter clears inside the
 // form stay draft-only.
-export function FilterView() {
+// `initialDraft` seeds the form's draft for previews/tests (so a story can open in a filled,
+// unapplied "dirty" state); the app renders `<FilterView />`, starting from the applied filters.
+export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {}) {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
   const applied = useEventFilters()
 
   // Start from the applied filters; discarded on close unless the user applies.
-  const [draft, setDraft] = useState(applied)
+  const [draft, setDraft] = useState(initialDraft ?? applied)
+  // Region cut for the live count, from the draft's selected region (see matchesFilters).
+  const matchesRegion = useRegionMatcher(draft.region)
 
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
@@ -50,23 +57,27 @@ export function FilterView() {
 
     const today = todayISO()
 
-    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today)).length
-  }, [geojson, draft])
+    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today, matchesRegion))
+      .length
+  }, [geojson, draft, matchesRegion])
 
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
 
-  // Applying/clearing always shows the results: go to /search with the filters
-  // written into the query (preserving any existing q/bbox/center), even when the
-  // drawer was opened over the country list — the point of applying is to see the
-  // filtered events, not return to the countries. It's a "reset to results", not a
-  // forward push, so it REPLACES the filter-drawer entry (carrying its depth over)
-  // rather than stacking a new one — the filter drawer doesn't linger in history, and
-  // a chronological back from the results lands on the pre-filter view.
+  // Applying/clearing returns to the ORIGIN view (the drawer beneath the filters),
+  // with the filters written into its query — so filtering from the calendar returns
+  // to the calendar and from search back to search, each still framed by its own
+  // q/center/bbox/region. Opened over a view that doesn't itself reflect the filters
+  // (the country list or a region), apply instead jumps to /search to show the filtered
+  // events — there's no filtered surface to return to. Either way it REPLACES the
+  // filter-drawer entry (carrying its depth over) rather than stacking a new one, so the
+  // drawer doesn't linger in history and a chronological back lands on the pre-filter view.
   const commit = (filters: typeof draft) => {
     const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
+    const origin = parentOf(location.pathname)
+    const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
-    navigate({ pathname: '/search', search }, { replace: true, state: location.state })
+    navigate({ pathname: target, search }, { replace: true, state: location.state })
   }
 
   return (

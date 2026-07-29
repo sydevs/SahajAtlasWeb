@@ -13,6 +13,7 @@ import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
+  CalendarButton,
   CloseButton,
   DrawerTitle,
   GeolocationSuggestion,
@@ -76,10 +77,10 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        {/* Search + close as one right-aligned group, so justify-between keeps the
-            title left and the two controls sit adjacent (gap-2, matching the
-            header's own control spacing) rather than being spread apart. */}
+        {/* Calendar, search + close as one right-aligned control group; justify-between
+            keeps the title left. The calendar opens pre-scoped to this region. */}
         <div className="flex shrink-0 items-center gap-2">
+          <CalendarButton regionSlug={region.slug} />
           <SearchButton />
           <CloseButton />
         </div>

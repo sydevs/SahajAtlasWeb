@@ -21,19 +21,49 @@ const toggleGroup = tv({
         item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
       },
     },
+    // Active-filter tint: primary-colour the UNSELECTED items (the selected item keeps its
+    // solid `data-[state=on]` fill) so an in-use field stands out — a colour change only,
+    // no wrapper and no size change, so the layout never shifts.
+    highlight: {
+      true: {
+        item: 'border-primary-6 bg-primary-3 text-primary-11 hover:bg-primary-4',
+      },
+    },
+    // Validation error: recolour to danger — the unselected items get a danger border and the
+    // SELECTED item swaps its primary fill for the danger solid (colour change only, no layout
+    // shift). The root also sets `aria-invalid`.
+    isInvalid: {
+      true: {
+        item: 'border-danger-7 data-[state=on]:border-danger-9 data-[state=on]:bg-danger-9 data-[state=on]:text-danger-foreground',
+      },
+    },
   },
   defaultVariants: { joined: false },
 })
 
-// Lets ToggleGroupItem pick up the parent's `joined` styling without threading it
-// through every item (mirrors the Drawer atom's slot context).
-const ToggleGroupContext = createContext<{ joined: boolean }>({ joined: false })
+// Lets ToggleGroupItem pick up the parent's `joined` + `highlight` + `isInvalid` styling
+// without threading them through every item (mirrors the Drawer atom's slot context).
+const ToggleGroupContext = createContext<{
+  joined: boolean
+  highlight: boolean
+  isInvalid: boolean
+}>({
+  joined: false,
+  highlight: false,
+  isInvalid: false,
+})
 
 type ToggleGroupBaseProps = {
   disabled?: boolean
   'aria-label'?: string
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
+  /** Primary-tint the group to flag an active/in-use field. */
+  highlight?: boolean
+  /** Danger-border the items + set `aria-invalid` to flag a validation error. */
+  isInvalid?: boolean
+  /** Id of the group's error/description text, forwarded for screen readers. */
+  'aria-describedby'?: string
   className?: string
   children: ReactNode
 }
@@ -59,18 +89,27 @@ export type ToggleGroupProps = ToggleGroupBaseProps &
 export function ToggleGroup({
   disabled,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   joined = false,
+  highlight,
+  isInvalid,
   className,
   children,
   ...props
 }: ToggleGroupProps) {
+  // The tint + error border live on the items (see the `highlight`/`isInvalid` variants), so
+  // the root itself is unstyled by them — pass both down through context for the items to read.
   const { root } = toggleGroup({ joined })
 
   return (
-    <ToggleGroupContext.Provider value={{ joined }}>
+    <ToggleGroupContext.Provider
+      value={{ joined, highlight: highlight ?? false, isInvalid: isInvalid ?? false }}
+    >
       {/* `props` is the discriminated (type/value/onValueChange) union, which is
           assignable to Radix's own overload union — so one Root, no per-type arms. */}
       <RadixToggleGroup.Root
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
         className={root({ className })}
         disabled={disabled}
@@ -97,8 +136,8 @@ export function ToggleGroupItem({
   className,
   children,
 }: ToggleGroupItemProps) {
-  const { joined } = useContext(ToggleGroupContext)
-  const { item } = toggleGroup({ joined })
+  const { joined, highlight, isInvalid } = useContext(ToggleGroupContext)
+  const { item } = toggleGroup({ joined, highlight, isInvalid })
 
   return (
     <RadixToggleGroup.Item

@@ -5,13 +5,11 @@ import { tv } from 'tailwind-variants'
 import { overlayContainer } from '@/lib/overlay'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 
-// Shared chrome for every field-like control: this Select's trigger, the filter
-// panel's language multi-select, the registration inputs/textarea, and the date
-// bounds. It was previously three hand-copied strings that had drifted to three
-// different corner radii (`rounded-none` / `rounded` / `rounded-md`) on inputs
-// that stack in the same form, with the date input missing its focus ring
-// entirely. `isInvalid` is a variant here so no caller re-implements the
-// border-colour ternary.
+// Shared chrome for every field-like control: this Select's trigger, the registration
+// inputs/textarea (Input/Textarea atoms), the date bounds, and the Combobox trigger. It was
+// previously several hand-copied strings that had drifted to different corner radii on inputs
+// that stack in the same form. `isInvalid` is a variant here so no caller re-implements the
+// border ternary; `highlight` tints the field primary to flag an active filter (see FilterView).
 export const fieldChrome = tv({
   base: 'w-full rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
@@ -20,13 +18,16 @@ export const fieldChrome = tv({
     trigger: { true: 'inline-flex h-10 items-center justify-between gap-2', false: 'h-10' },
     /** Textareas grow with their content instead of holding the 40px field height. */
     multiline: { true: 'h-auto py-2' },
+    /** Active-filter tint — a primary background so an in-use field stands out. */
+    highlight: { true: 'border-primary-7 bg-primary-3' },
   },
   defaultVariants: { isInvalid: false, trigger: false },
 })
 
-// A select built on @radix-ui/react-select, replacing NextUI's Select. Controlled
-// via value/onValueChange (pair with react-hook-form's Controller for forms).
-// The listbox portals into the theme root so it stays brand/light-dark themed.
+// A select built on @radix-ui/react-select. Controlled via value/onValueChange (pair with
+// react-hook-form's Controller for forms). The listbox portals into the theme root so it
+// stays brand/light-dark themed. For a type-to-filter picker (search in the field itself),
+// use the Combobox atom instead.
 export type SelectProps = {
   value?: string
   defaultValue?: string
@@ -36,7 +37,12 @@ export type SelectProps = {
   disabled?: boolean
   placeholder?: string
   'aria-label'?: string
+  /** Id of the field's error/description text, forwarded to the trigger for screen readers. */
+  'aria-describedby'?: string
+  /** Danger-border the trigger + set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
+  /** Primary-tint the trigger to flag an active/in-use field. */
+  highlight?: boolean
   children: ReactNode
   className?: string
 }
@@ -50,7 +56,9 @@ export function Select({
   disabled,
   placeholder,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   isInvalid,
+  highlight,
   children,
   className,
 }: SelectProps) {
@@ -63,8 +71,10 @@ export function Select({
       onValueChange={onValueChange}
     >
       <RadixSelect.Trigger
+        aria-describedby={describedBy}
+        aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
-        className={fieldChrome({ isInvalid, trigger: true, className })}
+        className={fieldChrome({ isInvalid, highlight, trigger: true, className })}
         onBlur={onBlur}
       >
         <RadixSelect.Value placeholder={placeholder} />
@@ -74,15 +84,16 @@ export function Select({
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal container={overlayContainer()}>
-        {/* `position="popper"` exposes `--radix-select-trigger-width`, so the
-            listbox matches the trigger's width rather than sizing to its longest
-            option. */}
+        {/* `position="popper"` exposes `--radix-select-trigger-width`, so the listbox
+            matches the trigger's width rather than sizing to its longest option. */}
         <RadixSelect.Content
-          className="z-50 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          className="z-50 flex max-h-72 w-[var(--radix-select-trigger-width)] flex-col overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
           position="popper"
           sideOffset={4}
         >
-          <RadixSelect.Viewport className="p-1">{children}</RadixSelect.Viewport>
+          <RadixSelect.Viewport className="min-h-0 flex-1 overflow-y-auto p-1">
+            {children}
+          </RadixSelect.Viewport>
         </RadixSelect.Content>
       </RadixSelect.Portal>
     </RadixSelect.Root>

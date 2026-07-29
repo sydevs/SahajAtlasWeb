@@ -44,7 +44,7 @@ alwaysApply: false
 
 ## zustand stores (`src/config/store.ts`)
 
-Three stores, each the single source of truth for its slice:
+Four stores, each the single source of truth for its slice:
 
 - **`useViewState`** — map camera (`zoom/latitude/longitude`), current
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`
@@ -57,6 +57,17 @@ Three stores, each the single source of truth for its slice:
   an in-widget push and read on a POP by `useFrameOnTop` to **restore** the viewport
   the user left. Non-reactive — accessed via `getState()` only, so a write never
   re-renders the map — and FIFO-capped so a long embedded session stays bounded.
+- **`useCalendarPosition`** — the CalendarView's last Schedule-X `view`
+  (`month-grid`/`week`/`list`) + focused `date`, so a filter apply (which remounts the
+  filters-keyed grid) or returning from an event doesn't reset the grid to the month
+  view on today. The grid **seeds** from it once at mount (`getState`) — a write never
+  re-renders the *grid* — and both fields are written imperatively as the user navigates
+  (the header's controls call `setView`; the SX `onSelectedDateUpdate` callback calls
+  `setDate`). It's read **reactively** (selectors) by the CalendarView's own header
+  (`CalendarControls` — highlights the active view in the picker, formats the month/year
+  label) and by `DrawerStack` (to size the drawer: list view → regular width, month/week →
+  full-width). The header drives Schedule-X through the **`calendar-controls` plugin** (a
+  public API), so there's no reach into SX internals. Session-scoped.
 
 Three slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:

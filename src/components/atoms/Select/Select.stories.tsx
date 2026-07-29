@@ -7,7 +7,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { Select, SelectItem } from './Select'
 
 export default {
-  title: 'Atoms',
+  title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
 const options = [
@@ -38,7 +38,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="`isInvalid` is the registration form's error affordance (paired there with aria-invalid + aria-describedby); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
+        description="`isInvalid` danger-borders the trigger + sets aria-invalid (pair with an aria-describedby error message); `disabled` dims the trigger and blocks it; with no value the placeholder shows."
         title="States"
       >
         <div className="flex max-w-md flex-col gap-3">
@@ -57,6 +57,21 @@ export const Default: Story = () => {
             ))}
           </Select>
           <Select aria-label="Empty" placeholder="Choose a time…">
+            {options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`highlight` primary-tints the trigger to flag an active/used field (no layout shift). For a type-to-filter picker, use the Combobox atom instead."
+        title="Highlighted"
+      >
+        <div className="max-w-xs">
+          <Select highlight aria-label="Class time" value={value} onValueChange={setValue}>
             {options.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}

@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { DateTime, Info } from 'luxon'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Chip } from '@/components/atoms/Chip'
+import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
@@ -26,11 +28,21 @@ export type ActiveFilterPillsProps = {
 export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange } = useEventFilters()
-  const { setFormat, setCadence, setTimeOfDay, setDaysOfWeek, setLanguages, setDateRange } =
-    useSetFilters()
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
+  const {
+    setFormat,
+    setCadence,
+    setTimeOfDay,
+    setDaysOfWeek,
+    setLanguages,
+    setDateRange,
+    setRegion,
+  } = useSetFilters()
 
   const weekdaysShort = useMemo(() => Info.weekdays('short', { locale }), [locale])
+
+  // The cache-once region tree, to resolve the selected slug to its display name below.
+  const { data: regions } = useQuery(regionsQuery())
 
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
@@ -40,6 +52,13 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
       label: t('filters.nearby', { km: nearby.km }),
       onRemove: nearby.onClear,
     })
+  }
+  if (region) {
+    // Show the region's name (falling back to the slug until the tree loads / for an
+    // unknown slug), resolved where it's used so there's no null-typed intermediate.
+    const name = regions?.find((node) => node.slug === region)?.name ?? region
+
+    pills.push({ key: 'region', label: name, onRemove: () => setRegion(null) })
   }
   if (format !== 'any') {
     pills.push({

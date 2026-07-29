@@ -21,6 +21,9 @@ export type { CheckboxProps } from './Checkbox'
 export { Chip } from './Chip'
 export type { ChipProps } from './Chip'
 
+export { Combobox } from './Combobox'
+export type { ComboboxProps, ComboboxOption } from './Combobox'
+
 export {
   Drawer,
   DrawerContent,
@@ -33,6 +36,9 @@ export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
 
 export { Dropdown } from './Dropdown'
 export type { DropdownProps } from './Dropdown'
+
+export { Input } from './Input'
+export type { InputProps } from './Input'
 
 export { Link } from './Link'
 export type { LinkProps } from './Link'
@@ -48,6 +54,9 @@ export type { SliderProps } from './Slider'
 
 export { Spinner } from './Spinner'
 export type { SpinnerProps } from './Spinner'
+
+export { Textarea } from './Textarea'
+export type { TextareaProps } from './Textarea'
 
 export { ToggleGroup, ToggleGroupItem } from './ToggleGroup'
 export type { ToggleGroupProps, ToggleGroupItemProps } from './ToggleGroup'

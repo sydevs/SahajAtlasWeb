@@ -61,6 +61,12 @@
       "pill_from": "С %{date}",
       "pill_until": "До %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Регион",
+      "all": "Все регионы",
+      "search": "Поиск регионов…",
+      "empty": "Регионы не найдены"
     }
   },
   "search_placeholder": "Искать события рядом с…",
@@ -74,6 +80,17 @@
     "native": "Поделиться…",
     "copy_link": "Копировать ссылку",
     "copied": "Скопировано"
+  },
+  "calendar": {
+    "title": "Календарь",
+    "previous": "Назад",
+    "next": "Вперёд",
+    "views": {
+      "month": "Месяц",
+      "week": "Неделя",
+      "list": "Список"
+    },
+    "pick_date": "Выбрать дату"
   },
   "sort": {
     "label": "Сортировка",

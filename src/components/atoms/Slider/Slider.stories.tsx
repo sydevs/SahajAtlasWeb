@@ -7,7 +7,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { Slider } from './Slider'
 
 export default {
-  title: 'Atoms',
+  title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
 // Render a 0–24h value as a "9:00 AM – 6:00 PM"-style readout.
@@ -56,6 +56,30 @@ export const Default: Story = () => {
       <StorySection description="Disabled." title="Disabled">
         <div className="max-w-sm">
           <Slider disabled thumbLabels="Disabled" value={[30]} />
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`highlight` wraps the track in a primary tint to flag an active/used field."
+        title="Highlighted"
+      >
+        <div className="max-w-sm">
+          <Slider highlight thumbLabels="Volume" value={single} onValueChange={setSingle} />
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`isInvalid` danger-tints the track + thumb + sets aria-invalid — provided for parity with the other input atoms, though a slider rarely errors."
+        title="Invalid"
+      >
+        <div className="max-w-sm">
+          <Slider
+            isInvalid
+            aria-describedby="volume-error"
+            thumbLabels="Volume"
+            value={single}
+            onValueChange={setSingle}
+          />
         </div>
       </StorySection>
 

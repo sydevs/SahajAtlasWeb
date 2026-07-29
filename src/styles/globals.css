@@ -208,3 +208,78 @@
     @apply text-primary hover:opacity-hover !important;
   }
 }
+
+/* Schedule-X (CalendarView) theming. Map its Material-style `--sx-*` tokens onto our
+   theme-aware Radix tokens, set on the `.sx-calendar` wrapper so they INHERIT into
+   Schedule-X's DOM — overriding its own `:root`/`.is-dark` values. Because our tokens
+   already flip with light/dark + the tenant accent, the calendar follows the theme
+   with no second palette. Outside a Tailwind layer so the overrides always win. */
+.sx-calendar {
+  --sx-color-primary: hsl(var(--primary-9));
+  /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
+     dark: black — the same on-color the solid Button uses), NOT a `--*-contrast` token, which
+     doesn't exist: that resolved to an invalid colour and fell back to black, which was only
+     legible on dark mode's lighter primary-9 (the today-highlight readability bug). */
+  --sx-color-on-primary: hsl(var(--primary-on));
+  --sx-color-primary-container: hsl(var(--primary-4));
+  --sx-color-on-primary-container: hsl(var(--primary-11));
+  --sx-color-secondary: hsl(var(--secondary-9));
+  --sx-color-on-secondary: hsl(var(--secondary-on));
+  --sx-color-secondary-container: hsl(var(--secondary-4));
+  --sx-color-on-secondary-container: hsl(var(--secondary-11));
+  --sx-color-tertiary: hsl(var(--primary-9));
+  --sx-color-on-tertiary: hsl(var(--primary-on));
+  --sx-color-tertiary-container: hsl(var(--primary-4));
+  --sx-color-on-tertiary-container: hsl(var(--primary-11));
+  --sx-color-surface: hsl(var(--background));
+  --sx-color-surface-bright: hsl(var(--background));
+  --sx-color-surface-dim: var(--gray-2);
+  --sx-color-surface-container: var(--gray-2);
+  --sx-color-surface-container-low: var(--gray-2);
+  --sx-color-surface-container-high: var(--gray-3);
+  --sx-color-on-surface: var(--gray-12);
+  --sx-color-background: hsl(var(--background));
+  --sx-color-on-background: var(--gray-12);
+  --sx-color-outline: var(--gray-7);
+  --sx-color-outline-variant: var(--gray-6);
+  --sx-color-neutral: var(--gray-9);
+  --sx-color-neutral-variant: var(--gray-8);
+  --sx-internal-color-text: var(--gray-12);
+  --sx-internal-color-light-gray: var(--gray-4);
+  --sx-border: var(--gray-6);
+
+  height: 100%;
+  min-height: 0;
+}
+
+/* Fill the drawer body: the wrapper + the calendar root take the available height,
+   so the month grid isn't clipped and the week/day views scroll internally. */
+.sx-calendar .sx-react-calendar-wrapper,
+.sx-calendar .sx__calendar {
+  height: 100%;
+  width: 100%;
+}
+
+/* Drop Schedule-X's own border on the calendar body — the DrawerBody's `p-4` already frames
+   it, and the outline (more visible in dark mode) broke the look of that padding. */
+.sx-calendar .sx__calendar {
+  border: none;
+}
+
+/* Hide Schedule-X's built-in header bar entirely — we drive the calendar from our own header
+   (CalendarControls) via the calendar-controls plugin, so SX's Today / nav / date-picker /
+   view-selector are unused. Keeps us out of the CSS-override battle with its chrome. */
+.sx-calendar .sx__calendar-header {
+  display: none;
+}
+
+/* Suppress Schedule-X's per-event "grow in" animation (`sx-grow-event` on `.is-event-new`).
+   The CalendarGrid remounts when the filters change (to refresh events + dayBoundaries),
+   which otherwise replays this grow on every entry — a distracting reanimation on each
+   filter apply. Month-page/week slide transitions are left intact. */
+.sx-calendar .sx__month-grid-event.is-event-new,
+.sx-calendar .sx__month-agenda-event.is-event-new,
+.sx-calendar .sx__time-grid-event.is-event-new,
+.sx-calendar .sx__date-grid-event.is-event-new {
+  animation: none;
+}

@@ -44,6 +44,7 @@ export const useSetFilters = () => {
     setDaysOfWeek: (daysOfWeek: number[]) => update((filters) => ({ ...filters, daysOfWeek })),
     setLanguages: (languages: string[]) => update((filters) => ({ ...filters, languages })),
     setDateRange: (dateRange: DateRange) => update((filters) => ({ ...filters, dateRange })),
+    setRegion: (region: string | null) => update((filters) => ({ ...filters, region })),
     clearFilters: () => update(() => DEFAULT_FILTERS),
   }
 }

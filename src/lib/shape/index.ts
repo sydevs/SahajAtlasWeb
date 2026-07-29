@@ -1,3 +1,4 @@
+export * from './calendar'
 export * from './event'
 export * from './filters'
 export * from './hierarchy'

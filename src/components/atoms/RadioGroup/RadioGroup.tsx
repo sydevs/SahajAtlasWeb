@@ -13,14 +13,40 @@ export type RadioOption = {
   label: ReactNode
 }
 
+// The selected option fills with the primary solid — reading like a selected
+// ToggleGroup item — rather than a faint tint, so the choice is unmistakable.
+// `highlight` primary-tints the UNSELECTED cards (a colour change only — no wrapper,
+// no size change) so an active field stands out without shifting the layout.
 const radioOption = tv({
-  base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm text-foreground transition-colors',
+  base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
   variants: {
     checked: {
-      true: 'border-primary-8 bg-primary-2',
-      false: 'border-gray-7 hover:bg-gray-2',
+      true: 'border-primary-9 bg-primary-9 font-medium text-primary-foreground',
+      false: 'border-gray-7 text-foreground hover:bg-gray-2',
     },
+    highlight: { true: '' },
+    // Recolour to danger — the unselected cards get a danger border, the SELECTED card swaps
+    // its primary fill for the danger solid (colour change only, no layout shift). The group
+    // also sets `aria-invalid`. Listed after `highlight` so an error wins the colours.
+    isInvalid: { true: '' },
   },
+  compoundVariants: [
+    {
+      checked: false,
+      highlight: true,
+      class: 'border-primary-7 bg-primary-3 text-primary-12 hover:bg-primary-4',
+    },
+    {
+      checked: false,
+      isInvalid: true,
+      class: 'border-danger-7',
+    },
+    {
+      checked: true,
+      isInvalid: true,
+      class: 'border-danger-9 bg-danger-9 text-danger-foreground',
+    },
+  ],
 })
 
 export type RadioGroupProps = {
@@ -31,7 +57,12 @@ export type RadioGroupProps = {
   onChange: (value: string) => void
   onBlur?: () => void
   'aria-label'?: string
+  /** Id of the group's error/description text, forwarded for screen readers. */
+  'aria-describedby'?: string
+  /** Danger-border the group + set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
+  /** Primary-tint the group to flag it as an active/used field (mirrors the other atoms). */
+  highlight?: boolean
   /** Show only the first N options, revealing the rest behind `moreLabel`. */
   collapseAfter?: number
   /** The reveal link's text — required for the collapse to render. */
@@ -46,7 +77,9 @@ export function RadioGroup({
   onChange,
   onBlur,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
   isInvalid,
+  highlight,
   collapseAfter,
   moreLabel,
   className,
@@ -58,6 +91,7 @@ export function RadioGroup({
 
   return (
     <div
+      aria-describedby={describedBy}
       aria-invalid={isInvalid || undefined}
       aria-label={ariaLabel}
       className={clsx('flex flex-col gap-2', className)}
@@ -67,7 +101,7 @@ export function RadioGroup({
         const checked = value === option.value
 
         return (
-          <label key={option.value} className={radioOption({ checked })}>
+          <label key={option.value} className={radioOption({ checked, highlight, isInvalid })}>
             <input
               checked={checked}
               className="h-4 w-4 shrink-0 accent-primary"

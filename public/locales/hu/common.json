@@ -61,6 +61,12 @@
       "pill_from": "Ettől: %{date}",
       "pill_until": "Eddig: %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Régió",
+      "all": "Minden régió",
+      "search": "Régiók keresése…",
+      "empty": "Nincsenek régiók"
     }
   },
   "search_placeholder": "Események keresése a közelben…",
@@ -74,6 +80,17 @@
     "native": "Megosztás…",
     "copy_link": "Link másolása",
     "copied": "Másolva"
+  },
+  "calendar": {
+    "title": "Naptár",
+    "previous": "Előző",
+    "next": "Következő",
+    "views": {
+      "month": "Hónap",
+      "week": "Hét",
+      "list": "Lista"
+    },
+    "pick_date": "Dátum kiválasztása"
   },
   "sort": {
     "label": "Rendezés",

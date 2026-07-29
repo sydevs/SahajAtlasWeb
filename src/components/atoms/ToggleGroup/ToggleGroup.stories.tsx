@@ -7,7 +7,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { ToggleGroup, ToggleGroupItem } from './ToggleGroup'
 
 export default {
-  title: 'Atoms',
+  title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -43,6 +43,45 @@ export const Default: Story = () => {
         title="Multi-select"
       >
         <ToggleGroup aria-label="Days" type="multiple" value={days} onValueChange={setDays}>
+          {WEEKDAYS.map((day, index) => (
+            <ToggleGroupItem key={index} value={String(index + 1)}>
+              {day}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </StorySection>
+
+      <StorySection
+        description="`highlight` wraps the group in a primary tint to flag an active/used filter."
+        title="Highlighted"
+      >
+        <ToggleGroup
+          highlight
+          aria-label="Days (active)"
+          type="multiple"
+          value={days}
+          onValueChange={setDays}
+        >
+          {WEEKDAYS.map((day, index) => (
+            <ToggleGroupItem key={index} value={String(index + 1)}>
+              {day}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </StorySection>
+
+      <StorySection
+        description="`isInvalid` danger-borders the items + sets aria-invalid on the group. Pair with an aria-describedby error message."
+        title="Invalid"
+      >
+        <ToggleGroup
+          isInvalid
+          aria-describedby="days-error"
+          aria-label="Days (error)"
+          type="multiple"
+          value={days}
+          onValueChange={setDays}
+        >
           {WEEKDAYS.map((day, index) => (
             <ToggleGroupItem key={index} value={String(index + 1)}>
               {day}

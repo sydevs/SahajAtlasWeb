@@ -17,7 +17,7 @@ import {
 import { Checkbox } from './Checkbox'
 
 export default {
-  title: 'Atoms',
+  title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
 // Rows are the palette colors, plus a `disabled` row — the disabled appearance is
@@ -77,6 +77,46 @@ export const Default: Story = () => {
           </Checkbox>
           <Checkbox appearance="checkbox" checked={c} color="primary" onCheckedChange={setC}>
             Keep me informed about upcoming events and news
+          </Checkbox>
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`highlight` primary-tints the UNCHECKED control (no layout shift); once checked it keeps its solid fill."
+        title="Highlighted"
+      >
+        <div className="flex flex-col gap-3">
+          <Checkbox highlight checked={b} color="primary" onCheckedChange={setB}>
+            Highlighted switch
+          </Checkbox>
+          <Checkbox
+            highlight
+            appearance="checkbox"
+            checked={c}
+            color="primary"
+            onCheckedChange={setC}
+          >
+            Highlighted checkbox
+          </Checkbox>
+        </div>
+      </StorySection>
+
+      <StorySection
+        description="`isInvalid` flags a validation error + sets aria-invalid — a danger ring on the switch, a danger border on the box (no layout shift). Pair with an aria-describedby error message."
+        title="Invalid"
+      >
+        <div className="flex flex-col gap-3">
+          <Checkbox isInvalid checked={b} color="primary" onCheckedChange={setB}>
+            Invalid switch
+          </Checkbox>
+          <Checkbox
+            isInvalid
+            appearance="checkbox"
+            checked={c}
+            color="primary"
+            onCheckedChange={setC}
+          >
+            I accept the terms
           </Checkbox>
         </div>
       </StorySection>

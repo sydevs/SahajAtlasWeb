@@ -1,9 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { useEffect } from 'react'
-import { useSearchParams } from 'react-router'
-
-import { StoryWrapper, StorySection } from '../../ladle'
+import { StoryWrapper, StorySection, SeedSearchParams } from '../../ladle'
 
 import { ActiveFilterPills } from './ActiveFilterPills'
 
@@ -22,24 +19,12 @@ const seededParams = filtersToParams({
   timeOfDay: ['morning', 'afternoon'],
   languages: ['en', 'fr'],
   dateRange: { start: null, end: null },
+  region: null,
 })
-
-// Seed the query on the decorator's router rather than nesting a second
-// MemoryRouter — react-router v7 throws "cannot render a <Router> inside another
-// <Router>", which is what blanked this story.
-function SeedFilters({ children }: { children: React.ReactNode }) {
-  const [, setSearchParams] = useSearchParams()
-
-  useEffect(() => {
-    setSearchParams(seededParams, { replace: true })
-  }, [setSearchParams])
-
-  return <>{children}</>
-}
 
 /** ActiveFilterPills — the applied filters as removable pills (one per filter type). */
 export const Default: Story = () => (
-  <SeedFilters>
+  <SeedSearchParams params={seededParams}>
     <StoryWrapper>
       <StorySection
         description="The applied filters as removable pills — the day-of-week and language selections each collapse into one pill. The optional distance cap (search-only) leads the row."
@@ -50,7 +35,7 @@ export const Default: Story = () => (
 
       <div />
     </StoryWrapper>
-  </SeedFilters>
+  </SeedSearchParams>
 )
 
 Default.storyName = 'Active Filter Pills'

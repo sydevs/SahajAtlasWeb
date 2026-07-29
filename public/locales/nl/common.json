@@ -61,6 +61,12 @@
       "pill_from": "Vanaf %{date}",
       "pill_until": "Tot %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Regio",
+      "all": "Alle regio's",
+      "search": "Regio's zoeken…",
+      "empty": "Geen regio's gevonden"
     }
   },
   "search_placeholder": "Zoek evenementen in de buurt van…",
@@ -74,6 +80,17 @@
     "native": "Delen…",
     "copy_link": "Link kopiëren",
     "copied": "Gekopieerd"
+  },
+  "calendar": {
+    "title": "Kalender",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "views": {
+      "month": "Maand",
+      "week": "Week",
+      "list": "Lijst"
+    },
+    "pick_date": "Datum kiezen"
   },
   "sort": {
     "label": "Sorteren",

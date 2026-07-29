@@ -13,6 +13,21 @@ const slider = tv({
     thumb:
       'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus',
   },
+  variants: {
+    // Active-filter tint: primary-colour the UNFILLED track + thumb border (the filled
+    // range keeps its solid primary) so an in-use field stands out — a colour change only,
+    // no wrapper and no padding, so the layout never shifts.
+    highlight: {
+      true: { track: 'bg-primary-6', thumb: 'border-primary-7' },
+    },
+    // Validation error: recolour to danger — the unfilled track + thumb border AND the filled
+    // range swap their primary for danger (colour change only). The root also sets
+    // `aria-invalid`. Provided for interface parity with the other input atoms — a slider
+    // always holds an in-range value, so it rarely errors in practice.
+    isInvalid: {
+      true: { track: 'bg-danger-6', range: 'bg-danger-9', thumb: 'border-danger-7' },
+    },
+  },
 })
 
 export type SliderProps = {
@@ -29,6 +44,12 @@ export type SliderProps = {
   /** Accessible label per thumb — a single string labels every thumb. Not a DOM
    *  `aria-label`: it fans out to each thumb, so it keeps a distinct name. */
   thumbLabels?: string | string[]
+  /** Primary-tint the slider to flag an active/in-use field. */
+  highlight?: boolean
+  /** Danger-tint the slider + set `aria-invalid` to flag a validation error. */
+  isInvalid?: boolean
+  /** Id of the field's error/description text, forwarded for screen readers. */
+  'aria-describedby'?: string
   className?: string
 }
 
@@ -43,9 +64,12 @@ export function Slider({
   minStepsBetweenThumbs,
   disabled,
   thumbLabels,
+  highlight,
+  isInvalid,
+  'aria-describedby': describedBy,
   className,
 }: SliderProps) {
-  const { root, track, range, thumb } = slider()
+  const { root, track, range, thumb } = slider({ highlight, isInvalid })
   // One thumb per value entry; falls back to a single thumb at the minimum.
   const thumbs = value ?? defaultValue ?? [min]
   const labelFor = (index: number) =>
@@ -53,6 +77,8 @@ export function Slider({
 
   return (
     <RadixSlider.Root
+      aria-describedby={describedBy}
+      aria-invalid={isInvalid || undefined}
       className={root({ className })}
       defaultValue={defaultValue}
       disabled={disabled}

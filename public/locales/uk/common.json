@@ -61,6 +61,12 @@
       "pill_from": "Від %{date}",
       "pill_until": "До %{date}",
       "pill_range": "%{start} – %{end}"
+    },
+    "region": {
+      "label": "Регіон",
+      "all": "Усі регіони",
+      "search": "Пошук регіонів…",
+      "empty": "Регіони не знайдено"
     }
   },
   "search_placeholder": "Шукати події поблизу…",
@@ -74,6 +80,17 @@
     "native": "Поділитися…",
     "copy_link": "Копіювати посилання",
     "copied": "Скопійовано"
+  },
+  "calendar": {
+    "title": "Календар",
+    "previous": "Назад",
+    "next": "Вперед",
+    "views": {
+      "month": "Місяць",
+      "week": "Тиждень",
+      "list": "Список"
+    },
+    "pick_date": "Вибрати дату"
   },
   "sort": {
     "label": "Сортування",

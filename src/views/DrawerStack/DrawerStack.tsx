@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   Suspense,
+  startTransition,
   useCallback,
   useEffect,
   useMemo,
@@ -17,11 +18,13 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { SettingsMenu } from '@/components/molecules'
 import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
+import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
 import { type StackEntry, atlasDepth, dismissAction, resolveStack } from '@/lib/shape'
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
+import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
@@ -37,6 +40,7 @@ import { ShareView } from '@/views/ShareView/ShareView'
 const SNAP_POINTS = ['80px', '300px', 0.97]
 const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
+const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
 // How far each stacked ancestor peeks out behind the active sheet.
 const PEEK_MOBILE = 5 // px above the sheet's top edge
@@ -59,6 +63,8 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
   switch (entry.kind) {
     case 'search':
       return <SearchView />
+    case 'calendar':
+      return <CalendarView />
     case 'filters':
       return <FilterView />
     case 'region':
@@ -161,11 +167,29 @@ export function DrawerStack() {
   const stripsRef = useRef<HTMLDivElement>(null)
 
   const entries = useMemo(() => resolveStack(location.pathname), [location.pathname])
-  const top = entries.at(-1) ?? null
+  // Filters over the full-width calendar (map mode) render as a separate modal drawer OVER
+  // the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile — rather
+  // than replacing it. So the calendar stays the base view and the trailing `filters` entry
+  // is peeled into the overlay below. (Map-less keeps the plain replace-stack behaviour.)
+  const filterOverlay =
+    hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
+  const baseEntries = useMemo(
+    () => (filterOverlay ? entries.slice(0, -1) : entries),
+    [filterOverlay, entries],
+  )
+
+  const top = baseEntries.at(-1) ?? null
+  // The calendar is the one full-width view — it fills the widget (minus the floating
+  // margins) instead of the ~22rem left panel (see the Drawer `wide` variant) — EXCEPT in
+  // its list (agenda) view, which is a single narrow column and reads better at the regular
+  // width. The live Schedule-X view is mirrored into `useCalendarPosition` (read reactively
+  // here so switching month↔list resizes the drawer; date changes don't re-render this).
+  const calendarView = useCalendarPosition((s) => s.view)
+  const wide = top?.kind === 'calendar' && calendarView !== 'list'
   // Ancestor paths below the top view, root-first (empty at CountriesView).
   const parentPaths = useMemo(
-    () => (entries.length === 0 ? [] : ['/', ...entries.slice(0, -1).map((e) => e.path)]),
-    [entries],
+    () => (baseEntries.length === 0 ? [] : ['/', ...baseEntries.slice(0, -1).map((e) => e.path)]),
+    [baseEntries],
   )
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
@@ -206,6 +230,15 @@ export function DrawerStack() {
     return () => cancelAnimationFrame(raf)
   }, [hasMap, direction, parentPaths.length])
 
+  // The calendar opens at the near-full snap on mobile — its month grid AND its list both need
+  // the height — while every other view keeps the third-height open snap. Keyed on the view
+  // KIND (not `wide`), so switching the calendar between month/week/list keeps it tall rather
+  // than collapsing the list to the short snap; runs only when navigating to/from the calendar,
+  // so it never fights a manual drag on a non-calendar view.
+  useEffect(() => {
+    if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
+  }, [direction, top?.kind])
+
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both
   // the close/list buttons (via context) and vaul's swipe (onOpenChange).
@@ -235,19 +268,43 @@ export function DrawerStack() {
           depth: atlasDepth(location),
         })
 
+        // Mark the dismiss navigation as a transition: unmounting a heavy view (the calendar's
+        // large grid) otherwise reconciles synchronously and freezes the click for a beat
+        // ("nothing happened"). As a transition React keeps the UI responsive and swaps when ready.
         if (action === 'collapse') setSnap(PEEK_SNAP)
-        else if (action === 'back') navigate(-1)
-        else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
+        else
+          startTransition(() => {
+            if (action === 'back') navigate(-1)
+            else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
+          })
       },
     }),
     [snap, canCollapse, parentPath, location, navigate, toStackTarget],
+  )
+
+  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
+  // over — chronologically when there's in-widget history, else a direct climb (query kept).
+  const overlayControl = useMemo(
+    () => ({
+      collapsed: false,
+      canCollapse: false,
+      toggle: () => {},
+      // Same back-vs-climb decision as `control` (via `dismissAction`), but the overlay is
+      // always parented to the calendar (`hasParent: true` → never 'collapse'), so 'fallback'
+      // climbs to `/calendar` directly, keeping its query.
+      dismiss: () =>
+        dismissAction({ hasParent: true, depth: atlasDepth(location) }) === 'back'
+          ? navigate(-1)
+          : navigate({ pathname: '/calendar', search: location.search }),
+    }),
+    [location, navigate],
   )
 
   const sheet = (
     <DrawerContent aria-label={t('free_meditation_classes')}>
       <AnimatePresence mode="popLayout">
         <motion.div
-          key={location.pathname}
+          key={top?.path ?? '/'}
           animate={{ opacity: 1 }}
           className="flex min-h-0 flex-1 flex-col"
           exit={{ opacity: 0 }}
@@ -263,6 +320,27 @@ export function DrawerStack() {
       </AnimatePresence>
     </DrawerContent>
   )
+
+  // The filter overlay drawer (map mode only): a modal panel over the mounted calendar —
+  // right at ≥md, bottom sheet on mobile — with its own control. FilterView's Apply/Clear
+  // navigate to /calendar too, which closes it.
+  const filterDrawer = filterOverlay ? (
+    <DrawerControlContext.Provider value={overlayControl}>
+      <Drawer
+        key="filter-overlay"
+        dismissible
+        modal
+        open
+        direction={isDesktop ? 'right' : 'bottom'}
+        handleOnly={isDesktop}
+        onOpenChange={(o) => !o && overlayControl.dismiss()}
+      >
+        <DrawerContent aria-label={t('filters.title')}>
+          <FilterView />
+        </DrawerContent>
+      </Drawer>
+    </DrawerControlContext.Provider>
+  ) : null
 
   // Map-less: one contained drawer fills the widget container (no map to reveal, so
   // no peek strips or snap ladder). Standalone owns the viewport (100dvh); embedded
@@ -345,8 +423,12 @@ export function DrawerStack() {
                 the right edge, and the cog has to travel with it. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
             {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
-                bump the cog to top-4 to line up with the drawer's top edge. */}
-            <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+                bump the cog to top-4 to line up with the drawer's top edge. Hidden on
+                the full-width calendar — a focused view with no clean corner for the
+                floating cog; settings stay reachable from every other view. */}
+            {!wide && (
+              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+            )}
           </>,
           target,
         )}
@@ -362,10 +444,12 @@ export function DrawerStack() {
         handleOnly={direction === 'left'}
         setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
         snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+        wide={wide}
         onOpenChange={(o) => !o && control.dismiss()}
       >
         {sheet}
       </Drawer>
+      {filterDrawer}
     </DrawerControlContext.Provider>
   )
 }
