@@ -102,10 +102,10 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 
 | Folder               | Exports                            | Notes                                                                                         |
 | -------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line           |
+| `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line. Metrics assume a **four-action max**, and columns are width-capped so a short set clusters instead of sprawling |
 | `ActiveFilterPills/` | `ActiveFilterPills`                | Removable pills for the active URL filters                                                    |
 | `EventActions/`      | `EventActions`                     | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
-| `EventChips/`        | `EventChips`                       | The shared triage chips (type · language(s) · Today); `variant="compact"` trims the redundant ones for the list card. Used by the list card + the event header so the two never drift |
+| `EventChips/`        | `EventChips`                       | The shared triage chips (type · language(s) · Today); `variant="compact"` trims the redundant ones for the list card. Used by the list card + the top of the event body so the two never drift |
 | `EventListItem/`         | `EventListItem`                        | Per-event row in an event list (title, facts, chips)                                          |
 | `EventFacts/`        | `EventFacts`, `EventSummary`       | The shared calendar/location fact block. `variant="compact"` for result cards; `variant="card"` is the boxed details card, wrapped by `EventSummary` (title + embed backlink) on the share/registration drawers |
 | `EventMetadata/`     | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
@@ -127,7 +127,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Mapbox/` (sub-module) | `Mapbox`, `MapSearch` (+ `layers.ts`, `themes.ts` helpers) | The Mapbox surface; see [`.claude/rules/mapbox.md`](.claude/rules/mapbox.md)                                                                                                                       |
 | `EventsList/`          | `DynamicEventsList`                                        | Distance-sorted fetch; the presentational `EventsList` is module-private (single-use)                                                                                                              |
-| `EventDetails/`        | `EventDetails`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — facts → Register → images → About. Take `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded — **not** in the tier barrel. (The secondary action row is the `EventActions` molecule) |
+| `EventDetails/`        | `EventDetails`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — chips → facts → Register → actions → About → images. Take `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded — **not** in the tier barrel. `EventHeader` is the pinned title ALONE (the chips lead the body); the secondary action row is the `EventActions` molecule |
 | `RegistrationForm/`    | `RegistrationForm`                                         | Form-only, config-driven registration (field chrome is private); rendered in the RegistrationView drawer body. **Not** in the barrel                                                               |
 
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
@@ -135,8 +135,9 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 `FilterView`/`RegistrationView`/`ShareView`), with shared pieces (`DrawerTitle`,
 `CloseButton`, `FilterButton`, `SearchField`, `GeolocationSuggestion`) in
 `views/shared.tsx`. `DrawerStack` derives the stack from the pathname
-(`resolveStack`) and renders ONE vaul drawer holding the active view, with
-ancestors as static peek cards behind it; map-less it renders a single
+(`resolveStack`) and renders ONE vaul drawer holding the active view, with peek
+cards behind it — one per panel a repeated dismiss traverses (`dismissDepth`), not
+per URL ancestor; map-less it renders a single
 `mode="filled"` drawer. Folder-per-component, not re-exported through the
 component barrels.
 

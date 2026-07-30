@@ -99,6 +99,14 @@ of truth, so all are linkable/shareable:
   `navigate(-1)` when the in-widget `atlasDepth(location)` > 0 (restoring the prior
   camera), and only to the structural parent for a fresh deep link (depth 0) — never
   popping the host page's history.
+  **How many peek strips the stack draws is that same history question, not the
+  URL's ancestor count** — `dismissDepth` (same file) counts what a repeated X
+  actually traverses: `depth` back-steps, then the ancestors of the depth-0 entry
+  still to be climbed. A pin clicked from the root sits at depth 1 under three URL
+  ancestors, and ONE press returns to the root, so three cards would be a lie.
+  DrawerStack keeps the depth-0 entry's height in a **ref** (non-reactive, like
+  `useCameraHistory`): it's read only at depth > 0 and written only at depth 0, so a
+  write can never change the current render.
 
 Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.
