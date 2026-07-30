@@ -17,23 +17,19 @@ import { controlSurface } from '@/components/atoms/Button'
 // It shares the surface recipe instead, which is what makes `color` / `variant`
 // / `size` mean the same here as on a Button.
 
+// Metrics are sized to a FOUR-action maximum (directions, website, contact, share),
+// which gives each column ~70px of the panel's ~304px content box: enough for
+// "Directions" on one line at `text-xs`, and enough to afford a gap between columns.
+// Columns share the row equally (`flex-1 basis-0`) so the full set always fits one
+// line, but they're capped so a short set clusters at its natural width rather than
+// stretching to half the panel each. Labels take the primary role's high-contrast
+// step (Radix step 12 — text-grade in both themes) so the row reads as a set of brand
+// controls rather than captions; two lines and `break-words` are the fallbacks for an
+// oversized translation.
 const actionCircle = tv({
   slots: {
-    // Columns share the row equally (`flex-1 basis-0`) so a full set always fits one
-    // line, but they're CAPPED so a short set doesn't sprawl: at four actions the cap
-    // is never reached (the panel gives each ~70px) while two or three now cluster at
-    // their natural width instead of stretching to half the panel each.
     base: 'group flex min-w-0 max-w-[6rem] flex-1 basis-0 flex-col items-center gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
     circle: 'shrink-0 transition-colors group-hover:opacity-90 group-active:scale-95',
-    // Two lines allowed (the i18n budget). Full `text-xs`: the set caps at FOUR
-    // actions (directions, website, contact, share), so each column gets ~70px of
-    // the panel's ~304px content box instead of the ~58px a five-action row left —
-    // enough for "Directions" on one line at 12px. `break-words` remains the
-    // last-resort for a genuinely oversized translation.
-    //
-    // Labels carry the primary role's high-contrast step rather than plain
-    // foreground: it ties the row to the brand and reads as a set of controls, not
-    // captions. Step 12 is Radix's high-contrast text, so it holds up in both themes.
     label:
       'line-clamp-2 w-full break-words text-center text-xs leading-tight text-primary-12 dark:text-primary-11',
   },
@@ -137,10 +133,7 @@ export type ActionRowProps = {
  * row degrades by wrapping label text, not by hiding actions off-screen.
  */
 export function ActionRow({ children, className }: ActionRowProps) {
-  // A real gap now that the set caps at four. It used to run flush because five
-  // 48px circles needed every pixel for the longer translations ("Megosztás",
-  // "Связаться"); at four there is room to separate the columns AND keep those on
-  // one line, so the row reads as distinct controls rather than one crowded strip.
+  // Centred, so a short set sits as a cluster rather than pinned to one edge.
   return (
     <div className={`flex w-full items-start justify-center gap-2 py-1 ${className ?? ''}`}>
       {children}

@@ -139,6 +139,11 @@ function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
  * runtime images) without tracking the theme here. Returns an unsubscribe.
  */
 export function registerMarkerImages(map: MapRef): () => void {
+  // A missing marker is cosmetic — never take the map's tree down with it, and this
+  // runs synchronously inside an effect / a Mapbox event.
+  const onError = (id: string) => (error: unknown) =>
+    console.error(`Failed to add map marker "${id}"`, error)
+
   const add = (id: string) => {
     const marker = MARKER_IMAGES.get(id)
 
@@ -146,22 +151,25 @@ export function registerMarkerImages(map: MapRef): () => void {
 
     const cached = decoded.get(id)
 
-    try {
-      if (cached) return map.addImage(id, cached, { pixelRatio: SCALE })
+    if (cached) {
+      // Synchronous, so it needs its own guard; the decode path below has `.catch`.
+      try {
+        map.addImage(id, cached, { pixelRatio: SCALE })
+      } catch (error) {
+        onError(id)(error)
+      }
 
-      decodeMarker(id, marker)
-        // The style can change while the SVG decodes, so re-check before adding:
-        // a duplicate id makes Mapbox fire an `error` event, which surfaces as a
-        // console error rather than a throw.
-        .then((image) => {
-          if (!map.hasImage(id)) map.addImage(id, image, { pixelRatio: SCALE })
-        })
-        .catch((error) => console.error(`Failed to add map marker "${id}"`, error))
-    } catch (error) {
-      // A missing marker is a cosmetic failure — never take the map's tree down
-      // with it (this runs synchronously inside an effect / a Mapbox event).
-      console.error(`Failed to add map marker "${id}"`, error)
+      return
     }
+
+    decodeMarker(id, marker)
+      // The style can change while the SVG decodes, so re-check before adding:
+      // a duplicate id makes Mapbox fire an `error` event, which surfaces as a
+      // console error rather than a throw.
+      .then((image) => {
+        if (!map.hasImage(id)) map.addImage(id, image, { pixelRatio: SCALE })
+      })
+      .catch(onError(id))
   }
   const onMissing = (event: { id: string }) => add(event.id)
 

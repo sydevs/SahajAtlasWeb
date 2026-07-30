@@ -206,10 +206,8 @@ export function Mapbox() {
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  // Supply the app's own pin/cluster images (see markers.ts — the two Studio styles
-  // carry different sprites, and the dark one has no single-event pin at all). One
-  // subscription per map instance covers the theme switch too: swapping the style
-  // drops runtime images and re-fires `styleimagemissing`.
+  // Supply the app's own pin/cluster images; markers.ts owns the why and the
+  // theme-switch handling. One subscription per map instance.
   useEffect(() => {
     if (mapbox) return registerMarkerImages(mapbox)
   }, [mapbox])

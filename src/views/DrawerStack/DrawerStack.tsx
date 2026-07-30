@@ -204,20 +204,30 @@ export function DrawerStack() {
 
   // The stack must show the panels a repeated X actually goes through, which is a
   // history question, not a URL one (see `dismissDepth`). `entryAncestors` is the
-  // structural height of the last depth-0 location — remembered here because once
-  // we've pushed past it the URL no longer tells us where the widget came in.
+  // structural height of the last depth-0 location — remembered because once we've
+  // pushed past it the URL no longer tells us where the widget came in.
+  //
+  // A ref, not state: it's only ever READ at depth > 0, and it's only ever WRITTEN
+  // at depth 0 — where `dismissDepth` uses the live ancestor count instead — so a
+  // write can never change the current render's output, and making it reactive just
+  // bought a second render of the whole stack. Same non-reactive treatment as
+  // `useCameraHistory`, for the same reason.
   const depth = atlasDepth(location)
-  const [entryAncestors, setEntryAncestors] = useState(parentPaths.length)
+  const entryAncestors = useRef(parentPaths.length)
 
   useEffect(() => {
-    if (depth === 0) setEntryAncestors(parentPaths.length)
+    if (depth === 0) entryAncestors.current = parentPaths.length
   }, [depth, parentPaths.length])
 
   // Strips are the FIRST n ancestors (root-first): with history in play the nearest
   // URL ancestor may not be where back actually lands, but the root end of the chain
   // is, so counting from the root keeps the click targets closest to the truth.
-  const stackDepth = dismissDepth({ depth, entryAncestors, ancestors: parentPaths.length })
-  const stackPaths = useMemo(() => parentPaths.slice(0, stackDepth), [parentPaths, stackDepth])
+  const stackDepth = dismissDepth({
+    depth,
+    entryAncestors: entryAncestors.current,
+    ancestors: parentPaths.length,
+  })
+  const stackPaths = parentPaths.slice(0, stackDepth)
 
   // Mirror the active sheet's live top onto the peek strips AND the sheet
   // itself every frame, so both track a drag without waiting for the snap to
@@ -288,10 +298,7 @@ export function DrawerStack() {
       canCollapse,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
       dismiss: () => {
-        const action = dismissAction({
-          hasParent: Boolean(parentPath),
-          depth: atlasDepth(location),
-        })
+        const action = dismissAction({ hasParent: Boolean(parentPath), depth })
 
         // Mark the dismiss navigation as a transition: unmounting a heavy view (the calendar's
         // large grid) otherwise reconciles synchronously and freezes the click for a beat
@@ -318,7 +325,7 @@ export function DrawerStack() {
       // always parented to the calendar (`hasParent: true` → never 'collapse'), so 'fallback'
       // climbs to `/calendar` directly, keeping its query.
       dismiss: () =>
-        dismissAction({ hasParent: true, depth: atlasDepth(location) }) === 'back'
+        dismissAction({ hasParent: true, depth }) === 'back'
           ? navigate(-1)
           : navigate({ pathname: '/calendar', search: location.search }),
     }),

@@ -74,7 +74,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
       {/* The triage chips open the body rather than riding under the title in the
           pinned header. `-mb-2` pulls the facts back up: the chips are a short row
           and the container's `gap-4` plus the facts' own `my-2` left them floating. */}
-      <EventChips className="-mb-2" event={event} variant="default" />
+      <EventChips className="-mb-2" event={event} />
 
       {/* Extra breathing room around the when/where facts, above the register CTA. */}
       <EventFacts className="my-2" event={event} />
@@ -109,12 +109,8 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
                 ADD_ATTR: ['target'],
               }),
             }}
-            // `break-words`: this is host-authored prose, and a single unbreakable
-            // run overflows the panel and gives the whole drawer a horizontal
-            // scrollbar. Real content hits this two ways — a bare URL pasted as
-            // text, and long strings of U+2800 (braille blank) used as makeshift
-            // spacing, which the line-breaker treats as one enormous word.
-            className="colored-links flex flex-col gap-2 break-words text-sm normal-nums leading-snug"
+            // `colored-links` carries the host-prose treatment, wrapping included.
+            className="colored-links flex flex-col gap-2 text-sm normal-nums leading-snug"
           />
         </div>
       )}
