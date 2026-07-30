@@ -147,28 +147,27 @@
 }
 
 @layer base {
-  /* Scoped to Swiper's own root rather than `:root`. This stylesheet is injected
-     into the HOST document when embedded, so writing these on `:root` would
-     retune any carousel the host page runs. `.swiper` only ever exists inside
-     our own ImageCarousel. */
-  .swiper {
-    /* Inset the pagination INTO the bottom of the image; bullet size/shape are
-       Swiper's own defaults (round, clickable) — no custom bar styling.
+  /* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
+     or `:root`. This stylesheet is injected into the HOST document, and Swiper is a
+     popular library, so `.swiper` roots routinely exist on host pages: theming that
+     selector reaches straight into their carousels. White-at-0.5 bullets would make
+     a host's pagination invisible on a light background, which is a worse outcome
+     than the wrong-but-visible tint this used to leak.
 
-       The bullets sit ON the photo (the carousel is full-bleed and ends flush with
-       the view), so they can't be themed off the widget's palette — they have to
-       survive whatever image is under them. Hence white rather than brand primary,
-       plus the halo below: a white wall or a bright sky is exactly where a tinted
-       bullet disappears. */
+     Inset the pagination INTO the bottom of the image; bullet size/shape are
+     Swiper's own defaults (round, clickable) — no custom bar styling. The bullets
+     sit ON the photo (the carousel is full-bleed and ends flush with the view), so
+     they can't be themed off the widget's palette — they have to survive whatever
+     image is under them. Hence white rather than brand primary, plus the halo: a
+     white wall or a bright sky is exactly where a tinted bullet disappears. */
+  .sy-carousel {
     --swiper-pagination-bottom: 0.75rem;
     --swiper-theme-color: #fff;
     --swiper-pagination-bullet-inactive-color: #fff;
     --swiper-pagination-bullet-inactive-opacity: 0.5;
   }
 
-  /* Nested under `.swiper` for the same host-scoping reason: a bare
-     `.swiper-pagination-bullet` would restyle a host page's own carousel. */
-  .swiper .swiper-pagination-bullet {
+  .sy-carousel .swiper-pagination-bullet {
     box-shadow:
       0 0 2px rgb(0 0 0 / 0.7),
       0 1px 3px rgb(0 0 0 / 0.5);
