@@ -20,8 +20,11 @@ export const clusterLayer: Props = {
     'text-size': 12,
   },
   paint: {
-    // White count sits on the opaque cluster bubble (not the basemap), so it
-    // stays legible on both the light and dark map styles — no theming needed.
+    // White count on the cluster bubble, which is the same art on both basemaps, so
+    // it needs no theming. The disc is slightly translucent (see `markers.ts`), so
+    // a pale feature underneath does bleed through and take some contrast with it —
+    // inherited from the Studio sprite this replaced, and the reason to make the
+    // inner disc fully opaque if the count ever reads thin.
     'text-color': '#FFFFFF',
   },
 }

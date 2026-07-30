@@ -102,6 +102,14 @@ const decoded = new Map<string, HTMLImageElement>()
 // see a `decoded` entry until the first decode resolves — without this they'd
 // each start their own.
 const decoding = new Map<string, Promise<HTMLImageElement>>()
+// Ids whose decode failed, so we stop retrying until the next style load. A failed
+// decode drops out of `decoding` (a rejected promise left in place would poison the
+// id for the life of the page — and since the widget owns ALL four images, a host
+// whose CSP omits `img-src data:` would lose every pin permanently). But retrying on
+// the strength of that alone loops: `styleimagemissing` re-fires per missing id PER
+// TILE BATCH, so a blocked `data:` URI would rebuild four `Image`s and log four
+// errors every batch, forever. One attempt per id per style load instead.
+const failed = new Set<string>()
 
 /** Rasterise one marker SVG at `SCALE`× via an inline data URI (no network). */
 function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
@@ -119,12 +127,10 @@ function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
     return image
   })
 
-  // Drop a FAILED decode from the cache so the next style load retries it.
-  // Leaving the rejected promise in place would poison the id for the life of
-  // the page — and since the widget owns all four images, a host page whose CSP
-  // omits `img-src data:` would then lose every pin and cluster permanently
-  // rather than recovering. (Mapbox GL's own recommended CSP allows `data:`.)
-  decode.catch(() => decoding.delete(id))
+  decode.catch(() => {
+    decoding.delete(id)
+    failed.add(id)
+  })
   decoding.set(id, decode)
 
   return decode
@@ -139,6 +145,14 @@ function decodeMarker(id: string, { svg, width, height }: MarkerImage) {
  * runtime images) without tracking the theme here. Returns an unsubscribe.
  */
 export function registerMarkerImages(map: MapRef): () => void {
+  // Set by the unsubscribe. A decode that resolves after the map is gone must not
+  // touch it: `hasImage` short-circuits on a removed map's missing style, so the
+  // `addImage` behind it would have Mapbox lazily build a fresh Style AND a worker
+  // dispatcher for a dead map. Benign today only because `Map.tsx` passes
+  // `reuseMaps` (react-map-gl recycles instead of removing) — which is not a
+  // guarantee this module should depend on.
+  let cancelled = false
+
   // A missing marker is cosmetic — never take the map's tree down with it, and this
   // runs synchronously inside an effect / a Mapbox event.
   const onError = (id: string) => (error: unknown) =>
@@ -147,7 +161,7 @@ export function registerMarkerImages(map: MapRef): () => void {
   const add = (id: string) => {
     const marker = MARKER_IMAGES.get(id)
 
-    if (!marker || map.hasImage(id)) return
+    if (!marker || failed.has(id) || map.hasImage(id)) return
 
     const cached = decoded.get(id)
 
@@ -167,13 +181,17 @@ export function registerMarkerImages(map: MapRef): () => void {
       // a duplicate id makes Mapbox fire an `error` event, which surfaces as a
       // console error rather than a throw.
       .then((image) => {
-        if (!map.hasImage(id)) map.addImage(id, image, { pixelRatio: SCALE })
+        if (!cancelled && !map.hasImage(id)) map.addImage(id, image, { pixelRatio: SCALE })
       })
       .catch(onError(id))
   }
   const onMissing = (event: { id: string }) => add(event.id)
+  // A new style is the one sensible moment to retry a failed decode: it's when the
+  // images are wanted again anyway, and it bounds retries at one per id per style.
+  const onStyleLoad = () => failed.clear()
 
   map.on('styleimagemissing', onMissing)
+  map.on('style.load', onStyleLoad)
   // Kick the decodes now rather than waiting for the first tile batch to ask.
   // react-map-gl hands over the map right after constructing it — BEFORE the
   // style has loaded — so this eager pass usually only warms the cache, and
@@ -181,5 +199,9 @@ export function registerMarkerImages(map: MapRef): () => void {
   // `add` no-ops on an image the style already has.
   MARKER_IMAGES.forEach((_marker, id) => add(id))
 
-  return () => map.off('styleimagemissing', onMissing)
+  return () => {
+    cancelled = true
+    map.off('styleimagemissing', onMissing)
+    map.off('style.load', onStyleLoad)
+  }
 }

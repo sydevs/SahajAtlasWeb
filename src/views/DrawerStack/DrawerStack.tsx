@@ -212,8 +212,15 @@ export function DrawerStack() {
   // write can never change the current render's output, and making it reactive just
   // bought a second render of the whole stack. Same non-reactive treatment as
   // `useCameraHistory`, for the same reason.
+  // Seeded 0, NOT `parentPaths.length`: mounting already at depth > 0 (a reload keeps
+  // `history.state`) would otherwise make the cap always bind —
+  // `min(ancestors, depth + ancestors) === ancestors` — quietly restoring the
+  // URL-ancestor count this replaced. Neither seed is right after such a reload (the
+  // entry we'd climb from is no longer knowable), so prefer the one that can only
+  // UNDER-count: a card that no dismiss visits is the bug being fixed, a missing card
+  // is just a shallower-looking stack.
   const depth = atlasDepth(location)
-  const entryAncestors = useRef(parentPaths.length)
+  const entryAncestors = useRef(0)
 
   useEffect(() => {
     if (depth === 0) entryAncestors.current = parentPaths.length
