@@ -14,7 +14,7 @@ import {
 
 import { ActionCircle, ActionRow } from './ActionRow'
 
-import { CalendarIcon, CallIcon, DirectionsIcon, ShareIcon } from '@/components/atoms/Icons'
+import { CallIcon, DirectionsIcon, ShareIcon, WebsiteIcon } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -66,7 +66,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The physical-live set: Directions · Add to calendar · Contact · Share."
+      description="The physical-live set: Directions · Website · Contact · Share."
       title="Physical event"
     >
       <div className="max-w-md">
@@ -77,7 +77,12 @@ export const Default: Story = () => (
             icon={<DirectionsIcon />}
             label="Directions"
           />
-          <ActionCircle icon={<CalendarIcon />} label="Add to calendar" onClick={() => {}} />
+          <ActionCircle
+            isExternal
+            href="https://example.org"
+            icon={<WebsiteIcon />}
+            label="Website"
+          />
           <ActionCircle href="tel:+441234567890" icon={<CallIcon />} label="Contact" />
           <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
@@ -138,7 +143,12 @@ export const Default: Story = () => (
             icon={<DirectionsIcon />}
             label="Directions"
           />
-          <ActionCircle icon={<CalendarIcon />} label="Add to calendar" onClick={() => {}} />
+          <ActionCircle
+            isExternal
+            href="https://example.org"
+            icon={<WebsiteIcon />}
+            label="Website"
+          />
           <ActionCircle href="tel:+441234567890" icon={<CallIcon />} label="Contact" />
           <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
@@ -151,7 +161,12 @@ export const Default: Story = () => (
     >
       <div className="max-w-md">
         <ActionRow>
-          <ActionCircle icon={<CalendarIcon />} label="Añadir al calendario" onClick={() => {}} />
+          <ActionCircle
+            isExternal
+            href="https://example.org"
+            icon={<WebsiteIcon />}
+            label="Sitio web del organizador"
+          />
           <ActionCircle
             href="tel:+4912345"
             icon={<CallIcon />}

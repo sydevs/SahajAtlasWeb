@@ -48,7 +48,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         // unsized Swiper root collapses to its content — which, since Swiper
         // sizes the slides FROM the root, meant a 48px-wide track (just the
         // slide padding) and an invisible image.
-        className="w-full"
+        //
+        // `sy-carousel` is what our pagination theming keys on (globals.css). It
+        // exists because this stylesheet is injected into the HOST document, where
+        // `.swiper` roots belong to the host's own carousels — see the rule there.
+        className="sy-carousel w-full"
         enabled={carousel}
         grabCursor={carousel}
         loop={carousel}
@@ -57,7 +61,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         pagination={carousel && { clickable: true }}
       >
         {slides.map((slide, index) => (
-          <SwiperSlide key={slide.src} className="pb-10">
+          // No bottom padding: the bullets sit OVER the image (see globals.css), so
+          // the slide is the image and nothing else. Reserving a band below it just
+          // put dead space under the last thing in a view — and sizing that band to
+          // the bullets left them butted against the image's edge instead.
+          <SwiperSlide key={slide.src}>
             <button
               aria-label={slide.alt ?? t('details.view_photo')}
               className="block w-full cursor-zoom-in"

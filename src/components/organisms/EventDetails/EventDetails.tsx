@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { EventRegisterBar } from './EventRegister'
 
 import { EventActions } from '@/components/molecules/EventActions'
+import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { lexicalToHtml } from '@/lib/shape'
@@ -40,10 +41,10 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * The event panel body, in the issue #52 order: facts (plain text) → Register →
- * microcopy → secondary actions → images → About. The title/chip header is a
- * separate component (EventHeader) rendered outside the scrolling drawer body,
- * so the peek/pinned header always carries the triage payload.
+ * The event panel body, in the issue #52 order: chips → facts (plain text) →
+ * Register → microcopy → secondary actions → images → About. Only the title is a
+ * separate component (EventHeader), rendered outside the scrolling drawer body so
+ * it stays pinned; the triage chips lead the body.
  */
 export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
   const { t } = useTranslation('events')
@@ -63,8 +64,18 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
     [event.images],
   )
 
+  const hasImages = slides.length > 0
+
   return (
-    <div className="flex flex-col gap-4 px-6 pb-10 pt-2">
+    // The carousel is full-bleed and always last, so it takes the container's
+    // bottom padding away with it: the images sit flush against the end of the
+    // view rather than floating 40px above it. Everything else keeps the padding.
+    <div className={`flex flex-col gap-4 px-6 pt-2 ${hasImages ? '' : 'pb-10'}`}>
+      {/* The triage chips open the body rather than riding under the title in the
+          pinned header. `-mb-2` pulls the facts back up: the chips are a short row
+          and the container's `gap-4` plus the facts' own `my-2` left them floating. */}
+      <EventChips className="-mb-2" event={event} />
+
       {/* Extra breathing room around the when/where facts, above the register CTA. */}
       <EventFacts className="my-2" event={event} />
 
@@ -98,12 +109,13 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
                 ADD_ATTR: ['target'],
               }),
             }}
+            // `colored-links` carries the host-prose treatment, wrapping included.
             className="colored-links flex flex-col gap-2 text-sm normal-nums leading-snug"
           />
         </div>
       )}
 
-      {slides.length > 0 && (
+      {hasImages && (
         // Full-bleed below the description: cancel the container's px-6 so the
         // carousel spans the full drawer width (the slides carry no padding now).
         <div className="-mx-6">

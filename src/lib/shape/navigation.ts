@@ -57,3 +57,31 @@ export const dismissAction = ({
 
   return depth > 0 ? 'back' : 'fallback'
 }
+
+/**
+ * How many panels a repeated dismiss actually traverses before the stack
+ * collapses — i.e. how many drawers are genuinely behind the active view. This is
+ * what the peek strips must count, and it is NOT the URL's ancestor count.
+ *
+ * Dismissal is history-aware (see `dismissAction`): while in-widget depth remains,
+ * each press goes chronologically BACK one entry, and only once depth reaches 0
+ * does it begin climbing structural parents. So a pin clicked from the root view
+ * lands at depth 1 with three URL ancestors, yet ONE press returns to the root —
+ * rendering three stacked panels there was a lie about where X would take you.
+ *
+ * `entryAncestors` is the structural ancestor count of the last depth-0 location:
+ * the deep link the widget opened on, or whatever a back/climb has returned to.
+ * Those are the parents still left to climb once history runs out, so the total is
+ * `depth + entryAncestors`. Capped at the current URL's `ancestors`, which is all
+ * the stack can actually name — a sibling jump (say a search result in another
+ * country) can push depth past the new branch's structural height.
+ */
+export const dismissDepth = ({
+  depth,
+  entryAncestors,
+  ancestors,
+}: {
+  depth: number
+  entryAncestors: number
+  ancestors: number
+}): number => Math.max(0, Math.min(ancestors, depth === 0 ? ancestors : depth + entryAncestors))

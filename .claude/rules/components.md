@@ -51,6 +51,17 @@ Fewer custom components means less maintenance and a consistent look.
 - Global styles and Tailwind layers live in `src/styles/globals.css`. The
   widget injects its CSS via JS (`vite-plugin-css-injected-by-js`) so it works
   when embedded — don't rely on a separate stylesheet `<link>`.
+- **That stylesheet lands in the HOST document, so every selector in it must be
+  scoped to our own DOM.** Never write a bare element or third-party class selector
+  (`.swiper-pagination-bullet`, `main`, `a`) or a `:root` custom property — nest it
+  under a class only we render (`.swiper …`, `.sx-calendar …`, `.event-pin-popover
+  …`). Both a bare `main {}` rule and a bare swiper-bullet rule have leaked out and
+  restyled host pages already.
+- **Host-authored rich text** carries the `.colored-links` utility, which owns the
+  whole treatment for that content — link colour AND `break-words`. One unbreakable
+  run (a pasted URL, or the U+2800 braille blanks authors use as spacing) otherwise
+  widens the scroll container and gives the drawer a horizontal scrollbar. The
+  Drawer's body slot is `overflow-x-hidden` as a backstop, not as the fix.
 
 ## Widget / embedding constraints
 

@@ -1,5 +1,7 @@
 import type { LayerProps } from 'react-map-gl'
 
+import { MARKER_IDS } from './markers'
+
 type Props = {
   id: string
 } & LayerProps
@@ -12,14 +14,17 @@ export const clusterLayer: Props = {
   layout: {
     'icon-allow-overlap': true,
     'icon-ignore-placement': true,
-    'icon-image': 'cluster',
+    'icon-image': MARKER_IDS.cluster,
     'text-field': '{point_count_abbreviated}',
     'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
     'text-size': 12,
   },
   paint: {
-    // White count sits on the opaque `cluster` sprite (not the basemap), so it
-    // stays legible on both the light and dark map styles — no theming needed.
+    // White count on the cluster bubble, which is the same art on both basemaps, so
+    // it needs no theming. The disc is slightly translucent (see `markers.ts`), so
+    // a pale feature underneath does bleed through and take some contrast with it —
+    // inherited from the Studio sprite this replaced, and the reason to make the
+    // inner disc fully opaque if the count ever reads thin.
     'text-color': '#FFFFFF',
   },
 }
@@ -33,7 +38,7 @@ export const unclusteredPointLayer: Props = {
     'icon-anchor': 'bottom',
     'icon-size': 0.85,
     'icon-ignore-placement': true,
-    'icon-image': 'point',
+    'icon-image': MARKER_IDS.point,
   },
 }
 
@@ -46,7 +51,7 @@ export const selectedPointLayer: LayerProps = {
     'icon-anchor': 'bottom',
     'icon-size': 0.85,
     'icon-ignore-placement': true,
-    'icon-image': 'selected',
+    'icon-image': MARKER_IDS.pointSelected,
   },
 }
 
@@ -57,14 +62,14 @@ export const selectedAreaLayer: LayerProps = {
   layout: {
     'icon-size': 1.25,
     'icon-ignore-placement': true,
-    'icon-image': 'cluster-selected',
+    'icon-image': MARKER_IDS.clusterSelected,
   },
 }
 
-// Card-hover highlight (issue #44). Reuses the `selected` / `cluster-selected`
-// sprites — larger and slightly translucent so the hovered pin "pops" above the
-// base points without a Mapbox style change (a dedicated hover sprite can land
-// with #17). Fed by the `hover` source (not `selection`) and never added to
+// Card-hover highlight (issue #44). Reuses the selected marker images — larger
+// and slightly translucent so the hovered pin "pops" above the base points
+// without a dedicated hover image (one can land with #17). Fed by the `hover`
+// source (not `selection`) and never added to
 // `interactiveLayerIds`, so the highlight is purely visual.
 export const hoveredPointLayer: LayerProps = {
   id: 'hovered-point',
@@ -74,7 +79,7 @@ export const hoveredPointLayer: LayerProps = {
     'icon-anchor': 'bottom',
     'icon-size': 1,
     'icon-ignore-placement': true,
-    'icon-image': 'selected',
+    'icon-image': MARKER_IDS.pointSelected,
   },
   paint: {
     'icon-opacity': 0.9,
@@ -88,7 +93,7 @@ export const hoveredAreaLayer: LayerProps = {
   layout: {
     'icon-size': 1.4,
     'icon-ignore-placement': true,
-    'icon-image': 'cluster-selected',
+    'icon-image': MARKER_IDS.clusterSelected,
   },
   paint: {
     'icon-opacity': 0.7,

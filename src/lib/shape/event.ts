@@ -60,11 +60,10 @@ export const eventTimeZone = (event: EventLike): string =>
       ? scheduleTimeZone(event.schedule)
       : 'UTC'
 
-// ── Schedule time primitives (shared with the calendar export in lib/ics.ts) ──
+// ── Schedule time primitives (shared with the occurrence expansion in shape/calendar.ts) ──
 
 /** The schedule's own IANA zone — validated so a malformed CMS value degrades
- *  to UTC instead of yielding invalid DateTimes (and so the raw string can
- *  never reach the calendar export's TZID lines — content injection). */
+ *  to UTC instead of yielding invalid DateTimes. */
 export const scheduleTimeZone = (schedule: EventSchedule): string =>
   schedule.firstDate_tz && IANAZone.isValidZone(schedule.firstDate_tz)
     ? schedule.firstDate_tz
@@ -94,7 +93,7 @@ export const withEndTime = (
 
 // ── Shared display resolver (issue #52) ─────────────────────────────────────────
 //
-// Every event surface (panel, list card, form/share headers, calendar export,
+// Every event surface (panel, list card, form/share headers, calendar grid,
 // JSON-LD) derives its type/status/register-state from THIS resolver, so no two
 // surfaces can disagree about the same event. The status table in issue #52 is
 // the contract; `event.test.ts` asserts every row of it.
@@ -112,7 +111,7 @@ export type EventStatus =
 
 export type RegistrationState = 'open' | 'closed' | 'hidden'
 
-export type EventActionId = 'directions' | 'calendar' | 'website' | 'contact' | 'share'
+export type EventActionId = 'directions' | 'website' | 'contact' | 'share'
 
 export type EventDisplay = {
   online: boolean
@@ -279,7 +278,6 @@ export function resolveEventDisplay(
 
   const actions: EventActionId[] = [
     ...(online ? [] : (['directions'] as const)),
-    'calendar',
     ...(hasWebsite ? (['website'] as const) : []),
     ...(hasContact ? (['contact'] as const) : []),
     'share',

@@ -28,7 +28,14 @@ const drawer = tv({
     // edge. A no-op on the ~22rem anchored panel, which is already narrower.
     header:
       'mx-auto flex w-full max-w-[var(--sy-content-max,32rem)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,32rem)] flex-1 overflow-y-auto',
+    // `overflow-x-hidden` is a backstop, not the fix: a drawer is a fixed-width
+    // panel and must never scroll sideways, but it renders host-authored prose, so
+    // one unbreakable string could always overflow it. Content wraps at the source
+    // (see EventDetails' `break-words`); this just means the next such string
+    // degrades to a clipped edge instead of a horizontal scrollbar across the view.
+    // Safe for the full-bleed carousel, which is exactly the body's width, and for
+    // popovers, which portal out of the body entirely.
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,32rem)] flex-1 overflow-y-auto overflow-x-hidden',
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0 border-t border-gray-4',
     // Theme the vaul drag handle (its vendored CSS hardcodes a light grey), give it

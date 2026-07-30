@@ -9,7 +9,7 @@ export type EventType = z.infer<typeof EventTypeSchema>
 
 // SahajCloud recurrence basis. Occurrence *instants* are pre-computed server-side
 // into `upcomingDates` (exclusions applied); the structured pattern fields below
-// drive the derived event type, the recurrence label, and the calendar export.
+// drive the derived event type, the recurrence label, and the calendar grid.
 export const RecurrenceTypeSchema = z.enum(['DAILY', 'WEEKLY', 'MONTHLY'])
 export type RecurrenceType = z.infer<typeof RecurrenceTypeSchema>
 

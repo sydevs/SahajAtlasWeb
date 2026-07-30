@@ -116,19 +116,6 @@
   --background: 0 0% 7%;
 }
 
-.swiper-pagination-bullet {
-  @apply shadow-md;
-}
-
-/* Resolve the active-bullet color HERE — inside the themed wrapper — so it picks
-   up the widget's brand primary rather than :root's default theme value. Inactive
-   bullets use the theme foreground so they stay visible in both light and dark. */
-.swiper {
-  --swiper-theme-color: hsl(var(--primary-9));
-  --swiper-pagination-bullet-inactive-color: var(--gray-12);
-  --swiper-pagination-bullet-inactive-opacity: 0.4;
-}
-
 /* vaul disables text selection on the drawer for pointer devices (to keep drag
    gestures clean — see vaul.css `@media (hover:hover) and (pointer:fine)`). Desktop
    drag is already disabled (handleOnly on the left panel), so re-enable selection
@@ -160,14 +147,30 @@
 }
 
 @layer base {
-  /* Scoped to Swiper's own root rather than `:root`. This stylesheet is injected
-     into the HOST document when embedded, so writing these on `:root` would
-     retune any carousel the host page runs. `.swiper` only ever exists inside
-     our own ImageCarousel. */
-  .swiper {
-    /* Sit the pagination clear of the image; bullet size/shape are Swiper's own
-       defaults (round, clickable) — no custom bar styling. */
-    --swiper-pagination-bottom: 1rem;
+  /* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
+     or `:root`. This stylesheet is injected into the HOST document, and Swiper is a
+     popular library, so `.swiper` roots routinely exist on host pages: theming that
+     selector reaches straight into their carousels. White-at-0.5 bullets would make
+     a host's pagination invisible on a light background, which is a worse outcome
+     than the wrong-but-visible tint this used to leak.
+
+     Inset the pagination INTO the bottom of the image; bullet size/shape are
+     Swiper's own defaults (round, clickable) — no custom bar styling. The bullets
+     sit ON the photo (the carousel is full-bleed and ends flush with the view), so
+     they can't be themed off the widget's palette — they have to survive whatever
+     image is under them. Hence white rather than brand primary, plus the halo: a
+     white wall or a bright sky is exactly where a tinted bullet disappears. */
+  .sy-carousel {
+    --swiper-pagination-bottom: 0.75rem;
+    --swiper-theme-color: #fff;
+    --swiper-pagination-bullet-inactive-color: #fff;
+    --swiper-pagination-bullet-inactive-opacity: 0.5;
+  }
+
+  .sy-carousel .swiper-pagination-bullet {
+    box-shadow:
+      0 0 2px rgb(0 0 0 / 0.7),
+      0 1px 3px rgb(0 0 0 / 0.5);
   }
 
   /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host
@@ -202,6 +205,15 @@
 
   .flex-center-y {
     @apply flex items-center;
+  }
+
+  /* Applied wherever we render host-authored rich text. Wrapping is a property of
+     THAT — not of the panel it happens to sit in — so it lives here and the next
+     prose surface inherits it: one unbreakable run (a pasted URL, or the strings of
+     U+2800 braille blanks authors use as spacing) otherwise widens the scroll
+     container and gives the whole drawer a horizontal scrollbar. */
+  .colored-links {
+    @apply break-words;
   }
 
   .colored-links a {

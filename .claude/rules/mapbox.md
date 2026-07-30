@@ -18,6 +18,30 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   **Never inline paint/layout objects in JSX** — they'd be recreated every render
   and the map would reflow. Existing layers: `clusterLayer`,
   `unclusteredPointLayer`, `selectedPointLayer`, `selectedAreaLayer`, `boundsLayer`.
+
+## The app owns its marker images (`markers.ts`)
+
+- Pins and cluster bubbles come from **`src/components/organisms/Mapbox/markers.ts`**,
+  not from the Studio styles' sprites. The two styles had drifted — the dark one has
+  no teardrop `point` and no `cluster-selected`, and its `selected` is the ROUND
+  cluster art — so a single event pin rendered as **nothing** in dark mode. The
+  widget now ships the four images as SVG and registers them itself, so both themes
+  are identical and a Studio edit can't silently drop a marker.
+- `icon-image` in `layers.ts` always references a `MARKER_IDS.*` constant (all
+  `sy-`-prefixed so they can't collide with a style sprite). Adding a marker means
+  adding it to `MARKER_IMAGES` — never a bare sprite name.
+- Registration hangs off Mapbox's **`styleimagemissing`** event (`registerMarkerImages`,
+  wired from one `useEffect` in `Map.tsx`). That event re-fires after every style
+  load, so the one subscription covers both the initial load and the light/dark
+  switch — nothing in the map branches on the theme. Decoded images are cached at
+  module level, and the in-flight promise is cached too: Mapbox re-fires the event
+  per missing id **per tile batch**, and the warm path has to add the image
+  *synchronously* inside the handler or the new style's first frame paints pinless.
+- The images rasterise from an inline `data:` URI, so an embedding host needs
+  **`img-src … data:`** in its CSP — the same allowance Mapbox GL's own recommended
+  policy carries. A failed decode is dropped from the cache rather than remembered,
+  so a page that later relaxes its CSP recovers on the next style load instead of
+  staying pinless for its lifetime.
 - `interactiveLayerIds` on `<ReactMapGL>` must list exactly the layers that
   respond to clicks/hover. Keep it in sync when adding a clickable layer.
 - Map styles (light/dark) are referenced by Mapbox style URL in `Map.tsx`

@@ -26,9 +26,9 @@ const EventDetails = lazy(() =>
   import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
 )
 
-// A single event (route `<event-path>`). The header (title + chips + timing) is
-// the mobile sheet's 80px peek payload and stays pinned above the scrolling
-// body. On the mobile map sheet, Register lives in a sticky bottom bar pinned
+// A single event (route `<event-path>`). The header (the title) is the mobile
+// sheet's 80px peek payload and stays pinned above the scrolling body; the chips
+// and facts lead the body. On the mobile map sheet, Register lives in a sticky bar pinned
 // to the viewport edge (via the live `--sy-sheet-top` mirror) so scrolling the
 // description can never hide the KPI (issue #52, WS4); elsewhere it renders
 // inline in the panel order.
@@ -57,11 +57,14 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           standalone build; the embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
       <EventHeader event={event} trailing={<CloseButton />} />
-      <DrawerBody>
+      {/* Clear the pinned register bar with the scroll container's own bottom
+          padding — the Drawer's `sticky` footer asks for exactly that — rather than
+          a spacer element in the flow. The old `h-24` div stacked on top of the
+          content's own padding, leaving ~176px of blank space under a full-bleed
+          carousel to clear a 65px bar. */}
+      <DrawerBody className={stickyRegister ? 'pb-20' : undefined}>
         <Suspense fallback={<Spinner className="mx-auto my-16" />}>
           <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
-          {/* Keep the last content clear of the pinned register bar. */}
-          {stickyRegister && <div aria-hidden className="h-24" />}
         </Suspense>
       </DrawerBody>
       {stickyRegister && (

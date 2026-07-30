@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import clsx from 'clsx'
 import * as RadixCheckbox from '@radix-ui/react-checkbox'
 import * as RadixSwitch from '@radix-ui/react-switch'
 import { tv, type VariantProps } from 'tailwind-variants'
@@ -10,11 +11,23 @@ import { CheckIcon } from '@/components/atoms/Icons'
 // the `checkbox` appearance is a square box with a check indicator on the same
 // brand tokens (`role="checkbox"`). Both share the `color`/`size` variants and
 // an optional trailing label, and both are controllable or uncontrolled.
+// Disabled is GREY, never a faded brand. Fading the brand fill produced a pale tint
+// that read as "a lighter shade of on" rather than "you can't touch this", and against
+// a pale brand was hard to tell from the enabled-unchecked track. So it repaints on the
+// neutral ramp (gray-9 on / gray-5 off, both OFF the enabled steps) at FULL opacity — a
+// control you can see but can't use beats one faded to near-invisible — and the inert
+// cue moves to the knob/box instead.
+//
+// Driven off Radix's own `data-disabled` (as Slider does) rather than a tv variant, so
+// the override beats the `color` AND `isInvalid` fills by CSS SPECIFICITY — one more
+// attribute in the selector — instead of depending on class order or on where a variant
+// sits in the recipe. `isInvalid`'s ring is a different property, so an errored control
+// keeps its ring while going grey.
 const toggle = tv({
   slots: {
-    root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+    root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
     thumb:
-      'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform',
+      'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform data-[disabled]:bg-gray-2 data-[disabled]:shadow-none',
   },
   variants: {
     // Checked track darkened (step 12) in light mode so a pale brand still reads
@@ -29,7 +42,6 @@ const toggle = tv({
       contrast: {
         root: 'data-[state=checked]:bg-contrast-12 dark:data-[state=checked]:bg-contrast-9',
       },
-      neutral: { root: 'data-[state=checked]:bg-gray-9' },
     },
     size: {
       sm: { root: 'h-5 w-9', thumb: 'h-4 w-4 data-[state=checked]:translate-x-[18px]' },
@@ -50,9 +62,13 @@ const toggle = tv({
   defaultVariants: { color: 'primary', size: 'md' },
 })
 
+// Disabled follows the toggle's note above — the same neutral ramp off the same
+// `data-disabled` selector. The unchecked box additionally FILLS (gray-4 over the
+// enabled `bg-background`) while keeping its border weight, so "off and disabled"
+// reads as a solid inert box rather than a fainter copy of the plain unchecked one.
 const box = tv({
   slots: {
-    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
     indicator: 'flex items-center justify-center',
   },
   variants: {
@@ -68,9 +84,6 @@ const box = tv({
       },
       contrast: {
         root: 'data-[state=checked]:border-contrast-12 data-[state=checked]:bg-contrast-12 data-[state=checked]:text-white dark:data-[state=checked]:border-contrast-9 dark:data-[state=checked]:bg-contrast-9 dark:data-[state=checked]:text-contrast-foreground',
-      },
-      neutral: {
-        root: 'data-[state=checked]:border-gray-9 data-[state=checked]:bg-gray-9 data-[state=checked]:text-gray-1',
       },
     },
     size: {
@@ -168,8 +181,16 @@ export function Checkbox({
 
   if (!children) return control
 
+  // The label isn't a Radix part, so it has no `data-disabled` to key off — it
+  // takes the prop directly to match the control's cursor and dim its text.
   return (
-    <label className={`inline-flex cursor-pointer items-center gap-2 ${className ?? ''}`}>
+    <label
+      className={clsx(
+        'inline-flex items-center gap-2',
+        disabled ? 'cursor-not-allowed text-gray-11' : 'cursor-pointer',
+        className,
+      )}
+    >
       {control}
       <span className="text-sm">{children}</span>
     </label>

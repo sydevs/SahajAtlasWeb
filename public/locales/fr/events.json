@@ -1,10 +1,8 @@
 {
   "actions": {
-    "add_calendar": "Ajouter à l'agenda",
     "contact": "Contacter",
     "copy": "Copier",
     "directions": "Itinéraire",
-    "download_ics": "Télécharger le fichier .ics",
     "share": "Partager",
     "website": "Site web"
   },

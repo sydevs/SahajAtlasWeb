@@ -20,7 +20,7 @@ import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
-import { type StackEntry, atlasDepth, dismissAction, resolveStack } from '@/lib/shape'
+import { type StackEntry, atlasDepth, dismissAction, dismissDepth, resolveStack } from '@/lib/shape'
 import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
@@ -42,15 +42,23 @@ const PEEK_SNAP = '80px' // the collapsed peek
 const OPEN_SNAP = '300px' // default, and what the peek expands to
 const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
 
-// How far each stacked ancestor peeks out behind the active sheet.
-const PEEK_MOBILE = 5 // px above the sheet's top edge
-const PEEK_DESKTOP = 6 // px to the right of the left panel
+// How far each stacked ancestor peeks out behind the active sheet. Wide enough to
+// read as a deliberate stack of cards from across the screen (the earlier few-pixel
+// sliver was easy to mistake for a border), while still leaving the active sheet
+// unambiguously on top.
+const PEEK_MOBILE = 10 // px above the sheet's top edge
+const PEEK_DESKTOP = 12 // px to the right of the left panel
 
 // One uniform peek width per stack: every ancestor shares the same gap, and that gap
 // shrinks as the TOTAL depth grows — so each level stays evenly spaced while a taller
 // stack reads denser. `base` is the single-ancestor gap; strip d sits at `d · gap`.
-const PEEK_DECAY = 0.7
+const PEEK_DECAY = 0.78
 const perLevelPeek = (total: number, base: number) => base * Math.pow(PEEK_DECAY, total - 1)
+
+// Opacity of the stacked ancestors, fading with depth so the stack recedes rather
+// than competing with the active sheet. The nearest ancestor is nearly solid, so its
+// peeking edge reads as a panel; deeper ones drop away but never vanish.
+const peekOpacity = (depth: number) => Math.max(0.25, 0.8 - (depth - 1) * 0.2)
 
 type Direction = 'left' | 'bottom'
 
@@ -194,6 +202,40 @@ export function DrawerStack() {
   const parentPath = parentPaths.at(-1)
   const canCollapse = hasMap && direction === 'bottom'
 
+  // The stack must show the panels a repeated X actually goes through, which is a
+  // history question, not a URL one (see `dismissDepth`). `entryAncestors` is the
+  // structural height of the last depth-0 location — remembered because once we've
+  // pushed past it the URL no longer tells us where the widget came in.
+  //
+  // A ref, not state: it's only ever READ at depth > 0, and it's only ever WRITTEN
+  // at depth 0 — where `dismissDepth` uses the live ancestor count instead — so a
+  // write can never change the current render's output, and making it reactive just
+  // bought a second render of the whole stack. Same non-reactive treatment as
+  // `useCameraHistory`, for the same reason.
+  // Seeded 0, NOT `parentPaths.length`: mounting already at depth > 0 (a reload keeps
+  // `history.state`) would otherwise make the cap always bind —
+  // `min(ancestors, depth + ancestors) === ancestors` — quietly restoring the
+  // URL-ancestor count this replaced. Neither seed is right after such a reload (the
+  // entry we'd climb from is no longer knowable), so prefer the one that can only
+  // UNDER-count: a card that no dismiss visits is the bug being fixed, a missing card
+  // is just a shallower-looking stack.
+  const depth = atlasDepth(location)
+  const entryAncestors = useRef(0)
+
+  useEffect(() => {
+    if (depth === 0) entryAncestors.current = parentPaths.length
+  }, [depth, parentPaths.length])
+
+  // Strips are the FIRST n ancestors (root-first): with history in play the nearest
+  // URL ancestor may not be where back actually lands, but the root end of the chain
+  // is, so counting from the root keeps the click targets closest to the truth.
+  const stackDepth = dismissDepth({
+    depth,
+    entryAncestors: entryAncestors.current,
+    ancestors: parentPaths.length,
+  })
+  const stackPaths = parentPaths.slice(0, stackDepth)
+
   // Mirror the active sheet's live top onto the peek strips AND the sheet
   // itself every frame, so both track a drag without waiting for the snap to
   // settle (map + mobile only). The sheet-side copy is what pins EventView's
@@ -263,10 +305,7 @@ export function DrawerStack() {
       canCollapse,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
       dismiss: () => {
-        const action = dismissAction({
-          hasParent: Boolean(parentPath),
-          depth: atlasDepth(location),
-        })
+        const action = dismissAction({ hasParent: Boolean(parentPath), depth })
 
         // Mark the dismiss navigation as a transition: unmounting a heavy view (the calendar's
         // large grid) otherwise reconciles synchronously and freezes the click for a beat
@@ -293,7 +332,7 @@ export function DrawerStack() {
       // always parented to the calendar (`hasParent: true` → never 'collapse'), so 'fallback'
       // climbs to `/calendar` directly, keeping its query.
       dismiss: () =>
-        dismissAction({ hasParent: true, depth: atlasDepth(location) }) === 'back'
+        dismissAction({ hasParent: true, depth }) === 'back'
           ? navigate(-1)
           : navigate({ pathname: '/calendar', search: location.search }),
     }),
@@ -382,26 +421,23 @@ export function DrawerStack() {
   const target = overlayContainer()
   // One uniform per-level peek width for the whole stack, tighter the deeper it goes —
   // computed once here (it's a stack constant) rather than per strip.
-  const peekGap = perLevelPeek(
-    parentPaths.length,
-    direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE,
-  )
+  const peekGap = perLevelPeek(stackDepth, direction === 'left' ? PEEK_DESKTOP : PEEK_MOBILE)
   // Always render the container + AnimatePresence (even at 0 ancestors) so a removed
   // strip animates out on the way back to the root instead of vanishing.
   const strips = (
     <div ref={stripsRef}>
       <AnimatePresence>
-        {parentPaths.map((path, i) => {
-          const depth = parentPaths.length - i
+        {stackPaths.map((path, i) => {
+          const stripDepth = stackPaths.length - i
 
           return (
             <PeekStrip
               key={path}
-              depth={depth}
+              depth={stripDepth}
               direction={direction}
               gap={peekGap}
               label={t('back')}
-              opacity={Math.max(0.15, 0.55 - (depth - 1) * 0.18)}
+              opacity={peekOpacity(stripDepth)}
               zIndex={30 + i}
               onClick={() => navigate(toStackTarget(path))}
             />
@@ -426,8 +462,14 @@ export function DrawerStack() {
                 bump the cog to top-4 to line up with the drawer's top edge. Hidden on
                 the full-width calendar — a focused view with no clean corner for the
                 floating cog; settings stay reachable from every other view. */}
+            {/* The inline-start gap clears the PEEK STRIPS, not just the drawer: the
+                deepest stack pushes an ancestor ~23px past the panel edge
+                (`PEEK_DESKTOP` × the decay series above), so the cog sits 2rem out
+                — 3rem at ≥lg, where the drawer itself is already inset by 1rem. That
+                leaves ~9px of air at the deepest stack; a tighter gap and the strips
+                render under the cog. */}
             {!wide && (
-              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+0.75rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+1.75rem)] lg:top-4" />
+              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
             )}
           </>,
           target,
