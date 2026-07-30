@@ -104,6 +104,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | -------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line. Metrics assume a **four-action max**, and columns are width-capped so a short set clusters instead of sprawling |
 | `ActiveFilterPills/` | `ActiveFilterPills`                | Removable pills for the active URL filters                                                    |
+| `CountrySiteOffer/`  | `CountrySiteOffer`                 | The national-website next step when a searched country lists no classes (flag + `Alert` + external `Link`). Purely presentational — `useCountrySite` decides whether it shows |
 | `EventActions/`      | `EventActions`                     | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
 | `EventChips/`        | `EventChips`                       | The shared triage chips (type · language(s) · Today); `variant="compact"` trims the redundant ones for the list card. Used by the list card + the top of the event body so the two never drift |
 | `EventListItem/`         | `EventListItem`                        | Per-event row in an event list (title, facts, chips)                                          |

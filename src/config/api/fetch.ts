@@ -26,6 +26,7 @@ import {
   DEFAULT_FILTERS,
   indexRegions,
   isOnline,
+  isoCountryCode,
   matchesFilters,
   parentOf,
   partitionUnder,
@@ -275,18 +276,9 @@ export const regionRoute = (node: RegionNode): string => safePath(node.webPath) 
 
 // ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
 // the country slug *is* the ISO code, so it's derived straight from the slug — no
-// more `legacyData` fallback. Guard the shape so a malformed value can't throw in
-// `Intl.DisplayNames` / `CircleFlag` downstream (a non-ISO slug — e.g. an un-migrated
-// local dev seed — simply yields no flag rather than an error).
-//
-// Normalized to UPPERCASE: the migrated slugs are lowercase (`gb`), but
-// `Intl.DisplayNames({ type: 'region' })` is case-sensitive — `.of('gb')` echoes
-// back `"gb"` (fallback:'code') while `.of('GB')` resolves "United Kingdom". So the
-// canonical stored form is upper (matches the mocks' `countryCode: 'GB'`); the flag
-// lowercases it again at its call site.
-const isoCountryCode = (value: string | null | undefined): string | undefined =>
-  typeof value === 'string' && /^[A-Za-z]{2}$/.test(value) ? value.toUpperCase() : undefined
-
+// more `legacyData` fallback. `isoCountryCode` (@/lib/shape/country) owns the guard +
+// uppercase normalization, shared with the searched-country reader, so a non-ISO
+// slug — e.g. an un-migrated local dev seed — yields no flag rather than an error.
 const countryCodeOf = (node: RegionNode): string | undefined => isoCountryCode(node.slug)
 
 const toListItem = (node: RegionNode, eventCount: number): RegionListItem =>

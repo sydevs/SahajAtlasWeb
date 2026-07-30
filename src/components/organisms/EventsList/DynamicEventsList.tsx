@@ -8,21 +8,22 @@ import { useTranslation } from 'react-i18next'
 import { EventsList } from './EventsList'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
+import { CountrySiteOffer } from '@/components/molecules/CountrySiteOffer'
 import { Alert } from '@/components/atoms/Alert'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import {
   byDistance,
   byNextOccurrence,
-  filtersKey,
   hasActiveFilters,
   isOnline,
   nextOccurrence,
 } from '@/lib/shape'
+import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useSortOrder } from '@/hooks/use-sort'
-import api from '@/config/api'
+import { eventsQuery } from '@/config/api'
 import i18n from '@/config/i18n'
 
 // Cap the search results at this distance from a searched location; when farther
@@ -87,13 +88,10 @@ export function DynamicEventsList({
   const filters = useEventFilters()
   const { locale } = useLocale()
 
-  const { data: events } = useSuspenseQuery({
-    // Latitude/longitude are rounded to reduce re-fetching when the map moves; the
-    // locale keys the (localized) titles the list shows, so a switch refetches. Sort
-    // is deliberately NOT in the key — it's presentation, applied below in a memo.
-    queryKey: ['events', latitude.toFixed(2), longitude.toFixed(2), filtersKey(filters), locale],
-    queryFn: () => api.getEvents(latitude, longitude, filters),
-  })
+  // Through the shared `eventsQuery` factory so the SearchView story seeds the exact
+  // key this reads (see config/api) — the quantized centre, the filters, and the
+  // locale, with sort deliberately absent (it's re-applied client-side below).
+  const { data: events } = useSuspenseQuery(eventsQuery(latitude, longitude, filters, locale))
 
   // Apply the URL-selected ordering to the fetched list. Memoized on the fetched
   // reference + the order, so re-sorting is a cheap client-side reorder, never a
@@ -125,14 +123,34 @@ export function DynamicEventsList({
   )
 }
 
-// Shown when no events match. When the distance cap (not the filters) is what
-// emptied the list, say so — the "< N km" pill above is how the user reveals the
-// far events. Otherwise offer a "clear all filters" action when filters are the
-// reason.
+// Shown when no events match, in the order the reasons actually explain the empty
+// list:
+//
+//  1. The searched country lists NO programs at all — offer its own national site
+//     (issue #82). Ahead of the distance cap because `getEvents` returns the nearest
+//     matches with no distance limit, so a program-less country's nearest results are
+//     usually a thousand km away: the "< N km" branch below would fire for virtually
+//     every such search and bury the one useful next step. `useCountrySite` answers
+//     from the FULL feed, and stands down while any filter is active — an empty list
+//     under filters is explained by the filters, and case 3 owns the "clear all"
+//     escape hatch, so the offer waits rather than replacing it.
+//  2. The distance cap (not the filters) emptied the list — say so; the "< N km"
+//     pill above is how the user reveals the far events.
+//  3. Otherwise: "no results" with a "clear all filters" action when filters are the
+//     reason, else the plain "no events" line.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
   const active = hasActiveFilters(useEventFilters())
   const { clearFilters } = useSetFilters()
+  const countrySite = useCountrySite()
+
+  if (countrySite) {
+    return (
+      <div className="p-4">
+        <CountrySiteOffer {...countrySite} />
+      </div>
+    )
+  }
 
   if (nearbyKm !== undefined) {
     return (

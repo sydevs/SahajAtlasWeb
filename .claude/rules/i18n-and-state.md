@@ -93,6 +93,15 @@ of truth, so all are linkable/shareable:
   reorders the already-fetched results (a client re-sort in `DynamicEventsList`, never
   a refetch — absent from `filtersKey`), and never lights the filter badge
   (absent from `activeFilterCount`). The SortMenu (search results only) reads/writes it.
+- **The searched location** — `?q`/`?center`/`?bbox`/`?all`, plus **`?cc`** (the
+  searched country's ISO code, `SEARCH_COUNTRY_PARAM` in `src/lib/shape/path.ts` beside
+  `searchPath`/`parseCenter`). Read raw with a local parse helper rather than through a
+  codec — unlike filters/sort, these are *replaced* by a new search, not merged:
+  `preserveSearchState` (`src/views/shared.tsx`) re-encodes from an **empty** base, so
+  every location param drops by construction and a previous country can't leak into the
+  next search. `?cc` exists because it can't be re-derived: a country with no programs
+  has no feed features and so no geometry to resolve a point against, so the geocoder's
+  answer has to ride in the URL (it drives the country-website offer, `useCountrySite`).
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
   in `src/lib/shape/path.ts`). Dismissal is history-aware: `dismissAction`
   (`src/lib/shape/navigation.ts`) maps X / swipe / Esc to a chronological

@@ -15,6 +15,11 @@ export type { SearchFiltersProps } from './SearchFilters'
 export { ActiveFilterPills } from './ActiveFilterPills'
 export type { ActiveFilterPillsProps } from './ActiveFilterPills'
 
+// CountrySiteOffer — the national-website next step shown when a search lands in a
+// country that lists no programs at all (rendered by the events list's empty state).
+export { CountrySiteOffer } from './CountrySiteOffer'
+export type { CountrySiteOfferProps } from './CountrySiteOffer'
+
 // ListToolbar — the controls row above a results list (a Filters button, plus a
 // SortMenu on the search results). A thin justify-between layout; the views supply
 // the controls.

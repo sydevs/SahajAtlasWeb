@@ -124,5 +124,9 @@
   "error": {
     "generic": "Etwas ist schiefgelaufen.",
     "retry": "Erneut versuchen"
+  },
+  "country_site": {
+    "title": "Für %{country} sind noch keine Kurse eingetragen.",
+    "cta": "Website für %{country} besuchen"
   }
 }

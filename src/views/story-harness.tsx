@@ -8,10 +8,10 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { ErrorFallback, LoadingFallback } from '@/components/molecules'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
-import { clientQuery } from '@/config/api'
+import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { mockGeojson } from '@/mocks/regions'
+import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
@@ -52,6 +52,10 @@ const mockIpLocation: IpLocation = {
   city: 'Cambridge',
   region: 'Cambridgeshire',
   country: 'United Kingdom',
+  // A real guess carries the code, and two features read it: the share grid's
+  // region ordering (`useViewerCountry`) and the `?cc` the accepted suggestion writes
+  // — neither of which a code-less guess would exercise.
+  country_code: 'GB',
 }
 
 export type ViewHarnessProps = {
@@ -70,11 +74,15 @@ export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps)
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
     })
 
-    // Seed the feed, the host-client record, and a passive IP guess (so the nearby
-    // prompt renders where supported) for every view — no story pings the (absent)
-    // backend or the third-party geolocation service; the case's own `seed` layers
-    // its view-specific keys on top.
+    // Seed the feed, the wholesale region tree, the host-client record, and a passive
+    // IP guess (so the nearby prompt renders where supported) for every view — no
+    // story pings the (absent) backend or the third-party geolocation service; the
+    // case's own `seed` layers its view-specific keys on top. The region tree is
+    // read by anything filter-adjacent (the Region filter's options, the active-pill
+    // name lookup, the country-website check), which is why it's global rather than
+    // per-case.
     c.setQueryData(['geojson'], mockGeojson)
+    c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
     c.setQueryData(['ip-location'], mockIpLocation)
     seed(c)

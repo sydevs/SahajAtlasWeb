@@ -1,5 +1,6 @@
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
+import { isoCountryCode } from '@/lib/shape'
 
 /**
  * The viewer's country as an ISO alpha-2 code, for region-aware share ordering
@@ -17,11 +18,11 @@ export function useViewerCountry(): string | undefined {
   const ip = useIpLocation(false)
   const { locale } = useLocale()
 
-  if (ip?.country_code) return ip.country_code.toUpperCase()
-
-  // Most of our locales are language-only (`en`, `ru`, …) and have no region
-  // subtag — those simply fall through to `undefined` → the default set.
-  const subtag = locale.split('-')[1]
-
-  return subtag?.length === 2 ? subtag.toUpperCase() : undefined
+  // Both sources go through the shared `isoCountryCode` guard, so anything that isn't
+  // a canonical alpha-2 falls through to the default platform set rather than becoming
+  // a bogus "country code". The IP code is already length-checked at the zod boundary
+  // (`IpLocationSchema`), so this only tightens it to *letters*; the belt-and-braces is
+  // in having one guard for both sources. Most of our locales are language-only (`en`,
+  // `ru`, …) with no region subtag at all, so they resolve to the default too.
+  return isoCountryCode(ip?.country_code) ?? isoCountryCode(locale.split('-')[1])
 }

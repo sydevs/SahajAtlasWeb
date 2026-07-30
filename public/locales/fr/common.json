@@ -124,5 +124,9 @@
   "error": {
     "generic": "Une erreur s'est produite.",
     "retry": "Réessayer"
+  },
+  "country_site": {
+    "title": "Aucun cours n’est encore répertorié en %{country}.",
+    "cta": "Voir le site de %{country}"
   }
 }

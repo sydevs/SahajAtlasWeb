@@ -1,7 +1,10 @@
+import type { EventFilters } from '@/lib/shape'
+
 import fetch from './fetch'
 import mutate from './mutate'
 
 import { REGIONS_STALE_TIME } from '@/config/query-client'
+import { filtersKey } from '@/lib/shape'
 
 const api = {
   ...fetch,
@@ -23,6 +26,28 @@ export const clientQuery = (apiKey?: string | null) => ({
 export const eventQuery = (id: number, locale: string) => ({
   queryKey: ['event', id, locale] as const,
   queryFn: () => api.getEvent(id),
+})
+
+// The distance-ranked events query contract in one place — shared by the results
+// list's suspense read and the SearchView story's cache seed, so the key can't drift
+// (a seed under a divergent key silently misses and the story hits the network
+// instead of rendering the state it exists to show). Latitude/longitude are quantized
+// to 2 dp so small map moves don't refetch; the locale keys the localized titles.
+// Sort is deliberately absent — it's presentation, re-applied client-side.
+export const eventsQuery = (
+  latitude: number,
+  longitude: number,
+  filters: EventFilters,
+  locale: string,
+) => ({
+  queryKey: [
+    'events',
+    latitude.toFixed(2),
+    longitude.toFixed(2),
+    filtersKey(filters),
+    locale,
+  ] as const,
+  queryFn: () => api.getEvents(latitude, longitude, filters),
 })
 
 // The wholesale region-tree query contract in one place — shared by the region

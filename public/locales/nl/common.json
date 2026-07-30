@@ -124,5 +124,9 @@
   "error": {
     "generic": "Er is iets misgegaan.",
     "retry": "Opnieuw proberen"
+  },
+  "country_site": {
+    "title": "Er zijn nog geen lessen vermeld in %{country}.",
+    "cta": "Bezoek de website van %{country}"
   }
 }

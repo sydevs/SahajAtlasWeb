@@ -56,11 +56,38 @@ export const isCanonicalPath = (pathname: string, target: string): boolean =>
 
 /**
  * The distance-ranked search route, optionally centred on a point. Owns the
- * `?center=lng,lat` wire format together with its consumers (SearchView's
- * `parsePair`, the filter serializers) so producers never hand-roll it.
+ * `?center=lng,lat` wire format together with `parseCenter` below (its inverse) and
+ * the filter serializers, so producers never hand-roll it.
  */
 export const searchPath = (center?: [number, number]): string =>
   center ? `/search?center=${center[0]},${center[1]}` : '/search'
+
+/**
+ * Decode a `?center=lng,lat` value to `[longitude, latitude]`, or `undefined` when
+ * it's absent or not two finite numbers — so a malformed hand-typed value falls back
+ * to the map centre rather than feeding NaNs into Mapbox. The inverse of
+ * `searchPath`'s encoding, kept beside it: SearchView (framing + distance ranking)
+ * and the SearchView story (deriving the seeded query key) both read it, and a third
+ * private copy is how the two would silently disagree.
+ */
+export const parseCenter = (value: string | null): [number, number] | undefined => {
+  if (!value) return undefined
+  const [longitude, latitude] = value.split(',').map(Number)
+
+  return Number.isFinite(longitude) && Number.isFinite(latitude) ? [longitude, latitude] : undefined
+}
+
+/**
+ * The searched country's ISO alpha-2 code (`?cc=IS`) — written by the geocoder field
+ * and the accepted IP suggestion, read by `useCountrySite` to offer that country's own
+ * website when it lists no programs (issue #82). Named here, beside `searchPath`, so
+ * the writers and the reader can't drift on the param.
+ *
+ * Part of the *searched location*, not preserved state: `preserveSearchState`
+ * (views/shared.tsx) rebuilds from an empty base, so a new search replaces it and a
+ * previous country never leaks into the next search.
+ */
+export const SEARCH_COUNTRY_PARAM = 'cc'
 
 /**
  * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the

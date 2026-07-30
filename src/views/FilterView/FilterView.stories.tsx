@@ -8,7 +8,8 @@ export default { title: 'Views' } satisfies StoryDefault
 
 // A mix of selections that differ from the (empty) applied filters, so the form opens filled
 // AND dirty — the Apply bar is active, and "Clear all" shows too. The language options resolve
-// from the cached feed the harness seeds; the region picker is left alone (no region tree here).
+// from the cached feed the harness seeds, and the region picker from the region tree it seeds
+// (`mockRegionNodes`); this draft leaves the region unset, so that control shows "All regions".
 const dirtyDraft = {
   ...DEFAULT_FILTERS,
   format: 'online' as const,

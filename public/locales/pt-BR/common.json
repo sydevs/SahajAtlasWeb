@@ -124,5 +124,9 @@
   "error": {
     "generic": "Algo deu errado.",
     "retry": "Tentar novamente"
+  },
+  "country_site": {
+    "title": "Ainda não há aulas cadastradas em %{country}.",
+    "cta": "Acessar o site de %{country}"
   }
 }
