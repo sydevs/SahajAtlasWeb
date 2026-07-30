@@ -185,6 +185,39 @@ MCP for Cloudflare Pages questions.
 - Never force-push `main`, never skip hooks (`--no-verify`), never commit
   `.env.local` or any `sk.`/API secret.
 
+### Stacked PRs — and what to do when the base lands
+
+A PR may be based on another feature branch rather than `main` (e.g. #81 and #83 were
+both stacked on `feat/calendar-view`). Two consequences worth knowing up front:
+
+- **The PR diff includes the base's un-pushed commits** until that base is pushed, so
+  a stacked PR can look noisier than it is.
+- **This repo squash-merges.** When the base lands, its branch is deleted and `main`
+  gains ONE commit whose content matches the base but shares no ancestry with it. So a
+  stacked branch must be **rebased**, never merged:
+
+  ```bash
+  git fetch origin main
+  git rebase --onto origin/main <old-base> <your-branch>
+  ```
+
+  `git merge origin/main` replays your pre-squash history against the squash and
+  conflicts spuriously — on the one occasion this happened it produced 20+ conflicts
+  including `pnpm-lock.yaml` and add/add conflicts on files neither side had touched
+  meaningfully. Before starting, size the *real* overlap so you know what you're in
+  for; it's usually a handful of files:
+
+  ```bash
+  git diff --name-only <your-branch-base> <your-branch> | sort > /tmp/mine
+  git diff --name-only <your-branch-base> origin/main | sort > /tmp/theirs
+  comm -12 /tmp/mine /tmp/theirs   # only these need hand-merging
+  ```
+
+  If the rebase is unavailable (it needs approval), the equivalent is a fresh branch
+  off `origin/main` + `git cherry-pick <old-base>..<your-branch>`, taking your version
+  wholesale for the non-overlapping files (`git checkout <your-branch> -- <paths>`) and
+  hand-merging only the overlap.
+
 ### PR workflow (3 phases)
 
 PRs move through three phases. The point is to **batch CI runs** — don't push

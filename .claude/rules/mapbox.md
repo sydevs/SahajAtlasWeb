@@ -112,6 +112,37 @@ Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math (bounding
 boxes for regions/areas, approximate-location circles). Don't hand-roll
 lat/lng arithmetic.
 
+## Verifying map behaviour in a browser
+
+Map changes ARE verifiable end-to-end with the Playwright MCP — prefer proving one
+over asking the user. Serve the app per `.claude/docs`/the worktree pattern (alt port
++ matching `VITE_HOST`) against the seeded local backend.
+
+- **Screenshots are readable.** `browser_take_screenshot` with a **relative**
+  `filename` writes into the project root, and `Read` displays it — WebGL content
+  (pins, clusters, basemap) captures fine. `element`/`target` gives a close-up of one
+  node. Delete the PNGs before committing. Note the asymmetry:
+  `browser_evaluate`'s `filename` is NOT written locally — return values inline, and
+  digest anything large (an ASCII alpha-map, a list of measurements) rather than
+  dumping base64.
+- **Click pins with synthetic events.** The `Map` instance isn't reachable from
+  `browser_evaluate` (react-map-gl keeps it in a ref), so drive the canvas instead:
+  dispatch `mousemove` → `mousedown` → `mouseup` → `click` on
+  `canvas.mapboxgl-canvas`, each with `clientX/clientY` and `bubbles: true`. A real
+  pin click navigates. Clicking a **cluster** zooms *without* changing the URL, so you
+  can descend to a single pin while staying on the current route — that's how to
+  reproduce "clicked a pin from the root view" states.
+- **Assert marker registration from the console, not pixels.** Mapbox logs
+  `Image "<id>" could not be loaded` when nothing supplies an icon, so the *absence*
+  of that warning across repeated light⇄dark toggles is the assertion that
+  `registerMarkerImages` is working. The `.playwright-mcp/console-*.log` files are
+  readable. Toggle theme by swapping the root class — `useTheme` observes it, so the
+  basemap follows without a reload.
+- **Measure, don't trust class names.** `getComputedStyle` /
+  `getBoundingClientRect`, and `scrollWidth` vs `clientWidth` to find overflow (then
+  walk descendants for the widest node). A Tailwind class that isn't generated still
+  appears in the DOM with no CSS behind it — see `.claude/rules/code-style.md`.
+
 ## Gotchas
 
 - `worldview` and `language` are set from the active locale (`MAP_WORLDVIEWS`,

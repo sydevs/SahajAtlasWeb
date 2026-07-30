@@ -24,6 +24,14 @@ change rather than a reshuffle, which is what makes copy-pasted chrome drifting
 apart visible. Pinned to the `0.6.x` line: `0.8.x` targets Tailwind v4 and throws
 on our v3 setup.
 
+**Tailwind is `3.4.3` — v4 utilities don't exist, and an ungenerated class fails
+SILENTLY.** It lands in the DOM with no CSS behind it, so lint, typecheck and the
+unit lane all stay green while the style does nothing. Numeric `max-w-*` / `min-w-*`
+are the trap that has actually bitten (v3.4's max-width scale is `xs…7xl` plus the
+keywords, not the spacing scale) — `max-w-24` is inert, use `max-w-[6rem]`. After
+adding any utility you don't already see used in the repo, confirm the **computed**
+style rather than assuming the class works.
+
 ## Imports
 
 - Use the **`@/` alias** (`@/components/...`, `@/config/...`, `@/types`) instead
