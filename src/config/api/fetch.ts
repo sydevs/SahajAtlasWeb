@@ -45,9 +45,6 @@ import {
   RegionSchema,
 } from '@/types'
 
-// Most we return from a "near here" search, ordered by distance.
-const NEAREST_LIMIT = 50
-
 // The region fields populated into the geojson feed + event reads. Ancestry comes
 // from the wholesale regions dict (parent links), so no `breadcrumbs` here (they
 // were ~20% of the feed); slug/name drive display, the route is the server `webPath`.
@@ -441,13 +438,16 @@ const getEvents = async (
   const { features, titles } = await filteredFeed(filters)
   const from: Position = [longitude, latitude]
 
-  // Filtered before the nearest-N slice, so a restrictive filter returns the nearest
-  // MATCHING events. The rendered set can still differ from the map: online events
-  // carry no geometry, and this list is capped at NEAREST_LIMIT while the map is not.
+  // The WHOLE matching set, distance-ranked — uncapped, like getCalendarEvents. The
+  // list used to slice to the nearest 50 here, which truncated the pool the client
+  // then sorted (so `?sort=soonest` meant "soonest among the 50 nearest") and put
+  // match #51 permanently out of reach. Paging is a render budget, not a network one:
+  // the feed is fetched once and cached, so the list reveals from this set a page at a
+  // time (see `revealRows` in `@/lib/shape/reveal`). The rendered set can still differ
+  // from the map, which has no geometry for online events and applies no distance cut.
   return features
     .map((feature) => toSlim(feature, titles.get(feature.properties.id), from))
     .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
-    .slice(0, NEAREST_LIMIT)
 }
 
 // ── Calendar source events (the whole filtered set, for occurrence expansion) ────

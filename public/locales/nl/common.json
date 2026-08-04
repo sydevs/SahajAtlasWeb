@@ -52,7 +52,6 @@
     "no_results": "Geen evenementen komen overeen met je filters.",
     "no_events": "Geen evenementen gevonden.",
     "remove": "%{label} verwijderen",
-    "nearby": "< %{km} km",
     "no_nearby": "Geen evenementen binnen %{km} km.",
     "dates": {
       "label": "Datum",
@@ -128,5 +127,10 @@
   "country_site": {
     "title": "Er zijn nog geen lessen vermeld in %{country}.",
     "cta": "Bezoek de website van %{country}"
+  },
+  "results": {
+    "more": "Meer tonen",
+    "farther": "Evenementen verder dan %{km} km tonen",
+    "showing": "%{shown} van %{total} evenementen weergegeven"
   }
 }

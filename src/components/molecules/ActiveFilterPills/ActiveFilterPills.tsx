@@ -10,22 +10,18 @@ import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
-export type ActiveFilterPillsProps = {
-  /**
-   * The search-only "within N km" cap pill. Not part of the stored filters (it
-   * depends on the searched location), so the list owns it and passes it in.
-   */
-  nearby?: { km: number; onClear: () => void }
-}
-
 /**
- * The active filters, as a row of removable pills at the top of the search
- * results. One pill per filter type — the day-of-week and language selections are
- * each collapsed into a single pill — plus the optional distance cap. Each pill's
- * X clears that filter immediately (a quick-edit on the applied store state).
- * Renders nothing when no filter is active.
+ * The active filters, as a row of removable pills at the top of the search results.
+ * One pill per filter type — the day-of-week and language selections are each
+ * collapsed into a single pill. Each pill's X clears that filter immediately (a
+ * quick-edit on the applied filters). Renders nothing when no filter is active.
+ *
+ * Every pill here is one of the USER's own filters. The results list's automatic
+ * "< 500 km" cut used to ride along as one more pill, which read as a filter someone
+ * had chosen; it's now a segment boundary the list pages across, signposted by its own
+ * control at the foot of the list (see `revealRows` in `@/lib/shape/reveal`).
  */
-export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
+export function ActiveFilterPills() {
   const { t } = useTranslation('common')
   const { locale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
@@ -46,13 +42,6 @@ export function ActiveFilterPills({ nearby }: ActiveFilterPillsProps) {
 
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
-  if (nearby) {
-    pills.push({
-      key: 'nearby',
-      label: t('filters.nearby', { km: nearby.km }),
-      onRemove: nearby.onClear,
-    })
-  }
   if (region) {
     // Show the region's name (falling back to the slug until the tree loads / for an
     // unknown slug), resolved where it's used so there's no null-typed intermediate.

@@ -3,7 +3,7 @@ import type { SortOrder } from '@/lib/shape'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { sortFromParams, sortToParams } from '@/lib/shape'
+import { resetReveal, sortFromParams, sortToParams } from '@/lib/shape'
 
 // The list sort order lives in the URL (`?sort=`) like the filters — the single source
 // of truth, so a sorted view is linkable/shareable. Read with `useSortOrder`; change it
@@ -22,10 +22,17 @@ export const useSortOrder = (): SortOrder => {
  * Setter that rewrites `?sort=` while preserving every other param (mirrors
  * `useSetFilters`). `replace` so changing the sort doesn't stack a history entry; the
  * default order is omitted from the URL.
+ *
+ * The reveal (`?shown=`/`?all=1`) resets, as it does on a filter change. Sorting runs
+ * on the FULL matching set, so a new order means the revealed rows are a different set
+ * of events — not the same list further down — and the honest reveal is the new first
+ * page.
  */
 export const useSetSortOrder = () => {
   const [, setSearchParams] = useSearchParams()
 
   return (order: SortOrder) =>
-    setSearchParams((prev) => sortToParams(order, new URLSearchParams(prev)), { replace: true })
+    setSearchParams((prev) => sortToParams(order, resetReveal(new URLSearchParams(prev))), {
+      replace: true,
+    })
 }

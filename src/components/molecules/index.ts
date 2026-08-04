@@ -11,9 +11,9 @@ export { SearchFilters } from './SearchFilters'
 export type { SearchFiltersProps } from './SearchFilters'
 
 // ActiveFilterPills — the applied filters as removable pills at the top of the
-// search results (rendered by the events list).
+// search results (rendered by the events list). Props-free: it reads the filters
+// from the URL itself.
 export { ActiveFilterPills } from './ActiveFilterPills'
-export type { ActiveFilterPillsProps } from './ActiveFilterPills'
 
 // CountrySiteOffer — the national-website next step shown when a search lands in a
 // country that lists no programs at all (rendered by the events list's empty state).

@@ -78,7 +78,12 @@ export function EventListItem({ event }: EventListItemProps) {
 
   return (
     <li>
+      {/* `data-event-row` marks the row's focusable element, so DynamicEventsList can
+          move focus onto the first newly revealed card when a "show more" press
+          unmounts its button. An explicit hook rather than a structural `li > a`
+          query, which would break silently the day a card grows a second anchor. */}
       <Link
+        data-event-row
         className={listRow({ className: 'flex flex-col gap-1 py-4' })}
         href={event.path}
         onBlur={() => highlightEvent(null)}

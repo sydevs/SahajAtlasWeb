@@ -52,7 +52,6 @@
     "no_results": "Keine Veranstaltungen entsprechen deinen Filtern.",
     "no_events": "Keine Veranstaltungen gefunden.",
     "remove": "%{label} entfernen",
-    "nearby": "< %{km} km",
     "no_nearby": "Keine Veranstaltungen innerhalb von %{km} km.",
     "dates": {
       "label": "Datum",
@@ -128,5 +127,10 @@
   "country_site": {
     "title": "Für %{country} sind noch keine Kurse eingetragen.",
     "cta": "Website für %{country} besuchen"
+  },
+  "results": {
+    "more": "Mehr anzeigen",
+    "farther": "Veranstaltungen weiter als %{km} km entfernt anzeigen",
+    "showing": "%{shown} von %{total} Veranstaltungen werden angezeigt"
   }
 }

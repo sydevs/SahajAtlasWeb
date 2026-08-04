@@ -52,7 +52,6 @@
     "no_results": "Nenhum evento corresponde aos seus filtros.",
     "no_events": "Nenhum evento encontrado.",
     "remove": "Remover %{label}",
-    "nearby": "< %{km} km",
     "no_nearby": "Nenhum evento num raio de %{km} km.",
     "dates": {
       "label": "Data",
@@ -128,5 +127,10 @@
   "country_site": {
     "title": "Ainda não há aulas cadastradas em %{country}.",
     "cta": "Acessar o site de %{country}"
+  },
+  "results": {
+    "more": "Mostrar mais",
+    "farther": "Mostrar eventos a mais de %{km} km",
+    "showing": "Mostrando %{shown} de %{total} eventos"
   }
 }

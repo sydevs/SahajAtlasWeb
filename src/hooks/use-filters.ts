@@ -3,7 +3,7 @@ import type { DateRange, EventCadence, EventFilters, EventFormat, TimePeriod } f
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape'
+import { DEFAULT_FILTERS, filtersFromParams, filtersToParams, resetReveal } from '@/lib/shape'
 
 // The applied event filters live in the URL query — the single source of truth, so
 // a filtered view is linkable/shareable and the map + list always agree on it. Read
@@ -22,8 +22,14 @@ export const useEventFilters = (): EventFilters => {
 
 /**
  * Filter setters that rewrite the current URL's filter params while preserving the
- * rest (`q`/`bbox`/`center`/`all`). Used by the results' quick-edit pills; `setFilters`
+ * rest (`q`/`bbox`/`center`). Used by the results' quick-edit pills; `setFilters`
  * commits a whole set. `replace` so tweaking a filter doesn't stack a history entry.
+ *
+ * The list's reveal (`?shown=`/`?all=1`) is explicitly RESET rather than preserved: a
+ * filter change is a change to which events match, so a count carried over from the
+ * previous result set is meaningless. It needs saying here because this merges onto
+ * `prev` — a new place search drops both for free (`preserveSearchState` re-encodes
+ * from an empty base).
  */
 export const useSetFilters = () => {
   const [, setSearchParams] = useSearchParams()
@@ -32,7 +38,8 @@ export const useSetFilters = () => {
   // snapshot), so a concurrent change can't be clobbered.
   const update = (change: (filters: EventFilters) => EventFilters) =>
     setSearchParams(
-      (prev) => filtersToParams(change(filtersFromParams(prev)), new URLSearchParams(prev)),
+      (prev) =>
+        filtersToParams(change(filtersFromParams(prev)), resetReveal(new URLSearchParams(prev))),
       { replace: true },
     )
 

@@ -45,7 +45,6 @@
     "no_results": "No events match your filters.",
     "no_events": "No events found.",
     "remove": "Remove %{label}",
-    "nearby": "< %{km} km",
     "no_nearby": "No events within %{km} km.",
     "dates": {
       "label": "Date",
@@ -133,5 +132,10 @@
   "country_site": {
     "title": "No classes listed in %{country} yet.",
     "cta": "Visit the %{country} website"
+  },
+  "results": {
+    "more": "Show more",
+    "farther": "Show events farther than %{km} km",
+    "showing": "Showing %{shown} of %{total} events"
   }
 }
