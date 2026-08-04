@@ -15,7 +15,8 @@ import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
-export { mockEventVariants } from '@/mocks/events'
+// `mockEventSeries` rides along for the paged cases, which need bulk over variety.
+export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 
 // Shared harness for the view stories (title group "Views"). A view is a
 // data-connected drawer screen, so previewing one needs three things the Ladle

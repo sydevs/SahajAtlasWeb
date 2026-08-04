@@ -5,7 +5,7 @@ import type { EventSlim } from '@/types'
 import { useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { ViewHarness, mockEventVariants } from '@/views/story-harness'
+import { ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
 import { eventsQuery } from '@/config/api'
@@ -35,8 +35,27 @@ const ICELAND = 'q=Iceland&center=-21.9,64.1&cc=IS'
 // pill competing for attention.
 const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 
+// A searched place, so the list segments at the "< 500 km" boundary — the "Paged" and
+// "Nearby exhausted" cases below are about that boundary, and without a `?center` there
+// is nothing to be far from (the whole set is one segment).
+const SEARCHED = 'q=Paris&center=0,0'
+
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
+  // More matches than one page: the foot of the list carries "Show more", and pressing
+  // it reveals the next page in place — no refetch, since every match is already here.
+  Paged: { search: SEARCHED, events: mockEventSeries(60) },
+  // A handful nearby and a long tail beyond 500 km. Paging stops at the boundary and
+  // the control changes to "Show events farther than 500 km" — the list's only distance
+  // affordance now that the "< 500 km" pill is gone, and what signposts that the nearby
+  // matches (not the results) have run out.
+  'Nearby exhausted': {
+    search: SEARCHED,
+    events: [
+      ...mockEventSeries(6, { step: 12 }),
+      ...mockEventSeries(40, { from: 620, step: 40, offset: 100 }),
+    ],
+  },
   Empty: { search: '', events: [] },
   'Country website': { search: ICELAND, events: [] },
   Filtered: {
@@ -61,9 +80,11 @@ const eventsKey = (search: string, locale: string) => {
 
 /**
  * SearchView — the distance-ranked results screen: the geocoder + filter header over
- * the event list (with the "within 500 km" cap). "Empty" is the no-results state;
- * "Country website" the offer that replaces it when the searched country lists no
- * programs at all; "Filtered" the toolbar badge + active-filter pills over a list.
+ * the event list. "Paged" and "Nearby exhausted" cover the reveal control at the foot
+ * of the list and the "< 500 km" segment boundary it crosses; "Empty" is the
+ * no-results state; "Country website" the offer that replaces it when the searched
+ * country lists no programs at all; "Filtered" the toolbar badge + active-filter pills
+ * over a list.
  *
  * Cases that need a URL seed it onto the decorator's OWN router via `SeedSearchParams`
  * (react-router v7 throws on a nested `<Router>`), which lands one render in — so each
