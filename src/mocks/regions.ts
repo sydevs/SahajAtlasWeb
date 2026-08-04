@@ -79,11 +79,11 @@ const countrySubregions: RegionListItem[] = [
   { id: 9108, slug: 'oxford', level: 'city', name: 'Oxford', subtitle: 'Oxfordshire', eventCount: 15, path: '/united-kingdom/oxfordshire/oxford' }, // prettier-ignore
 ]
 
-/** Two SY Centers (venues) inside a city — the child rows a "city with centers"
- *  region shows. Level `center` routes to a venue. */
-const cityCenters: RegionListItem[] = [
-  { id: 8201, slug: '44-chelsham-road', level: 'center', name: '44 Chelsham Rd', eventCount: 6, path: '/united-kingdom/greater-london/london/44-chelsham-road' }, // prettier-ignore
-  { id: 8202, slug: 'flood-street', level: 'center', name: 'Flood Street', eventCount: 4, path: '/united-kingdom/greater-london/london/flood-street' }, // prettier-ignore
+/** Two venues inside a city — the child rows a "city with venues" region shows.
+ *  Level `venue` is the leaf; it routes to a venue page. */
+const cityVenues: RegionListItem[] = [
+  { id: 8201, slug: '44-chelsham-road', level: 'venue', name: '44 Chelsham Rd', eventCount: 6, path: '/united-kingdom/greater-london/london/44-chelsham-road' }, // prettier-ignore
+  { id: 8202, slug: 'flood-street', level: 'venue', name: 'Flood Street', eventCount: 4, path: '/united-kingdom/greater-london/london/flood-street' }, // prettier-ignore
 ]
 
 /**
@@ -176,11 +176,11 @@ export const mockLeafRegion: Region = {
 }
 
 /**
- * A mixed city: SY Centers (venues) as its children AND its own free-floating
- * located events, led by an "Online Classes" roll-up — London with two centers
- * ("44 Chelsham Rd", "Flood Street") plus a few classes pinned to the city itself.
+ * A mixed city: venues as its children AND its own free-floating located events,
+ * led by an "Online Classes" roll-up — London with two venues ("44 Chelsham Rd",
+ * "Flood Street") plus a few classes pinned to the city itself.
  */
-export const mockCityWithCentersRegion: Region = {
+export const mockCityWithVenuesRegion: Region = {
   ...mockParentRegion,
   id: 8200,
   slug: 'london',
@@ -190,7 +190,7 @@ export const mockCityWithCentersRegion: Region = {
   eventCount: 24,
   path: '/united-kingdom/greater-london/london',
   parentPath: '/united-kingdom/greater-london',
-  subregions: cityCenters,
+  subregions: cityVenues,
   events: offlineVariants.slice(0, 5),
 }
 

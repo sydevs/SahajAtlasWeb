@@ -42,12 +42,12 @@ const country = {
   onlineEvents: [],
 }
 
-// A center (venue): `events` populated, derived center point.
+// A venue (the leaf level): `events` populated, derived center point.
 const venue = {
   id: 13,
   slug: 'town-hall',
   name: 'Town Hall',
-  level: 'center',
+  level: 'venue',
   eventCount: mockEventSlimList.length,
   bounds: [4.35, 50.85, 4.35, 50.85],
   center: [4.35, 50.85],
@@ -105,11 +105,20 @@ describe('RegionSchema', () => {
     expect(parsed.webUrl).toBe('https://atlas.example/belgium')
   })
 
-  it('parses a center (venue) with a derived center point and events', () => {
+  it('parses a venue with a derived center point and events', () => {
     const parsed = RegionSchema.parse(venue)
 
+    expect(parsed.level).toBe('venue')
     expect(parsed.center).toEqual([4.35, 50.85])
     expect(parsed.events).toHaveLength(mockEventSlimList.length)
+  })
+
+  // SahajCloud#605 renamed the leaf level `center` → `venue`. The old spelling is
+  // not accepted — nothing serves it — so it must fail loudly rather than slip
+  // through as an unrecognized level.
+  it('rejects an unknown level, including the pre-#605 `center`', () => {
+    expect(() => RegionSchema.parse({ ...venue, level: 'center' })).toThrow()
+    expect(() => RegionSchema.parse({ ...venue, level: 'district' })).toThrow()
   })
 
   it('rolls up online events disjoint from located events', () => {

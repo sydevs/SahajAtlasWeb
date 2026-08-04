@@ -6,7 +6,7 @@ import { ViewHarness } from '@/views/story-harness'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { useLocale } from '@/hooks/use-locale'
 import {
-  mockCityWithCentersRegion,
+  mockCityWithVenuesRegion,
   mockCountryRegion,
   mockLeafRegion,
   mockMinimalRegion,
@@ -29,8 +29,8 @@ const EXAMPLES = {
     region: mockLeafRegion,
   },
   'City with Centers': {
-    slug: mockCityWithCentersRegion.slug,
-    region: mockCityWithCentersRegion,
+    slug: mockCityWithVenuesRegion.slug,
+    region: mockCityWithVenuesRegion,
   },
   Empty: {
     slug: mockMinimalRegion.slug,
