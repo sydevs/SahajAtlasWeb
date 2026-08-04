@@ -51,6 +51,20 @@ describe('EventListItem', () => {
     expect(html).not.toMatch(/^<a[\s>]/)
   })
 
+  it('marks the anchor as the row, so the results list can focus a revealed card', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <EventListItem event={mockEventSlim} />
+      </MemoryRouter>,
+    )
+
+    // DynamicEventsList queries `[data-event-row]` to move focus onto the first newly
+    // revealed card when a "show more" press unmounts its button. JSX doesn't
+    // type-check hyphenated attributes, so this is the only thing standing between a
+    // rename here and focus silently dropping to <body> there.
+    expect(html).toContain('data-event-row')
+  })
+
   it('left-aligns the card column: listRow items-stretch beats the Link atom items-center', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>

@@ -89,14 +89,13 @@ export type Reveal<T> = {
   rows: T[]
   /** What the button offers, or `null` when everything is revealed. */
   more: RevealMore | null
-  /** The count to write to the URL on the next press (`null` when there is none). */
-  nextShown: number | null
-  /** Whether that press also has to reveal the far segment. */
-  nextShowAll: boolean
+  /**
+   * What the next press writes to the URL — `null` exactly when `more` is, so the
+   * caller can't reach for a reveal the list isn't offering.
+   */
+  next: { shown: number; showAll: boolean } | null
   /** Every row reachable in the current segment(s) — what `rows.length` counts up to. */
   total: number
-  /** True when the nearby segment is empty but far matches exist (the empty-state CTA). */
-  onlyFar: boolean
 }
 
 /**
@@ -128,31 +127,23 @@ export function revealRows<T extends Distanced>(
   // clamps at the boundary for free — no press can overshoot it.
   const active = showAll ? [...near, ...far] : near
   const rows = active.slice(0, shown)
-  const onlyFar = near.length === 0 && far.length > 0
 
-  if (rows.length < active.length) {
-    return {
-      rows,
-      more: 'more',
-      nextShown: Math.min(shown + PAGE_SIZE, active.length),
-      nextShowAll: showAll,
-      total: active.length,
-      onlyFar,
-    }
+  // Rows still to come in the segment on screen; else the crossing, if there's a far
+  // segment left to cross into; else the list has genuinely ended.
+  const more: RevealMore | null =
+    rows.length < active.length ? 'more' : !showAll && far.length > 0 ? 'farther' : null
+
+  return {
+    rows,
+    more,
+    // The crossing CONTINUES the count rather than resetting it — the rows already
+    // read stay on screen and the far ones append below them.
+    next:
+      more === 'more'
+        ? { shown: Math.min(shown + PAGE_SIZE, active.length), showAll }
+        : more === 'farther'
+          ? { shown: near.length + PAGE_SIZE, showAll: true }
+          : null,
+    total: active.length,
   }
-
-  // The nearby segment is exhausted. Offer the far one, continuing the count rather
-  // than resetting it — the rows already read stay on screen and the new ones append.
-  if (!showAll && far.length > 0) {
-    return {
-      rows,
-      more: 'farther',
-      nextShown: near.length + PAGE_SIZE,
-      nextShowAll: true,
-      total: active.length,
-      onlyFar,
-    }
-  }
-
-  return { rows, more: null, nextShown: null, nextShowAll: showAll, total: active.length, onlyFar }
 }

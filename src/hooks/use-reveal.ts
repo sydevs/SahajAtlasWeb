@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { revealFromParams, revealToParams, showAllFromParams } from '@/lib/shape'
@@ -9,32 +8,25 @@ import { revealFromParams, revealToParams, showAllFromParams } from '@/lib/shape
 // coming back would silently reset component state) and a deep link restores it.
 // Read + advance it with `useReveal`. See `@/lib/shape/reveal`.
 
-export type Reveal = {
+export type RevealControls = {
   /** Rows revealed so far (at least one page). */
   shown: number
   /** Whether the far (> NEARBY_KM) segment has been revealed. */
   showAll: boolean
-  /** Reveal the next page — `revealRows` computes both arguments. */
-  revealMore: (shown: number, showAll: boolean) => void
+  /** Reveal the next page — hand it `revealRows`' `next`, which computes both. */
+  revealMore: (next: { shown: number; showAll: boolean }) => void
 }
 
-export const useReveal = (): Reveal => {
+export const useReveal = (): RevealControls => {
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const { shown, showAll } = useMemo(
-    () => ({ shown: revealFromParams(searchParams), showAll: showAllFromParams(searchParams) }),
-    [searchParams],
-  )
-
   return {
-    shown,
-    showAll,
+    shown: revealFromParams(searchParams),
+    showAll: showAllFromParams(searchParams),
     // `replace` so paging doesn't stack a history entry per press — otherwise the
     // drawer's history-aware dismissal (X / swipe / Esc → `navigate(-1)`) would walk
     // back through every reveal instead of leaving the search.
-    revealMore: (next: number, nextShowAll: boolean) =>
-      setSearchParams((prev) => revealToParams(next, nextShowAll, new URLSearchParams(prev)), {
-        replace: true,
-      }),
+    revealMore: (next) =>
+      setSearchParams((prev) => revealToParams(next.shown, next.showAll, prev), { replace: true }),
   }
 }

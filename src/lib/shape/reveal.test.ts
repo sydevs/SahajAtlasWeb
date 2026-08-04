@@ -93,8 +93,7 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(PAGE_SIZE)
     expect(result.more).toBe('more')
-    expect(result.nextShown).toBe(PAGE_SIZE * 2)
-    expect(result.nextShowAll).toBe(false)
+    expect(result.next).toEqual({ shown: PAGE_SIZE * 2, showAll: false })
     expect(result.total).toBe(60)
   })
 
@@ -103,7 +102,7 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(10)
     expect(result.more).toBeNull()
-    expect(result.nextShown).toBeNull()
+    expect(result.next).toBeNull()
   })
 
   it('offers nothing for an empty result set', () => {
@@ -111,7 +110,7 @@ describe('revealRows', () => {
 
     expect(result.rows).toEqual([])
     expect(result.more).toBeNull()
-    expect(result.onlyFar).toBe(false)
+    expect(result.next).toBeNull()
   })
 
   it('preserves the order it is given — it segments, it does not re-sort', () => {
@@ -136,8 +135,8 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(20)
     expect(result.more).toBe('farther')
-    expect(result.nextShown).toBe(20 + PAGE_SIZE)
-    expect(result.nextShowAll).toBe(true)
+    // Continuing, not resetting: the 20 rows already read stay on screen.
+    expect(result.next).toEqual({ shown: 20 + PAGE_SIZE, showAll: true })
     // Until it is crossed, the boundary is what the list counts up to.
     expect(result.total).toBe(20)
   })
@@ -147,7 +146,7 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(45)
     expect(result.more).toBe('more')
-    expect(result.nextShown).toBe(60)
+    expect(result.next).toEqual({ shown: 60, showAll: true })
     expect(result.total).toBe(60)
   })
 
@@ -156,19 +155,18 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(30)
     expect(result.more).toBeNull()
-    expect(result.nextShown).toBeNull()
+    expect(result.next).toBeNull()
   })
 
-  it('flags an all-far result set, whose only affordance is the crossing', () => {
+  it('offers only the crossing for an all-far result set', () => {
     // The empty state the "no events within N km" alert explains. The default count
     // already exceeds the (zero-length) nearby segment, which is exactly why the far
     // reveal is its own flag rather than being derived from the count.
     const result = reveal(far(40))
 
     expect(result.rows).toEqual([])
-    expect(result.onlyFar).toBe(true)
     expect(result.more).toBe('farther')
-    expect(result.nextShown).toBe(PAGE_SIZE)
+    expect(result.next).toEqual({ shown: PAGE_SIZE, showAll: true })
   })
 
   it('keeps online (distanceless) events in the nearby segment', () => {
@@ -176,7 +174,6 @@ describe('revealRows', () => {
 
     expect(result.rows.map((event) => event.id)).toEqual(['o0', 'o1', 'o2'])
     expect(result.more).toBe('farther')
-    expect(result.onlyFar).toBe(false)
   })
 
   it('treats events exactly at the boundary as nearby', () => {
@@ -193,7 +190,7 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(PAGE_SIZE)
     expect(result.more).toBe('more')
-    expect(result.nextShowAll).toBe(false)
+    expect(result.next).toEqual({ shown: 50, showAll: false })
     expect(result.total).toBe(50)
   })
 })

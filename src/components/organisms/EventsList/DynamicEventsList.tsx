@@ -1,7 +1,6 @@
-import type { CountrySite } from '@/hooks/use-country-site'
 import type { SortOrder } from '@/lib/shape'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +14,7 @@ import { Alert } from '@/components/atoms/Alert'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import {
+  DEFAULT_REVEAL,
   NEARBY_KM,
   byDistance,
   byNextOccurrence,
@@ -42,13 +42,13 @@ export interface DynamicEventsListProps {
   hasSearchCenter?: boolean
 }
 
-function calculateOrder(event: EventSlim) {
+function calculateOrder(event: EventSlim, language: string | undefined) {
   let order = event.distance ?? 100
   const online = isOnline(event)
   const languageCode = event.languages[0] ?? ''
   const next = nextOccurrence(event)
 
-  if (i18n.resolvedLanguage != languageCode) order *= 2
+  if (language != languageCode) order *= 2
   if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
   if (online) order *= 1.5
 
@@ -72,11 +72,16 @@ function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
       return [...events].sort(byDistance)
     case 'soonest':
       return [...events].sort(byNextOccurrence)
-    default:
+    default: {
+      // Read once rather than per event: this now walks the whole matching set, not a
+      // capped 50, so anything hoistable out of the decorate loop is worth hoisting.
+      const language = i18n.resolvedLanguage
+
       return events
-        .map((event) => ({ event, order: calculateOrder(event) }))
+        .map((event) => ({ event, order: calculateOrder(event, language) }))
         .sort((a, b) => a.order - b.order)
         .map(({ event }) => event)
+    }
   }
 }
 
@@ -109,30 +114,28 @@ export function DynamicEventsList({
   // splits the sorted set at the "< NEARBY_KM" boundary and slices to the revealed
   // count; nothing here refetches, because every match is already in memory.
   const { shown, showAll, revealMore } = useReveal()
-  const { rows, more, nextShown, nextShowAll, total, onlyFar } = useMemo(
+  const { rows, more, next, total } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter }),
     [sorted, shown, showAll, hasSearchCenter],
   )
 
-  // Lifted out of EmptyResults because the footer defers to it: a country with no
-  // programs at all has its nearest matches a thousand km away, so the "show events
-  // farther" control would otherwise sit under the offer, competing with the one
-  // useful next step. Same precedence reason as the ordering inside EmptyResults.
-  const countrySite = useCountrySite()
+  // Whether a reveal has happened, read off the URL rather than held as state — for the
+  // same reason the count itself is: component state would reset on the drawer stack's
+  // remount, so returning from an event would drop the footer's running total while the
+  // URL still said 60 rows were shown. Either param moving off its default means a press
+  // happened (`?all=1` alone covers the all-far first press, whose count stays at one page).
+  const revealed = shown > DEFAULT_REVEAL || showAll
 
-  const buttonRef = useRef<HTMLButtonElement | HTMLAnchorElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   // The index of the first row a press reveals, parked for the effect below. A ref, not
   // state: it's written in an event handler and read once after the resulting commit,
   // so it must never itself cause a render.
   const focusFrom = useRef<number | null>(null)
-  const [announced, setAnnounced] = useState(false)
 
   const reveal = () => {
-    if (nextShown === null) return
+    if (!next) return
     focusFrom.current = rows.length
-    setAnnounced(true)
-    revealMore(nextShown, nextShowAll)
+    revealMore(next)
   }
 
   // Keep focus somewhere sensible after a reveal. While the button survives the press
@@ -144,30 +147,27 @@ export function DynamicEventsList({
 
     if (index === null) return
     focusFrom.current = null
-    if (buttonRef.current) return
+    if (more !== null) return
 
     listRef.current?.querySelectorAll<HTMLElement>('[data-event-row]')[index]?.focus()
-  }, [rows.length])
-
-  // Nothing left to offer and nothing announced yet — but once a reveal HAS happened
-  // the footer stays mounted, so the final press's announcement isn't unmounted in the
-  // same commit as the button that triggered it.
-  const showFooter = (more !== null || announced) && !(rows.length === 0 && countrySite)
+  }, [rows.length, more])
 
   return (
     <>
       <ActiveFilterPills />
       <div ref={listRef}>
         {rows.length === 0 ? (
-          <EmptyResults countrySite={countrySite} nearbyKm={onlyFar ? NEARBY_KM : undefined} />
+          <EmptyResults nearbyKm={more === 'farther' ? NEARBY_KM : undefined} />
         ) : (
           <EventsList events={rows} />
         )}
       </div>
-      {showFooter && (
+      {/* Nothing left to offer and nothing announced yet — but once a reveal HAS
+          happened the footer stays mounted, so the final press's announcement isn't
+          unmounted in the same commit as the button that triggered it. */}
+      {(more !== null || revealed) && (
         <LoadMore
-          ref={buttonRef}
-          announce={announced}
+          announce={revealed}
           km={NEARBY_KM}
           more={more}
           shown={rows.length}
@@ -195,16 +195,16 @@ export function DynamicEventsList({
 //     than N km" control below the list is how the user reaches them.
 //  3. Otherwise: "no results" with a "clear all filters" action when filters are the
 //     reason, else the plain "no events" line.
-function EmptyResults({
-  countrySite,
-  nearbyKm,
-}: {
-  countrySite: CountrySite | undefined
-  nearbyKm?: number
-}) {
+//
+// The country-site offer does NOT suppress the "show events farther" control below the
+// list — the offer keeps the top of the empty state, and a second way out sitting under
+// it doesn't bury it. That also keeps `useCountrySite` (which scans the whole feed and
+// rebuilds a region index) off the path a NON-empty list renders on.
+function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
   const active = hasActiveFilters(useEventFilters())
   const { clearFilters } = useSetFilters()
+  const countrySite = useCountrySite()
 
   if (countrySite) {
     return (

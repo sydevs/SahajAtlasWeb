@@ -1,7 +1,5 @@
 import type { RevealMore } from '@/lib/shape'
-import type { Ref } from 'react'
 
-import { forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
@@ -36,28 +34,23 @@ export interface LoadMoreProps {
  * label is the only distance affordance in the list (there is no "< N km" filter pill),
  * so it has to say plainly what it does — it is what signposts that nearby events have
  * run out rather than that the list simply ended.
+ *
+ * No ref surface: focus stays on the button for free while it survives a press (same
+ * DOM node), and the parent already knows from `more` when a press unmounted it.
  */
-export const LoadMore = forwardRef<HTMLButtonElement | HTMLAnchorElement, LoadMoreProps>(
-  function LoadMore({ more, km, shown, total, announce, onReveal }, ref) {
-    const { t } = useTranslation('common')
+export function LoadMore({ more, km, shown, total, announce, onReveal }: LoadMoreProps) {
+  const { t } = useTranslation('common')
 
-    return (
-      <div className="flex flex-col items-center gap-2 px-4 pb-6 pt-4">
-        {more && (
-          <Button
-            ref={ref as Ref<HTMLButtonElement>}
-            color="neutral"
-            size="sm"
-            variant="bordered"
-            onClick={onReveal}
-          >
-            {more === 'farther' ? t('results.farther', { km }) : t('results.more')}
-          </Button>
-        )}
-        <span aria-live="polite" className="sr-only" role="status">
-          {announce ? t('results.showing', { shown, total }) : ''}
-        </span>
-      </div>
-    )
-  },
-)
+  return (
+    <div className="flex flex-col items-center gap-2 px-4 pb-6 pt-4">
+      {more && (
+        <Button color="neutral" size="sm" variant="bordered" onClick={onReveal}>
+          {more === 'farther' ? t('results.farther', { km }) : t('results.more')}
+        </Button>
+      )}
+      <span aria-live="polite" className="sr-only" role="status">
+        {announce ? t('results.showing', { shown, total }) : ''}
+      </span>
+    </div>
+  )
+}

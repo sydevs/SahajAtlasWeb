@@ -37,11 +37,11 @@ export const useSetFilters = () => {
   // Read the *current* filters from `prev` inside the updater (not a render-time
   // snapshot), so a concurrent change can't be clobbered.
   const update = (change: (filters: EventFilters) => EventFilters) =>
-    setSearchParams(
-      (prev) =>
-        filtersToParams(change(filtersFromParams(prev)), resetReveal(new URLSearchParams(prev))),
-      { replace: true },
-    )
+    // Both codecs copy the base they're given, so `prev` goes in as-is — no defensive
+    // `new URLSearchParams(prev)` between them.
+    setSearchParams((prev) => filtersToParams(change(filtersFromParams(prev)), resetReveal(prev)), {
+      replace: true,
+    })
 
   return {
     setFilters: (filters: EventFilters) => update(() => filters),

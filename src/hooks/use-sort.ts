@@ -31,8 +31,7 @@ export const useSortOrder = (): SortOrder => {
 export const useSetSortOrder = () => {
   const [, setSearchParams] = useSearchParams()
 
+  // Both codecs copy the base they're given, so `prev` goes in as-is.
   return (order: SortOrder) =>
-    setSearchParams((prev) => sortToParams(order, resetReveal(new URLSearchParams(prev))), {
-      replace: true,
-    })
+    setSearchParams((prev) => sortToParams(order, resetReveal(prev)), { replace: true })
 }
