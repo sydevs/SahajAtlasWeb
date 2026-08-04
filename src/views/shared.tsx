@@ -215,12 +215,14 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
 // The URL-only state that survives a new place search — the applied filters and the
 // list sort (both presentation, not location). Re-encoding through the two codecs from
-// an EMPTY base drops every searched-location param (`q`/`center`/`bbox`/`cc`/`all`) by
-// construction; the caller then sets the new location. That's what keeps the previous
-// country's `?cc` from leaking into the next search (it would offer the wrong country's
-// website). Shared by SearchField + GeolocationSuggestion so a re-search never silently
-// clears either slice — and a filter edit, which merges onto the current params
-// (`filtersToParams(…, prev)`), preserves the searched country instead.
+// an EMPTY base drops every other param by construction: the searched location
+// (`q`/`center`/`bbox`/`cc`) and the results list's reveal (`shown`/`all`, which a new
+// result set makes meaningless); the caller then sets the new location. That's what
+// keeps the previous country's `?cc` from leaking into the next search (it would offer
+// the wrong country's website). Shared by SearchField + GeolocationSuggestion so a
+// re-search never silently clears either slice — and a filter edit, which merges onto
+// the current params (`filtersToParams(…, prev)`), preserves the searched country
+// while resetting the reveal explicitly (`resetReveal`, see `use-filters`).
 function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
   return sortToParams(
     sortFromParams(searchParams),
