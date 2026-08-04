@@ -1,3 +1,5 @@
+import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
+
 import {
   type Control,
   type FieldErrors,
@@ -7,7 +9,7 @@ import {
   useForm,
 } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
@@ -19,11 +21,27 @@ import { fieldChrome } from '@/components/atoms/Select'
 import { FormField, fieldErrorId } from '@/components/molecules/FormField'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
+import { RegistrationRefusedError } from '@/config/api/mutate'
 import preview from '@/config/preview'
 import { useRegistrationDraft } from '@/config/store'
 import { RecurrenceType, Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
+
+/**
+ * Our copy for each machine-readable refusal SahajCloud can return (409 +
+ * `code`, SahajCloud#601) — the endpoint's own messages are English-only prose.
+ * Typed as a total Record over the synced union, so a `pnpm types:cms` that adds
+ * or renames a code fails the build here instead of silently degrading to the
+ * generic error. Three of the four reuse the display copy the panel already
+ * shows for the same state, so the form and the panel can't word it differently.
+ */
+const REFUSAL_MESSAGE_KEYS: Record<EventRegistrationErrorCode, string> = {
+  external_registration: 'display.registration_external',
+  event_ended: 'display.event_ended',
+  registration_closed: 'display.registration_closed',
+  event_full: 'display.event_full',
+}
 
 export type RegistrationFormProps = {
   eventId: number
@@ -68,6 +86,7 @@ export function RegistrationForm({
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation('events')
+  const queryClient = useQueryClient()
   // The viewer's region orders the share targets on the thank-you screen (resolved
   // here so ShareContent stays a pure, prop-driven molecule).
   const country = useViewerCountry()
@@ -109,7 +128,26 @@ export function RegistrationForm({
       setSubmitted(true)
       useRegistrationDraft.getState().clearDraft()
     },
+    onError: (error) => {
+      // A state refusal means our cached event disagrees with the server about
+      // whether it can be joined (it filled up, ended, or its course started
+      // since the read). Refetch it so the surfaces behind this form flip to the
+      // real state instead of continuing to offer a Register button. Prefix key
+      // — the event is cached per locale (`['event', id, locale]`).
+      if (error instanceof RegistrationRefusedError) {
+        void queryClient.invalidateQueries({ queryKey: ['event', eventId] })
+      }
+    },
   })
+
+  // A refused registration renders OUR copy for the reason, not the endpoint's
+  // English prose. An unrecognized code (a CMS newer than this build) falls back
+  // to the generic error title + the server's message.
+  const refusalMessage =
+    mutation.error instanceof RegistrationRefusedError &&
+    mutation.error.code in REFUSAL_MESSAGE_KEYS
+      ? t(REFUSAL_MESSAGE_KEYS[mutation.error.code])
+      : null
 
   return (
     <form
@@ -136,13 +174,16 @@ export function RegistrationForm({
             upcomingDates={upcomingDates}
           />
 
+          {/* A refusal isn't a malfunction — the event simply can't be joined —
+              so it states the reason on its own, dropping both the "Something
+              went wrong" framing and the endpoint's English message. */}
           {mutation.isError && (
             <Alert
               className="mt-4"
               color="secondary"
-              description={mutation.error.message}
+              description={refusalMessage ? undefined : mutation.error.message}
               role="alert"
-              title={t('registration.error_title')}
+              title={refusalMessage ?? t('registration.error_title')}
             />
           )}
         </>

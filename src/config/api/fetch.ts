@@ -94,6 +94,9 @@ const FEED_SELECT = {
     icalRule: true,
   },
   region: true,
+  // O(1) capacity signal (SahajCloud#601) — a denormalized boolean, so the feed
+  // carries fullness without a per-event count.
+  registrationsFull: true,
   webPath: true,
 }
 
@@ -513,6 +516,7 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         registrationMode: true,
         externalRegistrationUrl: true,
         registrationLimit: true,
+        registrationsFull: true,
         registrationQuestions: true,
         region: true,
         webPath: true,

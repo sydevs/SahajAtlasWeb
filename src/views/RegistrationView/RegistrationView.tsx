@@ -30,9 +30,11 @@ function enabledQuestions(event: Event): RegistrationQuestionName[] {
 // the event's Register CTA and deep-linkable — so the resolver gates it: a
 // closed/ended/full/inactive event renders its state message, never an
 // operative form, and an external-mode event renders the link-out CTA, never
-// the native form. (Client-side gating is cosmetic until the CMS enforces it
-// server-side — SahajCloud#577; POST /register currently only checks
-// published/visible.)
+// the native form. The CMS enforces the same four refusals server-side
+// (SahajCloud#601: `POST /register` answers 409 + a machine-readable `code`), so
+// this gate is now the fast path rather than the only one — a submission that
+// races the state change is still refused, and RegistrationForm maps the code
+// back to the same copy this renders.
 export function RegistrationView({
   eventPath,
   parentPath,

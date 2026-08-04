@@ -55,7 +55,8 @@
     "type_oneoff": "Eenmalig evenement",
     "time_in_place": "%{time} in %{city}",
     "distance_away": "%{distance} verderop",
-    "distance_from_place": "%{distance} vanaf %{place}"
+    "distance_from_place": "%{distance} vanaf %{place}",
+    "registration_external": "Aanmelden voor dit evenement gebeurt op een andere website"
   },
   "errors": {
     "email": "Voer een geldig e-mailadres in",

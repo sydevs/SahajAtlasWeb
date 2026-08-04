@@ -57,7 +57,8 @@
     "type_oneoff": "Разовое мероприятие",
     "time_in_place": "%{time} (%{city})",
     "distance_away": "в %{distance}",
-    "distance_from_place": "%{distance} от %{place}"
+    "distance_from_place": "%{distance} от %{place}",
+    "registration_external": "Регистрация на это мероприятие проходит на другом сайте"
   },
   "errors": {
     "email": "Введите действительный адрес электронной почты",

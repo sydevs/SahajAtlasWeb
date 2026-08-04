@@ -20,8 +20,8 @@ export type EventChipsProps = {
 
 /**
  * The event's triage chips — up to three, all `flat`: the class type (primary),
- * the language(s) combined into one chip (secondary), and a "Today" chip
- * (contrast) when the next session is today. Shared by the list card and the
+ * the language(s) combined into one chip (secondary), and a single availability
+ * chip — "Full" (neutral) or "Today" (contrast). Shared by the list card and the
  * event header so the two never drift; `compact` trims the redundant chips on
  * the card.
  */
@@ -45,14 +45,22 @@ export function EventChips({ event, variant = 'default', className }: EventChips
     ? languages.map((code) => languageLabel(code)).join(', ')
     : null
 
-  const today = display.status === 'today'
+  // At most ONE availability chip. "Full" supersedes "Today": when the session is
+  // today but can't be joined, availability is the more actionable fact — and two
+  // chips reading "Full · Today" would invite the reader to act on the one that
+  // no longer applies. Same precedence as the resolver's `statusChip`; the
+  // resolver guarantees `full` is only set when it's the actual blocker, so an
+  // ended or dormant event still falls through to its own treatment.
+  const full = display.full
+  const today = !full && display.status === 'today'
 
-  if (!showType && !languageText && !today) return null
+  if (!showType && !languageText && !full && !today) return null
 
   return (
     <div className={clsx('flex flex-wrap items-center gap-1', className)}>
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
+      {full && <Chip color="neutral">{t('display.chip_full')}</Chip>}
       {today && <Chip color="contrast">{t('display.chip_today')}</Chip>}
     </div>
   )

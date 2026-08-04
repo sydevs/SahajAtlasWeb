@@ -140,6 +140,11 @@ export const AgnosticFeedEventSchema = z.object({
   address: EventAddressSchema.nullish(),
   schedule: EventScheduleSchema.nullish(),
   region: RegionRefSchema,
+  // Denormalized "at capacity" flag (SahajCloud#601) — a boolean, never a raw
+  // count, so cards resolve the same Full state as the panel. Nullish: the CMS
+  // migration backfills `DEFAULT false` and rows only recompute on a
+  // registration change or capacity edit, so absent/false both mean not-full.
+  registrationsFull: z.boolean().nullish(),
   // Server-computed canonical route (region chain + `/<id>`); the list/map
   // navigate to it directly.
   webPath: z.string().nullish(),
@@ -188,6 +193,9 @@ export const EventDocSchema = z.object({
   registrationMode: z.enum(['sahaj-atlas', 'external']),
   externalRegistrationUrl: SafeUrlSchema,
   registrationLimit: z.number().nullish(),
+  // See AgnosticFeedEventSchema — the widget's only capacity signal (the raw
+  // count stays server-side).
+  registrationsFull: z.boolean().nullish(),
   registrationQuestions: RegistrationQuestionsSchema.nullish(),
   region: RegionRefSchema,
   webPath: z.string().nullish(),

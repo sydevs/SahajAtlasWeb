@@ -55,7 +55,8 @@
     "type_oneoff": "Einmalige Veranstaltung",
     "time_in_place": "%{time} in %{city}",
     "distance_away": "%{distance} entfernt",
-    "distance_from_place": "%{distance} von %{place}"
+    "distance_from_place": "%{distance} von %{place}",
+    "registration_external": "Die Anmeldung für diese Veranstaltung erfolgt auf einer anderen Website"
   },
   "errors": {
     "email": "Geben Sie eine gültige E-Mail-Adresse ein",

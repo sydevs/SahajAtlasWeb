@@ -15,6 +15,8 @@ export type DisplayEventLike = EventLike & {
   inactive?: boolean | null
   contactPhone?: string | null
   website?: string | null
+  /** CMS capacity flag (SahajCloud#601). Absent/null reads as not-full. */
+  registrationsFull?: boolean | null
 }
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
@@ -117,8 +119,9 @@ export type EventDisplay = {
   online: boolean
   kind: EventKind
   status: EventStatus
-  /** No fullness signal exists CMS-side yet (SahajCloud#577) — derived never-full
-   *  until it lands; the full-state UI is implemented and switches on when it does. */
+  /** At capacity — the CMS's denormalized `registrationsFull` (SahajCloud#601).
+   *  A missing flag reads as not-full, so an un-recomputed row degrades to the
+   *  open state rather than hiding a joinable event. */
   full: boolean
   /** Next not-yet-finished occurrence, in the display zone (event tz for physical
    *  events, viewer tz for online). Null in terminal states. */
@@ -210,9 +213,16 @@ export function resolveEventDisplay(
 
   const recurrence = schedule?.recurrenceType ?? null
   const kind: EventKind = !recurrence ? 'oneoff' : schedule?.endingType ? 'course' : 'class'
-  // Fullness has no CMS signal yet — resolve never-full, gracefully (issue #52).
-  const full = false
-  const base = { online, kind, full }
+  // Capacity is a server-owned boolean (SahajCloud#601); the widget never counts
+  // registrations. Coalesced so an absent flag degrades to not-full.
+  const atCapacity = event.registrationsFull ?? false
+  // Terminal states report NOT-full: fullness is moot once an event has ended or
+  // gone dormant, and their own copy must win. Together with the started-course
+  // check below this mirrors the server's gate order (ended → started course →
+  // full), so `full` is true only when it is THE reason registration is blocked —
+  // which is what lets every surface reading it first (`statusChip`,
+  // `blockedMessage`, the Full chip) stay correct without its own precedence.
+  const base = { online, kind, full: false }
 
   if (event.inactive || !schedule) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)
 
@@ -257,7 +267,11 @@ export function resolveEventDisplay(
   // independent of the status label (a course live in its first session already
   // reads "Today" but is closed).
   const courseStarted = kind === 'course' && now >= firstStart
-  const registration: RegistrationState = full ? 'hidden' : courseStarted ? 'closed' : 'open'
+  // A started course is already closed for a stronger reason, so it never also
+  // reports full (the server refuses it with `registration_closed`, not
+  // `event_full`).
+  const full = !courseStarted && atCapacity
+  const registration: RegistrationState = courseStarted ? 'closed' : full ? 'hidden' : 'open'
 
   // Distinct display-zone weekdays across the upcoming occurrences, capped at the
   // authored pattern size (weekly) or one (other patterns). Wednesday 19:30 in
@@ -285,6 +299,7 @@ export function resolveEventDisplay(
 
   return {
     ...base,
+    full,
     status,
     next: nextDisplay,
     nextEnd: occurrenceEnd(next, endTime).setZone(displayZone),

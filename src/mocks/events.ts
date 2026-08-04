@@ -243,6 +243,30 @@ export const mockEventInactive: Event = {
 }
 
 /**
+ * At capacity (the CMS `registrationsFull` flag, SahajCloud#601) → "Full" chip,
+ * registration hidden, "See nearby events" + the contact helper. Unlike Ended,
+ * the class still runs, so its facts stay normal — it's a running weekly class
+ * that simply can't be joined.
+ */
+export const mockEventFull: Event = {
+  ...mockEvent,
+  id: 127,
+  title: 'Fully Booked Meditation',
+  registrationsFull: true,
+}
+
+/**
+ * Full AND meeting today — the precedence case: "Full" supersedes "Today", since
+ * whether you can join is the more actionable fact.
+ */
+export const mockEventFullToday: Event = {
+  ...mockEventToday,
+  id: 128,
+  title: 'Fully Booked Evening Meditation',
+  registrationsFull: true,
+}
+
+/**
  * The bare minimum for an active in-person event: a schedule, a location, and a
  * region — nothing optional. No images, description, website, contact details,
  * registration questions, or cap. Exercises the panel's "everything optional is
@@ -290,6 +314,7 @@ const slimFrom = (event: Event, overrides: Partial<EventSlim> = {}): EventSlim =
   address: event.address,
   schedule: event.schedule,
   region: event.region,
+  registrationsFull: event.registrationsFull,
   webPath: event.webPath,
   path: event.path,
   ...overrides,
@@ -308,6 +333,10 @@ export const mockEventVariants: EventSlim[] = [
   slimFrom(mockEventCourse, { distance: 30, path: '/united-kingdom/cambridge/123' }),
   // The same course after its first session → "Started <date>".
   slimFrom(mockEventStartedCourse, { distance: 45, path: '/united-kingdom/cambridge/124' }),
+  // At capacity → "Full" chip, no Register (the class still runs, facts normal).
+  slimFrom(mockEventFull, { distance: 12, path: '/united-kingdom/cambridge/127' }),
+  // Full AND today → "Full" supersedes the "Today" chip.
+  slimFrom(mockEventFullToday, { distance: 3, path: '/united-kingdom/cambridge/128' }),
   // A one-off whose date has passed → terminal "Ended" (reachable via direct links).
   slimFrom(mockEventEnded, { path: '/united-kingdom/cambridge/125' }),
   // A dormant venue (no active schedule) → "Contact host for timings".
