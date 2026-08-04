@@ -5,18 +5,27 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventChips } from './EventChips'
 
-import { mockEvent, mockEventSlimOnline, mockEventToday } from '@/mocks/events'
+import {
+  mockEvent,
+  mockEventFull,
+  mockEventFullToday,
+  mockEventSlimOnline,
+  mockEventToday,
+} from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
 // Samples that exercise each chip + the compact trimming (assuming an `en` UI):
 // a plain weekly English class (compact hides both), a daily French online class,
-// a multi-language event (languages fold into one chip), and a class on today.
+// a multi-language event (languages fold into one chip), a class on today, an
+// at-capacity class, and the precedence case where both would apply.
 const SAMPLES: { name: string; event: Event & { languages: string[] } }[] = [
   { name: 'Weekly class · English', event: mockEvent },
   { name: 'Daily online · French', event: mockEventSlimOnline as unknown as Event },
   { name: 'Multi-language', event: { ...mockEvent, languages: ['en', 'fr', 'de'] } },
   { name: 'Today', event: mockEventToday },
+  { name: 'Full', event: mockEventFull },
+  { name: 'Full + today → "Full" wins', event: mockEventFullToday },
 ]
 
 // Each sample on its own line: the name, then the chip row beneath it, so a
@@ -33,9 +42,10 @@ const Samples = ({ variant }: { variant: 'default' | 'compact' }) => (
 )
 
 /**
- * EventChips — the shared triage chips (type · language(s) · Today). `default`
- * (event header) names the type and every language; `compact` (list card) drops
- * the plain weekly-class type and the viewer's own language.
+ * EventChips — the shared triage chips (type · language(s) · availability).
+ * `default` (event header) names the type and every language; `compact` (list
+ * card) drops the plain weekly-class type and the viewer's own language. At most
+ * one availability chip renders: "Full" supersedes "Today".
  */
 export const Default: Story = () => (
   <StoryWrapper>

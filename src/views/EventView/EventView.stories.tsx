@@ -9,6 +9,8 @@ import {
   mockEvent,
   mockEventCourse,
   mockEventEnded,
+  mockEventFull,
+  mockEventFullToday,
   mockEventInactive,
   mockEventMinimal,
   mockEventToday,
@@ -26,6 +28,12 @@ const EXAMPLES: Record<string, Event> = {
   Course: mockEventCourse,
   Ended: mockEventEnded,
   Inactive: mockEventInactive,
+  // At capacity: "Full" chip, no Register button — the facts stay normal (the
+  // class still runs), and the slot becomes "This event is full" + "See nearby
+  // events" + the contact helper.
+  Full: mockEventFull,
+  // Full AND meeting today — "Full" supersedes the "Today" chip.
+  'Full · today': mockEventFullToday,
   'External registration': {
     ...mockEvent,
     id: 302,

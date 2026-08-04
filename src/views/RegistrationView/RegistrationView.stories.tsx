@@ -5,7 +5,7 @@ import type { Event } from '@/types'
 import { ViewHarness } from '@/views/story-harness'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
 import { useLocale } from '@/hooks/use-locale'
-import { mockEvent } from '@/mocks/events'
+import { mockEvent, mockEventFull } from '@/mocks/events'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -15,6 +15,9 @@ export default { title: 'Views' } satisfies StoryDefault
 const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
   'Native form': { event: mockEvent },
   Confirmation: { event: { ...mockEvent, id: 313 }, initialSubmitted: true },
+  // The route is deep-linkable, so a full event must render its state message
+  // here rather than an operative form (the CMS refuses it server-side too).
+  Full: { event: mockEventFull },
   'External registration': {
     event: {
       ...mockEvent,

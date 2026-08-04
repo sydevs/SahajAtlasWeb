@@ -55,7 +55,8 @@
     "type_oneoff": "Egyszeri esemény",
     "time_in_place": "%{time} (%{city})",
     "distance_away": "%{distance} távolságra",
-    "distance_from_place": "%{distance} innen: %{place}"
+    "distance_from_place": "%{distance} innen: %{place}",
+    "registration_external": "Erre az eseményre egy másik webhelyen lehet regisztrálni"
   },
   "errors": {
     "email": "Enter a valid email",

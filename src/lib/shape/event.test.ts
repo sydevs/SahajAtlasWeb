@@ -249,11 +249,75 @@ describe('resolveEventDisplay: status table', () => {
     expect(display.showNearby).toBe(false)
   })
 
-  it('Full — no CMS signal yet: derives never-full with zero errors', () => {
-    const display = resolveEventDisplay(weeklyClass, at('2026-07-15T10:00:00'))
+  it('Full — the CMS flag hides registration and offers the nearby escape hatch', () => {
+    const display = resolveEventDisplay(
+      { ...weeklyClass, registrationsFull: true },
+      at('2026-07-15T10:00:00'),
+    )
 
+    expect(display.full).toBe(true)
+    expect(display.registration).toBe('hidden')
+    // Unlike Ended, a full event still runs — the facts stay normal, so the
+    // status/time fields keep resolving.
+    expect(display.status).toBe('today')
+    expect(display.next?.toISO()).toContain('2026-07-15T19:30')
+    expect(display.showNearby).toBe(true)
+  })
+
+  it('Full — an absent or null flag degrades to not-full, never hiding a joinable event', () => {
+    expect(resolveEventDisplay(weeklyClass, at('2026-07-15T10:00:00')).full).toBe(false)
+    expect(
+      resolveEventDisplay({ ...weeklyClass, registrationsFull: null }, at('2026-07-15T10:00:00'))
+        .full,
+    ).toBe(false)
+    expect(
+      resolveEventDisplay({ ...weeklyClass, registrationsFull: false }, at('2026-07-15T10:00:00'))
+        .registration,
+    ).toBe('open')
+  })
+
+  // `full` must be true only when it is THE reason registration is blocked, so
+  // the surfaces that read it first can't mislabel a stronger refusal. The order
+  // mirrors the server gate (ended → started course → full, SahajCloud#601).
+  it('Full — an ended event reports not-full, so "Ended" wins over "Full"', () => {
+    const endedAndFull = {
+      eventType: 'offline' as const,
+      registrationsFull: true,
+      schedule: {
+        ...weeklySchedule,
+        recurrenceType: null,
+        weekdays: [],
+        firstDate: new Date('2026-01-07T18:30:00Z'),
+        upcomingDates: [],
+      },
+    }
+    const display = resolveEventDisplay(endedAndFull, at('2026-07-17T12:00:00'))
+
+    expect(display.status).toBe('ended')
     expect(display.full).toBe(false)
-    expect(display.registration).toBe('open')
+  })
+
+  it('Full — an inactive event reports not-full', () => {
+    const display = resolveEventDisplay(
+      { ...weeklyClass, inactive: true, registrationsFull: true },
+      at('2026-07-15T10:00:00'),
+    )
+
+    expect(display.status).toBe('inactive')
+    expect(display.full).toBe(false)
+  })
+
+  it('Full — a started course stays "closed", not "hidden"', () => {
+    const startedFullCourse = {
+      eventType: 'offline' as const,
+      registrationsFull: true,
+      schedule: { ...weeklySchedule, endingType: 'count' as const, count: 8 },
+    }
+    const display = resolveEventDisplay(startedFullCourse, at('2026-07-17T12:00:00'))
+
+    expect(display.status).toBe('started')
+    expect(display.registration).toBe('closed')
+    expect(display.full).toBe(false)
   })
 })
 

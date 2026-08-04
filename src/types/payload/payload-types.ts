@@ -685,7 +685,7 @@ export interface Config {
       events: 'events';
       childrenRegions: 'regions';
       childrenCities: 'regions';
-      childrenCenters: 'regions';
+      childrenVenues: 'regions';
     };
     events: {
       registrations: 'registrations';
@@ -823,6 +823,8 @@ export interface Config {
     tasks: {
       cleanupOrphanedMedia: TaskCleanupOrphanedMedia;
       expireEvents: TaskExpireEvents;
+      sendRegistrationDigests: TaskSendRegistrationDigests;
+      sendSessionReminders: TaskSendSessionReminders;
       syncLectureMetadata: TaskSyncLectureMetadata;
       resetUsage: TaskResetUsage;
       schedulePublish: TaskSchedulePublish;
@@ -1325,6 +1327,7 @@ export interface Manager {
     | number
     | boolean
     | null;
+  lastRegistrationDigestSentAt?: string | null;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -1362,7 +1365,7 @@ export interface Manager {
  */
 export interface Region {
   id: number;
-  level: 'country' | 'region' | 'city' | 'center';
+  level: 'country' | 'region' | 'city' | 'venue';
   /**
    * The geographic parent of this node (a higher level).
    */
@@ -1408,9 +1411,9 @@ export interface Region {
     totalDocs?: number;
   };
   /**
-   * SY Centers anywhere beneath this one.
+   * Venues anywhere beneath this one.
    */
-  childrenCenters?: {
+  childrenVenues?: {
     docs?: (number | Region)[];
     hasNextPage?: boolean;
     totalDocs?: number;
@@ -1653,6 +1656,10 @@ export interface Event {
    * The name of the person they are calling
    */
   contactName?: string | null;
+  /**
+   * An email address seekers can write to for more information about the program.
+   */
+  contactEmail?: string | null;
   description?: {
     root: {
       type: string;
@@ -1717,6 +1724,7 @@ export interface Event {
           id?: string | null;
         }[]
       | null;
+    lastDate?: string | null;
     icalRule?: string | null;
     upcomingDates?:
       | {
@@ -1729,7 +1737,7 @@ export interface Event {
       | null;
   };
   /**
-   * The city or center this event belongs to.
+   * The city or venue this event belongs to.
    */
   region: number | Region;
   eventType: 'offline' | 'online';
@@ -1739,6 +1747,10 @@ export interface Event {
   onlineUrl?: string | null;
   address?: {
     mapboxId?: string | null;
+    /**
+     * The building's own name, where it has one. Shown in place of the street when a listing has no title of its own.
+     */
+    venueName?: string | null;
     street?: string | null;
     room?: string | null;
     postCode?: string | null;
@@ -1774,6 +1786,7 @@ export interface Event {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  registrationsFull?: boolean | null;
   /**
    * Manager responsible for verifying this event.
    */
@@ -1856,10 +1869,32 @@ export interface Registration {
         | 'nl'
       )
     | null;
-  /**
-   * Raw registrant answers, keyed by the event's enabled registration questions (EVENT_REGISTRATION_QUESTIONS — priorExperience, referralSource, healthInfo, accessibility, guests).
-   */
-  questions?:
+  questions?: {
+    /**
+     * Have you practised Sahaja Yoga meditation before?
+     */
+    priorExperience?: string;
+    /**
+     * How did you hear about this event?
+     */
+    referralSource?: string;
+    /**
+     * Is there anything about your health we should know?
+     */
+    healthInfo?: string;
+    /**
+     * Do you have any accessibility requirements?
+     */
+    accessibility?: string;
+    /**
+     * Will you be bringing any guests?
+     */
+    guests?: string;
+  };
+  uuid: string;
+  mailingListSubscribedAt?: string | null;
+  remindersUnsubscribedAt?: string | null;
+  reminderLog?:
     | {
         [k: string]: unknown;
       }
@@ -1868,8 +1903,6 @@ export interface Registration {
     | number
     | boolean
     | null;
-  uuid: string;
-  mailingListSubscribedAt?: string | null;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -3162,6 +3195,7 @@ export interface AppCard {
           id?: string | null;
         }[]
       | null;
+    lastDate?: string | null;
     icalRule?: string | null;
     upcomingDates?:
       | {
@@ -3646,6 +3680,8 @@ export interface PayloadJob {
           | 'inline'
           | 'cleanupOrphanedMedia'
           | 'expireEvents'
+          | 'sendRegistrationDigests'
+          | 'sendSessionReminders'
           | 'syncLectureMetadata'
           | 'resetUsage'
           | 'schedulePublish';
@@ -3682,7 +3718,16 @@ export interface PayloadJob {
       }[]
     | null;
   taskSlug?:
-    | ('inline' | 'cleanupOrphanedMedia' | 'expireEvents' | 'syncLectureMetadata' | 'resetUsage' | 'schedulePublish')
+    | (
+        | 'inline'
+        | 'cleanupOrphanedMedia'
+        | 'expireEvents'
+        | 'sendRegistrationDigests'
+        | 'sendSessionReminders'
+        | 'syncLectureMetadata'
+        | 'resetUsage'
+        | 'schedulePublish'
+      )
     | null;
   queue?: string | null;
   waitUntil?: string | null;
@@ -4270,6 +4315,7 @@ export interface ManagersSelect<T extends boolean = true> {
         id?: T;
       };
   notificationPreferences?: T;
+  lastRegistrationDigestSentAt?: T;
   legacyId?: T;
   legacyData?: T;
   updatedAt?: T;
@@ -4420,6 +4466,7 @@ export interface AppCardsSelect<T extends boolean = true> {
               reason?: T;
               id?: T;
             };
+        lastDate?: T;
         icalRule?: T;
         upcomingDates?: T;
       };
@@ -4449,7 +4496,7 @@ export interface RegionsSelect<T extends boolean = true> {
   events?: T;
   childrenRegions?: T;
   childrenCities?: T;
-  childrenCenters?: T;
+  childrenVenues?: T;
   generateSlug?: T;
   slug?: T;
   breadcrumbs?:
@@ -4477,6 +4524,7 @@ export interface EventsSelect<T extends boolean = true> {
   languages?: T;
   contactPhone?: T;
   contactName?: T;
+  contactEmail?: T;
   description?: T;
   website?: T;
   images?: T;
@@ -4505,6 +4553,7 @@ export interface EventsSelect<T extends boolean = true> {
               reason?: T;
               id?: T;
             };
+        lastDate?: T;
         icalRule?: T;
         upcomingDates?: T;
       };
@@ -4515,6 +4564,7 @@ export interface EventsSelect<T extends boolean = true> {
     | T
     | {
         mapboxId?: T;
+        venueName?: T;
         street?: T;
         room?: T;
         postCode?: T;
@@ -4539,6 +4589,7 @@ export interface EventsSelect<T extends boolean = true> {
         guests?: T;
       };
   registrations?: T;
+  registrationsFull?: T;
   manager?: T;
   verificationStage?: T;
   nextCheckAt?: T;
@@ -4567,6 +4618,8 @@ export interface RegistrationsSelect<T extends boolean = true> {
   questions?: T;
   uuid?: T;
   mailingListSubscribedAt?: T;
+  remindersUnsubscribedAt?: T;
+  reminderLog?: T;
   legacyId?: T;
   legacyData?: T;
   updatedAt?: T;
@@ -5988,6 +6041,15 @@ export interface SyAtlasTranslation {
       | number
       | boolean
       | null;
+    title?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
   };
   registration?: {
     form?:
@@ -6265,6 +6327,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
         details?: T;
         recurrence?: T;
         timing?: T;
+        title?: T;
       };
   registration?:
     | T
@@ -6338,6 +6401,32 @@ export interface TaskExpireEvents {
     advanced: number;
     trashed: number;
     remindersSent: number;
+    failed: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendRegistrationDigests".
+ */
+export interface TaskSendRegistrationDigests {
+  input?: unknown;
+  output: {
+    eligibleManagers: number;
+    digestsSent: number;
+    registrationsIncluded: number;
+    failed: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendSessionReminders".
+ */
+export interface TaskSendSessionReminders {
+  input?: unknown;
+  output: {
+    processedEvents: number;
+    remindersSent: number;
+    skipped: number;
     failed: number;
   };
 }

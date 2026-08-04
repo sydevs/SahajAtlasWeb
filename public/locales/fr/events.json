@@ -29,7 +29,7 @@
     "chip_started": "Commencé le %{date}",
     "chip_starts": "Débute le %{date}",
     "chip_today": "Aujourd'hui",
-    "contact_to_join_full": "Contactez l'hôte pour participer quand même",
+    "contact_to_join_full": "Contactez quand même l'hôte",
     "contact_to_join_late": "Contactez l'hôte pour rejoindre en cours",
     "distance_from_search": "%{distance} du lieu recherché",
     "event_ended": "Cet événement est terminé",
@@ -55,7 +55,8 @@
     "type_oneoff": "Événement unique",
     "time_in_place": "%{time} à %{city}",
     "distance_away": "à %{distance}",
-    "distance_from_place": "%{distance} de %{place}"
+    "distance_from_place": "%{distance} de %{place}",
+    "registration_external": "L'inscription à cet événement se fait sur un autre site web"
   },
   "errors": {
     "email": "Entrez un email valide",

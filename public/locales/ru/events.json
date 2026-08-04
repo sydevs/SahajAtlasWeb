@@ -29,7 +29,7 @@
     "chip_started": "Идёт с %{date}",
     "chip_starts": "Начало: %{date}",
     "chip_today": "Сегодня",
-    "contact_to_join_full": "Свяжитесь с организатором, чтобы всё же участвовать",
+    "contact_to_join_full": "Всё же свяжитесь с организатором",
     "contact_to_join_late": "Свяжитесь с организатором, чтобы присоединиться позже",
     "distance_from_search": "%{distance} от искомого места",
     "event_ended": "Это мероприятие завершилось",
@@ -57,7 +57,8 @@
     "type_oneoff": "Разовое мероприятие",
     "time_in_place": "%{time} (%{city})",
     "distance_away": "в %{distance}",
-    "distance_from_place": "%{distance} от %{place}"
+    "distance_from_place": "%{distance} от %{place}",
+    "registration_external": "Регистрация на это мероприятие проходит на другом сайте"
   },
   "errors": {
     "email": "Введите действительный адрес электронной почты",
