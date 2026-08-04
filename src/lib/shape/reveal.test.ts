@@ -137,8 +137,9 @@ describe('revealRows', () => {
     expect(result.more).toBe('farther')
     // Continuing, not resetting: the 20 rows already read stay on screen.
     expect(result.next).toEqual({ shown: 20 + PAGE_SIZE, showAll: true })
-    // Until it is crossed, the boundary is what the list counts up to.
-    expect(result.total).toBe(20)
+    // The count spans BOTH segments even though only the nearby one is on screen —
+    // "20 of 20" beside a button offering 40 more would read as a finished list.
+    expect(result.total).toBe(60)
   })
 
   it('pages through the far segment once it is revealed', () => {

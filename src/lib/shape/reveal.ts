@@ -94,7 +94,11 @@ export type Reveal<T> = {
    * caller can't reach for a reveal the list isn't offering.
    */
   next: { shown: number; showAll: boolean } | null
-  /** Every row reachable in the current segment(s) — what `rows.length` counts up to. */
+  /**
+   * Every match, across BOTH segments — not just the one on screen. The list counts up
+   * to it ("showing 60 of 100"), and it has to include the far segment or the count
+   * reads "60 of 60" at the very moment the only control offers 40 more.
+   */
   total: number
 }
 
@@ -144,6 +148,6 @@ export function revealRows<T extends Distanced>(
         : more === 'farther'
           ? { shown: near.length + PAGE_SIZE, showAll: true }
           : null,
-    total: active.length,
+    total: sorted.length,
   }
 }

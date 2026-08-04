@@ -18,6 +18,7 @@ import {
   hasActiveFilters,
   matchesFilters,
   parentOf,
+  resetReveal,
   todayISO,
 } from '@/lib/shape'
 import { CloseButton, DrawerTitle } from '@/views/shared'
@@ -73,7 +74,15 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   // filter-drawer entry (carrying its depth over) rather than stacking a new one, so the
   // drawer doesn't linger in history and a chronological back lands on the pre-filter view.
   const commit = (filters: typeof draft) => {
-    const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
+    // `resetReveal` because a new filter set is a new result set: carrying the results
+    // list's `?shown=`/`?all=1` over would open it mid-reveal — dozens of rows in one
+    // commit, and the "> 500 km" segment already showing without the press that is the
+    // only thing meant to reveal it. This is the primary way filters change, so the
+    // reset can't live only in `useSetFilters` (the quick-edit pills).
+    const search = filtersToParams(
+      filters,
+      resetReveal(new URLSearchParams(location.search)),
+    ).toString()
     const origin = parentOf(location.pathname)
     const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
 

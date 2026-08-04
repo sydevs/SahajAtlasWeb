@@ -1,7 +1,7 @@
 import type { SortOrder } from '@/lib/shape'
 
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 
 import { resetReveal, sortFromParams, sortToParams } from '@/lib/shape'
 
@@ -30,8 +30,13 @@ export const useSortOrder = (): SortOrder => {
  */
 export const useSetSortOrder = () => {
   const [, setSearchParams] = useSearchParams()
+  const location = useLocation()
 
-  // Both codecs copy the base they're given, so `prev` goes in as-is.
+  // Both codecs copy the base they're given, so `prev` goes in as-is. `state` is
+  // carried explicitly so the `replace` keeps the entry's `atlasDepth` (see `use-reveal`).
   return (order: SortOrder) =>
-    setSearchParams((prev) => sortToParams(order, resetReveal(prev)), { replace: true })
+    setSearchParams((prev) => sortToParams(order, resetReveal(prev)), {
+      replace: true,
+      state: location.state,
+    })
 }

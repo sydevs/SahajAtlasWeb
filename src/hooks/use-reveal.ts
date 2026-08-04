@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 
 import { revealFromParams, revealToParams, showAllFromParams } from '@/lib/shape'
 
@@ -19,6 +19,7 @@ export type RevealControls = {
 
 export const useReveal = (): RevealControls => {
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
 
   return {
     shown: revealFromParams(searchParams),
@@ -26,7 +27,16 @@ export const useReveal = (): RevealControls => {
     // `replace` so paging doesn't stack a history entry per press — otherwise the
     // drawer's history-aware dismissal (X / swipe / Esc → `navigate(-1)`) would walk
     // back through every reveal instead of leaving the search.
+    //
+    // `state` has to be carried over explicitly: `setSearchParams` forwards only what
+    // it's given to `navigate`, so a bare `{ replace: true }` replaces the entry with a
+    // state-less one and `atlasDepth` drops to 0 — which turns that same dismissal into
+    // a PUSH to the structural parent (re-framing the map instead of restoring the
+    // camera) after a single press. FilterView carries it for the same reason.
     revealMore: (next) =>
-      setSearchParams((prev) => revealToParams(next.shown, next.showAll, prev), { replace: true }),
+      setSearchParams((prev) => revealToParams(next.shown, next.showAll, prev), {
+        replace: true,
+        state: location.state,
+      }),
   }
 }

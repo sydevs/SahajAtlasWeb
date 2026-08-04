@@ -1,7 +1,7 @@
 import type { DateRange, EventCadence, EventFilters, EventFormat, TimePeriod } from '@/lib/shape'
 
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 
 import { DEFAULT_FILTERS, filtersFromParams, filtersToParams, resetReveal } from '@/lib/shape'
 
@@ -33,14 +33,18 @@ export const useEventFilters = (): EventFilters => {
  */
 export const useSetFilters = () => {
   const [, setSearchParams] = useSearchParams()
+  const location = useLocation()
 
   // Read the *current* filters from `prev` inside the updater (not a render-time
   // snapshot), so a concurrent change can't be clobbered.
   const update = (change: (filters: EventFilters) => EventFilters) =>
     // Both codecs copy the base they're given, so `prev` goes in as-is — no defensive
-    // `new URLSearchParams(prev)` between them.
+    // `new URLSearchParams(prev)` between them. `state` is carried explicitly: a
+    // `replace` without it strips the entry's `atlasDepth` and breaks the drawer's
+    // history-aware dismissal (see `use-reveal`).
     setSearchParams((prev) => filtersToParams(change(filtersFromParams(prev)), resetReveal(prev)), {
       replace: true,
+      state: location.state,
     })
 
   return {

@@ -35,10 +35,14 @@ const ICELAND = 'q=Iceland&center=-21.9,64.1&cc=IS'
 // pill competing for attention.
 const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 
-// A searched place, so the list segments at the "< 500 km" boundary — the "Paged" and
-// "Nearby exhausted" cases below are about that boundary, and without a `?center` there
-// is nothing to be far from (the whole set is one segment).
+// A searched place, so the list segments at the "< 500 km" boundary — the two reveal
+// cases below are about that boundary, and without a `?center` there is nothing to be
+// far from (the whole set is one segment). They carry DIFFERENT `?q` values on purpose:
+// `SeedSearchParams` re-seeds per params identity, so two cases sharing one query string
+// would share one memoized object, and a reveal pressed in the first would carry into
+// the second — which would then open mid-reveal instead of at the state it exists to show.
 const SEARCHED = 'q=Paris&center=0,0'
+const SEARCHED_SPARSE = 'q=Reykjavik&center=0,0'
 
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
@@ -50,7 +54,7 @@ const EXAMPLES: Record<string, Example> = {
   // affordance now that the "< 500 km" pill is gone, and what signposts that the nearby
   // matches (not the results) have run out.
   'Nearby exhausted': {
-    search: SEARCHED,
+    search: SEARCHED_SPARSE,
     events: [
       ...mockEventSeries(6, { step: 12 }),
       ...mockEventSeries(40, { from: 620, step: 40, offset: 100 }),
