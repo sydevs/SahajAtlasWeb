@@ -61,8 +61,10 @@ those are derived client-side:
   `/api/regions` (`where[level]` + `where[slug]`, a `where[parent]` children
   query) **plus** the geojson feed, with `eventCount` + `bounds` derived via
   `src/lib/shape` (breadcrumb ancestry) and `src/lib/geo` (`@turf`). Region
-  taxonomy is `country / region / city / center` → routed `city`→area,
-  `center`→venue (`src/lib/shape/path.ts`).
+  taxonomy is `country / region / city / venue` → routed `city`→area,
+  `venue`→venue (`src/lib/shape/path.ts`). SahajCloud spelled the leaf level
+  `center` before its #605; nothing serves that spelling any more, so
+  `RegionLevelSchema` (`src/types/region-ref.ts`) tracks only the current one.
 - **`getEvents`** → nearest events from the feed, sorted by `@turf/distance`.
 - **`getCalendarEvents`** → the whole filtered feed (region cut + `matchesFilters`, online
   included, uncapped) for the CalendarView to expand into per-occurrence entries. Shares

@@ -7,7 +7,11 @@ import z from 'zod'
 // region-ref → event → region.
 
 // SahajCloud region taxonomy. The backend `level` values the widget routes on.
-export const RegionLevelSchema = z.enum(['country', 'region', 'city', 'center'])
+// SahajCloud#605 renamed the leaf level `center` → `venue`; no environment still
+// serves the old spelling, so this tracks the new one only.
+//
+// (Unrelated to the `center` FIELD on RegionSchema — that one is a lat/lng point.)
+export const RegionLevelSchema = z.enum(['country', 'region', 'city', 'venue'])
 export type RegionLevel = z.infer<typeof RegionLevelSchema>
 
 // Populated region reference — the subset selected in the geojson feed's

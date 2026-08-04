@@ -118,7 +118,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
     () => ({
       hasMap: true,
       frameRegion(region) {
-        if (region.level === 'center') {
+        // A venue is a point, not an area — frame it by flying to its derived
+        // centre rather than fitting its (degenerate, zero-area) bbox.
+        if (region.level === 'venue') {
           setBoundary(undefined)
           if (region.center) flyTo(region.center, REGION_MAX_ZOOM)
         } else if (region.bounds) {
