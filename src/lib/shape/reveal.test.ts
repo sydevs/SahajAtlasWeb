@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_REVEAL,
+  FOREIGN_NEARBY_KM,
   MAX_REVEAL,
   NEARBY_KM,
   PAGE_SIZE,
@@ -12,16 +13,27 @@ import {
   showAllFromParams,
 } from '@/lib/shape'
 
+type TestEvent = { distance?: number; id: string; address?: { country?: string | null } | null }
+
 /** `n` events at `km` from the search centre, tagged so order is checkable. */
-const at = (km: number | undefined, n: number, tag = '') =>
-  Array.from({ length: n }, (_, i) => ({ distance: km, id: `${tag}${i}` }))
+const at = (km: number | undefined, n: number, tag = '', country?: string): TestEvent[] =>
+  Array.from({ length: n }, (_, i) => ({
+    distance: km,
+    id: `${tag}${i}`,
+    ...(country ? { address: { country } } : {}),
+  }))
 
 const near = (n: number, tag = 'n') => at(10, n, tag)
 const far = (n: number, tag = 'f') => at(NEARBY_KM + 1, n, tag)
 
 const reveal = (
-  events: { distance?: number; id: string }[],
-  options: Partial<{ shown: number; showAll: boolean; hasSearchCenter: boolean }> = {},
+  events: TestEvent[],
+  options: Partial<{
+    shown: number
+    showAll: boolean
+    hasSearchCenter: boolean
+    searchCountry: string
+  }> = {},
 ) =>
   revealRows(events, {
     shown: DEFAULT_REVEAL,
@@ -193,6 +205,42 @@ describe('revealRows', () => {
     expect(result.more).toBeNull()
   })
 
+  it('holds an event across a border to half the distance', () => {
+    // Same distance, different countries: the domestic one is nearby, the foreign one
+    // is not. Someone searching Lille doesn't want Belgian classes ahead of French ones.
+    const distance = FOREIGN_NEARBY_KM + 10
+    const result = reveal([...at(distance, 1, 'home', 'FR'), ...at(distance, 1, 'abroad', 'BE')], {
+      searchCountry: 'FR',
+    })
+
+    expect(result.rows.map((event) => event.id)).toEqual(['home0'])
+    expect(result.more).toBe('farther')
+  })
+
+  it('keeps a genuinely-local cross-border event nearby', () => {
+    const result = reveal(at(FOREIGN_NEARBY_KM - 10, 3, 'abroad', 'DE'), { searchCountry: 'CH' })
+
+    expect(result.rows).toHaveLength(3)
+    expect(result.more).toBeNull()
+  })
+
+  it('compares country codes case-insensitively', () => {
+    // `?cc` is normalized uppercase, but the CMS address is whatever was stored.
+    const result = reveal(at(NEARBY_KM - 10, 2, 'home', 'fr'), { searchCountry: 'FR' })
+
+    expect(result.rows).toHaveLength(2)
+    expect(result.more).toBeNull()
+  })
+
+  it('never demotes an event on a country it does not know', () => {
+    // No `?cc` (an ocean, a country-less feature) or no address country (every online
+    // event) — judged on distance alone rather than on a fact we do not have.
+    const between = at(FOREIGN_NEARBY_KM + 10, 2, 'x', 'BE')
+
+    expect(reveal(between).rows).toHaveLength(2)
+    expect(reveal(at(FOREIGN_NEARBY_KM + 10, 2, 'y'), { searchCountry: 'FR' }).rows).toHaveLength(2)
+  })
+
   it('makes no distance cut without a searched place', () => {
     // Ranking from the map centre — there is no place to be "far" from, so the far
     // segment never forms and paging runs straight through.
@@ -228,5 +276,32 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(MAX_REVEAL)
     expect(result.more).toBeNull()
+  })
+
+  it('still offers the distant segment when a huge count only filled the nearby one', () => {
+    // The ceiling is about ROWS RENDERED, not the number in the URL. A count past both
+    // the ceiling and the nearby segment renders that segment and no more — so the
+    // distant events are still one press away, not silently unreachable.
+    const result = reveal([...near(40), ...far(200)], { shown: 999999 })
+
+    expect(result.rows).toHaveLength(40)
+    expect(result.more).toBe('farther')
+    expect(result.next).toEqual({ shown: 40 + PAGE_SIZE, showAll: true })
+  })
+
+  it('never offers a press that would reveal nothing', () => {
+    // Every reachable state: whatever the button offers, the count it writes has to be
+    // strictly greater than what is on screen, or pressing it is a no-op.
+    const sets = [near(30), [...near(30), ...far(30)], far(30), [...near(1), ...far(400)]]
+
+    for (const events of sets) {
+      for (const showAll of [false, true]) {
+        for (const shown of [DEFAULT_REVEAL, 40, MAX_REVEAL, 999999]) {
+          const result = reveal(events, { shown, showAll })
+
+          if (result.next) expect(result.next.shown).toBeGreaterThan(result.rows.length)
+        }
+      }
+    }
   })
 })

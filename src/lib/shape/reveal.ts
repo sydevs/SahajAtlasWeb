@@ -5,16 +5,32 @@
 // (a count in the key would refetch per press). Both params live in the URL so the
 // reveal survives the drawer stack's remount-on-navigation and is linkable.
 //
-// The "< NEARBY_KM" cut is a SEGMENT BOUNDARY here, not a filter. `getEvents` returns
-// every match ranked by distance; `revealRows` splits that into a nearby segment and a
-// far one, and pages through the nearby segment first. Crossing into the far segment
-// takes an explicit press ("show events farther than N km"), which is what signposts
-// that nearby events have run out. That press is the ONLY distance affordance — there
-// is deliberately no "< N km" pill, so the automatic distance cut is never mistaken
-// for one of the user's own filters.
+// The distance cut is a SEGMENT BOUNDARY here, not a filter. `getEvents` returns every
+// match ranked by distance; `revealRows` splits that into a nearby segment and a distant
+// one, and pages through the nearby segment first. Reaching the distant events takes an
+// explicit press ("Show distant events"), which is what signposts that nearby events
+// have run out. That press is the ONLY distance affordance — there is deliberately no
+// "< N km" pill, so the automatic cut is never mistaken for one of the user's own
+// filters.
 
 /** Events within this many km of the searched place are the "nearby" segment. */
-export const NEARBY_KM = 500
+export const NEARBY_KM = 300
+
+/**
+ * The nearby limit for an event in a DIFFERENT country from the searched one — half
+ * the regular cut.
+ *
+ * Distance alone is a poor proxy for reachability across a border: someone searching
+ * Lille does not want Belgian and Dutch classes ahead of French ones 250 km away, and
+ * the further out the ranking goes the more of it is foreign. Halving the limit keeps
+ * genuinely-local cross-border results (a Basel search still reaches Germany) while
+ * pushing the rest into the distant segment, where one press still reveals them.
+ *
+ * Only applied when BOTH countries are known: an event with no address country (every
+ * online event, and any in-person one the CMS left incomplete) is never demoted on a
+ * fact we don't have.
+ */
+export const FOREIGN_NEARBY_KM = NEARBY_KM / 2
 
 /** Rows revealed per press — also the first page. */
 export const PAGE_SIZE = 25
@@ -98,14 +114,18 @@ export const revealToParams = (
 export const resetReveal = (params: URLSearchParams): URLSearchParams =>
   revealToParams(DEFAULT_REVEAL, false, params)
 
-/** The minimum an event needs for the distance segmentation below. */
-type Distanced = { distance?: number }
+/**
+ * The minimum an event needs for the distance segmentation below — its distance from
+ * the search point, and the country it sits in. Structural rather than `EventSlim` so
+ * this module stays free of the entity types (like the comparators in `event.ts`).
+ */
+type Segmentable = { distance?: number; address?: { country?: string | null } | null }
 
 /** Which control the foot of the list should offer next. */
 export type RevealMore =
   /** More rows left in the segment on screen — "show more". */
   | 'more'
-  /** Nearby matches exhausted, far ones exist — "show events farther than N km". */
+  /** Nearby matches exhausted, distant ones exist — "show distant events". */
   | 'farther'
 
 export type Reveal<T> = {
@@ -137,36 +157,57 @@ export type Reveal<T> = {
  *
  * Without a searched place (ranking from the map centre) there is no meaningful
  * distance cut, so everything is one segment.
+ *
+ * `searchCountry` (the geocoder's `?cc`) tightens the boundary to `FOREIGN_NEARBY_KM`
+ * for events in another country. Absent — an ocean, a country-less feature, a search
+ * that predates the param — every event is judged on distance alone.
  */
-export function revealRows<T extends Distanced>(
+export function revealRows<T extends Segmentable>(
   sorted: T[],
   {
     shown,
     showAll,
     hasSearchCenter,
-  }: { shown: number; showAll: boolean; hasSearchCenter: boolean },
+    searchCountry,
+  }: { shown: number; showAll: boolean; hasSearchCenter: boolean; searchCountry?: string },
 ): Reveal<T> {
+  // Half the cut for an event across a border, the full cut otherwise. Both countries
+  // have to be known to demote anything: an event with no address country (every online
+  // one) is judged on distance alone rather than on a fact we don't have.
+  const limitFor = (event: T) => {
+    const country = event.address?.country
+
+    return searchCountry && country && country.toUpperCase() !== searchCountry.toUpperCase()
+      ? FOREIGN_NEARBY_KM
+      : NEARBY_KM
+  }
   // Online events carry no distance, so they are never distance-excluded.
-  const isNear = (event: T) => event.distance === undefined || event.distance <= NEARBY_KM
+  const isNear = (event: T) => event.distance === undefined || event.distance <= limitFor(event)
   const near = hasSearchCenter ? sorted.filter(isNear) : sorted
   const far = hasSearchCenter ? sorted.filter((event) => !isNear(event)) : []
 
-  // Before the far segment is revealed the list IS the nearby one, so the slice below
-  // clamps at the boundary for free — no press can overshoot it.
+  // Before the distant segment is revealed the list IS the nearby one, so the slice
+  // below clamps at the boundary for free — no press can overshoot it.
   const active = showAll ? [...near, ...far] : near
-  // Re-clamped here, not just in the decoder, so the ceiling holds for every caller —
-  // and so the `more`/`next` arms below reason about the count actually rendered.
-  const capped = Math.min(shown, MAX_REVEAL)
-  const rows = active.slice(0, capped)
+  // Re-clamped here, not just in the decoder, so the ceiling holds for every caller.
+  const rows = active.slice(0, Math.min(shown, MAX_REVEAL))
 
-  // Rows still to come in the segment on screen; else the crossing, if there's a far
-  // segment left to cross into; else the list has genuinely ended. At the ceiling it
-  // has ended as far as this list is concerned: offering a press that the clamp would
-  // undo on read is the one thing worse than stopping.
+  // Everything below reasons about `rows.length` — what is actually ON SCREEN — never
+  // the requested count. The two diverge whenever the nearby segment is shorter than
+  // the count (`?shown=99999` renders the 50 nearby matches, not 1000 rows), and
+  // ceiling-gating on the raw count would then hide the control while a whole distant
+  // segment sat unreached. It also keeps every `next` strictly greater than what's
+  // shown, so no press can be a no-op.
+  const revealed = rows.length
+
+  // Rows still to come in the segment on screen; else the crossing, if there's a
+  // distant segment to reach; else the list has genuinely ended. At the ceiling it has
+  // ended as far as this list is concerned: offering a press that the clamp would undo
+  // on read is the one thing worse than stopping.
   const more: RevealMore | null =
-    capped >= MAX_REVEAL
+    revealed >= MAX_REVEAL
       ? null
-      : rows.length < active.length
+      : revealed < active.length
         ? 'more'
         : !showAll && far.length > 0
           ? 'farther'
@@ -176,12 +217,12 @@ export function revealRows<T extends Distanced>(
     rows,
     more,
     // The crossing CONTINUES the count rather than resetting it — the rows already
-    // read stay on screen and the far ones append below them.
+    // read stay on screen and the distant ones append below them.
     next:
       more === 'more'
-        ? { shown: Math.min(capped + PAGE_SIZE, active.length, MAX_REVEAL), showAll }
+        ? { shown: Math.min(revealed + PAGE_SIZE, active.length, MAX_REVEAL), showAll }
         : more === 'farther'
-          ? { shown: Math.min(near.length + PAGE_SIZE, MAX_REVEAL), showAll: true }
+          ? { shown: Math.min(revealed + PAGE_SIZE, MAX_REVEAL), showAll: true }
           : null,
     total: sorted.length,
   }
