@@ -1,7 +1,7 @@
 import type { DateRange, EventCadence, EventFilters, EventFormat, TimePeriod } from '@/lib/shape'
 
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 
 import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape'
 
@@ -11,7 +11,7 @@ import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape
 
 /**
  * Applied filters parsed from the URL query. Re-derives on any query change
- * (including `?q`/`?bbox`/`?center`/`?all`), but that's off the map's true hot path:
+ * (including `?q`/`?bbox`/`?center`), but that's off the map's true hot path:
  * pan/zoom writes the camera to zustand, never the URL, so those don't churn this.
  */
 export const useEventFilters = (): EventFilters => {
@@ -22,18 +22,25 @@ export const useEventFilters = (): EventFilters => {
 
 /**
  * Filter setters that rewrite the current URL's filter params while preserving the
- * rest (`q`/`bbox`/`center`/`all`). Used by the results' quick-edit pills; `setFilters`
+ * rest (`q`/`bbox`/`center`). Used by the results' quick-edit pills; `setFilters`
  * commits a whole set. `replace` so tweaking a filter doesn't stack a history entry.
+ *
+ * The results list's reveal resets with any of these, without a reset call here: the
+ * filters are part of `revealKey`, so an edited set simply isn't the result set the
+ * stored count belongs to (see `use-reveal`).
  */
 export const useSetFilters = () => {
   const [, setSearchParams] = useSearchParams()
+  const location = useLocation()
 
   // Read the *current* filters from `prev` inside the updater (not a render-time
   // snapshot), so a concurrent change can't be clobbered.
   const update = (change: (filters: EventFilters) => EventFilters) =>
+    // `state` is carried explicitly: a `replace` without it strips the entry's
+    // `atlasDepth` and breaks the drawer's history-aware dismissal.
     setSearchParams(
       (prev) => filtersToParams(change(filtersFromParams(prev)), new URLSearchParams(prev)),
-      { replace: true },
+      { replace: true, state: location.state },
     )
 
   return {

@@ -65,7 +65,13 @@ those are derived client-side:
   `venue`→venue (`src/lib/shape/path.ts`). SahajCloud spelled the leaf level
   `center` before its #605; nothing serves that spelling any more, so
   `RegionLevelSchema` (`src/types/region-ref.ts`) tracks only the current one.
-- **`getEvents`** → nearest events from the feed, sorted by `@turf/distance`.
+- **`getEvents`** → the whole matching set from the feed, sorted by `@turf/distance` —
+  **uncapped**, like `getCalendarEvents`. It used to `.slice()` to the nearest 50, which
+  truncated the pool the client then sorted (so `?sort=soonest` meant "soonest among the
+  50 nearest") and put match #51 permanently out of reach. Paging is a render budget, not
+  a network one — the feed is fetched once and cached — so the results list reveals from
+  this set a page at a time (`revealRows`, `src/lib/shape/reveal.ts`); the reveal count
+  stays out of `eventsQuery`'s key so a press never refetches.
 - **`getCalendarEvents`** → the whole filtered feed (region cut + `matchesFilters`, online
   included, uncapped) for the CalendarView to expand into per-occurrence entries. Shares
   the `filteredFeed` helper with `getEvents` so both stay on one predicate.

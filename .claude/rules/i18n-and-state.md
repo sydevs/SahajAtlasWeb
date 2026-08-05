@@ -5,6 +5,8 @@ globs:
   - "src/config/store.ts"
   - "src/hooks/use-filters.ts"
   - "src/hooks/use-locale.ts"
+  - "src/hooks/use-reveal.ts"
+  - "src/hooks/use-sort.ts"
   - "public/locales/**"
 alwaysApply: false
 ---
@@ -78,6 +80,39 @@ Five stores, each the single source of truth for its slice:
   element that opened it is kept beside the store (non-reactive) so focus can
   return there on close.
 
+- **`useResultsReveal`** — how much of the search results list is showing: the row
+  count, and whether the **distant** segment (past the distance boundary) has been
+  reached. Session-scoped, so a reload starts at the first page — paging is a reading
+  position, not a destination, and it has no business in a shared link. A store rather
+  than component state because the drawer stack remounts views: opening an event and
+  coming back would otherwise drop the reader at the top of a list they had paged deep
+  into. Read + advanced through `useReveal` (`src/hooks/use-reveal.ts`), which is keyed
+  by **`revealKey`** (`src/lib/shape/reveal.ts`) — built FROM the events query key (so
+  the quantized centre, the filters and the locale have one definition, shared with the
+  fetch) plus the sort, which that key deliberately omits. Reading under a different key
+  simply *is* the first page, so a new search, a filter edit or a re-sort shows the
+  reveal reset **by construction**; there is no reset call for `useSetFilters` /
+  `useSetSortOrder` / `FilterView` to forget. Note the store holds **one** key, so this
+  is a reset going *forward*, not an erase: sorting away and back restores the position
+  you left rather than starting over. The reveal advances inside a `useTransition` so
+  the control can show a loading state; it never `disable`s that control, because a
+  browser unfocuses a disabled element and a keyboard user would lose their place on
+  every press (`aria-busy` instead, with the re-entry guard doing the real work).
+  `revealRows` splits the sorted set at the distance boundary, slices to the count, and
+  says what the control offers next — clamped at `MAX_REVEAL`, since the rows are
+  unvirtualized. **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
+  `FOREIGN_NEARBY_KM` (half that) for an event whose `address.country` differs from the
+  searched `?cc` — distance alone ranks Belgian classes over French ones for someone
+  searching Lille. Both countries must be known to demote anything, so an online event
+  (no address country) is never caught by it. Within the nearby segment the list **pages
+  itself** as the control scrolls into view (an IntersectionObserver in `LoadMore`,
+  armed only while `more === 'more' && !showAll`); reaching the distant segment is
+  always an **explicit press** ("Show distant events"), paging stays explicit from there
+  on, and the label keeps saying "distant" for every page after it — a bare "Show more"
+  would stop describing what the press fetches. There is deliberately **no "< N km"
+  pill** — an automatic cut posing as a user filter — so that button is the list's only
+  distance affordance.
+
 Three slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:
 
@@ -93,7 +128,7 @@ of truth, so all are linkable/shareable:
   reorders the already-fetched results (a client re-sort in `DynamicEventsList`, never
   a refetch — absent from `filtersKey`), and never lights the filter badge
   (absent from `activeFilterCount`). The SortMenu (search results only) reads/writes it.
-- **The searched location** — `?q`/`?center`/`?bbox`/`?all`, plus **`?cc`** (the
+- **The searched location** — `?q`/`?center`/`?bbox`, plus **`?cc`** (the
   searched country's ISO code, `SEARCH_COUNTRY_PARAM` in `src/lib/shape/path.ts` beside
   `searchPath`/`parseCenter`). Read raw with a local parse helper rather than through a
   codec — unlike filters/sort, these are *replaced* by a new search, not merged:

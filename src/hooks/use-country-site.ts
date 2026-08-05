@@ -1,17 +1,12 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router'
 
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useSearchCountry } from '@/hooks/use-search-country'
 import { countrySite } from '@/lib/country-sites'
-import {
-  SEARCH_COUNTRY_PARAM,
-  countryHasPrograms,
-  hasActiveFilters,
-  isoCountryCode,
-} from '@/lib/shape'
+import { countryHasPrograms, hasActiveFilters } from '@/lib/shape'
 
 /** The country whose own website to offer, ready to hand to `CountrySiteOffer`. */
 export type CountrySite = { countryCode: string; href: string }
@@ -41,9 +36,8 @@ export type CountrySite = { countryCode: string; href: string }
  * someone whose country does have classes.
  */
 export const useCountrySite = (): CountrySite | undefined => {
-  const [searchParams] = useSearchParams()
   const filters = useEventFilters()
-  const countryCode = isoCountryCode(searchParams.get(SEARCH_COUNTRY_PARAM))
+  const countryCode = useSearchCountry()
   const href = countrySite(countryCode)
 
   const { data: regions } = useQuery(regionsQuery())

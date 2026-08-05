@@ -350,7 +350,7 @@ export const mockEventVariants: EventSlim[] = [
     distance: 6,
     path: '/united-kingdom/cambridge/131',
   },
-  // A physical event beyond the search view's "< 500 km" cap (a distant town).
+  // A physical event beyond the search view's distance boundary (a distant town).
   {
     ...mockEventSlim,
     id: 132,
@@ -370,3 +370,39 @@ export const mockEventVariants: EventSlim[] = [
     path: '/united-kingdom/cambridge/133',
   },
 ]
+
+/**
+ * `count` uniform list cards at increasing distances — for previewing the search
+ * results' paging, which needs more matches than a single page and a nearby/distant
+ * split to show off. Cloned from the default weekly-class card on purpose: these
+ * stories are about the reveal control, not the card variants (`mockEventVariants`
+ * covers those).
+ *
+ * `from`/`step` place the run on the distance scale, so a caller can build a nearby run
+ * and a distant one (past `NEARBY_KM`) and concatenate them; `offset` keeps the ids and
+ * routes of two runs from colliding. `country` overrides the address country, which the
+ * list segments on too — an event across a border from the searched country is held to
+ * half the distance (`FOREIGN_NEARBY_KM`), so a run at 200 km is nearby at home and
+ * distant abroad.
+ */
+export const mockEventSeries = (
+  count: number,
+  {
+    from = 1,
+    step = 8,
+    offset = 0,
+    country,
+  }: { from?: number; step?: number; offset?: number; country?: string } = {},
+): EventSlim[] =>
+  Array.from({ length: count }, (_, index) => {
+    const id = 1000 + offset + index
+
+    return {
+      ...mockEventSlim,
+      id,
+      title: `Weekly Meditation ${offset + index + 1}`,
+      distance: from + index * step,
+      path: `/united-kingdom/cambridge/${id}`,
+      ...(country ? { address: { ...mockEventSlim.address, country } } : {}),
+    }
+  })

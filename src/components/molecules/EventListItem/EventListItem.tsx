@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react'
-import { useSearchParams } from 'react-router'
+import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { listRow } from '@/components/molecules/List/List'
@@ -15,6 +14,12 @@ import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
   event: EventSlim
+  /**
+   * The searched place, for the distance line. Passed in rather than read from `?q`
+   * here: subscribing every card to the URL re-renders the whole list on each geocoder
+   * keystroke, which defeats the memo below (see `EventsList`).
+   */
+  searchedPlace?: string
 }
 
 // Below this the distance stops being decision-useful — everything in the
@@ -31,11 +36,17 @@ const MIN_DISTANCE_KM = 5
  * hookable for map-pin highlight (#44). The row is an <li> wrapping the Link so
  * each card is a valid direct child of the List's <ul> (#65). The divider
  * between cards is drawn by the List, not each card.
+ *
+ * **Memoized** (the only `memo` in the repo, so it wants a reason): the search results
+ * list GROWS as it pages, re-rendering with an ever-longer `rows` array, and each card
+ * runs a dozen-odd hooks. `event` references are stable across a reveal — sorting and
+ * slicing reuse the same objects — so every already-read row bails out and only the new
+ * page does work. Without it, paging to the 1000-row ceiling re-renders the rows above
+ * on every press, which is most of the work and none of the value.
  */
-export function EventListItem({ event }: EventListItemProps) {
+function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
-  const [searchParams] = useSearchParams()
   const { highlightEvent } = useMapController()
   const prefetchEvent = usePrefetchEvent()
 
@@ -54,10 +65,9 @@ export function EventListItem({ event }: EventListItemProps) {
 
   // Distance from the SEARCHED location, never the device's — so name the place
   // when we know it ("3.6 km from Brussels"); "away" would imply "from you" and
-  // quietly mislead the moment someone searches a city they aren't in. `q` holds
-  // the geocoder's full address, so take its leading part to keep the line short.
+  // quietly mislead the moment someone searches a city they aren't in. The place
+  // itself is derived from `?q` by the list container and handed down (see the prop).
   // The precise reference point stays in the accessible label either way.
-  const searchedPlace = (searchParams.get('q') ?? '').split(',')[0].trim()
   const distance =
     !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
       ? formatDistance(event.distance, locale)
@@ -78,7 +88,12 @@ export function EventListItem({ event }: EventListItemProps) {
 
   return (
     <li>
+      {/* `data-event-row` marks the row's focusable element, so DynamicEventsList can
+          move focus onto the first newly revealed card when a "show more" press
+          unmounts its button. An explicit hook rather than a structural `li > a`
+          query, which would break silently the day a card grows a second anchor. */}
       <Link
+        data-event-row
         className={listRow({ className: 'flex flex-col gap-1 py-4' })}
         href={event.path}
         onBlur={() => highlightEvent(null)}
@@ -104,3 +119,5 @@ export function EventListItem({ event }: EventListItemProps) {
     </li>
   )
 }
+
+export const EventListItem = memo(EventListItemImpl)

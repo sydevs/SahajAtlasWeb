@@ -28,6 +28,11 @@ const drawer = tv({
     // edge. A no-op on the ~22rem anchored panel, which is already narrower.
     header:
       'mx-auto flex w-full max-w-[var(--sy-content-max,32rem)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
+    // A second fixed band under the header, for controls that act on the scrolling
+    // content below (SearchView's Filters + Sort). Same width cap and `shrink-0` as
+    // the header: it sits OUTSIDE the body, so a long list scrolls under it instead
+    // of carrying it away — which is exactly when those controls become useful.
+    toolbar: 'mx-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0',
     // `overflow-x-hidden` is a backstop, not the fix: a drawer is a fixed-width
     // panel and must never scroll sideways, but it renders host-authored prose, so
     // one unbreakable string could always overflow it. Content wraps at the source
@@ -254,6 +259,24 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
   const { slots } = useDrawerSlots()
 
   return <div className={slots.header({ className })}>{children}</div>
+}
+
+/**
+ * A fixed controls band between the header and the scrolling body — for controls that
+ * act on the content below rather than on the drawer itself. Sits outside the scroll
+ * container on purpose: put inside, a toolbar scrolls away exactly when a long list
+ * makes it useful.
+ */
+export function DrawerToolbar({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  const { slots } = useDrawerSlots()
+
+  return <div className={slots.toolbar({ className })}>{children}</div>
 }
 
 export function DrawerBody({ children, className }: { children: ReactNode; className?: string }) {

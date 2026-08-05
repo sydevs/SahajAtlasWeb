@@ -5,7 +5,9 @@ import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import preview from '@/config/preview'
+import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
+import { DEFAULT_FILTERS } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
 
 // We mock @payloadcms/sdk at the boundary (mirrors mocking axios before). The
@@ -456,5 +458,25 @@ describe('shapeEventDoc', () => {
 
     expect(shaped.images[0].url).toMatch(/^https?:\/\/.*\/api\/images\/file\/pic\.jpg$/)
     expect(shaped.images[1].url).toBeNull()
+  })
+})
+
+describe('eventsQuery (the results-list query contract)', () => {
+  const key = (latitude: number, longitude: number) =>
+    eventsQuery(latitude, longitude, DEFAULT_FILTERS, 'en').queryKey
+
+  it('quantizes the centre to 2dp, so small map moves do not refetch', () => {
+    // Also the reveal's notion of "the same search": `revealKey` is built FROM this key
+    // (see lib/shape/reveal), so this rounding is the single definition of it. Retuning
+    // the precision here retunes both, which is the point of not duplicating it.
+    expect(key(51.5072, -0.1276)).toEqual(key(51.5074, -0.1277))
+  })
+
+  it('separates genuinely different centres', () => {
+    expect(key(51.5072, -0.1276)).not.toEqual(key(48.8566, 2.3522))
+  })
+
+  it('omits the sort — it reorders the fetched list rather than refetching', () => {
+    expect(key(51.5072, -0.1276)).not.toContain('soonest')
   })
 })

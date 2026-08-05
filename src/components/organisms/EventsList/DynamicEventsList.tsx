@@ -1,11 +1,13 @@
 import type { SortOrder } from '@/lib/shape'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
 
 import { EventsList } from './EventsList'
+import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { CountrySiteOffer } from '@/components/molecules/CountrySiteOffer'
@@ -13,41 +15,42 @@ import { Alert } from '@/components/atoms/Alert'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import {
+  DEFAULT_REVEAL,
   byDistance,
   byNextOccurrence,
   hasActiveFilters,
   isOnline,
   nextOccurrence,
+  revealKey,
+  revealRows,
 } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
+import { useReveal } from '@/hooks/use-reveal'
+import { useSearchCountry } from '@/hooks/use-search-country'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
 import i18n from '@/config/i18n'
 
-// Cap the search results at this distance from a searched location; when farther
-// (in-person) events would otherwise show, a dismissable "< N km" pill appears.
-const NEARBY_KM = 500
-
 export interface DynamicEventsListProps {
   latitude: number
   longitude: number
-  /** Whether latitude/longitude came from a geocoded search (vs the map centre). */
+  /**
+   * Whether latitude/longitude came from a geocoded search (vs the map centre).
+   * Without a searched place there's no meaningful distance cut, so the results are
+   * one undivided list.
+   */
   hasSearchCenter?: boolean
-  /** Whether the "< NEARBY_KM" cap has been dismissed (URL-driven, so it survives
-   *  the drawer stack's remount-on-navigation and resets on a new search). */
-  showAll?: boolean
-  onShowAll?: () => void
 }
 
-function calculateOrder(event: EventSlim) {
+function calculateOrder(event: EventSlim, language: string | undefined) {
   let order = event.distance ?? 100
   const online = isOnline(event)
   const languageCode = event.languages[0] ?? ''
   const next = nextOccurrence(event)
 
-  if (i18n.resolvedLanguage != languageCode) order *= 2
+  if (language != languageCode) order *= 2
   if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
   if (online) order *= 1.5
 
@@ -60,17 +63,27 @@ function calculateOrder(event: EventSlim) {
 // (it builds luxon DateTimes) rather than O(n·log n) times inside the comparator;
 // Closest and Soonest reuse the shared `@/lib/shape` comparators (distance ascending /
 // next-occurrence, placeless + undated last).
+//
+// It sorts the WHOLE matching set. That's the point of dropping the fetcher's
+// nearest-50 cap (#85): sorting a pre-truncated pool made `?sort=soonest` mean
+// "soonest among the 50 nearest" and re-ranked `recommended` over an arbitrary subset.
+// Order of operations is filter → sort → segment → slice; `revealRows` owns the last two.
 function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
   switch (order) {
     case 'closest':
       return [...events].sort(byDistance)
     case 'soonest':
       return [...events].sort(byNextOccurrence)
-    default:
+    default: {
+      // Read once rather than per event: this now walks the whole matching set, not a
+      // capped 50, so anything hoistable out of the decorate loop is worth hoisting.
+      const language = i18n.resolvedLanguage
+
       return events
-        .map((event) => ({ event, order: calculateOrder(event) }))
+        .map((event) => ({ event, order: calculateOrder(event, language) }))
         .sort((a, b) => a.order - b.order)
         .map(({ event }) => event)
+    }
   }
 }
 
@@ -78,8 +91,6 @@ export function DynamicEventsList({
   latitude,
   longitude,
   hasSearchCenter = false,
-  showAll = false,
-  onShowAll,
 }: DynamicEventsListProps) {
   // The active (applied) filters. getEvents applies the shared `matchesFilters`
   // predicate; the map filters its pins/clusters with the same filters, so the
@@ -90,8 +101,10 @@ export function DynamicEventsList({
 
   // Through the shared `eventsQuery` factory so the SearchView story seeds the exact
   // key this reads (see config/api) — the quantized centre, the filters, and the
-  // locale, with sort deliberately absent (it's re-applied client-side below).
-  const { data: events } = useSuspenseQuery(eventsQuery(latitude, longitude, filters, locale))
+  // locale, with sort and the reveal count deliberately absent (both are presentation,
+  // re-applied client-side below; a count in the key would refetch on every press).
+  const query = eventsQuery(latitude, longitude, filters, locale)
+  const { data: events } = useSuspenseQuery(query)
 
   // Apply the URL-selected ordering to the fetched list. Memoized on the fetched
   // reference + the order, so re-sorting is a cheap client-side reorder, never a
@@ -99,25 +112,98 @@ export function DynamicEventsList({
   const order = useSortOrder()
   const sorted = useMemo(() => sortEvents(events, order), [events, order])
 
-  // "< NEARBY_KM" cap — only when a place was searched. Auto-applied when the
-  // results include far in-person events; dismissable via the pill (then the far
-  // ones show). Online events have no distance, so they are never distance-excluded.
-  const hasFar =
-    hasSearchCenter && sorted.some((e) => e.distance !== undefined && e.distance > NEARBY_KM)
-  const nearbyActive = hasFar && !showAll
-  const shown = nearbyActive
-    ? sorted.filter((e) => e.distance === undefined || e.distance <= NEARBY_KM)
-    : sorted
+  // How much of that is revealed — session state keyed by the result set, so it
+  // survives the drawer stack's remount-on-navigation (opening an event and coming back
+  // keeps your place) but resets on a reload and whenever the key changes: a new place,
+  // an edited filter, a re-sort, a language switch. `revealRows` splits the sorted set
+  // at the distance boundary (tightened for events across a border from the searched
+  // country) and slices to the count; nothing here refetches, every match is in memory.
+  // Keyed off the events query key itself (plus the sort, which that key omits), so the
+  // reveal's notion of "the same search" can't drift from the fetch's — the centre
+  // quantization lives in one place.
+  const searchCountry = useSearchCountry()
+  const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
+
+  // The searched place each card names in its distance line, read ONCE here. `?q` is
+  // rewritten on every geocoder keystroke, so a card reading it subscribes the whole
+  // list to that churn — see the prop's note on `EventsList`. Its leading part keeps
+  // the line short; the precise reference point stays in each card's accessible label.
+  const searchedPlace = (useSearchParams()[0].get('q') ?? '').split(',')[0].trim()
+  const { rows, more, next, total, nearbyKm } = useMemo(
+    () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
+    [sorted, shown, showAll, hasSearchCenter, searchCountry],
+  )
+
+  // Whether a reveal has happened — kept beside the count for the same reason, so
+  // returning from an event doesn't drop the footer's running total while the list is
+  // still showing 60 rows. `showAll` alone covers the all-distant first press, whose
+  // count stays at one page.
+  const revealed = shown > DEFAULT_REVEAL || showAll
+
+  const listRef = useRef<HTMLDivElement>(null)
+  // The index of the first row a press reveals, parked for the effect below. A ref, not
+  // state: it's written in an event handler and read once after the resulting commit,
+  // so it must never itself cause a render.
+  const focusFrom = useRef<number | null>(null)
+
+  const reveal = (trigger: 'press' | 'auto') => {
+    // `pending` guards a double reveal: the previous page is still rendering, so the
+    // rows this would count from are already stale. Matters most for the observer,
+    // which can fire again before the transition commits.
+    if (!next || pending) return
+    // Only a press parks a focus target. An auto-reveal is a scroll, not an
+    // interaction: moving focus there would yank it off whatever the reader was on.
+    if (trigger === 'press') focusFrom.current = rows.length
+    revealMore(next)
+  }
+
+  // Keep focus somewhere sensible after a reveal. While the button survives the press
+  // it keeps focus for free (same DOM node — only its label can change), so the only
+  // case to handle is the LAST press, which unmounts it and would otherwise drop focus
+  // to the document body. Then focus goes to the first newly revealed card.
+  useEffect(() => {
+    const index = focusFrom.current
+
+    if (index === null) return
+    focusFrom.current = null
+    if (more !== null) return
+
+    // `preventScroll` because the newly revealed rows open exactly where the button
+    // was — already in view. Letting the browser scroll to the focused card on top of
+    // that yanks the list out from under a mouse user who only pressed a button.
+    listRef.current
+      ?.querySelectorAll<HTMLElement>('[data-event-row]')
+      [index]?.focus({ preventScroll: true })
+  }, [rows.length, more])
 
   return (
     <>
-      <ActiveFilterPills
-        nearby={nearbyActive && onShowAll ? { km: NEARBY_KM, onClear: onShowAll } : undefined}
-      />
-      {shown.length === 0 ? (
-        <EmptyResults nearbyKm={nearbyActive ? NEARBY_KM : undefined} />
-      ) : (
-        <EventsList events={shown} />
+      <ActiveFilterPills />
+      <div ref={listRef}>
+        {rows.length === 0 ? (
+          <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
+        ) : (
+          <EventsList events={rows} searchedPlace={searchedPlace} />
+        )}
+      </div>
+      {/* Nothing left to offer and nothing announced yet — but once a reveal HAS
+          happened the footer stays mounted, so the final press's announcement isn't
+          unmounted in the same commit as the button that triggered it. */}
+      {(more !== null || revealed) && (
+        <LoadMore
+          announce={revealed}
+          // Page automatically as the reader reaches the foot of the list — but ONLY
+          // within the segment on screen. Crossing into the distant events is a
+          // decision ("Show distant events"), so it never happens on a scroll; and
+          // once they ARE showing, paging goes back to being explicit, because from
+          // there the list runs to the other side of the world.
+          auto={more === 'more' && !showAll}
+          loading={pending}
+          more={more}
+          shown={rows.length}
+          total={total}
+          onReveal={reveal}
+        />
       )}
     </>
   )
@@ -127,17 +213,23 @@ export function DynamicEventsList({
 // list:
 //
 //  1. The searched country lists NO programs at all — offer its own national site
-//     (issue #82). Ahead of the distance cap because `getEvents` returns the nearest
-//     matches with no distance limit, so a program-less country's nearest results are
-//     usually a thousand km away: the "< N km" branch below would fire for virtually
-//     every such search and bury the one useful next step. `useCountrySite` answers
-//     from the FULL feed, and stands down while any filter is active — an empty list
-//     under filters is explained by the filters, and case 3 owns the "clear all"
-//     escape hatch, so the offer waits rather than replacing it.
-//  2. The distance cap (not the filters) emptied the list — say so; the "< N km"
-//     pill above is how the user reveals the far events.
+//     (issue #82). Ahead of the distance boundary below because `getEvents` returns
+//     every match ranked by distance with no limit, so a program-less country's
+//     nearest results are usually a thousand km away: the "no events within N km"
+//     branch would fire for virtually every such search and bury the one useful next
+//     step. `useCountrySite` answers from the FULL feed, and stands down while any
+//     filter is active — an empty list under filters is explained by the filters, and
+//     case 3 owns the "clear all" escape hatch, so the offer waits rather than
+//     replacing it.
+//  2. Every match lies beyond the distance boundary — say so; the "show events farther
+//     than N km" control below the list is how the user reaches them.
 //  3. Otherwise: "no results" with a "clear all filters" action when filters are the
 //     reason, else the plain "no events" line.
+//
+// The country-site offer does NOT suppress the "show events farther" control below the
+// list — the offer keeps the top of the empty state, and a second way out sitting under
+// it doesn't bury it. That also keeps `useCountrySite` (which scans the whole feed and
+// rebuilds a region index) off the path a NON-empty list renders on.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { t } = useTranslation('common')
   const active = hasActiveFilters(useEventFilters())

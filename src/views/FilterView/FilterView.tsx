@@ -73,6 +73,9 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   // filter-drawer entry (carrying its depth over) rather than stacking a new one, so the
   // drawer doesn't linger in history and a chronological back lands on the pre-filter view.
   const commit = (filters: typeof draft) => {
+    // Nothing here resets the results list's reveal, and nothing needs to: the filters
+    // are part of `revealKey`, so a new set is a new result set and the list is back at
+    // its first page by construction (see `use-reveal`).
     const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
     const origin = parentOf(location.pathname)
     const target = origin === '/calendar' || origin === '/search' ? origin : '/search'

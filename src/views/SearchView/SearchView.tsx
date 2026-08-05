@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { ListToolbar, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
@@ -35,7 +35,7 @@ const parseBounds = (value: string | null): [number, number, number, number] | u
 // narrows them out). Filters are changed in the FilterView drawer (opened from the
 // header), so this view just reflects the current filters when it (re)mounts.
 export function SearchView() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const { frameSearch } = useMapController()
 
   const center = parseCenter(searchParams.get('center'))
@@ -45,23 +45,7 @@ export function SearchView() {
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  // The "< 500 km" distance cap dismissal lives in the URL (`?all=1`) so it
-  // survives the drawer stack's remount-on-navigation and the filter round-trip,
-  // and resets whenever a new place is searched (which replaces the query).
-  const showAll = searchParams.get('all') === '1'
-  const showAllEvents = () =>
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-
-        next.set('all', '1')
-
-        return next
-      },
-      { replace: true },
-    )
-
-  // Only re-frame when the searched place changes — not on `?q`/`?all` edits.
+  // Only re-frame when the searched place changes — not on `?q` edits.
   useFrameOnTop(
     () => frameSearch({ bbox: bounds, center }),
     [frameSearch, searchParams.get('center'), searchParams.get('bbox')],
@@ -73,18 +57,21 @@ export function SearchView() {
         <SearchField />
         <CloseButton />
       </DrawerHeader>
-      <DrawerBody>
-        <GeolocationSuggestion />
+      {/* Outside the body, so a long list scrolls UNDER the controls rather than
+          carrying them away — the list pages as you scroll, so the one moment Filters
+          and Sort matter most is the moment a body-mounted toolbar would be gone. */}
+      <DrawerToolbar>
         <ListToolbar>
           <FilterButton />
           <SortMenu />
         </ListToolbar>
+      </DrawerToolbar>
+      <DrawerBody>
+        <GeolocationSuggestion />
         <DynamicEventsList
           hasSearchCenter={center !== undefined}
           latitude={latitude}
           longitude={longitude}
-          showAll={showAll}
-          onShowAll={showAllEvents}
         />
       </DrawerBody>
     </>

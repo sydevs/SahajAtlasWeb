@@ -2,6 +2,7 @@ export {
   Drawer,
   DrawerContent,
   DrawerHeader,
+  DrawerToolbar,
   DrawerBody,
   DrawerFooter,
   DrawerClose,

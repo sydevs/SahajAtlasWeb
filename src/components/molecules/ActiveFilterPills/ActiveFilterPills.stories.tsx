@@ -27,10 +27,10 @@ export const Default: Story = () => (
   <SeedSearchParams params={seededParams}>
     <StoryWrapper>
       <StorySection
-        description="The applied filters as removable pills — the day-of-week and language selections each collapse into one pill. The optional distance cap (search-only) leads the row."
+        description="The applied filters as removable pills — the day-of-week and language selections each collapse into one pill. Only the user's own filters appear: the results list's automatic distance cut is signposted by its own control at the foot of the list, not by a pill."
         title="Active filter pills"
       >
-        <ActiveFilterPills nearby={{ km: 500, onClear: () => {} }} />
+        <ActiveFilterPills />
       </StorySection>
 
       <div />

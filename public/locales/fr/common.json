@@ -52,7 +52,6 @@
     "no_results": "Aucun événement ne correspond à vos filtres.",
     "no_events": "Aucun événement trouvé.",
     "remove": "Supprimer %{label}",
-    "nearby": "< %{km} km",
     "no_nearby": "Aucun événement dans un rayon de %{km} km.",
     "dates": {
       "label": "Date",
@@ -128,5 +127,10 @@
   "country_site": {
     "title": "Aucun cours n’est encore répertorié en %{country}.",
     "cta": "Voir le site de %{country}"
+  },
+  "results": {
+    "more": "Afficher plus",
+    "farther": "Afficher les événements éloignés",
+    "showing": "%{shown} sur %{total} événements affichés"
   }
 }

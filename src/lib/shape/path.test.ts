@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest'
 
-import { childRoute, isCanonicalPath, parentOf, resolvePath, resolveStack, safePath } from './path'
+import {
+  childRoute,
+  isCanonicalPath,
+  parentOf,
+  parseCenter,
+  resolvePath,
+  resolveStack,
+  safePath,
+} from './path'
 
 describe('safePath', () => {
   it('accepts a site-relative path', () => {
@@ -160,5 +168,30 @@ describe('resolveStack', () => {
       { kind: 'region', slug: 'belgium', path: '/belgium' },
       { kind: 'region', slug: 'liège', path: '/belgium/li%C3%A8ge' },
     ])
+  })
+})
+
+describe('parseCenter', () => {
+  it('decodes a `lng,lat` pair', () => {
+    expect(parseCenter('-0.1276,51.5072')).toEqual([-0.1276, 51.5072])
+  })
+
+  it('rejects anything that is not two finite numbers', () => {
+    expect(parseCenter(null)).toBeUndefined()
+    expect(parseCenter('')).toBeUndefined()
+    expect(parseCenter('here')).toBeUndefined()
+    expect(parseCenter('1')).toBeUndefined()
+  })
+
+  it('rejects out-of-range coordinates rather than handing them to Mapbox', () => {
+    // `LngLat` throws outside ±90 latitude, and this value reaches `flyTo` straight
+    // from the URL — so a crafted `?center` would take the whole widget down to the
+    // error boundary inside somebody else's page.
+    expect(parseCenter('0,1000')).toBeUndefined()
+    expect(parseCenter('0,-91')).toBeUndefined()
+    expect(parseCenter('181,0')).toBeUndefined()
+    // The extremes themselves are legitimate.
+    expect(parseCenter('180,90')).toEqual([180, 90])
+    expect(parseCenter('-180,-90')).toEqual([-180, -90])
   })
 })

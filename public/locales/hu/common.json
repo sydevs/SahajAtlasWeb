@@ -52,7 +52,6 @@
     "no_results": "Egyetlen esemény sem felel meg a szűrőidnek.",
     "no_events": "Nem található esemény.",
     "remove": "%{label} eltávolítása",
-    "nearby": "< %{km} km",
     "no_nearby": "Nincs esemény %{km} km-en belül.",
     "dates": {
       "label": "Dátum",
@@ -128,5 +127,10 @@
   "country_site": {
     "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",
     "cta": "%{country} weboldalának megnyitása"
+  },
+  "results": {
+    "more": "Több megjelenítése",
+    "farther": "Távoli események megjelenítése",
+    "showing": "%{shown} / %{total} esemény megjelenítve"
   }
 }
