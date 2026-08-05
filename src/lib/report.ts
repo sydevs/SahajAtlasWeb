@@ -143,6 +143,31 @@ export function classifyError(error: unknown): ErrorKind {
 }
 
 /**
+ * Record a failure that happened *while rendering an error state* (issue #89).
+ *
+ * The error screen is the last thing between a viewer and a blank widget on someone else's
+ * page, so nothing it does may throw — but a swallowed failure that no one ever sees is how
+ * a broken recovery path survives for months. This is the seam that keeps both: callers
+ * degrade gracefully AND the cause is recorded.
+ *
+ * **This is the single call site for a real error reporter.** There is none in this repo
+ * today (the only telemetry is `fathom-client`, for page views), so this logs to the
+ * console; wiring Sentry or similar means changing this function and nothing else. Adding
+ * one is a deliberate non-goal here: it would be a new dependency in a public bundle,
+ * needs a DSN, and needs every host page to allow its `connect-src`.
+ *
+ * Its own body is guarded, because a host page is free to replace `console.error` with
+ * something that throws — and logging must never be the thing that takes the widget down.
+ */
+export function reportInternalError(error: unknown, context: string): void {
+  try {
+    console.error(`[sahaj-atlas] ${context}`, error)
+  } catch {
+    // Nothing left to do — a logger that throws is not worth a second attempt.
+  }
+}
+
+/**
  * The context auto-attached to every issue report — everything the viewer shouldn't
  * have to type. Assembled from the widget's own route plus the host page's globals, so
  * a report arrives with enough to reproduce it (issue #79).

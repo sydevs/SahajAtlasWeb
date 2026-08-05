@@ -198,3 +198,37 @@ export const resolveStack = (pathname: string): StackEntry[] => {
 
   return entries
 }
+
+/**
+ * The nearest region in a dead URL's ancestry that still exists — where to send someone
+ * whose link 404'd (issue #89).
+ *
+ * Drops the LAST entry before walking, because that entry *is* what failed: the top of the
+ * stack is the view that threw. Then takes the first ancestor whose slug the caller's set
+ * confirms. One rule covers every shape with no special-casing — it steps over the
+ * `register`/`share` segment, over a dead event id, and over a renamed venue slug the
+ * region tree no longer carries.
+ *
+ * Deliberately NOT `parentOf`: the parent of `<event>/register` is the event path, which
+ * 404s identically, so `parentOf` would offer a second dead link as the escape from the
+ * first. Returns the ancestor's SLUG; the caller resolves it to a canonical `webPath`,
+ * since the URL prefix may be a legacy chain.
+ *
+ * Pure and total — an unparseable path yields `undefined`, never a throw. It runs inside an
+ * error fallback, where a throw would blank the widget on someone else's page.
+ */
+export const nearestKnownRegion = (pathname: string, known: Set<string>): string | undefined => {
+  try {
+    const ancestors = resolveStack(pathname).slice(0, -1)
+
+    for (let i = ancestors.length - 1; i >= 0; i -= 1) {
+      const entry = ancestors[i]
+
+      if (entry?.kind === 'region' && known.has(entry.slug)) return entry.slug
+    }
+
+    return undefined
+  } catch {
+    return undefined
+  }
+}

@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { atlasError, buildReportContext, classifyError, errorMessage } from './report'
+import {
+  atlasError,
+  buildReportContext,
+  classifyError,
+  errorMessage,
+  reportInternalError,
+} from './report'
 
 import { mockErrorKinds, mockErrors, sdkError } from '@/mocks/errors'
 
@@ -268,5 +274,35 @@ describe('classifyError', () => {
     // kind. Assert that here, so a fixture can't quietly start previewing the wrong
     // policy — and so the stories stay honest without a browser.
     expect(classifyError(mockErrors[kind])).toBe(kind)
+  })
+})
+
+describe('reportInternalError', () => {
+  it('records the failure with its context', () => {
+    const spy = vi.fn()
+
+    vi.stubGlobal('console', { error: spy })
+    reportInternalError(new Error('offer blew up'), 'NotFoundOffer')
+
+    expect(spy).toHaveBeenCalledOnce()
+    expect(String(spy.mock.calls[0]?.[0])).toContain('NotFoundOffer')
+  })
+
+  it('survives a console that throws', () => {
+    // A host page is free to replace console.error. Logging must never be the thing that
+    // takes the widget down — this runs while an error screen is already on display.
+    vi.stubGlobal('console', {
+      error() {
+        throw new Error('host page hijacked the console')
+      },
+    })
+
+    expect(() => reportInternalError(new Error('boom'), 'ctx')).not.toThrow()
+  })
+
+  it('survives a console that is missing entirely', () => {
+    vi.stubGlobal('console', undefined)
+
+    expect(() => reportInternalError(new Error('boom'), 'ctx')).not.toThrow()
   })
 })
