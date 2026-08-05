@@ -1,5 +1,6 @@
 import type { RevealMore } from '@/lib/shape'
 
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
@@ -42,7 +43,10 @@ export function LoadMore({ more, km, shown, total, announce, onReveal }: LoadMor
   const { t } = useTranslation('common')
 
   return (
-    <div className="flex flex-col items-center gap-2 px-4 pb-6 pt-4">
+    // No vertical padding once the button is gone: the only child left is the
+    // `sr-only` region, which is absolutely positioned and contributes no height, so
+    // the padding would be a blank strip under every fully-revealed list.
+    <div className={clsx('flex flex-col items-center gap-2 px-4', more && 'pb-6 pt-4')}>
       {more && (
         <Button color="neutral" size="sm" variant="bordered" onClick={onReveal}>
           {more === 'farther' ? t('results.farther', { km }) : t('results.more')}

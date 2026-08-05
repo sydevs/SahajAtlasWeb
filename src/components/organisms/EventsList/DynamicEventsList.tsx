@@ -149,7 +149,12 @@ export function DynamicEventsList({
     focusFrom.current = null
     if (more !== null) return
 
-    listRef.current?.querySelectorAll<HTMLElement>('[data-event-row]')[index]?.focus()
+    // `preventScroll` because the newly revealed rows open exactly where the button
+    // was — already in view. Letting the browser scroll to the focused card on top of
+    // that yanks the list out from under a mouse user who only pressed a button.
+    listRef.current
+      ?.querySelectorAll<HTMLElement>('[data-event-row]')
+      [index]?.focus({ preventScroll: true })
   }, [rows.length, more])
 
   return (
