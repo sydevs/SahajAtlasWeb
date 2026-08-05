@@ -340,13 +340,13 @@ const getRegion = async (slug: string): Promise<Region> => {
 
   if (!node) throw new Error(`Region not found: ${slug}`)
 
-  // A region with no events under it (located or online) isn't a destination — 404
-  // it (the nearest ErrorBoundary renders the not-found state) rather than render an
-  // empty page. Mirrors getCountries hiding 0-event countries from the home list.
+  // A region with no events under it (located or online) still resolves, and the view
+  // renders EmptyEventList. It used to 404 into the error boundary, but nothing a viewer
+  // could press there would help: a retry fails identically and it isn't a wrong turn
+  // (issue #89). getCountries still hides 0-event countries from the home list, so this
+  // is reached by a direct link or a region whose events have all ended — not by
+  // navigating in.
   const eventCount = countUnder(events, node.id)
-
-  if (eventCount === 0) throw new Error(`Region has no events: ${slug}`)
-
   const path = regionRoute(node)
   const isParent = node.level === 'country' || node.level === 'region'
   const bounds = boundsUnder(events, node.id)
