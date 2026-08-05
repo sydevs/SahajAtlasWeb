@@ -158,6 +158,39 @@ of truth, so all are linkable/shareable:
 Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.
 
+## Error boundaries (issue #89)
+
+**Where a boundary sits decides how far a failure propagates; `ERROR_POLICY`
+(`components/molecules/Fallbacks`) decides what it says and offers.** Two axes, kept
+separate — an inner fallback must never re-throw to escalate.
+
+- **Never split a view to manufacture a seam.** Every view calls `useSuspenseQuery` at the
+  top and *then* returns its header + body, so a boundary inside a view does not preserve
+  that view's header — the component returned nothing. Add a body-level boundary only
+  where a seam already exists: a child that owns its own suspense read below the chrome.
+  That's exactly three places (`CalendarGrid`, `DynamicEventsList`, the lazy
+  `EventDetails`); everywhere else the drawer boundary catches.
+- **The fallbacks render their own chrome.** `DrawerChrome` (`views/shared.tsx`) rebuilds
+  the header from the URL + already-cached data — the region tree for a name, the titles
+  sliver for an event — so a load and an error both keep the drawer's identity and its
+  close control. `DrawerControl.canDismiss` says whether that close would actually go
+  anywhere; at the root it wouldn't, so the chrome offers the collapse instead.
+- **Body-level boundaries need `resetKeys`.** The drawer boundary is keyed on the
+  *pathname*, but a re-search or a filter change moves only the query string — so without
+  one, a single failure pins its error over every later attempt and the boundary added to
+  contain a failure instead creates a permanent dead end. Search excludes `?q`
+  (`listResetKey`, `lib/shape/path.ts`): the geocoder rewrites it per keystroke.
+- **Each such site needs its own `QueryErrorResetBoundary`** — `useSuspenseQuery` binds to
+  the nearest one, and without it "Try again" re-throws the cached error.
+- **A dead link is not a malfunction.** `not-found` renders the empty-state register (a
+  neutral note plus somewhere real to go, from `useRecoveryOffer`); everything else renders
+  the danger alert and the policy's buttons. Red chrome on a not-found means the two have
+  drifted.
+- **The fallback degrades, it never fails.** It runs where a throw would blank the widget
+  on a host page, so the parts that read data sit behind their own boundary and fall back
+  to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the single
+  call site a real error reporter wires into.
+
 Conventions:
 
 - Keep stores small and slice-focused; don't merge unrelated state into one
