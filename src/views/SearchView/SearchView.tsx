@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { ListToolbar, SortMenu } from '@/components/molecules'
+import { SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -53,16 +53,19 @@ export function SearchView() {
 
   return (
     <>
+      {/* Filters and Sort sit in the header, beside the field they act on, rather than
+          in a toolbar row above the list: the list now pages as you scroll, so a row
+          pinned to the top of the body would be the one control that scrolls away
+          exactly when a long list makes it useful. Icon-only — four controls share
+          this row — with the labels on `aria-label`. */}
       <DrawerHeader>
         <SearchField />
+        <FilterButton iconOnly />
+        <SortMenu iconOnly />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody>
         <GeolocationSuggestion />
-        <ListToolbar>
-          <FilterButton />
-          <SortMenu />
-        </ListToolbar>
         <DynamicEventsList
           hasSearchCenter={center !== undefined}
           latitude={latitude}

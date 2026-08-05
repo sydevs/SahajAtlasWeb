@@ -10,7 +10,9 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
-import { Button } from '@/components/atoms/Button'
+// HEADER_CONTROL: the shared icon-control preset, so these and the SortMenu's own
+// header trigger provably render identical chrome (see the Button module).
+import { Button, HEADER_CONTROL } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
 import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
@@ -98,13 +100,6 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
     </div>
   )
 }
-
-/**
- * The drawer header's icon controls (close, list-toggle, filter) are all the same
- * Button preset, kept here as values rather than a wrapper component so the three
- * provably render identical chrome — the header reads as one set of buttons.
- */
-const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')

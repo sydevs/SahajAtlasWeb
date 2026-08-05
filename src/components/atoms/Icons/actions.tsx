@@ -107,6 +107,19 @@ export const WebsiteIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   />
 )
 
+// Symmetric-ish list glyph (three rules, shortest at the bottom): the ordering of a
+// list, not a direction of travel — so no `rtl:-scale-x-100`, per the policy in
+// `index.tsx`. Line lengths read as "sorted" in either reading direction.
+export const SortIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon
+    paths={[
+      'M3 6c0-.55.45-1 1-1h16a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1m0 6c0-.55.45-1 1-1h11a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1m0 6c0-.55.45-1 1-1h6a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1',
+    ]}
+    view="0 0 24 24"
+    {...props}
+  />
+)
+
 export const FilterIcon: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
     paths={[
