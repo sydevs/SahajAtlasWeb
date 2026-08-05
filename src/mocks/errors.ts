@@ -15,8 +15,12 @@ export const sdkError = (status: number, message = 'Request failed') =>
   Object.assign(new Error(message), { status })
 
 export const mockErrors: Record<ErrorKind, unknown> = {
-  // Native fetch's rejection — the wording is Chrome's; Firefox and Safari differ.
-  offline: new TypeError('Failed to fetch'),
+  // In the app this is a fetch TypeError ("Failed to fetch" — Chrome's wording; Firefox
+  // and Safari differ) raised while `navigator.onLine` is false. Tagged here rather than
+  // thrown raw so the story doesn't classify differently depending on whether the machine
+  // rendering it happens to be online: an ambiguous network failure is `server`, and only
+  // the browser's own verdict makes it `offline`. That pairing is covered in report.test.
+  offline: atlasError('offline', 'Failed to fetch'),
   // The undefined-body path `validateSDKResponse` guards (payloadcms/payload#14495).
   server: atlasError('server', 'SahajCloud request returned no data: /events/geojson'),
   // A hand-typed or dead region URL.

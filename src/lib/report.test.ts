@@ -181,19 +181,33 @@ describe('classifyError', () => {
     expect(classifyError(Object.assign(new Error('boom'), { kind: 42 }))).toBe('unknown')
   })
 
-  it('classifies a failed fetch as offline, whatever the engine calls it', () => {
+  it('calls a failed fetch offline only when the browser agrees', () => {
     // Chrome / Firefox / Safari each word this differently, and `instanceof TypeError`
     // fails across realms, so both the tag and the wording are matched.
-    for (const message of [
+    const wordings = [
       'Failed to fetch',
       'NetworkError when attempting to fetch resource.',
       'Load failed',
-    ]) {
+    ]
+
+    vi.stubGlobal('navigator', { onLine: false })
+    for (const message of wordings) {
       expect(classifyError(new TypeError(message))).toBe('offline')
     }
   })
 
-  it('does not read every TypeError as offline — our own bugs deserve the report CTA', () => {
+  it('blames the server, not the viewer, for an ambiguous network failure', () => {
+    // `fetch` rejects identically for a dropped connection, a DNS failure, SahajCloud
+    // being down, a rejected CORS preflight, and a host page whose CSP omits
+    // `connect-src`. Calling those "offline" both blames the wrong party and — since
+    // `offline` suppresses the report CTA — leaves no way to tell us about the ones
+    // that are ours or the host's. `server` keeps both the retry and the report.
+    vi.stubGlobal('navigator', { onLine: true })
+
+    expect(classifyError(new TypeError('Failed to fetch'))).toBe('server')
+  })
+
+  it('does not read every TypeError as a network failure — our own bugs are unknown', () => {
     expect(classifyError(new TypeError('x.map is not a function'))).toBe('unknown')
   })
 
@@ -203,6 +217,14 @@ describe('classifyError', () => {
 
     vi.stubGlobal('navigator', { onLine: true })
     expect(classifyError(new Error('something opaque'))).toBe('unknown')
+  })
+
+  it('ignores a `kind` inherited from Object.prototype', () => {
+    // `'toString' in ERROR_KINDS` is true — so a `in` check would return a "kind" with
+    // no policy behind it, rendering an error screen with no message and no buttons.
+    for (const kind of ['toString', 'constructor', 'valueOf', 'hasOwnProperty']) {
+      expect(classifyError(Object.assign(new Error('boom'), { kind }))).toBe('unknown')
+    }
   })
 
   it('never throws, whatever reaches it', () => {

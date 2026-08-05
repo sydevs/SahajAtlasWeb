@@ -74,8 +74,13 @@ const ERROR_KINDS: Record<ErrorKind, true> = {
   unknown: true,
 }
 
+// An OWN-property check, not `in`: `in` walks the prototype chain, so
+// `{ kind: 'toString' }` would pass and `classifyError` would return a "kind" with no
+// policy behind it — an error screen with no message and no buttons. Spelled via
+// `hasOwnProperty.call` rather than `Object.hasOwn` (ES2022) because the widget runs in
+// whatever browser the host page is opened in.
 const isErrorKind = (value: unknown): value is ErrorKind =>
-  typeof value === 'string' && value in ERROR_KINDS
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(ERROR_KINDS, value)
 
 // Native `fetch` rejects with a TypeError whose wording differs per engine ("Failed to
 // fetch" / "NetworkError when attempting to fetch resource." / "Load failed"). Matched
@@ -116,11 +121,20 @@ export function classifyError(error: unknown): ErrorKind {
     // A zod parse failure — SahajCloud's shape drifted from ours.
     if (name === 'ZodError' || Array.isArray(issues)) return 'contract'
 
+    // Only the BROWSER can say the viewer is offline. `fetch` rejects with the same
+    // TypeError for a dropped connection, a DNS failure, SahajCloud being down, a
+    // rejected CORS preflight, and a host page whose CSP omits `connect-src` — and
+    // "You appear to be offline" both blames the wrong party and (since `offline`
+    // suppresses the report CTA) leaves no way to tell us about the three that are
+    // ours or the host's. So a network TypeError is `server` unless the browser agrees.
+    const seemsOffline = typeof navigator !== 'undefined' && navigator.onLine === false
     const message = errorMessage(error)
 
-    if (name === 'TypeError' && message && NETWORK_MESSAGE.test(message)) return 'offline'
+    if (name === 'TypeError' && message && NETWORK_MESSAGE.test(message)) {
+      return seemsOffline ? 'offline' : 'server'
+    }
 
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline'
+    if (seemsOffline) return 'offline'
 
     return 'unknown'
   } catch {
