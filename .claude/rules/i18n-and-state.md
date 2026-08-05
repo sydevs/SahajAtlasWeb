@@ -98,16 +98,23 @@ of truth, so all are linkable/shareable:
 - **The results list's reveal** — read + advanced with `useReveal`
   (`src/hooks/use-reveal.ts`); serialized by `revealToParams` / `revealFromParams`
   (`src/lib/shape/reveal.ts`) under **`?shown=`** (the revealed row count, first page
-  omitted) plus **`?all=1`** (the far-segment flag, which predates the codec as the old
-  "< 500 km" pill's dismissal). Presentation like the sort — absent from `eventsQuery`'s
+  omitted) plus **`?all=1`** (the distant-segment flag, which predates the codec as the
+  old "< N km" pill's dismissal). Presentation like the sort — absent from `eventsQuery`'s
   key, so a press never refetches; every match is already in the cached feed. `revealRows`
-  splits the sorted set at the 500 km boundary and slices to the count — clamped at
+  splits the sorted set at the distance boundary and slices to the count — clamped at
   `MAX_REVEAL`, since the rows are unvirtualized and a crafted `?shown=999999` would
-  otherwise build the whole matching feed in one commit inside a host page — so the list
-  pages through nearby matches first and crossing into the far ones takes an **explicit press**
-  ("show events farther than 500 km"). There is deliberately **no "< N km" pill** — an
-  automatic cut posing as a user filter — so that button is the list's only distance
-  affordance. In the URL rather than component state for the same reason as the others:
+  otherwise build the whole matching feed in one commit inside a host page.
+  **The boundary is two numbers, not one**: `NEARBY_KM` (300), and `FOREIGN_NEARBY_KM`
+  (half that) for an event whose `address.country` differs from the searched `?cc` —
+  distance alone ranks Belgian classes over French ones for someone searching Lille. Both
+  countries must be known to demote anything, so an online event (no address country) is
+  never caught by it.
+  Within the nearby segment the list **pages itself** as the control scrolls into view
+  (an IntersectionObserver in `LoadMore`, armed by the parent only while
+  `more === 'more' && !showAll`); reaching the distant segment is always an **explicit
+  press** ("Show distant events"), and paging stays explicit from there on. There is
+  deliberately **no "< N km" pill** — an automatic cut posing as a user filter — so that
+  button is the list's only distance affordance. In the URL rather than component state for the same reason as the others:
   the drawer stack remounts views, so opening an event and coming back would silently
   reset the reveal. **Both params reset on any change to the result set**: a new place
   search drops them for free (`preserveSearchState` re-encodes from an empty base), but

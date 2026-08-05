@@ -17,7 +17,7 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  * quick-edit on the applied filters). Renders nothing when no filter is active.
  *
  * Every pill here is one of the USER's own filters. The results list's automatic
- * "< 500 km" cut used to ride along as one more pill, which read as a filter someone
+ * distance cut used to ride along as one more pill, which read as a filter someone
  * had chosen; it's now a segment boundary the list pages across, signposted by its own
  * control at the foot of the list (see `revealRows` in `@/lib/shape/reveal`).
  */

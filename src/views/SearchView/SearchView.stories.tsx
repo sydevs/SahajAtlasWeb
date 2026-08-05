@@ -9,7 +9,7 @@ import { ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-h
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
 import { eventsQuery } from '@/config/api'
-import { filtersFromParams, parseCenter } from '@/lib/shape'
+import { FOREIGN_NEARBY_KM, NEARBY_KM, filtersFromParams, parseCenter } from '@/lib/shape'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -31,32 +31,51 @@ const ICELAND = 'q=Iceland&center=-21.9,64.1&cc=IS'
 // Three applied filters, so the toolbar carries a "(3)" badge and the pills row
 // renders. Like the CalendarView story, the events are pre-seeded regardless of the
 // filters — these are for the pill UI, not to cut the list — so the seeded set is the
-// in-person variants within the 500 km cap: a filtered-looking list with no distance
+// in-person variants inside the distance boundary: a filtered-looking list with no
 // pill competing for attention.
 const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 
-// A searched place, so the list segments at the "< 500 km" boundary — the two reveal
-// cases below are about that boundary, and without a `?center` there is nothing to be
-// far from (the whole set is one segment). The distinct `?q` values just name the place
-// in each card's distance line; the params object is memoized per CASE (below), so
-// re-seeding doesn't depend on the queries differing.
-const SEARCHED = 'q=Paris&center=0,0'
-const SEARCHED_SPARSE = 'q=Reykjavik&center=0,0'
+// A searched place, so the list segments at the distance boundary — the reveal cases
+// below are about that boundary, and without a `?center` there is nothing to be distant
+// from (the whole set is one segment). `?cc` is the searched COUNTRY, which the boundary
+// also reads: an event across a border is held to half the distance. The distinct `?q`
+// values just name the place in each card's distance line; the params object is memoized
+// per CASE (below), so re-seeding doesn't depend on the queries differing.
+const SEARCHED = 'q=Cambridge&center=0,0&cc=GB'
+const SEARCHED_SPARSE = 'q=Dover&center=0,0&cc=GB'
+const SEARCHED_BORDER = 'q=Folkestone&center=0,0&cc=GB'
 
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
-  // More matches than one page: the foot of the list carries "Show more", and pressing
-  // it reveals the next page in place — no refetch, since every match is already here.
+  // More matches than one page. The foot of the list carries "Show more" — and because
+  // this is the nearby segment, the list also presses it for you as you reach it, so
+  // scrolling pages on without a click. Nothing refetches; every match is already here.
   Paged: { search: SEARCHED, events: mockEventSeries(60) },
-  // A handful nearby and a long tail beyond 500 km. Paging stops at the boundary and
-  // the control changes to "Show events farther than 500 km" — the list's only distance
-  // affordance now that the "< 500 km" pill is gone, and what signposts that the nearby
-  // matches (not the results) have run out.
-  'Nearby exhausted': {
+  // A handful nearby and a long tail past NEARBY_KM. Auto-paging stops dead at the
+  // boundary and the control becomes "Show distant events" — the list's only distance
+  // affordance now that the "< N km" pill is gone, and the one reveal that always takes
+  // a deliberate press. Press it and paging goes back to being explicit from there on.
+  'Distant events': {
     search: SEARCHED_SPARSE,
     events: [
       ...mockEventSeries(6, { step: 12 }),
-      ...mockEventSeries(40, { from: 620, step: 40, offset: 100 }),
+      ...mockEventSeries(40, { from: NEARBY_KM + 120, step: 40, offset: 100 }),
+    ],
+  },
+  // Same distances, different countries. The French events sit between
+  // FOREIGN_NEARBY_KM and NEARBY_KM — near enough to be nearby at home, too far to lead
+  // the list from across a border — so only the British ones are in the nearby segment
+  // and the rest wait behind "Show distant events".
+  'Across a border': {
+    search: SEARCHED_BORDER,
+    events: [
+      ...mockEventSeries(4, { from: FOREIGN_NEARBY_KM + 20, step: 15 }),
+      ...mockEventSeries(30, {
+        from: FOREIGN_NEARBY_KM + 25,
+        step: 4,
+        offset: 200,
+        country: 'FR',
+      }),
     ],
   },
   Empty: { search: '', events: [] },
@@ -64,7 +83,7 @@ const EXAMPLES: Record<string, Example> = {
   Filtered: {
     search: FILTERED,
     events: mockEventVariants.filter(
-      (event) => event.eventType === 'offline' && (event.distance ?? 0) < 500,
+      (event) => event.eventType === 'offline' && (event.distance ?? 0) < NEARBY_KM,
     ),
   },
 }
@@ -82,12 +101,17 @@ const eventsKey = (search: string, locale: string) => {
 }
 
 /**
- * SearchView — the distance-ranked results screen: the geocoder + filter header over
- * the event list. "Paged" and "Nearby exhausted" cover the reveal control at the foot
- * of the list and the "< 500 km" segment boundary it crosses; "Empty" is the
- * no-results state; "Country website" the offer that replaces it when the searched
- * country lists no programs at all; "Filtered" the toolbar badge + active-filter pills
- * over a list.
+ * SearchView — the distance-ranked results screen: the geocoder over the event list,
+ * with Filters and Sort as icon controls in the header beside it (the list pages as you
+ * scroll, so a toolbar row pinned above it would scroll away exactly when a long list
+ * made it useful).
+ *
+ * "Paged" covers the reveal control and the auto-paging that fires as you reach it;
+ * "Distant events" the boundary where that stops and a deliberate press takes over;
+ * "Across a border" the same boundary tightened to half the distance for another
+ * country. "Empty" is the no-results state; "Country website" the offer that replaces
+ * it when the searched country lists no programs at all; "Filtered" the header badge +
+ * active-filter pills over a list.
  *
  * Cases that need a URL seed it onto the decorator's OWN router via `SeedSearchParams`
  * (react-router v7 throws on a nested `<Router>`), which lands one render in — so each
