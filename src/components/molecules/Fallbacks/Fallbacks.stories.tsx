@@ -1,27 +1,14 @@
 import type { Story, StoryDefault } from '@ladle/react'
-import type { ErrorKind } from '@/lib/report'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { LoadingFallback, ErrorFallback } from './Fallbacks'
 
-import { mockErrorKinds, mockErrors } from '@/mocks/errors'
+import { mockErrorKinds, mockErrorNotes, mockErrors } from '@/mocks/errors'
 
 export default {
   title: 'Molecules',
 } satisfies StoryDefault
-
-// What each case is meant to prove, so a reviewer compares the BUTTONS rather than the
-// sentence. The drawer's "Error States" story (Views) shows the same six.
-const DESCRIPTIONS: Record<ErrorKind, string> = {
-  offline:
-    'A failed fetch. Try again only — connectivity is not ours to fix, and the report POST needs the very network that just failed.',
-  server: 'A 5xx, or an empty body. Try again, with the report CTA beneath it.',
-  'not-found': 'A dead link. See nearby events only — retrying fails identically.',
-  config: 'A rejected API key. Report only; nothing a viewer can press will help.',
-  contract: "SahajCloud's shape drifted from ours. Report only.",
-  unknown: 'Unrecognized. The catch-all still offers both a retry and a report.',
-}
 
 /**
  * Fallbacks — the suspense and error-boundary placeholders used while panels load or
@@ -49,7 +36,12 @@ export const Default: Story = () => (
       title="Error"
     >
       {mockErrorKinds.map((kind) => (
-        <StorySection key={kind} description={DESCRIPTIONS[kind]} title={kind} variant="subsection">
+        <StorySection
+          key={kind}
+          description={mockErrorNotes[kind]}
+          title={kind}
+          variant="subsection"
+        >
           <div className="h-64 w-full">
             <ErrorFallback error={mockErrors[kind]} resetErrorBoundary={() => {}} />
           </div>

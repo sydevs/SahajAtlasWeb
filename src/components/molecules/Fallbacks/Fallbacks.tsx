@@ -1,4 +1,4 @@
-import type { ErrorPolicy } from '@/lib/report'
+import type { ErrorKind } from '@/lib/report'
 
 import { useTranslation } from 'react-i18next'
 
@@ -7,7 +7,8 @@ import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button } from '@/components/atoms/Button'
 import { useReportModal } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
-import { errorMessage, errorPolicy } from '@/lib/report'
+import { classifyError, errorMessage } from '@/lib/report'
+import { searchPath } from '@/lib/shape'
 
 export function LoadingFallback() {
   const { t } = useTranslation('common')
@@ -17,6 +18,67 @@ export function LoadingFallback() {
       <Spinner color="secondary" label={t('loading')} />
     </div>
   )
+}
+
+/** The copy + actions one failure kind is allowed to render. */
+export type ErrorPolicy = {
+  /** `common` namespace key for the sentence shown in place of the thrown string. */
+  messageKey: string
+  /** Reset the boundary and re-run the failed query. */
+  retry: boolean
+  /** Escape into live inventory via the search view (issue #52). */
+  nearby: boolean
+  /** Open the report modal, carrying the thrown message as context (issue #79). */
+  report: boolean
+}
+
+/**
+ * The action table (issue #89). Kept as data so neither fallback hard-codes a button
+ * list — they render the same policy in their own chrome.
+ *
+ * It lives here rather than beside `classifyError` in `src/lib/report.ts` because it is
+ * UI policy, not domain logic: `messageKey` is an i18next key and the three flags name
+ * three specific buttons, and `src/lib/` is declared React-free and i18n-free. The pure
+ * half — what KIND of failure this is — stays in lib, where it's testable in isolation.
+ *
+ * `report` is always the lowest-weight CTA in both fallbacks, so the spec's "secondary"
+ * needs no axis of its own: on `server` it sits under a retry that's likelier to help;
+ * on `config`/`contract` it's the only thing offered, and so the only thing to look at.
+ */
+export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
+  // Connectivity is not something the team can act on, and the report POST (#80) needs
+  // the very network that just failed — so no report CTA, and no nearby search (which
+  // would fail identically).
+  offline: { messageKey: 'error.offline', retry: true, nearby: false, report: false },
+  server: { messageKey: 'error.server', retry: true, nearby: false, report: true },
+  // A dead link isn't a wrong turn to retry — it's a way back into live inventory.
+  'not-found': { messageKey: 'error.not_found', retry: false, nearby: true, report: false },
+  // The embed is misconfigured, or SahajCloud's shape drifted. Both need a human;
+  // neither is fixed by pressing anything.
+  config: { messageKey: 'error.config', retry: false, nearby: false, report: true },
+  contract: { messageKey: 'error.generic', retry: false, nearby: false, report: true },
+  unknown: { messageKey: 'error.generic', retry: true, nearby: false, report: true },
+}
+
+/**
+ * Everything a fallback needs to render one failure: which buttons, what sentence, and
+ * what to attach to a report. Both fallbacks call this, so the rule "show localized copy,
+ * report the thrown string" is stated once and can't drift between the two surfaces.
+ *
+ * `useSuspense: false` because this can render before any locale JSON has arrived (an
+ * embed with no API key throws on the very first render). Suspending HERE would push the
+ * tree back to the parent's loading fallback and show nothing at all; an untranslated
+ * label beats a blank widget when the whole point is to surface the failure.
+ */
+export function useErrorDisplay(error: unknown) {
+  const { t } = useTranslation('common', { useSuspense: false })
+  const policy = ERROR_POLICY[classifyError(error)]
+  // The thrown developer string is not the headline — it's untranslated text written for
+  // us, rendered to a viewer inside someone else's page. It survives as report context
+  // only (issue #89).
+  const message = t(policy.messageKey)
+
+  return { policy, message, reportContext: errorMessage(error) ?? message }
 }
 
 export type ErrorActionsProps = {
@@ -36,7 +98,7 @@ export type ErrorActionsProps = {
  * Order is weight order: the action likeliest to help first, the report CTA last.
  */
 export function ErrorActions({ policy, reportContext, resetErrorBoundary }: ErrorActionsProps) {
-  // `useSuspense: false` for the same reason ErrorFallback below sets it: this can render
+  // `useSuspense: false` for the same reason `useErrorDisplay` sets it: this can render
   // before any locale JSON has arrived, and an untranslated label beats a blank widget.
   const { t } = useTranslation('common', { useSuspense: false })
   const { t: tEvents } = useTranslation('events', { useSuspense: false })
@@ -53,7 +115,7 @@ export function ErrorActions({ policy, reportContext, resetErrorBoundary }: Erro
       {/* A dead direct link (e.g. a finished event the CMS no longer serves)
           still offers a way back into live inventory (issue #52). */}
       {policy.nearby && (
-        <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
+        <Button color="primary" variant="flat" onClick={() => navigate(searchPath())}>
           {tEvents('display.see_nearby')}
         </Button>
       )}
@@ -79,22 +141,13 @@ export type ErrorFallbackProps = {
 }
 
 /**
- * The app-level error-boundary fallback. It must never throw itself, so the thrown value
- * is narrowed by the shared `errorPolicy` helper rather than dereferenced — the same
- * narrowing DrawerErrorFallback uses, so one failure reads the same in both.
+ * The app-level error-boundary fallback — the whole-widget screen, shown when the app
+ * fails to boot at all. It must never throw itself, so the thrown value goes through
+ * `useErrorDisplay` rather than being dereferenced; DrawerErrorFallback shares that hook,
+ * so one failure says and offers the same thing wherever it surfaces.
  */
 export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
-  // `useSuspense: false` — react-i18next suspends by default while a namespace loads, and
-  // this fallback can render before any locale JSON has arrived (an embed with no
-  // api-key throws on the very first render). Suspending HERE would push the tree back to
-  // the parent's loading fallback and show nothing at all; an untranslated label beats a
-  // blank widget when the whole point is to surface the failure.
-  const { t } = useTranslation('common', { useSuspense: false })
-  const policy = errorPolicy(error)
-  // The thrown developer string is not the headline — it's untranslated text written for
-  // us, rendered to a viewer inside someone else's page. It survives as report context
-  // only (issue #89).
-  const message = t(policy.messageKey)
+  const { policy, message, reportContext } = useErrorDisplay(error)
 
   return (
     <div className="flex-center h-full w-full flex-col gap-3 bg-background p-10">
@@ -109,7 +162,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
           still works while this fallback is what's on screen. */}
       <ErrorActions
         policy={policy}
-        reportContext={errorMessage(error) ?? message}
+        reportContext={reportContext}
         resetErrorBoundary={resetErrorBoundary}
       />
     </div>

@@ -1,12 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  ERROR_POLICY,
-  buildReportContext,
-  classifyError,
-  errorMessage,
-  errorPolicy,
-} from './report'
+import { atlasError, buildReportContext, classifyError, errorMessage } from './report'
+
+import { mockErrorKinds, mockErrors, sdkError } from '@/mocks/errors'
 
 // The browser-derived fields are injected here — the node lane has no window/navigator,
 // which is exactly the case the guards in `report.ts` exist for.
@@ -139,17 +135,6 @@ describe('errorMessage', () => {
   })
 })
 
-/** A `PayloadSDKError` as the fallbacks see it: an Error carrying an HTTP status. */
-const sdkError = (status: number, message = 'Request failed') =>
-  Object.assign(new Error(message), { status })
-
-/** A `ZodError` as it crosses a module boundary — matched on shape, not identity. */
-const zodError = () =>
-  Object.assign(new Error('Invalid input'), {
-    name: 'ZodError',
-    issues: [{ code: 'invalid_type', path: ['events', 0, 'id'] }],
-  })
-
 describe('classifyError', () => {
   it('reads the HTTP status a SahajCloud failure carries', () => {
     expect(classifyError(sdkError(401))).toBe('config')
@@ -169,17 +154,31 @@ describe('classifyError', () => {
   })
 
   it('classifies a zod parse failure as contract drift', () => {
-    expect(classifyError(zodError())).toBe('contract')
+    expect(classifyError(mockErrors.contract)).toBe('contract')
   })
 
-  it('classifies the developer strings our own code throws', () => {
-    expect(classifyError(new Error('Region not found: atlantis'))).toBe('not-found')
-    expect(classifyError(new Error('Not an event: /india/register'))).toBe('not-found')
-    expect(classifyError(new Error('Not authenticated as an Atlas client'))).toBe('config')
-    expect(classifyError(new Error('Missing api key.'))).toBe('config')
-    expect(classifyError(new Error('SahajCloud request returned no data: /events/geojson'))).toBe(
-      'server',
+  it('reads the kind off an error we threw ourselves, whatever its wording', () => {
+    // The whole point of `atlasError`: the message is free-form text for a report, so
+    // rewording it must not silently reclassify the failure.
+    expect(classifyError(atlasError('not-found', 'Region not found: atlantis'))).toBe('not-found')
+    expect(classifyError(atlasError('not-found', 'reworded entirely'))).toBe('not-found')
+    expect(classifyError(atlasError('config', 'Missing api key.'))).toBe('config')
+    expect(classifyError(atlasError('server', 'SahajCloud returned no data'))).toBe('server')
+  })
+
+  it('keeps the thrown message intact for the report', () => {
+    expect(errorMessage(atlasError('not-found', 'Region not found: atlantis'))).toBe(
+      'Region not found: atlantis',
     )
+  })
+
+  it('ignores a `kind` that is not one of ours', () => {
+    // The widget runs inside host pages; a third-party rejection carrying its own
+    // `kind` field must not be able to pick our copy or our buttons.
+    expect(classifyError(Object.assign(new Error('boom'), { kind: 'catastrophic' }))).toBe(
+      'unknown',
+    )
+    expect(classifyError(Object.assign(new Error('boom'), { kind: 42 }))).toBe('unknown')
   })
 
   it('classifies a failed fetch as offline, whatever the engine calls it', () => {
@@ -241,30 +240,11 @@ describe('classifyError', () => {
       expect(classifyError(value)).toBe('unknown')
     }
   })
-})
 
-describe('errorPolicy', () => {
-  it('offers a retry but never a report for offline — the report POST needs that network', () => {
-    expect(errorPolicy(new TypeError('Failed to fetch'))).toEqual({
-      kind: 'offline',
-      ...ERROR_POLICY.offline,
-    })
-    expect(ERROR_POLICY.offline).toMatchObject({ retry: true, nearby: false, report: false })
-  })
-
-  it('offers only a way back into live inventory for a dead link', () => {
-    // Retrying a region that doesn't exist fails identically, every time.
-    expect(ERROR_POLICY['not-found']).toMatchObject({ retry: false, nearby: true, report: false })
-  })
-
-  it('offers only a report where nothing a viewer can press would help', () => {
-    expect(ERROR_POLICY.config).toMatchObject({ retry: false, nearby: false, report: true })
-    expect(ERROR_POLICY.contract).toMatchObject({ retry: false, nearby: false, report: true })
-  })
-
-  it('shows localized copy for every kind, never the thrown developer string', () => {
-    for (const policy of Object.values(ERROR_POLICY)) {
-      expect(policy.messageKey).toMatch(/^error\./)
-    }
+  it.each(mockErrorKinds)('classifies the %s story fixture as %s', (kind) => {
+    // The Ladle stories enumerate `mockErrors` and claim each entry demonstrates its own
+    // kind. Assert that here, so a fixture can't quietly start previewing the wrong
+    // policy — and so the stories stay honest without a browser.
+    expect(classifyError(mockErrors[kind])).toBe(kind)
   })
 })

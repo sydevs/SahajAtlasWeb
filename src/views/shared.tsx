@@ -12,7 +12,7 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
-import { ErrorActions, GeolocationPrompt } from '@/components/molecules'
+import { ErrorActions, GeolocationPrompt, useErrorDisplay } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -24,7 +24,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import { geocodeCountryCode } from '@/lib/geocode'
-import { errorMessage, errorPolicy } from '@/lib/report'
+import { atlasError } from '@/lib/report'
 import {
   hasActivePlaceSearch,
   markGeolocationDismissed,
@@ -316,7 +316,7 @@ export function useEventFromPath(eventPath: string) {
   const resolved = resolvePath(eventPath)
 
   if (resolved?.kind !== 'event') {
-    throw new Error(`Not an event: ${eventPath}`)
+    throw atlasError('not-found', `Not an event: ${eventPath}`)
   }
 
   return useSuspenseQuery({
@@ -345,19 +345,17 @@ export function DrawerLoading() {
 // (molecules/Fallbacks): the same classified copy and the same ErrorActions, differing
 // only in chrome — so a given failure offers exactly the same thing wherever it lands.
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  const { t } = useTranslation('common')
-  // One narrowing for the banner, the buttons and the report context alike (issue #89).
-  const policy = errorPolicy(error)
-  const message = t(policy.messageKey)
+  // One derivation for the banner, the buttons and the report context alike — the SAME
+  // hook the app-level fallback uses, so the two can't drift on what a failure says or
+  // offers, and the thrown developer string reaches the report but never the screen.
+  const { policy, message, reportContext } = useErrorDisplay(error)
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
       <Alert align="start" className="max-w-xs" color="danger" description={message} />
       <ErrorActions
         policy={policy}
-        // The thrown developer string never reaches the screen, but it's exactly what a
-        // report needs — so it still rides along as context, unchanged (issue #79).
-        reportContext={errorMessage(error) ?? message}
+        reportContext={reportContext}
         resetErrorBoundary={resetErrorBoundary}
       />
     </DrawerBody>

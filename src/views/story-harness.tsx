@@ -65,26 +65,29 @@ const mockIpLocation: IpLocation = {
 export type ViewHarnessProps = {
   /** The active use-case key — remounts + re-seeds when it changes. */
   seedKey: string
-  /** Populate the isolated query client with the case's mock data. */
-  seed: (client: QueryClient) => void
+  /** Populate the isolated query client with the case's mock data. Omit for a case that
+   *  renders no view (an error case, which throws before any query is read). */
+  seed?: (client: QueryClient) => void
   /** Widget mode; defaults to the map-less embed (`standalone`, no map). */
   mode?: WidgetMode
-  /**
-   * Drive the story into its error state: this value is thrown inside the boundary,
-   * exactly as a failing view's query would throw it, so DrawerErrorFallback classifies
-   * it for real. The harness seeds its QueryClient synchronously and React Query has no
-   * public API for seeding a REJECTED query, so a thrower is the honest route.
-   */
-  throws?: unknown
   children: ReactNode
 }
 
-/** Throws on render, inside the boundary — the story's stand-in for a failed query. */
-function Thrower({ error }: { error: unknown }): never {
+/**
+ * Drive a story into its error state: render this as the harness's children and the
+ * value is thrown inside the boundary, exactly as a failing view's query would throw it,
+ * so DrawerErrorFallback classifies it for real.
+ *
+ * A thrower rather than a seeded rejection because the harness seeds its QueryClient
+ * synchronously and React Query has no public API for seeding a REJECTED query. It's
+ * passed as `children` rather than through a prop of its own so the harness keeps ONE
+ * slot for "what renders inside the boundary".
+ */
+export function Thrower({ error }: { error: unknown }): never {
   throw error
 }
 
-export function ViewHarness({ seedKey, seed, mode, throws, children }: ViewHarnessProps) {
+export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps) {
   const client = useMemo(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
@@ -101,7 +104,7 @@ export function ViewHarness({ seedKey, seed, mode, throws, children }: ViewHarne
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
     c.setQueryData(['ip-location'], mockIpLocation)
-    seed(c)
+    seed?.(c)
 
     return c
     // Re-seed only when the case changes; `seed` is a fresh closure each render.
@@ -131,9 +134,7 @@ export function ViewHarness({ seedKey, seed, mode, throws, children }: ViewHarne
               <Suspense fallback={<DrawerLoading />}>
                 {/* The DRAWER fallback, matching DrawerStack — the app-level
                     ErrorFallback previewed a screen the drawer stack never shows. */}
-                <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
-                  {throws === undefined ? children : <Thrower error={throws} />}
-                </ErrorBoundary>
+                <ErrorBoundary FallbackComponent={DrawerErrorFallback}>{children}</ErrorBoundary>
               </Suspense>
             </div>
           </DrawerSlotsProvider>

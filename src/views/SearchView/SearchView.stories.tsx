@@ -5,7 +5,7 @@ import type { EventSlim } from '@/types'
 import { useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-harness'
+import { Thrower, ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockErrors } from '@/mocks/errors'
@@ -93,13 +93,13 @@ const EXAMPLES: Record<string, Example> = {
   },
 }
 
-type ExampleKey = keyof typeof EXAMPLES | typeof OFFLINE
+type ExampleKey = keyof typeof EXAMPLES
 
-// The failure this view actually reaches (issue #89): the results list is the one screen
-// a viewer lands on straight from a dropped connection, and a failed fetch classifies as
+// The failure this view actually reaches (issue #89): the results list is the screen a
+// viewer lands on straight from a dropped connection, and a failed fetch classifies as
 // `offline` — Try again only. No "See nearby events" (that search fails identically) and
 // no report CTA (connectivity isn't ours to fix, and the report POST needs that network).
-const OFFLINE = 'Offline' as const
+const OFFLINE = 'Offline'
 
 // The events key SearchView reads for a given query — through the same `eventsQuery`
 // factory the list itself uses, fed the `?center` and filters decoded from that query
@@ -129,7 +129,7 @@ const eventsKey = (search: string, locale: string) => {
  * case seeds both the default key the first render reads and the key its own params
  * resolve to, and neither render ever reaches the absent backend.
  */
-export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey | typeof OFFLINE }> = ({ example }) => {
   const { locale } = useLocale()
   const { events } = EXAMPLES[example] ?? EXAMPLES.Results
   // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
@@ -154,11 +154,14 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
         }
       }}
       seedKey={example}
-      throws={example === OFFLINE ? mockErrors.offline : undefined}
     >
-      <SeedSearchParams params={params}>
-        <SearchView />
-      </SeedSearchParams>
+      {example === OFFLINE ? (
+        <Thrower error={mockErrors.offline} />
+      ) : (
+        <SeedSearchParams params={params}>
+          <SearchView />
+        </SeedSearchParams>
+      )}
     </ViewHarness>
   )
 }

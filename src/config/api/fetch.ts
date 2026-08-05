@@ -15,6 +15,7 @@ import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
+import { atlasError } from '@/lib/report'
 import {
   ancestorIds,
   boundsUnder,
@@ -156,7 +157,7 @@ const loadRegions = (): Promise<RegionNode[]> =>
 const getRegionNodeById = async (id: number): Promise<RegionNode> => {
   const node = (await loadRegions()).find((region) => region.id === id)
 
-  if (!node) throw new Error(`Region not found: ${id}`)
+  if (!node) throw atlasError('not-found', `Region not found: ${id}`)
 
   return node
 }
@@ -338,7 +339,7 @@ const getRegion = async (slug: string): Promise<Region> => {
   const { index, events } = indexedFeed(regions, geojson)
   const node = index.bySlug.get(slug)
 
-  if (!node) throw new Error(`Region not found: ${slug}`)
+  if (!node) throw atlasError('not-found', `Region not found: ${slug}`)
 
   // A region with no events under it (located or online) still resolves, and the view
   // renders EmptyEventList. It used to 404 into the error boundary, but nothing a viewer
@@ -572,7 +573,7 @@ const getClient = async () => {
     },
   })
 
-  if (!user) throw new Error('Not authenticated as an Atlas client')
+  if (!user) throw atlasError('config', 'Not authenticated as an Atlas client')
 
   return ClientSchema.parse(user)
 }

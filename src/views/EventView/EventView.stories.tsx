@@ -2,7 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Event } from '@/types'
 
-import { ViewHarness } from '@/views/story-harness'
+import { Thrower, ViewHarness } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockErrors } from '@/mocks/errors'
@@ -43,30 +43,33 @@ const EXAMPLES: Record<string, Event> = {
   },
 }
 
-type ExampleKey = keyof typeof EXAMPLES | typeof NOT_FOUND
+type ExampleKey = keyof typeof EXAMPLES
 
 // The failure this view actually reaches (issue #89): a link to an event the CMS no
-// longer serves, or a hand-typed path that isn't an event at all — both throw
-// "Region not found:" / "Not an event:", classify as `not-found`, and so offer only the
-// way back into live inventory. No retry: the link is dead, not flaky.
-const NOT_FOUND = 'Not found' as const
+// longer serves, or a hand-typed path that isn't an event at all. Both classify as
+// `not-found`, so the drawer offers only the way back into live inventory — no retry,
+// since the link is dead rather than flaky.
+const NOT_FOUND = 'Not found'
 
 /**
  * EventView — the full event panel screen (header + facts → Register → actions →
  * images → About). Switch resolver states with the control; the last case is the dead
  * link, rendered by DrawerErrorFallback.
  */
-export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey | typeof NOT_FOUND }> = ({ example }) => {
   const { locale } = useLocale()
-  const event = example === NOT_FOUND ? EXAMPLES['In person'] : EXAMPLES[example]
+  const event = EXAMPLES[example] ?? mockEvent
 
   return (
     <ViewHarness
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
       seedKey={example}
-      throws={example === NOT_FOUND ? mockErrors['not-found'] : undefined}
     >
-      <EventView basePath={event.path} id={event.id} />
+      {example === NOT_FOUND ? (
+        <Thrower error={mockErrors['not-found']} />
+      ) : (
+        <EventView basePath={event.path} id={event.id} />
+      )}
     </ViewHarness>
   )
 }

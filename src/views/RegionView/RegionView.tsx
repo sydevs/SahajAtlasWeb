@@ -61,11 +61,12 @@ export function RegionView({ slug }: { slug: string }) {
   // Whether this view actually shows event cards (vs. only child-region cards).
   const hasEventList =
     region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
-  // Nothing to list at all. `getRegion` used to 404 a 0-event region into the error
-  // boundary; it resolves now, because no button on an error page could help here
-  // (issue #89), so the drawer says so plainly instead of rendering an empty <List>.
-  const isEmpty =
-    region.subregions.length === 0 && region.events.length === 0 && region.onlineEvents.length === 0
+  // Nothing to list at all — no child cards and no event cards. (`showOnlineCard` needs
+  // sub-regions, so with none, `hasEventList` already covers the online roll-up.)
+  // `getRegion` used to 404 a 0-event region into the error boundary; it resolves now,
+  // because no button on an error page could help here (issue #89), so the drawer says
+  // so plainly instead of rendering an empty <List>.
+  const isEmpty = region.subregions.length === 0 && !hasEventList
   // "All events are free" is the subtitle FALLBACK — stated once per list (no
   // Free chip repeats on cards) but only where events are actually listed;
   // a city's own subtitle takes the slot when present.

@@ -1,2 +1,8 @@
-export { LoadingFallback, ErrorFallback, ErrorActions } from './Fallbacks'
-export type { ErrorFallbackProps, ErrorActionsProps } from './Fallbacks'
+export {
+  LoadingFallback,
+  ErrorFallback,
+  ErrorActions,
+  useErrorDisplay,
+  ERROR_POLICY,
+} from './Fallbacks'
+export type { ErrorFallbackProps, ErrorActionsProps, ErrorPolicy } from './Fallbacks'

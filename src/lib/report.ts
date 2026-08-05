@@ -48,66 +48,40 @@ export function errorMessage(error: unknown): string | undefined {
  */
 export type ErrorKind = 'offline' | 'server' | 'not-found' | 'config' | 'contract' | 'unknown'
 
-/** The copy + actions one kind is allowed to render. */
-export type ErrorPolicy = {
-  /** `common` namespace key for the sentence shown in place of the thrown string. */
-  messageKey: string
-  /** Reset the boundary and re-run the failed query. */
-  retry: boolean
-  /** Escape into live inventory via `/search` (issue #52). */
-  nearby: boolean
-  /** Open the report modal, carrying the thrown message as context (issue #79). */
-  report: boolean
-}
-
 /**
- * The action table. Kept as data so neither fallback hard-codes a button list — they
- * render the same policy in their own chrome.
+ * Throw a failure that already knows its own kind.
  *
- * `report` is always the lowest-weight CTA in both fallbacks, so "secondary" needs no
- * axis of its own: on `server` it sits under a retry that's likelier to help, and on
- * `config`/`contract` it's the only thing offered and so the only thing to look at.
+ * Every `throw` we write ourselves goes through this, so `classifyError` reads a field
+ * instead of pattern-matching our English. The alternative — regexing "Region not
+ * found:" back out of the message — makes a developer string a contract: reword it and
+ * every dead-region link silently degrades to `unknown`, with lint, typecheck and the
+ * unit lane all still green. Same reasoning as `RegistrationRefusedError`
+ * (`src/config/api/mutate.ts`), which carries a code rather than trusting prose.
+ *
+ * The message stays free-form: it's for us, in a report — never for the screen.
  */
-export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
-  // Connectivity is not something the team can act on, and the report POST (#80) needs
-  // the very network that just failed — so no report CTA, and no nearby search (which
-  // would fail identically).
-  offline: { messageKey: 'error.offline', retry: true, nearby: false, report: false },
-  server: { messageKey: 'error.server', retry: true, nearby: false, report: true },
-  // A dead link isn't a wrong turn to retry — it's a way back into live inventory.
-  'not-found': { messageKey: 'error.not_found', retry: false, nearby: true, report: false },
-  // The embed is misconfigured, or SahajCloud's shape drifted. Both need a human;
-  // neither is fixed by pressing anything.
-  config: { messageKey: 'error.config', retry: false, nearby: false, report: true },
-  contract: { messageKey: 'error.generic', retry: false, nearby: false, report: true },
-  unknown: { messageKey: 'error.generic', retry: true, nearby: false, report: true },
+export const atlasError = (kind: ErrorKind, message: string): Error =>
+  Object.assign(new Error(message), { kind })
+
+// The valid kinds as a set, so a stray `{ kind: 'whatever' }` reaching us from a host
+// page or a third-party rejection can't smuggle itself in as a classification.
+const ERROR_KINDS: Record<ErrorKind, true> = {
+  offline: true,
+  server: true,
+  'not-found': true,
+  config: true,
+  contract: true,
+  unknown: true,
 }
 
-/** A thrown value's HTTP status, when it carries one (`PayloadSDKError`). Duck-typed
- *  rather than `instanceof`, so the shape is the dependency — as `mutate.ts` does. */
-const statusOf = (error: object): number | undefined => {
-  const { status } = error as { status?: unknown }
-
-  return typeof status === 'number' ? status : undefined
-}
+const isErrorKind = (value: unknown): value is ErrorKind =>
+  typeof value === 'string' && value in ERROR_KINDS
 
 // Native `fetch` rejects with a TypeError whose wording differs per engine ("Failed to
 // fetch" / "NetworkError when attempting to fetch resource." / "Load failed"). Matched
 // on the wording as well as the type, because a TypeError is just as often OUR bug —
 // and a programming error deserves the report CTA that `offline` suppresses.
 const NETWORK_MESSAGE = /failed to fetch|networkerror|network request failed|load failed/i
-
-// `instanceof TypeError` fails across realms (an iframe, a worker), and the widget runs
-// inside host pages we don't control — so read the tag the engine sets instead.
-const isTypeError = (error: unknown): boolean =>
-  typeof error === 'object' && error !== null && (error as { name?: unknown }).name === 'TypeError'
-
-/** The developer strings thrown by our own code, in the order they're checked. */
-const SENTINELS: [RegExp, ErrorKind][] = [
-  [/^Region not found:|^Not an event:/, 'not-found'],
-  [/^Not authenticated as an Atlas client|^Missing api key\./, 'config'],
-  [/^SahajCloud request returned no data:/, 'server'],
-]
 
 /**
  * Narrow an unknown thrown value to the kind of failure it represents.
@@ -116,38 +90,35 @@ const SENTINELS: [RegExp, ErrorKind][] = [
  * never do is throw: a hostile value (a throwing getter, a null-prototype object) is
  * `unknown`, not an unrecoverable blank widget on someone else's page.
  *
- * Order matters. An HTTP status is checked first because it proves a server answered,
- * which outranks anything `navigator.onLine` claims; `navigator.onLine` is checked last,
- * as the weakest signal — it only reports whether the machine has a link, not whether
+ * Order matters. Our own tag wins outright. Then an HTTP status, because it proves a
+ * server answered — which outranks anything `navigator.onLine` claims. `navigator.onLine`
+ * is last, as the weakest signal: it reports whether the machine has a link, not whether
  * this request could have travelled it.
  */
 export function classifyError(error: unknown): ErrorKind {
   try {
-    if (typeof error === 'object' && error !== null) {
-      const status = statusOf(error)
+    // One read covers all three duck-typed shapes: our tag, a PayloadSDKError's status,
+    // and a ZodError's name/issues. `instanceof` is avoided throughout — it fails across
+    // realms (an iframe, a worker), and the widget runs inside host pages we don't own.
+    const { kind, status, name, issues } =
+      typeof error === 'object' && error !== null
+        ? (error as { kind?: unknown; status?: unknown; name?: unknown; issues?: unknown })
+        : {}
 
-      if (status !== undefined) {
-        if (status === 401 || status === 403) return 'config'
-        if (status === 404) return 'not-found'
-        if (status >= 500) return 'server'
-      }
+    if (isErrorKind(kind)) return kind
 
-      // A zod parse failure — SahajCloud's shape drifted from ours. Duck-typed for the
-      // same reason as the status, and because a ZodError can cross a module boundary.
-      const { name, issues } = error as { name?: unknown; issues?: unknown }
-
-      if (name === 'ZodError' || Array.isArray(issues)) return 'contract'
+    if (typeof status === 'number') {
+      if (status === 401 || status === 403) return 'config'
+      if (status === 404) return 'not-found'
+      if (status >= 500) return 'server'
     }
+
+    // A zod parse failure — SahajCloud's shape drifted from ours.
+    if (name === 'ZodError' || Array.isArray(issues)) return 'contract'
 
     const message = errorMessage(error)
 
-    if (message) {
-      for (const [pattern, kind] of SENTINELS) {
-        if (pattern.test(message)) return kind
-      }
-
-      if (isTypeError(error) && NETWORK_MESSAGE.test(message)) return 'offline'
-    }
+    if (name === 'TypeError' && message && NETWORK_MESSAGE.test(message)) return 'offline'
 
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline'
 
@@ -155,13 +126,6 @@ export function classifyError(error: unknown): ErrorKind {
   } catch {
     return 'unknown'
   }
-}
-
-/** The classification and its policy in one read — what both fallbacks actually want. */
-export const errorPolicy = (error: unknown): ErrorPolicy & { kind: ErrorKind } => {
-  const kind = classifyError(error)
-
-  return { kind, ...ERROR_POLICY[kind] }
 }
 
 /**

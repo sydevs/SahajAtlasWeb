@@ -6,6 +6,7 @@ import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
 import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
+import { atlasError } from '@/lib/report'
 
 // SahajCloud locale for the active UI language. The widget's language codes match
 // SahajCloud's locale codes 1:1, so the resolved i18next language passes straight
@@ -73,7 +74,7 @@ const sdk = new PayloadSDK<Config>({
  */
 export const validateSDKResponse = <T>(value: T | null | undefined, context: string): T => {
   if (value === null || value === undefined) {
-    throw new Error(`SahajCloud request returned no data: ${context}`)
+    throw atlasError('server', `SahajCloud request returned no data: ${context}`)
   }
 
   return value
