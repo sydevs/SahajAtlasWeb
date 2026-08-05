@@ -8,7 +8,7 @@ import { ListToolbar, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { parseCenter } from '@/lib/shape'
+import { listResetKey, parseCenter } from '@/lib/shape'
 import {
   CloseButton,
   ErrorPanel,
@@ -54,17 +54,9 @@ export function SearchView() {
     [frameSearch, searchParams.get('center'), searchParams.get('bbox')],
   )
 
-  // What the list boundary below resets on: everything in the URL that changes WHAT is
-  // queried — but NOT `?q`, which the geocoder rewrites on every keystroke and which the
-  // events query doesn't read. Keying on the raw param string would retry a failing query
-  // once per character typed.
-  const listResetKey = useMemo(() => {
-    const params = new URLSearchParams(searchParams)
-
-    params.delete('q')
-
-    return params.toString()
-  }, [searchParams])
+  // What the list boundary below resets on — see `listResetKey`: everything that changes
+  // WHAT is queried, minus the per-keystroke `?q`.
+  const resetKey = useMemo(() => listResetKey(searchParams), [searchParams])
 
   return (
     <>
@@ -91,11 +83,7 @@ export function SearchView() {
             pin its error over every subsequent search (issue #89). */}
         <QueryErrorResetBoundary>
           {({ reset }) => (
-            <ErrorBoundary
-              FallbackComponent={ErrorPanel}
-              resetKeys={[listResetKey]}
-              onReset={reset}
-            >
+            <ErrorBoundary FallbackComponent={ErrorPanel} resetKeys={[resetKey]} onReset={reset}>
               <DynamicEventsList
                 hasSearchCenter={center !== undefined}
                 latitude={latitude}

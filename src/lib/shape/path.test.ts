@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   childRoute,
   isCanonicalPath,
+  listResetKey,
   nearestKnownRegion,
   parentOf,
   parseCenter,
@@ -235,5 +236,34 @@ describe('nearestKnownRegion', () => {
     }
 
     expect(nearestKnownRegion('/gb/cambridgeshire/atlantis', new Set())).toBeUndefined()
+  })
+})
+
+describe('listResetKey', () => {
+  const key = (search: string) => listResetKey(new URLSearchParams(search))
+
+  it('ignores ?q — the geocoder rewrites it on every keystroke', () => {
+    // The reason this helper exists: keying the results boundary on the raw query string
+    // would retry a failing query once per character typed.
+    expect(key('center=0,0&q=Cam')).toBe(key('center=0,0&q=Cambridge'))
+    expect(key('center=0,0&q=Cam')).toBe(key('center=0,0'))
+  })
+
+  it('changes when what is actually queried changes', () => {
+    const base = key('center=0,0')
+
+    expect(key('center=4.35,50.85')).not.toBe(base) // a new place
+    expect(key('center=0,0&format=online')).not.toBe(base) // a filter
+    expect(key('center=0,0&all=1')).not.toBe(base) // the distance cap dismissed
+    expect(key('center=0,0&cc=GB')).not.toBe(base) // the searched country
+  })
+
+  it('is order-independent, so param reshuffling is not a reset', () => {
+    expect(key('center=0,0&format=online')).toBe(key('format=online&center=0,0'))
+  })
+
+  it('handles the bare search with no params', () => {
+    expect(key('')).toBe('')
+    expect(key('q=anything')).toBe('')
   })
 })

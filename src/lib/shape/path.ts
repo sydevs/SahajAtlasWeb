@@ -87,6 +87,29 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
 }
 
 /**
+ * The part of a search URL that decides WHAT the results query asks for — everything
+ * except `?q`.
+ *
+ * SearchView's results boundary resets on this (issue #89). It can't reset on the whole
+ * query string: the geocoder mirrors every keystroke into `?q`, so a failing query would
+ * be retried once per character typed. And it can't reset on the pathname, which is what
+ * the drawer boundary already keys on — every re-search and filter change moves only the
+ * query string, so without a reset a single failure would pin its error over every later
+ * attempt, turning a transient failure into a permanent dead end.
+ *
+ * `?q` is safe to drop because nothing downstream reads it: it pre-fills the field's text
+ * and suppresses the IP prompt, and neither is part of the events query.
+ */
+export const listResetKey = (params: URLSearchParams): string => {
+  const rest = new URLSearchParams(params)
+
+  rest.delete('q')
+  rest.sort()
+
+  return rest.toString()
+}
+
+/**
  * The searched country's ISO alpha-2 code (`?cc=IS`) — written by the geocoder field
  * and the accepted IP suggestion, read by `useCountrySite` to offer that country's own
  * website when it lists no programs (issue #82). Named here, beside `searchPath`, so
