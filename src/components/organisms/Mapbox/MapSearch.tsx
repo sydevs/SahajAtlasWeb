@@ -1,7 +1,7 @@
 import React, { Component, type ReactNode } from 'react'
 import { Geocoder } from '@mapbox/search-js-react'
 import { GeocodingFeature } from '@mapbox/search-js-core'
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { controlTheme } from './themes'
@@ -39,6 +39,7 @@ class GeocoderBoundary extends Component<
 
 export function MapSearch({ onSelect }: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
@@ -47,6 +48,12 @@ export function MapSearch({ onSelect }: MapSearchProps) {
   // Merge `q` into the existing query so the active filters (and bbox/center)
   // survive typing — they live only in the URL now. `replace` so per-keystroke
   // edits don't stack history. Shared by the geocoder and the plain fallback.
+  //
+  // `state` is carried explicitly: `setSearchParams` forwards only what it's given, so
+  // a bare `{ replace: true }` replaces the entry with a state-less one and drops its
+  // `atlasDepth` — after ONE keystroke the drawer's dismissal (X / swipe / Esc) would
+  // push to the structural parent instead of going chronologically back. The reveal,
+  // filter and sort setters carry it for the same reason.
   const setQuery = (query: string) => {
     setSearchQuery(query)
     setSearchParams(
@@ -57,7 +64,7 @@ export function MapSearch({ onSelect }: MapSearchProps) {
 
         return next
       },
-      { replace: true },
+      { replace: true, state: location.state },
     )
   }
 
