@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Algo ha salido mal.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "offline": "Parece que no tienes conexión.",
+    "server": "Nuestros servidores tienen problemas en este momento.",
+    "not_found": "No hemos encontrado esa página.",
+    "config": "Esta inserción de Atlas no está configurada correctamente."
   },
   "country_site": {
     "title": "Todavía no hay clases registradas en %{country}.",

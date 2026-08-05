@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Une erreur s'est produite.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "offline": "Vous semblez hors ligne.",
+    "server": "Nos serveurs rencontrent actuellement un problème.",
+    "not_found": "Nous n'avons pas trouvé cette page.",
+    "config": "Cette intégration d'Atlas n'est pas correctement configurée."
   },
   "country_site": {
     "title": "Aucun cours n’est encore répertorié en %{country}.",

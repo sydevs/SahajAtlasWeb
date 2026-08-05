@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Algo deu errado.",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "offline": "Você parece estar offline.",
+    "server": "Nossos servidores estão com problemas no momento.",
+    "not_found": "Não encontramos essa página.",
+    "config": "Esta incorporação do Atlas não está configurada corretamente."
   },
   "country_site": {
     "title": "Ainda não há aulas cadastradas em %{country}.",

@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Etwas ist schiefgelaufen.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "offline": "Du scheinst offline zu sein.",
+    "server": "Unsere Server haben gerade Probleme.",
+    "not_found": "Wir konnten diese Seite nicht finden.",
+    "config": "Diese Atlas-Einbindung ist nicht korrekt eingerichtet."
   },
   "country_site": {
     "title": "Für %{country} sind noch keine Kurse eingetragen.",

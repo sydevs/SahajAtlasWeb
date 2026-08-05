@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Er is iets misgegaan.",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "offline": "Je lijkt offline te zijn.",
+    "server": "Onze servers hebben op dit moment problemen.",
+    "not_found": "We konden die pagina niet vinden.",
+    "config": "Deze Atlas-insluiting is niet juist ingesteld."
   },
   "country_site": {
     "title": "Er zijn nog geen lessen vermeld in %{country}.",

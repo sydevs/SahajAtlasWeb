@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Valami hiba történt.",
-    "retry": "Újrapróbálkozás"
+    "retry": "Újrapróbálkozás",
+    "offline": "Úgy tűnik, nincs internetkapcsolat.",
+    "server": "A szervereinknek jelenleg gondjaik vannak.",
+    "not_found": "Nem találjuk ezt az oldalt.",
+    "config": "Ez az Atlas-beágyazás nincs megfelelően beállítva."
   },
   "country_site": {
     "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",

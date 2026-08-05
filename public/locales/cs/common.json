@@ -122,7 +122,11 @@
   },
   "error": {
     "generic": "Něco se pokazilo.",
-    "retry": "Zkusit znovu"
+    "retry": "Zkusit znovu",
+    "offline": "Zdá se, že jste offline.",
+    "server": "Naše servery mají momentálně potíže.",
+    "not_found": "Tuto stránku se nepodařilo najít.",
+    "config": "Toto vložení Atlasu není správně nastaveno."
   },
   "country_site": {
     "title": "V %{country} zatím nejsou uvedeny žádné kurzy.",
