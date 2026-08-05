@@ -74,7 +74,10 @@ Five stores, each the single source of truth for its slice:
   message when it was opened from an error CTA. A store rather than local state
   because its three triggers sit in unrelated subtrees (the settings cog,
   `ErrorFallback`, `DrawerErrorFallback`) and the two error CTAs must reach a host
-  mounted **outside** the ErrorBoundary that's rendering them (`App.tsx`). It is
+  mounted **outside** the ErrorBoundary that's rendering them (`App.tsx`). Whether
+  either error CTA renders at all is the classified failure's decision, not the
+  fallback's — `ERROR_POLICY` suppresses it for `offline`, since connectivity isn't
+  ours to fix and the report POST needs the network that just failed (issue #89). It is
   **not** part of the drawer stack: it never appears in the URL, `resolveStack`
   never sees it, and opening/closing it neither pushes nor pops history. The
   element that opened it is kept beside the store (non-reactive) so focus can

@@ -137,3 +137,18 @@ change should surface as a parse error, not a deep runtime crash.
 - `sdk.request` throws a `PayloadSDKError` on a non-2xx, and `validateSDKResponse`
   throws on an undefined/null SDK result (payloadcms/payload#14495), so both a failed
   request and a silent-undefined reach the boundary — preserving the axios-era contract.
+- **Throw `atlasError(kind, message)`, not `new Error(...)`** (`src/lib/report.ts`).
+  Every failure a boundary renders is classified into one of six kinds
+  (`offline | server | not-found | config | contract | unknown`), and that kind decides
+  the localized sentence *and* which of the three buttons the fallback offers. Ours carry
+  the kind as a field; only foreign failures are guessed at (an HTTP `status`, a
+  `ZodError`'s shape, a network `TypeError`, `navigator.onLine`). The classifier used to
+  regex our own English back out of the message, which made a developer string a
+  contract — rewording one silently downgraded the failure, with every gate still green.
+  The message stays free-form: it never reaches the screen, only the report (issue #89).
+- **A 0-event region is data, not an error.** `getRegion` resolves it (`eventCount: 0`,
+  `bounds`/`center` null) and `RegionView` renders `EmptyEventList`. It used to throw so
+  the boundary 404'd it, but nothing a viewer could press there helped — a retry fails
+  identically and an empty region isn't a wrong turn. `getCountries` still hides 0-event
+  countries from the home list, so it's reached by a direct link or a region whose events
+  have all ended.
