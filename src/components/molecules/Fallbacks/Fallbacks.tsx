@@ -116,7 +116,13 @@ export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
  */
 export function useErrorDisplay(error: unknown) {
   const { t } = useTranslation('common', { useSuspense: false })
-  const policy = ERROR_POLICY[classifyError(error)]
+  // `?? unknown` so the lookup can't come back undefined and take the next line down with
+  // it. `classifyError` is total by construction, but its own-property check resolves
+  // `hasOwnProperty` at call time — and we run inside host pages that are free to patch
+  // Object.prototype. This is the one dereference that could break the promise both
+  // fallbacks are built on: throwing from HERE escapes the only boundary in the tree and
+  // unmounts the whole widget.
+  const policy = ERROR_POLICY[classifyError(error)] ?? ERROR_POLICY.unknown
   // The thrown developer string is not the headline — it's untranslated text written for
   // us, rendered to a viewer inside someone else's page. It survives as report context
   // only (issue #89). `defaultValue` so an unloaded namespace renders English rather than
