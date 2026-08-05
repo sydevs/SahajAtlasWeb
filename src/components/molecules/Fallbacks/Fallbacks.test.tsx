@@ -11,18 +11,21 @@ import { mockErrorKinds, mockErrors } from '@/mocks/errors'
 describe('ERROR_POLICY', () => {
   it('offers a retry but never a report for offline', () => {
     // Connectivity isn't ours to fix, and the report POST (#80) needs the very network
-    // that just failed. No nearby search either — it would fail identically.
-    expect(ERROR_POLICY.offline).toMatchObject({ retry: true, nearby: false, report: false })
+    // that just failed.
+    expect(ERROR_POLICY.offline).toMatchObject({ retry: true, report: false })
   })
 
-  it('offers only a way back into live inventory for a dead link', () => {
-    // Retrying a region that doesn't exist fails identically, every time.
-    expect(ERROR_POLICY['not-found']).toMatchObject({ retry: false, nearby: true, report: false })
+  it('offers none of these buttons for a dead link', () => {
+    // Retrying a region that doesn't exist fails identically, every time — and a dead
+    // link's actual recovery is the drawer's dead-end body (somewhere real to go, from
+    // `useRecoveryOffer`), not a button here. `visibleActions` covers the app-level
+    // surface, where that body isn't rendered.
+    expect(ERROR_POLICY['not-found']).toMatchObject({ retry: false, report: false })
   })
 
   it('offers only a report where nothing a viewer can press would help', () => {
-    expect(ERROR_POLICY.config).toMatchObject({ retry: false, nearby: false, report: true })
-    expect(ERROR_POLICY.contract).toMatchObject({ retry: false, nearby: false, report: true })
+    expect(ERROR_POLICY.config).toMatchObject({ retry: false, report: true })
+    expect(ERROR_POLICY.contract).toMatchObject({ retry: false, report: true })
   })
 
   it('keeps a retry and a report for the ones that might be transient', () => {
@@ -44,54 +47,42 @@ describe('ERROR_POLICY', () => {
       expect(policy.fallbackText).not.toContain('error.')
     }
   })
-
-  it('offers at least one action for every kind — no dead end', () => {
-    for (const kind of mockErrorKinds) {
-      const { retry, nearby, report } = ERROR_POLICY[kind]
-
-      expect(retry || nearby || report).toBe(true)
-    }
-  })
 })
 
 describe('visibleActions', () => {
-  const SURFACES = [
-    // The drawer: a boundary to reset, and a mounted stack to navigate into.
-    { canRetry: true, canNavigate: true },
-    // The app-level screen: the drawer stack isn't mounted, so a search goes nowhere.
-    { canRetry: true, canNavigate: false },
-    // Defensive: a caller that renders a fallback with no reset to offer.
-    { canRetry: false, canNavigate: true },
-    { canRetry: false, canNavigate: false },
-  ]
-
-  it('never leaves a viewer with no way out, on any surface', () => {
-    // The narrowing that produced the bug this guards: `not-found` is nearby-only, and
-    // the app-level surface can't navigate — which would have rendered zero buttons.
+  it('never leaves a viewer with no way out, with or without a reset', () => {
+    // The case this guards: `not-found` grants none of these buttons, because its real
+    // recovery is the drawer's dead-end body. On the app-level surface that body isn't
+    // rendered, so without the restore rule the screen would have zero buttons.
     for (const kind of mockErrorKinds) {
-      for (const surface of SURFACES) {
-        const { retry, nearby, report } = visibleActions(ERROR_POLICY[kind], surface)
+      for (const canRetry of [true, false]) {
+        const { retry, report } = visibleActions(ERROR_POLICY[kind], { canRetry })
 
-        expect(retry || nearby || report).toBe(true)
+        expect(retry || report).toBe(true)
       }
     }
   })
 
-  it('does not offer a search the app-level screen cannot reach', () => {
-    // That boundary has no `resetKeys`, so navigating would change the URL and leave the
-    // same error screen on top of it. The report CTA takes the slot instead.
-    const appLevel = visibleActions(ERROR_POLICY['not-found'], {
-      canRetry: true,
-      canNavigate: false,
+  it('restores the report CTA for a dead link where nothing else is offered', () => {
+    expect(visibleActions(ERROR_POLICY['not-found'], { canRetry: true })).toMatchObject({
+      retry: false,
+      report: true,
     })
-
-    expect(appLevel).toMatchObject({ nearby: false, report: true })
   })
 
-  it('keeps offline free of the report CTA wherever something else is on offer', () => {
-    expect(
-      visibleActions(ERROR_POLICY.offline, { canRetry: true, canNavigate: false }),
-    ).toMatchObject({ retry: true, report: false })
+  it('keeps offline free of the report CTA while the retry is on offer', () => {
+    // The report POST needs the very network that just failed.
+    expect(visibleActions(ERROR_POLICY.offline, { canRetry: true })).toMatchObject({
+      retry: true,
+      report: false,
+    })
+  })
+
+  it('restores it when there is no reset to offer', () => {
+    expect(visibleActions(ERROR_POLICY.offline, { canRetry: false })).toMatchObject({
+      retry: false,
+      report: true,
+    })
   })
 
   it('has a policy for whatever any fixture classifies as', () => {

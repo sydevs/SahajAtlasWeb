@@ -6,9 +6,7 @@ import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button } from '@/components/atoms/Button'
 import { useReportModal } from '@/config/store'
-import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { classifyError, errorMessage } from '@/lib/report'
-import { searchPath } from '@/lib/shape'
 
 export function LoadingFallback() {
   const { t } = useTranslation('common')
@@ -33,8 +31,6 @@ export type ErrorPolicy = {
   fallbackText: string
   /** Reset the boundary and re-run the failed query. */
   retry: boolean
-  /** Escape into live inventory via the search view (issue #52). */
-  nearby: boolean
   /** Open the report modal, carrying the thrown message as context (issue #79). */
   report: boolean
 }
@@ -54,29 +50,28 @@ export type ErrorPolicy = {
  */
 export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
   // Connectivity is not something the team can act on, and the report POST (#80) needs
-  // the very network that just failed — so no report CTA, and no nearby search (which
-  // would fail identically). Only reached when the BROWSER says we're offline; an
+  // the very network that just failed — so no report CTA. Only reached when the BROWSER says we're offline; an
   // ambiguous network failure is `server`, which keeps the report CTA.
   offline: {
     messageKey: 'error.offline',
     fallbackText: 'You appear to be offline.',
     retry: true,
-    nearby: false,
     report: false,
   },
   server: {
     messageKey: 'error.server',
     fallbackText: 'Our servers are having trouble right now.',
     retry: true,
-    nearby: false,
     report: true,
   },
-  // A dead link isn't a wrong turn to retry — it's a way back into live inventory.
+  // A dead link offers none of these three. The drawer renders it in the empty-state
+  // register instead — a neutral note plus somewhere real to go, chosen by
+  // `useRecoveryOffer` (views/shared). At the app level, where no drawer stack is mounted
+  // to navigate into, `visibleActions` restores the report CTA so it's never a dead end.
   'not-found': {
     messageKey: 'error.not_found',
     fallbackText: "We couldn't find that page.",
     retry: false,
-    nearby: true,
     report: false,
   },
   // The embed is misconfigured, or SahajCloud's shape drifted. Both need a human;
@@ -85,21 +80,18 @@ export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
     messageKey: 'error.config',
     fallbackText: "This Atlas embed isn't set up correctly.",
     retry: false,
-    nearby: false,
     report: true,
   },
   contract: {
     messageKey: 'error.generic',
     fallbackText: 'Something went wrong.',
     retry: false,
-    nearby: false,
     report: true,
   },
   unknown: {
     messageKey: 'error.generic',
     fallbackText: 'Something went wrong.',
     retry: true,
-    nearby: false,
     report: true,
   },
 }
@@ -116,20 +108,23 @@ export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
  */
 export function useErrorDisplay(error: unknown) {
   const { t } = useTranslation('common', { useSuspense: false })
+  const kind = classifyError(error)
   // `?? unknown` so the lookup can't come back undefined and take the next line down with
   // it. `classifyError` is total by construction, but its own-property check resolves
   // `hasOwnProperty` at call time — and we run inside host pages that are free to patch
   // Object.prototype. This is the one dereference that could break the promise both
   // fallbacks are built on: throwing from HERE escapes the only boundary in the tree and
   // unmounts the whole widget.
-  const policy = ERROR_POLICY[classifyError(error)] ?? ERROR_POLICY.unknown
+  const policy = ERROR_POLICY[kind] ?? ERROR_POLICY.unknown
   // The thrown developer string is not the headline — it's untranslated text written for
   // us, rendered to a viewer inside someone else's page. It survives as report context
   // only (issue #89). `defaultValue` so an unloaded namespace renders English rather than
   // the raw key; see `fallbackText`.
   const message = t(policy.messageKey, { defaultValue: policy.fallbackText })
 
-  return { policy, message, reportContext: errorMessage(error) ?? message }
+  // `kind` rides along because the drawer splits on it: `not-found` renders the dead-end
+  // register (a neutral note plus somewhere to go) rather than the broken one.
+  return { kind, policy, message, reportContext: errorMessage(error) ?? message }
 }
 
 export type ErrorActionsProps = {
@@ -139,59 +134,41 @@ export type ErrorActionsProps = {
   reportContext: string
   /** Reset the boundary and re-run the failed query. Absent ⇒ no retry is possible. */
   resetErrorBoundary?: () => void
-  /**
-   * Whether an in-widget navigation can actually get anywhere. False on the app-level
-   * surface: when the app itself failed to boot, the drawer stack isn't mounted and that
-   * boundary has no `resetKeys`, so "See nearby events" would change the URL and leave
-   * the same error screen on top of it.
-   */
-  canNavigate?: boolean
+}
+
+/**
+ * Which buttons survive once the SURFACE has narrowed what the failure permits — there may
+ * be no boundary to reset.
+ *
+ * Never strands a viewer with no way out: if narrowing leaves nothing, the report CTA comes
+ * back regardless of the policy. An error screen with no buttons at all is the one outcome
+ * worse than the wrong button — and it is exactly what `not-found` would produce here,
+ * since its own recovery lives in the drawer's dead-end body rather than in these buttons.
+ * Pure, so the invariant is testable without a DOM.
+ */
+export const visibleActions = (policy: ErrorPolicy, { canRetry }: { canRetry: boolean }) => {
+  const retry = policy.retry && canRetry
+
+  return { retry, report: policy.report || !retry }
 }
 
 /**
  * The buttons an error is allowed to offer, rendered from the policy rather than a
- * hard-coded list (issue #89) — so the app-level and drawer fallbacks can differ in
- * chrome without ever drifting on what a given failure lets you do.
+ * hard-coded list (issue #89) — so the app-level and drawer fallbacks can differ in chrome
+ * without ever drifting on what a given failure lets you do.
  *
  * Order is weight order: the action likeliest to help first, the report CTA last.
  */
-/**
- * Which buttons survive once the SURFACE has narrowed what the failure permits: there may
- * be no boundary to reset, and on the app-level screen nowhere to navigate to.
- *
- * Never strands a viewer with no way out — if narrowing leaves nothing, the report CTA
- * comes back regardless of the policy. An error screen with no buttons at all is the one
- * outcome worse than the wrong button. Pure, so the invariant is testable without a DOM.
- */
-export const visibleActions = (
-  policy: ErrorPolicy,
-  { canRetry, canNavigate }: { canRetry: boolean; canNavigate: boolean },
-) => {
-  const retry = policy.retry && canRetry
-  const nearby = policy.nearby && canNavigate
-
-  return { retry, nearby, report: policy.report || (!retry && !nearby) }
-}
-
-export function ErrorActions({
-  policy,
-  reportContext,
-  resetErrorBoundary,
-  canNavigate = true,
-}: ErrorActionsProps) {
+export function ErrorActions({ policy, reportContext, resetErrorBoundary }: ErrorActionsProps) {
   // `useSuspense: false` for the same reason `useErrorDisplay` sets it: this can render
   // before any locale JSON has arrived. `defaultValue` on each label for the same reason
   // again — a raw "error.retry" on a button is worse than an untranslated one.
   const { t } = useTranslation('common', { useSuspense: false })
-  const { t: tEvents } = useTranslation('events', { useSuspense: false })
-  const navigate = useAtlasNavigate()
   const openReport = useReportModal((state) => state.openReport)
 
-  const {
-    retry: showRetry,
-    nearby: showNearby,
-    report: showReport,
-  } = visibleActions(policy, { canRetry: !!resetErrorBoundary, canNavigate })
+  const { retry: showRetry, report: showReport } = visibleActions(policy, {
+    canRetry: !!resetErrorBoundary,
+  })
 
   return (
     <>
@@ -200,17 +177,10 @@ export function ErrorActions({
           {t('error.retry', { defaultValue: 'Try again' })}
         </Button>
       )}
-      {/* A dead direct link (e.g. a finished event the CMS no longer serves)
-          still offers a way back into live inventory (issue #52). */}
-      {showNearby && (
-        <Button color="primary" variant="flat" onClick={() => navigate(searchPath())}>
-          {tEvents('display.see_nearby', { defaultValue: 'See nearby events' })}
-        </Button>
-      )}
-      {/* …and if it's us rather than the link, a way to tell us so, carrying the thrown
-          message as report context (issue #79). Suppressed for `offline`: connectivity
-          isn't ours to fix, and the report POST (#80) needs the same network that just
-          failed — but only while something else is on offer. */}
+      {/* If it's us rather than the link, a way to tell us so, carrying the thrown message
+          as report context (issue #79). Suppressed for `offline`: connectivity isn't ours
+          to fix, and the report POST (#80) needs the same network that just failed — but
+          only while something else is on offer. */}
       {showReport && (
         <Button size="sm" variant="ghost" onClick={() => openReport(reportContext)}>
           {t('report.title', { defaultValue: 'Report an issue' })}
@@ -247,12 +217,10 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
         title="Sahaj Atlas"
       />
       {/* The modal host is mounted outside this boundary (App.tsx), so the report CTA
-          still works while this fallback is what's on screen. `canNavigate={false}`
-          because the drawer stack isn't mounted when the app failed to boot — a
-          `not-found` here falls back to the report CTA rather than offering a search
-          that goes nowhere. */}
+          still works while this fallback is what's on screen. No recovery ladder here: the
+          drawer stack isn't mounted when the app failed to boot, so there is nowhere
+          in-widget to send anyone — `visibleActions` restores the report CTA instead. */}
       <ErrorActions
-        canNavigate={false}
         policy={policy}
         reportContext={reportContext}
         resetErrorBoundary={resetErrorBoundary}

@@ -20,6 +20,11 @@ export { ActiveFilterPills } from './ActiveFilterPills'
 export { CountrySiteOffer } from './CountrySiteOffer'
 export type { CountrySiteOfferProps } from './CountrySiteOffer'
 
+// NotFoundOffer — what a dead link shows instead of an error: the sentence, one place to
+// go (useRecoveryOffer picks it), and the prompted search field (issue #89).
+export { NotFoundOffer } from './NotFoundOffer'
+export type { NotFoundOfferProps } from './NotFoundOffer'
+
 // ListToolbar — the controls row above a results list (a Filters button, plus a
 // SortMenu on the search results). A thin justify-between layout; the views supply
 // the controls.
