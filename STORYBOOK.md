@@ -75,9 +75,10 @@ Seeds URL search params (the filters' source of truth, read via `useEventFilters
 decorator's own router — react-router v7 forbids nesting a second `<Router>`. Pass a **stable**
 `params` (module-level `filtersToParams(...)`, or `useMemo`d per case) — it seeds once per
 `params` **identity**, so the story's own writes (paging the results, clearing a filter) survive
-instead of being overwritten by a re-seed. Two cases sharing one query string therefore share one
-memoized object and one seed: give them distinct queries, or a state written in the first carries
-into the second. Used by the ActiveFilterPills, CalendarView + SearchView stories.
+instead of being overwritten by a re-seed. Memoize on the **case key**, not on its query string:
+two cases sharing a query would otherwise share one object and one seed, so switching between
+them wouldn't re-seed and whatever the first left in the URL would carry into the second. Used by
+the ActiveFilterPills, CalendarView + SearchView stories.
 
 ```tsx
 import { SeedSearchParams } from '../../ladle'

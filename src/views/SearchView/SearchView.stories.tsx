@@ -37,10 +37,9 @@ const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 
 // A searched place, so the list segments at the "< 500 km" boundary — the two reveal
 // cases below are about that boundary, and without a `?center` there is nothing to be
-// far from (the whole set is one segment). They carry DIFFERENT `?q` values on purpose:
-// `SeedSearchParams` re-seeds per params identity, so two cases sharing one query string
-// would share one memoized object, and a reveal pressed in the first would carry into
-// the second — which would then open mid-reveal instead of at the state it exists to show.
+// far from (the whole set is one segment). The distinct `?q` values just name the place
+// in each card's distance line; the params object is memoized per CASE (below), so
+// re-seeding doesn't depend on the queries differing.
 const SEARCHED = 'q=Paris&center=0,0'
 const SEARCHED_SPARSE = 'q=Reykjavik&center=0,0'
 
@@ -97,10 +96,13 @@ const eventsKey = (search: string, locale: string) => {
  */
 export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const { search, events } = EXAMPLES[example]
-  // Stable per case — SeedSearchParams keys its effect on this, so a fresh object
-  // every render would re-seed the URL in a loop.
-  const params = useMemo(() => new URLSearchParams(search), [search])
+  const { events } = EXAMPLES[example]
+  // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
+  // render would re-seed the URL in a loop. Memoized on the CASE, not on its query
+  // string: two cases sharing a query would otherwise share one object and one seed, so
+  // switching between them wouldn't re-seed and whatever the first left in the URL
+  // (a reveal, a cleared filter) would carry into the second.
+  const params = useMemo(() => new URLSearchParams(EXAMPLES[example].search), [example])
 
   return (
     <ViewHarness
