@@ -7,14 +7,14 @@ import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
 import { ErrorActions, GeolocationPrompt, useErrorDisplay } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api from '@/config/api'
+import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -41,6 +41,7 @@ import {
   filtersToParams,
   isoCountryCode,
   resolvePath,
+  resolveStack,
   sortFromParams,
   sortToParams,
 } from '@/lib/shape'
@@ -52,6 +53,14 @@ import {
 export type DrawerControl = {
   collapsed: boolean
   canCollapse: boolean
+  /**
+   * Whether `dismiss()` would actually go somewhere. False only at the root, where there
+   * is no parent to climb to and `navigate(-1)` would take the HOST page back. Read by the
+   * error/loading chrome, which renders its own header and must not offer a dead control
+   * (issue #89); the views' own headers don't need it, since a view that rendered at all
+   * has a working stack around it.
+   */
+  canDismiss: boolean
   toggle: () => void
   dismiss: () => void
 }
@@ -59,6 +68,7 @@ export type DrawerControl = {
 export const DrawerControlContext = createContext<DrawerControl>({
   collapsed: false,
   canCollapse: false,
+  canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
 })
@@ -325,10 +335,78 @@ export function useEventFromPath(eventPath: string) {
   })
 }
 
-// Suspense fallback for a view whose data is still loading. Renders only the sheet's
-// inner body (a spinner) — the persistent DrawerContent supplies the sheet chrome —
-// so loading doesn't remount or re-animate the drawer. Mirrors the top-level
-// LoadingFallback (molecules/Fallbacks).
+/**
+ * The header a drawer keeps when its view can't render — while loading, or after it threw.
+ *
+ * Every view renders its own `DrawerHeader` *inside* the boundary and below its
+ * `useSuspenseQuery`, so a throw or a suspend erases the header and its close button along
+ * with the content. That left an error state with no way out of the drawer at all
+ * (issue #89), and a load with nothing on screen to say which thing was opening.
+ *
+ * Deriving the title from the URL + already-cached data — rather than from the query that
+ * is failing or pending — is what makes this worth rendering instead of "Loading…".
+ *
+ * Total by construction (rule: the fallback must never throw). Every lookup is a
+ * non-suspending cache read that degrades to `undefined`, `t()` never suspends and always
+ * carries a `defaultValue`, and an unrecognised route simply omits the title — a header
+ * with only a close control still beats no header.
+ */
+export function DrawerChrome() {
+  const { t } = useTranslation('common', { useSuspense: false })
+  const { t: tEvents } = useTranslation('events', { useSuspense: false })
+  const location = useLocation()
+  const { locale } = useLocale()
+  const { canDismiss } = useDrawerControl()
+  // Non-suspending reads: a miss costs the title, never the frame.
+  const { data: regions } = useQuery({ ...regionsQuery(), retry: false })
+  const { data: titles } = useQuery<Map<number, string>>({
+    queryKey: ['event-titles', locale],
+    enabled: false,
+  })
+
+  const entry = resolveStack(location.pathname).at(-1)
+
+  const title = (() => {
+    switch (entry?.kind) {
+      case 'region':
+        return regions?.find((node) => node.slug === entry.slug)?.name ?? undefined
+      case 'online':
+        return t('online_classes', { defaultValue: 'Online Classes' })
+      case 'event':
+        return titles?.get(entry.id)
+      case 'search':
+        return t('search', { defaultValue: 'Search' })
+      case 'calendar':
+        return t('calendar.title', { defaultValue: 'Calendar' })
+      case 'filters':
+        return t('filters.title', { defaultValue: 'Filters' })
+      case 'register':
+        return tEvents('registration.register_meditation', {
+          defaultValue: 'Register for Meditation',
+        })
+      case 'share':
+        return tEvents('details.share_meditation', { defaultValue: 'Share Meditation' })
+      default:
+        return undefined
+    }
+  })()
+
+  return (
+    <DrawerHeader className="justify-between">
+      {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
+          <h2> is a heading with no name, which is worse for a screen reader than no
+          heading at all. It still holds the left slot so the control stays right-aligned. */}
+      {title ? <DrawerTitle title={title} /> : <div />}
+      {/* At the root there is nothing to climb to and `navigate(-1)` would take the host
+          page back, so offer the collapse (which self-hides where it can't collapse)
+          rather than a close that silently does nothing. */}
+      {canDismiss ? <CloseButton /> : <CollapseToggle />}
+    </DrawerHeader>
+  )
+}
+
+// Suspense fallback for a view whose data is still loading — the shared chrome (so the
+// drawer keeps its identity and its close control) over a spinner.
 //
 // TOP-ALIGNED, not centred. `DrawerBody` fills a sheet that is `h-dvh` (vaul computes its
 // snap translates off the window height), while the mobile sheet only shows its top 300px
@@ -339,27 +417,22 @@ export function DrawerLoading() {
   const { t } = useTranslation('common')
 
   return (
-    <DrawerBody className="flex justify-center p-8">
-      <Spinner color="secondary" label={t('loading')} />
-    </DrawerBody>
+    <>
+      <DrawerChrome />
+      <DrawerBody className="flex justify-center p-8">
+        <Spinner color="secondary" label={t('loading')} />
+      </DrawerBody>
+    </>
   )
 }
 
-// ErrorBoundary fallback for a view whose query failed — kept local to the drawer so
-// one failing view never blanks the whole stack. Renders inner body only (the
-// persistent DrawerContent supplies the chrome). Mirrors the top-level ErrorFallback
-// (molecules/Fallbacks): the same classified copy and the same ErrorActions, differing
-// only in chrome — so a given failure offers exactly the same thing wherever it lands.
-export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  // One derivation for the banner, the buttons and the report context alike — the SAME
-  // hook the app-level fallback uses, so the two can't drift on what a failure says or
-  // offers, and the thrown developer string reaches the report but never the screen.
+/** The error body alone, for the boundaries that sit BELOW a view's own chrome (the
+ *  calendar grid, the results list, the lazy event details) — there the real header is
+ *  still on screen and still working, so a second one would be a duplicate. */
+export function DrawerErrorBody({ error, resetErrorBoundary }: FallbackProps) {
   const { policy, message, reportContext } = useErrorDisplay(error)
 
   return (
-    // Top-aligned for the reason spelled out on DrawerLoading above: centred content sat
-    // below the fold of the 300px mobile sheet, so the error state was invisible on every
-    // phone — the widget looked broken in a way that hid the explanation for it.
     <DrawerBody className="flex flex-col items-start gap-3 p-4">
       <Alert align="start" className="max-w-xs" color="danger" description={message} />
       <ErrorActions
@@ -368,6 +441,25 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
         resetErrorBoundary={resetErrorBoundary}
       />
     </DrawerBody>
+  )
+}
+
+/**
+ * ErrorBoundary fallback for a whole view — kept local to the drawer so one failing view
+ * never blanks the stack. Mirrors the top-level ErrorFallback (molecules/Fallbacks): the
+ * same classified copy and the same ErrorActions, differing only in chrome.
+ *
+ * Renders `DrawerChrome` above the body, because the view's own header went down with it.
+ * Before that, an error left the drawer with no close button — and in the configurations
+ * with no peek strips (desktop, map-less) no swipe and no Esc either, so the viewer was
+ * stuck on the error screen with no way back to the map (issue #89).
+ */
+export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  return (
+    <>
+      <DrawerChrome />
+      <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
+    </>
   )
 }
 

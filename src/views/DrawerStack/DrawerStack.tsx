@@ -304,6 +304,12 @@ export function DrawerStack() {
     () => ({
       collapsed: snap === PEEK_SNAP,
       canCollapse,
+      // Whether pressing X would actually go anywhere — the SAME expression `dismiss`
+      // evaluates below, hoisted so the context stops lying about what the button does.
+      // The error fallback renders its own header (the view's is inside the boundary that
+      // caught), and it must not offer a close that no-ops: at the root there is nothing to
+      // climb to, and `navigate(-1)` would take the HOST page back (issue #89).
+      canDismiss: dismissAction({ hasParent: Boolean(parentPath), depth }) !== 'collapse',
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
       dismiss: () => {
         const action = dismissAction({ hasParent: Boolean(parentPath), depth })
@@ -328,6 +334,8 @@ export function DrawerStack() {
     () => ({
       collapsed: false,
       canCollapse: false,
+      // Always parented to the calendar, so its X always goes somewhere.
+      canDismiss: true,
       toggle: () => {},
       // Same back-vs-climb decision as `control` (via `dismissAction`), but the overlay is
       // always parented to the calendar (`hasParent: true` → never 'collapse'), so 'fallback'
