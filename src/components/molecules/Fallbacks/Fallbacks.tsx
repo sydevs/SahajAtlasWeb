@@ -1,5 +1,6 @@
 import type { ErrorKind } from '@/lib/report'
 
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
@@ -50,8 +51,8 @@ export type ErrorPolicy = {
  */
 export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
   // Connectivity is not something the team can act on, and the report POST (#80) needs
-  // the very network that just failed — so no report CTA. Only reached when the BROWSER says we're offline; an
-  // ambiguous network failure is `server`, which keeps the report CTA.
+  // the very network that just failed — so no report CTA. Only reached when the BROWSER
+  // agrees we're offline; an ambiguous network failure is `server`, which keeps it.
   offline: {
     messageKey: 'error.offline',
     fallbackText: 'You appear to be offline.',
@@ -70,7 +71,7 @@ export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
   // to navigate into, `visibleActions` restores the report CTA so it's never a dead end.
   'not-found': {
     messageKey: 'error.not_found',
-    fallbackText: "We couldn't find that page.",
+    fallbackText: "We couldn't find what you were looking for.",
     retry: false,
     report: false,
   },
@@ -78,7 +79,7 @@ export const ERROR_POLICY: Record<ErrorKind, ErrorPolicy> = {
   // neither is fixed by pressing anything.
   config: {
     messageKey: 'error.config',
-    fallbackText: "This Atlas embed isn't set up correctly.",
+    fallbackText: "This Atlas isn't set up correctly on this page.",
     retry: false,
     report: true,
   },
@@ -206,9 +207,27 @@ export type ErrorFallbackProps = {
  */
 export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
   const { policy, message, reportContext } = useErrorDisplay(error)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Take focus so a keyboard user isn't left with nothing: when the app fails to boot the
+  // widget is an almost-empty box on someone else's page, and without this the next Tab
+  // continues into the HOST page as though the widget weren't there. Only steals from
+  // `<body>` — a boot failure can land while the viewer is typing in the host's own form,
+  // and moving their caret would be worse than a missed announcement.
+  useEffect(() => {
+    const node = ref.current
+    const active = node?.ownerDocument.activeElement
+
+    if (node && (!active || active === node.ownerDocument.body)) node.focus()
+  }, [])
 
   return (
-    <div className="flex-center h-full w-full flex-col gap-3 bg-background p-10">
+    <div
+      ref={ref}
+      aria-label={message}
+      className="flex-center h-full w-full flex-col gap-3 bg-background p-10"
+      tabIndex={-1}
+    >
       <Alert
         className="max-w-xs"
         color="danger"

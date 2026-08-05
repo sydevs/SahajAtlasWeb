@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import enCommon from '../../../../public/locales/en/common.json'
+
 import { ERROR_POLICY, visibleActions } from './Fallbacks'
 
 import { classifyError } from '@/lib/report'
@@ -45,6 +47,19 @@ describe('ERROR_POLICY', () => {
     for (const policy of Object.values(ERROR_POLICY)) {
       expect(policy.fallbackText).toMatch(/[a-z]/)
       expect(policy.fallbackText).not.toContain('error.')
+    }
+  })
+
+  it('keeps every fallbackText word-for-word identical to the shipped en copy', () => {
+    // These are two hand-maintained copies of the same sentence, and they already drifted
+    // once: the locale files were reworded ("that page" → "what you were looking for")
+    // while the defaults kept the old wording. Nobody would have noticed — the default
+    // only renders when the locale fetch loses a race — so a viewer on a broken
+    // connection would have read different words than everyone else.
+    const en = enCommon.error as Record<string, string>
+
+    for (const policy of Object.values(ERROR_POLICY)) {
+      expect(policy.fallbackText).toBe(en[policy.messageKey.replace('error.', '')])
     }
   })
 })

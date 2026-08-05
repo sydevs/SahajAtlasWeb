@@ -4,7 +4,7 @@ import type { StackEntry } from '@/lib/shape'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
@@ -439,6 +439,35 @@ export function DrawerLoading() {
 }
 
 /**
+ * Move focus to the error region when it appears — the piece that keeps a keyboard user
+ * inside the widget.
+ *
+ * When a view's boundary trips mid-session, focus was on the card or link that was just
+ * activated, and that element has now unmounted. Focus falls to `<body>`, so the next Tab
+ * starts at the top of the HOST page — silently ejecting the viewer from the widget
+ * they're using. Focusing the region also gets the message announced, which a live region
+ * does not do reliably here: both fallbacks mount already containing their text, and a
+ * live region only announces content that changes *after* it exists.
+ *
+ * Only steals focus from `<body>` (or nothing). A background refetch can throw while the
+ * viewer is typing in the host page's own form, and moving their caret would be far worse
+ * than a missed announcement. That guard costs nothing in the case this exists for — an
+ * unmounted card leaves focus exactly there.
+ */
+function useFocusOnError<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+
+  useEffect(() => {
+    const node = ref.current
+    const active = node?.ownerDocument.activeElement
+
+    if (node && (!active || active === node.ownerDocument.body)) node.focus()
+  }, [])
+
+  return ref
+}
+
+/**
  * Which noun a dead link should name. `error.not_found` ("what you were looking for") is
  * the honest generic, but the drawer always knows better than that — the URL says whether
  * the viewer was opening an event or a place, and `<event>/register` is still about the
@@ -468,9 +497,10 @@ const notFoundMessageKey = (kind: StackEntry['kind'] | undefined): string => {
 function NotFoundPanel({ message }: { message: string }) {
   const { t } = useTranslation('common', { useSuspense: false })
   const offer = useRecoveryOffer()
+  const ref = useFocusOnError<HTMLDivElement>()
 
   return (
-    <div className="p-4">
+    <div ref={ref} aria-label={message} className="p-4" tabIndex={-1}>
       <NotFoundOffer message={message} offer={offer}>
         {/* `syncToUrl={false}`: this URL is the dead one we've just reported, and embedded
             it lives in the host page's `#!` fragment — writing keystrokes into it spreads
@@ -487,8 +517,10 @@ function NotFoundPanel({ message }: { message: string }) {
 /** The floor: no data, no hooks beyond `t`, so it can stand in when anything richer
  *  fails. Rendered by the boundary around `NotFoundPanel`. */
 function RecoveryFloor({ message }: { message: string }) {
+  const ref = useFocusOnError<HTMLDivElement>()
+
   return (
-    <div className="p-4">
+    <div ref={ref} aria-label={message} className="p-4" tabIndex={-1}>
       <NotFoundOffer message={message} offer={{ kind: 'countries', path: '/' }} />
     </div>
   )
@@ -509,6 +541,7 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common', { useSuspense: false })
   const location = useLocation()
   const { kind, policy, message, reportContext } = useErrorDisplay(error)
+  const brokenRef = useFocusOnError<HTMLDivElement>()
 
   if (kind === 'not-found') {
     const entityMessage = t(notFoundMessageKey(resolveStack(location.pathname).at(-1)?.kind), {
@@ -531,7 +564,12 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   }
 
   return (
-    <div className="flex flex-col items-start gap-3 p-4">
+    <div
+      ref={brokenRef}
+      aria-label={message}
+      className="flex flex-col items-start gap-3 p-4"
+      tabIndex={-1}
+    >
       <Alert align="start" className="max-w-xs" color="danger" description={message} role="alert" />
       <ErrorActions
         policy={policy}
