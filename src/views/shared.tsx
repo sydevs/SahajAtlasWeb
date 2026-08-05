@@ -12,11 +12,11 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
-import { GeolocationPrompt } from '@/components/molecules'
+import { ErrorActions, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory, useReportModal } from '@/config/store'
+import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -24,7 +24,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import { geocodeCountryCode } from '@/lib/geocode'
-import { errorMessage } from '@/lib/report'
+import { errorMessage, errorPolicy } from '@/lib/report'
 import {
   hasActivePlaceSearch,
   markGeolocationDismissed,
@@ -342,41 +342,32 @@ export function DrawerLoading() {
 // ErrorBoundary fallback for a view whose query failed — kept local to the drawer so
 // one failing view never blanks the whole stack. Renders inner body only (the
 // persistent DrawerContent supplies the chrome). Mirrors the top-level ErrorFallback
-// (molecules/Fallbacks): an Alert, plus a retry since resetErrorBoundary is available.
+// (molecules/Fallbacks): the same classified copy and the same ErrorActions, differing
+// only in chrome — so a given failure offers exactly the same thing wherever it lands.
 export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common')
-  const { t: tEvents } = useTranslation('events')
-  const navigate = useAtlasNavigate()
-  const openReport = useReportModal((state) => state.openReport)
-  // One narrowing for both the banner and the report context — via the same shared
-  // helper the app-level ErrorFallback uses, so a given failure reads identically
-  // wherever it surfaces.
-  const description = errorMessage(error) ?? t('error.generic')
+  // One narrowing for the banner, the buttons and the report context alike (issue #89).
+  const policy = errorPolicy(error)
+  const message = t(policy.messageKey)
 
   return (
     <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
-      <Alert align="start" className="max-w-xs" color="danger" description={description} />
-      <Button variant="flat" onClick={resetErrorBoundary}>
-        {t('error.retry')}
-      </Button>
-      {/* A dead direct link (e.g. a finished event the CMS no longer serves)
-          still offers a way back into live inventory (issue #52). */}
-      <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
-        {tEvents('display.see_nearby')}
-      </Button>
-      {/* …and if it's us rather than the link, a way to tell us so, carrying the
-          thrown message as report context (issue #79). */}
-      <Button size="sm" variant="ghost" onClick={() => openReport(description)}>
-        {t('report.title')}
-      </Button>
+      <Alert align="start" className="max-w-xs" color="danger" description={message} />
+      <ErrorActions
+        policy={policy}
+        // The thrown developer string never reaches the screen, but it's exactly what a
+        // report needs — so it still rides along as context, unchanged (issue #79).
+        reportContext={errorMessage(error) ?? message}
+        resetErrorBoundary={resetErrorBoundary}
+      />
     </DrawerBody>
   )
 }
 
-// The generic "no events" state for the region/online drawers when their list
-// comes back empty. Unreachable in the running app (a 0-event region 404s, and the
-// online roll-up card only links out when there ARE online events), but rendered so
-// a directly-typed URL — or a story's empty case — never shows a blank drawer.
+// The generic "no events" state for the region/online drawers when their list comes
+// back empty: a region whose events have all ended, or an online roll-up reached by a
+// hand-typed URL. Deliberately action-less — a 0-event region isn't a wrong turn to
+// retry or report, which is why `getRegion` renders it rather than throwing (issue #89).
 // Search has its own filter-aware empty state (DynamicEventsList's EmptyResults).
 export function EmptyEventList() {
   const { t } = useTranslation('common')

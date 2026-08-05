@@ -30,7 +30,10 @@ export type { ListToolbarProps } from './ListToolbar'
 // persisted in `?sort=`. A Radix DropdownMenu radio group (mirrors SettingsMenu).
 export { SortMenu } from './SortMenu'
 
-export { LoadingFallback, ErrorFallback } from './Fallbacks'
+// Fallbacks — the suspense/error-boundary placeholders. `ErrorActions` is the shared
+// button set both the app-level and drawer fallbacks render from one policy (issue #89).
+export { LoadingFallback, ErrorFallback, ErrorActions } from './Fallbacks'
+export type { ErrorFallbackProps, ErrorActionsProps } from './Fallbacks'
 
 // FormField — the label + control + help/error shell shared by the app's forms, and
 // `fieldErrorId`, the single definition of the aria-describedby id convention.
