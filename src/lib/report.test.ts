@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { buildReportContext, errorMessage } from './report'
+import {
+  ERROR_POLICY,
+  buildReportContext,
+  classifyError,
+  errorMessage,
+  errorPolicy,
+} from './report'
 
 // The browser-derived fields are injected here — the node lane has no window/navigator,
 // which is exactly the case the guards in `report.ts` exist for.
@@ -130,5 +136,135 @@ describe('errorMessage', () => {
     expect(errorMessage('')).toBeUndefined()
     expect(errorMessage(new Error(''))).toBeUndefined()
     expect(errorMessage({ message: 42 })).toBeUndefined()
+  })
+})
+
+/** A `PayloadSDKError` as the fallbacks see it: an Error carrying an HTTP status. */
+const sdkError = (status: number, message = 'Request failed') =>
+  Object.assign(new Error(message), { status })
+
+/** A `ZodError` as it crosses a module boundary — matched on shape, not identity. */
+const zodError = () =>
+  Object.assign(new Error('Invalid input'), {
+    name: 'ZodError',
+    issues: [{ code: 'invalid_type', path: ['events', 0, 'id'] }],
+  })
+
+describe('classifyError', () => {
+  it('reads the HTTP status a SahajCloud failure carries', () => {
+    expect(classifyError(sdkError(401))).toBe('config')
+    expect(classifyError(sdkError(403))).toBe('config')
+    expect(classifyError(sdkError(404))).toBe('not-found')
+    expect(classifyError(sdkError(500))).toBe('server')
+    expect(classifyError(sdkError(503))).toBe('server')
+  })
+
+  it('trusts a status over navigator.onLine — a status proves a server answered', () => {
+    // The browser can report the machine offline the instant after a response lands;
+    // the response is the stronger evidence, and "you appear to be offline" would be
+    // the wrong sentence for a 404.
+    vi.stubGlobal('navigator', { onLine: false })
+
+    expect(classifyError(sdkError(404))).toBe('not-found')
+  })
+
+  it('classifies a zod parse failure as contract drift', () => {
+    expect(classifyError(zodError())).toBe('contract')
+  })
+
+  it('classifies the developer strings our own code throws', () => {
+    expect(classifyError(new Error('Region not found: atlantis'))).toBe('not-found')
+    expect(classifyError(new Error('Not an event: /india/register'))).toBe('not-found')
+    expect(classifyError(new Error('Not authenticated as an Atlas client'))).toBe('config')
+    expect(classifyError(new Error('Missing api key.'))).toBe('config')
+    expect(classifyError(new Error('SahajCloud request returned no data: /events/geojson'))).toBe(
+      'server',
+    )
+  })
+
+  it('classifies a failed fetch as offline, whatever the engine calls it', () => {
+    // Chrome / Firefox / Safari each word this differently, and `instanceof TypeError`
+    // fails across realms, so both the tag and the wording are matched.
+    for (const message of [
+      'Failed to fetch',
+      'NetworkError when attempting to fetch resource.',
+      'Load failed',
+    ]) {
+      expect(classifyError(new TypeError(message))).toBe('offline')
+    }
+  })
+
+  it('does not read every TypeError as offline — our own bugs deserve the report CTA', () => {
+    expect(classifyError(new TypeError('x.map is not a function'))).toBe('unknown')
+  })
+
+  it('falls back to navigator.onLine as the weakest signal', () => {
+    vi.stubGlobal('navigator', { onLine: false })
+    expect(classifyError(new Error('something opaque'))).toBe('offline')
+
+    vi.stubGlobal('navigator', { onLine: true })
+    expect(classifyError(new Error('something opaque'))).toBe('unknown')
+  })
+
+  it('never throws, whatever reaches it', () => {
+    // This runs inside an error boundary's own fallback, where a throw is unrecoverable
+    // and would blank the whole widget on the host page.
+    const hostile = [
+      null,
+      undefined,
+      '',
+      0,
+      NaN,
+      Symbol('nope'),
+      Object.create(null),
+      {
+        get message(): string {
+          throw new Error('nope')
+        },
+      },
+      {
+        get status(): number {
+          throw new Error('nope')
+        },
+      },
+      {
+        toString() {
+          throw new Error('nope')
+        },
+      },
+      [],
+      () => {},
+    ]
+
+    for (const value of hostile) {
+      expect(() => classifyError(value)).not.toThrow()
+      expect(classifyError(value)).toBe('unknown')
+    }
+  })
+})
+
+describe('errorPolicy', () => {
+  it('offers a retry but never a report for offline — the report POST needs that network', () => {
+    expect(errorPolicy(new TypeError('Failed to fetch'))).toEqual({
+      kind: 'offline',
+      ...ERROR_POLICY.offline,
+    })
+    expect(ERROR_POLICY.offline).toMatchObject({ retry: true, nearby: false, report: false })
+  })
+
+  it('offers only a way back into live inventory for a dead link', () => {
+    // Retrying a region that doesn't exist fails identically, every time.
+    expect(ERROR_POLICY['not-found']).toMatchObject({ retry: false, nearby: true, report: false })
+  })
+
+  it('offers only a report where nothing a viewer can press would help', () => {
+    expect(ERROR_POLICY.config).toMatchObject({ retry: false, nearby: false, report: true })
+    expect(ERROR_POLICY.contract).toMatchObject({ retry: false, nearby: false, report: true })
+  })
+
+  it('shows localized copy for every kind, never the thrown developer string', () => {
+    for (const policy of Object.values(ERROR_POLICY)) {
+      expect(policy.messageKey).toMatch(/^error\./)
+    }
   })
 })
