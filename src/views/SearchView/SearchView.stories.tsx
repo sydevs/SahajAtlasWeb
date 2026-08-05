@@ -38,12 +38,16 @@ const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 // A searched place, so the list segments at the distance boundary — the reveal cases
 // below are about that boundary, and without a `?center` there is nothing to be distant
 // from (the whole set is one segment). `?cc` is the searched COUNTRY, which the boundary
-// also reads: an event across a border is held to half the distance. The distinct `?q`
-// values just name the place in each card's distance line; the params object is memoized
-// per CASE (below), so re-seeding doesn't depend on the queries differing.
-const SEARCHED = 'q=Cambridge&center=0,0&cc=GB'
-const SEARCHED_SPARSE = 'q=Dover&center=0,0&cc=GB'
-const SEARCHED_BORDER = 'q=Folkestone&center=0,0&cc=GB'
+// also reads: an event across a border is held to half the distance.
+//
+// Each carries a DISTINCT centre, not just a distinct `?q`. The reveal is session state
+// keyed by `revealKey`, which is built from the events query key — so two cases sharing
+// a centre share a key, and paging deep in one would open the next already paged. The
+// store is module-global and outlives the harness's per-case query client, so nothing
+// else separates them.
+const SEARCHED = 'q=Cambridge&center=0.12,52.21&cc=GB'
+const SEARCHED_SPARSE = 'q=Dover&center=1.31,51.13&cc=GB'
+const SEARCHED_BORDER = 'q=Folkestone&center=1.18,51.08&cc=GB'
 
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
@@ -101,16 +105,16 @@ const eventsKey = (search: string, locale: string) => {
 }
 
 /**
- * SearchView — the distance-ranked results screen: the geocoder over the event list,
- * with Filters and Sort as icon controls in the header beside it (the list pages as you
- * scroll, so a toolbar row pinned above it would scroll away exactly when a long list
- * made it useful).
+ * SearchView — the distance-ranked results screen: the geocoder header over the event
+ * list, with the Filters + Sort toolbar in its own fixed band between the two (a
+ * `DrawerToolbar`, outside the scroll container — the list pages as you scroll, so a
+ * toolbar inside the body would scroll away exactly when a long list made it useful).
  *
  * "Paged" covers the reveal control and the auto-paging that fires as you reach it;
  * "Distant events" the boundary where that stops and a deliberate press takes over;
  * "Across a border" the same boundary tightened to half the distance for another
  * country. "Empty" is the no-results state; "Country website" the offer that replaces
- * it when the searched country lists no programs at all; "Filtered" the header badge +
+ * it when the searched country lists no programs at all; "Filtered" the toolbar badge +
  * active-filter pills over a list.
  *
  * Cases that need a URL seed it onto the decorator's OWN router via `SeedSearchParams`
@@ -124,8 +128,8 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
   // render would re-seed the URL in a loop. Memoized on the CASE, not on its query
   // string: two cases sharing a query would otherwise share one object and one seed, so
-  // switching between them wouldn't re-seed and whatever the first left in the URL
-  // (a reveal, a cleared filter) would carry into the second.
+  // switching between them wouldn't re-seed and whatever the first left in the URL (a
+  // cleared filter, a changed sort) would carry into the second.
   const params = useMemo(() => new URLSearchParams(EXAMPLES[example].search), [example])
 
   return (

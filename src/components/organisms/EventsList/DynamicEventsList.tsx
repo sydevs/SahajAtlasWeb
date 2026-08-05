@@ -1,6 +1,7 @@
 import type { SortOrder } from '@/lib/shape'
 
 import { useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
@@ -122,6 +123,12 @@ export function DynamicEventsList({
   // quantization lives in one place.
   const searchCountry = useSearchCountry()
   const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
+
+  // The searched place each card names in its distance line, read ONCE here. `?q` is
+  // rewritten on every geocoder keystroke, so a card reading it subscribes the whole
+  // list to that churn — see the prop's note on `EventsList`. Its leading part keeps
+  // the line short; the precise reference point stays in each card's accessible label.
+  const searchedPlace = (useSearchParams()[0].get('q') ?? '').split(',')[0].trim()
   const { rows, more, next, total, nearbyKm } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
     [sorted, shown, showAll, hasSearchCenter, searchCountry],
@@ -176,7 +183,7 @@ export function DynamicEventsList({
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
         ) : (
-          <EventsList events={rows} />
+          <EventsList events={rows} searchedPlace={searchedPlace} />
         )}
       </div>
       {/* Nothing left to offer and nothing announced yet — but once a reveal HAS

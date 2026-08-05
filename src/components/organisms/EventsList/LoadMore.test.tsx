@@ -43,10 +43,17 @@ describe('LoadMore', () => {
     expect(render({ more: 'farther', shown: 97, total: 330 })).toContain('Show distant events')
   })
 
-  it('refuses presses while a reveal is still rendering', () => {
+  it('marks itself busy while a reveal renders, but never disabled', () => {
+    // `disabled` would unfocus the button for the commit the flag is up, dropping a
+    // keyboard user to <body> — and re-enabling doesn't bring focus back, so every
+    // press would silently cost them their place. The parent's `pending` guard is what
+    // makes a second press a no-op; nothing needs disabling to stay correct.
     const html = render({ loading: true })
 
-    expect(html).toContain('disabled')
+    expect(html).toContain('aria-busy="true"')
+    // The rendered ATTRIBUTE (`disabled=""`), not the substring — the class list
+    // carries Tailwind's `disabled:` variants either way.
+    expect(html).not.toMatch(/\sdisabled=/)
   })
 
   it('renders the same static markup whether or not auto-reveal is armed', () => {

@@ -39,7 +39,7 @@ describe('hasActivePlaceSearch', () => {
   it('is true with a ?center', () => expect(hasActivePlaceSearch(params('center=2,48'))).toBe(true))
   it('is true with a ?q', () => expect(hasActivePlaceSearch(params('q=Paris'))).toBe(true))
   it('ignores non-place params (filters, the sort)', () => {
-    expect(hasActivePlaceSearch(params('format=online&all=1'))).toBe(false)
+    expect(hasActivePlaceSearch(params('format=online&sort=soonest'))).toBe(false)
   })
 })
 

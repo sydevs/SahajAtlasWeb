@@ -5,6 +5,7 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
+import { Spinner } from '@/components/atoms/Spinner'
 
 export interface LoadMoreProps {
   /** What the control offers next — `null` when everything is revealed. */
@@ -105,15 +106,22 @@ export function LoadMore({
     // the padding would be a blank strip under every fully-revealed list.
     <div className={clsx('flex flex-col items-center gap-2 px-4', more && 'pb-6 pt-4')}>
       {more && (
+        // Busy, but never `disabled` — and not through the Button's own `isLoading`,
+        // which sets `disabled` too. A browser unfocuses a disabled element, so a
+        // keyboard user pressing this would be dropped to <body> for the one commit
+        // the flag is up, and re-enabling doesn't bring focus back: every press would
+        // silently cost them their place. `aria-busy` says the same thing without
+        // leaving the tab order, and the parent's `pending` guard already makes a
+        // second press a no-op, so nothing needs disabling to stay correct.
         <Button
           ref={buttonRef}
+          aria-busy={loading || undefined}
           color="neutral"
-          disabled={loading}
-          isLoading={loading}
           size="sm"
           variant="flat"
           onClick={() => onReveal('press')}
         >
+          {loading && <Spinner decorative color="current" size="sm" />}
           {more === 'farther' ? t('results.farther') : t('results.more')}
         </Button>
       )}
