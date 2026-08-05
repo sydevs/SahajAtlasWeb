@@ -1,42 +1,53 @@
-import { useLocation, useSearchParams } from 'react-router'
+import { useTransition } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
-import { revealFromParams, revealToParams, showAllFromParams } from '@/lib/shape'
+import { useResultsReveal } from '@/config/store'
+import { DEFAULT_REVEAL } from '@/lib/shape'
 
-// How much of the search results list is revealed lives in the URL (`?shown=`, plus
-// `?all=1` once the far segment is showing) like the filters and the sort — so the
-// reveal survives the drawer stack's remount-on-navigation (opening an event and
-// coming back would silently reset component state) and a deep link restores it.
-// Read + advance it with `useReveal`. See `@/lib/shape/reveal`.
+// How much of the search results list is revealed. Session state (`useResultsReveal`),
+// deliberately NOT the URL: paging is a reading position, not a destination, so a
+// reload starts at the first page and a shared link opens at the top of the results.
+// A store rather than component state because the drawer stack remounts views — opening
+// an event and coming back would otherwise drop the reader at the top of a list they
+// had paged deep into. See the store's own note.
 
 export type RevealControls = {
   /** Rows revealed so far (at least one page). */
   shown: number
-  /** Whether the far (> NEARBY_KM) segment has been revealed. */
+  /** Whether the distant (beyond the boundary) segment has been reached. */
   showAll: boolean
-  /** Reveal the next page — hand it `revealRows`' `next`, which computes both. */
+  /** Whether a reveal is currently rendering — drives the control's loading state. */
+  pending: boolean
+  /** Reveal the next page — hand it `revealRows`' `next`, which computes both fields. */
   revealMore: (next: { shown: number; showAll: boolean }) => void
 }
 
-export const useReveal = (): RevealControls => {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const location = useLocation()
+/**
+ * `key` identifies the result set the reveal belongs to (`revealKey`). Reading under a
+ * different key than the stored one yields the first page, so a new search, a filter
+ * edit or a re-sort resets the reveal by construction — there is no reset call for a
+ * call site to forget.
+ */
+export const useReveal = (key: string): RevealControls => {
+  const { storedKey, shown, showAll, revealMore } = useResultsReveal(
+    useShallow((state) => ({
+      storedKey: state.key,
+      shown: state.shown,
+      showAll: state.showAll,
+      revealMore: state.revealMore,
+    })),
+  )
+  // The reveal renders another page of unvirtualized cards, each formatting dates —
+  // enough to be felt on a mid-range phone. As a transition React keeps the current
+  // rows interactive while the next page renders, and `pending` gives the control an
+  // honest loading state instead of a button that looks ignored.
+  const [pending, startTransition] = useTransition()
+  const current = storedKey === key
 
   return {
-    shown: revealFromParams(searchParams),
-    showAll: showAllFromParams(searchParams),
-    // `replace` so paging doesn't stack a history entry per press — otherwise the
-    // drawer's history-aware dismissal (X / swipe / Esc → `navigate(-1)`) would walk
-    // back through every reveal instead of leaving the search.
-    //
-    // `state` has to be carried over explicitly: `setSearchParams` forwards only what
-    // it's given to `navigate`, so a bare `{ replace: true }` replaces the entry with a
-    // state-less one and `atlasDepth` drops to 0 — which turns that same dismissal into
-    // a PUSH to the structural parent (re-framing the map instead of restoring the
-    // camera) after a single press. FilterView carries it for the same reason.
-    revealMore: (next) =>
-      setSearchParams((prev) => revealToParams(next.shown, next.showAll, prev), {
-        replace: true,
-        state: location.state,
-      }),
+    shown: current ? shown : DEFAULT_REVEAL,
+    showAll: current ? showAll : false,
+    pending,
+    revealMore: (next) => startTransition(() => revealMore(key, next)),
   }
 }

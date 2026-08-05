@@ -41,6 +41,15 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="Mid-reveal. Nothing is being fetched — every match is already in memory — but a page of cards is real work, so the control spins and stops taking presses until it lands."
+      title="Loading"
+    >
+      <div className="max-w-md">
+        <LoadMore announce loading more="more" shown={50} total={137} onReveal={() => {}} />
+      </div>
+    </StorySection>
+
+    <StorySection
       description="Everything revealed: the button is gone and only the (visually hidden) announcement remains, so the row takes no vertical space."
       title="Fully revealed"
     >

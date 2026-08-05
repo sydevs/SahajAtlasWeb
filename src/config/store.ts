@@ -114,6 +114,34 @@ export const useCalendarPosition = create<CalendarPositionState>((set) => ({
   setDate: (date) => set(() => ({ date })),
 }))
 
+// ===== RESULTS REVEAL ===== //
+
+// How much of the search results list is revealed: the row count, and whether the
+// distant (beyond the distance boundary) segment has been reached. Session-scoped and
+// cleared on reload — a fresh visit starts at the first page, which is what a reload
+// is asking for. A store rather than component state because the drawer stack REMOUNTS
+// views: opening an event and coming back would otherwise drop the reader back to the
+// top of a list they had paged deep into. Not in the URL either — paging is a reading
+// position, not a destination, and it has no business in a shared link.
+//
+// `key` is the result set the counts describe (centre + filters + sort + locale). When
+// the list reads a different key than the one stored, the reveal simply IS the first
+// page — so a new search, a filter edit or a re-sort resets by construction, with no
+// reset call to forget at any of the call sites that change those things.
+type ResultsRevealState = {
+  key: string
+  shown: number
+  showAll: boolean
+  revealMore: (key: string, next: { shown: number; showAll: boolean }) => void
+}
+
+export const useResultsReveal = create<ResultsRevealState>((set) => ({
+  key: '',
+  shown: 0,
+  showAll: false,
+  revealMore: (key, next) => set(() => ({ key, shown: next.shown, showAll: next.showAll })),
+}))
+
 // ===== REPORT MODAL ===== //
 
 // Open state for the report-issue modal (issue #79). Deliberately NOT part of the

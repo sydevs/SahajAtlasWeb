@@ -18,9 +18,11 @@ import {
   NEARBY_KM,
   byDistance,
   byNextOccurrence,
+  filtersKey,
   hasActiveFilters,
   isOnline,
   nextOccurrence,
+  revealKey,
   revealRows,
 } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
@@ -110,23 +112,30 @@ export function DynamicEventsList({
   const order = useSortOrder()
   const sorted = useMemo(() => sortEvents(events, order), [events, order])
 
-  // How much of that is revealed — URL-driven (`?shown=`/`?all=1`), so it survives the
-  // drawer stack's remount-on-navigation and a deep link restores it. `revealRows`
-  // splits the sorted set at the distance boundary (tightened for events across a
-  // border from the searched country) and slices to the revealed count; nothing here
-  // refetches, because every match is already in memory.
+  // How much of that is revealed — session state keyed by the result set, so it
+  // survives the drawer stack's remount-on-navigation (opening an event and coming back
+  // keeps your place) but resets on a reload and whenever the key changes: a new place,
+  // an edited filter, a re-sort, a language switch. `revealRows` splits the sorted set
+  // at the distance boundary (tightened for events across a border from the searched
+  // country) and slices to the count; nothing here refetches, every match is in memory.
   const searchCountry = useSearchCountry()
-  const { shown, showAll, revealMore } = useReveal()
+  const key = revealKey({
+    latitude,
+    longitude,
+    filtersKey: filtersKey(filters),
+    sort: order,
+    locale,
+  })
+  const { shown, showAll, pending, revealMore } = useReveal(key)
   const { rows, more, next, total } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
     [sorted, shown, showAll, hasSearchCenter, searchCountry],
   )
 
-  // Whether a reveal has happened, read off the URL rather than held as state — for the
-  // same reason the count itself is: component state would reset on the drawer stack's
-  // remount, so returning from an event would drop the footer's running total while the
-  // URL still said 60 rows were shown. Either param moving off its default means a press
-  // happened (`?all=1` alone covers the all-far first press, whose count stays at one page).
+  // Whether a reveal has happened — kept beside the count for the same reason, so
+  // returning from an event doesn't drop the footer's running total while the list is
+  // still showing 60 rows. `showAll` alone covers the all-distant first press, whose
+  // count stays at one page.
   const revealed = shown > DEFAULT_REVEAL || showAll
 
   const listRef = useRef<HTMLDivElement>(null)
@@ -136,7 +145,10 @@ export function DynamicEventsList({
   const focusFrom = useRef<number | null>(null)
 
   const reveal = (trigger: 'press' | 'auto') => {
-    if (!next) return
+    // `pending` guards a double reveal: the previous page is still rendering, so the
+    // rows this would count from are already stale. Matters most for the observer,
+    // which can fire again before the transition commits.
+    if (!next || pending) return
     // Only a press parks a focus target. An auto-reveal is a scroll, not an
     // interaction: moving focus there would yank it off whatever the reader was on.
     if (trigger === 'press') focusFrom.current = rows.length
@@ -184,6 +196,7 @@ export function DynamicEventsList({
           // once they ARE showing, paging goes back to being explicit, because from
           // there the list runs to the other side of the world.
           auto={more === 'more' && !showAll}
+          loading={pending}
           more={more}
           shown={rows.length}
           total={total}

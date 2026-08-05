@@ -1,9 +1,9 @@
-// How much of the search results list is revealed — a presentation concern, kept
-// beside the sort codec for the same reason: it only decides how much of the
-// already-fetched, already-sorted set is rendered, so it stays out of
-// `filtersToParams`/`filtersKey`/`activeFilterCount` and out of the events query key
-// (a count in the key would refetch per press). Both params live in the URL so the
-// reveal survives the drawer stack's remount-on-navigation and is linkable.
+// How much of the search results list is revealed — a presentation concern, so it
+// stays out of `filtersToParams`/`filtersKey`/`activeFilterCount` and out of the events
+// query key (a count in the key would refetch per press). Unlike the filters and the
+// sort it is NOT in the URL: paging is a reading position, not a destination, and a
+// reload should start at the first page. It lives in `useResultsReveal`
+// (`src/config/store.ts`), which is session-scoped — see the note there.
 //
 // The distance cut is a SEGMENT BOUNDARY here, not a filter. `getEvents` returns every
 // match ranked by distance; `revealRows` splits that into a nearby segment and a distant
@@ -35,28 +35,17 @@ export const FOREIGN_NEARBY_KM = NEARBY_KM / 2
 /** Rows revealed per press — also the first page. */
 export const PAGE_SIZE = 25
 
-/** The URL query param the revealed row count serializes to. */
-export const REVEAL_PARAM = 'shown'
-
-/**
- * The far-segment flag. Kept as its own param rather than derived from the revealed
- * count: a search with fewer nearby matches than one page (12 nearby, 300 far) would
- * have its default count already "past" the boundary, and the far events would reveal
- * themselves with no press. It predates this codec as the pill's dismissal (`?all=1`).
- */
-export const SHOW_ALL_PARAM = 'all'
-
-/** The first page's row count; omitted from the URL. */
+/** The first page's row count — where every result set starts. */
 export const DEFAULT_REVEAL = PAGE_SIZE
 
 /**
  * Hard ceiling on the revealed count — 40 presses' worth of rows.
  *
  * The list renders every revealed row unvirtualized, and dropping the fetcher's
- * nearest-50 slice left nothing bounding that: `?shown=999999` would build the whole
- * matching feed in one commit. Reachable by hand too (press 40× and you're here), but
- * a crafted link gets there in one navigation, and this widget renders inside somebody
- * else's page — the freeze would be theirs.
+ * nearest-50 slice left nothing bounding that. The count is session state now rather
+ * than a URL param, so no link can jump straight to a huge one — but the ceiling stays:
+ * it is the only thing standing between a long enough session and a commit that builds
+ * the whole matching feed, inside somebody else's page.
  *
  * The tradeoff, taken deliberately: a matching set larger than this genuinely ends
  * here. That's the very shape of cap this issue removed, so the ceiling is set far
@@ -68,51 +57,26 @@ export const DEFAULT_REVEAL = PAGE_SIZE
 export const MAX_REVEAL = PAGE_SIZE * 40
 
 /**
- * Decode `?shown=`, falling back to one page for anything unparseable or too small and
- * clamping at `MAX_REVEAL`. Both bounds are enforced HERE rather than at the render, so
- * a hand-edited count can't reach `revealRows` at all.
+ * The identity of a result set, for `useResultsReveal`. A reveal belongs to the set it
+ * was made against; when this changes — a new place, an edited filter, a re-sort, a
+ * language switch — the stored count no longer describes anything and the list is back
+ * at its first page. Derived rather than reset imperatively, so no call site that
+ * changes one of these inputs can forget to clear the reveal.
  */
-export const revealFromParams = (params: URLSearchParams): number => {
-  const value = Number(params.get(REVEAL_PARAM))
-
-  return Number.isFinite(value) && value > DEFAULT_REVEAL
-    ? Math.min(Math.floor(value), MAX_REVEAL)
-    : DEFAULT_REVEAL
-}
-
-/** Decode `?all=1` — whether the far segment has been revealed. */
-export const showAllFromParams = (params: URLSearchParams): boolean =>
-  params.get(SHOW_ALL_PARAM) === '1'
-
-/**
- * Write the revealed count (and the far-segment flag) into a copy of `base`, preserving
- * every other param and omitting the first-page default so links stay clean (mirrors
- * `sortToParams`). Passing the default also clears a stale count from a previous reveal.
- */
-export const revealToParams = (
-  shown: number,
-  showAll: boolean,
-  base?: URLSearchParams,
-): URLSearchParams => {
-  const params = new URLSearchParams(base)
-
-  if (shown > DEFAULT_REVEAL) params.set(REVEAL_PARAM, String(shown))
-  else params.delete(REVEAL_PARAM)
-
-  if (showAll) params.set(SHOW_ALL_PARAM, '1')
-  else params.delete(SHOW_ALL_PARAM)
-
-  return params
-}
-
-/**
- * Drop the reveal back to the first page. Needed wherever a setter copies the current
- * params wholesale (`useSetFilters`, `useSetSortOrder`) — a change to WHICH events show,
- * or to their order, makes the previous count meaningless. A new place search doesn't
- * need this: `preserveSearchState` re-encodes from an empty base, so both params go.
- */
-export const resetReveal = (params: URLSearchParams): URLSearchParams =>
-  revealToParams(DEFAULT_REVEAL, false, params)
+export const revealKey = (parts: {
+  latitude: number
+  longitude: number
+  filtersKey: string
+  sort: string
+  locale: string
+}): string =>
+  [
+    parts.latitude.toFixed(2),
+    parts.longitude.toFixed(2),
+    parts.filtersKey,
+    parts.sort,
+    parts.locale,
+  ].join('|')
 
 /**
  * The minimum an event needs for the distance segmentation below — its distance from
@@ -121,11 +85,18 @@ export const resetReveal = (params: URLSearchParams): URLSearchParams =>
  */
 type Segmentable = { distance?: number; address?: { country?: string | null } | null }
 
-/** Which control the foot of the list should offer next. */
+/**
+ * Which control the foot of the list should offer next.
+ *
+ * `'farther'` covers BOTH reaching the distant segment and every page within it: once
+ * the reader has asked for distant events, everything further down the list is one, so
+ * the button keeps saying so rather than reverting to a bare "Show more" that would
+ * quietly stop describing what it fetches.
+ */
 export type RevealMore =
-  /** More rows left in the segment on screen — "show more". */
+  /** More rows left in the nearby segment — "show more". */
   | 'more'
-  /** Nearby matches exhausted, distant ones exist — "show distant events". */
+  /** Reaching, or paging through, the distant segment — "show distant events". */
   | 'farther'
 
 export type Reveal<T> = {
@@ -134,13 +105,14 @@ export type Reveal<T> = {
   /** What the button offers, or `null` when everything is revealed. */
   more: RevealMore | null
   /**
-   * What the next press writes to the URL — `null` exactly when `more` is, so the
-   * caller can't reach for a reveal the list isn't offering.
+   * The reveal state a press moves to — `null` exactly when `more` is, so the caller
+   * can't reach for a reveal the list isn't offering. Always strictly more rows than
+   * are on screen, so no press can be a no-op.
    */
   next: { shown: number; showAll: boolean } | null
   /**
    * Every match, across BOTH segments — not just the one on screen. The list counts up
-   * to it ("showing 60 of 100"), and it has to include the far segment or the count
+   * to it ("showing 60 of 100"), and it has to include the distant segment or the count
    * reads "60 of 60" at the very moment the only control offers 40 more.
    */
   total: number
@@ -194,36 +166,37 @@ export function revealRows<T extends Segmentable>(
 
   // Everything below reasons about `rows.length` — what is actually ON SCREEN — never
   // the requested count. The two diverge whenever the nearby segment is shorter than
-  // the count (`?shown=99999` renders the 50 nearby matches, not 1000 rows), and
+  // the count (a count of 99999 renders the 50 nearby matches, not 1000 rows), and
   // ceiling-gating on the raw count would then hide the control while a whole distant
   // segment sat unreached. It also keeps every `next` strictly greater than what's
   // shown, so no press can be a no-op.
   const revealed = rows.length
+  // Rows the list could still reach — the distant segment included, since one press
+  // brings it into `active`.
+  const reachable = showAll ? active.length : near.length + far.length
 
-  // Rows still to come in the segment on screen; else the crossing, if there's a
-  // distant segment to reach; else the list has genuinely ended. At the ceiling it has
-  // ended as far as this list is concerned: offering a press that the clamp would undo
-  // on read is the one thing worse than stopping.
+  // Rows still to come; `'farther'` once the distant segment is involved, either
+  // because this press reaches it or because it is already showing and everything
+  // below is distant. At the ceiling the list has ended as far as this is concerned:
+  // offering a press the clamp would undo is the one thing worse than stopping.
   const more: RevealMore | null =
-    revealed >= MAX_REVEAL
+    revealed >= MAX_REVEAL || revealed >= reachable
       ? null
-      : revealed < active.length
-        ? 'more'
-        : !showAll && far.length > 0
-          ? 'farther'
-          : null
+      : showAll || revealed >= active.length
+        ? 'farther'
+        : 'more'
 
   return {
     rows,
     more,
-    // The crossing CONTINUES the count rather than resetting it — the rows already
-    // read stay on screen and the distant ones append below them.
-    next:
-      more === 'more'
-        ? { shown: Math.min(revealed + PAGE_SIZE, active.length, MAX_REVEAL), showAll }
-        : more === 'farther'
-          ? { shown: Math.min(revealed + PAGE_SIZE, MAX_REVEAL), showAll: true }
-          : null,
+    // Reaching the distant segment CONTINUES the count rather than resetting it — the
+    // rows already read stay on screen and the distant ones append below them.
+    next: more
+      ? {
+          shown: Math.min(revealed + PAGE_SIZE, reachable, MAX_REVEAL),
+          showAll: showAll || more === 'farther',
+        }
+      : null,
     total: sorted.length,
   }
 }

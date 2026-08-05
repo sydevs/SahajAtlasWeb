@@ -24,6 +24,12 @@ export interface LoadMoreProps {
    */
   auto?: boolean
   /**
+   * Whether the last reveal is still rendering. Nothing is fetched — every match is
+   * already in memory — but a page of cards is real work, so the control says so and
+   * stops taking presses until it lands.
+   */
+  loading?: boolean
+  /**
    * Reveal the next page. The trigger is passed on because the two differ in one way
    * that matters: a `'press'` may need focus moved (the last one unmounts the button),
    * while an `'auto'` reveal must never touch focus — the reader only scrolled.
@@ -49,7 +55,15 @@ export interface LoadMoreProps {
  * press (same DOM node), and the parent already knows from `more` when a press
  * unmounted it.
  */
-export function LoadMore({ more, shown, total, announce, auto = false, onReveal }: LoadMoreProps) {
+export function LoadMore({
+  more,
+  shown,
+  total,
+  announce,
+  auto = false,
+  loading = false,
+  onReveal,
+}: LoadMoreProps) {
   const { t } = useTranslation('common')
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -94,6 +108,8 @@ export function LoadMore({ more, shown, total, announce, auto = false, onReveal 
         <Button
           ref={buttonRef}
           color="neutral"
+          disabled={loading}
+          isLoading={loading}
           size="sm"
           variant="flat"
           onClick={() => onReveal('press')}

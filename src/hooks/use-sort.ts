@@ -3,7 +3,7 @@ import type { SortOrder } from '@/lib/shape'
 import { useMemo } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
 
-import { resetReveal, sortFromParams, sortToParams } from '@/lib/shape'
+import { sortFromParams, sortToParams } from '@/lib/shape'
 
 // The list sort order lives in the URL (`?sort=`) like the filters — the single source
 // of truth, so a sorted view is linkable/shareable. Read with `useSortOrder`; change it
@@ -23,19 +23,18 @@ export const useSortOrder = (): SortOrder => {
  * `useSetFilters`). `replace` so changing the sort doesn't stack a history entry; the
  * default order is omitted from the URL.
  *
- * The reveal (`?shown=`/`?all=1`) resets, as it does on a filter change. Sorting runs
- * on the FULL matching set, so a new order means the revealed rows are a different set
- * of events — not the same list further down — and the honest reveal is the new first
- * page.
+ * The results list's reveal resets with it, without anything here saying so: the sort
+ * is part of `revealKey`, so a new order simply isn't the result set the stored count
+ * belongs to. That's the point of deriving the key rather than resetting imperatively.
  */
 export const useSetSortOrder = () => {
   const [, setSearchParams] = useSearchParams()
   const location = useLocation()
 
-  // Both codecs copy the base they're given, so `prev` goes in as-is. `state` is
-  // carried explicitly so the `replace` keeps the entry's `atlasDepth` (see `use-reveal`).
+  // `state` is carried explicitly so the `replace` keeps the entry's `atlasDepth` —
+  // without it the drawer's history-aware dismissal turns into a structural climb.
   return (order: SortOrder) =>
-    setSearchParams((prev) => sortToParams(order, resetReveal(prev)), {
+    setSearchParams((prev) => sortToParams(order, new URLSearchParams(prev)), {
       replace: true,
       state: location.state,
     })

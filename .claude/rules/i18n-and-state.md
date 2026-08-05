@@ -80,7 +80,35 @@ Five stores, each the single source of truth for its slice:
   element that opened it is kept beside the store (non-reactive) so focus can
   return there on close.
 
-Four slices are **URL-derived, not stores** — the URL query is their single source
+- **`useResultsReveal`** — how much of the search results list is showing: the row
+  count, and whether the **distant** segment (past the distance boundary) has been
+  reached. Session-scoped, so a reload starts at the first page — paging is a reading
+  position, not a destination, and it has no business in a shared link. A store rather
+  than component state because the drawer stack remounts views: opening an event and
+  coming back would otherwise drop the reader at the top of a list they had paged deep
+  into. Read + advanced through `useReveal` (`src/hooks/use-reveal.ts`), which is keyed
+  by **`revealKey`** (`src/lib/shape/reveal.ts`) — the centre, filters, sort and locale
+  the count was made against. Reading under a different key simply *is* the first page,
+  so a new search, a filter edit or a re-sort resets the reveal **by construction**;
+  there is no reset call for `useSetFilters` / `useSetSortOrder` / `FilterView` to
+  forget. The reveal advances inside a `useTransition`, so the control can show an
+  honest loading state while a page of cards renders.
+  `revealRows` splits the sorted set at the distance boundary, slices to the count, and
+  says what the control offers next — clamped at `MAX_REVEAL`, since the rows are
+  unvirtualized. **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
+  `FOREIGN_NEARBY_KM` (half that) for an event whose `address.country` differs from the
+  searched `?cc` — distance alone ranks Belgian classes over French ones for someone
+  searching Lille. Both countries must be known to demote anything, so an online event
+  (no address country) is never caught by it. Within the nearby segment the list **pages
+  itself** as the control scrolls into view (an IntersectionObserver in `LoadMore`,
+  armed only while `more === 'more' && !showAll`); reaching the distant segment is
+  always an **explicit press** ("Show distant events"), paging stays explicit from there
+  on, and the label keeps saying "distant" for every page after it — a bare "Show more"
+  would stop describing what the press fetches. There is deliberately **no "< N km"
+  pill** — an automatic cut posing as a user filter — so that button is the list's only
+  distance affordance.
+
+Three slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:
 
 - **Search filters** — read with `useEventFilters`, mutate with `useSetFilters`
@@ -95,32 +123,6 @@ of truth, so all are linkable/shareable:
   reorders the already-fetched results (a client re-sort in `DynamicEventsList`, never
   a refetch — absent from `filtersKey`), and never lights the filter badge
   (absent from `activeFilterCount`). The SortMenu (search results only) reads/writes it.
-- **The results list's reveal** — read + advanced with `useReveal`
-  (`src/hooks/use-reveal.ts`); serialized by `revealToParams` / `revealFromParams`
-  (`src/lib/shape/reveal.ts`) under **`?shown=`** (the revealed row count, first page
-  omitted) plus **`?all=1`** (the distant-segment flag, which predates the codec as the
-  old "< N km" pill's dismissal). Presentation like the sort — absent from `eventsQuery`'s
-  key, so a press never refetches; every match is already in the cached feed. `revealRows`
-  splits the sorted set at the distance boundary and slices to the count — clamped at
-  `MAX_REVEAL`, since the rows are unvirtualized and a crafted `?shown=999999` would
-  otherwise build the whole matching feed in one commit inside a host page.
-  **The boundary is two numbers, not one**: `NEARBY_KM` (300), and `FOREIGN_NEARBY_KM`
-  (half that) for an event whose `address.country` differs from the searched `?cc` —
-  distance alone ranks Belgian classes over French ones for someone searching Lille. Both
-  countries must be known to demote anything, so an online event (no address country) is
-  never caught by it.
-  Within the nearby segment the list **pages itself** as the control scrolls into view
-  (an IntersectionObserver in `LoadMore`, armed by the parent only while
-  `more === 'more' && !showAll`); reaching the distant segment is always an **explicit
-  press** ("Show distant events"), and paging stays explicit from there on. There is
-  deliberately **no "< N km" pill** — an automatic cut posing as a user filter — so that
-  button is the list's only distance affordance. In the URL rather than component state for the same reason as the others:
-  the drawer stack remounts views, so opening an event and coming back would silently
-  reset the reveal. **Both params reset on any change to the result set**: a new place
-  search drops them for free (`preserveSearchState` re-encodes from an empty base), but
-  the setters that merge onto `prev` — `useSetFilters`, `useSetSortOrder`, and
-  **`FilterView`'s Apply/Clear** (the main filter path, easy to miss) — must call
-  `resetReveal` explicitly.
 - **The searched location** — `?q`/`?center`/`?bbox`, plus **`?cc`** (the
   searched country's ISO code, `SEARCH_COUNTRY_PARAM` in `src/lib/shape/path.ts` beside
   `searchPath`/`parseCenter`). Read raw with a local parse helper rather than through a

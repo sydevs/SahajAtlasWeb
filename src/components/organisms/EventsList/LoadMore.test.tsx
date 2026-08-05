@@ -37,6 +37,18 @@ describe('LoadMore', () => {
     expect(render({ more: 'farther' })).toContain('Show distant events')
   })
 
+  it('keeps saying "distant" for pages after the boundary, never reverting to "more"', () => {
+    // The parent hands back `'farther'` for every page once the distant segment is
+    // showing, so this is the label that has to survive repeated presses.
+    expect(render({ more: 'farther', shown: 97, total: 330 })).toContain('Show distant events')
+  })
+
+  it('refuses presses while a reveal is still rendering', () => {
+    const html = render({ loading: true })
+
+    expect(html).toContain('disabled')
+  })
+
   it('renders the same static markup whether or not auto-reveal is armed', () => {
     // `auto` only wires an IntersectionObserver in an effect, so the button it observes
     // must exist identically without one — the keyboard/screen-reader path can never

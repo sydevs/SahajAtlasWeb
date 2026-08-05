@@ -6,11 +6,8 @@ import {
   MAX_REVEAL,
   NEARBY_KM,
   PAGE_SIZE,
-  resetReveal,
-  revealFromParams,
+  revealKey,
   revealRows,
-  revealToParams,
-  showAllFromParams,
 } from '@/lib/shape'
 
 type TestEvent = { distance?: number; id: string; address?: { country?: string | null } | null }
@@ -42,69 +39,35 @@ const reveal = (
     ...options,
   })
 
-describe('revealFromParams', () => {
-  it('defaults to one page when the param is absent or unparseable', () => {
-    expect(revealFromParams(new URLSearchParams())).toBe(DEFAULT_REVEAL)
-    expect(revealFromParams(new URLSearchParams('shown=lots'))).toBe(DEFAULT_REVEAL)
-    expect(revealFromParams(new URLSearchParams('shown='))).toBe(DEFAULT_REVEAL)
+describe('revealKey', () => {
+  const parts = {
+    latitude: 51.5072,
+    longitude: -0.1276,
+    filtersKey: 'format=offline',
+    sort: 'soonest',
+    locale: 'en',
+  }
+
+  it('is stable for the same result set', () => {
+    expect(revealKey(parts)).toBe(revealKey({ ...parts }))
   })
 
-  it('never goes below one page, however the param is tampered with', () => {
-    expect(revealFromParams(new URLSearchParams('shown=0'))).toBe(DEFAULT_REVEAL)
-    expect(revealFromParams(new URLSearchParams('shown=-40'))).toBe(DEFAULT_REVEAL)
+  it('quantizes the centre, so a small map move does not reset the reveal', () => {
+    expect(revealKey({ ...parts, latitude: parts.latitude + 0.0001 })).toBe(revealKey(parts))
   })
 
-  it('reads a revealed count and floors a fractional one', () => {
-    expect(revealFromParams(new URLSearchParams('shown=75'))).toBe(75)
-    expect(revealFromParams(new URLSearchParams('shown=75.9'))).toBe(75)
-  })
-
-  it('clamps at the ceiling, so a crafted link cannot render the whole feed at once', () => {
-    // The rows are unvirtualized and the fetcher no longer caps the set, so an
-    // unbounded `?shown=` would build every match in one commit — inside a host page.
-    expect(revealFromParams(new URLSearchParams('shown=999999'))).toBe(MAX_REVEAL)
-    expect(revealFromParams(new URLSearchParams(`shown=${MAX_REVEAL + 1}`))).toBe(MAX_REVEAL)
-    expect(revealFromParams(new URLSearchParams(`shown=${MAX_REVEAL}`))).toBe(MAX_REVEAL)
-  })
-})
-
-describe('revealToParams', () => {
-  it('omits the first page so links stay clean', () => {
-    expect(revealToParams(DEFAULT_REVEAL, false).toString()).toBe('')
-  })
-
-  it('serializes the count and the far-segment flag', () => {
-    const params = revealToParams(75, true)
-
-    expect(params.get('shown')).toBe('75')
-    expect(params.get('all')).toBe('1')
-  })
-
-  it('preserves other params', () => {
-    const params = revealToParams(50, false, new URLSearchParams('q=paris&sort=closest'))
-
-    expect(params.get('q')).toBe('paris')
-    expect(params.get('sort')).toBe('closest')
-  })
-
-  it('round-trips through the codec', () => {
-    const params = revealToParams(120, true)
-
-    expect(revealFromParams(params)).toBe(120)
-    expect(showAllFromParams(params)).toBe(true)
-  })
-})
-
-describe('resetReveal', () => {
-  // The reason this exists: `useSetFilters` / `useSetSortOrder` copy the current params
-  // wholesale, so without it a stale count would survive a change to the result set.
-  it('clears both reveal params while preserving the rest', () => {
-    const params = resetReveal(new URLSearchParams('q=paris&shown=125&all=1&sort=soonest'))
-
-    expect(params.has('shown')).toBe(false)
-    expect(params.has('all')).toBe(false)
-    expect(params.get('q')).toBe('paris')
-    expect(params.get('sort')).toBe('soonest')
+  it('changes with anything that changes WHICH events show, or their order', () => {
+    // Each of these is a call site that would otherwise have to remember to reset the
+    // reveal — deriving the key is what makes forgetting impossible.
+    for (const change of [
+      { latitude: 48.85 },
+      { longitude: 2.35 },
+      { filtersKey: 'format=online' },
+      { sort: 'closest' },
+      { locale: 'fr' },
+    ]) {
+      expect(revealKey({ ...parts, ...change })).not.toBe(revealKey(parts))
+    }
   })
 })
 
@@ -163,11 +126,13 @@ describe('revealRows', () => {
     expect(result.total).toBe(60)
   })
 
-  it('pages through the far segment once it is revealed', () => {
+  it('keeps saying "distant" for every page after the segment is revealed', () => {
+    // Not `'more'`: everything below the boundary is a distant event, so a bare "Show
+    // more" would stop describing what the press actually fetches.
     const result = reveal([...near(20), ...far(40)], { shown: 45, showAll: true })
 
     expect(result.rows).toHaveLength(45)
-    expect(result.more).toBe('more')
+    expect(result.more).toBe('farther')
     expect(result.next).toEqual({ shown: 60, showAll: true })
     expect(result.total).toBe(60)
   })
