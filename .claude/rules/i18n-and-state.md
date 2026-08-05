@@ -101,8 +101,10 @@ of truth, so all are linkable/shareable:
   omitted) plus **`?all=1`** (the far-segment flag, which predates the codec as the old
   "< 500 km" pill's dismissal). Presentation like the sort — absent from `eventsQuery`'s
   key, so a press never refetches; every match is already in the cached feed. `revealRows`
-  splits the sorted set at the 500 km boundary and slices to the count, so the list pages
-  through nearby matches first and crossing into the far ones takes an **explicit press**
+  splits the sorted set at the 500 km boundary and slices to the count — clamped at
+  `MAX_REVEAL`, since the rows are unvirtualized and a crafted `?shown=999999` would
+  otherwise build the whole matching feed in one commit inside a host page — so the list
+  pages through nearby matches first and crossing into the far ones takes an **explicit press**
   ("show events farther than 500 km"). There is deliberately **no "< N km" pill** — an
   automatic cut posing as a user filter — so that button is the list's only distance
   affordance. In the URL rather than component state for the same reason as the others:

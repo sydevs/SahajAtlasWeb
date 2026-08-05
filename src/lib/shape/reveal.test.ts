@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_REVEAL,
+  MAX_REVEAL,
   NEARBY_KM,
   PAGE_SIZE,
   resetReveal,
@@ -44,6 +45,14 @@ describe('revealFromParams', () => {
   it('reads a revealed count and floors a fractional one', () => {
     expect(revealFromParams(new URLSearchParams('shown=75'))).toBe(75)
     expect(revealFromParams(new URLSearchParams('shown=75.9'))).toBe(75)
+  })
+
+  it('clamps at the ceiling, so a crafted link cannot render the whole feed at once', () => {
+    // The rows are unvirtualized and the fetcher no longer caps the set, so an
+    // unbounded `?shown=` would build every match in one commit — inside a host page.
+    expect(revealFromParams(new URLSearchParams('shown=999999'))).toBe(MAX_REVEAL)
+    expect(revealFromParams(new URLSearchParams(`shown=${MAX_REVEAL + 1}`))).toBe(MAX_REVEAL)
+    expect(revealFromParams(new URLSearchParams(`shown=${MAX_REVEAL}`))).toBe(MAX_REVEAL)
   })
 })
 
@@ -193,5 +202,31 @@ describe('revealRows', () => {
     expect(result.more).toBe('more')
     expect(result.next).toEqual({ shown: 50, showAll: false })
     expect(result.total).toBe(50)
+  })
+
+  it('stops at the ceiling rather than offering a press the clamp would undo', () => {
+    // A result set past MAX_REVEAL: the rows stop there, and so does the control —
+    // `next` would be clamped straight back on read, so the button would sit there
+    // doing nothing.
+    const result = reveal(near(MAX_REVEAL + 100), { shown: MAX_REVEAL })
+
+    expect(result.rows).toHaveLength(MAX_REVEAL)
+    expect(result.more).toBeNull()
+    expect(result.next).toBeNull()
+    // The count stays honest about what matched, even where the list stops short.
+    expect(result.total).toBe(MAX_REVEAL + 100)
+  })
+
+  it('never proposes a count above the ceiling', () => {
+    const result = reveal(near(MAX_REVEAL + 100), { shown: MAX_REVEAL - 1 })
+
+    expect(result.next).toEqual({ shown: MAX_REVEAL, showAll: false })
+  })
+
+  it('clamps a hand-edited count that bypassed the decoder', () => {
+    const result = reveal(near(MAX_REVEAL + 100), { shown: 999999 })
+
+    expect(result.rows).toHaveLength(MAX_REVEAL)
+    expect(result.more).toBeNull()
   })
 })

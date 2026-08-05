@@ -33,11 +33,35 @@ export const SHOW_ALL_PARAM = 'all'
 /** The first page's row count; omitted from the URL. */
 export const DEFAULT_REVEAL = PAGE_SIZE
 
-/** Decode `?shown=`, falling back to one page for anything unparseable or too small. */
+/**
+ * Hard ceiling on the revealed count — 40 presses' worth of rows.
+ *
+ * The list renders every revealed row unvirtualized, and dropping the fetcher's
+ * nearest-50 slice left nothing bounding that: `?shown=999999` would build the whole
+ * matching feed in one commit. Reachable by hand too (press 40× and you're here), but
+ * a crafted link gets there in one navigation, and this widget renders inside somebody
+ * else's page — the freeze would be theirs.
+ *
+ * The tradeoff, taken deliberately: a matching set larger than this genuinely ends
+ * here. That's the very shape of cap this issue removed, so the ceiling is set far
+ * above any plausible search (the whole global feed is a few thousand events, and a
+ * ranked list nobody scrolls past row 50 of does not need row 1001) — and the control
+ * disappears at the ceiling rather than dead-ending, so it never lies about there
+ * being more.
+ */
+export const MAX_REVEAL = PAGE_SIZE * 40
+
+/**
+ * Decode `?shown=`, falling back to one page for anything unparseable or too small and
+ * clamping at `MAX_REVEAL`. Both bounds are enforced HERE rather than at the render, so
+ * a hand-edited count can't reach `revealRows` at all.
+ */
 export const revealFromParams = (params: URLSearchParams): number => {
   const value = Number(params.get(REVEAL_PARAM))
 
-  return Number.isFinite(value) && value > DEFAULT_REVEAL ? Math.floor(value) : DEFAULT_REVEAL
+  return Number.isFinite(value) && value > DEFAULT_REVEAL
+    ? Math.min(Math.floor(value), MAX_REVEAL)
+    : DEFAULT_REVEAL
 }
 
 /** Decode `?all=1` — whether the far segment has been revealed. */
@@ -130,12 +154,23 @@ export function revealRows<T extends Distanced>(
   // Before the far segment is revealed the list IS the nearby one, so the slice below
   // clamps at the boundary for free — no press can overshoot it.
   const active = showAll ? [...near, ...far] : near
-  const rows = active.slice(0, shown)
+  // Re-clamped here, not just in the decoder, so the ceiling holds for every caller —
+  // and so the `more`/`next` arms below reason about the count actually rendered.
+  const capped = Math.min(shown, MAX_REVEAL)
+  const rows = active.slice(0, capped)
 
   // Rows still to come in the segment on screen; else the crossing, if there's a far
-  // segment left to cross into; else the list has genuinely ended.
+  // segment left to cross into; else the list has genuinely ended. At the ceiling it
+  // has ended as far as this list is concerned: offering a press that the clamp would
+  // undo on read is the one thing worse than stopping.
   const more: RevealMore | null =
-    rows.length < active.length ? 'more' : !showAll && far.length > 0 ? 'farther' : null
+    capped >= MAX_REVEAL
+      ? null
+      : rows.length < active.length
+        ? 'more'
+        : !showAll && far.length > 0
+          ? 'farther'
+          : null
 
   return {
     rows,
@@ -144,9 +179,9 @@ export function revealRows<T extends Distanced>(
     // read stay on screen and the far ones append below them.
     next:
       more === 'more'
-        ? { shown: Math.min(shown + PAGE_SIZE, active.length), showAll }
+        ? { shown: Math.min(capped + PAGE_SIZE, active.length, MAX_REVEAL), showAll }
         : more === 'farther'
-          ? { shown: near.length + PAGE_SIZE, showAll: true }
+          ? { shown: Math.min(near.length + PAGE_SIZE, MAX_REVEAL), showAll: true }
           : null,
     total: sorted.length,
   }
