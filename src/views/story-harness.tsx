@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
-import { ErrorFallback, LoadingFallback } from '@/components/molecules'
+import { DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -34,6 +34,9 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 //     in for the sheet with a flex column that fills the story canvas — a single,
 //     full-view page, not a boxed card. Paired with the stories' `width: 'xsmall'`
 //     default, this reads as the real drawer panel at phone width.
+//  4. The drawer's OWN fences. Suspense + ErrorBoundary in DrawerStack's nesting,
+//     with the drawer-shaped fallbacks — the harness used to wrap stories in the
+//     app-level ones, previewing a screen the drawer stack never renders (#89).
 //
 // Keyed on `seedKey` (the control's use-case) so switching case remounts with a
 // freshly seeded client.
@@ -66,10 +69,22 @@ export type ViewHarnessProps = {
   seed: (client: QueryClient) => void
   /** Widget mode; defaults to the map-less embed (`standalone`, no map). */
   mode?: WidgetMode
+  /**
+   * Drive the story into its error state: this value is thrown inside the boundary,
+   * exactly as a failing view's query would throw it, so DrawerErrorFallback classifies
+   * it for real. The harness seeds its QueryClient synchronously and React Query has no
+   * public API for seeding a REJECTED query, so a thrower is the honest route.
+   */
+  throws?: unknown
   children: ReactNode
 }
 
-export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps) {
+/** Throws on render, inside the boundary — the story's stand-in for a failed query. */
+function Thrower({ error }: { error: unknown }): never {
+  throw error
+}
+
+export function ViewHarness({ seedKey, seed, mode, throws, children }: ViewHarnessProps) {
   const client = useMemo(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
@@ -96,25 +111,32 @@ export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps)
     <QueryClientProvider client={client}>
       <WidgetModeContext.Provider value={mode ?? { standalone: true, hasMap: false }}>
         <NoopMapControllerProvider>
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Suspense fallback={<LoadingFallback />}>
-              {/* A full-view drawer panel: fills the story canvas (the width-xsmall
-                  frame, which the global decorator renders un-padded for views) as a
-                  flex column so the view's DrawerHeader (shrink-0) and DrawerBody
-                  (flex-1, scrolls) lay out exactly as in the real sheet. The filled
-                  drawer context gives the header/body the SAME padding the map-less
-                  app renders (the `filled` mode's `pt-4`), so the story's top spacing
-                  matches the real drawer rather than the anchored default's `pt-2`. */}
-              <DrawerSlotsProvider direction="bottom" mode="filled">
-                <div
-                  key={seedKey}
-                  className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
-                >
-                  {children}
-                </div>
-              </DrawerSlotsProvider>
-            </Suspense>
-          </ErrorBoundary>
+          {/* A full-view drawer panel: fills the story canvas (the width-xsmall frame,
+              which the global decorator renders un-padded for views) as a flex column so
+              the view's DrawerHeader (shrink-0) and DrawerBody (flex-1, scrolls) lay out
+              exactly as in the real sheet. The filled drawer context gives the
+              header/body the SAME padding the map-less app renders (the `filled` mode's
+              `pt-4`), so the story's top spacing matches the real drawer rather than the
+              anchored default's `pt-2`.
+
+              The slots wrap the boundary, not the other way round: DrawerErrorFallback
+              and DrawerLoading render a DrawerBody, so they need the drawer context —
+              and this is the nesting DrawerStack itself uses (DrawerContent > Suspense >
+              ErrorBoundary > the view). */}
+          <DrawerSlotsProvider direction="bottom" mode="filled">
+            <div
+              key={seedKey}
+              className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
+            >
+              <Suspense fallback={<DrawerLoading />}>
+                {/* The DRAWER fallback, matching DrawerStack — the app-level
+                    ErrorFallback previewed a screen the drawer stack never shows. */}
+                <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+                  {throws === undefined ? children : <Thrower error={throws} />}
+                </ErrorBoundary>
+              </Suspense>
+            </div>
+          </DrawerSlotsProvider>
         </NoopMapControllerProvider>
       </WidgetModeContext.Provider>
     </QueryClientProvider>

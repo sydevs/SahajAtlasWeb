@@ -8,6 +8,7 @@ import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
+import { mockErrors } from '@/mocks/errors'
 import { eventsQuery } from '@/config/api'
 import { FOREIGN_NEARBY_KM, NEARBY_KM, filtersFromParams, parseCenter } from '@/lib/shape'
 
@@ -92,7 +93,13 @@ const EXAMPLES: Record<string, Example> = {
   },
 }
 
-type ExampleKey = keyof typeof EXAMPLES
+type ExampleKey = keyof typeof EXAMPLES | typeof OFFLINE
+
+// The failure this view actually reaches (issue #89): the results list is the one screen
+// a viewer lands on straight from a dropped connection, and a failed fetch classifies as
+// `offline` — Try again only. No "See nearby events" (that search fails identically) and
+// no report CTA (connectivity isn't ours to fix, and the report POST needs that network).
+const OFFLINE = 'Offline' as const
 
 // The events key SearchView reads for a given query — through the same `eventsQuery`
 // factory the list itself uses, fed the `?center` and filters decoded from that query
@@ -124,13 +131,16 @@ const eventsKey = (search: string, locale: string) => {
  */
 export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const { events } = EXAMPLES[example]
+  const { events } = EXAMPLES[example] ?? EXAMPLES.Results
   // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
   // render would re-seed the URL in a loop. Memoized on the CASE, not on its query
   // string: two cases sharing a query would otherwise share one object and one seed, so
   // switching between them wouldn't re-seed and whatever the first left in the URL (a
   // cleared filter, a changed sort) would carry into the second.
-  const params = useMemo(() => new URLSearchParams(EXAMPLES[example].search), [example])
+  const params = useMemo(
+    () => new URLSearchParams((EXAMPLES[example] ?? EXAMPLES.Results).search),
+    [example],
+  )
 
   return (
     <ViewHarness
@@ -144,6 +154,7 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
         }
       }}
       seedKey={example}
+      throws={example === OFFLINE ? mockErrors.offline : undefined}
     >
       <SeedSearchParams params={params}>
         <SearchView />
@@ -158,7 +169,7 @@ Default.args = { example: 'Results' }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: Object.keys(EXAMPLES),
+    options: [...Object.keys(EXAMPLES), OFFLINE],
     control: { type: 'radio' },
     defaultValue: 'Results',
   },

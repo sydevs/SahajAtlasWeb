@@ -5,6 +5,7 @@ import type { Event } from '@/types'
 import { ViewHarness } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
+import { mockErrors } from '@/mocks/errors'
 import {
   mockEvent,
   mockEventCourse,
@@ -42,20 +43,28 @@ const EXAMPLES: Record<string, Event> = {
   },
 }
 
-type ExampleKey = keyof typeof EXAMPLES
+type ExampleKey = keyof typeof EXAMPLES | typeof NOT_FOUND
+
+// The failure this view actually reaches (issue #89): a link to an event the CMS no
+// longer serves, or a hand-typed path that isn't an event at all — both throw
+// "Region not found:" / "Not an event:", classify as `not-found`, and so offer only the
+// way back into live inventory. No retry: the link is dead, not flaky.
+const NOT_FOUND = 'Not found' as const
 
 /**
  * EventView — the full event panel screen (header + facts → Register → actions →
- * images → About). Switch resolver states with the control.
+ * images → About). Switch resolver states with the control; the last case is the dead
+ * link, rendered by DrawerErrorFallback.
  */
 export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
   const { locale } = useLocale()
-  const event = EXAMPLES[example]
+  const event = example === NOT_FOUND ? EXAMPLES['In person'] : EXAMPLES[example]
 
   return (
     <ViewHarness
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
       seedKey={example}
+      throws={example === NOT_FOUND ? mockErrors['not-found'] : undefined}
     >
       <EventView basePath={event.path} id={event.id} />
     </ViewHarness>
@@ -68,7 +77,7 @@ Default.args = { example: 'In person' }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: Object.keys(EXAMPLES),
+    options: [...Object.keys(EXAMPLES), NOT_FOUND],
     control: { type: 'radio' },
     defaultValue: 'In person',
   },
