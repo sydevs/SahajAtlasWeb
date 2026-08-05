@@ -1,6 +1,7 @@
 import { Suspense, useMemo, useRef } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { QueryErrorResetBoundary, useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { ErrorBoundary } from 'react-error-boundary'
 import { DateTime } from 'luxon'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
 import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
@@ -25,7 +26,7 @@ import {
   eventsToCalendarEntries,
   filtersKey,
 } from '@/lib/shape'
-import { CloseButton, DrawerLoading, FilterButton } from '@/views/shared'
+import { CloseButton, DrawerErrorBody, DrawerLoading, FilterButton } from '@/views/shared'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -230,9 +231,27 @@ export function CalendarView() {
         <CalendarControls controls={controls} />
       </DrawerHeader>
       <ActiveFilterPills />
-      <Suspense fallback={<DrawerLoading />}>
-        <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
-      </Suspense>
+      {/* The grid owns the `['calendar', …]` read; the header above (month nav, view
+          picker, filters, close) and the pills read none of it. So a failed grid is
+          survivable in place: escalating it to the drawer boundary would replace all that
+          working chrome to show the identical alert (issue #89).
+          `resetKeys` is load-bearing, not decoration — the drawer boundary is keyed on the
+          PATHNAME, and every calendar filter change moves only the query string, so
+          without it one failed fetch would pin its error over every subsequent filter
+          change and turn a transient failure into a permanent dead end. */}
+      <QueryErrorResetBoundary>
+        {({ reset }) => (
+          <ErrorBoundary
+            FallbackComponent={DrawerErrorBody}
+            resetKeys={[filtersKey(filters)]}
+            onReset={reset}
+          >
+            <Suspense fallback={<DrawerLoading />}>
+              <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+      </QueryErrorResetBoundary>
     </>
   )
 }

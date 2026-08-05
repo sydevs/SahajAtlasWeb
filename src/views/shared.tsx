@@ -426,20 +426,35 @@ export function DrawerLoading() {
   )
 }
 
-/** The error body alone, for the boundaries that sit BELOW a view's own chrome (the
- *  calendar grid, the results list, the lazy event details) — there the real header is
- *  still on screen and still working, so a second one would be a duplicate. */
-export function DrawerErrorBody({ error, resetErrorBoundary }: FallbackProps) {
+/**
+ * The error content itself, with no drawer wrapper — for a boundary that sits INSIDE a
+ * view's existing `DrawerBody` (the results list, the lazy event details). Wrapping those
+ * in a second `DrawerBody` would nest one scroll container inside another.
+ *
+ * Used wherever the view's own chrome is still on screen and still working, so the shared
+ * `DrawerChrome` would be a duplicate header.
+ */
+export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   const { policy, message, reportContext } = useErrorDisplay(error)
 
   return (
-    <DrawerBody className="flex flex-col items-start gap-3 p-4">
+    <div className="flex flex-col items-start gap-3 p-4">
       <Alert align="start" className="max-w-xs" color="danger" description={message} />
       <ErrorActions
         policy={policy}
         reportContext={reportContext}
         resetErrorBoundary={resetErrorBoundary}
       />
+    </div>
+  )
+}
+
+/** `ErrorPanel` in its own `DrawerBody` — for a boundary whose child OWNS the body rather
+ *  than living inside one (the calendar grid renders its own). */
+export function DrawerErrorBody(props: FallbackProps) {
+  return (
+    <DrawerBody>
+      <ErrorPanel {...props} />
     </DrawerBody>
   )
 }
@@ -458,6 +473,9 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   return (
     <>
       <DrawerChrome />
+      {/* Top-aligned for the reason spelled out on DrawerLoading above: centred content sat
+          below the fold of the 300px mobile sheet, so the error state was invisible on
+          every phone — the widget looked broken in a way that hid the explanation. */}
       <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
     </>
   )

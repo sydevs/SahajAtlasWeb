@@ -391,7 +391,19 @@ export function DrawerStack() {
         onOpenChange={(o) => !o && overlayControl.dismiss()}
       >
         <DrawerContent aria-label={t('filters.title')}>
-          <FilterView />
+          {/* The one drawer in the app with no fence of its own — a throw here escaped to
+              the app-level boundary and blanked the whole widget on the host page. Safe
+              today only because FilterView reads exclusively through non-suspense
+              `useQuery`; nothing structural was keeping it that way (issue #89). */}
+          <QueryErrorResetBoundary>
+            {({ reset }) => (
+              <Suspense fallback={<DrawerLoading />}>
+                <ErrorBoundary FallbackComponent={DrawerErrorFallback} onReset={reset}>
+                  <FilterView />
+                </ErrorBoundary>
+              </Suspense>
+            )}
+          </QueryErrorResetBoundary>
         </DrawerContent>
       </Drawer>
     </DrawerControlContext.Provider>

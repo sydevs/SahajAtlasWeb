@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { EventMetadata } from '@/components/molecules'
@@ -18,7 +19,7 @@ import { useIsDesktop } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { CloseButton, ErrorPanel, useDrawerControl, useFrameOnTop } from '@/views/shared'
 
 // EventDetails pulls in DOMPurify + the action-row wiring; keep it out of the
 // main chunk (as pages/event.tsx used to) by lazy-loading it here.
@@ -63,9 +64,16 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           content's own padding, leaving ~176px of blank space under a full-bleed
           carousel to clear a 65px bar. */}
       <DrawerBody className={stickyRegister ? 'pb-20' : undefined}>
-        <Suspense fallback={<Spinner className="mx-auto my-16" />}>
-          <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
-        </Suspense>
+        {/* The details are a lazy chunk, so they can fail on their own — a dropped
+            connection mid-session, or a host CSP blocking the chunk — after the event
+            itself resolved. Keeping that local means the title, the close button and the
+            sticky Register CTA all survive: the event is still bookable even when its
+            description isn't there (issue #89). */}
+        <ErrorBoundary FallbackComponent={ErrorPanel}>
+          <Suspense fallback={<Spinner className="mx-auto my-16" />}>
+            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
+          </Suspense>
+        </ErrorBoundary>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter
