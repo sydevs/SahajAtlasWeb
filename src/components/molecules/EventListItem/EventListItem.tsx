@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -31,8 +31,15 @@ const MIN_DISTANCE_KM = 5
  * hookable for map-pin highlight (#44). The row is an <li> wrapping the Link so
  * each card is a valid direct child of the List's <ul> (#65). The divider
  * between cards is drawn by the List, not each card.
+ *
+ * **Memoized** (the only `memo` in the repo, so it wants a reason): the search results
+ * list GROWS as it pages, re-rendering with an ever-longer `rows` array, and each card
+ * runs a dozen-odd hooks. `event` references are stable across a reveal — sorting and
+ * slicing reuse the same objects — so every already-read row bails out and only the new
+ * page does work. Without it, paging to the 1000-row ceiling re-renders the rows above
+ * on every press, which is most of the work and none of the value.
  */
-export function EventListItem({ event }: EventListItemProps) {
+function EventListItemImpl({ event }: EventListItemProps) {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
   const [searchParams] = useSearchParams()
@@ -109,3 +116,5 @@ export function EventListItem({ event }: EventListItemProps) {
     </li>
   )
 }
+
+export const EventListItem = memo(EventListItemImpl)

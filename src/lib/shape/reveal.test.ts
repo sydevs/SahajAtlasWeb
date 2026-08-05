@@ -40,34 +40,31 @@ const reveal = (
   })
 
 describe('revealKey', () => {
-  const parts = {
-    latitude: 51.5072,
-    longitude: -0.1276,
-    filtersKey: 'format=offline',
-    sort: 'soonest',
-    locale: 'en',
-  }
+  // Shaped like a real `eventsQuery` key: ['events', lat, lng, filtersKey, locale].
+  const queryKey = ['events', '51.51', '-0.13', 'format=offline', 'en'] as const
 
-  it('is stable for the same result set', () => {
-    expect(revealKey(parts)).toBe(revealKey({ ...parts }))
+  it('is stable for the same query key and sort', () => {
+    expect(revealKey(queryKey, 'soonest')).toBe(revealKey([...queryKey], 'soonest'))
   })
 
-  it('quantizes the centre, so a small map move does not reset the reveal', () => {
-    expect(revealKey({ ...parts, latitude: parts.latitude + 0.0001 })).toBe(revealKey(parts))
-  })
-
-  it('changes with anything that changes WHICH events show, or their order', () => {
-    // Each of these is a call site that would otherwise have to remember to reset the
-    // reveal — deriving the key is what makes forgetting impossible.
-    for (const change of [
-      { latitude: 48.85 },
-      { longitude: 2.35 },
-      { filtersKey: 'format=online' },
-      { sort: 'closest' },
-      { locale: 'fr' },
+  it('changes with anything the events query key changes', () => {
+    // Centre, filters and locale all reach it through the query key — which is the
+    // point of deriving from that key rather than re-listing its parts here.
+    for (const changed of [
+      ['events', '48.85', '-0.13', 'format=offline', 'en'],
+      ['events', '51.51', '2.35', 'format=offline', 'en'],
+      ['events', '51.51', '-0.13', 'format=online', 'en'],
+      ['events', '51.51', '-0.13', 'format=offline', 'fr'],
     ]) {
-      expect(revealKey({ ...parts, ...change })).not.toBe(revealKey(parts))
+      expect(revealKey(changed, 'soonest')).not.toBe(revealKey(queryKey, 'soonest'))
     }
+  })
+
+  it('changes with the sort, which the query key deliberately omits', () => {
+    // Sort reorders the fetched list rather than refetching, so it is absent from the
+    // query key — but it changes which events the revealed rows ARE, so the reveal has
+    // to reset on it. That's the one part `revealKey` adds.
+    expect(revealKey(queryKey, 'closest')).not.toBe(revealKey(queryKey, 'soonest'))
   })
 })
 

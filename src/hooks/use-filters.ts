@@ -11,7 +11,7 @@ import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape
 
 /**
  * Applied filters parsed from the URL query. Re-derives on any query change
- * (including `?q`/`?bbox`/`?center`/`?all`), but that's off the map's true hot path:
+ * (including `?q`/`?bbox`/`?center`), but that's off the map's true hot path:
  * pan/zoom writes the camera to zustand, never the URL, so those don't churn this.
  */
 export const useEventFilters = (): EventFilters => {

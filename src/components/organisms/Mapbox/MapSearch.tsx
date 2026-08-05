@@ -52,8 +52,8 @@ export function MapSearch({ onSelect }: MapSearchProps) {
   // `state` is carried explicitly: `setSearchParams` forwards only what it's given, so
   // a bare `{ replace: true }` replaces the entry with a state-less one and drops its
   // `atlasDepth` — after ONE keystroke the drawer's dismissal (X / swipe / Esc) would
-  // push to the structural parent instead of going chronologically back. The reveal,
-  // filter and sort setters carry it for the same reason.
+  // push to the structural parent instead of going chronologically back. The filter
+  // and sort setters carry it for the same reason.
   const setQuery = (query: string) => {
     setSearchQuery(query)
     setSearchParams(

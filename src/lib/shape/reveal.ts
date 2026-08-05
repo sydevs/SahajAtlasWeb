@@ -1,3 +1,5 @@
+import { isoCountryCode } from './country'
+
 // How much of the search results list is revealed — a presentation concern, so it
 // stays out of `filtersToParams`/`filtersKey`/`activeFilterCount` and out of the events
 // query key (a count in the key would refetch per press). Unlike the filters and the
@@ -62,21 +64,15 @@ export const MAX_REVEAL = PAGE_SIZE * 40
  * language switch — the stored count no longer describes anything and the list is back
  * at its first page. Derived rather than reset imperatively, so no call site that
  * changes one of these inputs can forget to clear the reveal.
+ *
+ * Built FROM the events query key rather than re-deriving its parts, so the two notions
+ * of "the same search" cannot drift: that key already quantizes the centre (small map
+ * moves must not count as a new search) and folds in the filters and locale. Only the
+ * sort has to be added — it reorders the fetched list, so it's deliberately absent from
+ * the query key but does change which events the revealed rows are.
  */
-export const revealKey = (parts: {
-  latitude: number
-  longitude: number
-  filtersKey: string
-  sort: string
-  locale: string
-}): string =>
-  [
-    parts.latitude.toFixed(2),
-    parts.longitude.toFixed(2),
-    parts.filtersKey,
-    parts.sort,
-    parts.locale,
-  ].join('|')
+export const revealKey = (queryKey: readonly unknown[], sort: string): string =>
+  [...queryKey, sort].join('|')
 
 /**
  * The minimum an event needs for the distance segmentation below — its distance from
@@ -147,11 +143,13 @@ export function revealRows<T extends Segmentable>(
   // have to be known to demote anything: an event with no address country (every online
   // one) is judged on distance alone rather than on a fact we don't have.
   const limitFor = (event: T) => {
-    const country = event.address?.country
+    // Through `isoCountryCode` like every other country consumer: the CMS address field
+    // is a bare nullish string, so a malformed value (a 3-letter code, stray whitespace)
+    // must degrade to "unknown" — and be judged on distance alone — rather than compare
+    // as-is and demote an event on a fact we don't actually have.
+    const country = isoCountryCode(event.address?.country)
 
-    return searchCountry && country && country.toUpperCase() !== searchCountry.toUpperCase()
-      ? FOREIGN_NEARBY_KM
-      : NEARBY_KM
+    return searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
   }
   // Online events carry no distance, so they are never distance-excluded.
   const isNear = (event: T) => event.distance === undefined || event.distance <= limitFor(event)
@@ -161,7 +159,7 @@ export function revealRows<T extends Segmentable>(
   // Before the distant segment is revealed the list IS the nearby one, so the slice
   // below clamps at the boundary for free — no press can overshoot it.
   const active = showAll ? [...near, ...far] : near
-  // Re-clamped here, not just in the decoder, so the ceiling holds for every caller.
+  // Clamped here rather than at the call site, so the ceiling holds for every caller.
   const rows = active.slice(0, Math.min(shown, MAX_REVEAL))
 
   // Everything below reasons about `rows.length` — what is actually ON SCREEN — never
@@ -171,16 +169,16 @@ export function revealRows<T extends Segmentable>(
   // segment sat unreached. It also keeps every `next` strictly greater than what's
   // shown, so no press can be a no-op.
   const revealed = rows.length
-  // Rows the list could still reach — the distant segment included, since one press
-  // brings it into `active`.
-  const reachable = showAll ? active.length : near.length + far.length
+  // Every match, both segments — `near` and `far` partition `sorted`, so this is what
+  // the list can still reach whether or not the distant segment is showing yet.
+  const total = sorted.length
 
   // Rows still to come; `'farther'` once the distant segment is involved, either
   // because this press reaches it or because it is already showing and everything
   // below is distant. At the ceiling the list has ended as far as this is concerned:
   // offering a press the clamp would undo is the one thing worse than stopping.
   const more: RevealMore | null =
-    revealed >= MAX_REVEAL || revealed >= reachable
+    revealed >= MAX_REVEAL || revealed >= total
       ? null
       : showAll || revealed >= active.length
         ? 'farther'
@@ -193,10 +191,10 @@ export function revealRows<T extends Segmentable>(
     // rows already read stay on screen and the distant ones append below them.
     next: more
       ? {
-          shown: Math.min(revealed + PAGE_SIZE, reachable, MAX_REVEAL),
+          shown: Math.min(revealed + PAGE_SIZE, total, MAX_REVEAL),
           showAll: showAll || more === 'farther',
         }
       : null,
-    total: sorted.length,
+    total,
   }
 }

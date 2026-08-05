@@ -45,7 +45,7 @@ export function SearchView() {
   const snapshot = useRef(useViewState.getState())
   const [longitude, latitude] = center ?? [snapshot.current.longitude, snapshot.current.latitude]
 
-  // Only re-frame when the searched place changes — not on `?q`/`?shown`/`?all` edits.
+  // Only re-frame when the searched place changes — not on `?q` edits.
   useFrameOnTop(
     () => frameSearch({ bbox: bounds, center }),
     [frameSearch, searchParams.get('center'), searchParams.get('bbox')],

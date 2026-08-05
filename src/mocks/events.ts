@@ -350,7 +350,7 @@ export const mockEventVariants: EventSlim[] = [
     distance: 6,
     path: '/united-kingdom/cambridge/131',
   },
-  // A physical event beyond the search view's "< 500 km" cap (a distant town).
+  // A physical event beyond the search view's distance boundary (a distant town).
   {
     ...mockEventSlim,
     id: 132,

@@ -18,7 +18,6 @@ import {
   NEARBY_KM,
   byDistance,
   byNextOccurrence,
-  filtersKey,
   hasActiveFilters,
   isOnline,
   nextOccurrence,
@@ -104,7 +103,8 @@ export function DynamicEventsList({
   // key this reads (see config/api) — the quantized centre, the filters, and the
   // locale, with sort and the reveal count deliberately absent (both are presentation,
   // re-applied client-side below; a count in the key would refetch on every press).
-  const { data: events } = useSuspenseQuery(eventsQuery(latitude, longitude, filters, locale))
+  const query = eventsQuery(latitude, longitude, filters, locale)
+  const { data: events } = useSuspenseQuery(query)
 
   // Apply the URL-selected ordering to the fetched list. Memoized on the fetched
   // reference + the order, so re-sorting is a cheap client-side reorder, never a
@@ -118,15 +118,11 @@ export function DynamicEventsList({
   // an edited filter, a re-sort, a language switch. `revealRows` splits the sorted set
   // at the distance boundary (tightened for events across a border from the searched
   // country) and slices to the count; nothing here refetches, every match is in memory.
+  // Keyed off the events query key itself (plus the sort, which that key omits), so the
+  // reveal's notion of "the same search" can't drift from the fetch's — the centre
+  // quantization lives in one place.
   const searchCountry = useSearchCountry()
-  const key = revealKey({
-    latitude,
-    longitude,
-    filtersKey: filtersKey(filters),
-    sort: order,
-    locale,
-  })
-  const { shown, showAll, pending, revealMore } = useReveal(key)
+  const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
   const { rows, more, next, total } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
     [sorted, shown, showAll, hasSearchCenter, searchCountry],
