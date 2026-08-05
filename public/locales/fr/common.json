@@ -125,8 +125,15 @@
     "retry": "Réessayer",
     "offline": "Vous semblez hors ligne.",
     "server": "Nos serveurs rencontrent actuellement un problème.",
-    "not_found": "Nous n'avons pas trouvé cette page.",
-    "config": "Cette intégration d'Atlas n'est pas correctement configurée."
+    "not_found": "Nous n'avons pas trouvé ce que vous cherchiez.",
+    "config": "L'Atlas n'est pas correctement configuré sur cette page.",
+    "not_found_event": "Nous n'avons pas trouvé cet événement.",
+    "not_found_region": "Nous n'avons pas trouvé ce lieu.",
+    "back_to_region": "Voir les événements : %{region}",
+    "near_city": "Voir les événements près de %{city}",
+    "browse_countries": "Voir tous les pays",
+    "search_prompt": "Ou recherchez un lieu :",
+    "search_label": "Rechercher un lieu"
   },
   "country_site": {
     "title": "Aucun cours n’est encore répertorié en %{country}.",

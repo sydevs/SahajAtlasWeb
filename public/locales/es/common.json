@@ -125,8 +125,15 @@
     "retry": "Reintentar",
     "offline": "Parece que no tienes conexión.",
     "server": "Nuestros servidores tienen problemas en este momento.",
-    "not_found": "No hemos encontrado esa página.",
-    "config": "Esta inserción de Atlas no está configurada correctamente."
+    "not_found": "No hemos encontrado lo que buscabas.",
+    "config": "El Atlas no está configurado correctamente en esta página.",
+    "not_found_event": "No hemos encontrado ese evento.",
+    "not_found_region": "No hemos encontrado ese lugar.",
+    "back_to_region": "Ver eventos en %{region}",
+    "near_city": "Ver eventos cerca de %{city}",
+    "browse_countries": "Ver todos los países",
+    "search_prompt": "O busca un lugar:",
+    "search_label": "Buscar un lugar"
   },
   "country_site": {
     "title": "Todavía no hay clases registradas en %{country}.",

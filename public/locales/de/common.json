@@ -125,8 +125,15 @@
     "retry": "Erneut versuchen",
     "offline": "Du scheinst offline zu sein.",
     "server": "Unsere Server haben gerade Probleme.",
-    "not_found": "Wir konnten diese Seite nicht finden.",
-    "config": "Diese Atlas-Einbindung ist nicht korrekt eingerichtet."
+    "not_found": "Wir konnten nicht finden, wonach du gesucht hast.",
+    "config": "Der Atlas ist auf dieser Seite nicht korrekt eingerichtet.",
+    "not_found_event": "Wir konnten diese Veranstaltung nicht finden.",
+    "not_found_region": "Wir konnten diesen Ort nicht finden.",
+    "back_to_region": "Veranstaltungen in %{region} ansehen",
+    "near_city": "Veranstaltungen in der Nähe von %{city} ansehen",
+    "browse_countries": "Alle Länder ansehen",
+    "search_prompt": "Oder suche nach einem Ort:",
+    "search_label": "Nach einem Ort suchen"
   },
   "country_site": {
     "title": "Für %{country} sind noch keine Kurse eingetragen.",

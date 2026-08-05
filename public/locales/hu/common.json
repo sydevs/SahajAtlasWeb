@@ -125,8 +125,15 @@
     "retry": "Újrapróbálkozás",
     "offline": "Úgy tűnik, nincs internetkapcsolat.",
     "server": "A szervereinknek jelenleg gondjaik vannak.",
-    "not_found": "Nem találjuk ezt az oldalt.",
-    "config": "Ez az Atlas-beágyazás nincs megfelelően beállítva."
+    "not_found": "Nem találjuk, amit keresel.",
+    "config": "Az Atlas nincs megfelelően beállítva ezen az oldalon.",
+    "not_found_event": "Nem találjuk ezt az eseményt.",
+    "not_found_region": "Nem találjuk ezt a helyet.",
+    "back_to_region": "Események itt: %{region}",
+    "near_city": "Események %{city} közelében",
+    "browse_countries": "Összes ország megtekintése",
+    "search_prompt": "Vagy keress egy helyet:",
+    "search_label": "Hely keresése"
   },
   "country_site": {
     "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",

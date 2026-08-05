@@ -125,8 +125,15 @@
     "retry": "Opnieuw proberen",
     "offline": "Je lijkt offline te zijn.",
     "server": "Onze servers hebben op dit moment problemen.",
-    "not_found": "We konden die pagina niet vinden.",
-    "config": "Deze Atlas-insluiting is niet juist ingesteld."
+    "not_found": "We konden niet vinden wat je zocht.",
+    "config": "De Atlas is op deze pagina niet juist ingesteld.",
+    "not_found_event": "We konden dat evenement niet vinden.",
+    "not_found_region": "We konden die plaats niet vinden.",
+    "back_to_region": "Evenementen in %{region} bekijken",
+    "near_city": "Evenementen in de buurt van %{city} bekijken",
+    "browse_countries": "Alle landen bekijken",
+    "search_prompt": "Of zoek een plaats:",
+    "search_label": "Een plaats zoeken"
   },
   "country_site": {
     "title": "Er zijn nog geen lessen vermeld in %{country}.",
