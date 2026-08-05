@@ -102,12 +102,26 @@ const activeFilters = {
 }
 const activeParams = filtersToParams(activeFilters)
 
+// The calendar reaches no dead link — an unknown `?region=` slug means "no restriction",
+// never a throw — so what it can fail on is its own feed read or grid render. That failure
+// is caught BELOW the header (issue #89): compare the two cases and the month nav, the view
+// picker, the filter button, the close control and the pills all stay put and stay usable,
+// because none of them read `['calendar', …]`. Escalating it would have replaced all of
+// that working chrome to show the same alert.
+const EXAMPLES = ['Month', 'Grid failure'] as const
+
+// Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
+// render rather than at fetch time. Deliberately unlike the seeded feed: what is being
+// previewed is the BOUNDARY, and the cheapest honest way to trip it is data the grid
+// cannot consume.
+const POISONED = { notAnArray: true }
+
 /**
  * CalendarView — the full-width month / week / list surface. Events are the (mocked) filtered
  * feed expanded into per-occurrence entries, labelled by city; our own header drives the views +
  * navigation, with the active-filter pills below it. Themed to our tokens (follows light/dark).
  */
-export const Default: Story = () => {
+export const Default: Story<{ example: (typeof EXAMPLES)[number] }> = ({ example }) => {
   const { locale } = useLocale()
   const events = useMemo(() => mockCalendarEvents(), [])
 
@@ -119,17 +133,31 @@ export const Default: Story = () => {
         for (const filters of [DEFAULT_FILTERS, activeFilters]) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
-            events,
+            // The error case seeds a shape the expansion can't consume, so the throw
+            // happens where a Schedule-X or contract failure would: inside CalendarGrid's
+            // render, below the header. Cast because that is precisely the point — the
+            // types say this can't happen, and the boundary exists for when it does.
+            example === 'Grid failure' ? (POISONED as unknown as CalendarSourceEvent[]) : events,
           )
         }
       }}
-      seedKey="calendar"
+      seedKey={example}
     >
       <SeedSearchParams params={activeParams}>
         <CalendarView />
       </SeedSearchParams>
     </ViewHarness>
   )
+}
+
+Default.args = { example: 'Month' }
+Default.argTypes = {
+  example: {
+    name: 'Example',
+    options: [...EXAMPLES],
+    control: { type: 'radio' },
+    defaultValue: 'Month',
+  },
 }
 
 Default.storyName = 'Calendar'

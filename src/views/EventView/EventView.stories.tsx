@@ -5,7 +5,7 @@ import type { Event } from '@/types'
 import { Thrower, ViewHarness } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
-import { mockErrors } from '@/mocks/errors'
+import { mockNotFound } from '@/mocks/errors'
 import {
   mockEvent,
   mockEventCourse,
@@ -46,27 +46,41 @@ const EXAMPLES: Record<string, Event> = {
 type ExampleKey = keyof typeof EXAMPLES
 
 // The failure this view actually reaches (issue #89): a link to an event the CMS no
-// longer serves, or a hand-typed path that isn't an event at all. Both classify as
-// `not-found`, so the drawer offers only the way back into live inventory — no retry,
-// since the link is dead rather than flaky.
-const NOT_FOUND = 'Not found'
+// longer serves — SahajCloud answers 404 and `classifyError` reads the status. It is a
+// dead end, not a malfunction, so the drawer renders the empty-state register: a neutral
+// note naming what was missing plus somewhere real to go. The two cases differ only in
+// what the URL can offer — which is the whole point of the recovery ladder.
+const DEAD_LINKS = {
+  // An ancestor the region tree still knows: the ladder's first rung.
+  'Not found · in a region': '/gb/cambridgeshire/999999',
+  // A flat legacy link with no ancestry at all — falls through to the floor rung.
+  'Not found · no ancestor': '/999999',
+} as const
+
+type DeadLink = keyof typeof DEAD_LINKS
 
 /**
  * EventView — the full event panel screen (header + facts → Register → actions →
- * images → About). Switch resolver states with the control; the last case is the dead
- * link, rendered by DrawerErrorFallback.
+ * images → About). Switch resolver states with the control; the last two cases are dead
+ * links, rendered by DrawerErrorFallback.
+ *
+ * Compare the two: the first offers "See events in Cambridgeshire", the second only
+ * "Browse all countries". Both say "that event" (not "that page"), both keep a working
+ * close control, and neither shows a retry — a dead link fails identically every time.
  */
-export const Default: Story<{ example: ExampleKey | typeof NOT_FOUND }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) => {
   const { locale } = useLocale()
   const event = EXAMPLES[example] ?? mockEvent
+  const deadLink = DEAD_LINKS[example as DeadLink]
 
   return (
     <ViewHarness
+      path={deadLink}
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
       seedKey={example}
     >
-      {example === NOT_FOUND ? (
-        <Thrower error={mockErrors['not-found']} />
+      {deadLink ? (
+        <Thrower error={mockNotFound.event} />
       ) : (
         <EventView basePath={event.path} id={event.id} />
       )}
@@ -80,7 +94,7 @@ Default.args = { example: 'In person' }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: [...Object.keys(EXAMPLES), NOT_FOUND],
+    options: [...Object.keys(EXAMPLES), ...Object.keys(DEAD_LINKS)],
     control: { type: 'radio' },
     defaultValue: 'In person',
   },

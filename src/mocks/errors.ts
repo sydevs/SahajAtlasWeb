@@ -39,6 +39,23 @@ export const mockErrors: Record<ErrorKind, unknown> = {
 export const mockErrorKinds = Object.keys(mockErrors) as ErrorKind[]
 
 /**
+ * One fixture per REAL not-found throw site, so a view story reproduces the failure it
+ * actually reaches rather than a generic stand-in. They classify identically — the
+ * difference is fidelity: `mockErrors['not-found']` is region-flavoured, which is wrong
+ * for the three views whose dead link is an event.
+ */
+export const mockNotFound = {
+  /** `fetch.ts` — a slug the region tree doesn't carry. RegionView, OnlineView. */
+  region: atlasError('not-found', 'Region not found: atlantis'),
+  /** SahajCloud answers 404 and `classifyError` reads the status — the only not-found
+   *  fixture exercising the status path rather than our own tag. EventView. */
+  event: sdkError(404, 'Not Found'),
+  /** `views/shared.tsx` — a hand-typed path whose parent isn't an event at all.
+   *  RegistrationView, ShareView. */
+  nonEvent: atlasError('not-found', 'Not an event: /be/antwerpen'),
+}
+
+/**
  * What each case is meant to PROVE, so a reviewer compares the buttons rather than the
  * sentence. Lives beside the fixtures so the two stories that render them share one
  * description apiece instead of wording the same rationale twice.

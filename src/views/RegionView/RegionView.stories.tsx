@@ -2,9 +2,10 @@ import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Region } from '@/types'
 
-import { ViewHarness } from '@/views/story-harness'
+import { Thrower, ViewHarness } from '@/views/story-harness'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { useLocale } from '@/hooks/use-locale'
+import { mockNotFound } from '@/mocks/errors'
 import {
   mockCityWithVenuesRegion,
   mockCountryRegion,
@@ -41,6 +42,17 @@ const EXAMPLES = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
+// The failure this view owns (issue #89): a slug the region tree doesn't carry — a
+// renamed CMS slug in an old bookmark, or a typo. The two cases prove the ladder drops
+// the FAILING terminal before walking: the first must offer Cambridgeshire, never
+// `atlantis` back again.
+const DEAD_LINKS = {
+  'Not found · under a region': '/gb/cambridgeshire/atlantis',
+  'Not found · top level': '/atlantis',
+} as const
+
+type DeadLink = keyof typeof DEAD_LINKS
+
 /**
  * RegionView — the drawer screen for a region at any level. "Country" is a large
  * parent whose events all sit under its child regions; "City" lists only its own
@@ -49,18 +61,20 @@ type ExampleKey = keyof typeof EXAMPLES
  * EmptyEventList — deliberately action-less, since a region whose events have all
  * ended is neither a wrong turn nor something a retry could fix (issue #89).
  */
-export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) => {
   const { locale } = useLocale()
-  const c = EXAMPLES[example]
+  const c = EXAMPLES[example as ExampleKey] ?? EXAMPLES.Country
+  const deadLink = DEAD_LINKS[example as DeadLink]
 
   return (
     <ViewHarness
+      path={deadLink}
       seed={(client: QueryClient) =>
         client.setQueryData<Region>(['region', c.slug, locale], c.region)
       }
       seedKey={example}
     >
-      <RegionView slug={c.slug} />
+      {deadLink ? <Thrower error={mockNotFound.region} /> : <RegionView slug={c.slug} />}
     </ViewHarness>
   )
 }
@@ -71,7 +85,7 @@ Default.args = { example: 'Country' }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: Object.keys(EXAMPLES),
+    options: [...Object.keys(EXAMPLES), ...Object.keys(DEAD_LINKS)],
     control: { type: 'radio' },
     defaultValue: 'Country',
   },

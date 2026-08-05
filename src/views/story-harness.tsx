@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import type { Client, IpLocation } from '@/types'
 
-import { Suspense, useMemo } from 'react'
+import { Suspense, useEffect, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
-import { DrawerErrorFallback, DrawerLoading } from '@/views/shared'
+import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -62,6 +63,16 @@ const mockIpLocation: IpLocation = {
   country_code: 'GB',
 }
 
+/** A drawer control for stories: dismissable (so the fallbacks render their close
+ *  control), but with nowhere to actually go. */
+const STORY_DRAWER_CONTROL = {
+  collapsed: false,
+  canCollapse: false,
+  canDismiss: true,
+  toggle: () => {},
+  dismiss: () => {},
+}
+
 export type ViewHarnessProps = {
   /** The active use-case key — remounts + re-seeds when it changes. */
   seedKey: string
@@ -70,7 +81,35 @@ export type ViewHarnessProps = {
   seed?: (client: QueryClient) => void
   /** Widget mode; defaults to the map-less embed (`standalone`, no map). */
   mode?: WidgetMode
+  /**
+   * The pathname to render at. Needed by anything that reads the URL rather than props —
+   * above all the not-found recovery ladder, which walks the ancestry to find somewhere
+   * real to send the viewer. Without it every dead-link case would preview the floor rung
+   * ("Browse all countries") and none would show what the app actually offers.
+   */
+  path?: string
   children: ReactNode
+}
+
+/**
+ * Seeds the pathname onto the decorator's own MemoryRouter (nesting a second Router throws
+ * in react-router v7), and holds `children` back until it lands.
+ *
+ * The gate is the point: `SeedSearchParams` accepts being one render late because a filter
+ * pill appearing a frame later is invisible. Here the first render would resolve a
+ * DIFFERENT recovery rung — "Browse all countries" — and the story would visibly flip to
+ * "See events in Antwerpen", which is exactly the layout shift these previews exist to
+ * catch rather than cause.
+ */
+function SeedPath({ path, children }: { path: string; children: ReactNode }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.pathname !== path) navigate(path, { replace: true })
+  }, [path, location.pathname, navigate])
+
+  return location.pathname === path ? <>{children}</> : null
 }
 
 /**
@@ -87,7 +126,7 @@ export function Thrower({ error }: { error: unknown }): never {
   throw error
 }
 
-export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps) {
+export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarnessProps) {
   const client = useMemo(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
@@ -126,18 +165,26 @@ export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps)
               and DrawerLoading render a DrawerBody, so they need the drawer context —
               and this is the nesting DrawerStack itself uses (DrawerContent > Suspense >
               ErrorBoundary > the view). */}
-          <DrawerSlotsProvider direction="bottom" mode="filled">
-            <div
-              key={seedKey}
-              className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
-            >
-              <Suspense fallback={<DrawerLoading />}>
-                {/* The DRAWER fallback, matching DrawerStack — the app-level
-                    ErrorFallback previewed a screen the drawer stack never shows. */}
-                <ErrorBoundary FallbackComponent={DrawerErrorFallback}>{children}</ErrorBoundary>
-              </Suspense>
-            </div>
-          </DrawerSlotsProvider>
+          {/* A live drawer control, so the chrome the fallbacks render is exercisable
+              rather than inert: `canDismiss` decides whether they show a close button at
+              all, and without a provider every story would preview the root's control set
+              (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
+          <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>
+            <DrawerSlotsProvider direction="bottom" mode="filled">
+              <div
+                key={seedKey}
+                className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
+              >
+                <Suspense fallback={<DrawerLoading />}>
+                  {/* The DRAWER fallback, matching DrawerStack — the app-level
+                      ErrorFallback previewed a screen the drawer stack never shows. */}
+                  <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+                    {path ? <SeedPath path={path}>{children}</SeedPath> : children}
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+            </DrawerSlotsProvider>
+          </DrawerControlContext.Provider>
         </NoopMapControllerProvider>
       </WidgetModeContext.Provider>
     </QueryClientProvider>

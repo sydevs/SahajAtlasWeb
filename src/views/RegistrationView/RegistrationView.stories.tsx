@@ -2,10 +2,11 @@ import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Event } from '@/types'
 
-import { ViewHarness } from '@/views/story-harness'
+import { Thrower, ViewHarness } from '@/views/story-harness'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockEvent, mockEventFull } from '@/mocks/events'
+import { mockNotFound } from '@/mocks/errors'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -30,26 +31,51 @@ const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
+// Two ways this route dies, and the second is the load-bearing one (issue #89).
+//
+// `parentOf` would answer the dead-event case with `/gb/cambridgeshire/999999` — the very
+// link that just 404'd — so the recovery from a dead link would be the same dead link.
+// The ladder drops the failing entry and walks on, which is why both cases must offer
+// Cambridgeshire.
+const DEAD_LINKS = {
+  // A hand-typed `/register` whose parent is a region, not an event.
+  'Not found · not an event': '/gb/cambridgeshire/register',
+  // A real registration path over an event the CMS no longer serves.
+  'Not found · dead event': '/gb/cambridgeshire/999999/register',
+} as const
+
+type DeadLink = keyof typeof DEAD_LINKS
+
 /**
  * RegistrationView — the registration drawer screen: the event summary card over
  * the form (or the link-out CTA for an externally-registered event), plus the
  * post-submit confirmation.
  */
-export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) => {
   const { locale } = useLocale()
-  const { event, initialSubmitted } = EXAMPLES[example]
+  const { event, initialSubmitted } = EXAMPLES[example] ?? EXAMPLES['Native form']
   const eventPath = `/demo/${event.id}`
+  const deadLink = DEAD_LINKS[example as DeadLink]
 
   return (
     <ViewHarness
+      path={deadLink}
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
       seedKey={example}
     >
-      <RegistrationView
-        eventPath={eventPath}
-        initialSubmitted={initialSubmitted}
-        parentPath="/demo"
-      />
+      {deadLink ? (
+        <Thrower
+          error={
+            example === 'Not found · not an event' ? mockNotFound.nonEvent : mockNotFound.event
+          }
+        />
+      ) : (
+        <RegistrationView
+          eventPath={eventPath}
+          initialSubmitted={initialSubmitted}
+          parentPath="/demo"
+        />
+      )}
     </ViewHarness>
   )
 }
@@ -60,7 +86,7 @@ Default.args = { example: 'Native form' }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: Object.keys(EXAMPLES),
+    options: [...Object.keys(EXAMPLES), ...Object.keys(DEAD_LINKS)],
     control: { type: 'radio' },
     defaultValue: 'Native form',
   },
