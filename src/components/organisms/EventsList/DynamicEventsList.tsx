@@ -27,6 +27,7 @@ import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useReveal } from '@/hooks/use-reveal'
+import { useSearchCountry } from '@/hooks/use-search-country'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
 import i18n from '@/config/i18n'
@@ -111,12 +112,14 @@ export function DynamicEventsList({
 
   // How much of that is revealed — URL-driven (`?shown=`/`?all=1`), so it survives the
   // drawer stack's remount-on-navigation and a deep link restores it. `revealRows`
-  // splits the sorted set at the "< NEARBY_KM" boundary and slices to the revealed
-  // count; nothing here refetches, because every match is already in memory.
+  // splits the sorted set at the distance boundary (tightened for events across a
+  // border from the searched country) and slices to the revealed count; nothing here
+  // refetches, because every match is already in memory.
+  const searchCountry = useSearchCountry()
   const { shown, showAll, revealMore } = useReveal()
   const { rows, more, next, total } = useMemo(
-    () => revealRows(sorted, { shown, showAll, hasSearchCenter }),
-    [sorted, shown, showAll, hasSearchCenter],
+    () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
+    [sorted, shown, showAll, hasSearchCenter, searchCountry],
   )
 
   // Whether a reveal has happened, read off the URL rather than held as state — for the
@@ -132,9 +135,11 @@ export function DynamicEventsList({
   // so it must never itself cause a render.
   const focusFrom = useRef<number | null>(null)
 
-  const reveal = () => {
+  const reveal = (trigger: 'press' | 'auto') => {
     if (!next) return
-    focusFrom.current = rows.length
+    // Only a press parks a focus target. An auto-reveal is a scroll, not an
+    // interaction: moving focus there would yank it off whatever the reader was on.
+    if (trigger === 'press') focusFrom.current = rows.length
     revealMore(next)
   }
 
@@ -173,7 +178,12 @@ export function DynamicEventsList({
       {(more !== null || revealed) && (
         <LoadMore
           announce={revealed}
-          km={NEARBY_KM}
+          // Page automatically as the reader reaches the foot of the list — but ONLY
+          // within the segment on screen. Crossing into the distant events is a
+          // decision ("Show distant events"), so it never happens on a scroll; and
+          // once they ARE showing, paging goes back to being explicit, because from
+          // there the list runs to the other side of the world.
+          auto={more === 'more' && !showAll}
           more={more}
           shown={rows.length}
           total={total}

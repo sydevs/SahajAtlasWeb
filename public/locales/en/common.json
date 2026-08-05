@@ -135,7 +135,7 @@
   },
   "results": {
     "more": "Show more",
-    "farther": "Show events farther than %{km} km",
+    "farther": "Show distant events",
     "showing": "Showing %{shown} of %{total} events"
   }
 }

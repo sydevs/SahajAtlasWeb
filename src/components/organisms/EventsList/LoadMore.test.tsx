@@ -4,14 +4,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { LoadMore } from './LoadMore'
 
 // Mock the i18n boundary (react-i18next) so the SSR markup asserts on real copy —
-// including the Ruby-style %{km} interpolation — without booting i18next. Node lane,
+// including the Ruby-style `%{}` interpolation — without booting i18next. Node lane,
 // no jsdom (see .claude/rules/tests.md).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: { km?: number; shown?: number; total?: number }) =>
+    t: (key: string, opts?: { shown?: number; total?: number }) =>
       ({
         'results.more': 'Show more',
-        'results.farther': `Show events farther than ${opts?.km} km`,
+        'results.farther': 'Show distant events',
         'results.showing': `Showing ${opts?.shown} of ${opts?.total} events`,
       })[key] ?? key,
     i18n: { resolvedLanguage: 'en', on: () => {}, off: () => {} },
@@ -20,15 +20,7 @@ vi.mock('react-i18next', () => ({
 
 const render = (props: Partial<Parameters<typeof LoadMore>[0]> = {}) =>
   renderToStaticMarkup(
-    <LoadMore
-      announce={false}
-      km={500}
-      more="more"
-      shown={25}
-      total={137}
-      onReveal={() => {}}
-      {...props}
-    />,
+    <LoadMore announce={false} more="more" shown={25} total={137} onReveal={() => {}} {...props} />,
   )
 
 describe('LoadMore', () => {
@@ -42,7 +34,14 @@ describe('LoadMore', () => {
   it('says plainly what the boundary crossing does', () => {
     // The list's only distance affordance — it has to read as "nearby events have run
     // out", not as the list simply ending.
-    expect(render({ more: 'farther' })).toContain('Show events farther than 500 km')
+    expect(render({ more: 'farther' })).toContain('Show distant events')
+  })
+
+  it('renders the same static markup whether or not auto-reveal is armed', () => {
+    // `auto` only wires an IntersectionObserver in an effect, so the button it observes
+    // must exist identically without one — the keyboard/screen-reader path can never
+    // depend on a scroll event firing.
+    expect(render({ auto: true })).toBe(render({ auto: false }))
   })
 
   it('drops the button once everything is revealed', () => {

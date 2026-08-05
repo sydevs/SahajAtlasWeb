@@ -1,5 +1,6 @@
 import type { RevealMore } from '@/lib/shape'
 
+import { useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
@@ -8,8 +9,6 @@ import { Button } from '@/components/atoms/Button'
 export interface LoadMoreProps {
   /** What the control offers next — `null` when everything is revealed. */
   more: RevealMore | null
-  /** The distance the "farther" reveal crosses, in km. */
-  km: number
   /** Rows on screen, and rows reachable — for the polite announcement. */
   shown: number
   total: number
@@ -19,7 +18,17 @@ export interface LoadMoreProps {
    * first press so arriving at the list says nothing.
    */
   announce: boolean
-  onReveal: () => void
+  /**
+   * Reveal the next page as soon as the control scrolls into view, without a press.
+   * The parent decides when that's appropriate — see the note on the observer below.
+   */
+  auto?: boolean
+  /**
+   * Reveal the next page. The trigger is passed on because the two differ in one way
+   * that matters: a `'press'` may need focus moved (the last one unmounts the button),
+   * while an `'auto'` reveal must never touch focus — the reader only scrolled.
+   */
+  onReveal: (trigger: 'press' | 'auto') => void
 }
 
 /**
@@ -31,16 +40,50 @@ export interface LoadMoreProps {
  * the button would disappear in the same commit as the change it exists to announce.
  *
  * `more` also carries WHICH reveal is on offer: `'more'` pages through the segment on
- * screen, `'farther'` crosses the "< km" boundary into events beyond it. That second
- * label is the only distance affordance in the list (there is no "< N km" filter pill),
- * so it has to say plainly what it does — it is what signposts that nearby events have
- * run out rather than that the list simply ended.
+ * screen, `'farther'` reaches past the distance boundary into the events beyond it.
+ * That second label is the only distance affordance in the list (there is no "< N km"
+ * filter pill), so it has to say plainly what it does — it is what signposts that
+ * nearby events have run out rather than that the list simply ended.
  *
- * No ref surface: focus stays on the button for free while it survives a press (same
- * DOM node), and the parent already knows from `more` when a press unmounted it.
+ * No ref surface for focus: focus stays on the button for free while it survives a
+ * press (same DOM node), and the parent already knows from `more` when a press
+ * unmounted it.
  */
-export function LoadMore({ more, km, shown, total, announce, onReveal }: LoadMoreProps) {
+export function LoadMore({ more, shown, total, announce, auto = false, onReveal }: LoadMoreProps) {
   const { t } = useTranslation('common')
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // `onReveal` is a fresh closure every render (it reads the current rows), so hold it
+  // in a ref and keep the observer's own deps to `auto` alone — otherwise the effect
+  // would tear down and rebuild the IntersectionObserver on every render, and a fresh
+  // observer fires its callback immediately for an already-visible target, turning
+  // every re-render into another reveal. Same mount-once-with-a-live-ref shape
+  // `EventListItem` uses for the pin highlight.
+  const revealRef = useRef(onReveal)
+
+  revealRef.current = onReveal
+
+  // Auto-reveal: page as the reader reaches the foot of the list, so the ordinary case
+  // (scrolling through nearby results) needs no press at all. The button stays — it is
+  // the observed element, and it remains the keyboard/screen-reader path, which never
+  // depends on a scroll event firing.
+  //
+  // Self-limiting: each reveal inserts a page ABOVE the button, pushing it out of view
+  // until the reader catches up. It stops at the segment boundary because the parent
+  // withholds `auto` there — reaching the distant events stays an explicit choice.
+  useEffect(() => {
+    const button = buttonRef.current
+
+    if (!auto || !button || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) revealRef.current('auto')
+    })
+
+    observer.observe(button)
+
+    return () => observer.disconnect()
+  }, [auto])
 
   return (
     // No vertical padding once the button is gone: the only child left is the
@@ -48,8 +91,14 @@ export function LoadMore({ more, km, shown, total, announce, onReveal }: LoadMor
     // the padding would be a blank strip under every fully-revealed list.
     <div className={clsx('flex flex-col items-center gap-2 px-4', more && 'pb-6 pt-4')}>
       {more && (
-        <Button color="neutral" size="sm" variant="bordered" onClick={onReveal}>
-          {more === 'farther' ? t('results.farther', { km }) : t('results.more')}
+        <Button
+          ref={buttonRef}
+          color="neutral"
+          size="sm"
+          variant="flat"
+          onClick={() => onReveal('press')}
+        >
+          {more === 'farther' ? t('results.farther') : t('results.more')}
         </Button>
       )}
       <span aria-live="polite" className="sr-only" role="status">

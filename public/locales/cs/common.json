@@ -130,7 +130,7 @@
   },
   "results": {
     "more": "Zobrazit více",
-    "farther": "Zobrazit události dále než %{km} km",
+    "farther": "Zobrazit vzdálené události",
     "showing": "Zobrazeno %{shown} z %{total} událostí"
   }
 }

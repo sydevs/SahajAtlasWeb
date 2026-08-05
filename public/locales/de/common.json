@@ -130,7 +130,7 @@
   },
   "results": {
     "more": "Mehr anzeigen",
-    "farther": "Veranstaltungen weiter als %{km} km entfernt anzeigen",
+    "farther": "Entfernte Veranstaltungen anzeigen",
     "showing": "%{shown} von %{total} Veranstaltungen werden angezeigt"
   }
 }

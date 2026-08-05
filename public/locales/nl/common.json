@@ -130,7 +130,7 @@
   },
   "results": {
     "more": "Meer tonen",
-    "farther": "Evenementen verder dan %{km} km tonen",
+    "farther": "Verre evenementen tonen",
     "showing": "%{shown} van %{total} evenementen weergegeven"
   }
 }

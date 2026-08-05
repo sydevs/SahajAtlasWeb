@@ -4,8 +4,6 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { LoadMore } from './LoadMore'
 
-import { NEARBY_KM } from '@/lib/shape'
-
 export default { title: 'Organisms' } satisfies StoryDefault
 
 /**
@@ -13,41 +11,32 @@ export default { title: 'Organisms' } satisfies StoryDefault
  * live region that reports the new total. Its sibling DynamicEventsList decides WHICH
  * reveal is on offer (`revealRows`); this only renders it, so it stories offline.
  *
- * The live region is `sr-only` in all three states — the "Revealed" case is here to
- * show that the row collapses to nothing visible once the last press has unmounted the
- * button, rather than leaving a blank strip under the list.
+ * `auto` is deliberately off in every case here: armed, the observer would fire the
+ * moment the control scrolled into view and the story would re-reveal itself on sight.
+ * The button is identical either way — auto-reveal only adds an IntersectionObserver
+ * beside it, never a different control — so these cases cover its whole visual surface.
+ *
+ * The live region is `sr-only` in all three states; the "Fully revealed" case is here
+ * to show that the row collapses to nothing visible once the last press has unmounted
+ * the button, rather than leaving a blank strip under the list.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="Rows still to come in the segment on screen — the ordinary paging press."
+      description="Rows still to come in the segment on screen — the ordinary paging press, and the one the list also fires automatically as the reader reaches it."
       title="More to reveal"
     >
       <div className="max-w-md">
-        <LoadMore
-          announce={false}
-          km={NEARBY_KM}
-          more="more"
-          shown={25}
-          total={137}
-          onReveal={() => {}}
-        />
+        <LoadMore announce={false} more="more" shown={25} total={137} onReveal={() => {}} />
       </div>
     </StorySection>
 
     <StorySection
-      description="Nearby matches exhausted. The label says plainly what the press does — it is the list's only distance affordance, so it has to read as “nearby events have run out”, not as the list simply ending."
-      title="Crossing the distance boundary"
+      description="Nearby matches exhausted. The list's only distance affordance, and never auto-fired — reaching past the boundary is a decision, so it has to read as “nearby events have run out” rather than as the list simply ending."
+      title="Reaching the distant events"
     >
       <div className="max-w-md">
-        <LoadMore
-          announce
-          km={NEARBY_KM}
-          more="farther"
-          shown={72}
-          total={330}
-          onReveal={() => {}}
-        />
+        <LoadMore announce more="farther" shown={72} total={330} onReveal={() => {}} />
       </div>
     </StorySection>
 
@@ -56,7 +45,7 @@ export const Default: Story = () => (
       title="Fully revealed"
     >
       <div className="max-w-md">
-        <LoadMore announce km={NEARBY_KM} more={null} shown={330} total={330} onReveal={() => {}} />
+        <LoadMore announce more={null} shown={330} total={330} onReveal={() => {}} />
       </div>
     </StorySection>
 

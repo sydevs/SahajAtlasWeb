@@ -130,7 +130,7 @@
   },
   "results": {
     "more": "Afficher plus",
-    "farther": "Afficher les événements à plus de %{km} km",
+    "farther": "Afficher les événements éloignés",
     "showing": "%{shown} sur %{total} événements affichés"
   }
 }

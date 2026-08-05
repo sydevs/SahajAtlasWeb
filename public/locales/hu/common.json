@@ -130,7 +130,7 @@
   },
   "results": {
     "more": "Több megjelenítése",
-    "farther": "Több mint %{km} km-re lévő események megjelenítése",
+    "farther": "Távoli események megjelenítése",
     "showing": "%{shown} / %{total} esemény megjelenítve"
   }
 }
