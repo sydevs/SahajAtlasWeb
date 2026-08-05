@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
+import { QueryErrorResetBoundary } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
@@ -350,11 +351,18 @@ export function DrawerStack() {
           initial={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          <Suspense fallback={<DrawerLoading />}>
-            <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
-              <TopView entry={top} parentPath={parentPath ?? '/'} />
-            </ErrorBoundary>
-          </Suspense>
+          {/* `reset` clears the failed query's error state before the boundary
+              re-renders the view — without it "Try again" re-throws the cached error
+              on the spot and the button visibly does nothing (issue #89). */}
+          <QueryErrorResetBoundary>
+            {({ reset }) => (
+              <Suspense fallback={<DrawerLoading />}>
+                <ErrorBoundary FallbackComponent={DrawerErrorFallback} onReset={reset}>
+                  <TopView entry={top} parentPath={parentPath ?? '/'} />
+                </ErrorBoundary>
+              </Suspense>
+            )}
+          </QueryErrorResetBoundary>
         </motion.div>
       </AnimatePresence>
     </DrawerContent>

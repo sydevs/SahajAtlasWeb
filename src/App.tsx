@@ -4,7 +4,7 @@ import { type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'reac
 import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { QueryErrorResetBoundary, useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 import { MapProvider } from 'react-map-gl'
 
@@ -66,16 +66,24 @@ export default function App({
   return (
     <Providers>
       <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
-        <Suspense fallback={<LoadingFallback />}>
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <AppShell
-              apiKey={apiKey}
-              defaultLocale={defaultLocale}
-              hasMap={hasMap}
-              standalone={standalone}
-            />
-          </ErrorBoundary>
-        </Suspense>
+        {/* QueryErrorResetBoundary is what makes "Try again" mean anything: without it
+            `resetErrorBoundary` re-renders the subtree onto a query still parked in its
+            error state, which throws again immediately — a button that visibly does
+            nothing. `reset` clears those errors first, so the query actually re-runs. */}
+        <QueryErrorResetBoundary>
+          {({ reset }) => (
+            <Suspense fallback={<LoadingFallback />}>
+              <ErrorBoundary FallbackComponent={ErrorFallback} onReset={reset}>
+                <AppShell
+                  apiKey={apiKey}
+                  defaultLocale={defaultLocale}
+                  hasMap={hasMap}
+                  standalone={standalone}
+                />
+              </ErrorBoundary>
+            </Suspense>
+          )}
+        </QueryErrorResetBoundary>
         {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
             ErrorFallback is on screen — which is exactly when a viewer most wants it —
             with its own Suspense fence so the lazy chunk can't suspend the app's.
