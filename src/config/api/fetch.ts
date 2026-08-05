@@ -19,6 +19,7 @@ import {
   ancestorIds,
   boundsUnder,
   buildRegionMatcher,
+  byDistance,
   byNextOccurrence,
   countUnder,
   childRoute,
@@ -445,9 +446,13 @@ const getEvents = async (
   // the feed is fetched once and cached, so the list reveals from this set a page at a
   // time (see `revealRows` in `@/lib/shape/reveal`). The rendered set can still differ
   // from the map, which has no geometry for online events and applies no distance cut.
+  // `byDistance` rather than the inline subtraction this used to do: two distanceless
+  // (online) events made that `Infinity - Infinity`, i.e. NaN — an invalid comparator
+  // result. Latent while the nearest-50 slice kept online events off the rendered list;
+  // uncapped they always form its tail, so the guarded comparator is the one to use.
   return features
     .map((feature) => toSlim(feature, titles.get(feature.properties.id), from))
-    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+    .sort(byDistance)
 }
 
 // ── Calendar source events (the whole filtered set, for occurrence expansion) ────
