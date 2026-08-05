@@ -329,11 +329,17 @@ export function useEventFromPath(eventPath: string) {
 // inner body (a spinner) — the persistent DrawerContent supplies the sheet chrome —
 // so loading doesn't remount or re-animate the drawer. Mirrors the top-level
 // LoadingFallback (molecules/Fallbacks).
+//
+// TOP-ALIGNED, not centred. `DrawerBody` fills a sheet that is `h-dvh` (vaul computes its
+// snap translates off the window height), while the mobile sheet only shows its top 300px
+// — so `items-center` put the spinner at roughly `1.5·viewport − 300` from the top, i.e.
+// BELOW THE FOLD. Loading rendered as a blank sheet on every phone: "nothing happened when
+// I tapped". Same fix, same reason, in DrawerErrorFallback below (issue #89).
 export function DrawerLoading() {
   const { t } = useTranslation('common')
 
   return (
-    <DrawerBody className="flex items-center justify-center py-16">
+    <DrawerBody className="flex justify-center p-8">
       <Spinner color="secondary" label={t('loading')} />
     </DrawerBody>
   )
@@ -351,7 +357,10 @@ export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps
   const { policy, message, reportContext } = useErrorDisplay(error)
 
   return (
-    <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
+    // Top-aligned for the reason spelled out on DrawerLoading above: centred content sat
+    // below the fold of the 300px mobile sheet, so the error state was invisible on every
+    // phone — the widget looked broken in a way that hid the explanation for it.
+    <DrawerBody className="flex flex-col items-start gap-3 p-4">
       <Alert align="start" className="max-w-xs" color="danger" description={message} />
       <ErrorActions
         policy={policy}

@@ -208,7 +208,7 @@ describe('nearestKnownRegion', () => {
     expect(nearestKnownRegion('/gb/cambridgeshire/atlantis', known)).toBe('cambridgeshire')
   })
 
-  it('steps over a register/share segment to the event\'s region', () => {
+  it("steps over a register/share segment to the event's region", () => {
     // The load-bearing case: `parentOf` here yields the dead event path, so a parent-based
     // recovery would hand the viewer a second dead link.
     expect(nearestKnownRegion('/gb/cambridgeshire/999999/register', known)).toBe('cambridgeshire')
