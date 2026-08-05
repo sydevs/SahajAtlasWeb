@@ -87,12 +87,17 @@ Five stores, each the single source of truth for its slice:
   than component state because the drawer stack remounts views: opening an event and
   coming back would otherwise drop the reader at the top of a list they had paged deep
   into. Read + advanced through `useReveal` (`src/hooks/use-reveal.ts`), which is keyed
-  by **`revealKey`** (`src/lib/shape/reveal.ts`) — the centre, filters, sort and locale
-  the count was made against. Reading under a different key simply *is* the first page,
-  so a new search, a filter edit or a re-sort resets the reveal **by construction**;
-  there is no reset call for `useSetFilters` / `useSetSortOrder` / `FilterView` to
-  forget. The reveal advances inside a `useTransition`, so the control can show an
-  honest loading state while a page of cards renders.
+  by **`revealKey`** (`src/lib/shape/reveal.ts`) — built FROM the events query key (so
+  the quantized centre, the filters and the locale have one definition, shared with the
+  fetch) plus the sort, which that key deliberately omits. Reading under a different key
+  simply *is* the first page, so a new search, a filter edit or a re-sort shows the
+  reveal reset **by construction**; there is no reset call for `useSetFilters` /
+  `useSetSortOrder` / `FilterView` to forget. Note the store holds **one** key, so this
+  is a reset going *forward*, not an erase: sorting away and back restores the position
+  you left rather than starting over. The reveal advances inside a `useTransition` so
+  the control can show a loading state; it never `disable`s that control, because a
+  browser unfocuses a disabled element and a keyboard user would lose their place on
+  every press (`aria-busy` instead, with the re-entry guard doing the real work).
   `revealRows` splits the sorted set at the distance boundary, slices to the count, and
   says what the control offers next — clamped at `MAX_REVEAL`, since the rows are
   unvirtualized. **The boundary is two numbers, not one**: `NEARBY_KM` (300), and

@@ -63,7 +63,7 @@ here is **organisms own data/network/map lifecycles; atoms and molecules don't.*
 | `Checkbox/`           | `Checkbox`                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`); the checkbox appearance backs the registration consent field. `isInvalid` recolours to danger. Disabled repaints on the **neutral ramp** off Radix's `data-disabled` (winning over `color`/`isInvalid` by CSS specificity, not class order) rather than fading the brand fill — a pale brand tint read as "a lighter shade of on". There is no `neutral` colour: grey now means disabled |
 | `Chip/`               | `Chip`                                               | Pure presentational atom; brand-token styling (`tv()`). `onClose`/`closeLabel` are a union — a close button always has a label          |
 | `Combobox/`           | `Combobox`, `ComboboxOption`                         | Search-in-the-field single-select (Radix Popover + cmdk) — the region filter. Type to filter by label **or** `hint`, click to select; the trigger shows only the short label. Radix's portal survives the modal calendar filter sheet (where a Floating-UI popover is pointer-locked out) |
-| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Body`/`Footer`/`Close` | vaul drawer; left ≥md / bottom sheet on mobile, non-modal; portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction |
+| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Toolbar`/`Body`/`Footer`/`Close` | vaul drawer; left ≥md / bottom sheet on mobile, non-modal; portals into the themed root. `mode: 'anchored' \| 'filled'` (filled = map-less). The single surface abstraction. `DrawerToolbar` is a fixed band between header and body, OUTSIDE the scroll container — for controls acting on the scrolling content (SearchView's Filters + Sort), which would otherwise scroll away exactly when a long list makes them useful |
 | `Dropdown/`           | `Dropdown`                                           | Floating-UI **popover shell**: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`)            |
 | `Input/`              | `Input`                                              | Native `<input>` on the shared `fieldChrome` recipe (forwards its ref for react-hook-form); `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                               | Router link, or `<a>` for external/`mailto:`/`tel:`; forwards a ref (used as a whole-card hit target)                                    |
@@ -164,8 +164,8 @@ component barrels.
   4. **`ToggleGroup/`** — the `ToggleGroup` + `ToggleGroupItem` compound.
   5. **`Select/`** — `Select` + `SelectItem`, plus the `fieldChrome` recipe every
      field-like control shares.
-  6. **`Drawer/`** — `Drawer` + the `DrawerContent`/`DrawerHeader`/`DrawerBody`/
-     `DrawerFooter` layout parts + `DrawerClose`. The single surface abstraction: a
+  6. **`Drawer/`** — `Drawer` + the `DrawerContent`/`DrawerHeader`/`DrawerToolbar`/
+     `DrawerBody`/`DrawerFooter` layout parts + `DrawerClose`. The single surface abstraction: a
      `Drawer` is `open`/`onOpenChange` controlled with `mode: 'anchored' | 'filled'`
      (filled = map-less), and every View composes it.
   7. **`ActionRow/`** — `ActionRow` + `ActionCircle` (the row and its one child type).

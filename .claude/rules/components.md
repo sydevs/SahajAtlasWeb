@@ -95,6 +95,12 @@ in host pages, **and** runs standalone in dev. Because of that:
   (`src/hooks/`) and React Query (`src/config/api`), and read shared state from
   zustand selectors. See `.claude/rules/data-layer.md` and
   `.claude/rules/i18n-and-state.md`.
+- **A row in a list that grows should not subscribe to the URL.** `EventListItem` is the
+  repo's one `React.memo`, because the search results list pages to hundreds of rows and
+  would otherwise re-render all of them per press. `memo` only holds if the card takes
+  what it needs as props: it reads the searched place from a prop rather than
+  `useSearchParams`, since `?q` is rewritten on every geocoder keystroke and router
+  context bypasses `memo` entirely.
 
 ## Accessibility
 
