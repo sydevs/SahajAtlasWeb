@@ -3,8 +3,8 @@ import type { SortOrder } from '@/lib/shape'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 
-import { Button, HEADER_CONTROL } from '@/components/atoms/Button'
-import { CheckIcon, DownArrowIcon, SortIcon } from '@/components/atoms/Icons'
+import { Button } from '@/components/atoms/Button'
+import { CheckIcon, DownArrowIcon } from '@/components/atoms/Icons'
 import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
 import { SORT_ORDERS } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
@@ -29,16 +29,6 @@ function ItemCheck() {
   )
 }
 
-export type SortMenuProps = {
-  /**
-   * Render the trigger as a bare header icon rather than the labelled `Sort: <current>`
-   * row. The current ordering then lives only in the open menu's checkmark, so the
-   * label moves into `aria-label` — mirrors `FilterButton`'s own `iconOnly`, and wears
-   * the same `HEADER_CONTROL` chrome so the header reads as one set of buttons.
-   */
-  iconOnly?: boolean
-}
-
 /**
  * The results-list sort selector: a ghost trigger showing `Sort: <current>` with a
  * caret, opening a radio menu of the orderings (Recommended / Closest / Soonest) with a
@@ -47,28 +37,23 @@ export type SortMenuProps = {
  * on Radix DropdownMenu (RadioGroup + ItemIndicator) rather than the Dropdown/Select
  * atoms, which don't model a checked selection — the same choice SettingsMenu makes.
  */
-export function SortMenu({ iconOnly = false }: SortMenuProps = {}) {
+export function SortMenu() {
   const { t } = useTranslation('common')
   const order = useSortOrder()
   const setOrder = useSetSortOrder()
   const container = overlayContainer()
-  const label = `${t('sort.label')}: ${t(`sort.${order}`)}`
 
   // modal={false}: this menu opens inside the draggable vaul drawer; Radix's default
   // modal scroll-lock + body pointer-events trap fights the sheet's own drag/scroll.
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        {iconOnly ? (
-          <Button {...HEADER_CONTROL} aria-label={label}>
-            <SortIcon size={20} />
-          </Button>
-        ) : (
-          <Button size="sm" variant="ghost">
-            <span>{label}</span>
-            <DownArrowIcon size={16} />
-          </Button>
-        )}
+        <Button size="sm" variant="ghost">
+          <span>
+            {t('sort.label')}: {t(`sort.${order}`)}
+          </span>
+          <DownArrowIcon size={16} />
+        </Button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>

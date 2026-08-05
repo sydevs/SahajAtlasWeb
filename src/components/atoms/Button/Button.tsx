@@ -166,15 +166,6 @@ export type ButtonProps =
   | (ButtonOwnProps & Omit<ComponentProps<'button'>, 'color'>)
   | (ButtonOwnProps & { href: string } & Omit<ComponentProps<'a'>, 'color' | 'disabled'>)
 
-/**
- * The chrome every icon control in a drawer header wears. Spread rather than wrapped in
- * a component, so the whole header row provably renders one set of buttons — Close,
- * Back, Search, Filters and Sort are authored in three different modules and would
- * otherwise drift. Lives with the Button recipe because its audience spans tiers (the
- * SortMenu molecule and the view-level header controls both need it).
- */
-export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
-
 const SPINNER_SIZE = { sm: 'sm', md: 'sm', lg: 'md' } as const
 
 // forwardRef so Radix `asChild` slots (Dialog.Trigger / Dialog.Close) and

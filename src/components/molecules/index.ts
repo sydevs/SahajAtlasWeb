@@ -20,11 +20,15 @@ export { ActiveFilterPills } from './ActiveFilterPills'
 export { CountrySiteOffer } from './CountrySiteOffer'
 export type { CountrySiteOfferProps } from './CountrySiteOffer'
 
+// ListToolbar — the controls row above a results list (a Filters button, plus a
+// SortMenu on the search results). A thin justify-between layout; the views supply
+// the controls.
+export { ListToolbar } from './ListToolbar'
+export type { ListToolbarProps } from './ListToolbar'
+
 // SortMenu — the results-list sort selector (Recommended / Closest / Soonest),
 // persisted in `?sort=`. A Radix DropdownMenu radio group (mirrors SettingsMenu).
-// `iconOnly` renders the drawer-header trigger; the labelled row is the default.
 export { SortMenu } from './SortMenu'
-export type { SortMenuProps } from './SortMenu'
 
 export { LoadingFallback, ErrorFallback } from './Fallbacks'
 

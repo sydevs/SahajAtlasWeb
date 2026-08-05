@@ -10,9 +10,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
-// HEADER_CONTROL: the shared icon-control preset, so these and the SortMenu's own
-// header trigger provably render identical chrome (see the Button module).
-import { Button, HEADER_CONTROL } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
 import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
@@ -100,6 +98,13 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
     </div>
   )
 }
+
+/**
+ * The drawer header's icon controls (close, list-toggle, filter) are all the same
+ * Button preset, kept here as values rather than a wrapper component so the three
+ * provably render identical chrome — the header reads as one set of buttons.
+ */
+const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
   const { t } = useTranslation('common')
@@ -210,14 +215,14 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
 // The URL-only state that survives a new place search — the applied filters and the
 // list sort (both presentation, not location). Re-encoding through the two codecs from
-// an EMPTY base drops every other param by construction: the searched location
-// (`q`/`center`/`bbox`/`cc`) and the results list's reveal (`shown`/`all`, which a new
-// result set makes meaningless); the caller then sets the new location. That's what
-// keeps the previous country's `?cc` from leaking into the next search (it would offer
-// the wrong country's website). Shared by SearchField + GeolocationSuggestion so a
-// re-search never silently clears either slice — and a filter edit, which merges onto
-// the current params (`filtersToParams(…, prev)`), preserves the searched country
-// while resetting the reveal explicitly (`resetReveal`, see `use-filters`).
+// an EMPTY base drops the searched location (`q`/`center`/`bbox`/`cc`) by construction;
+// the caller then sets the new one. That's what keeps the previous country's `?cc` from
+// leaking into the next search (it would offer the wrong country's website). Shared by
+// SearchField + GeolocationSuggestion so a re-search never silently clears either
+// slice — and a filter edit, which merges onto the current params
+// (`filtersToParams(…, prev)`), preserves the searched country. The results list's
+// reveal isn't in the URL at all: a new centre changes `revealKey`, so it resets on its
+// own (see `use-reveal`).
 function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
   return sortToParams(
     sortFromParams(searchParams),

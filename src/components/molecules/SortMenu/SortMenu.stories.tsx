@@ -22,13 +22,6 @@ export const Default: Story = () => (
       <SortMenu />
     </StorySection>
 
-    <StorySection
-      description="The drawer-header trigger (how SearchView renders it, beside the Filters icon): the same menu behind a bare icon, with the current ordering moved to the aria-label since there is no room to show it."
-      title="Icon only"
-    >
-      <SortMenu iconOnly />
-    </StorySection>
-
     <div />
   </StoryWrapper>
 )
