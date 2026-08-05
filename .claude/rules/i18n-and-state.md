@@ -5,6 +5,8 @@ globs:
   - "src/config/store.ts"
   - "src/hooks/use-filters.ts"
   - "src/hooks/use-locale.ts"
+  - "src/hooks/use-reveal.ts"
+  - "src/hooks/use-sort.ts"
   - "public/locales/**"
 alwaysApply: false
 ---
@@ -78,7 +80,7 @@ Five stores, each the single source of truth for its slice:
   element that opened it is kept beside the store (non-reactive) so focus can
   return there on close.
 
-Three slices are **URL-derived, not stores** — the URL query is their single source
+Four slices are **URL-derived, not stores** — the URL query is their single source
 of truth, so all are linkable/shareable:
 
 - **Search filters** — read with `useEventFilters`, mutate with `useSetFilters`
@@ -93,7 +95,24 @@ of truth, so all are linkable/shareable:
   reorders the already-fetched results (a client re-sort in `DynamicEventsList`, never
   a refetch — absent from `filtersKey`), and never lights the filter badge
   (absent from `activeFilterCount`). The SortMenu (search results only) reads/writes it.
-- **The searched location** — `?q`/`?center`/`?bbox`/`?all`, plus **`?cc`** (the
+- **The results list's reveal** — read + advanced with `useReveal`
+  (`src/hooks/use-reveal.ts`); serialized by `revealToParams` / `revealFromParams`
+  (`src/lib/shape/reveal.ts`) under **`?shown=`** (the revealed row count, first page
+  omitted) plus **`?all=1`** (the far-segment flag, which predates the codec as the old
+  "< 500 km" pill's dismissal). Presentation like the sort — absent from `eventsQuery`'s
+  key, so a press never refetches; every match is already in the cached feed. `revealRows`
+  splits the sorted set at the 500 km boundary and slices to the count, so the list pages
+  through nearby matches first and crossing into the far ones takes an **explicit press**
+  ("show events farther than 500 km"). There is deliberately **no "< N km" pill** — an
+  automatic cut posing as a user filter — so that button is the list's only distance
+  affordance. In the URL rather than component state for the same reason as the others:
+  the drawer stack remounts views, so opening an event and coming back would silently
+  reset the reveal. **Both params reset on any change to the result set**: a new place
+  search drops them for free (`preserveSearchState` re-encodes from an empty base), but
+  the setters that merge onto `prev` — `useSetFilters`, `useSetSortOrder`, and
+  **`FilterView`'s Apply/Clear** (the main filter path, easy to miss) — must call
+  `resetReveal` explicitly.
+- **The searched location** — `?q`/`?center`/`?bbox`, plus **`?cc`** (the
   searched country's ISO code, `SEARCH_COUNTRY_PARAM` in `src/lib/shape/path.ts` beside
   `searchPath`/`parseCenter`). Read raw with a local parse helper rather than through a
   codec — unlike filters/sort, these are *replaced* by a new search, not merged:

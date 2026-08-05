@@ -73,8 +73,11 @@ One flexible section component (title, optional description, automatic divider).
 
 Seeds URL search params (the filters' source of truth, read via `useEventFilters`) onto the
 decorator's own router — react-router v7 forbids nesting a second `<Router>`. Pass a **stable**
-`params` (module-level `filtersToParams(...)`) so it seeds once. Used by the ActiveFilterPills +
-CalendarView stories to preview the applied-filter state.
+`params` (module-level `filtersToParams(...)`, or `useMemo`d per case) — it seeds once per
+`params` **identity**, so the story's own writes (paging the results, clearing a filter) survive
+instead of being overwritten by a re-seed. Two cases sharing one query string therefore share one
+memoized object and one seed: give them distinct queries, or a state written in the first carries
+into the second. Used by the ActiveFilterPills, CalendarView + SearchView stories.
 
 ```tsx
 import { SeedSearchParams } from '../../ladle'
