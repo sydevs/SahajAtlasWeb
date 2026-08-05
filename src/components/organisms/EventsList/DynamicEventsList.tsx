@@ -15,7 +15,6 @@ import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import {
   DEFAULT_REVEAL,
-  NEARBY_KM,
   byDistance,
   byNextOccurrence,
   hasActiveFilters,
@@ -123,7 +122,7 @@ export function DynamicEventsList({
   // quantization lives in one place.
   const searchCountry = useSearchCountry()
   const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
-  const { rows, more, next, total } = useMemo(
+  const { rows, more, next, total, nearbyKm } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
     [sorted, shown, showAll, hasSearchCenter, searchCountry],
   )
@@ -175,7 +174,7 @@ export function DynamicEventsList({
       <ActiveFilterPills />
       <div ref={listRef}>
         {rows.length === 0 ? (
-          <EmptyResults nearbyKm={more === 'farther' ? NEARBY_KM : undefined} />
+          <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
         ) : (
           <EventsList events={rows} />
         )}

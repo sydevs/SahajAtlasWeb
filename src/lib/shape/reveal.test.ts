@@ -60,6 +60,15 @@ describe('revealKey', () => {
     }
   })
 
+  it('cannot be collided by a separator smuggled through the filters', () => {
+    // `filtersKey` embeds raw URL values (a region slug, language tokens), so a joined
+    // key could be forged: `['a|b', 'c']` and `['a', 'b|c']` join identically. A
+    // collision hands one search's reveal count to another.
+    expect(revealKey(['events', 'a|b', 'c'], 'recommended')).not.toBe(
+      revealKey(['events', 'a', 'b|c'], 'recommended'),
+    )
+  })
+
   it('changes with the sort, which the query key deliberately omits', () => {
     // Sort reorders the fetched list rather than refetching, so it is absent from the
     // query key — but it changes which events the revealed rows ARE, so the reveal has
@@ -192,6 +201,21 @@ describe('revealRows', () => {
 
     expect(result.rows).toHaveLength(2)
     expect(result.more).toBeNull()
+  })
+
+  it('reports the boundary the empty state can name without lying', () => {
+    // A cross-border match at 200 km is excluded by the 150 km foreign limit, so
+    // "no events within 300 km" would be false while that event exists. The smaller
+    // limit is true either way: an empty nearby segment means nothing cleared either.
+    const foreign = reveal(at(FOREIGN_NEARBY_KM + 50, 3, 'abroad', 'BE'), { searchCountry: 'FR' })
+
+    expect(foreign.rows).toEqual([])
+    expect(foreign.nearbyKm).toBe(FOREIGN_NEARBY_KM)
+
+    // Nothing was demoted on nationality here, so the full boundary is the honest one.
+    const domestic = reveal(at(NEARBY_KM + 50, 3, 'home', 'FR'), { searchCountry: 'FR' })
+
+    expect(domestic.nearbyKm).toBe(NEARBY_KM)
   })
 
   it('never demotes an event on a country it does not know', () => {

@@ -72,7 +72,11 @@ export const MAX_REVEAL = PAGE_SIZE * 40
  * the query key but does change which events the revealed rows are.
  */
 export const revealKey = (queryKey: readonly unknown[], sort: string): string =>
-  [...queryKey, sort].join('|')
+  // `JSON.stringify`, not `join` — the key carries `filtersKey`, which embeds raw URL
+  // values (a region slug, language tokens). Any separator those can contain lets two
+  // different result sets collide on one key, and a collision hands one search's reveal
+  // count to another. Structural encoding has no separator to forge.
+  JSON.stringify([...queryKey, sort])
 
 /**
  * The minimum an event needs for the distance segmentation below — its distance from
@@ -112,6 +116,14 @@ export type Reveal<T> = {
    * reads "60 of 60" at the very moment the only control offers 40 more.
    */
   total: number
+  /**
+   * The boundary the empty state should name — the SMALLEST limit actually applied, so
+   * the sentence stays true. "No events within 300 km" is a lie when a cross-border
+   * match sits at 200 km and the 150 km foreign limit is what excluded it; "within
+   * 150 km" holds either way, because an empty nearby segment means nothing cleared
+   * either limit.
+   */
+  nearbyKm: number
 }
 
 /**
@@ -155,6 +167,11 @@ export function revealRows<T extends Segmentable>(
   const isNear = (event: T) => event.distance === undefined || event.distance <= limitFor(event)
   const near = hasSearchCenter ? sorted.filter(isNear) : sorted
   const far = hasSearchCenter ? sorted.filter((event) => !isNear(event)) : []
+  // The smallest limit any excluded event was held to — what the empty state can name
+  // without lying (see `nearbyKm` on the return type).
+  const nearbyKm = far.some((event) => limitFor(event) === FOREIGN_NEARBY_KM)
+    ? FOREIGN_NEARBY_KM
+    : NEARBY_KM
 
   // Before the distant segment is revealed the list IS the nearby one, so the slice
   // below clamps at the boundary for free — no press can overshoot it.
@@ -196,5 +213,6 @@ export function revealRows<T extends Segmentable>(
         }
       : null,
     total,
+    nearbyKm,
   }
 }

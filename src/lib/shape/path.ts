@@ -64,17 +64,26 @@ export const searchPath = (center?: [number, number]): string =>
 
 /**
  * Decode a `?center=lng,lat` value to `[longitude, latitude]`, or `undefined` when
- * it's absent or not two finite numbers — so a malformed hand-typed value falls back
- * to the map centre rather than feeding NaNs into Mapbox. The inverse of
+ * it's absent or not two finite numbers IN RANGE — so a malformed hand-typed value
+ * falls back to the map centre rather than feeding NaNs into Mapbox. The inverse of
  * `searchPath`'s encoding, kept beside it: SearchView (framing + distance ranking)
  * and the SearchView story (deriving the seeded query key) both read it, and a third
  * private copy is how the two would silently disagree.
+ *
+ * The range check matters as much as the finite one: Mapbox's `LngLat` throws outside
+ * ±90 latitude, and this value reaches `flyTo` straight from the URL — so `?center=0,1000`
+ * would take the whole widget down to the error boundary inside somebody else's page.
  */
 export const parseCenter = (value: string | null): [number, number] | undefined => {
   if (!value) return undefined
   const [longitude, latitude] = value.split(',').map(Number)
 
-  return Number.isFinite(longitude) && Number.isFinite(latitude) ? [longitude, latitude] : undefined
+  return Number.isFinite(longitude) &&
+    Number.isFinite(latitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180
+    ? [longitude, latitude]
+    : undefined
 }
 
 /**
