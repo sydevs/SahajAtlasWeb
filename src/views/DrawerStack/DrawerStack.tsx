@@ -19,7 +19,14 @@ import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
-import { type StackEntry, atlasDepth, dismissAction, dismissDepth, resolveStack } from '@/lib/shape'
+import {
+  type StackEntry,
+  atlasDepth,
+  dismissAction,
+  dismissDepth,
+  isFilterOverlay,
+  resolveStack,
+} from '@/lib/shape'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -48,6 +55,10 @@ const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar o
 // unambiguously on top.
 const PEEK_MOBILE = 10 // px above the sheet's top edge
 const PEEK_DESKTOP = 12 // px to the right of the left panel
+
+// Frames of a stationary sheet before the `--sy-sheet-top` mirror parks itself (~0.5s at
+// 60fps — well past the end of any vaul spring). See the effect for why it parks at all.
+const IDLE_FRAMES = 30
 
 // One uniform peek width per stack: every ancestor shares the same gap, and that gap
 // shrinks as the TOTAL depth grows — so each level stays evenly spaced while a taller
@@ -179,8 +190,7 @@ export function DrawerStack() {
   // the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile — rather
   // than replacing it. So the calendar stays the base view and the trailing `filters` entry
   // is peeled into the overlay below. (Map-less keeps the plain replace-stack behaviour.)
-  const filterOverlay =
-    hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
+  const filterOverlay = isFilterOverlay(entries, hasMap)
   const baseEntries = useMemo(
     () => (filterOverlay ? entries.slice(0, -1) : entries),
     [filterOverlay, entries],
@@ -251,6 +261,7 @@ export function DrawerStack() {
     // the bug that made both states invisible on mobile in the first place (issue #89).
     if (!hasMap || direction !== 'bottom') return
     let raf = 0
+    let still = 0
     let last = Number.NaN
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
     // re-query the DOM every frame; the effect re-runs (resetting this) if direction flips.
@@ -262,18 +273,43 @@ export function DrawerStack() {
       if (sheet) {
         const top = sheet.getBoundingClientRect().top
 
-        if (top !== last) {
+        if (top === last) {
+          still += 1
+        } else {
+          still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
           el?.style.setProperty('--sy-sheet-top', `${top}px`)
         }
       }
-      raf = requestAnimationFrame(tick)
+
+      // Park once the sheet has held still, and let the events that can move it wake the
+      // loop back up. Reading `getBoundingClientRect` forces a style/layout flush, so an
+      // always-on loop spends the map's frame budget on exactly the constrained devices —
+      // and the sheet is stationary for almost all of a session. Half a second of stillness
+      // is well past the end of any vaul spring.
+      raf = still > IDLE_FRAMES ? 0 : requestAnimationFrame(tick)
+    }
+
+    const wake = () => {
+      still = 0
+      raf ||= requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
+    // The three ways the top edge moves: a drag (no transition — vaul writes the transform
+    // per pointer event), a snap animation, and a viewport resize. `capture` because the
+    // pointer goes down on whatever is inside the sheet, not the sheet itself.
+    document.addEventListener('pointerdown', wake, true)
+    window.addEventListener('resize', wake)
+    document.addEventListener('transitionrun', wake, true)
 
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('pointerdown', wake, true)
+      window.removeEventListener('resize', wake)
+      document.removeEventListener('transitionrun', wake, true)
+    }
   }, [hasMap, direction])
 
   // The calendar opens at the near-full snap on mobile — its month grid AND its list both need
@@ -303,20 +339,20 @@ export function DrawerStack() {
   // to pop — and `navigate(-1)` would navigate the *host page* away (the embedded
   // widget shares browser history) — so it climbs to the structural parent instead.
   // The root view (no parent) collapses to its peek.
-  const control = useMemo(
-    () => ({
+  const control = useMemo(() => {
+    // Resolved ONCE and read by both members below, so `canDismiss` can't drift from what
+    // pressing X actually does. The error fallback renders its own header (the view's is
+    // inside the boundary that caught) and must not offer a close that no-ops: at the root
+    // there is nothing to climb to, and `navigate(-1)` would take the HOST page back
+    // (issue #89).
+    const action = dismissAction({ hasParent: Boolean(parentPath), depth })
+
+    return {
       collapsed: snap === PEEK_SNAP,
       canCollapse,
-      // Whether pressing X would actually go anywhere — the SAME expression `dismiss`
-      // evaluates below, hoisted so the context stops lying about what the button does.
-      // The error fallback renders its own header (the view's is inside the boundary that
-      // caught), and it must not offer a close that no-ops: at the root there is nothing to
-      // climb to, and `navigate(-1)` would take the HOST page back (issue #89).
-      canDismiss: dismissAction({ hasParent: Boolean(parentPath), depth }) !== 'collapse',
+      canDismiss: action !== 'collapse',
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
       dismiss: () => {
-        const action = dismissAction({ hasParent: Boolean(parentPath), depth })
-
         // Mark the dismiss navigation as a transition: unmounting a heavy view (the calendar's
         // large grid) otherwise reconciles synchronously and freezes the click for a beat
         // ("nothing happened"). As a transition React keeps the UI responsive and swaps when ready.
@@ -327,9 +363,8 @@ export function DrawerStack() {
             else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
           })
       },
-    }),
-    [snap, canCollapse, parentPath, location, navigate, toStackTarget],
-  )
+    }
+  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
   // over — chronologically when there's in-widget history, else a direct climb (query kept).

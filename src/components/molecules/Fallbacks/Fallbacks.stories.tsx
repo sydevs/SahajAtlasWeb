@@ -56,7 +56,7 @@ const BODY_CASES: {
     kind: 'no-nearby',
     actions: 'none',
     note: 'The only row that offers nothing, and the only one entitled to — the list\'s own "Show distant events" control sits directly below it. `visibleActions` leaves it alone because it promised nothing for a surface to take away.',
-    props: { message: { values: { km: 300 } }, hasSearchChrome: true },
+    props: { values: { km: 300 }, hasSearchChrome: true },
   },
   {
     kind: 'country-site',
@@ -64,7 +64,7 @@ const BODY_CASES: {
     note: 'A searched country listing no programs at all (issue #82). The one rung that leaves the widget, so it takes the external treatment: a flag, a new tab, and the anchor glyph.',
     props: {
       hasSearchChrome: true,
-      message: { values: { country: 'Iceland' } },
+      values: { country: 'Iceland' },
       offer: {
         kind: 'country-site',
         path: countrySite('IS') ?? 'https://sahajayoga.is/',

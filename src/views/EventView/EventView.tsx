@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
@@ -48,9 +48,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { collapsed } = useDrawerControl()
 
   const { data: event } = useSuspenseQuery(eventQuery(id, locale))
-  // Bumped by the details boundary's reset; see `loadEventDetails`.
-  const [detailsAttempt, setDetailsAttempt] = useState(0)
-  const EventDetails = useMemo(() => loadEventDetails(), [detailsAttempt])
+  // The component itself is the state — the boundary's reset swaps in a fresh `lazy`. Held
+  // directly rather than as a counter a memo keys off, so the rule ("a retry needs a new
+  // lazy") is the code rather than something to reconstruct from a dep array. `useState`
+  // calls a function initializer, and `lazy()` returns an object, so this reads once.
+  const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -81,7 +83,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             description isn't there (issue #89). */}
         <ResetErrorBoundary
           FallbackComponent={ErrorPanel}
-          onReset={() => setDetailsAttempt((n) => n + 1)}
+          onReset={() => setEventDetails(loadEventDetails())}
         >
           <Suspense fallback={<Spinner className="mx-auto my-16" />}>
             <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />

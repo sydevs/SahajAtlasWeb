@@ -207,14 +207,29 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
   )
 }
 
+/**
+ * The titles sliver's query contract — key, fetcher and stale window together.
+ *
+ * Shared by the loader below and by the drawer's loading/error chrome, which reads the
+ * same sliver CACHE-ONLY to name the event whose view can't render. That read is
+ * `enabled: false`, so a divergent key wouldn't error — it would silently miss, and the
+ * title would just stop appearing on every fallback with every gate still green.
+ *
+ * Lives here rather than with the other factories in `config/api/index.ts` only because
+ * that module imports this one; it is re-exported there so callers find them together.
+ */
+export const eventTitlesQuery = (locale: string) => ({
+  queryKey: ['event-titles', locale] as const,
+  queryFn: getEventTitles,
+  staleTime: GEOJSON_STALE_TIME,
+})
+
 const loadEventTitles = (): Promise<Map<number, string>> =>
   queryClient.ensureQueryData({
-    // Every request sends the resolved locale (activeLocale, via applyRequestContext);
-    // key by that same value so a language switch re-keys the titles sliver (feed +
-    // regions stay cached) and the key can't drift from the locale actually sent.
-    queryKey: ['event-titles', activeLocale()],
-    queryFn: getEventTitles,
-    staleTime: GEOJSON_STALE_TIME,
+    // Through the shared factory: every request sends the resolved locale (activeLocale,
+    // via applyRequestContext), and the drawer's fallback chrome reads this same sliver
+    // cache-only — so the key has to have exactly one definition.
+    ...eventTitlesQuery(activeLocale()),
     revalidateIfStale: true,
   })
 

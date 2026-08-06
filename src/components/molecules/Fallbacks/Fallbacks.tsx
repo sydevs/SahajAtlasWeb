@@ -235,16 +235,15 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
 }
 
 /**
- * A sentence the policy's own `messageKey` can't produce. The drawer knows things the kind
- * doesn't — whether a dead link was an event or a place, how far "nearby" reached — so a
- * caller may override the key, its English default, or supply interpolation values.
+ * Ruby-style `%{name}` interpolation for a row whose sentence names something the table
+ * can't know — how far "nearby" reached, which country lists nothing.
+ *
+ * Values only: a caller cannot swap the KEY or its English default. Where a state needs a
+ * different sentence it gets a different row (`not-found-event`, `not-found-region`), which
+ * is what keeps every sentence under the test that pins `fallbackText` to the shipped en
+ * copy — an override would be a second way to vary the copy, and the untested one.
  */
-export type FallbackMessage = {
-  key?: string
-  text?: string
-  /** Ruby-style `%{name}` interpolation (see `.claude/rules/i18n-and-state.md`). */
-  values?: Record<string, string | number>
-}
+export type FallbackValues = Record<string, string | number>
 
 /**
  * The copy + policy for one state. Split out of `useErrorDisplay` so the empty states —
@@ -255,7 +254,7 @@ export type FallbackMessage = {
  * tree back to the parent's loading fallback and show nothing at all; an untranslated
  * label beats a blank widget when the whole point is to surface the failure.
  */
-export function useFallbackDisplay(kind: FallbackKind, message?: FallbackMessage) {
+export function useFallbackDisplay(kind: FallbackKind, values?: FallbackValues) {
   const { t } = useTranslation('common', { useSuspense: false })
   // `?? unknown` so the lookup can't come back undefined and take the next line down with
   // it. Callers name the kind from a union, but `classifyError`'s own-property check
@@ -269,21 +268,17 @@ export function useFallbackDisplay(kind: FallbackKind, message?: FallbackMessage
     policy,
     // `defaultValue` so an unloaded namespace renders English rather than the raw key;
     // see `fallbackText`.
-    message: t(message?.key ?? policy.messageKey, {
-      ...message?.values,
-      defaultValue: message?.text ?? policy.fallbackText,
-    }),
+    message: t(policy.messageKey, { ...values, defaultValue: policy.fallbackText }),
   }
 }
 
 /**
  * Everything a fallback needs to render one *thrown* failure: which kind, which buttons,
- * what sentence, and what to attach to a report. Every error surface calls this, so the
- * rule "show localized copy, report the thrown string" is stated once and can't drift.
+ * what sentence, and what to attach to a report.
  */
-export function useErrorDisplay(error: unknown, message?: FallbackMessage) {
+export function useErrorDisplay(error: unknown, values?: FallbackValues) {
   const kind = classifyError(error)
-  const { policy, message: text } = useFallbackDisplay(kind, message)
+  const { policy, message: text } = useFallbackDisplay(kind, values)
 
   // The thrown developer string is not the headline — it's untranslated text written for
   // us, rendered to a viewer inside someone else's page. It survives as report context
@@ -325,7 +320,7 @@ export type SurfaceLimits = {
  */
 export const visibleActions = (
   policy: FallbackPolicy,
-  { canRetry, canClearFilters = true, canNavigate = true, hasSearchChrome = false }: SurfaceLimits,
+  { canRetry, canClearFilters = false, canNavigate = true, hasSearchChrome = false }: SurfaceLimits,
 ) => {
   const retry = policy.retry && canRetry
   const onward = policy.onward && canNavigate
@@ -434,7 +429,9 @@ export function FallbackActions({
   const { t } = useTranslation('common', { useSuspense: false })
   const openReport = useReportModal((state) => state.openReport)
 
-  if (!actions.retry && !actions.report && !(actions.clearFilters && onClearFilters)) return null
+  // `visibleActions` is the single answer to what shows — it already folded in whether a
+  // filter set exists to drop — so nothing here re-derives it.
+  if (!actions.retry && !actions.report && !actions.clearFilters) return null
 
   // One wrappable row, not a column: these are peers — a way forward and a way to tell us —
   // and stacking short buttons vertically read as a list of steps rather than a choice.
@@ -451,7 +448,7 @@ export function FallbackActions({
           {t('error.retry', { defaultValue: 'Try again' })}
         </Button>
       )}
-      {actions.clearFilters && onClearFilters && (
+      {actions.clearFilters && (
         <Button color="primary" variant="flat" onClick={onClearFilters}>
           {t('filters.clear', { defaultValue: 'Clear all' })}
         </Button>
@@ -628,24 +625,19 @@ function FallbackShell({
 }
 
 /** Layer 2: the only part that reads data. Split out so a throw here costs the offer and
- *  the field, never the sentence or the frame around it. */
-function FallbackBody({ actions, offer, children, ...shellProps }: FallbackShellProps) {
-  // Hook order can't be conditional, so the ladder runs even when the caller already
-  // supplied a rung. It's total and reads no network, so the cost is a memo.
+ *  the field, never the sentence or the frame around it — and so the ladder only runs where
+ *  its answer can be rendered (see `FallbackPanel`). */
+function FallbackBody(props: FallbackShellProps) {
   const laddered = useRecoveryOffer()
 
-  return (
-    <FallbackShell {...shellProps} actions={actions} offer={offer ?? laddered}>
-      {children}
-    </FallbackShell>
-  )
+  return <FallbackShell {...props} offer={props.offer ?? laddered} />
 }
 
 export type FallbackPanelProps = {
   /** Which row of `ERROR_POLICY` governs the copy, the register and the controls. */
   kind: FallbackKind
-  /** Override the policy's sentence — see `FallbackMessage`. */
-  message?: FallbackMessage
+  /** Interpolation for the row's sentence — see `FallbackValues`. */
+  values?: FallbackValues
   /** The thrown message, for the report CTA. Absent for an empty list: nothing threw. */
   reportContext?: string
   /**
@@ -695,7 +687,7 @@ export type FallbackPanelProps = {
  */
 export function FallbackPanel({
   kind,
-  message,
+  values,
   reportContext,
   offer,
   resetErrorBoundary,
@@ -704,7 +696,7 @@ export function FallbackPanel({
   hasSearchChrome,
   children,
 }: FallbackPanelProps) {
-  const { policy, message: text } = useFallbackDisplay(kind, message)
+  const { policy, message: text } = useFallbackDisplay(kind, values)
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canClearFilters: !!onClearFilters,
@@ -718,24 +710,32 @@ export function FallbackPanel({
     resetErrorBoundary,
     onClearFilters,
     align,
+    actions,
+    offer,
   }
+
+  // Only the rows that can SHOW a rung pay for resolving one. Six of the eleven policy rows
+  // set `onward: false`, and `country-site` brings its own — and three of those (the two
+  // empty-list rows and the country offer) render in normal operation, not just on failure,
+  // where the ladder's cache reads and region scan would be pure waste. Hook order is
+  // per-component, so the branch has to be between two components rather than inside one;
+  // `FallbackShell` is the same one the degraded path below renders.
+  if (!actions.onward || offer) return <FallbackShell {...shared}>{children}</FallbackShell>
 
   return (
     <ErrorBoundary
       fallbackRender={() => (
-        // A caller-supplied rung is static data, so it survives — only what the ladder and
-        // the geocoder contribute is dropped.
+        // The floor keeps layer 1's retry and report; only what the ladder and the geocoder
+        // contribute is dropped.
         <FallbackShell
           {...shared}
           actions={{ ...actions, search: false }}
-          offer={offer ?? COUNTRIES_OFFER}
+          offer={COUNTRIES_OFFER}
         />
       )}
       onError={(cause) => reportInternalError(cause, 'FallbackPanel')}
     >
-      <FallbackBody {...shared} actions={actions} offer={offer}>
-        {children}
-      </FallbackBody>
+      <FallbackBody {...shared}>{children}</FallbackBody>
     </ErrorBoundary>
   )
 }

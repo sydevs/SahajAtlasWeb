@@ -26,34 +26,17 @@ export type { ListToolbarProps } from './ListToolbar'
 export { SortMenu } from './SortMenu'
 
 // Fallbacks — every state that leaves a viewer with no content, from one policy table
-// (issue #89). `FallbackPanel` is the shared body — a dead link, a broken query and an
-// empty list are one component reading one table, not three that agree by hand;
-// `FallbackActions` is the button row it and the app-level fallback both render.
+// (issue #89). `FallbackPanel` is the shared body: a dead link, a broken query and an empty
+// list are one component reading one table, not three that agree by hand. The table itself
+// and its narrowing function stay module-private — see the folder barrel for why.
 export {
   LoadingFallback,
   ErrorFallback,
-  FallbackActions,
-  FallbackRegion,
   FallbackPanel,
   ResetErrorBoundary,
-  useErrorDisplay,
-  useFallbackDisplay,
-  visibleActions,
   CENTERED_BODY,
-  START_BODY,
-  ERROR_POLICY,
 } from './Fallbacks'
-export type {
-  ErrorFallbackProps,
-  FallbackActionsProps,
-  FallbackAlign,
-  FallbackKind,
-  FallbackMessage,
-  FallbackPanelProps,
-  FallbackPolicy,
-  SurfaceLimits,
-  VisibleActions,
-} from './Fallbacks'
+export type { FallbackAlign, FallbackKind } from './Fallbacks'
 
 // FormField — the label + control + help/error shell shared by the app's forms, and
 // `fieldErrorId`, the single definition of the aria-describedby id convention.

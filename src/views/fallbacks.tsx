@@ -2,6 +2,7 @@ import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -9,7 +10,8 @@ import { useQuery } from '@tanstack/react-query'
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
-import { regionsQuery } from '@/config/api'
+import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { useLocale } from '@/hooks/use-locale'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, resolveStack } from '@/lib/shape'
 import {
@@ -57,29 +59,61 @@ import {
  * carries a `defaultValue`, and an unrecognised route simply omits the title — a header
  * with only a close control still beats no header.
  */
-export function DrawerChrome() {
-  const { t, i18n } = useTranslation('common', { useSuspense: false })
+/**
+ * A disabled stand-in for the geocoder: the same box, none of the machinery. Matches the
+ * inert `<input>` `MapSearch` already falls back to when the Geocoder itself fails, so the
+ * loading header is the right shape and the right height without mounting a custom element
+ * that is about to be thrown away.
+ */
+function SearchFieldSkeleton() {
+  const { t } = useTranslation('common', { useSuspense: false })
+
+  return (
+    <div className="min-w-0 flex-1">
+      <input
+        disabled
+        readOnly
+        className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-sm text-foreground placeholder:text-gray-11"
+        placeholder={t('search_placeholder', { defaultValue: 'Search for events near…' })}
+        type="search"
+        value=""
+      />
+    </div>
+  )
+}
+
+export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
+  const { t } = useTranslation('common', { useSuspense: false })
   const { t: tEvents } = useTranslation('events', { useSuspense: false })
+  const { locale } = useLocale()
   const location = useLocation()
   const { canDismiss } = useDrawerControl()
   // Cache-only (`enabled: false`), not merely non-suspending: this renders on EVERY
   // loading and error state, so a fetch here would re-issue a read on exactly the failures
   // where the backend is already the problem. A miss costs the title, never the frame.
+  // Both go through the shared factories so the keys can't drift from the ones the loaders
+  // write — a cache-only read under a divergent key doesn't error, it silently misses.
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
-  const { data: titles } = useQuery<Map<number, string>>({
-    queryKey: ['event-titles', i18n.resolvedLanguage || 'en'],
-    enabled: false,
-  })
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
   // Same peel DrawerStack applies: a trailing `filters` over a `calendar` is a separate
   // overlay drawer, so the BASE drawer's chrome must still name the calendar. Without this
   // a calendar that fails underneath an open filter overlay titles itself "Filters".
   const entry = baseStackEntry(resolveStack(location.pathname))
+  // The region tree is the whole global list, and this re-renders on every location and
+  // drawer-control change, so don't re-scan it for a name that only moves with the slug.
+  const regionName = useMemo(
+    () =>
+      entry?.kind === 'region'
+        ? (regions?.find((node) => node.slug === entry.slug)?.name ?? undefined)
+        : undefined,
+    [regions, entry?.kind === 'region' ? entry.slug : undefined],
+  )
 
   const title = (() => {
     switch (entry?.kind) {
       case 'region':
-        return regions?.find((node) => node.slug === entry.slug)?.name ?? undefined
+        return regionName
       case 'online':
         return t('online_classes', { defaultValue: 'Online Classes' })
       case 'event':
@@ -115,7 +149,13 @@ export function DrawerChrome() {
     return (
       <>
         <DrawerHeader>
-          <SearchField />
+          {/* A LOADING chrome gets the field's shape, not a working field. `SearchField`
+              mounts a Mapbox Geocoder — a shadow-DOM custom element bound to the live map —
+              and this fallback is freshly mounted per path inside DrawerStack's keyed
+              motion.div, so on a cold start it would instantiate one while the map is still
+              initialising and tear it down again the moment CountriesView mounts its own.
+              An ERROR chrome keeps the real field: there it is the escape hatch. */}
+          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
           {dismiss}
         </DrawerHeader>
         <DrawerToolbar>
@@ -152,11 +192,12 @@ export function DrawerChrome() {
 }
 
 // Suspense fallback for a view whose data is still loading — the shared chrome (so the
-// drawer keeps its identity and its close control) over a spinner.
+// drawer keeps its identity and its close control) over a spinner. `interactive={false}`:
+// see `SearchFieldSkeleton`.
 export function DrawerLoading() {
   return (
     <>
-      <DrawerChrome />
+      <DrawerChrome interactive={false} />
       <DrawerLoadingBody />
     </>
   )
@@ -180,16 +221,6 @@ export function DrawerLoadingBody() {
 }
 
 /**
- * Which noun a dead link should name. `not-found` ("what you were looking for") is the
- * honest generic, but the drawer always knows better than that — the URL says whether the
- * viewer was opening an event or a place, and `<event>/register` is still about the event.
- * Only the routes with no entity fall through to the generic.
- *
- * Each is a row of `ERROR_POLICY` rather than a message override, so the sentences live
- * beside every other one and the "fallbackText matches the shipped en copy" test covers
- * them too.
- */
-/**
  * Which posture the fallback takes in this view's body.
  *
  * The **list** views — the root country index, a region, its online roll-up, and search —
@@ -209,6 +240,16 @@ const fallbackAlign = (kind: StackEntry['kind'] | undefined): FallbackAlign =>
   // `undefined` is the root — CountriesView, the country index, which is a list.
   kind === undefined || LIST_KINDS.has(kind) ? 'start' : 'center'
 
+/**
+ * Which noun a dead link should name. `not-found` ("what you were looking for") is the
+ * honest generic, but the drawer always knows better than that — the URL says whether the
+ * viewer was opening an event or a place, and `<event>/register` is still about the event.
+ * Only the routes with no entity fall through to the generic.
+ *
+ * Each is a row of `ERROR_POLICY` rather than a message override, so the sentences live
+ * beside every other one and the "fallbackText matches the shipped en copy" test covers
+ * them too.
+ */
 const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
   switch (kind) {
     case 'event':
@@ -238,7 +279,10 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common', { useSuspense: false })
   const location = useLocation()
   const kind = classifyError(error)
-  const entry = resolveStack(location.pathname).at(-1)
+  // The SAME entry the chrome above it names (`baseStackEntry`, not a raw `.at(-1)`) —
+  // otherwise a calendar failing underneath an open filter overlay gets a header saying
+  // "Calendar" over a body reasoning about "Filters".
+  const entry = baseStackEntry(resolveStack(location.pathname))
 
   return (
     <FallbackPanel

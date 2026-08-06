@@ -26,7 +26,7 @@ import {
   filtersKey,
 } from '@/lib/shape'
 import { CloseButton, FilterButton } from '@/views/shared'
-import { DrawerErrorBody, DrawerLoading } from '@/views/fallbacks'
+import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -238,7 +238,11 @@ export function CalendarView() {
           `resetKeys` is load-bearing, not decoration; `listResetKey` (lib/shape/path.ts)
           explains why the pathname alone isn't enough. */}
       <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
-        <Suspense fallback={<DrawerLoading />}>
+        {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
+            above, so the chrome-ful one drew a second header (and a second close button)
+            under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
+            the boundary, for the same reason. */}
+        <Suspense fallback={<DrawerLoadingBody />}>
           <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
         </Suspense>
       </ResetErrorBoundary>

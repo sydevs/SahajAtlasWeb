@@ -263,17 +263,25 @@ export const nearestKnownRegion = (pathname: string, known: Set<string>): string
 }
 
 /**
+ * Whether the stack ends in a filter overlay rather than a stacked view.
+ *
+ * A trailing `filters` over a `calendar` isn't a nested drawer: DrawerStack renders it as a
+ * separate modal drawer OVER the still-mounted calendar, so the base drawer is still the
+ * calendar. The map-less build keeps the plain replace-stack behaviour, where the trailing
+ * entry IS the view — hence `hasMap`, which DrawerStack passes and the fallback chrome
+ * doesn't need (a chrome with no map is a map-less build by definition).
+ *
+ * The one definition of the rule. It was briefly two — this predicate and an inline copy in
+ * DrawerStack — and they had already drifted on the `hasMap` gate.
+ */
+export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =>
+  hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
+
+/**
  * The entry the BASE drawer is showing — the stack's last, unless that's a filter overlay.
  *
- * A trailing `filters` over a `calendar` isn't a stacked view: DrawerStack renders it as a
- * separate modal drawer over the still-mounted calendar, so the base drawer is still the
- * calendar. Shared with `DrawerChrome`, which would otherwise title the base drawer
- * "Filters" whenever the calendar fails underneath an open overlay (issue #89).
- *
- * The map-less build keeps the plain replace-stack behaviour, where the trailing entry IS
- * the view — so callers there pass the entries through unpeeled.
+ * Used by `DrawerChrome`, which would otherwise title the base drawer "Filters" whenever
+ * the calendar fails underneath an open overlay (issue #89).
  */
 export const baseStackEntry = (entries: StackEntry[]): StackEntry | undefined =>
-  entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
-    ? entries.at(-2)
-    : entries.at(-1)
+  isFilterOverlay(entries) ? entries.at(-2) : entries.at(-1)

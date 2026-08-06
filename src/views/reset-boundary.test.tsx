@@ -108,24 +108,41 @@ describe('resetKeys on the body-level boundaries', () => {
     act(() => root.unmount())
   })
 
-  it('stays reset across a StrictMode double-render', () => {
-    // StrictMode double-invokes render in development; a reset that depended on render
-    // count rather than the key would flap here.
+  it('recovers on a key change under StrictMode too', () => {
+    // StrictMode double-invokes render in development, so a reset keyed on anything the
+    // second invocation disturbs would flap here — and the app runs the boundaries under
+    // it. The child has to actually THROW for this to mean anything: a version of this
+    // spec that rendered a healthy child asserted only that a working component works.
     vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    function Harness() {
+      const [key, setKey] = useState('first')
+
+      return (
+        <>
+          <button type="button" onClick={() => setKey('second')}>
+            change
+          </button>
+          <ErrorBoundary fallbackRender={() => <p>error</p>} resetKeys={[key]}>
+            <Boom failing={key === 'first'} />
+          </ErrorBoundary>
+        </>
+      )
+    }
 
     const root = createRoot(container)
 
-    act(() =>
-      root.render(
-        <StrictMode>
-          <ErrorBoundary fallbackRender={() => <p>error</p>} resetKeys={['stable']}>
-            <Boom failing={false} />
-          </ErrorBoundary>
-        </StrictMode>,
-      ),
-    )
+    act(() => root.render(<StrictMode>{<Harness />}</StrictMode>))
+    expect(container.textContent).toContain('error')
 
-    expect(container.textContent).toBe('results')
+    act(() => {
+      ;[...container.querySelectorAll('button')]
+        .find((b) => b.textContent === 'change')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('results')
+    expect(container.textContent).not.toContain('error')
+
     act(() => root.unmount())
   })
 })

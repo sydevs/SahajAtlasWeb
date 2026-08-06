@@ -249,25 +249,20 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
         hasSearchChrome
         align="start"
         kind="country-site"
-        message={{ values: { country } }}
         offer={{
           kind: 'country-site',
           path: countrySite.href,
           name: country,
           countryCode: countrySite.countryCode,
         }}
+        values={{ country }}
       />
     )
   }
 
   if (nearbyKm !== undefined) {
     return (
-      <FallbackPanel
-        hasSearchChrome
-        align="start"
-        kind="no-nearby"
-        message={{ values: { km: nearbyKm } }}
-      />
+      <FallbackPanel hasSearchChrome align="start" kind="no-nearby" values={{ km: nearbyKm }} />
     )
   }
 
