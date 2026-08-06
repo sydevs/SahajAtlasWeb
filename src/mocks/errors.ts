@@ -57,14 +57,15 @@ export const mockNotFound = {
 
 /**
  * What each case is meant to PROVE, so a reviewer compares the buttons rather than the
- * sentence. Lives beside the fixtures so the two stories that render them share one
- * description apiece instead of wording the same rationale twice.
+ * sentence. Lives beside the fixtures so the app-level story renders them and the drawer's
+ * can point readers here, rather than wording the same rationale twice.
  */
 export const mockErrorNotes: Record<ErrorKind, string> = {
   offline:
     'A failed fetch. Try again only — connectivity is not ours to fix, and the report POST needs the very network that just failed.',
   server: 'A 5xx, or an empty body. Try again, with the report CTA beneath it.',
-  'not-found': 'A dead link. See nearby events only — retrying fails identically.',
+  'not-found':
+    'A dead link. In the drawer this renders the recovery ladder instead of buttons; at the app level, where no drawer stack is mounted, only the report CTA survives.',
   config: 'A rejected API key. Report only; nothing a viewer can press will help.',
   contract: "SahajCloud's shape drifted from ours. Report only.",
   unknown: 'Unrecognized. The catch-all still offers both a retry and a report.',

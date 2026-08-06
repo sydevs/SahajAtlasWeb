@@ -1,7 +1,11 @@
+import type { ErrorBoundaryProps } from 'react-error-boundary'
+import type { ReactNode } from 'react'
 import type { ErrorKind } from '@/lib/report'
 
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ErrorBoundary } from 'react-error-boundary'
+import { QueryErrorResetBoundary } from '@tanstack/react-query'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
@@ -191,11 +195,76 @@ export function ErrorActions({ policy, reportContext, resetErrorBoundary }: Erro
   )
 }
 
+/**
+ * The wrapper every error surface renders into: a focusable region named by its own
+ * message.
+ *
+ * It takes focus on mount, which is what keeps a keyboard user inside the widget. When a
+ * boundary trips mid-session, focus was on the card or link just activated and that
+ * element has now unmounted — focus falls to `<body>`, so the next Tab starts at the top
+ * of the HOST page. Focusing here also gets the message announced, which a live region
+ * does not do reliably: these fallbacks mount already containing their text, and a live
+ * region only announces content that changes *after* it exists.
+ *
+ * It steals focus from `<body>` (or nothing) and nowhere else. A background refetch can
+ * throw while the viewer is typing in the host page's own form, and moving their caret
+ * would be far worse than a missed announcement — while costing nothing in the case this
+ * exists for, where an unmounted card leaves focus exactly there.
+ */
+export function ErrorRegion({
+  message,
+  className,
+  children,
+}: {
+  message: string
+  className?: string
+  children: ReactNode
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const node = ref.current
+    const active = node?.ownerDocument.activeElement
+
+    if (node && (!active || active === node.ownerDocument.body)) node.focus()
+  }, [])
+
+  return (
+    <div ref={ref} aria-label={message} className={className} tabIndex={-1}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * An `ErrorBoundary` whose reset actually re-runs the failed query.
+ *
+ * `resetErrorBoundary` alone re-renders the subtree onto a query still parked in its error
+ * state, which throws again on the spot — a "Try again" that visibly does nothing. Pairing
+ * every boundary with `QueryErrorResetBoundary`'s `reset` is what fixes that, and wiring
+ * it here means a new boundary cannot be added without it (issue #89).
+ *
+ * Deliberately does NOT bundle a `Suspense`: the five call sites nest one differently —
+ * outside the boundary, inside it, or not at all — and normalizing that would move
+ * loading states nobody asked to move.
+ */
+export function ResetErrorBoundary({ children, ...props }: ErrorBoundaryProps) {
+  return (
+    <QueryErrorResetBoundary>
+      {({ reset }) => (
+        <ErrorBoundary {...props} onReset={reset}>
+          {children}
+        </ErrorBoundary>
+      )}
+    </QueryErrorResetBoundary>
+  )
+}
+
 export type ErrorFallbackProps = {
   /** Whatever was thrown — `unknown`, since a rejection need not be an Error. */
   error: unknown
-  /** Supplied by the ErrorBoundary; wired through QueryErrorResetBoundary (App.tsx) so
-   *  a retry re-runs the failed query instead of re-throwing its cached error. */
+  /** Supplied by the ErrorBoundary; wired through `ResetErrorBoundary` so a retry re-runs
+   *  the failed query instead of re-throwing its cached error. */
   resetErrorBoundary?: () => void
 }
 
@@ -207,26 +276,11 @@ export type ErrorFallbackProps = {
  */
 export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
   const { policy, message, reportContext } = useErrorDisplay(error)
-  const ref = useRef<HTMLDivElement>(null)
-
-  // Take focus so a keyboard user isn't left with nothing: when the app fails to boot the
-  // widget is an almost-empty box on someone else's page, and without this the next Tab
-  // continues into the HOST page as though the widget weren't there. Only steals from
-  // `<body>` — a boot failure can land while the viewer is typing in the host's own form,
-  // and moving their caret would be worse than a missed announcement.
-  useEffect(() => {
-    const node = ref.current
-    const active = node?.ownerDocument.activeElement
-
-    if (node && (!active || active === node.ownerDocument.body)) node.focus()
-  }, [])
 
   return (
-    <div
-      ref={ref}
-      aria-label={message}
+    <ErrorRegion
       className="flex-center h-full w-full flex-col gap-3 bg-background p-10"
-      tabIndex={-1}
+      message={message}
     >
       <Alert
         className="max-w-xs"
@@ -244,6 +298,6 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
         reportContext={reportContext}
         resetErrorBoundary={resetErrorBoundary}
       />
-    </div>
+    </ErrorRegion>
   )
 }

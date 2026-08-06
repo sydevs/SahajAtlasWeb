@@ -1,22 +1,20 @@
 import { useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
-import { QueryErrorResetBoundary } from '@tanstack/react-query'
-import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
-import { ListToolbar, SortMenu } from '@/components/molecules'
+import { ListToolbar, ResetErrorBoundary, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
 import { listResetKey, parseCenter } from '@/lib/shape'
 import {
   CloseButton,
-  ErrorPanel,
   FilterButton,
   GeolocationSuggestion,
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
+import { ErrorPanel } from '@/views/fallbacks'
 
 // A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or
 // truncated hand-typed value resolves to `undefined` so framing falls back to the
@@ -78,20 +76,14 @@ export function SearchView() {
         {/* The list owns the `['events', …]` read; the geocoder above it doesn't. Keeping
             a failed list local means the search field stays live, so the escape from a
             failed search is to run a different one — the most useful thing on the screen.
-            `resetKeys` is load-bearing: the drawer boundary is keyed on the PATHNAME and a
-            re-search only changes the query string, so without it one failed fetch would
-            pin its error over every subsequent search (issue #89). */}
-        <QueryErrorResetBoundary>
-          {({ reset }) => (
-            <ErrorBoundary FallbackComponent={ErrorPanel} resetKeys={[resetKey]} onReset={reset}>
-              <DynamicEventsList
-                hasSearchCenter={center !== undefined}
-                latitude={latitude}
-                longitude={longitude}
-              />
-            </ErrorBoundary>
-          )}
-        </QueryErrorResetBoundary>
+            `resetKeys` is load-bearing; `listResetKey` explains why. */}
+        <ResetErrorBoundary FallbackComponent={ErrorPanel} resetKeys={[resetKey]}>
+          <DynamicEventsList
+            hasSearchCenter={center !== undefined}
+            latitude={latitude}
+            longitude={longitude}
+          />
+        </ResetErrorBoundary>
       </DrawerBody>
     </>
   )

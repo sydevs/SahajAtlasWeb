@@ -4,7 +4,7 @@ import { type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'reac
 import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
-import { QueryErrorResetBoundary, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 import { MapProvider } from 'react-map-gl'
 
@@ -15,7 +15,7 @@ import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
 import { atlasError } from '@/lib/report'
-import { ErrorFallback, LoadingFallback } from '@/components/molecules'
+import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
@@ -67,24 +67,16 @@ export default function App({
   return (
     <Providers>
       <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
-        {/* QueryErrorResetBoundary is what makes "Try again" mean anything: without it
-            `resetErrorBoundary` re-renders the subtree onto a query still parked in its
-            error state, which throws again immediately — a button that visibly does
-            nothing. `reset` clears those errors first, so the query actually re-runs. */}
-        <QueryErrorResetBoundary>
-          {({ reset }) => (
-            <Suspense fallback={<LoadingFallback />}>
-              <ErrorBoundary FallbackComponent={ErrorFallback} onReset={reset}>
-                <AppShell
-                  apiKey={apiKey}
-                  defaultLocale={defaultLocale}
-                  hasMap={hasMap}
-                  standalone={standalone}
-                />
-              </ErrorBoundary>
-            </Suspense>
-          )}
-        </QueryErrorResetBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          <ResetErrorBoundary FallbackComponent={ErrorFallback}>
+            <AppShell
+              apiKey={apiKey}
+              defaultLocale={defaultLocale}
+              hasMap={hasMap}
+              standalone={standalone}
+            />
+          </ResetErrorBoundary>
+        </Suspense>
         {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
             ErrorFallback is on screen — which is exactly when a viewer most wants it.
             That placement means nothing above would catch a throw from here, so it gets

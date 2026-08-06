@@ -1,28 +1,18 @@
-import type { FallbackProps } from 'react-error-boundary'
 import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
-import type { StackEntry } from '@/lib/shape'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { ErrorBoundary } from 'react-error-boundary'
 
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { Spinner } from '@/components/atoms/Spinner'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
-import {
-  ErrorActions,
-  GeolocationPrompt,
-  NotFoundOffer,
-  useErrorDisplay,
-} from '@/components/molecules'
+import { GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { regionsQuery } from '@/config/api'
+import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -30,10 +20,9 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { approxBounds } from '@/lib/geo'
 import { geocodeCountryCode } from '@/lib/geocode'
-import { atlasError, reportInternalError } from '@/lib/report'
+import { atlasError } from '@/lib/report'
 import {
   hasActivePlaceSearch,
   markGeolocationDismissed,
@@ -50,7 +39,6 @@ import {
   filtersToParams,
   isoCountryCode,
   resolvePath,
-  resolveStack,
   sortFromParams,
   sortToParams,
 } from '@/lib/shape'
@@ -345,271 +333,6 @@ export function useEventFromPath(eventPath: string) {
     queryKey: ['event', resolved.id, locale],
     queryFn: () => api.getEvent(resolved.id),
   })
-}
-
-/**
- * The header a drawer keeps when its view can't render — while loading, or after it threw.
- *
- * Every view renders its own `DrawerHeader` *inside* the boundary and below its
- * `useSuspenseQuery`, so a throw or a suspend erases the header and its close button along
- * with the content. That left an error state with no way out of the drawer at all
- * (issue #89), and a load with nothing on screen to say which thing was opening.
- *
- * Deriving the title from the URL + already-cached data — rather than from the query that
- * is failing or pending — is what makes this worth rendering instead of "Loading…".
- *
- * Total by construction (rule: the fallback must never throw). Every lookup is a
- * non-suspending cache read that degrades to `undefined`, `t()` never suspends and always
- * carries a `defaultValue`, and an unrecognised route simply omits the title — a header
- * with only a close control still beats no header.
- */
-export function DrawerChrome() {
-  const { t } = useTranslation('common', { useSuspense: false })
-  const { t: tEvents } = useTranslation('events', { useSuspense: false })
-  const location = useLocation()
-  const { locale } = useLocale()
-  const { canDismiss } = useDrawerControl()
-  // Non-suspending reads: a miss costs the title, never the frame.
-  const { data: regions } = useQuery({ ...regionsQuery(), retry: false })
-  const { data: titles } = useQuery<Map<number, string>>({
-    queryKey: ['event-titles', locale],
-    enabled: false,
-  })
-
-  const entry = resolveStack(location.pathname).at(-1)
-
-  const title = (() => {
-    switch (entry?.kind) {
-      case 'region':
-        return regions?.find((node) => node.slug === entry.slug)?.name ?? undefined
-      case 'online':
-        return t('online_classes', { defaultValue: 'Online Classes' })
-      case 'event':
-        return titles?.get(entry.id)
-      case 'search':
-        return t('search', { defaultValue: 'Search' })
-      case 'calendar':
-        return t('calendar.title', { defaultValue: 'Calendar' })
-      case 'filters':
-        return t('filters.title', { defaultValue: 'Filters' })
-      case 'register':
-        return tEvents('registration.register_meditation', {
-          defaultValue: 'Register for Meditation',
-        })
-      case 'share':
-        return tEvents('details.share_meditation', { defaultValue: 'Share Meditation' })
-      default:
-        return undefined
-    }
-  })()
-
-  return (
-    <DrawerHeader className="justify-between">
-      {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
-          <h2> is a heading with no name, which is worse for a screen reader than no
-          heading at all. It still holds the left slot so the control stays right-aligned. */}
-      {title ? <DrawerTitle title={title} /> : <div />}
-      {/* At the root there is nothing to climb to and `navigate(-1)` would take the host
-          page back, so offer the collapse (which self-hides where it can't collapse)
-          rather than a close that silently does nothing. */}
-      {canDismiss ? <CloseButton /> : <CollapseToggle />}
-    </DrawerHeader>
-  )
-}
-
-// Suspense fallback for a view whose data is still loading — the shared chrome (so the
-// drawer keeps its identity and its close control) over a spinner.
-//
-// TOP-ALIGNED, not centred. `DrawerBody` fills a sheet that is `h-dvh` (vaul computes its
-// snap translates off the window height), while the mobile sheet only shows its top 300px
-// — so `items-center` put the spinner at roughly `1.5·viewport − 300` from the top, i.e.
-// BELOW THE FOLD. Loading rendered as a blank sheet on every phone: "nothing happened when
-// I tapped". Same fix, same reason, in DrawerErrorFallback below (issue #89).
-export function DrawerLoading() {
-  const { t } = useTranslation('common')
-
-  return (
-    <>
-      <DrawerChrome />
-      <DrawerBody className="flex justify-center p-8">
-        <Spinner color="secondary" label={t('loading')} />
-      </DrawerBody>
-    </>
-  )
-}
-
-/**
- * Move focus to the error region when it appears — the piece that keeps a keyboard user
- * inside the widget.
- *
- * When a view's boundary trips mid-session, focus was on the card or link that was just
- * activated, and that element has now unmounted. Focus falls to `<body>`, so the next Tab
- * starts at the top of the HOST page — silently ejecting the viewer from the widget
- * they're using. Focusing the region also gets the message announced, which a live region
- * does not do reliably here: both fallbacks mount already containing their text, and a
- * live region only announces content that changes *after* it exists.
- *
- * Only steals focus from `<body>` (or nothing). A background refetch can throw while the
- * viewer is typing in the host page's own form, and moving their caret would be far worse
- * than a missed announcement. That guard costs nothing in the case this exists for — an
- * unmounted card leaves focus exactly there.
- */
-function useFocusOnError<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-
-  useEffect(() => {
-    const node = ref.current
-    const active = node?.ownerDocument.activeElement
-
-    if (node && (!active || active === node.ownerDocument.body)) node.focus()
-  }, [])
-
-  return ref
-}
-
-/**
- * Which noun a dead link should name. `error.not_found` ("what you were looking for") is
- * the honest generic, but the drawer always knows better than that — the URL says whether
- * the viewer was opening an event or a place, and `<event>/register` is still about the
- * event. Only the routes with no entity fall through to the generic.
- */
-const notFoundMessageKey = (kind: StackEntry['kind'] | undefined): string => {
-  switch (kind) {
-    case 'event':
-    case 'register':
-    case 'share':
-      return 'error.not_found_event'
-    case 'region':
-    case 'online':
-      return 'error.not_found_region'
-    default:
-      return 'error.not_found'
-  }
-}
-
-/**
- * The dead-end body: what was missing, one place to go, and a field to name somewhere
- * else (issue #89).
- *
- * Separate component because it reads data (`useRecoveryOffer`) and mounts a Mapbox custom
- * element — the risky layer that `ErrorPanel` wraps in its own boundary below.
- */
-function NotFoundPanel({ message }: { message: string }) {
-  const { t } = useTranslation('common', { useSuspense: false })
-  const offer = useRecoveryOffer()
-  const ref = useFocusOnError<HTMLDivElement>()
-
-  return (
-    <div ref={ref} aria-label={message} className="p-4" tabIndex={-1}>
-      <NotFoundOffer message={message} offer={offer}>
-        {/* `syncToUrl={false}`: this URL is the dead one we've just reported, and embedded
-            it lives in the host page's `#!` fragment — writing keystrokes into it spreads
-            a broken link into anything the visitor copies. */}
-        <SearchField
-          label={t('error.search_label', { defaultValue: 'Search for a place' })}
-          syncToUrl={false}
-        />
-      </NotFoundOffer>
-    </div>
-  )
-}
-
-/** The floor: no data, no hooks beyond `t`, so it can stand in when anything richer
- *  fails. Rendered by the boundary around `NotFoundPanel`. */
-function RecoveryFloor({ message }: { message: string }) {
-  const ref = useFocusOnError<HTMLDivElement>()
-
-  return (
-    <div ref={ref} aria-label={message} className="p-4" tabIndex={-1}>
-      <NotFoundOffer message={message} offer={{ kind: 'countries', path: '/' }} />
-    </div>
-  )
-}
-
-/**
- * The error content itself, with no drawer wrapper — for a boundary that sits INSIDE a
- * view's existing `DrawerBody` (the results list, the lazy event details). Wrapping those
- * in a second `DrawerBody` would nest one scroll container inside another.
- *
- * Used wherever the view's own chrome is still on screen and still working, so the shared
- * `DrawerChrome` would be a duplicate header.
- *
- * Splits on register: a dead link gets the neutral empty-state treatment with somewhere to
- * go; everything else gets the danger alert and the policy's buttons.
- */
-export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
-  const { t } = useTranslation('common', { useSuspense: false })
-  const location = useLocation()
-  const { kind, policy, message, reportContext } = useErrorDisplay(error)
-  const brokenRef = useFocusOnError<HTMLDivElement>()
-
-  if (kind === 'not-found') {
-    const entityMessage = t(notFoundMessageKey(resolveStack(location.pathname).at(-1)?.kind), {
-      defaultValue: message,
-    })
-
-    return (
-      // Layer 2 of the never-fail rule: the offer reads three caches and mounts a geocoder,
-      // any of which could throw — and this is the screen that exists to explain a failure,
-      // so it must not become a second one. On a throw it degrades to the floor rung, which
-      // needs no data at all. Not `null`: unlike the report modal (off screen until asked),
-      // this IS the screen, so failing to nothing would strand the viewer.
-      <ErrorBoundary
-        fallbackRender={() => <RecoveryFloor message={entityMessage} />}
-        onError={(cause) => reportInternalError(cause, 'NotFoundPanel')}
-      >
-        <NotFoundPanel message={entityMessage} />
-      </ErrorBoundary>
-    )
-  }
-
-  return (
-    <div
-      ref={brokenRef}
-      aria-label={message}
-      className="flex flex-col items-start gap-3 p-4"
-      tabIndex={-1}
-    >
-      <Alert align="start" className="max-w-xs" color="danger" description={message} role="alert" />
-      <ErrorActions
-        policy={policy}
-        reportContext={reportContext}
-        resetErrorBoundary={resetErrorBoundary}
-      />
-    </div>
-  )
-}
-
-/** `ErrorPanel` in its own `DrawerBody` — for a boundary whose child OWNS the body rather
- *  than living inside one (the calendar grid renders its own). */
-export function DrawerErrorBody(props: FallbackProps) {
-  return (
-    <DrawerBody>
-      <ErrorPanel {...props} />
-    </DrawerBody>
-  )
-}
-
-/**
- * ErrorBoundary fallback for a whole view — kept local to the drawer so one failing view
- * never blanks the stack. Mirrors the top-level ErrorFallback (molecules/Fallbacks): the
- * same classified copy and the same ErrorActions, differing only in chrome.
- *
- * Renders `DrawerChrome` above the body, because the view's own header went down with it.
- * Before that, an error left the drawer with no close button — and in the configurations
- * with no peek strips (desktop, map-less) no swipe and no Esc either, so the viewer was
- * stuck on the error screen with no way back to the map (issue #89).
- */
-export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  return (
-    <>
-      <DrawerChrome />
-      {/* Top-aligned for the reason spelled out on DrawerLoading above: centred content sat
-          below the fold of the 300px mobile sheet, so the error state was invisible on
-          every phone — the widget looked broken in a way that hid the explanation. */}
-      <DrawerErrorBody error={error} resetErrorBoundary={resetErrorBoundary} />
-    </>
-  )
 }
 
 // The generic "no events" state for the region/online drawers when their list comes

@@ -1,9 +1,8 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
-import { EventMetadata } from '@/components/molecules'
+import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // Leaf-file imports (not the folder index): the index re-exports EventDetails,
 // and importing it statically here would pull the lazy-loaded panel chunk
 // (DOMPurify + action wiring) back into the main bundle.
@@ -19,7 +18,8 @@ import { useIsDesktop } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { CloseButton, ErrorPanel, useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify + the action-row wiring; keep it out of the
 // main chunk (as pages/event.tsx used to) by lazy-loading it here.
@@ -69,11 +69,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             itself resolved. Keeping that local means the title, the close button and the
             sticky Register CTA all survive: the event is still bookable even when its
             description isn't there (issue #89). */}
-        <ErrorBoundary FallbackComponent={ErrorPanel}>
+        <ResetErrorBoundary FallbackComponent={ErrorPanel}>
           <Suspense fallback={<Spinner className="mx-auto my-16" />}>
             <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
           </Suspense>
-        </ErrorBoundary>
+        </ResetErrorBoundary>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter

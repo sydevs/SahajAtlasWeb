@@ -1,7 +1,6 @@
 import { Suspense, useMemo, useRef } from 'react'
-import { QueryErrorResetBoundary, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ErrorBoundary } from 'react-error-boundary'
 import { DateTime } from 'luxon'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
 import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
@@ -13,7 +12,7 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { RightArrowIcon } from '@/components/atoms/Icons'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { ActiveFilterPills } from '@/components/molecules'
+import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import api from '@/config/api'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -26,7 +25,8 @@ import {
   eventsToCalendarEntries,
   filtersKey,
 } from '@/lib/shape'
-import { CloseButton, DrawerErrorBody, DrawerLoading, FilterButton } from '@/views/shared'
+import { CloseButton, FilterButton } from '@/views/shared'
+import { DrawerErrorBody, DrawerLoading } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -235,23 +235,13 @@ export function CalendarView() {
           picker, filters, close) and the pills read none of it. So a failed grid is
           survivable in place: escalating it to the drawer boundary would replace all that
           working chrome to show the identical alert (issue #89).
-          `resetKeys` is load-bearing, not decoration — the drawer boundary is keyed on the
-          PATHNAME, and every calendar filter change moves only the query string, so
-          without it one failed fetch would pin its error over every subsequent filter
-          change and turn a transient failure into a permanent dead end. */}
-      <QueryErrorResetBoundary>
-        {({ reset }) => (
-          <ErrorBoundary
-            FallbackComponent={DrawerErrorBody}
-            resetKeys={[filtersKey(filters)]}
-            onReset={reset}
-          >
-            <Suspense fallback={<DrawerLoading />}>
-              <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-      </QueryErrorResetBoundary>
+          `resetKeys` is load-bearing, not decoration; `listResetKey` (lib/shape/path.ts)
+          explains why the pathname alone isn't enough. */}
+      <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
+        <Suspense fallback={<DrawerLoading />}>
+          <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
+        </Suspense>
+      </ResetErrorBoundary>
     </>
   )
 }

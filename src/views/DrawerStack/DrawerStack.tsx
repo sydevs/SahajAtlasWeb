@@ -11,18 +11,17 @@ import {
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ErrorBoundary } from 'react-error-boundary'
-import { QueryErrorResetBoundary } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
-import { SettingsMenu } from '@/components/molecules'
+import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
 import { type StackEntry, atlasDepth, dismissAction, dismissDepth, resolveStack } from '@/lib/shape'
-import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
+import { DrawerControlContext } from '@/views/shared'
+import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { CalendarView } from '@/views/CalendarView/CalendarView'
@@ -359,18 +358,11 @@ export function DrawerStack() {
           initial={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          {/* `reset` clears the failed query's error state before the boundary
-              re-renders the view — without it "Try again" re-throws the cached error
-              on the spot and the button visibly does nothing (issue #89). */}
-          <QueryErrorResetBoundary>
-            {({ reset }) => (
-              <Suspense fallback={<DrawerLoading />}>
-                <ErrorBoundary FallbackComponent={DrawerErrorFallback} onReset={reset}>
-                  <TopView entry={top} parentPath={parentPath ?? '/'} />
-                </ErrorBoundary>
-              </Suspense>
-            )}
-          </QueryErrorResetBoundary>
+          <Suspense fallback={<DrawerLoading />}>
+            <ResetErrorBoundary FallbackComponent={DrawerErrorFallback}>
+              <TopView entry={top} parentPath={parentPath ?? '/'} />
+            </ResetErrorBoundary>
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     </DrawerContent>
@@ -395,15 +387,11 @@ export function DrawerStack() {
               the app-level boundary and blanked the whole widget on the host page. Safe
               today only because FilterView reads exclusively through non-suspense
               `useQuery`; nothing structural was keeping it that way (issue #89). */}
-          <QueryErrorResetBoundary>
-            {({ reset }) => (
-              <Suspense fallback={<DrawerLoading />}>
-                <ErrorBoundary FallbackComponent={DrawerErrorFallback} onReset={reset}>
-                  <FilterView />
-                </ErrorBoundary>
-              </Suspense>
-            )}
-          </QueryErrorResetBoundary>
+          <Suspense fallback={<DrawerLoading />}>
+            <ResetErrorBoundary FallbackComponent={DrawerErrorFallback}>
+              <FilterView />
+            </ResetErrorBoundary>
+          </Suspense>
         </DrawerContent>
       </Drawer>
     </DrawerControlContext.Provider>

@@ -7,7 +7,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
-import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
+import { DrawerControlContext } from '@/views/shared'
+import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
@@ -176,8 +177,6 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
                 className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
               >
                 <Suspense fallback={<DrawerLoading />}>
-                  {/* The DRAWER fallback, matching DrawerStack — the app-level
-                      ErrorFallback previewed a screen the drawer stack never shows. */}
                   <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
                     {path ? <SeedPath path={path}>{children}</SeedPath> : children}
                   </ErrorBoundary>
