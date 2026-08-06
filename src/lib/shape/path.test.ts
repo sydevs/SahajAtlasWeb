@@ -36,6 +36,19 @@ describe('safePath', () => {
     // A backslash deeper in the path is just a character in a slug.
     expect(safePath('/be/anna\\maria')).toBe('/be/anna\\maria')
   })
+
+  it('rejects tab, LF and CR in that position — the URL parser strips them first', () => {
+    // The non-obvious one. WHATWG strips ASCII tab/LF/CR *before* parsing, so each of
+    // these is read as `//evil.example` and resolves off-origin — a guard that only
+    // looked at the character after the leading slash would pass all six.
+    for (const ws of ['\t', '\n', '\r']) {
+      expect(safePath(`/${ws}/evil.example`)).toBeUndefined()
+      expect(safePath(`/${ws}\\evil.example`)).toBeUndefined()
+    }
+
+    // Deeper in the path they're just characters, like the backslash above.
+    expect(safePath('/be/anna\tmaria')).toBe('/be/anna\tmaria')
+  })
 })
 
 describe('parentOf', () => {

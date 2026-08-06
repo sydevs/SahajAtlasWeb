@@ -47,9 +47,14 @@ export const childRoute = (parentPath: string, child: string | number): string =
  * `<a href="/\evil.com">` and Chrome would resolve it to `https://evil.com` on a
  * middle-click or "copy link address". Inert under the embedded HashRouter, but the
  * guard is one character and this string can reach an href.
+ *
+ * TAB, LF and CR are rejected in that same position for the same reason, and it is not
+ * obvious: the WHATWG URL parser **strips** them before parsing, so `/<TAB>/evil.com`
+ * and `/<LF>\evil.com` are read as `//evil.com` and resolve off-origin — they would walk
+ * straight through a check that only looked at the character after the leading slash.
  */
 export const safePath = (path: string | null | undefined): string | undefined =>
-  path && path.startsWith('/') && !/^[/\\]/.test(path.slice(1)) ? path : undefined
+  path && path.startsWith('/') && !/^[/\\\t\n\r]/.test(path.slice(1)) ? path : undefined
 
 /**
  * True when `pathname` already is the canonical `target`, ignoring percent-

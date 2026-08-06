@@ -4,6 +4,7 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { rememberCamera } from '@/config/store'
+import { reportInternalError } from '@/lib/report'
 import { atlasPushState } from '@/lib/shape'
 
 // The app's link atom. Internal targets route through react-router's <Link>
@@ -83,6 +84,19 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   const classes = link({ color, className })
   const external = isExternal || target === '_blank' || /^https?:|^mailto:|^tel:/.test(href)
   const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
+
+  // An href that is neither site-relative nor one of the three allowed schemes never
+  // reaches the DOM. Not reachable today — every caller passes a `/…` route, an
+  // `https:`/`mailto:`/`tel:` URL, or something already through `safePath` — but this atom
+  // is the last gate before a data-driven string becomes an `<a href>`, and the internal
+  // branch below hands an absolute `to` to react-router, which renders it verbatim on a
+  // plain anchor. A `javascript:` string arriving there would execute in the HOST page's
+  // realm. Rendering the text without the link fails visibly rather than dangerously.
+  if (!external && !href.startsWith('/')) {
+    reportInternalError(new Error(`Refusing to link to ${href}`), 'Link')
+
+    return <span className={classes}>{children}</span>
+  }
 
   if (external) {
     return (

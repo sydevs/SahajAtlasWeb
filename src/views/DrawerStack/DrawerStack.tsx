@@ -291,15 +291,24 @@ export function DrawerStack() {
       raf = still > IDLE_FRAMES ? 0 : requestAnimationFrame(tick)
     }
 
-    const wake = () => {
+    // Only OUR events wake it. These listen on the host page's document (the sheet is
+    // portaled, and the pointer goes down on whatever is inside it), so an unfiltered
+    // handler would restart the loop on any click anywhere on the embedding page — and on
+    // any CSS transition it runs, which on a transition-heavy host means the loop never
+    // parks at all. That would spend a third party's main-thread budget to solve a problem
+    // of ours. `resize` has no meaningful target and falls through, which is correct.
+    const wake = (event?: Event) => {
+      const target = event?.target
+
+      if (target instanceof Node && sheet && !sheet.contains(target)) return
+
       still = 0
       raf ||= requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
     // The three ways the top edge moves: a drag (no transition — vaul writes the transform
-    // per pointer event), a snap animation, and a viewport resize. `capture` because the
-    // pointer goes down on whatever is inside the sheet, not the sheet itself.
+    // per pointer event), a snap animation, and a viewport resize.
     document.addEventListener('pointerdown', wake, true)
     window.addEventListener('resize', wake)
     document.addEventListener('transitionrun', wake, true)

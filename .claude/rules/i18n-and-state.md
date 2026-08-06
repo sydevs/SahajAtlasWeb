@@ -175,6 +175,13 @@ separate — an inner fallback must never re-throw to escalate.
   sliver for an event — so a load and an error both keep the drawer's identity and its
   close control. `DrawerControl.canDismiss` says whether that close would actually go
   anywhere; at the root it wouldn't, so the chrome offers the collapse instead.
+  **A LOADING chrome takes `interactive={false}`**, which swaps the geocoder for its inert
+  shape: `SearchField` mounts a Mapbox custom element bound to the live map, and as a
+  Suspense fallback — freshly mounted per path — it would instantiate one during a cold
+  start and tear it down again the moment the real view mounts its own. The ERROR chrome
+  keeps the working field, because there it is the escape hatch.
+  Below a view's own header (the calendar's grid) use `DrawerLoadingBody` /
+  `DrawerErrorBody`, never the chrome-ful pair — those draw a second header.
 - **Body-level boundaries need `resetKeys`.** The drawer boundary is keyed on the
   *pathname*, but a re-search or a filter change moves only the query string — so without
   one, a single failure pins its error over every later attempt and the boundary added to

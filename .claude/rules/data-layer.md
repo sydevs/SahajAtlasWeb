@@ -128,6 +128,13 @@ change should surface as a parse error, not a deep runtime crash.
   **`eventsQuery(latitude, longitude, filters, locale)`** — the quantized centre +
   `filtersKey` + locale, shared with the SearchView story's cache seed (a seed under a
   divergent key silently misses and the story hits the network instead of rendering).
+- **A CACHE-ONLY read needs the factory most.** `eventTitlesQuery(locale)` is shared by the
+  loader that fetches the sliver and by the drawer's loading/error chrome, which reads it
+  with `enabled: false` to name the event whose view can't render. A `enabled: false` read
+  under a divergent key doesn't error — it silently misses, and the title just stops
+  appearing on every fallback with lint, typecheck and the unit lane all green. It is
+  declared in `fetch.ts` beside its fetcher (declaring it in `index.ts` would close an
+  import cycle) and re-exported from `config/api` with the rest.
 
 ## Errors
 
