@@ -43,7 +43,7 @@ export function LoadingFallback() {
 }
 
 /**
- * Every state that leaves a viewer looking at no content — the six classified failures
+ * Every state that leaves a viewer looking at no content — the five classified failures
  * plus the three ways a list can legitimately come back empty.
  *
  * The empty ones are NOT errors and nothing throws to produce them; they share this table
@@ -123,8 +123,8 @@ const NOT_FOUND_TEXT = "We couldn't find what you were looking for."
  * of failure this is — stays in lib, where it's testable in isolation.
  *
  * `report` is always the lowest-weight CTA, so the spec's "secondary" needs no axis of its
- * own: on `server` it sits under a retry that's likelier to help; on `config`/`contract`
- * it's the only thing offered, and so the only thing to look at.
+ * own: on `server` it sits under a retry that's likelier to help; on `config` it's the
+ * only thing offered, and so the only thing to look at.
  */
 export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // Connectivity is not something the team can act on, and the report POST (#80) needs
@@ -180,16 +180,10 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     clearFilters: false,
     report: true,
   },
-  contract: {
-    messageKey: 'error.generic',
-    fallbackText: 'Something went wrong.',
-    color: 'danger',
-    retry: false,
-    onward: false,
-    search: false,
-    clearFilters: false,
-    report: true,
-  },
+  // The catch-all, and where a zod parse failure lands: SahajCloud's shape drifting from
+  // ours used to be its own `contract` row, differing only in withholding the retry. It
+  // named a CAUSE rather than a recovery — and the cause belongs in the report, which
+  // carries the thrown message, not on a screen where the viewer can do nothing with it.
   unknown: {
     messageKey: 'error.generic',
     fallbackText: 'Something went wrong.',

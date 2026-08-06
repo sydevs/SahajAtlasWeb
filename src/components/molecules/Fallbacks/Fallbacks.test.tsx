@@ -46,7 +46,6 @@ describe('ERROR_POLICY', () => {
 
   it('offers only a report where nothing a viewer can press would help', () => {
     expect(ERROR_POLICY.config).toMatchObject({ retry: false, report: true })
-    expect(ERROR_POLICY.contract).toMatchObject({ retry: false, report: true })
   })
 
   it('keeps a retry and a report for the ones that might be transient', () => {
@@ -66,7 +65,7 @@ describe('ERROR_POLICY', () => {
   it('marks a malfunction red and a dead end neutral', () => {
     // A red banner over "no events found" would tell a viewer the widget is broken when
     // nothing is. Register drift is invisible in review, so it's pinned here.
-    for (const kind of ['offline', 'server', 'config', 'contract', 'unknown'] as const) {
+    for (const kind of ['offline', 'server', 'config', 'unknown'] as const) {
       expect(ERROR_POLICY[kind].color).toBe('danger')
     }
     for (const kind of ['not-found', 'empty', 'no-results', 'no-nearby', 'country-site'] as const) {

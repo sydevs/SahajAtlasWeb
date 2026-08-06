@@ -1,13 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { StoryErrorArg } from '@/views/story-harness'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { CalendarSourceEvent } from '@/lib/shape'
 
 import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { useLocale } from '@/hooks/use-locale'
 import { DEFAULT_FILTERS, filtersKey, filtersToParams } from '@/lib/shape'
@@ -103,11 +103,11 @@ const activeFilters = {
 }
 const activeParams = filtersToParams(activeFilters)
 
-// "Grid failure" stays on the EXAMPLE axis rather than moving to the Error control,
+// "Grid failure" stays on the EXAMPLE axis rather than moving to the State control,
 // because the two throw at different depths and that is the whole point of the case: this
 // one trips the boundary BELOW the header (issue #89), so the month nav, the view picker,
 // the filter button, the close control and the pills all stay put and stay usable. The
-// Error control throws at the view level, replacing all of that. Compare the two.
+// State control throws at the view level, replacing all of that. Compare the two.
 const EXAMPLES = ['Month', 'Grid failure'] as const
 
 // Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
@@ -121,19 +121,18 @@ const POISONED = { notAnArray: true }
  * feed expanded into per-occurrence entries, labelled by city; our own header drives the views +
  * navigation, with the active-filter pills below it. Themed to our tokens (follows light/dark).
  *
- * The Error control carries no not-found flavour: an unknown `?region=` slug means "no
+ * The State control carries no not-found flavour: an unknown `?region=` slug means "no
  * restriction", never a throw, so this view's routes cannot 404.
  */
-export const Default: Story<{ example: (typeof EXAMPLES)[number]; error: StoryErrorArg }> = ({
+export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFallbackArg }> = ({
   example,
-  error,
+  state,
 }) => {
   const { locale } = useLocale()
   const events = useMemo(() => mockCalendarEvents(), [])
 
   return (
     <ViewStory
-      error={error}
       example={example}
       seed={(client: QueryClient) => {
         // Seed the default key (initial render) AND the active-filter key (once the params are
@@ -149,6 +148,7 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; error: StoryEr
           )
         }
       }}
+      state={state}
     >
       <SeedSearchParams params={activeParams}>
         <CalendarView />
@@ -157,7 +157,7 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; error: StoryEr
   )
 }
 
-Default.args = { example: 'Month', error: NO_ERROR }
+Default.args = { example: 'Month', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -165,7 +165,7 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'Month',
   },
-  error: errorControl(),
+  state: stateControl(),
 }
 
 Default.storyName = 'Calendar'

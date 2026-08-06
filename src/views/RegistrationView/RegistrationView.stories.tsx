@@ -1,9 +1,9 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { StoryErrorArg } from '@/views/story-harness'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { Event } from '@/types'
 
-import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockEvent, mockEventFull } from '@/mocks/events'
@@ -41,18 +41,22 @@ const EVENT_PARENT = mockEvent.path.slice(0, mockEvent.path.lastIndexOf('/'))
  * the form (or the link-out CTA for an externally-registered event), plus the
  * post-submit confirmation.
  *
- * Two ways this route dies, and both are on the Error control (issue #89):
+ * **Not found · event** is the dead link this route can produce: a registration path over
+ * an event the CMS no longer serves. It is the load-bearing recovery case — `parentOf`
+ * would answer it with the event path that just 404'd, making the recovery from a dead
+ * link the same dead link, so the ladder drops the failing entry and walks on to offer
+ * **Cambridge** instead.
  *
- *  - **Not found · event** — a real registration path over an event the CMS no longer
- *    serves. The load-bearing one: `parentOf` would answer it with the event path that
- *    just 404'd, making the recovery from a dead link the same dead link. The ladder drops
- *    the failing entry and walks on, so it offers **Cambridge** instead.
- *  - **Not found · not an event** — a hand-typed `/register` whose parent is a region.
- *    `useEventFromPath` throws before any request; same body, same rung.
+ * There is deliberately no second dead-link option. This route dies two ways — that 404,
+ * and `useEventFromPath` throwing on a hand-typed `/register` whose parent is a region
+ * rather than an event — but they reach the boundary as the same kind, at the same path,
+ * and render the same screen. The story had both, and a reviewer flipping between them saw
+ * nothing change. What actually differs is which branch of `classifyError` runs (our own
+ * tag vs. an HTTP status), and `report.test.ts` covers both directly.
  */
-export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,
-  error,
+  state,
 }) => {
   const { locale } = useLocale()
   const { event, initialSubmitted } = EXAMPLES[example] ?? EXAMPLES['Native form']
@@ -60,10 +64,10 @@ export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
 
   return (
     <ViewStory
-      error={error}
       example={example}
       path={`${eventPath}/register`}
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
+      state={state}
     >
       <RegistrationView
         eventPath={eventPath}
@@ -76,7 +80,7 @@ export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
 
 Default.storyName = 'Registration'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'Native form', error: NO_ERROR }
+Default.args = { example: 'Native form', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -84,5 +88,5 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'Native form',
   },
-  error: errorControl('Not found · event', 'Not found · not an event'),
+  state: stateControl('Not found · event'),
 }

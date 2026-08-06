@@ -1,15 +1,16 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { StoryErrorArg } from '@/views/story-harness'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { EventSlim } from '@/types'
 
 import { useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
 import {
+  EMPTY,
   NO_ERROR,
   ViewStory,
-  errorControl,
+  stateControl,
   mockEventSeries,
   mockEventVariants,
 } from '@/views/story-harness'
@@ -89,7 +90,10 @@ const EXAMPLES: Record<string, Example> = {
       }),
     ],
   },
-  Empty: { search: '', events: [] },
+  // Not an "Empty" example — that lives on the State control, since any of these
+  // searches can come back with nothing. This one is a different empty: a search whose
+  // COUNTRY lists no programs at all, which needs `?cc=IS` and so is a property of the
+  // search rather than a state of it (issue #82).
   'Country website': { search: ICELAND, events: [] },
   Filtered: {
     search: FILTERED,
@@ -129,19 +133,22 @@ const eventsKey = (search: string, locale: string) => {
  * case seeds both the default key the first render reads and the key its own params
  * resolve to, and neither render ever reaches the absent backend.
  *
- * The Error control carries no not-found flavour: a search has no slug to get wrong. What
+ * The State control carries no not-found flavour: a search has no slug to get wrong. What
  * it reaches is a failed fetch — and `Offline` is the one to look at, since the results
  * list is the screen a viewer lands on straight from a dropped connection: Try again only,
  * no onward rung (that search fails identically) and no report CTA (connectivity isn't
  * ours to fix, and the report POST needs the network that just went). The geocoder header
  * and the toolbar survive it, because the boundary sits below them.
  */
-export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,
-  error,
+  state,
 }) => {
   const { locale } = useLocale()
-  const { events } = EXAMPLES[example] ?? EXAMPLES.Results
+  // `Empty` is a state of whichever search is selected, not a search of its own — so it
+  // strips the results and leaves the query (and therefore the header, the pills and the
+  // distance boundary) exactly as that example had them.
+  const events = state === EMPTY ? [] : (EXAMPLES[example] ?? EXAMPLES.Results).events
   // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
   // render would re-seed the URL in a loop. Memoized on the CASE, not on its query
   // string: two cases sharing a query would otherwise share one object and one seed, so
@@ -154,7 +161,6 @@ export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
 
   return (
     <ViewStory
-      error={error}
       example={example}
       seed={(client: QueryClient) => {
         // Seed this case's list under EVERY case's key. `SeedSearchParams` lands one
@@ -165,6 +171,7 @@ export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
           client.setQueryData<EventSlim[]>(eventsKey(query, locale), events)
         }
       }}
+      state={state}
     >
       <SeedSearchParams params={params}>
         <SearchView />
@@ -175,7 +182,7 @@ export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
 
 Default.storyName = 'Search'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'Results', error: NO_ERROR }
+Default.args = { example: 'Results', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -183,5 +190,5 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'Results',
   },
-  error: errorControl(),
+  state: stateControl(EMPTY),
 }

@@ -77,7 +77,7 @@ const BODY_CASES: {
 
 /**
  * Fallbacks — every state that leaves a viewer with no content, rendered from one policy
- * table (issue #89): the six classified failures, plus the ways a list can legitimately
+ * table (issue #89): the five classified failures, plus the ways a list can legitimately
  * come back empty. What each one says and offers is `ERROR_POLICY`, not a branch.
  *
  * `ErrorFallback` is the whole-widget screen (what shows when the app fails to boot at

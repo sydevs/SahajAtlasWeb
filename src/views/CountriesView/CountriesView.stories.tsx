@@ -1,9 +1,9 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { StoryErrorArg } from '@/views/story-harness'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { RegionListItem } from '@/types'
 
-import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { mockCountries } from '@/mocks/regions'
 
@@ -21,22 +21,22 @@ type ExampleKey = keyof typeof EXAMPLES
  * Classes" entry (its count read from the feed), then the global country list
  * (busiest first — the view sorts by event count).
  *
- * The Error control carries no not-found flavour: there is no slug to get wrong at the
+ * The State control carries no not-found flavour: there is no slug to get wrong at the
  * root, so no dead link reaches it. What a viewer meets here is the first fetch of the
  * session failing — and unlike the app-level fallback, the drawer stack IS mounted, so it
  * renders in the root's own chrome (geocoder, filters, collapse) with the panel top-left,
  * where the country list would have been.
  */
-export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,
-  error,
+  state,
 }) => (
   <ViewStory
-    error={error}
     example={example}
     seed={(client: QueryClient) =>
       client.setQueryData<RegionListItem[]>(['countries'], EXAMPLES[example] ?? [])
     }
+    state={state}
   >
     <CountriesView />
   </ViewStory>
@@ -44,7 +44,7 @@ export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
 
 Default.storyName = 'Countries'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'All countries', error: NO_ERROR }
+Default.args = { example: 'All countries', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -52,5 +52,5 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'All countries',
   },
-  error: errorControl(),
+  state: stateControl(),
 }

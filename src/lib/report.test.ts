@@ -159,8 +159,13 @@ describe('classifyError', () => {
     expect(classifyError(sdkError(404))).toBe('not-found')
   })
 
-  it('classifies a zod parse failure as contract drift', () => {
-    expect(classifyError(mockErrors.contract)).toBe('contract')
+  it('classifies a zod parse failure as unknown, not as its own kind', () => {
+    // Schema drift used to be `contract`, a kind of its own that withheld the retry.
+    // It named a CAUSE the viewer can do nothing with, so it collapsed into the
+    // catch-all — which means the ZodError shape must fall all the way through rather
+    // than matching some other branch on its way (it carries `name` and `issues`, and
+    // both were once read here).
+    expect(classifyError(mockErrors.unknown)).toBe('unknown')
   })
 
   it('reads the kind off an error we threw ourselves, whatever its wording', () => {

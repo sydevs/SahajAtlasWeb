@@ -138,11 +138,14 @@ change should surface as a parse error, not a deep runtime crash.
   throws on an undefined/null SDK result (payloadcms/payload#14495), so both a failed
   request and a silent-undefined reach the boundary — preserving the axios-era contract.
 - **Throw `atlasError(kind, message)`, not `new Error(...)`** (`src/lib/report.ts`).
-  Every failure a boundary renders is classified into one of six kinds
-  (`offline | server | not-found | config | contract | unknown`), and that kind decides
+  Every failure a boundary renders is classified into one of five kinds
+  (`offline | server | not-found | config | unknown`), and that kind decides
   the localized sentence *and* which of the three buttons the fallback offers. Ours carry
-  the kind as a field; only foreign failures are guessed at (an HTTP `status`, a
-  `ZodError`'s shape, a network `TypeError`, `navigator.onLine`). The classifier used to
+  the kind as a field; only foreign failures are guessed at (an HTTP `status`, a network
+  `TypeError`, `navigator.onLine`). A zod parse failure is deliberately NOT one of them
+  any more: schema drift had its own `contract` kind, which differed from `unknown` only
+  in withholding the retry — it named a CAUSE the viewer can do nothing with, and the
+  cause belongs in the report, which carries the thrown message. The classifier used to
   regex our own English back out of the message, which made a developer string a
   contract — rewording one silently downgraded the failure, with every gate still green.
   The message stays free-form: it never reaches the screen, only the report (issue #89).

@@ -183,7 +183,7 @@ separate — an inner fallback must never re-throw to escalate.
 - **Each such site needs its own `QueryErrorResetBoundary`** — `useSuspenseQuery` binds to
   the nearest one, and without it "Try again" re-throws the cached error.
 - **One table covers the empty states too, not just the failures.** `FallbackKind` spans
-  the six classified failures *and* the ways a list comes back empty (`empty`,
+  the five classified failures *and* the ways a list comes back empty (`empty`,
   `no-results`, `no-nearby`, `country-site`), because a barren region and a URL that never
   existed leave a viewer in exactly the same position. They render the same
   `FallbackPanel`, so a policy row — not a component — is what differs. `not-found` and

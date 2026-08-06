@@ -1,9 +1,9 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { StoryErrorArg } from '@/views/story-harness'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { Event, IpLocation } from '@/types'
 
-import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { ShareView } from '@/views/ShareView/ShareView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockEvent } from '@/mocks/events'
@@ -53,17 +53,25 @@ type RegionKey = keyof typeof REGIONS
  * Rendered at `<event-path>/share`, so the ladder drops both the `share` segment and the
  * dead id and offers **Cambridge**.
  *
- * Region and Error are separate axes on purpose: "Region: Not found" would read as
+ * Region and State are separate axes on purpose: "Region: Not found" would read as
  * nonsense, since region here means the VIEWER's country. Under a failure the region
  * control is simply inert.
+ *
+ * Region leads, because it is what this story is FOR. Ladle orders the controls panel
+ * alphabetically by arg KEY, not by the order they're declared here — which is why the
+ * state axis is keyed `state` rather than `error` across every view story (`error` sorted
+ * above both `example` and `region`, putting the failure control first everywhere). Only
+ * Ladle's own global "Brand palette" sits higher; nothing in a story can outrank it.
  */
-export const Default: Story<{ region: RegionKey; error: StoryErrorArg }> = ({ region, error }) => {
+export const Default: Story<{ region: RegionKey; state: StoryFallbackArg }> = ({
+  region,
+  state,
+}) => {
   const { locale } = useLocale()
   const { code, city, country } = REGIONS[region]
 
   return (
     <ViewStory
-      error={error}
       example={region}
       path={`${mockEvent.path}/share`}
       seed={(client: QueryClient) => {
@@ -76,6 +84,7 @@ export const Default: Story<{ region: RegionKey; error: StoryErrorArg }> = ({ re
           ...(code ? { country_code: code } : {}),
         })
       }}
+      state={state}
     >
       <ShareView eventPath={mockEvent.path} />
     </ViewStory>
@@ -84,7 +93,7 @@ export const Default: Story<{ region: RegionKey; error: StoryErrorArg }> = ({ re
 
 Default.storyName = 'Share'
 Default.meta = { width: 'xsmall' }
-Default.args = { region: 'Default', error: NO_ERROR }
+Default.args = { region: 'Default', state: NO_ERROR }
 Default.argTypes = {
   region: {
     name: 'Region',
@@ -92,5 +101,5 @@ Default.argTypes = {
     control: { type: 'select' },
     defaultValue: 'Default',
   },
-  error: errorControl('Not found · event', 'Not found · not an event'),
+  state: stateControl('Not found · event'),
 }

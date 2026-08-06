@@ -27,32 +27,37 @@ export const mockErrors: Record<ErrorKind, unknown> = {
   'not-found': atlasError('not-found', 'Region not found: atlantis'),
   // An embed whose API key SahajCloud rejects.
   config: sdkError(401, 'Unauthorized'),
-  // SahajCloud's shape drifted from the zod schema parsing it.
-  contract: Object.assign(new Error('Invalid input'), {
+  // Anything unrecognized — the catch-all that offers both a retry and a report. A zod
+  // parse failure lands here too, which is why the fixture IS one: `contract` used to be
+  // its own kind, and collapsing it means the shape that once had a bespoke row must go
+  // on classifying (and rendering) as the catch-all.
+  unknown: Object.assign(new Error('Invalid input'), {
     name: 'ZodError',
     issues: [{ code: 'invalid_type', expected: 'number', path: ['events', 0, 'id'] }],
   }),
-  // Anything unrecognized — the catch-all that still offers both a retry and a report.
-  unknown: new Error('Something unexpected happened'),
 }
 
 export const mockErrorKinds = Object.keys(mockErrors) as ErrorKind[]
 
 /**
- * One fixture per REAL not-found throw site, so a view story reproduces the failure it
- * actually reaches rather than a generic stand-in. They classify identically — the
- * difference is fidelity: `mockErrors['not-found']` is region-flavoured, which is wrong
- * for the three views whose dead link is an event.
+ * A not-found fixture per ENTITY, so a view story reproduces the failure it actually
+ * reaches rather than a generic stand-in. `mockErrors['not-found']` is region-flavoured,
+ * which is wrong for the views whose dead link is an event.
+ *
+ * Per entity, not per throw site. `views/shared.tsx` also throws not-found from
+ * `useEventFromPath` when a hand-typed `/register` sits over a region rather than an
+ * event — but that reaches the boundary as the same kind, at the same path, and renders
+ * the same screen, so a story option for it showed nothing a reviewer could tell apart.
+ * The two code paths through `classifyError` (our own tag vs. an HTTP status) are what
+ * differ, and `report.test.ts` covers both directly.
  */
 export const mockNotFound = {
   /** `fetch.ts` — a slug the region tree doesn't carry. RegionView, OnlineView. */
   region: atlasError('not-found', 'Region not found: atlantis'),
   /** SahajCloud answers 404 and `classifyError` reads the status — the only not-found
-   *  fixture exercising the status path rather than our own tag. EventView. */
-  event: sdkError(404, 'Not Found'),
-  /** `views/shared.tsx` — a hand-typed path whose parent isn't an event at all.
+   *  fixture exercising the status path rather than our own tag. EventView,
    *  RegistrationView, ShareView. */
-  nonEvent: atlasError('not-found', 'Not an event: /be/antwerpen'),
+  event: sdkError(404, 'Not Found'),
 }
 
 /**
@@ -67,6 +72,6 @@ export const mockErrorNotes: Record<ErrorKind, string> = {
   'not-found':
     "A dead link — the empty state's register, not a malfunction. In the drawer it offers the recovery ladder plus a field; at the app level, where no drawer stack is mounted for either to lead anywhere, `visibleActions` restores the report CTA in their place.",
   config: 'A rejected API key. Report only; nothing a viewer can press will help.',
-  contract: "SahajCloud's shape drifted from ours. Report only.",
-  unknown: 'Unrecognized. The catch-all still offers both a retry and a report.',
+  unknown:
+    "Unrecognized — including a zod parse failure, where SahajCloud's shape drifted from ours. Both a retry and a report: the cause is for the report, not the screen.",
 }

@@ -136,11 +136,9 @@ export function Thrower({ error }: { error: unknown }): never {
 export const STORY_ERRORS = {
   'Not found · place': mockNotFound.region,
   'Not found · event': mockNotFound.event,
-  'Not found · not an event': mockNotFound.nonEvent,
   Offline: mockErrors.offline,
   Server: mockErrors.server,
   Config: mockErrors.config,
-  Contract: mockErrors.contract,
   Unknown: mockErrors.unknown,
 } as const
 
@@ -149,56 +147,78 @@ export type StoryErrorKey = keyof typeof STORY_ERRORS
 /** The control's "render the view normally" option. */
 export const NO_ERROR = 'None'
 
-export type StoryErrorArg = StoryErrorKey | typeof NO_ERROR
+/**
+ * A list that came back legitimately empty. On the same axis as the failures because it
+ * is the same screen — `FallbackPanel` on the `empty` row of the same policy table, and a
+ * viewer facing it is in exactly the position a dead link leaves them in (issue #89).
+ *
+ * The one option that is DATA rather than a throw, so `ViewStory` renders the view as
+ * normal and the story seeds an emptied version of whatever example is selected. That is
+ * what makes it a real second axis: every example can be seen empty, where "Empty" as an
+ * example was one fixed region nobody could vary.
+ */
+export const EMPTY = 'Empty'
+
+export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY
 
 /**
  * The failures EVERY data-reading view can reach, because they come from the FETCH rather
- * than the route: a dropped connection, a 5xx, a rejected API key, a drifted schema, and
- * the catch-all. A view adds its own not-found flavours on top — those are the ones its
- * ROUTES can produce, and they're the only part that differs.
+ * than the route: a dropped connection, a 5xx, a rejected API key, and the catch-all. A
+ * view adds its own not-found flavours (and `Empty`, where it has one) on top — those are
+ * the ones its ROUTES and its DATA can produce, and they're the only part that differs.
  */
-const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Contract', 'Unknown'] as const
+const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Unknown'] as const
 
 /**
  * The `error` argType for a view story, as a SECOND axis beside its examples — so any
- * failure can be seen against any example rather than the two sharing one control and
+ * fallback can be seen against any example rather than the two sharing one control and
  * making most combinations unreachable (issue #89).
  *
- * Pass the not-found flavours this view's routes can actually produce; the fetch failures
- * every view shares are appended. A view whose routes can't 404 (the root, search, the
- * calendar) passes none.
+ * Pass what this view can reach that the others can't: its not-found flavour(s), and
+ * `EMPTY` if its list can come back empty. The fetch failures every view shares are
+ * appended. A view whose routes can't 404 and whose body is a single panel (the root,
+ * search, the calendar, an event) passes only what applies.
+ *
+ * A `select`, not a radio: with the shared failures appended this runs to seven options,
+ * and a radio column that tall pushes the Example control off the panel.
  */
-export const errorControl = (...routeErrors: StoryErrorKey[]) => ({
-  name: 'Error',
-  options: [NO_ERROR, ...routeErrors, ...FETCH_ERRORS] as StoryErrorArg[],
-  control: { type: 'radio' as const },
-  defaultValue: NO_ERROR as StoryErrorArg,
+export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[]) => ({
+  name: 'Fallback',
+  options: [NO_ERROR, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
+  control: { type: 'select' as const },
+  defaultValue: NO_ERROR as StoryFallbackArg,
 })
 
 export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
-  /** The example's key — folded into the harness's seedKey with the error. */
+  /** The example's key — folded into the harness's seedKey with the state. */
   example: string
-  /** The selected failure, or `NO_ERROR` to render the view. */
-  error?: StoryErrorArg
+  /** The selected fallback state, or `NO_ERROR` / `EMPTY` to render the view. */
+  state?: StoryFallbackArg
 }
 
 /**
- * `ViewHarness` with the error axis folded in: renders `children` normally, or throws the
- * selected fixture inside the drawer's boundary.
+ * `ViewHarness` with the fallback axis folded in: renders `children` normally, or throws
+ * the selected fixture inside the drawer's boundary.
+ *
+ * `EMPTY` renders `children` too — nothing throws to produce an empty list, so the story
+ * seeds it. The harness can't: which key to empty, and what "empty" means for that view,
+ * is the story's own knowledge.
  *
  * Both axes go into `seedKey`, so switching either remounts with a freshly seeded client —
- * without that, flipping from an error back to the view would re-render onto a client the
- * previous case left behind.
+ * without that, flipping from a failure back to the view would re-render onto a client the
+ * previous case left behind, and `EMPTY` would never re-seed at all.
  *
  * **`path` is what makes the failure fit the example.** The recovery ladder walks the URL's
  * ancestry, so a story that passes its example's own canonical path gets the rung a real
  * viewer would get — a city offers its parent region, a country has no ancestor and falls
- * through to the IP guess — with no per-error stub anywhere.
+ * through to the IP guess — with no per-fallback stub anywhere.
  */
-export function ViewStory({ example, error = NO_ERROR, children, ...harness }: ViewStoryProps) {
+export function ViewStory({ example, state = NO_ERROR, children, ...harness }: ViewStoryProps) {
+  const thrown = state === NO_ERROR || state === EMPTY ? undefined : STORY_ERRORS[state]
+
   return (
-    <ViewHarness {...harness} seedKey={`${example}·${error}`}>
-      {error === NO_ERROR ? children : <Thrower error={STORY_ERRORS[error]} />}
+    <ViewHarness {...harness} seedKey={`${example}·${state}`}>
+      {thrown ? <Thrower error={thrown} /> : children}
     </ViewHarness>
   )
 }

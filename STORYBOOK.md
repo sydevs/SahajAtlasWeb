@@ -88,35 +88,51 @@ const params = filtersToParams({ ...DEFAULT_FILTERS, format: 'online' })
 ;<SeedSearchParams params={params}>{/* view/component under test */}</SeedSearchParams>
 ```
 
-### ViewStory + errorControl (view stories)
+### ViewStory + stateControl (view stories)
 
-A view story has **two independent axes**: its Example control (which state of the view) and
-an **Error** control (which failure, or `None`). They are separate so any failure can be seen
-against any example — merged into one control, as they used to be, most combinations were
+A view story has **two independent axes**: its Example control (which case of the view) and a
+**State** control — `None`, `Empty`, or a failure. They are separate so any state can be seen
+against any example; merged into one control, as they used to be, most combinations were
 simply unreachable.
 
 ```tsx
-import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
+import { EMPTY, NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 
-export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({ example, error }) => (
-  <ViewStory error={error} example={example} path={region.path} seed={…}>
-    <RegionView slug={region.slug} />
-  </ViewStory>
-)
+export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({ example, state }) => {
+  const base = EXAMPLES[example]
+  const region = state === EMPTY ? emptied(base) : base
 
-Default.args = { example: 'Country', error: NO_ERROR }
-Default.argTypes = { example: { … }, error: errorControl('Not found · place') }
+  return (
+    <ViewStory example={example} path={region.path} seed={…} state={state}>
+      <RegionView slug={region.slug} />
+    </ViewStory>
+  )
+}
+
+Default.args = { example: 'Country', state: NO_ERROR }
+Default.argTypes = { example: { … }, state: stateControl(EMPTY, 'Not found · place') }
 ```
 
-`errorControl(...)` takes the not-found flavours **this view's routes can actually produce**
-and appends the fetch failures every data-reading view shares (offline / server / config /
-contract / unknown). A view whose routes can't 404 — the root, search, the calendar — passes
-none.
+`stateControl(...)` takes what **this view** can reach that others can't — its not-found
+flavour(s), and `EMPTY` if its list can come back empty — and appends the fetch failures every
+data-reading view shares (offline / server / config / unknown). A view whose routes can't 404
+and whose body is a single panel passes only what applies. It renders a `select`: with the
+shared failures appended the list runs to seven, and a radio column that tall pushes the
+Example control off the panel.
+
+**`EMPTY` is data, not a throw**, so `ViewStory` renders the view as normal and the story
+seeds an emptied version of the selected example — which is what makes it a real axis rather
+than one fixed "Empty" fixture standing in for every case.
 
 **Pass the example's own `path`.** The recovery ladder walks the URL's ancestry, so the rung
 a dead link offers falls out of where the example lives: a city offers its parent region, a
-country has no ancestor and drops to the cached IP guess. That is what keeps the error states
-honest without a stub per case.
+country has no ancestor and drops to the cached IP guess. That is what keeps the failure
+states honest without a stub per case.
+
+**The arg key is `state`, and that is load-bearing.** Ladle orders the controls panel
+alphabetically by arg key, ignoring declaration order — `error` sorted above both `example`
+and `region`, putting the failure control first on every story. Only Ladle's own global
+"Brand palette" sorts higher than a story's own controls.
 
 ### StoryGrid (matrices)
 

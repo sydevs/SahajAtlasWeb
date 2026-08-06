@@ -46,7 +46,7 @@ export function errorMessage(error: unknown): string | undefined {
  * exist, "See nearby events" is a lie for a dropped connection, and asking a viewer to
  * report their own offline state wastes everyone's time.
  */
-export type ErrorKind = 'offline' | 'server' | 'not-found' | 'config' | 'contract' | 'unknown'
+export type ErrorKind = 'offline' | 'server' | 'not-found' | 'config' | 'unknown'
 
 /**
  * Throw a failure that already knows its own kind.
@@ -70,7 +70,6 @@ const ERROR_KINDS: Record<ErrorKind, true> = {
   server: true,
   'not-found': true,
   config: true,
-  contract: true,
   unknown: true,
 }
 
@@ -102,12 +101,12 @@ const NETWORK_MESSAGE = /failed to fetch|networkerror|network request failed|loa
  */
 export function classifyError(error: unknown): ErrorKind {
   try {
-    // One read covers all three duck-typed shapes: our tag, a PayloadSDKError's status,
-    // and a ZodError's name/issues. `instanceof` is avoided throughout — it fails across
-    // realms (an iframe, a worker), and the widget runs inside host pages we don't own.
-    const { kind, status, name, issues } =
+    // One read covers both duck-typed shapes: our tag and a PayloadSDKError's status.
+    // `instanceof` is avoided throughout — it fails across realms (an iframe, a worker),
+    // and the widget runs inside host pages we don't own.
+    const { kind, status, name } =
       typeof error === 'object' && error !== null
-        ? (error as { kind?: unknown; status?: unknown; name?: unknown; issues?: unknown })
+        ? (error as { kind?: unknown; status?: unknown; name?: unknown })
         : {}
 
     if (isErrorKind(kind)) return kind
@@ -118,8 +117,12 @@ export function classifyError(error: unknown): ErrorKind {
       if (status >= 500) return 'server'
     }
 
-    // A zod parse failure — SahajCloud's shape drifted from ours.
-    if (name === 'ZodError' || Array.isArray(issues)) return 'contract'
+    // A zod parse failure — SahajCloud's shape drifted from ours — used to be its own
+    // `contract` kind. It is `unknown` now: the two differed only in offering a retry,
+    // and a drift is worth retrying for the same reason anything unrecognised is (a
+    // partial deploy, a cached response, a transient upstream shape). The distinction
+    // named a CAUSE the viewer can't act on, and the report — which carries the thrown
+    // message — is where a cause belongs.
 
     // Only the BROWSER can say the viewer is offline. `fetch` rejects with the same
     // TypeError for a dropped connection, a DNS failure, SahajCloud being down, a
