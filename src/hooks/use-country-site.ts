@@ -8,7 +8,8 @@ import { useSearchCountry } from '@/hooks/use-search-country'
 import { countrySite } from '@/lib/country-sites'
 import { countryHasPrograms, hasActiveFilters } from '@/lib/shape'
 
-/** The country whose own website to offer, ready to hand to `CountrySiteOffer`. */
+/** The country whose own website to offer, ready to become a `country-site` recovery
+ *  rung on the events list's empty state (`FallbackPanel`). */
 export type CountrySite = { countryCode: string; href: string }
 
 /**

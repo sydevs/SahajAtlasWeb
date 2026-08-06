@@ -4,15 +4,12 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
-import { useTranslation } from 'react-i18next'
 
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
-import { CountrySiteOffer } from '@/components/molecules/CountrySiteOffer'
-import { OnwardOffer } from '@/components/molecules/OnwardOffer'
-import { Alert } from '@/components/atoms/Alert'
+import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
 import {
@@ -26,7 +23,6 @@ import {
   revealRows,
 } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
-import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useReveal } from '@/hooks/use-reveal'
@@ -211,8 +207,9 @@ export function DynamicEventsList({
   )
 }
 
-// Shown when no events match, in the order the reasons actually explain the empty
-// list:
+// Shown when no events match, in the order the reasons actually explain the empty list.
+// Every branch is the same `FallbackPanel` a dead link and a broken query render — one
+// component reading one policy table (issue #89) — so all this decides is WHICH row:
 //
 //  1. The searched country lists NO programs at all — offer its own national site
 //     (issue #82). Ahead of the distance boundary below because `getEvents` returns
@@ -224,62 +221,55 @@ export function DynamicEventsList({
 //     case 3 owns the "clear all" escape hatch, so the offer waits rather than
 //     replacing it.
 //  2. Every match lies beyond the distance boundary — say so; the "show events farther
-//     than N km" control below the list is how the user reaches them.
+//     than N km" control below the list is how the user reaches them. The one row that
+//     offers nothing, because that control already is the way out.
 //  3. Otherwise: "no results" with a "clear all filters" action when filters are the
-//     reason, else the plain "no events" line.
+//     reason, else the plain "no events" line with the onward offer behind it.
 //
 // The country-site offer does NOT suppress the "show events farther" control below the
 // list — the offer keeps the top of the empty state, and a second way out sitting under
 // it doesn't bury it. That also keeps `useCountrySite` (which scans the whole feed and
 // rebuilds a region index) off the path a NON-empty list renders on.
+//
+// `hasSearchChrome` throughout: SearchView's header already IS a geocoder, and a second
+// one under the sentence would be the odd thing on the screen.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
-  const { t } = useTranslation('common')
+  const { regionNames } = useLocale()
   const active = hasActiveFilters(useEventFilters())
   const { clearFilters } = useSetFilters()
   const countrySite = useCountrySite()
-  const offer = useRecoveryOffer()
 
   if (countrySite) {
+    // `countryCode` is always canonical uppercase alpha-2 (`isoCountryCode`), so `of`
+    // resolves or returns the code — it can't throw here.
+    const country = regionNames.of(countrySite.countryCode) ?? countrySite.countryCode
+
     return (
-      <div className="p-4">
-        <CountrySiteOffer {...countrySite} />
-      </div>
+      <FallbackPanel
+        hasSearchChrome
+        kind="country-site"
+        message={{ values: { country } }}
+        offer={{
+          kind: 'country-site',
+          path: countrySite.href,
+          name: country,
+          countryCode: countrySite.countryCode,
+        }}
+      />
     )
   }
 
   if (nearbyKm !== undefined) {
-    return (
-      <div className="p-4">
-        <Alert color="neutral" description={t('filters.no_nearby', { km: nearbyKm })} />
-      </div>
-    )
+    return <FallbackPanel hasSearchChrome kind="no-nearby" message={{ values: { km: nearbyKm } }} />
   }
 
-  // Filters are the explanation AND the escape, so that case keeps "Clear all" and nothing
+  // Filters are the explanation AND the escape, so that row keeps "Clear all" and nothing
   // else — an onward link would compete with the one action that actually restores results.
-  if (active) {
-    return (
-      <div className="p-4">
-        <Alert color="neutral" description={t('filters.no_results')}>
-          <button
-            className="mt-2 text-sm font-medium text-primary-11 hover:underline"
-            type="button"
-            onClick={clearFilters}
-          >
-            {t('filters.clear')}
-          </button>
-        </Alert>
-      </div>
-    )
-  }
-
-  // Nothing left to explain it: no country offer, no distance cap, no filters. This is the
-  // branch that used to end in a sentence and nothing to press, so it gets the same onward
-  // offer a dead link does (issue #89) — but no search field, since SearchView's header
-  // already IS one and a second would be the odd thing on the screen.
   return (
-    <div className="p-4">
-      <OnwardOffer message={t('filters.no_events')} offer={offer} />
-    </div>
+    <FallbackPanel
+      hasSearchChrome
+      kind={active ? 'no-results' : 'empty'}
+      onClearFilters={active ? clearFilters : undefined}
+    />
   )
 }

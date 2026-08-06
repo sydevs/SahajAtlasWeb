@@ -1,24 +1,16 @@
 import type { FallbackProps } from 'react-error-boundary'
+import type { FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
-import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
-import {
-  ErrorActions,
-  ErrorRegion,
-  ListToolbar,
-  OnwardOffer,
-  useErrorDisplay,
-} from '@/components/molecules'
+import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
 import { regionsQuery } from '@/config/api'
-import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
-import { reportInternalError } from '@/lib/report'
+import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, resolveStack } from '@/lib/shape'
 import {
   CalendarButton,
@@ -31,7 +23,10 @@ import {
   useDrawerControl,
 } from '@/views/shared'
 
-// What a drawer shows when its view can't render — while loading, or after it threw.
+// What a DRAWER adds around the shared fallback body — the chrome that survives when a
+// view can't render, and the routing knowledge only a drawer has. What the body itself
+// says and offers lives in one table (`ERROR_POLICY`, molecules/Fallbacks), shared with
+// the app-level fallback and with every empty list.
 //
 // The governing rule, which every component here obeys: THE FALLBACK MUST NEVER THROW. It
 // runs where a throw escapes to the app-level boundary and blanks the whole widget inside
@@ -41,44 +36,10 @@ import {
 //   0 — the frame (`DrawerChrome`): a header + a working close control, rebuilt from the
 //       URL and already-cached data. Only total calls — `t()` with `defaultValue`, a
 //       context read, non-suspending cache reads, and `resolveStack`, which is pure.
-//   1 — the message (`useErrorDisplay`): hardened at source, and falls back to the
-//       `unknown` policy rather than dereferencing a missing one.
-//   2 — the offer (`NotFoundPanel`): reads three caches and mounts a geocoder, so it sits
-//       behind its OWN boundary and degrades to `RecoveryFloor` — a static link that needs
-//       no data at all — reporting why via `reportInternalError`.
-//
-// Two registers, deliberately: a dead link is a wrong turn, not a malfunction, so
-// `not-found` renders the neutral empty-state treatment (`role="status"`) with somewhere
-// real to go, while everything else renders the danger alert (`role="alert"`) and the
-// policy's buttons. Red chrome on a not-found means the two have drifted.
+//   1+2 — the message and the offer, layered inside `FallbackPanel` (see its doc comment).
 //
 // Split out of `views/shared.tsx` (issue #89), which had grown to hold the drawer
 // controls, the search field, the geolocation suggestion AND all of this.
-
-/**
- * Centres a short error/loading body — but only into space the viewer can actually see.
- *
- * `DrawerBody` fills a bottom sheet that is `h-dvh` (vaul computes its snap translates off
- * the window height) while the mobile snap shows only its top 300px, so a plain
- * `justify-center` puts content at roughly `1.5·viewport − 300` from the top — measured at
- * 643px in a 667px viewport, i.e. off screen. That is why both states were invisible on
- * every phone.
- *
- * Two parts, and both are load-bearing:
- *
- *  - `max-h` off `--sy-sheet-top`, the sheet's live top edge mirrored every frame by
- *    DrawerStack, so the box can't extend far past the fold. The `0px` fallback resolves to
- *    the full height, which is right on the desktop panel and the map-less container, where
- *    the body already IS the visible area. It still over-measures by the header's height —
- *    the box starts below the header, not at the sheet's edge — which is why the second
- *    part matters.
- *  - **Auto margins rather than `justify-center`.** They centre when there is slack and
- *    collapse to nothing when there isn't, so tall content starts at the top and scrolls in
- *    the body. `justify-center` instead clips the overflowing TOP, which would hide the
- *    sentence and leave only the buttons — the failure mode of a fix for invisible content.
- */
-const CENTERED_BODY =
-  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center gap-3 p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
 /**
  * The header a drawer keeps when its view can't render — while loading, or after it threw.
@@ -219,59 +180,27 @@ export function DrawerLoadingBody() {
 }
 
 /**
- * Which noun a dead link should name. `error.not_found` ("what you were looking for") is
- * the honest generic, but the drawer always knows better than that — the URL says whether
- * the viewer was opening an event or a place, and `<event>/register` is still about the
- * event. Only the routes with no entity fall through to the generic.
+ * Which noun a dead link should name. `not-found` ("what you were looking for") is the
+ * honest generic, but the drawer always knows better than that — the URL says whether the
+ * viewer was opening an event or a place, and `<event>/register` is still about the event.
+ * Only the routes with no entity fall through to the generic.
+ *
+ * Each is a row of `ERROR_POLICY` rather than a message override, so the sentences live
+ * beside every other one and the "fallbackText matches the shipped en copy" test covers
+ * them too.
  */
-const notFoundMessageKey = (kind: StackEntry['kind'] | undefined): string => {
+const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
   switch (kind) {
     case 'event':
     case 'register':
     case 'share':
-      return 'error.not_found_event'
+      return 'not-found-event'
     case 'region':
     case 'online':
-      return 'error.not_found_region'
+      return 'not-found-region'
     default:
-      return 'error.not_found'
+      return 'not-found'
   }
-}
-
-/**
- * The dead-end body: what was missing, one place to go, and a field to name somewhere
- * else (issue #89).
- *
- * Separate component because it reads data (`useRecoveryOffer`) and mounts a Mapbox custom
- * element — the risky layer that `ErrorPanel` wraps in its own boundary below.
- */
-function NotFoundPanel({ message }: { message: string }) {
-  const { t } = useTranslation('common', { useSuspense: false })
-  const offer = useRecoveryOffer()
-
-  return (
-    <ErrorRegion className={CENTERED_BODY} message={message}>
-      <OnwardOffer message={message} offer={offer}>
-        {/* `syncToUrl={false}`: this URL is the dead one we've just reported, and embedded
-            it lives in the host page's `#!` fragment — writing keystrokes into it spreads
-            a broken link into anything the visitor copies. */}
-        <SearchField
-          label={t('error.search_label', { defaultValue: 'Search for a place' })}
-          syncToUrl={false}
-        />
-      </OnwardOffer>
-    </ErrorRegion>
-  )
-}
-
-/** The floor: no data, no hooks beyond `t`, so it can stand in when anything richer
- *  fails. Rendered by the boundary around `NotFoundPanel`. */
-function RecoveryFloor({ message }: { message: string }) {
-  return (
-    <ErrorRegion className={CENTERED_BODY} message={message}>
-      <OnwardOffer message={message} offer={{ kind: 'countries', path: '/' }} />
-    </ErrorRegion>
-  )
 }
 
 /**
@@ -282,43 +211,33 @@ function RecoveryFloor({ message }: { message: string }) {
  * Used wherever the view's own chrome is still on screen and still working, so the shared
  * `DrawerChrome` would be a duplicate header.
  *
- * Splits on register: a dead link gets the neutral empty-state treatment with somewhere to
- * go; everything else gets the danger alert and the policy's buttons.
+ * All it adds to the shared `FallbackPanel` is the two things only a routed drawer knows:
+ * which entity the dead link named, and a geocoder to name another one.
  */
 export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common', { useSuspense: false })
   const location = useLocation()
-  const { kind, policy, message, reportContext } = useErrorDisplay(error)
-
-  if (kind === 'not-found') {
-    const entityMessage = t(notFoundMessageKey(resolveStack(location.pathname).at(-1)?.kind), {
-      defaultValue: message,
-    })
-
-    return (
-      // Layer 2 of the never-fail rule: the offer reads three caches and mounts a geocoder,
-      // any of which could throw — and this is the screen that exists to explain a failure,
-      // so it must not become a second one. On a throw it degrades to the floor rung, which
-      // needs no data at all. Not `null`: unlike the report modal (off screen until asked),
-      // this IS the screen, so failing to nothing would strand the viewer.
-      <ErrorBoundary
-        fallbackRender={() => <RecoveryFloor message={entityMessage} />}
-        onError={(cause) => reportInternalError(cause, 'NotFoundPanel')}
-      >
-        <NotFoundPanel message={entityMessage} />
-      </ErrorBoundary>
-    )
-  }
+  const kind = classifyError(error)
 
   return (
-    <ErrorRegion className={CENTERED_BODY} message={message}>
-      <Alert className="max-w-xs" color="danger" description={message} role="alert" />
-      <ErrorActions
-        policy={policy}
-        reportContext={reportContext}
-        resetErrorBoundary={resetErrorBoundary}
+    <FallbackPanel
+      kind={
+        kind === 'not-found' ? notFoundKind(resolveStack(location.pathname).at(-1)?.kind) : kind
+      }
+      // The thrown developer string is not the headline — it's untranslated text written
+      // for us, rendered to a viewer inside someone else's page. It survives as report
+      // context only (issue #89); `FallbackPanel` falls back to the sentence.
+      reportContext={errorMessage(error) ?? undefined}
+      resetErrorBoundary={resetErrorBoundary}
+    >
+      {/* `syncToUrl={false}`: this URL is the dead one we've just reported, and embedded
+          it lives in the host page's `#!` fragment — writing keystrokes into it spreads
+          a broken link into anything the visitor copies. */}
+      <SearchField
+        label={t('error.search_label', { defaultValue: 'Search for a place' })}
+        syncToUrl={false}
       />
-    </ErrorRegion>
+    </FallbackPanel>
   )
 }
 

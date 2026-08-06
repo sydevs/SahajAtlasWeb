@@ -170,7 +170,7 @@ separate — an inner fallback must never re-throw to escalate.
   where a seam already exists: a child that owns its own suspense read below the chrome.
   That's exactly three places (`CalendarGrid`, `DynamicEventsList`, the lazy
   `EventDetails`); everywhere else the drawer boundary catches.
-- **The fallbacks render their own chrome.** `DrawerChrome` (`views/shared.tsx`) rebuilds
+- **The fallbacks render their own chrome.** `DrawerChrome` (`views/fallbacks.tsx`) rebuilds
   the header from the URL + already-cached data — the region tree for a name, the titles
   sliver for an event — so a load and an error both keep the drawer's identity and its
   close control. `DrawerControl.canDismiss` says whether that close would actually go
@@ -182,10 +182,24 @@ separate — an inner fallback must never re-throw to escalate.
   (`listResetKey`, `lib/shape/path.ts`): the geocoder rewrites it per keystroke.
 - **Each such site needs its own `QueryErrorResetBoundary`** — `useSuspenseQuery` binds to
   the nearest one, and without it "Try again" re-throws the cached error.
-- **A dead link is not a malfunction.** `not-found` renders the empty-state register (a
-  neutral note plus somewhere real to go, from `useRecoveryOffer`); everything else renders
-  the danger alert and the policy's buttons. Red chrome on a not-found means the two have
-  drifted.
+- **One table covers the empty states too, not just the failures.** `FallbackKind` spans
+  the six classified failures *and* the ways a list comes back empty (`empty`,
+  `no-results`, `no-nearby`, `country-site`), because a barren region and a URL that never
+  existed leave a viewer in exactly the same position. They render the same
+  `FallbackPanel`, so a policy row — not a component — is what differs. `not-found` and
+  `empty` are asserted equal but for their sentence; if they ever diverge, one has quietly
+  become the worse dead end.
+- **A dead link is not a malfunction.** `color` is the register: `danger` (red,
+  `role="alert"`) for a genuine failure, `neutral` (`role="status"`) for a dead end or an
+  empty list. Red chrome on a not-found means the two have drifted.
+- **The policy says what MAY render; `visibleActions` says what does.** It narrows by
+  surface — no boundary to reset, nowhere to navigate (the app-level fallback, where the
+  drawer stack never mounted), a geocoder already in the chrome (SearchView) — and
+  restores the report CTA if narrowing removed every way out the policy promised. A row
+  that promised *nothing* is left alone: `no-nearby` is a note about the list below it,
+  whose own "Show distant events" control is the way out.
+- **The controls live outside the alert banner.** Inside it they inherit its tint and read
+  as part of the sentence; out here they are unambiguously the thing to press.
 - **The fallback degrades, it never fails.** It runs where a throw would blank the widget
   on a host page, so the parts that read data sit behind their own boundary and fall back
   to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the single

@@ -62,8 +62,9 @@ type DeadLink = keyof typeof DEAD_LINKS
  * parent whose events all sit under its child regions; "City" lists only its own
  * events with online ones inline; "City with Centers" is a city whose children are
  * SY Centers (venues), led by an "Online Classes" roll-up; "Empty" renders
- * EmptyEventList — deliberately action-less, since a region whose events have all
- * ended is neither a wrong turn nor something a retry could fix (issue #89).
+ * EmptyEventList, which is the very same `FallbackPanel` the dead-link cases below
+ * render — on the `empty` row of the same policy table, so a barren region gets the
+ * same way out as a URL that never existed (issue #89).
  */
 export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) => {
   const { locale } = useLocale()

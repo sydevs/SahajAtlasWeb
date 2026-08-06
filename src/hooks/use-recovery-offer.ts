@@ -17,6 +17,12 @@ export type RecoveryOffer =
   | { kind: 'region'; path: string; name: string }
   | { kind: 'city'; path: string; name: string }
   | { kind: 'countries'; path: string }
+  // The one rung that leaves the widget: a country listing no programs at all has its own
+  // national site, which does carry local contact details (issue #82). Never chosen by the
+  // ladder below — `useCountrySite` decides it, and the caller passes it in — but it is
+  // still an onward offer, so it renders through the same action row rather than as its
+  // own component.
+  | { kind: 'country-site'; path: string; name: string; countryCode: string }
 
 /**
  * The one destination a not-found screen offers, chosen from the first rung that

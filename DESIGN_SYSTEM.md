@@ -104,14 +104,12 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | -------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ActionRow/`         | `ActionRow`, `ActionCircle`        | The labelled tonal-circle action row under an event's Register CTA; always one line. Metrics assume a **four-action max**, and columns are width-capped so a short set clusters instead of sprawling |
 | `ActiveFilterPills/` | `ActiveFilterPills`                | Removable pills for the active URL filters                                                    |
-| `CountrySiteOffer/`  | `CountrySiteOffer`                 | The national-website next step when a searched country lists no classes (flag + `Alert` + external `Link`). Purely presentational — `useCountrySite` decides whether it shows |
 | `EventActions/`      | `EventActions`                     | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
 | `EventChips/`        | `EventChips`                       | The shared triage chips (type · language(s) · Today); `variant="compact"` trims the redundant ones for the list card. Used by the list card + the top of the event body so the two never drift |
 | `EventListItem/`         | `EventListItem`                        | Per-event row in an event list (title, facts, chips)                                          |
 | `EventFacts/`        | `EventFacts`, `EventSummary`       | The shared calendar/location fact block. `variant="compact"` for result cards; `variant="card"` is the boxed details card, wrapped by `EventSummary` (title + embed backlink) on the share/registration drawers |
 | `EventMetadata/`     | `EventMetadata`                    | Schema.org / OG `<head>` tags (Helmet); renders no visible UI, so it has **no story**         |
-| `NotFoundOffer/`     | `NotFoundOffer`                    | What a dead link shows instead of an error: the sentence, one place to go (`useRecoveryOffer` picks the rung), and the prompted search field. Neutral/`status`, matching `CountrySiteOffer` — a wrong turn is not a malfunction |
-| `Fallbacks/`         | `LoadingFallback`, `ErrorFallback`, `ErrorActions`, `useErrorDisplay`, `ERROR_POLICY`, `visibleActions` | Suspense / error-boundary fallbacks (compose `Alert`/`Spinner`). `ERROR_POLICY` maps each failure kind (`classifyError`, `src/lib/report.ts`) to its localized copy + the buttons it may offer; `useErrorDisplay` + `ErrorActions` render it, so the app-level fallback and the drawer's `DrawerErrorFallback` differ only in chrome |
+| `Fallbacks/`         | `LoadingFallback`, `ErrorFallback`, `FallbackPanel`, `ErrorActions`, `ErrorRegion`, `useErrorDisplay`, `useFallbackDisplay`, `ERROR_POLICY`, `visibleActions` | **Every state that leaves a viewer with no content**, from one table (issue #89). `ERROR_POLICY` maps each `FallbackKind` — the six classified failures (`classifyError`, `src/lib/report.ts`) *plus* the ways a list can legitimately come back empty — to its localized copy, its `color` (register), and the controls it may offer (`retry`/`onward`/`search`/`clearFilters`/`report`). `FallbackPanel` is the shared body: a dead link, a broken query and an empty list are one component reading one row, not three components agreeing by hand. `visibleActions` then narrows by SURFACE (no boundary to reset, nowhere to navigate, a geocoder already in the chrome) and never strands a viewer. `ErrorFallback` is the whole-widget screen; `views/fallbacks.tsx` adds the drawer's chrome |
 | `FormField/`         | `FormField`, `fieldErrorId`, `fieldHelpId`, `fieldDescribedBy` | Label + control + help/error shell shared by the registration and report forms; owns the required marker and the `aria-describedby` id convention |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`           | Generic Swiper carousel (`slides`); folds in the lazy YARL lightbox (own chunk)               |
 | `List/`              | `List`, `listRow`                  | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome + gutter          |
@@ -173,11 +171,14 @@ component barrels.
   8. **`List/`** — `List` + the `listRow` recipe its card children share.
   9. **`ShareContent/`** (molecules) — `ShareContent` + `CopyField` (also used by
      the event panel's desktop contact popover).
-  10. **`Fallbacks/`** (molecules) — `LoadingFallback` + `ErrorFallback`, plus the one
-      error policy both fallbacks render from (`ERROR_POLICY` / `useErrorDisplay` /
-      `ErrorActions`, issue #89). The loading half is pending a split into its own folder;
-      the error half belongs together — a second copy of the policy is exactly the drift
-      #89 removed.
+  10. **`Fallbacks/`** (molecules) — `LoadingFallback` + `ErrorFallback` + `FallbackPanel`,
+      plus the one policy every no-content state renders from (`ERROR_POLICY` /
+      `useFallbackDisplay` / `visibleActions` / `ErrorActions`, issue #89). The loading half
+      is pending a split into its own folder; the rest belongs together — a second copy of
+      the policy is exactly the drift #89 removed, and it is why the empty-list states live
+      here too rather than as their own molecules (`OnwardOffer` and `CountrySiteOffer` were
+      folded in: an empty list and a dead link are the same screen with a different
+      sentence).
 - **App code (views, stories) imports from the tier barrel**:
   `import { Chip } from '@/components/atoms'`. The barrel is the public surface;
   layout can change behind it.

@@ -65,7 +65,7 @@ export const mockErrorNotes: Record<ErrorKind, string> = {
     'A failed fetch. Try again only — connectivity is not ours to fix, and the report POST needs the very network that just failed.',
   server: 'A 5xx, or an empty body. Try again, with the report CTA beneath it.',
   'not-found':
-    'A dead link. In the drawer this renders the recovery ladder instead of buttons; at the app level, where no drawer stack is mounted, only the report CTA survives.',
+    "A dead link — the empty state's register, not a malfunction. In the drawer it offers the recovery ladder plus a field; at the app level, where no drawer stack is mounted for either to lead anywhere, `visibleActions` restores the report CTA in their place.",
   config: 'A rejected API key. Report only; nothing a viewer can press will help.',
   contract: "SahajCloud's shape drifted from ours. Report only.",
   unknown: 'Unrecognized. The catch-all still offers both a retry and a report.',
