@@ -198,8 +198,16 @@ separate — an inner fallback must never re-throw to escalate.
   restores the report CTA if narrowing removed every way out the policy promised. A row
   that promised *nothing* is left alone: `no-nearby` is a note about the list below it,
   whose own "Show distant events" control is the way out.
-- **The controls live outside the alert banner.** Inside it they inherit its tint and read
-  as part of the sentence; out here they are unambiguously the thing to press.
+- **Actions sit outside the alert banner; the onward link sits inside it.** The split is
+  what each one is: `retry` / `clearFilters` / `report` operate on the screen you're
+  looking at, so out here they can't inherit its tint or be read as part of the sentence.
+  The onward rung *continues* the sentence ("we couldn't find that place… see events in
+  Belgium"), so it stays in the banner, where it reads as one thought rather than a filled
+  button competing with a retry that isn't there.
+- **One column, one width.** Banner, action row and geocoder are all `w-full` inside a
+  single `max-w-xs` box. Left to shrink-wrap they came out three different widths stacked
+  on a centre line. The field also carries its whole prompt in its own placeholder
+  (`error.search_label`) — a label line above it was one redundancy too many.
 - **The fallback degrades, it never fails.** It runs where a throw would blank the widget
   on a host page, so the parts that read data sit behind their own boundary and fall back
   to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the single

@@ -7,36 +7,63 @@ import { LoadingFallback, ErrorFallback, FallbackPanel } from './Fallbacks'
 
 import { countrySite } from '@/lib/country-sites'
 import { mockErrorKinds, mockErrorNotes, mockErrors } from '@/mocks/errors'
+// The real geocoder, not a stand-in: `search` is one of the five policy flags, and a story
+// that mocked the field would prove nothing about the one thing worth seeing (that it fits
+// the column, and that its placeholder names itself without a prompt line). Views are
+// leaves — nothing imports a story — so this doesn't invert the component layering.
+import { SearchField } from '@/views/shared'
 
 export default {
   title: 'Molecules',
 } satisfies StoryDefault
 
 /**
- * The rows nothing throws to reach — a list that is legitimately empty. They sit in the
- * same `ERROR_POLICY` as the failures above precisely so a reviewer can compare them side
- * by side: a dead link and a barren region must offer the same way out, and the ones that
- * offer less must be able to say why.
+ * One case per row of `ERROR_POLICY` that a drawer body or an empty list can reach, with
+ * the actions each is meant to exercise named — so a reviewer checks the CONTROLS against
+ * the table rather than reading five near-identical sentences.
+ *
+ * The five flags are covered as follows: `onward` by every dead-end row, `search` by the
+ * two that pass a geocoder, `clearFilters` by `no-results`, `retry`/`report` by the failure
+ * kinds in the section above (no dead end offers either — retrying a URL that doesn't exist
+ * fails identically, and a wrong link isn't ours to fix).
  */
-const EMPTY_CASES: { kind: FallbackKind; note: string; props?: Partial<FallbackPanelProps> }[] = [
+const BODY_CASES: {
+  kind: FallbackKind
+  actions: string
+  note: string
+  props?: Partial<FallbackPanelProps>
+  field?: boolean
+}[] = [
+  {
+    kind: 'not-found-region',
+    actions: 'onward + search',
+    note: 'A dead link, in the register an empty list uses — a wrong turn is not a malfunction. The rung sits INSIDE the banner because it continues the sentence rather than acting on it; the field carries its own prompt in the placeholder.',
+    field: true,
+  },
   {
     kind: 'empty',
-    note: 'A region whose programs have all ended. Identical to `not-found` but for the sentence — that is the whole argument for one table.',
+    actions: 'onward + search',
+    note: 'A region whose programs have all ended. Asserted identical to `not-found` but for the sentence — that is the whole argument for one table.',
+    field: true,
   },
   {
     kind: 'no-results',
-    note: 'Filters are both the explanation AND the escape, so this keeps "Clear all" alone: an onward link would compete with the one action that restores results.',
-    props: { onClearFilters: () => {} },
+    actions: 'clearFilters',
+    note: 'Filters are both the explanation AND the escape, so this keeps "Clear all" alone: an onward link would compete with the one action that restores results. Rendered on SearchView, whose header already IS a geocoder — hence no field.',
+    props: { onClearFilters: () => {}, hasSearchChrome: true },
   },
   {
     kind: 'no-nearby',
-    note: 'The only row that offers nothing, and the only one entitled to — the list\'s own "Show distant events" control sits directly below it.',
-    props: { message: { values: { km: 300 } } },
+    actions: 'none',
+    note: 'The only row that offers nothing, and the only one entitled to — the list\'s own "Show distant events" control sits directly below it. `visibleActions` leaves it alone because it promised nothing for a surface to take away.',
+    props: { message: { values: { km: 300 } }, hasSearchChrome: true },
   },
   {
     kind: 'country-site',
+    actions: 'onward (external)',
     note: 'A searched country listing no programs at all (issue #82). The one rung that leaves the widget, so it takes the external treatment: a flag, a new tab, and the anchor glyph.',
     props: {
+      hasSearchChrome: true,
       message: { values: { country: 'Iceland' } },
       offer: {
         kind: 'country-site',
@@ -56,13 +83,13 @@ const EMPTY_CASES: { kind: FallbackKind; note: string; props?: Partial<FallbackP
  * `ErrorFallback` is the whole-widget screen (what shows when the app fails to boot at
  * all, e.g. an embed with no API key). `FallbackPanel` is the body every drawer and every
  * empty list renders — including the dead-link cases, which reach it through the same
- * `not-found` classification. Both draw their buttons from the same `ErrorActions` row,
- * so the surfaces can differ in chrome without ever drifting on what a state permits.
+ * `not-found` classification. Both draw from the same policy and the same `FallbackActions`
+ * row, so the surfaces can differ in chrome without ever drifting on what a state permits.
  *
- * Two things only a routed drawer can supply are absent here: the prompted geocoder (it
- * wraps a Mapbox custom element, so callers pass it in) and a live recovery ladder, which
- * needs a warm region cache — so the onward rung falls to "Browse all countries". See the
- * per-view stories for both in place.
+ * Two things read differently here than in the app: the recovery ladder needs a warm region
+ * cache, so every onward rung falls to its floor ("Browse all countries") rather than
+ * naming a real ancestor; and there is no drawer chrome around the body. See the per-view
+ * stories for both in place.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -73,7 +100,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Rendered by the app-level boundary when the widget fails to boot — one section per failure kind."
+      description="Rendered by the app-level boundary when the widget fails to boot. `canNavigate: false` here — the drawer stack never mounted, so an onward rung would change the URL and leave this same screen on top of it."
       title="Error · whole widget"
     >
       {mockErrorKinds.map((kind) => (
@@ -91,13 +118,20 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The same policy table on the body surface used by every drawer and every empty list. Nothing throws to reach these — they are data states wearing the same clothes."
-      title="Empty · drawer body"
+      description="The same table on the body surface used by every drawer and every empty list. Only the first is a throw — the rest are data states wearing the same clothes."
+      title="Dead ends & empty lists · drawer body"
     >
-      {EMPTY_CASES.map(({ kind, note, props }) => (
-        <StorySection key={kind} description={note} title={kind} variant="subsection">
-          <div className="h-64 w-full">
-            <FallbackPanel kind={kind} {...props} />
+      {BODY_CASES.map(({ kind, actions, note, props, field }) => (
+        <StorySection
+          key={kind}
+          description={note}
+          title={`${kind} — ${actions}`}
+          variant="subsection"
+        >
+          <div className="h-80 w-full">
+            <FallbackPanel kind={kind} {...props}>
+              {field && <SearchField label="Enter your city or post code" syncToUrl={false} />}
+            </FallbackPanel>
           </div>
         </StorySection>
       ))}

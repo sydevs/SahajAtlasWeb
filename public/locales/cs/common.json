@@ -132,8 +132,7 @@
     "back_to_region": "Zobrazit události: %{region}",
     "near_city": "Zobrazit události poblíž: %{city}",
     "browse_countries": "Procházet všechny země",
-    "search_prompt": "Nebo vyhledejte místo:",
-    "search_label": "Vyhledat místo"
+    "search_label": "Zadejte město nebo PSČ"
   },
   "country_site": {
     "title": "V %{country} zatím nejsou uvedeny žádné kurzy.",

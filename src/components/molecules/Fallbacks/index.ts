@@ -1,8 +1,8 @@
 export {
   LoadingFallback,
   ErrorFallback,
-  ErrorActions,
-  ErrorRegion,
+  FallbackActions,
+  FallbackRegion,
   FallbackPanel,
   ResetErrorBoundary,
   useErrorDisplay,
@@ -13,7 +13,7 @@ export {
 } from './Fallbacks'
 export type {
   ErrorFallbackProps,
-  ErrorActionsProps,
+  FallbackActionsProps,
   FallbackKind,
   FallbackMessage,
   FallbackPanelProps,

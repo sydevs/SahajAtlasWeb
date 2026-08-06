@@ -132,8 +132,7 @@
     "back_to_region": "Események itt: %{region}",
     "near_city": "Események %{city} közelében",
     "browse_countries": "Összes ország megtekintése",
-    "search_prompt": "Vagy keress egy helyet:",
-    "search_label": "Hely keresése"
+    "search_label": "Add meg a városod vagy irányítószámod"
   },
   "country_site": {
     "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",

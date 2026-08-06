@@ -132,8 +132,7 @@
     "back_to_region": "Ver eventos en %{region}",
     "near_city": "Ver eventos cerca de %{city}",
     "browse_countries": "Ver todos los países",
-    "search_prompt": "O busca un lugar:",
-    "search_label": "Buscar un lugar"
+    "search_label": "Introduce tu ciudad o código postal"
   },
   "country_site": {
     "title": "Todavía no hay clases registradas en %{country}.",

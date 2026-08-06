@@ -132,8 +132,7 @@
     "back_to_region": "Показать события: %{region}",
     "near_city": "Показать события рядом: %{city}",
     "browse_countries": "Показать все страны",
-    "search_prompt": "Или найдите место:",
-    "search_label": "Найти место"
+    "search_label": "Введите город или почтовый индекс"
   },
   "country_site": {
     "title": "Занятия в %{country} пока не указаны.",

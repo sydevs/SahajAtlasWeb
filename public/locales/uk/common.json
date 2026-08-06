@@ -132,8 +132,7 @@
     "back_to_region": "Показати події: %{region}",
     "near_city": "Показати події поблизу: %{city}",
     "browse_countries": "Показати всі країни",
-    "search_prompt": "Або знайдіть місце:",
-    "search_label": "Знайти місце"
+    "search_label": "Введіть місто або поштовий індекс"
   },
   "country_site": {
     "title": "Заняття в %{country} ще не додано.",

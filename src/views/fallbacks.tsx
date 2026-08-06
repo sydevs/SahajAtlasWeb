@@ -234,7 +234,7 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
           it lives in the host page's `#!` fragment — writing keystrokes into it spreads
           a broken link into anything the visitor copies. */}
       <SearchField
-        label={t('error.search_label', { defaultValue: 'Search for a place' })}
+        label={t('error.search_label', { defaultValue: 'Enter your city or post code' })}
         syncToUrl={false}
       />
     </FallbackPanel>
@@ -254,7 +254,7 @@ export function DrawerErrorBody(props: FallbackProps) {
 /**
  * ErrorBoundary fallback for a whole view — kept local to the drawer so one failing view
  * never blanks the stack. Mirrors the top-level ErrorFallback (molecules/Fallbacks): the
- * same classified copy and the same ErrorActions, differing only in chrome.
+ * same classified copy and the same FallbackActions, differing only in chrome.
  *
  * Renders `DrawerChrome` above the body, because the view's own header went down with it.
  * Before that, an error left the drawer with no close button — and in the configurations

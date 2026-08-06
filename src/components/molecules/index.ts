@@ -28,12 +28,12 @@ export { SortMenu } from './SortMenu'
 // Fallbacks — every state that leaves a viewer with no content, from one policy table
 // (issue #89). `FallbackPanel` is the shared body — a dead link, a broken query and an
 // empty list are one component reading one table, not three that agree by hand;
-// `ErrorActions` is the button row it and the app-level fallback both render.
+// `FallbackActions` is the button row it and the app-level fallback both render.
 export {
   LoadingFallback,
   ErrorFallback,
-  ErrorActions,
-  ErrorRegion,
+  FallbackActions,
+  FallbackRegion,
   FallbackPanel,
   ResetErrorBoundary,
   useErrorDisplay,
@@ -44,7 +44,7 @@ export {
 } from './Fallbacks'
 export type {
   ErrorFallbackProps,
-  ErrorActionsProps,
+  FallbackActionsProps,
   FallbackKind,
   FallbackMessage,
   FallbackPanelProps,

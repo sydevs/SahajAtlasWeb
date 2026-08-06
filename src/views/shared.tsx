@@ -355,8 +355,11 @@ export function EmptyEventList() {
 
   return (
     <FallbackPanel kind="empty">
+      {/* `label` is the field's accessible name AND its placeholder, so it does the whole
+          job of prompting: dropped out of a header, the default "search for events near…"
+          reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
-        label={t('error.search_label', { defaultValue: 'Search for a place' })}
+        label={t('error.search_label', { defaultValue: 'Enter your city or post code' })}
         syncToUrl={false}
       />
     </FallbackPanel>

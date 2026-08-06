@@ -11,17 +11,32 @@ import { QueryErrorResetBoundary } from '@tanstack/react-query'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
-import { Button, controlSurface } from '@/components/atoms/Button'
+import { Button } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
 
+/**
+ * The whole-widget surface: what fills the embed when there is no app to show yet, or no
+ * app left to show. Shared by both app-level fallbacks so a boot that stalls and a boot
+ * that fails occupy exactly the same box — for a viewer they are the same moment, one
+ * frame apart.
+ *
+ * They stay two components rather than one, because the two boundaries that mount them
+ * take different things: `Suspense` takes an ELEMENT (`fallback={<X/>}`), `ErrorBoundary`
+ * a COMPONENT TYPE it calls with `FallbackProps`. Merging them would mean one component
+ * with an optional `error` branching at runtime on a distinction React already makes at
+ * the mount point — and the loading half would drag in the policy table, the recovery
+ * ladder and the report modal to render a spinner.
+ */
+const APP_SURFACE = 'flex-center h-full w-full flex-col gap-3 bg-background p-10'
+
 export function LoadingFallback() {
   const { t } = useTranslation('common')
 
   return (
-    <div className="flex-center h-full w-full bg-background p-10">
+    <div className={APP_SURFACE}>
       <Spinner color="secondary" label={t('loading')} />
     </div>
   )
@@ -350,30 +365,51 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
 }
 
 /**
- * The onward CTA is an anchor wearing a button's skin, not a `<Button href>`: the widget
- * runs under HashRouter inside someone else's page, where a plain `<a href="/gb">` would
- * navigate the HOST document away. The `Link` atom routes internally (and stamps the depth
- * + camera the drawer stack's back-navigation depends on) while `controlSurface` gives it
- * the weight of the primary action on the screen.
+ * Where onward leads, as a link INSIDE the sentence's banner rather than a button beside
+ * it. It is the one control that continues the sentence rather than acting on it — "we
+ * couldn't find that place… see events in Belgium" — and read as one thought it needs the
+ * banner's own tint and its own line, not the weight of a filled button competing with a
+ * retry that isn't there.
  *
- * `h-auto min-h-10 whitespace-normal py-2` relaxes the recipe's fixed height and nowrap:
- * "See events in Cambridgeshire" would otherwise overflow a 375px sheet on one line.
+ * An anchor, never a `<Button href>`: the widget runs under HashRouter inside someone
+ * else's page, where a plain `<a href="/gb">` would navigate the HOST document away. The
+ * `Link` atom routes internally and stamps the depth + camera the drawer stack's
+ * back-navigation depends on.
  */
-const onwardSkin = controlSurface({
-  color: 'primary',
-  variant: 'flat',
-  className: 'h-auto min-h-10 whitespace-normal py-2',
-})
+export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
+  const { t } = useTranslation('common', { useSuspense: false })
 
-export type ErrorActionsProps = {
+  return (
+    <Link
+      className="mt-2 text-sm font-medium"
+      color="primary"
+      href={offer.path}
+      // The country-site rung leaves the widget entirely, so it takes the external
+      // treatment: a new tab, the atom's safe `rel`, and the anchor glyph that says so.
+      isExternal={offer.kind === 'country-site'}
+      showAnchorIcon={offer.kind === 'country-site'}
+    >
+      {offer.kind === 'country-site' && (
+        <CircleFlag
+          className="h-5 w-5 shrink-0 rounded-full border border-divider bg-divider"
+          countryCode={offer.countryCode.toLowerCase()}
+          // The flag SVG loads from react-circle-flags' own CDN, so without this the
+          // embedding host's URL rides along to a third party on every render.
+          referrerPolicy="no-referrer"
+        />
+      )}
+      {offerLabel(t, offer)}
+    </Link>
+  )
+}
+
+export type FallbackActionsProps = {
   /** The result of `visibleActions` — what the policy AND the surface both allow. */
   actions: VisibleActions
   /** The thrown message, carried into the report as context (issue #79). */
   reportContext: string
   /** Reset the boundary and re-run the failed query. */
   resetErrorBoundary?: () => void
-  /** Where onward leads, resolved by `useRecoveryOffer`. */
-  offer?: RecoveryOffer
   /** Drop the active filters. */
   onClearFilters?: () => void
 }
@@ -383,56 +419,35 @@ export type ErrorActionsProps = {
  * hard-coded list (issue #89) — so the app-level fallback, the drawer fallback and the
  * empty lists can differ in chrome without ever drifting on what a given state lets you do.
  *
- * They sit OUTSIDE the alert banner, always. Inside it they read as part of the sentence
- * and inherit its tint, which on a danger alert made a link look like more red text; out
- * here they are unambiguously the thing to press. Order is weight order: the action
- * likeliest to help first, the report CTA last.
+ * These are the ACTIONS — things that operate on the screen you're looking at — so they sit
+ * outside the banner, where they can't inherit its tint or be read as part of the sentence.
+ * The one control that isn't an action, the onward link, stays inside it (`OnwardLink`).
+ * Order is weight order: the action likeliest to help first, the report CTA last.
  */
-export function ErrorActions({
+export function FallbackActions({
   actions,
   reportContext,
   resetErrorBoundary,
-  offer,
   onClearFilters,
-}: ErrorActionsProps) {
+}: FallbackActionsProps) {
   // `useSuspense: false` for the same reason `useFallbackDisplay` sets it: this can render
   // before any locale JSON has arrived. `defaultValue` on each label for the same reason
   // again — a raw "error.retry" on a button is worse than an untranslated one.
   const { t } = useTranslation('common', { useSuspense: false })
   const openReport = useReportModal((state) => state.openReport)
 
+  if (!actions.retry && !actions.report && !(actions.clearFilters && onClearFilters)) return null
+
   // One wrappable row, not a column: these are peers — a way forward and a way to tell us —
   // and stacking short buttons vertically read as a list of steps rather than a choice.
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="flex w-full flex-wrap items-center justify-center gap-2">
       {actions.retry && (
         // `primary`, where report is `neutral`: they sit in the same row, so the one
         // likelier to help has to carry more weight than the one of last resort.
         <Button color="primary" variant="flat" onClick={resetErrorBoundary}>
           {t('error.retry', { defaultValue: 'Try again' })}
         </Button>
-      )}
-      {actions.onward && offer && (
-        <Link
-          className={onwardSkin}
-          color="neutral"
-          href={offer.path}
-          // The country-site rung leaves the widget entirely, so it takes the external
-          // treatment: a new tab, the atom's safe `rel`, and the anchor glyph that says so.
-          isExternal={offer.kind === 'country-site'}
-          showAnchorIcon={offer.kind === 'country-site'}
-        >
-          {offer.kind === 'country-site' && (
-            <CircleFlag
-              className="h-5 w-5 shrink-0 rounded-full border border-divider bg-divider"
-              countryCode={offer.countryCode.toLowerCase()}
-              // The flag SVG loads from react-circle-flags' own CDN, so without this the
-              // embedding host's URL rides along to a third party on every render.
-              referrerPolicy="no-referrer"
-            />
-          )}
-          {offerLabel(t, offer)}
-        </Link>
       )}
       {actions.clearFilters && onClearFilters && (
         <Button color="primary" variant="flat" onClick={onClearFilters}>
@@ -470,7 +485,7 @@ export function ErrorActions({
  * would be far worse than a missed announcement — while costing nothing in the case this
  * exists for, where an unmounted card leaves focus exactly there.
  */
-export function ErrorRegion({
+export function FallbackRegion({
   message,
   className,
   children,
@@ -523,48 +538,52 @@ export function ErrorRegion({
  *    sentence and leave only the buttons — the failure mode of a fix for invisible content.
  */
 export const CENTERED_BODY =
-  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center gap-3 p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
+  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
 /** The rung that needs no data at all, and so can always be offered. */
 const COUNTRIES_OFFER: RecoveryOffer = { kind: 'countries', path: '/' }
 
-type FallbackShellProps = ErrorActionsProps & {
+type FallbackShellProps = FallbackActionsProps & {
   policy: FallbackPolicy
   message: string
+  /** Where onward leads, resolved by `useRecoveryOffer` or supplied by the caller. */
+  offer?: RecoveryOffer
   /** The geocoder, when the actions allow one. */
   children?: ReactNode
 }
 
-/** The presentation, with nothing that can fail: the sentence in its register, the action
- *  row beneath it, and — when offered — a prompted field. Rendered both by the live body
- *  and by the floor it degrades to, so the two can't look like different screens. */
-function FallbackShell({ policy, message, children, ...actionProps }: FallbackShellProps) {
-  const { t } = useTranslation('common', { useSuspense: false })
-
+/**
+ * The presentation, with nothing that can fail: the sentence in its register (carrying the
+ * onward link), the action row beneath it, and — when offered — a field. Rendered both by
+ * the live body and by the floor it degrades to, so the two can't look like different
+ * screens.
+ *
+ * ONE column at ONE width. Every part is `w-full` inside a single `max-w-xs` box, because
+ * left to shrink-wrap they came out three different widths stacked on a centre line: a
+ * banner as wide as its sentence, a button row as wide as its labels, a full-width field.
+ */
+function FallbackShell({ policy, message, offer, children, ...actionProps }: FallbackShellProps) {
   return (
-    <ErrorRegion className={CENTERED_BODY} message={message}>
-      {/* `w-full max-w-xs`, matching the field block below: left to shrink-wrap, the
-          banner and the field ended up different widths and visibly off-axis. */}
-      <Alert
-        align="start"
-        className="w-full max-w-xs"
-        color={policy.color}
-        description={message}
-        role={policy.color === 'danger' ? 'alert' : 'status'}
-      />
-      <ErrorActions {...actionProps} />
-      {actionProps.actions.search && children && (
-        <div className="flex w-full max-w-xs flex-col gap-1.5 text-start">
-          {/* The field is unlabelled without this: dropped out of a header, its only name
-              is the "search for events near…" placeholder, which on this screen reads as
-              a promise that there ARE nearby events. */}
-          <p className="text-sm text-gray-11">
-            {t('error.search_prompt', { defaultValue: 'Or search for a place:' })}
-          </p>
-          {children}
-        </div>
-      )}
-    </ErrorRegion>
+    <FallbackRegion className={CENTERED_BODY} message={message}>
+      <div className="flex w-full max-w-xs flex-col items-center gap-3">
+        <Alert
+          align="start"
+          className="w-full"
+          color={policy.color}
+          description={message}
+          role={policy.color === 'danger' ? 'alert' : 'status'}
+        >
+          {actionProps.actions.onward && offer && <OnwardLink offer={offer} />}
+        </Alert>
+        <FallbackActions {...actionProps} />
+        {/* `text-start`: the column centres its text, and a centred placeholder in an input
+            reads as a broken field. The field names itself through its own placeholder now
+            ("Enter your city or post code"), so it needs no prompt line above it. */}
+        {actionProps.actions.search && children && (
+          <div className="w-full text-start">{children}</div>
+        )}
+      </div>
+    </FallbackRegion>
   )
 }
 
@@ -733,24 +752,24 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
   })
 
   return (
-    <ErrorRegion
-      className="flex-center h-full w-full flex-col gap-3 bg-background p-10"
-      message={message}
-    >
-      <Alert
-        className="max-w-xs"
-        color={policy.color}
-        description={message}
-        role={policy.color === 'danger' ? 'alert' : 'status'}
-        title="Sahaj Atlas"
-      />
-      {/* The modal host is mounted outside this boundary (App.tsx), so the report CTA
-          still works while this fallback is what's on screen. */}
-      <ErrorActions
-        actions={actions}
-        reportContext={reportContext}
-        resetErrorBoundary={resetErrorBoundary}
-      />
-    </ErrorRegion>
+    <FallbackRegion className={APP_SURFACE} message={message}>
+      {/* Same one-column, one-width rule as the drawer body's shell. */}
+      <div className="flex w-full max-w-xs flex-col items-center gap-3">
+        <Alert
+          className="w-full"
+          color={policy.color}
+          description={message}
+          role={policy.color === 'danger' ? 'alert' : 'status'}
+          title="Sahaj Atlas"
+        />
+        {/* The modal host is mounted outside this boundary (App.tsx), so the report CTA
+            still works while this fallback is what's on screen. */}
+        <FallbackActions
+          actions={actions}
+          reportContext={reportContext}
+          resetErrorBoundary={resetErrorBoundary}
+        />
+      </div>
+    </FallbackRegion>
   )
 }
