@@ -92,11 +92,14 @@ export const useRecoveryOffer = (): RecoveryOffer => {
         }
       }
 
-      // 2 — the host's home region.
-      const home = client?.region
-      const homePath = home && typeof home === 'object' ? safePath(home.webPath) : undefined
+      // 2 — the host's home region. Narrowed once rather than twice; `!== '/'` because the
+      // root is rung 4's job, and `!== location.pathname` because a France-scoped embed
+      // whose France listing has emptied would otherwise answer "nothing here" with a link
+      // back to the page you are already looking at.
+      const home = typeof client?.region === 'object' ? client.region : undefined
+      const homePath = home ? safePath(home.webPath) : undefined
 
-      if (home && typeof home === 'object' && homePath && homePath !== '/') {
+      if (home && homePath && homePath !== '/' && homePath !== location.pathname) {
         return { kind: 'region', path: homePath, name: home.name ?? home.slug }
       }
 

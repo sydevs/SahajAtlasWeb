@@ -131,7 +131,10 @@ export function CloseButton({ className }: { className?: string }) {
 // Region filter). Same header-control chrome as the close control, so the header reads
 // as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
 
   return (
@@ -149,7 +152,10 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 // distance-ranked search view. Renders the same header-control chrome as the
 // close/filter controls so the header reads as one set of buttons.
 export function SearchButton() {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
 
   return (
@@ -190,7 +196,10 @@ export function CollapseToggle() {
 // icon-only header control carrying the active count as a badge (CountriesView's header),
 // so it reads as one set with the close/collapse chrome.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
   const location = useLocation()
   const count = activeFilterCount(useEventFilters())
@@ -351,7 +360,10 @@ export function useEventFromPath(eventPath: string) {
  * (DynamicEventsList's EmptyResults) — but renders them through this same panel.
  */
 export function EmptyEventList() {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
 
   return (
     // `align="start"`: this stands in for the region's list, which begins at the top-left

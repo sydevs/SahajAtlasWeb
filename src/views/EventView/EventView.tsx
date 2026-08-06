@@ -27,8 +27,14 @@ import { ErrorPanel } from '@/views/fallbacks'
 // Minted per attempt rather than once at module scope, because React caches a lazy
 // component's REJECTED payload forever: after a failed chunk load, re-rendering the same
 // `lazy` re-throws the stored rejection instantly, so the boundary's "Try again" would be
-// the visibly-does-nothing button this work exists to remove. A fresh `lazy` gets a fresh
-// import (issue #89).
+// the visibly-does-nothing button this work exists to remove (issue #89).
+//
+// It removes React's cache, not the browser's. The HTML module map also records a FAILED
+// module fetch per URL, and browsers reject a later `import()` of the same specifier from
+// that record without going to the network — so for a chunk that 404'd or was blocked by
+// the host's CSP, the retry can still resolve to nothing. It does recover the case a
+// remount can (a transient render throw inside the panel), which is why it's worth having;
+// making the network case recover too needs a cache-busting specifier.
 const loadEventDetails = () =>
   lazy(() =>
     import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),

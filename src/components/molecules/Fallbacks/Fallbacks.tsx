@@ -726,7 +726,13 @@ export function FallbackPanel({
     <ErrorBoundary
       fallbackRender={() => (
         // The floor keeps layer 1's retry and report; only what the ladder and the geocoder
-        // contribute is dropped.
+        // contribute is dropped. It covers a DATA failure — a rejected cache read, an
+        // unexpected region shape — which is what layer 2 can realistically throw. It does
+        // not cover a missing Router: its own rung is an internal `Link`, so it would call
+        // `useLocation` and throw identically. Every call site is under a Router (Ladle
+        // included), and the alternative — a plain `<a href="/">` — would reload the
+        // standalone build and navigate the HOST page away from an embed, which is worse
+        // than the case it guards.
         <FallbackShell
           {...shared}
           actions={{ ...actions, search: false }}

@@ -264,13 +264,22 @@ export function DrawerStack() {
     let still = 0
     let last = Number.NaN
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
-    // re-query the DOM every frame; the effect re-runs (resetting this) if direction flips.
+    // re-query the DOM every frame. `isConnected` is what makes caching safe now that the
+    // effect no longer re-runs per depth change: two elements carry `[data-vaul-drawer]`
+    // (the main sheet and the filter overlay) and both portal to `document.body`, so a
+    // resize across the md breakpoint can leave this holding the overlay — and once that
+    // closes, a detached node measures `top: 0` and would write `--sy-sheet-top: 0px` onto
+    // the LIVE strips, pinning every peek to the top of the viewport.
     let sheet: HTMLElement | null = null
     const tick = () => {
-      sheet ??= document.querySelector<HTMLElement>('[data-vaul-drawer]')
+      if (!sheet?.isConnected) sheet = document.querySelector<HTMLElement>('[data-vaul-drawer]')
       const el = stripsRef.current
 
-      if (sheet) {
+      // No sheet is still a settled frame: counting it as movement would re-arm the loop
+      // (and re-run the query) every frame forever, which is the cost this parks to avoid.
+      if (!sheet) {
+        still += 1
+      } else {
         const top = sheet.getBoundingClientRect().top
 
         if (top === last) {
@@ -300,6 +309,10 @@ export function DrawerStack() {
     const wake = (event?: Event) => {
       const target = event?.target
 
+      // A transition only moves the top edge when it is the SHEET's own — vaul animates
+      // the sheet element. Every `transition-colors` hover on a button inside it would
+      // otherwise re-arm 30 frames of layout reads for a colour change.
+      if (event?.type === 'transitionrun' && target !== sheet) return
       if (target instanceof Node && sheet && !sheet.contains(target)) return
 
       still = 0

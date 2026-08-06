@@ -287,6 +287,10 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
  *
  * Used by `DrawerChrome`, which would otherwise title the base drawer "Filters" whenever
  * the calendar fails underneath an open overlay (issue #89).
+ *
+ * `hasMap` must be threaded through, not defaulted at the call site: the map-less build
+ * doesn't render an overlay at all, so at `/calendar/filters` the trailing entry IS the
+ * view and peeling it would title the Filters drawer "Calendar".
  */
-export const baseStackEntry = (entries: StackEntry[]): StackEntry | undefined =>
-  isFilterOverlay(entries) ? entries.at(-2) : entries.at(-1)
+export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry | undefined =>
+  isFilterOverlay(entries, hasMap) ? entries.at(-2) : entries.at(-1)

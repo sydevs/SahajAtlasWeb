@@ -11,6 +11,7 @@ import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Draw
 import { Spinner } from '@/components/atoms/Spinner'
 import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, resolveStack } from '@/lib/shape'
@@ -24,6 +25,23 @@ import {
   SearchField,
   useDrawerControl,
 } from '@/views/shared'
+
+/**
+ * Whether this route's chrome leads with the geocoder rather than a title — the root and
+ * the search view, which get the header their own view would render.
+ *
+ * Read by BOTH the chrome (to render the field) and the body (to suppress its own): a
+ * `not-found` at `/` or `/search` is a DEAD_END row, which asks for a geocoder, so without
+ * this the screen draws two. `.claude/rules/i18n-and-state.md` states the invariant —
+ * "`visibleActions` narrows by surface … a geocoder already in the chrome" — and this is
+ * what implements it.
+ */
+const leadsWithGeocoder = (
+  entry: StackEntry | undefined,
+  // A type predicate, not a plain boolean: the chrome early-returns on it, and the code
+  // after that return reads `entry.slug`/`entry.id` — so it has to narrow away `undefined`
+  // and the search variant exactly as the inline check it replaced did.
+): entry is undefined | Extract<StackEntry, { kind: 'search' }> => !entry || entry.kind === 'search'
 
 // What a DRAWER adds around the shared fallback body — the chrome that survives when a
 // view can't render, and the routing knowledge only a drawer has. What the body itself
@@ -43,22 +61,6 @@ import {
 // Split out of `views/shared.tsx` (issue #89), which had grown to hold the drawer
 // controls, the search field, the geolocation suggestion AND all of this.
 
-/**
- * The header a drawer keeps when its view can't render — while loading, or after it threw.
- *
- * Every view renders its own `DrawerHeader` *inside* the boundary and below its
- * `useSuspenseQuery`, so a throw or a suspend erases the header and its close button along
- * with the content. That left an error state with no way out of the drawer at all
- * (issue #89), and a load with nothing on screen to say which thing was opening.
- *
- * Deriving the title from the URL + already-cached data — rather than from the query that
- * is failing or pending — is what makes this worth rendering instead of "Loading…".
- *
- * Total by construction (rule: the fallback must never throw). Every lookup is a
- * non-suspending cache read that degrades to `undefined`, `t()` never suspends and always
- * carries a `defaultValue`, and an unrecognised route simply omits the title — a header
- * with only a close control still beats no header.
- */
 /**
  * A disabled stand-in for the geocoder: the same box, none of the machinery. Matches the
  * inert `<input>` `MapSearch` already falls back to when the Geocoder itself fails, so the
@@ -82,10 +84,32 @@ function SearchFieldSkeleton() {
   )
 }
 
+/**
+ * The header a drawer keeps when its view can't render — while loading, or after it threw.
+ *
+ * Every view renders its own `DrawerHeader` *inside* the boundary and below its
+ * `useSuspenseQuery`, so a throw or a suspend erases the header and its close button along
+ * with the content. That left an error state with no way out of the drawer at all
+ * (issue #89), and a load with nothing on screen to say which thing was opening.
+ *
+ * Deriving the title from the URL + already-cached data — rather than from the query that
+ * is failing or pending — is what makes this worth rendering instead of "Loading…".
+ *
+ * It cannot THROW: every lookup is a non-suspending cache read that degrades to
+ * `undefined`, its own `t()` calls carry a `defaultValue`, and an unrecognised route simply
+ * omits the title — a header with only a close control still beats no header.
+ *
+ * It can still SUSPEND, in one case, and that is deliberate rather than overlooked:
+ * `useLocale()` reads i18next through a plain `useTranslation()`, so switching language
+ * while this is on screen suspends here as it does everywhere else in the app. The controls
+ * this renders all pass `useSuspense: false` so they don't add a second way to do it, but
+ * making the locale read non-suspending is an app-wide decision, not this component's.
+ */
 export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
   const { t } = useTranslation('common', { useSuspense: false })
   const { t: tEvents } = useTranslation('events', { useSuspense: false })
   const { locale } = useLocale()
+  const { hasMap } = useWidgetMode()
   const location = useLocation()
   const { canDismiss } = useDrawerControl()
   // Cache-only (`enabled: false`), not merely non-suspending: this renders on EVERY
@@ -99,7 +123,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
   // Same peel DrawerStack applies: a trailing `filters` over a `calendar` is a separate
   // overlay drawer, so the BASE drawer's chrome must still name the calendar. Without this
   // a calendar that fails underneath an open filter overlay titles itself "Filters".
-  const entry = baseStackEntry(resolveStack(location.pathname))
+  const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
   // The region tree is the whole global list, and this re-renders on every location and
   // drawer-control change, so don't re-scan it for a name that only moves with the slug.
   const regionName = useMemo(
@@ -145,7 +169,7 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
   // filter drawer — not a read of the data that failed, so none of it needs disabling: on
   // an `offline` search the field is the most useful thing on screen, since a new URL
   // remounts the boundary and may well succeed.
-  if (!entry || entry.kind === 'search') {
+  if (leadsWithGeocoder(entry)) {
     return (
       <>
         <DrawerHeader>
@@ -154,8 +178,14 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
               and this fallback is freshly mounted per path inside DrawerStack's keyed
               motion.div, so on a cold start it would instantiate one while the map is still
               initialising and tear it down again the moment CountriesView mounts its own.
-              An ERROR chrome keeps the real field: there it is the escape hatch. */}
-          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
+              An ERROR chrome keeps the real field: there it is the escape hatch.
+
+              `syncToUrl={false}` for the same reason the BODY's field sets it: the only
+              interactive case here is the error chrome, whose URL is the dead one we just
+              reported — and embedded, that URL lives in the host page's `#!` fragment, so
+              writing keystrokes into it spreads a broken link into anything the visitor
+              copies. Selecting a place still navigates; only the `?q` echo is dropped. */}
+          {interactive ? <SearchField syncToUrl={false} /> : <SearchFieldSkeleton />}
           {dismiss}
         </DrawerHeader>
         <DrawerToolbar>
@@ -277,16 +307,21 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
  */
 export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common', { useSuspense: false })
+  const { hasMap } = useWidgetMode()
   const location = useLocation()
   const kind = classifyError(error)
   // The SAME entry the chrome above it names (`baseStackEntry`, not a raw `.at(-1)`) —
   // otherwise a calendar failing underneath an open filter overlay gets a header saying
   // "Calendar" over a body reasoning about "Filters".
-  const entry = baseStackEntry(resolveStack(location.pathname))
+  const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
 
   return (
     <FallbackPanel
       align={fallbackAlign(entry?.kind)}
+      // The root and search chromes already lead with a geocoder, and a dead link asks for
+      // one — so without this the screen draws two: the header's and the body's. Same
+      // predicate the chrome uses, so they can't disagree about which routes those are.
+      hasSearchChrome={leadsWithGeocoder(entry)}
       kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
       // The thrown developer string is not the headline — it's untranslated text written
       // for us, rendered to a viewer inside someone else's page. It survives as report
