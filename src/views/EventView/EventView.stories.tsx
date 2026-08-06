@@ -53,7 +53,9 @@ type ExampleKey = keyof typeof EXAMPLES
 const DEAD_LINKS = {
   // An ancestor the region tree still knows: the ladder's first rung.
   'Not found · in a region': '/gb/cambridgeshire/999999',
-  // A flat legacy link with no ancestry at all — falls through to the floor rung.
+  // A flat legacy link with no ancestry at all. The harness seeds an IP guess for every
+  // story, so this case clears it (below) — otherwise rung 3 fires and the case previews
+  // "See events near Cambridge" while claiming to show the floor.
   'Not found · no ancestor': '/999999',
 } as const
 
@@ -76,7 +78,11 @@ export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) 
   return (
     <ViewHarness
       path={deadLink}
-      seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
+      seed={(client: QueryClient) => {
+        client.setQueryData<Event>(['event', event.id, locale], event)
+        // Drop the harness's global IP guess so the floor rung is what's on screen.
+        if (example === 'Not found · no ancestor') client.setQueryData(['ip-location'], null)
+      }}
       seedKey={example}
     >
       {deadLink ? (

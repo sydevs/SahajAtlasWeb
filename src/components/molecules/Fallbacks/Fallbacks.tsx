@@ -226,11 +226,16 @@ export function ErrorRegion({
     const node = ref.current
     const active = node?.ownerDocument.activeElement
 
-    if (node && (!active || active === node.ownerDocument.body)) node.focus()
+    // `preventScroll`: without it the browser scrolls every scrollable ancestor — including
+    // the HOST document — to bring the widget into view, so a boot failure on a page where
+    // the widget sits below the fold would yank the visitor's page down to it unbidden.
+    if (node && (!active || active === node.ownerDocument.body)) node.focus({ preventScroll: true })
   }, [])
 
+  // `role="group"`: `aria-label` is ignored on the generic role, so without one the name
+  // this sets would never be announced when focus lands here.
   return (
-    <div ref={ref} aria-label={message} className={className} tabIndex={-1}>
+    <div ref={ref} aria-label={message} className={className} role="group" tabIndex={-1}>
       {children}
     </div>
   )
@@ -248,11 +253,21 @@ export function ErrorRegion({
  * outside the boundary, inside it, or not at all — and normalizing that would move
  * loading states nobody asked to move.
  */
-export function ResetErrorBoundary({ children, ...props }: ErrorBoundaryProps) {
+export function ResetErrorBoundary({ children, onReset, ...props }: ErrorBoundaryProps) {
   return (
     <QueryErrorResetBoundary>
       {({ reset }) => (
-        <ErrorBoundary {...props} onReset={reset}>
+        <ErrorBoundary
+          {...props}
+          // COMPOSED, not overridden: a caller's own `onReset` has work of its own to do
+          // (EventView mints a fresh `lazy`, since React caches a rejected one forever).
+          // Assigning `reset` over the spread would swallow it silently — the exact class
+          // of dead-retry bug this component exists to prevent.
+          onReset={(details) => {
+            reset()
+            onReset?.(details)
+          }}
+        >
           {children}
         </ErrorBoundary>
       )}

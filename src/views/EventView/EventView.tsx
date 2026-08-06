@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
@@ -23,9 +23,16 @@ import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify + the action-row wiring; keep it out of the
 // main chunk (as pages/event.tsx used to) by lazy-loading it here.
-const EventDetails = lazy(() =>
-  import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
-)
+//
+// Minted per attempt rather than once at module scope, because React caches a lazy
+// component's REJECTED payload forever: after a failed chunk load, re-rendering the same
+// `lazy` re-throws the stored rejection instantly, so the boundary's "Try again" would be
+// the visibly-does-nothing button this work exists to remove. A fresh `lazy` gets a fresh
+// import (issue #89).
+const loadEventDetails = () =>
+  lazy(() =>
+    import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
+  )
 
 // A single event (route `<event-path>`). The header (the title) is the mobile
 // sheet's 80px peek payload and stays pinned above the scrolling body; the chips
@@ -41,6 +48,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { collapsed } = useDrawerControl()
 
   const { data: event } = useSuspenseQuery(eventQuery(id, locale))
+  // Bumped by the details boundary's reset; see `loadEventDetails`.
+  const [detailsAttempt, setDetailsAttempt] = useState(0)
+  const EventDetails = useMemo(() => loadEventDetails(), [detailsAttempt])
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -69,7 +79,10 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             itself resolved. Keeping that local means the title, the close button and the
             sticky Register CTA all survive: the event is still bookable even when its
             description isn't there (issue #89). */}
-        <ResetErrorBoundary FallbackComponent={ErrorPanel}>
+        <ResetErrorBoundary
+          FallbackComponent={ErrorPanel}
+          onReset={() => setDetailsAttempt((n) => n + 1)}
+        >
           <Suspense fallback={<Spinner className="mx-auto my-16" />}>
             <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
           </Suspense>

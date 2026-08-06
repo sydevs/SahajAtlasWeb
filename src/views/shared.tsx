@@ -114,7 +114,10 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — this renders inside the error/loading chrome, where suspending
+  // on an in-flight namespace (a language switch mid-error) would escape the boundary and
+  // blank the widget instead of showing the failure.
+  const { t } = useTranslation('common', { useSuspense: false })
   const { dismiss } = useDrawerControl()
 
   return (
@@ -161,7 +164,8 @@ export function SearchButton() {
 // the country list, or collapses the open list back to the peek. Hidden where the
 // sheet can't collapse (desktop / map-less).
 export function CollapseToggle() {
-  const { t } = useTranslation('common')
+  // See CloseButton: also rendered by the error/loading chrome, so it must not suspend.
+  const { t } = useTranslation('common', { useSuspense: false })
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
   if (!canCollapse) return null

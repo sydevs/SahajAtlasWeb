@@ -26,9 +26,15 @@ export type RecoveryOffer =
  * The rungs, in the order they actually help:
  *
  *  1. **The nearest ancestor in the URL the region tree still knows.** Evidence about
- *     THIS navigation — the viewer was already heading into that place, and it still
- *     lists live classes. Linked by the node's canonical `webPath`, not the URL prefix,
- *     which may be a legacy chain.
+ *     THIS navigation — the viewer was already heading into that place. Linked by the
+ *     node's canonical `webPath`, not the URL prefix, which may be a legacy chain.
+ *
+ *     It is checked for EXISTENCE, not for events: the wholesale tree carries no counts,
+ *     and deriving them means the per-feature ancestry index that `getRegion` builds — an
+ *     O(feed) scan the data layer memoizes and deliberately keeps private. So a region
+ *     whose programs have all ended is still offered, and lands on `EmptyEventList`. That
+ *     is a real place with working navigation and a search field, not the dead end this
+ *     ladder exists to remove — a worse trade than the scan would buy.
  *  2. **The host's configured home region.** Evidence about the SITE rather than this
  *     navigation, so it ranks below (1) — but a France-scoped embed's visitor almost
  *     certainly wants France, and `AppShell` already suspends on the client record, so

@@ -11,10 +11,9 @@ import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
 import { ErrorActions, ErrorRegion, NotFoundOffer, useErrorDisplay } from '@/components/molecules'
 import { regionsQuery } from '@/config/api'
-import { useLocale } from '@/hooks/use-locale'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { reportInternalError } from '@/lib/report'
-import { resolveStack } from '@/lib/shape'
+import { baseStackEntry, resolveStack } from '@/lib/shape'
 import {
   CloseButton,
   CollapseToggle,
@@ -64,21 +63,23 @@ import {
  * with only a close control still beats no header.
  */
 export function DrawerChrome() {
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t, i18n } = useTranslation('common', { useSuspense: false })
   const { t: tEvents } = useTranslation('events', { useSuspense: false })
   const location = useLocation()
-  const { locale } = useLocale()
   const { canDismiss } = useDrawerControl()
   // Cache-only (`enabled: false`), not merely non-suspending: this renders on EVERY
   // loading and error state, so a fetch here would re-issue a read on exactly the failures
   // where the backend is already the problem. A miss costs the title, never the frame.
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: titles } = useQuery<Map<number, string>>({
-    queryKey: ['event-titles', locale],
+    queryKey: ['event-titles', i18n.resolvedLanguage || 'en'],
     enabled: false,
   })
 
-  const entry = resolveStack(location.pathname).at(-1)
+  // Same peel DrawerStack applies: a trailing `filters` over a `calendar` is a separate
+  // overlay drawer, so the BASE drawer's chrome must still name the calendar. Without this
+  // a calendar that fails underneath an open filter overlay titles itself "Filters".
+  const entry = baseStackEntry(resolveStack(location.pathname))
 
   const title = (() => {
     switch (entry?.kind) {
@@ -128,15 +129,28 @@ export function DrawerChrome() {
 // BELOW THE FOLD. Loading rendered as a blank sheet on every phone: "nothing happened when
 // I tapped". Same fix, same reason, in DrawerErrorFallback below (issue #89).
 export function DrawerLoading() {
-  const { t } = useTranslation('common')
-
   return (
     <>
       <DrawerChrome />
-      <DrawerBody className="flex justify-center p-8">
-        <Spinner color="secondary" label={t('loading')} />
-      </DrawerBody>
+      <DrawerLoadingBody />
     </>
+  )
+}
+
+/**
+ * The spinner alone, for a Suspense fence that sits BELOW a view's own header — the
+ * calendar's grid. The chrome-ful `DrawerLoading` there would draw a second header, with a
+ * second close button, under the one CalendarControls already renders.
+ *
+ * The loading counterpart of `DrawerErrorBody`/`ErrorPanel`: same split, same reason.
+ */
+export function DrawerLoadingBody() {
+  const { t } = useTranslation('common', { useSuspense: false })
+
+  return (
+    <DrawerBody className="flex justify-center p-8">
+      <Spinner color="secondary" label={t('loading', { defaultValue: 'Loading…' })} />
+    </DrawerBody>
   )
 }
 
