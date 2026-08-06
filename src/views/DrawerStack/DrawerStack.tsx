@@ -243,9 +243,13 @@ export function DrawerStack() {
   // `position: fixed` resolves against the sheet, so the bar offsets by the
   // live top instead (issue #52, WS4).
   useEffect(() => {
-    // Gate the rAF loop to stacked views (root has no strips and no sticky bar
-    // — EventView, the bar's only host, always stacks above the root).
-    if (!hasMap || direction !== 'bottom' || parentPaths.length === 0) return
+    // Every bottom-sheet view, root included. The strips and the sticky register bar only
+    // exist above the root, but `--sy-sheet-top` has a third consumer now: the error and
+    // loading bodies centre themselves within the VISIBLE sheet, and the root can fail too
+    // (a cold `['countries']` read). Without the var there they'd centre inside a body that
+    // is `h-dvh` tall while only its top 300px is on screen — i.e. below the fold, which is
+    // the bug that made both states invisible on mobile in the first place (issue #89).
+    if (!hasMap || direction !== 'bottom') return
     let raf = 0
     let last = Number.NaN
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
@@ -270,7 +274,7 @@ export function DrawerStack() {
     raf = requestAnimationFrame(tick)
 
     return () => cancelAnimationFrame(raf)
-  }, [hasMap, direction, parentPaths.length])
+  }, [hasMap, direction])
 
   // The calendar opens at the near-full snap on mobile — its month grid AND its list both need
   // the height — while every other view keeps the third-height open snap. Keyed on the view

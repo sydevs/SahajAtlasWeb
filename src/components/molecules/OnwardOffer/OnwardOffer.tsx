@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 
-export type NotFoundOfferProps = {
+export type OnwardOfferProps = {
   /** The sentence naming what was missing — "that event" / "that place". */
   message: string
   /** Where to send the viewer; resolved by `useRecoveryOffer`. */
@@ -16,14 +16,19 @@ export type NotFoundOfferProps = {
 }
 
 /**
- * What a dead link shows instead of an error (issue #89): the sentence, one place to go,
- * and a field to name somewhere else.
+ * A screen with nothing on it, and somewhere onward to go (issue #89): the sentence, one
+ * place to go, and optionally a field to name somewhere else.
  *
- * Deliberately in the **empty-state** register, not the error one — `Alert color="neutral"`
- * and `role="status"`, matching `CountrySiteOffer` and `EmptyResults`. A dead link is a
- * wrong turn, not a malfunction: red chrome and an assertive announcement would overstate
- * a situation the viewer can simply walk out of. If this ever renders red, the two
- * registers have drifted.
+ * Shared by the two states that reach a viewer empty-handed — a **dead link** and an
+ * **empty list**. They differ only in the sentence: both leave someone looking at nothing,
+ * and both are best answered by naming the nearest place that does have classes. Keeping
+ * one component means a region with no events can't quietly become a worse dead end than a
+ * URL that never existed.
+ *
+ * Deliberately in the **empty-state** register — `Alert color="neutral"` and
+ * `role="status"`, matching `CountrySiteOffer` and `EmptyResults`. Neither case is a
+ * malfunction: red chrome and an assertive announcement would overstate a situation the
+ * viewer can simply walk out of. If this ever renders red, the two registers have drifted.
  *
  * No flag icon, unlike `CountrySiteOffer`: that CDN image would render as a broken box
  * beside the sentence apologising for the breakage — and a blocked CSP is a plausible
@@ -31,7 +36,7 @@ export type NotFoundOfferProps = {
  *
  * Purely presentational. Which rung the offer came from is `useRecoveryOffer`'s decision.
  */
-export function NotFoundOffer({ message, offer, children }: NotFoundOfferProps) {
+export function OnwardOffer({ message, offer, children }: OnwardOfferProps) {
   const { t } = useTranslation('common', { useSuspense: false })
 
   // Every label carries an English `defaultValue`: namespaces load over HTTP, and a

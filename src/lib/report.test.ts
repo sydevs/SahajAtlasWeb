@@ -282,10 +282,10 @@ describe('reportInternalError', () => {
     const spy = vi.fn()
 
     vi.stubGlobal('console', { error: spy })
-    reportInternalError(new Error('offer blew up'), 'NotFoundOffer')
+    reportInternalError(new Error('offer blew up'), 'NotFoundPanel')
 
     expect(spy).toHaveBeenCalledOnce()
-    expect(String(spy.mock.calls[0]?.[0])).toContain('NotFoundOffer')
+    expect(String(spy.mock.calls[0]?.[0])).toContain('NotFoundPanel')
   })
 
   it('survives a console that throws', () => {

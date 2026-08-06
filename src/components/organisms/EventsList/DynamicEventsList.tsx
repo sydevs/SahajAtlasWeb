@@ -11,6 +11,7 @@ import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { CountrySiteOffer } from '@/components/molecules/CountrySiteOffer'
+import { OnwardOffer } from '@/components/molecules/OnwardOffer'
 import { Alert } from '@/components/atoms/Alert'
 import { isSoon } from '@/lib'
 import { EventSlim } from '@/types'
@@ -25,6 +26,7 @@ import {
   revealRows,
 } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
+import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useReveal } from '@/hooks/use-reveal'
@@ -235,6 +237,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const active = hasActiveFilters(useEventFilters())
   const { clearFilters } = useSetFilters()
   const countrySite = useCountrySite()
+  const offer = useRecoveryOffer()
 
   if (countrySite) {
     return (
@@ -252,13 +255,12 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
     )
   }
 
-  return (
-    <div className="p-4">
-      <Alert
-        color="neutral"
-        description={active ? t('filters.no_results') : t('filters.no_events')}
-      >
-        {active && (
+  // Filters are the explanation AND the escape, so that case keeps "Clear all" and nothing
+  // else — an onward link would compete with the one action that actually restores results.
+  if (active) {
+    return (
+      <div className="p-4">
+        <Alert color="neutral" description={t('filters.no_results')}>
           <button
             className="mt-2 text-sm font-medium text-primary-11 hover:underline"
             type="button"
@@ -266,8 +268,18 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
           >
             {t('filters.clear')}
           </button>
-        )}
-      </Alert>
+        </Alert>
+      </div>
+    )
+  }
+
+  // Nothing left to explain it: no country offer, no distance cap, no filters. This is the
+  // branch that used to end in a sentence and nothing to press, so it gets the same onward
+  // offer a dead link does (issue #89) — but no search field, since SearchView's header
+  // already IS one and a second would be the odd thing on the screen.
+  return (
+    <div className="p-4">
+      <OnwardOffer message={t('filters.no_events')} offer={offer} />
     </div>
   )
 }

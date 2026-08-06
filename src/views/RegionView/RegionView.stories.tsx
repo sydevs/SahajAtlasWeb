@@ -21,7 +21,7 @@ export default { title: 'Views' } satisfies StoryDefault
 // events (online ones inline); "City with Centers" is a city whose children are SY
 // Centers, led by an "Online Classes" roll-up; "Empty" is the no-events state — a real
 // screen since #89, not an error page (getRegion no longer 404s a 0-event region).
-const EXAMPLES = {
+const EXAMPLES: Record<string, { slug: string; region: Region; path?: string }> = {
   Country: {
     slug: mockCountryRegion.slug,
     region: mockCountryRegion,
@@ -34,11 +34,15 @@ const EXAMPLES = {
     slug: mockCityWithVenuesRegion.slug,
     region: mockCityWithVenuesRegion,
   },
+  // A region whose events have all ended. Rendered at a real path so the onward offer
+  // resolves its ANCESTOR (Cambridgeshire) rather than falling through to the IP guess —
+  // the rung a viewer actually gets, and the one worth reviewing (issue #89).
   Empty: {
     slug: mockMinimalRegion.slug,
     region: mockMinimalRegion,
+    path: `/gb/cambridgeshire/${mockMinimalRegion.slug}`,
   },
-} as const
+}
 
 type ExampleKey = keyof typeof EXAMPLES
 
@@ -68,7 +72,7 @@ export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) 
 
   return (
     <ViewHarness
-      path={deadLink}
+      path={deadLink ?? c.path}
       seed={(client: QueryClient) =>
         client.setQueryData<Region>(['region', c.slug, locale], c.region)
       }

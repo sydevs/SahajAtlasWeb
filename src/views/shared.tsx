@@ -7,10 +7,9 @@ import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
-import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
-import { GeolocationPrompt } from '@/components/molecules'
+import { GeolocationPrompt, OnwardOffer } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -20,6 +19,7 @@ import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { approxBounds } from '@/lib/geo'
 import { geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
@@ -339,17 +339,32 @@ export function useEventFromPath(eventPath: string) {
   })
 }
 
-// The generic "no events" state for the region/online drawers when their list comes
-// back empty: a region whose events have all ended, or an online roll-up reached by a
-// hand-typed URL. Deliberately action-less — a 0-event region isn't a wrong turn to
-// retry or report, which is why `getRegion` renders it rather than throwing (issue #89).
-// Search has its own filter-aware empty state (DynamicEventsList's EmptyResults).
+/**
+ * The "no events" state for the region/online drawers when their list comes back empty: a
+ * region whose events have all ended, or an online roll-up reached by a hand-typed URL.
+ *
+ * Carries the SAME onward offer a dead link gets (issue #89) — the nearest ancestor that
+ * does list classes, then the search field. It used to be deliberately action-less on the
+ * grounds that an empty region isn't a wrong turn to retry or report; that's still true of
+ * *retry* and *report*, but it left a viewer facing one sentence and nothing to press,
+ * which is the same dead end whether the URL was wrong or merely barren.
+ *
+ * The ladder reads the URL's ancestry, so a 0-event Antwerpen offers Belgium rather than
+ * offering itself back. Search keeps its own filter-aware empty state, which has better
+ * reasons available (DynamicEventsList's EmptyResults).
+ */
 export function EmptyEventList() {
   const { t } = useTranslation('common')
+  const offer = useRecoveryOffer()
 
   return (
     <div className="p-4">
-      <Alert color="neutral" description={t('filters.no_events')} />
+      <OnwardOffer message={t('filters.no_events')} offer={offer}>
+        <SearchField
+          label={t('error.search_label', { defaultValue: 'Search for a place' })}
+          syncToUrl={false}
+        />
+      </OnwardOffer>
     </div>
   )
 }

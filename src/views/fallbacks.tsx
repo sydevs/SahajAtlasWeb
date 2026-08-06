@@ -6,18 +6,27 @@ import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
-import { ErrorActions, ErrorRegion, NotFoundOffer, useErrorDisplay } from '@/components/molecules'
+import {
+  ErrorActions,
+  ErrorRegion,
+  ListToolbar,
+  OnwardOffer,
+  useErrorDisplay,
+} from '@/components/molecules'
 import { regionsQuery } from '@/config/api'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { reportInternalError } from '@/lib/report'
 import { baseStackEntry, resolveStack } from '@/lib/shape'
 import {
+  CalendarButton,
   CloseButton,
   CollapseToggle,
   DrawerTitle,
+  FilterButton,
+  SearchButton,
   SearchField,
   useDrawerControl,
 } from '@/views/shared'
@@ -45,6 +54,24 @@ import {
 //
 // Split out of `views/shared.tsx` (issue #89), which had grown to hold the drawer
 // controls, the search field, the geolocation suggestion AND all of this.
+
+/**
+ * Centres a short error/loading body — but within the sheet's VISIBLE height, not the
+ * body's own.
+ *
+ * `DrawerBody` fills a bottom sheet that is `h-dvh` (vaul computes its snap translates off
+ * the window height) while the mobile snap shows only its top 300px, so a plain
+ * `justify-center` puts content at roughly `1.5·viewport − 300` from the top — measured at
+ * 643px in a 667px viewport, i.e. off screen. That is why both states were invisible on
+ * every phone.
+ *
+ * `--sy-sheet-top` is the sheet's live top edge, mirrored every frame by DrawerStack, so
+ * `100dvh - top` is exactly what the viewer can see; the `0px` fallback resolves to the
+ * full height, which is correct on the desktop panel and the map-less container, where the
+ * body already IS the visible area.
+ */
+const CENTERED_BODY =
+  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center justify-center gap-3 p-6 text-center'
 
 /**
  * The header a drawer keeps when its view can't render — while loading, or after it threw.
@@ -106,28 +133,58 @@ export function DrawerChrome() {
     }
   })()
 
+  // At the root there is nothing to climb to and `navigate(-1)` would take the host page
+  // back, so offer the collapse (which self-hides where it can't collapse) rather than a
+  // close that silently does nothing.
+  const dismiss = canDismiss ? <CloseButton /> : <CollapseToggle />
+
+  // The root and the search view lead with the geocoder rather than a title, so they get
+  // the header their view would render. Everything in it is a NAVIGATION — a new search, a
+  // filter drawer — not a read of the data that failed, so none of it needs disabling: on
+  // an `offline` search the field is the most useful thing on screen, since a new URL
+  // remounts the boundary and may well succeed.
+  if (!entry || entry.kind === 'search') {
+    return (
+      <>
+        <DrawerHeader>
+          <SearchField />
+          {dismiss}
+        </DrawerHeader>
+        <DrawerToolbar>
+          <ListToolbar>
+            <FilterButton />
+          </ListToolbar>
+        </DrawerToolbar>
+      </>
+    )
+  }
+
   return (
     <DrawerHeader className="justify-between">
       {/* An empty <div> rather than an empty DrawerTitle when nothing resolved: a blank
           <h2> is a heading with no name, which is worse for a screen reader than no
           heading at all. It still holds the left slot so the control stays right-aligned. */}
       {title ? <DrawerTitle title={title} /> : <div />}
-      {/* At the root there is nothing to climb to and `navigate(-1)` would take the host
-          page back, so offer the collapse (which self-hides where it can't collapse)
-          rather than a close that silently does nothing. */}
-      {canDismiss ? <CloseButton /> : <CollapseToggle />}
+      <div className="flex shrink-0 items-center gap-2">
+        {/* A region's own header offers these two, and both still work — they navigate
+            rather than read. The calendar is scoped to the region whose page failed, which
+            is exactly where a viewer wanted to be. */}
+        {entry.kind === 'region' && (
+          <>
+            <CalendarButton regionSlug={entry.slug} />
+            <SearchButton />
+          </>
+        )}
+        {entry.kind === 'online' && <SearchButton />}
+        {entry.kind === 'calendar' && <FilterButton iconOnly />}
+        {dismiss}
+      </div>
     </DrawerHeader>
   )
 }
 
 // Suspense fallback for a view whose data is still loading — the shared chrome (so the
 // drawer keeps its identity and its close control) over a spinner.
-//
-// TOP-ALIGNED, not centred. `DrawerBody` fills a sheet that is `h-dvh` (vaul computes its
-// snap translates off the window height), while the mobile sheet only shows its top 300px
-// — so `items-center` put the spinner at roughly `1.5·viewport − 300` from the top, i.e.
-// BELOW THE FOLD. Loading rendered as a blank sheet on every phone: "nothing happened when
-// I tapped". Same fix, same reason, in DrawerErrorFallback below (issue #89).
 export function DrawerLoading() {
   return (
     <>
@@ -148,7 +205,7 @@ export function DrawerLoadingBody() {
   const { t } = useTranslation('common', { useSuspense: false })
 
   return (
-    <DrawerBody className="flex justify-center p-8">
+    <DrawerBody className={CENTERED_BODY}>
       <Spinner color="secondary" label={t('loading', { defaultValue: 'Loading…' })} />
     </DrawerBody>
   )
@@ -186,8 +243,8 @@ function NotFoundPanel({ message }: { message: string }) {
   const offer = useRecoveryOffer()
 
   return (
-    <ErrorRegion className="p-4" message={message}>
-      <NotFoundOffer message={message} offer={offer}>
+    <ErrorRegion className={CENTERED_BODY} message={message}>
+      <OnwardOffer message={message} offer={offer}>
         {/* `syncToUrl={false}`: this URL is the dead one we've just reported, and embedded
             it lives in the host page's `#!` fragment — writing keystrokes into it spreads
             a broken link into anything the visitor copies. */}
@@ -195,7 +252,7 @@ function NotFoundPanel({ message }: { message: string }) {
           label={t('error.search_label', { defaultValue: 'Search for a place' })}
           syncToUrl={false}
         />
-      </NotFoundOffer>
+      </OnwardOffer>
     </ErrorRegion>
   )
 }
@@ -204,8 +261,8 @@ function NotFoundPanel({ message }: { message: string }) {
  *  fails. Rendered by the boundary around `NotFoundPanel`. */
 function RecoveryFloor({ message }: { message: string }) {
   return (
-    <ErrorRegion className="p-4" message={message}>
-      <NotFoundOffer message={message} offer={{ kind: 'countries', path: '/' }} />
+    <ErrorRegion className={CENTERED_BODY} message={message}>
+      <OnwardOffer message={message} offer={{ kind: 'countries', path: '/' }} />
     </ErrorRegion>
   )
 }
@@ -247,8 +304,8 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   }
 
   return (
-    <ErrorRegion className="flex flex-col items-start gap-3 p-4" message={message}>
-      <Alert align="start" className="max-w-xs" color="danger" description={message} role="alert" />
+    <ErrorRegion className={CENTERED_BODY} message={message}>
+      <Alert className="max-w-xs" color="danger" description={message} role="alert" />
       <ErrorActions
         policy={policy}
         reportContext={reportContext}

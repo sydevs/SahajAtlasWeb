@@ -175,8 +175,10 @@ export function ErrorActions({ policy, reportContext, resetErrorBoundary }: Erro
     canRetry: !!resetErrorBoundary,
   })
 
+  // One wrappable row, not a column: these are peers — at most a retry and a report — and
+  // stacking two short buttons vertically read as a list of steps rather than a choice.
   return (
-    <>
+    <div className="flex flex-wrap items-center justify-center gap-2">
       {showRetry && (
         <Button variant="flat" onClick={resetErrorBoundary}>
           {t('error.retry', { defaultValue: 'Try again' })}
@@ -187,11 +189,13 @@ export function ErrorActions({ policy, reportContext, resetErrorBoundary }: Erro
           to fix, and the report POST (#80) needs the same network that just failed — but
           only while something else is on offer. */}
       {showReport && (
-        <Button size="sm" variant="ghost" onClick={() => openReport(reportContext)}>
+        // `flat`, not `ghost`: sitting in the same row as the retry, a ghost button read as
+        // disabled next to a filled one. It keeps the lower weight through `neutral`.
+        <Button color="neutral" variant="flat" onClick={() => openReport(reportContext)}>
           {t('report.title', { defaultValue: 'Report an issue' })}
         </Button>
       )}
-    </>
+    </div>
   )
 }
 
