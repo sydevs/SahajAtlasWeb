@@ -90,6 +90,33 @@ for what components consume) and keeps a stable `queryKey`
 (`['geojson']`, `['client', apiKey]`, `['country', slug]`, …). A SahajCloud shape
 change should surface as a parse error, not a deep runtime crash.
 
+## Server-provided routes are untrusted until `safePath`
+
+`webPath` comes from the CMS, and it reaches an `<a href>` — the region cards, the
+canonical link, and the dead-link recovery rung. Every one of those goes through
+**`safePath`** (`src/lib/shape/path.ts`), which returns `undefined` for anything that
+isn't a site-relative path, and callers fall back to a route they built themselves
+(`regionRoute`). Never pass a raw `webPath` to an href.
+
+The guard rejects more than it looks like it needs to, and the reasons don't survive
+being "simplified":
+
+- `//evil.com` — protocol-relative.
+- `/\evil.com` — browsers normalise a leading backslash to a slash.
+- `/<TAB>/evil.com`, `/<LF>…`, `/<CR>…` — **the WHATWG URL parser strips ASCII tab, LF
+  and CR before parsing**, so these are read as `//evil.com`. A check that only looked at
+  the character after the leading slash would pass all of them.
+
+All are inert under the embedded HashRouter and live in the standalone build, where
+react-router renders the string as the anchor's `href` — a plain click is intercepted,
+but middle-click, ctrl-click and "copy link address" hand the browser the off-origin URL.
+`src/lib/shape/path.test.ts` pins each case.
+
+The `Link` atom is the backstop: an href that is neither site-relative nor
+`https:`/`mailto:`/`tel:` renders as text and reports itself, because its internal branch
+hands an absolute `to` to react-router, which puts it on a plain anchor — a `javascript:`
+string arriving there would run in the HOST page's realm.
+
 ## Mutations (`src/config/api/mutate.ts`)
 
 - `createRegistration` → `POST /api/events/:id/register` with
