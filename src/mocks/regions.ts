@@ -55,6 +55,10 @@ export const mockRegionNodes: RegionNode[] = [
     return [{ id, slug, name, subtitle: null, level: 'country', parent: null, webPath: `/${slug}`, webUrl: null }] // prettier-ignore
   }),
   { id: 8000, slug: 'cambridgeshire', name: 'Cambridgeshire', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/cambridgeshire', webUrl: null }, // prettier-ignore
+  // The parent of `mockCityWithVenuesRegion`. Present for the same reason as
+  // Cambridgeshire: the tree has to know the ancestors its own region fixtures sit under,
+  // or the recovery ladder walks past them and every dead link previews the same rung.
+  { id: 8010, slug: 'greater-london', name: 'Greater London', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/greater-london', webUrl: null }, // prettier-ignore
   // The feed's own city ref, so the tree provably contains the region
   // `mockGeojson`'s located feature carries — renumber it there and this follows.
   { ...mockEventSlim.region, parent: 8000 },

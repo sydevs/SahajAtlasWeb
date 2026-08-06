@@ -132,7 +132,7 @@
     "back_to_region": "Veranstaltungen in %{region} ansehen",
     "near_city": "Veranstaltungen in der Nähe von %{city} ansehen",
     "browse_countries": "Alle Länder ansehen",
-    "search_label": "Stadt oder Postleitzahl eingeben"
+    "search_label": "Oder suche nach einem Ort"
   },
   "country_site": {
     "title": "Für %{country} sind noch keine Kurse eingetragen.",

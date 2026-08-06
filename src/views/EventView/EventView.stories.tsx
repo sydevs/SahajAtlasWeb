@@ -1,11 +1,11 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryErrorArg } from '@/views/story-harness'
 import type { Event } from '@/types'
 
-import { Thrower, ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
-import { mockNotFound } from '@/mocks/errors'
 import {
   mockEvent,
   mockEventCourse,
@@ -45,63 +45,49 @@ const EXAMPLES: Record<string, Event> = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
-// The failure this view actually reaches (issue #89): a link to an event the CMS no
-// longer serves — SahajCloud answers 404 and `classifyError` reads the status. It is a
-// dead end, not a malfunction, so the drawer renders the empty-state register: a neutral
-// note naming what was missing plus somewhere real to go. The two cases differ only in
-// what the URL can offer — which is the whole point of the recovery ladder.
-const DEAD_LINKS = {
-  // An ancestor the region tree still knows: the ladder's first rung.
-  'Not found · in a region': '/gb/cambridgeshire/999999',
-  // A flat legacy link with no ancestry at all. The harness seeds an IP guess for every
-  // story, so this case clears it (below) — otherwise rung 3 fires and the case previews
-  // "See events near Cambridge" while claiming to show the floor.
-  'Not found · no ancestor': '/999999',
-} as const
-
-type DeadLink = keyof typeof DEAD_LINKS
-
 /**
  * EventView — the full event panel screen (header + facts → Register → actions →
- * images → About). Switch resolver states with the control; the last two cases are dead
- * links, rendered by DrawerErrorFallback.
+ * images → About). Switch resolver states with the Example control; the Error control
+ * runs any of them into the drawer's fallback instead.
  *
- * Compare the two: the first offers "See events in Cambridgeshire", the second only
- * "Browse all countries". Both say "that event" (not "that page"), both keep a working
- * close control, and neither shows a retry — a dead link fails identically every time.
+ * "Not found · event" is the failure this view actually reaches: a link to an event the
+ * CMS no longer serves — SahajCloud answers 404 and `classifyError` reads the status. It
+ * is a dead end, not a malfunction, so it renders the empty-state register: a neutral note
+ * saying "that event" (not "that page"), a working close control, somewhere real to go,
+ * and no retry — a dead link fails identically every time.
+ *
+ * Each example renders at its own event path (`/united-kingdom/cambridge/<id>`), so the
+ * ladder drops the dead id and offers **Cambridge**, the nearest ancestor the region tree
+ * still knows — with nothing configured per error.
  */
-export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+  example,
+  error,
+}) => {
   const { locale } = useLocale()
   const event = EXAMPLES[example] ?? mockEvent
-  const deadLink = DEAD_LINKS[example as DeadLink]
 
   return (
-    <ViewHarness
-      path={deadLink}
-      seed={(client: QueryClient) => {
-        client.setQueryData<Event>(['event', event.id, locale], event)
-        // Drop the harness's global IP guess so the floor rung is what's on screen.
-        if (example === 'Not found · no ancestor') client.setQueryData(['ip-location'], null)
-      }}
-      seedKey={example}
+    <ViewStory
+      error={error}
+      example={example}
+      path={event.path}
+      seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
     >
-      {deadLink ? (
-        <Thrower error={mockNotFound.event} />
-      ) : (
-        <EventView basePath={event.path} id={event.id} />
-      )}
-    </ViewHarness>
+      <EventView basePath={event.path} id={event.id} />
+    </ViewStory>
   )
 }
 
 Default.storyName = 'Event'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'In person' }
+Default.args = { example: 'In person', error: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: [...Object.keys(EXAMPLES), ...Object.keys(DEAD_LINKS)],
+    options: Object.keys(EXAMPLES),
     control: { type: 'radio' },
     defaultValue: 'In person',
   },
+  error: errorControl('Not found · event'),
 }

@@ -13,6 +13,7 @@ import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
+import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
@@ -125,6 +126,81 @@ function SeedPath({ path, children }: { path: string; children: ReactNode }) {
  */
 export function Thrower({ error }: { error: unknown }): never {
   throw error
+}
+
+/**
+ * Every failure a view story can throw, keyed by the label its control shows. The values
+ * are the REAL thrown fixtures, so a story exercises `classifyError` rather than asserting
+ * a kind it was handed.
+ */
+export const STORY_ERRORS = {
+  'Not found · place': mockNotFound.region,
+  'Not found · event': mockNotFound.event,
+  'Not found · not an event': mockNotFound.nonEvent,
+  Offline: mockErrors.offline,
+  Server: mockErrors.server,
+  Config: mockErrors.config,
+  Contract: mockErrors.contract,
+  Unknown: mockErrors.unknown,
+} as const
+
+export type StoryErrorKey = keyof typeof STORY_ERRORS
+
+/** The control's "render the view normally" option. */
+export const NO_ERROR = 'None'
+
+export type StoryErrorArg = StoryErrorKey | typeof NO_ERROR
+
+/**
+ * The failures EVERY data-reading view can reach, because they come from the FETCH rather
+ * than the route: a dropped connection, a 5xx, a rejected API key, a drifted schema, and
+ * the catch-all. A view adds its own not-found flavours on top — those are the ones its
+ * ROUTES can produce, and they're the only part that differs.
+ */
+const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Contract', 'Unknown'] as const
+
+/**
+ * The `error` argType for a view story, as a SECOND axis beside its examples — so any
+ * failure can be seen against any example rather than the two sharing one control and
+ * making most combinations unreachable (issue #89).
+ *
+ * Pass the not-found flavours this view's routes can actually produce; the fetch failures
+ * every view shares are appended. A view whose routes can't 404 (the root, search, the
+ * calendar) passes none.
+ */
+export const errorControl = (...routeErrors: StoryErrorKey[]) => ({
+  name: 'Error',
+  options: [NO_ERROR, ...routeErrors, ...FETCH_ERRORS] as StoryErrorArg[],
+  control: { type: 'radio' as const },
+  defaultValue: NO_ERROR as StoryErrorArg,
+})
+
+export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
+  /** The example's key — folded into the harness's seedKey with the error. */
+  example: string
+  /** The selected failure, or `NO_ERROR` to render the view. */
+  error?: StoryErrorArg
+}
+
+/**
+ * `ViewHarness` with the error axis folded in: renders `children` normally, or throws the
+ * selected fixture inside the drawer's boundary.
+ *
+ * Both axes go into `seedKey`, so switching either remounts with a freshly seeded client —
+ * without that, flipping from an error back to the view would re-render onto a client the
+ * previous case left behind.
+ *
+ * **`path` is what makes the failure fit the example.** The recovery ladder walks the URL's
+ * ancestry, so a story that passes its example's own canonical path gets the rung a real
+ * viewer would get — a city offers its parent region, a country has no ancestor and falls
+ * through to the IP guess — with no per-error stub anywhere.
+ */
+export function ViewStory({ example, error = NO_ERROR, children, ...harness }: ViewStoryProps) {
+  return (
+    <ViewHarness {...harness} seedKey={`${example}·${error}`}>
+      {error === NO_ERROR ? children : <Thrower error={STORY_ERRORS[error]} />}
+    </ViewHarness>
+  )
 }
 
 export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarnessProps) {

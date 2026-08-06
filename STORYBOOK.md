@@ -88,6 +88,36 @@ const params = filtersToParams({ ...DEFAULT_FILTERS, format: 'online' })
 ;<SeedSearchParams params={params}>{/* view/component under test */}</SeedSearchParams>
 ```
 
+### ViewStory + errorControl (view stories)
+
+A view story has **two independent axes**: its Example control (which state of the view) and
+an **Error** control (which failure, or `None`). They are separate so any failure can be seen
+against any example — merged into one control, as they used to be, most combinations were
+simply unreachable.
+
+```tsx
+import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
+
+export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({ example, error }) => (
+  <ViewStory error={error} example={example} path={region.path} seed={…}>
+    <RegionView slug={region.slug} />
+  </ViewStory>
+)
+
+Default.args = { example: 'Country', error: NO_ERROR }
+Default.argTypes = { example: { … }, error: errorControl('Not found · place') }
+```
+
+`errorControl(...)` takes the not-found flavours **this view's routes can actually produce**
+and appends the fetch failures every data-reading view shares (offline / server / config /
+contract / unknown). A view whose routes can't 404 — the root, search, the calendar — passes
+none.
+
+**Pass the example's own `path`.** The recovery ladder walks the URL's ancestry, so the rung
+a dead link offers falls out of where the example lives: a city offers its parent region, a
+country has no ancestor and drops to the cached IP guess. That is what keeps the error states
+honest without a stub per case.
+
 ### StoryGrid (matrices)
 
 For multi-dimensional atom matrices (e.g. colour × state). Mobile-first: stacks

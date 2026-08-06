@@ -1,14 +1,20 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryErrorArg } from '@/views/story-harness'
 import type { EventSlim } from '@/types'
 
 import { useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { Thrower, ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-harness'
+import {
+  NO_ERROR,
+  ViewStory,
+  errorControl,
+  mockEventSeries,
+  mockEventVariants,
+} from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
-import { mockErrors } from '@/mocks/errors'
 import { eventsQuery } from '@/config/api'
 import { FOREIGN_NEARBY_KM, NEARBY_KM, filtersFromParams, parseCenter } from '@/lib/shape'
 
@@ -95,12 +101,6 @@ const EXAMPLES: Record<string, Example> = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
-// The failure this view actually reaches (issue #89): the results list is the screen a
-// viewer lands on straight from a dropped connection, and a failed fetch classifies as
-// `offline` — Try again only. No "See nearby events" (that search fails identically) and
-// no report CTA (connectivity isn't ours to fix, and the report POST needs that network).
-const OFFLINE = 'Offline'
-
 // The events key SearchView reads for a given query — through the same `eventsQuery`
 // factory the list itself uses, fed the `?center` and filters decoded from that query
 // by the same codecs the view uses. Seed and read therefore cannot drift.
@@ -128,8 +128,18 @@ const eventsKey = (search: string, locale: string) => {
  * (react-router v7 throws on a nested `<Router>`), which lands one render in — so each
  * case seeds both the default key the first render reads and the key its own params
  * resolve to, and neither render ever reaches the absent backend.
+ *
+ * The Error control carries no not-found flavour: a search has no slug to get wrong. What
+ * it reaches is a failed fetch — and `Offline` is the one to look at, since the results
+ * list is the screen a viewer lands on straight from a dropped connection: Try again only,
+ * no onward rung (that search fails identically) and no report CTA (connectivity isn't
+ * ours to fix, and the report POST needs the network that just went). The geocoder header
+ * and the toolbar survive it, because the boundary sits below them.
  */
-export const Default: Story<{ example: ExampleKey | typeof OFFLINE }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+  example,
+  error,
+}) => {
   const { locale } = useLocale()
   const { events } = EXAMPLES[example] ?? EXAMPLES.Results
   // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
@@ -143,7 +153,9 @@ export const Default: Story<{ example: ExampleKey | typeof OFFLINE }> = ({ examp
   )
 
   return (
-    <ViewHarness
+    <ViewStory
+      error={error}
+      example={example}
       seed={(client: QueryClient) => {
         // Seed this case's list under EVERY case's key. `SeedSearchParams` lands one
         // render in, so switching the Example control re-creates the client while the
@@ -153,27 +165,23 @@ export const Default: Story<{ example: ExampleKey | typeof OFFLINE }> = ({ examp
           client.setQueryData<EventSlim[]>(eventsKey(query, locale), events)
         }
       }}
-      seedKey={example}
     >
-      {example === OFFLINE ? (
-        <Thrower error={mockErrors.offline} />
-      ) : (
-        <SeedSearchParams params={params}>
-          <SearchView />
-        </SeedSearchParams>
-      )}
-    </ViewHarness>
+      <SeedSearchParams params={params}>
+        <SearchView />
+      </SeedSearchParams>
+    </ViewStory>
   )
 }
 
 Default.storyName = 'Search'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'Results' }
+Default.args = { example: 'Results', error: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: [...Object.keys(EXAMPLES), OFFLINE],
+    options: Object.keys(EXAMPLES),
     control: { type: 'radio' },
     defaultValue: 'Results',
   },
+  error: errorControl(),
 }

@@ -1,5 +1,5 @@
 import type { FallbackProps } from 'react-error-boundary'
-import type { FallbackKind } from '@/components/molecules'
+import type { FallbackAlign, FallbackKind } from '@/components/molecules'
 import type { StackEntry } from '@/lib/shape'
 
 import { useTranslation } from 'react-i18next'
@@ -189,6 +189,26 @@ export function DrawerLoadingBody() {
  * beside every other one and the "fallbackText matches the shipped en copy" test covers
  * them too.
  */
+/**
+ * Which posture the fallback takes in this view's body.
+ *
+ * The **list** views — the root country index, a region, its online roll-up, and search —
+ * put content at the top-left of the body, so a fallback standing in for that list belongs
+ * there too; centring it moves the sentence away from where the reader is already looking
+ * and makes the drawer read as a different kind of screen. Everything else (an event, a
+ * registration, a share sheet, the calendar) is a single composed panel with no such
+ * anchor, so its fallback centres.
+ *
+ * Derived from the URL rather than passed down, because the view boundary's fallback is
+ * mounted by `DrawerStack` — the failing view never gets to say anything about it. The
+ * empty-list states call `FallbackPanel` directly and pass `align` themselves.
+ */
+const LIST_KINDS = new Set<StackEntry['kind']>(['region', 'online', 'search'])
+
+const fallbackAlign = (kind: StackEntry['kind'] | undefined): FallbackAlign =>
+  // `undefined` is the root — CountriesView, the country index, which is a list.
+  kind === undefined || LIST_KINDS.has(kind) ? 'start' : 'center'
+
 const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
   switch (kind) {
     case 'event':
@@ -218,12 +238,12 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   const { t } = useTranslation('common', { useSuspense: false })
   const location = useLocation()
   const kind = classifyError(error)
+  const entry = resolveStack(location.pathname).at(-1)
 
   return (
     <FallbackPanel
-      kind={
-        kind === 'not-found' ? notFoundKind(resolveStack(location.pathname).at(-1)?.kind) : kind
-      }
+      align={fallbackAlign(entry?.kind)}
+      kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
       // The thrown developer string is not the headline — it's untranslated text written
       // for us, rendered to a viewer inside someone else's page. It survives as report
       // context only (issue #89); `FallbackPanel` falls back to the sentence.
@@ -234,7 +254,7 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
           it lives in the host page's `#!` fragment — writing keystrokes into it spreads
           a broken link into anything the visitor copies. */}
       <SearchField
-        label={t('error.search_label', { defaultValue: 'Enter your city or post code' })}
+        label={t('error.search_label', { defaultValue: 'Or search for a place' })}
         syncToUrl={false}
       />
     </FallbackPanel>

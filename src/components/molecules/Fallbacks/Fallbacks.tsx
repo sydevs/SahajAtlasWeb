@@ -412,6 +412,9 @@ export type FallbackActionsProps = {
   resetErrorBoundary?: () => void
   /** Drop the active filters. */
   onClearFilters?: () => void
+  /** Follows the panel's posture, so the buttons never float centred under left-aligned
+   *  copy. Defaults to `center`, matching `FallbackPanel`. */
+  align?: FallbackAlign
 }
 
 /**
@@ -429,6 +432,7 @@ export function FallbackActions({
   reportContext,
   resetErrorBoundary,
   onClearFilters,
+  align = 'center',
 }: FallbackActionsProps) {
   // `useSuspense: false` for the same reason `useFallbackDisplay` sets it: this can render
   // before any locale JSON has arrived. `defaultValue` on each label for the same reason
@@ -441,7 +445,11 @@ export function FallbackActions({
   // One wrappable row, not a column: these are peers — a way forward and a way to tell us —
   // and stacking short buttons vertically read as a list of steps rather than a choice.
   return (
-    <div className="flex w-full flex-wrap items-center justify-center gap-2">
+    <div
+      className={`flex w-full flex-wrap items-center gap-2 ${
+        align === 'start' ? 'justify-start' : 'justify-center'
+      }`}
+    >
       {actions.retry && (
         // `primary`, where report is `neutral`: they sit in the same row, so the one
         // likelier to help has to carry more weight than the one of last resort.
@@ -508,8 +516,20 @@ export function FallbackRegion({
 
   // `role="group"`: `aria-label` is ignored on the generic role, so without one the name
   // this sets would never be announced when focus lands here.
+  //
+  // `outline-none` because the focus above is a screen-reader affordance, not an
+  // interactive one — the ring drew a box around the whole panel the moment it mounted,
+  // which reads as a selected element rather than an announcement. Safe to suppress: at
+  // `tabIndex={-1}` this is unreachable by Tab, so no keyboard user can land here and be
+  // left without an indicator.
   return (
-    <div ref={ref} aria-label={message} className={className} role="group" tabIndex={-1}>
+    <div
+      ref={ref}
+      aria-label={message}
+      className={`outline-none ${className ?? ''}`}
+      role="group"
+      tabIndex={-1}
+    >
       {children}
     </div>
   )
@@ -540,6 +560,21 @@ export function FallbackRegion({
 export const CENTERED_BODY =
   'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
+/**
+ * The other posture: top-left, no centring at all.
+ *
+ * For the **list views** (Countries, Region, Online, Search). There the fallback replaces
+ * a list — content that begins at the top-left of the body — so centring it moves the
+ * sentence away from where the reader's eye already is and makes the drawer look like a
+ * different kind of screen. Nothing needs the `max-h` guard here either: content that
+ * starts at the top is on screen by construction, which is the whole thing `CENTERED_BODY`
+ * has to work for.
+ */
+export const START_BODY = 'flex h-full flex-col items-start p-6 text-start'
+
+/** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
+export type FallbackAlign = 'center' | 'start'
+
 /** The rung that needs no data at all, and so can always be offered. */
 const COUNTRIES_OFFER: RecoveryOffer = { kind: 'countries', path: '/' }
 
@@ -562,23 +597,34 @@ type FallbackShellProps = FallbackActionsProps & {
  * left to shrink-wrap they came out three different widths stacked on a centre line: a
  * banner as wide as its sentence, a button row as wide as its labels, a full-width field.
  */
-function FallbackShell({ policy, message, offer, children, ...actionProps }: FallbackShellProps) {
+function FallbackShell({
+  policy,
+  message,
+  offer,
+  align = 'center',
+  children,
+  ...actionProps
+}: FallbackShellProps) {
   return (
-    <FallbackRegion className={CENTERED_BODY} message={message}>
-      <div className="flex w-full max-w-xs flex-col items-center gap-3">
+    <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
+      <div className="flex w-full max-w-xs flex-col items-start gap-3">
+        {/* `textAlign="left"` explicitly, not by default: the centred posture sets
+            `text-center` on the container, and a sentence centred inside its own banner is
+            harder to read and costs the onward link its left edge. */}
         <Alert
           align="start"
           className="w-full"
           color={policy.color}
           description={message}
           role={policy.color === 'danger' ? 'alert' : 'status'}
+          textAlign="left"
         >
           {actionProps.actions.onward && offer && <OnwardLink offer={offer} />}
         </Alert>
-        <FallbackActions {...actionProps} />
-        {/* `text-start`: the column centres its text, and a centred placeholder in an input
-            reads as a broken field. The field names itself through its own placeholder now
-            ("Enter your city or post code"), so it needs no prompt line above it. */}
+        <FallbackActions {...actionProps} align={align} />
+        {/* `text-start` for the same reason, and here it's functional: a centred
+            placeholder in an input reads as a broken field. The field carries its own
+            prompt ("Or search for a place"), so it needs no label line above it. */}
         {actionProps.actions.search && children && (
           <div className="w-full text-start">{children}</div>
         )}
@@ -616,6 +662,13 @@ export type FallbackPanelProps = {
   offer?: RecoveryOffer
   resetErrorBoundary?: () => void
   onClearFilters?: () => void
+  /**
+   * Where the panel sits in its body. `center` (the default) is the posture for a drawer
+   * whose whole content this replaces; `start` is for the LIST views, where the fallback
+   * stands in for content that begins at the top-left and centring it would move the
+   * sentence away from where the reader is already looking.
+   */
+  align?: FallbackAlign
   /** The surface already leads with a geocoder, so this must not draw a second one. */
   hasSearchChrome?: boolean
   /**
@@ -653,6 +706,7 @@ export function FallbackPanel({
   offer,
   resetErrorBoundary,
   onClearFilters,
+  align,
   hasSearchChrome,
   children,
 }: FallbackPanelProps) {
@@ -669,6 +723,7 @@ export function FallbackPanel({
     reportContext: reportContext ?? text,
     resetErrorBoundary,
     onClearFilters,
+    align,
   }
 
   return (
@@ -753,13 +808,15 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
 
   return (
     <FallbackRegion className={APP_SURFACE} message={message}>
-      {/* Same one-column, one-width rule as the drawer body's shell. */}
-      <div className="flex w-full max-w-xs flex-col items-center gap-3">
+      {/* Same one-column, one-width rule as the drawer body's shell — and the same
+          left-aligned banner inside a centred panel. */}
+      <div className="flex w-full max-w-xs flex-col items-start gap-3">
         <Alert
           className="w-full"
           color={policy.color}
           description={message}
           role={policy.color === 'danger' ? 'alert' : 'status'}
+          textAlign="left"
           title="Sahaj Atlas"
         />
         {/* The modal host is mounted outside this boundary (App.tsx), so the report CTA

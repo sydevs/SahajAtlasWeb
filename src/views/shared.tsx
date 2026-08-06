@@ -354,12 +354,14 @@ export function EmptyEventList() {
   const { t } = useTranslation('common')
 
   return (
-    <FallbackPanel kind="empty">
+    // `align="start"`: this stands in for the region's list, which begins at the top-left
+    // of the body — the same posture `fallbackAlign` gives these views' error states.
+    <FallbackPanel align="start" kind="empty">
       {/* `label` is the field's accessible name AND its placeholder, so it does the whole
           job of prompting: dropped out of a header, the default "search for events near…"
           reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
-        label={t('error.search_label', { defaultValue: 'Enter your city or post code' })}
+        label={t('error.search_label', { defaultValue: 'Or search for a place' })}
         syncToUrl={false}
       />
     </FallbackPanel>

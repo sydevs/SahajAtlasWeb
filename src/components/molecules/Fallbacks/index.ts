@@ -9,11 +9,13 @@ export {
   useFallbackDisplay,
   visibleActions,
   CENTERED_BODY,
+  START_BODY,
   ERROR_POLICY,
 } from './Fallbacks'
 export type {
   ErrorFallbackProps,
   FallbackActionsProps,
+  FallbackAlign,
   FallbackKind,
   FallbackMessage,
   FallbackPanelProps,

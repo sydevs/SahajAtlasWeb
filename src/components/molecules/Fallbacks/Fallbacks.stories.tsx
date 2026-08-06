@@ -130,7 +130,7 @@ export const Default: Story = () => (
         >
           <div className="h-80 w-full">
             <FallbackPanel kind={kind} {...props}>
-              {field && <SearchField label="Enter your city or post code" syncToUrl={false} />}
+              {field && <SearchField label="Or search for a place" syncToUrl={false} />}
             </FallbackPanel>
           </div>
         </StorySection>

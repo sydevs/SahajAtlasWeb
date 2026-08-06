@@ -1,11 +1,11 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryErrorArg } from '@/views/story-harness'
 import type { RegionListItem } from '@/types'
 
-import { Thrower, ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { mockCountries } from '@/mocks/regions'
-import { mockErrors } from '@/mocks/errors'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -16,35 +16,41 @@ const EXAMPLES = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
-// No dead link reaches the root — there is no slug to get wrong. What a viewer meets here
-// is the first fetch of the session failing, so this previews `server`: the broken
-// register (a danger alert, assertively announced) with Try again and Report an issue.
-const SERVER = 'Server error'
-
 /**
  * CountriesView — the root screen: the geocoder search + filter, an "Online
  * Classes" entry (its count read from the feed), then the global country list
  * (busiest first — the view sorts by event count).
+ *
+ * The Error control carries no not-found flavour: there is no slug to get wrong at the
+ * root, so no dead link reaches it. What a viewer meets here is the first fetch of the
+ * session failing — and unlike the app-level fallback, the drawer stack IS mounted, so it
+ * renders in the root's own chrome (geocoder, filters, collapse) with the panel top-left,
+ * where the country list would have been.
  */
-export const Default: Story<{ example: ExampleKey | typeof SERVER }> = ({ example }) => (
-  <ViewHarness
+export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+  example,
+  error,
+}) => (
+  <ViewStory
+    error={error}
+    example={example}
     seed={(client: QueryClient) =>
-      client.setQueryData<RegionListItem[]>(['countries'], EXAMPLES[example as ExampleKey] ?? [])
+      client.setQueryData<RegionListItem[]>(['countries'], EXAMPLES[example] ?? [])
     }
-    seedKey={example}
   >
-    {example === SERVER ? <Thrower error={mockErrors.server} /> : <CountriesView />}
-  </ViewHarness>
+    <CountriesView />
+  </ViewStory>
 )
 
 Default.storyName = 'Countries'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'All countries' }
+Default.args = { example: 'All countries', error: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: [...Object.keys(EXAMPLES), SERVER],
+    options: Object.keys(EXAMPLES),
     control: { type: 'radio' },
     defaultValue: 'All countries',
   },
+  error: errorControl(),
 }

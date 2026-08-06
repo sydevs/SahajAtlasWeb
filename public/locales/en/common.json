@@ -13,7 +13,7 @@
     "back_to_region": "See events in %{region}",
     "near_city": "See events near %{city}",
     "browse_countries": "Browse all countries",
-    "search_label": "Enter your city or post code"
+    "search_label": "Or search for a place"
   },
   "events": "events",
   "explore": "Explore",

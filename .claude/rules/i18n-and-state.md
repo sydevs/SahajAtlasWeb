@@ -208,6 +208,12 @@ separate — an inner fallback must never re-throw to escalate.
   single `max-w-xs` box. Left to shrink-wrap they came out three different widths stacked
   on a centre line. The field also carries its whole prompt in its own placeholder
   (`error.search_label`) — a label line above it was one redundancy too many.
+- **The LIST views left-align; everything else centres.** `fallbackAlign`
+  (`views/fallbacks.tsx`) picks the posture from the URL, because the view boundary's
+  fallback is mounted by `DrawerStack` and the failing view never gets to say. On the root,
+  a region, its online roll-up and search, the panel stands in for a list that begins at the
+  top-left, so centring it moves the sentence away from where the reader is already looking.
+  The banner's own copy stays left-aligned in BOTH postures (`Alert textAlign="left"`).
 - **The fallback degrades, it never fails.** It runs where a throw would blank the widget
   on a host page, so the parts that read data sit behind their own boundary and fall back
   to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the single

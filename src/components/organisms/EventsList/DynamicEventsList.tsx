@@ -247,6 +247,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
     return (
       <FallbackPanel
         hasSearchChrome
+        align="start"
         kind="country-site"
         message={{ values: { country } }}
         offer={{
@@ -260,7 +261,14 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   }
 
   if (nearbyKm !== undefined) {
-    return <FallbackPanel hasSearchChrome kind="no-nearby" message={{ values: { km: nearbyKm } }} />
+    return (
+      <FallbackPanel
+        hasSearchChrome
+        align="start"
+        kind="no-nearby"
+        message={{ values: { km: nearbyKm } }}
+      />
+    )
   }
 
   // Filters are the explanation AND the escape, so that row keeps "Clear all" and nothing
@@ -268,6 +276,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   return (
     <FallbackPanel
       hasSearchChrome
+      align="start"
       kind={active ? 'no-results' : 'empty'}
       onClearFilters={active ? clearFilters : undefined}
     />

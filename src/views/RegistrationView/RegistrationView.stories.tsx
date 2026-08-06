@@ -1,12 +1,12 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryErrorArg } from '@/views/story-harness'
 import type { Event } from '@/types'
 
-import { Thrower, ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
 import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockEvent, mockEventFull } from '@/mocks/events'
-import { mockNotFound } from '@/mocks/errors'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -31,63 +31,58 @@ const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
-// Two ways this route dies, and the second is the load-bearing one (issue #89).
-//
-// `parentOf` would answer the dead-event case with `/gb/cambridgeshire/999999` — the very
-// link that just 404'd — so the recovery from a dead link would be the same dead link.
-// The ladder drops the failing entry and walks on, which is why both cases must offer
-// Cambridgeshire.
-const DEAD_LINKS = {
-  // A hand-typed `/register` whose parent is a region, not an event.
-  'Not found · not an event': '/gb/cambridgeshire/register',
-  // A real registration path over an event the CMS no longer serves.
-  'Not found · dead event': '/gb/cambridgeshire/999999/register',
-} as const
-
-type DeadLink = keyof typeof DEAD_LINKS
+// The region the mock events sit under. Each example's event path is rebuilt from it plus
+// that example's OWN id — the fixtures are spreads of `mockEvent`, so they all carry its
+// path, and reusing it directly would resolve every case to event 101.
+const EVENT_PARENT = mockEvent.path.slice(0, mockEvent.path.lastIndexOf('/'))
 
 /**
  * RegistrationView — the registration drawer screen: the event summary card over
  * the form (or the link-out CTA for an externally-registered event), plus the
  * post-submit confirmation.
+ *
+ * Two ways this route dies, and both are on the Error control (issue #89):
+ *
+ *  - **Not found · event** — a real registration path over an event the CMS no longer
+ *    serves. The load-bearing one: `parentOf` would answer it with the event path that
+ *    just 404'd, making the recovery from a dead link the same dead link. The ladder drops
+ *    the failing entry and walks on, so it offers **Cambridge** instead.
+ *  - **Not found · not an event** — a hand-typed `/register` whose parent is a region.
+ *    `useEventFromPath` throws before any request; same body, same rung.
  */
-export const Default: Story<{ example: ExampleKey | DeadLink }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey; error: StoryErrorArg }> = ({
+  example,
+  error,
+}) => {
   const { locale } = useLocale()
   const { event, initialSubmitted } = EXAMPLES[example] ?? EXAMPLES['Native form']
-  const eventPath = `/demo/${event.id}`
-  const deadLink = DEAD_LINKS[example as DeadLink]
+  const eventPath = `${EVENT_PARENT}/${event.id}`
 
   return (
-    <ViewHarness
-      path={deadLink}
+    <ViewStory
+      error={error}
+      example={example}
+      path={`${eventPath}/register`}
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
-      seedKey={example}
     >
-      {deadLink ? (
-        <Thrower
-          error={
-            example === 'Not found · not an event' ? mockNotFound.nonEvent : mockNotFound.event
-          }
-        />
-      ) : (
-        <RegistrationView
-          eventPath={eventPath}
-          initialSubmitted={initialSubmitted}
-          parentPath="/demo"
-        />
-      )}
-    </ViewHarness>
+      <RegistrationView
+        eventPath={eventPath}
+        initialSubmitted={initialSubmitted}
+        parentPath={EVENT_PARENT}
+      />
+    </ViewStory>
   )
 }
 
 Default.storyName = 'Registration'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'Native form' }
+Default.args = { example: 'Native form', error: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
-    options: [...Object.keys(EXAMPLES), ...Object.keys(DEAD_LINKS)],
+    options: Object.keys(EXAMPLES),
     control: { type: 'radio' },
     defaultValue: 'Native form',
   },
+  error: errorControl('Not found · event', 'Not found · not an event'),
 }

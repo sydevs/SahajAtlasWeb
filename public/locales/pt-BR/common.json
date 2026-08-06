@@ -132,7 +132,7 @@
     "back_to_region": "Ver eventos em %{region}",
     "near_city": "Ver eventos perto de %{city}",
     "browse_countries": "Ver todos os países",
-    "search_label": "Digite sua cidade ou CEP"
+    "search_label": "Ou busque um lugar"
   },
   "country_site": {
     "title": "Ainda não há aulas cadastradas em %{country}.",

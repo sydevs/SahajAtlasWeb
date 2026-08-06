@@ -1,12 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryErrorArg } from '@/views/story-harness'
 import type { CalendarSourceEvent } from '@/lib/shape'
 
 import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, errorControl } from '@/views/story-harness'
 import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { useLocale } from '@/hooks/use-locale'
 import { DEFAULT_FILTERS, filtersKey, filtersToParams } from '@/lib/shape'
@@ -102,12 +103,11 @@ const activeFilters = {
 }
 const activeParams = filtersToParams(activeFilters)
 
-// The calendar reaches no dead link — an unknown `?region=` slug means "no restriction",
-// never a throw — so what it can fail on is its own feed read or grid render. That failure
-// is caught BELOW the header (issue #89): compare the two cases and the month nav, the view
-// picker, the filter button, the close control and the pills all stay put and stay usable,
-// because none of them read `['calendar', …]`. Escalating it would have replaced all of
-// that working chrome to show the same alert.
+// "Grid failure" stays on the EXAMPLE axis rather than moving to the Error control,
+// because the two throw at different depths and that is the whole point of the case: this
+// one trips the boundary BELOW the header (issue #89), so the month nav, the view picker,
+// the filter button, the close control and the pills all stay put and stay usable. The
+// Error control throws at the view level, replacing all of that. Compare the two.
 const EXAMPLES = ['Month', 'Grid failure'] as const
 
 // Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
@@ -120,13 +120,21 @@ const POISONED = { notAnArray: true }
  * CalendarView — the full-width month / week / list surface. Events are the (mocked) filtered
  * feed expanded into per-occurrence entries, labelled by city; our own header drives the views +
  * navigation, with the active-filter pills below it. Themed to our tokens (follows light/dark).
+ *
+ * The Error control carries no not-found flavour: an unknown `?region=` slug means "no
+ * restriction", never a throw, so this view's routes cannot 404.
  */
-export const Default: Story<{ example: (typeof EXAMPLES)[number] }> = ({ example }) => {
+export const Default: Story<{ example: (typeof EXAMPLES)[number]; error: StoryErrorArg }> = ({
+  example,
+  error,
+}) => {
   const { locale } = useLocale()
   const events = useMemo(() => mockCalendarEvents(), [])
 
   return (
-    <ViewHarness
+    <ViewStory
+      error={error}
+      example={example}
       seed={(client: QueryClient) => {
         // Seed the default key (initial render) AND the active-filter key (once the params are
         // seeded into the URL) so the calendar resolves from cache either way.
@@ -141,16 +149,15 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number] }> = ({ example
           )
         }
       }}
-      seedKey={example}
     >
       <SeedSearchParams params={activeParams}>
         <CalendarView />
       </SeedSearchParams>
-    </ViewHarness>
+    </ViewStory>
   )
 }
 
-Default.args = { example: 'Month' }
+Default.args = { example: 'Month', error: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -158,6 +165,7 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'Month',
   },
+  error: errorControl(),
 }
 
 Default.storyName = 'Calendar'
