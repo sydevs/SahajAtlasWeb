@@ -56,8 +56,7 @@ import {
 // controls, the search field, the geolocation suggestion AND all of this.
 
 /**
- * Centres a short error/loading body — but within the sheet's VISIBLE height, not the
- * body's own.
+ * Centres a short error/loading body — but only into space the viewer can actually see.
  *
  * `DrawerBody` fills a bottom sheet that is `h-dvh` (vaul computes its snap translates off
  * the window height) while the mobile snap shows only its top 300px, so a plain
@@ -65,13 +64,21 @@ import {
  * 643px in a 667px viewport, i.e. off screen. That is why both states were invisible on
  * every phone.
  *
- * `--sy-sheet-top` is the sheet's live top edge, mirrored every frame by DrawerStack, so
- * `100dvh - top` is exactly what the viewer can see; the `0px` fallback resolves to the
- * full height, which is correct on the desktop panel and the map-less container, where the
- * body already IS the visible area.
+ * Two parts, and both are load-bearing:
+ *
+ *  - `max-h` off `--sy-sheet-top`, the sheet's live top edge mirrored every frame by
+ *    DrawerStack, so the box can't extend far past the fold. The `0px` fallback resolves to
+ *    the full height, which is right on the desktop panel and the map-less container, where
+ *    the body already IS the visible area. It still over-measures by the header's height —
+ *    the box starts below the header, not at the sheet's edge — which is why the second
+ *    part matters.
+ *  - **Auto margins rather than `justify-center`.** They centre when there is slack and
+ *    collapse to nothing when there isn't, so tall content starts at the top and scrolls in
+ *    the body. `justify-center` instead clips the overflowing TOP, which would hide the
+ *    sentence and leave only the buttons — the failure mode of a fix for invisible content.
  */
 const CENTERED_BODY =
-  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center justify-center gap-3 p-6 text-center'
+  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center gap-3 p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
 /**
  * The header a drawer keeps when its view can't render — while loading, or after it threw.
