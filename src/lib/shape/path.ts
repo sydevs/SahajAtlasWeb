@@ -41,9 +41,15 @@ export const childRoute = (parentPath: string, child: string | number): string =
  * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS
  * `webPath` can never reach an `<a href>` — the widget builds a safe `/slug`·`/id`
  * fallback instead. Returns `undefined` for anything else.
+ *
+ * `/\evil.com` is rejected alongside `//evil.com`: browsers normalise a leading
+ * backslash to a slash, so the standalone BrowserRouter build would render
+ * `<a href="/\evil.com">` and Chrome would resolve it to `https://evil.com` on a
+ * middle-click or "copy link address". Inert under the embedded HashRouter, but the
+ * guard is one character and this string can reach an href.
  */
 export const safePath = (path: string | null | undefined): string | undefined =>
-  path && path.startsWith('/') && !path.startsWith('//') ? path : undefined
+  path && path.startsWith('/') && !/^[/\\]/.test(path.slice(1)) ? path : undefined
 
 /**
  * True when `pathname` already is the canonical `target`, ignoring percent-

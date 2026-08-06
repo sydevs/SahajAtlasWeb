@@ -27,6 +27,15 @@ describe('safePath', () => {
     expect(safePath(null)).toBeUndefined()
     expect(safePath(undefined)).toBeUndefined()
   })
+
+  it('rejects a backslash second character, which browsers normalise to a slash', () => {
+    // The standalone BrowserRouter build would render `<a href="/\evil.example">`, and
+    // Chrome resolves that to `https://evil.example` on a middle-click or copy-link.
+    expect(safePath('/\\evil.example')).toBeUndefined()
+    expect(safePath('/\\\\evil.example')).toBeUndefined()
+    // A backslash deeper in the path is just a character in a slug.
+    expect(safePath('/be/anna\\maria')).toBe('/be/anna\\maria')
+  })
 })
 
 describe('parentOf', () => {

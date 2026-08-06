@@ -50,10 +50,17 @@ export type RecoveryOffer =
  */
 export const useRecoveryOffer = (): RecoveryOffer => {
   const location = useLocation()
-  const { data: regions } = useQuery({ ...regionsQuery(), retry: false })
-  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), retry: false })
-  // Passive: reads the cache if an earlier view already paid for the lookup, never
-  // triggers one.
+  // `enabled: false` on both: read the cache, never fetch. This renders inside an error
+  // fallback, and on a `server`/`offline` failure the backend is already the thing that
+  // broke — re-issuing an authenticated read from the screen explaining the outage would
+  // amplify it, and on a 401 would re-send the API key that was just rejected. Both are
+  // warmed at bootstrap (`api.warmCaches`, and AppShell suspends on the client record), so
+  // in practice they're present; a genuine miss costs a rung, which is what the ladder's
+  // floor is for.
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
+  // Same rule, and here it matters most: a blocked CSP is a plausible CAUSE of the failure
+  // on screen, so the recovery must not depend on the network that just failed.
   const ipLocation = useIpLocation(false)
 
   return useMemo(() => {

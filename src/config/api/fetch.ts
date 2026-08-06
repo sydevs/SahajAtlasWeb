@@ -274,7 +274,15 @@ const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position)
 
 // The canonical route (`webPath`) is server-computed; fall back to a flat `/slug`.
 // Exported so the live-preview controller (issue #40) reuses the exact route derivation.
-export const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
+//
+// The FALLBACK is guarded too, not just `webPath`. `slug` is an unconstrained server
+// string, so `/${slug}` is an interpolation into an href: a slug of `/evil.com` yields
+// `//evil.com`, and react-router renders a foreign-origin `to` verbatim as a plain anchor
+// — a same-tab redirect in the HOST page's origin. Pre-dates issue #89, but that issue
+// puts this route on the error screen, which is the one screen a lost viewer is scanning
+// for something to click. `'/'` is the last resort: always safe, always exists.
+export const regionRoute = (node: RegionNode): string =>
+  safePath(node.webPath) ?? safePath(`/${node.slug}`) ?? '/'
 
 // ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
 // the country slug *is* the ISO code, so it's derived straight from the slug — no

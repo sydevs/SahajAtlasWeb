@@ -28,7 +28,9 @@ there is **no `@testing-library/react`**. Cover:
 
 ### The jsdom exception (issue #89)
 
-`jsdom` **is** a devDependency, but the lane's default environment is still `node`.
+`jsdom` **is** a devDependency (pinned to the `27.x` line — 28+ raise their engine floor
+above this repo's `engines.node`, so a contributor on Node 20 could not install it), but
+the lane's default environment is still `node`.
 A spec opts in per-file with a `// @vitest-environment jsdom` docblock on line 1, so
 the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1.5s.
 

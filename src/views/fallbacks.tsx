@@ -69,8 +69,10 @@ export function DrawerChrome() {
   const location = useLocation()
   const { locale } = useLocale()
   const { canDismiss } = useDrawerControl()
-  // Non-suspending reads: a miss costs the title, never the frame.
-  const { data: regions } = useQuery({ ...regionsQuery(), retry: false })
+  // Cache-only (`enabled: false`), not merely non-suspending: this renders on EVERY
+  // loading and error state, so a fetch here would re-issue a read on exactly the failures
+  // where the backend is already the problem. A miss costs the title, never the frame.
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: titles } = useQuery<Map<number, string>>({
     queryKey: ['event-titles', locale],
     enabled: false,
