@@ -2,7 +2,7 @@ import type { MountRoute } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
 import { HashRouter, MemoryRouter } from 'react-router'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import App from './App'
 import atlasAuth from './config/api/auth'
@@ -15,6 +15,64 @@ import { reportInternalError } from './lib/report'
 // Implementation of embeddable Widget
 // Demo in: demo.html
 // Based on: https://www.linkedin.com/pulse/converting-react-app-appendable-widget-using-web-mike-rahimi-wssnf/
+
+const ELEMENT_NAME = 'sahaj-atlas'
+
+/**
+ * Say something to whoever integrated the widget, without trusting the host page's
+ * console. A host may have replaced or removed `console.warn`, and a throw from here
+ * would take down the very mount path being warned about — the same reasoning as
+ * `reportInternalError` (`lib/report.ts`).
+ */
+function warnHost(message: string): void {
+  try {
+    console.warn(`[${ELEMENT_NAME}] ${message}`)
+  } catch {
+    // Nothing left to do — a logger that throws is not worth a second attempt.
+  }
+}
+
+// Which instance owns the page. A widget owns page-global singletons — the API key
+// (`config/api/auth`), and BrandTheme's theme root + system-theme watcher — and a second
+// concurrent <sahaj-atlas> used to share them silently: running on instance A's key and
+// stealing its theme root out from under it. Exactly one instance runs now.
+let owner: symbol | null = null
+
+/**
+ * Claim the page for this instance, once. `false` for a second concurrent element, which
+ * renders nothing and says why in the console: a host misconfiguration belongs where the
+ * integrator will see it, not as untranslated developer text injected into a public page.
+ *
+ * The claim is frozen in a ref rather than re-read per render, so a later re-render (an
+ * attribute change) can never flip a duplicate into the owner — which would change how
+ * many hooks that instance calls.
+ */
+function useSoleInstance(): boolean {
+  const instance = useRef<symbol>()
+  const isOwner = useRef<boolean>()
+
+  if (isOwner.current === undefined) {
+    instance.current = Symbol(ELEMENT_NAME)
+    owner ??= instance.current
+    isOwner.current = owner === instance.current
+  }
+
+  useEffect(() => {
+    if (!isOwner.current) {
+      warnHost(`only one <${ELEMENT_NAME}> runs per page — this one will not render.`)
+
+      return
+    }
+
+    // Release the page on unmount, so an embed torn down and re-added (a page builder
+    // re-rendering its canvas) isn't locked out by its own ghost.
+    return () => {
+      if (owner === instance.current) owner = null
+    }
+  }, [])
+
+  return isOwner.current
+}
 
 type WidgetProps = {
   apiKey: string
@@ -57,14 +115,18 @@ function claimFragment(route: MountRoute): MountRoute {
   }
 }
 
-export default function Widget({
-  apiKey,
-  locale,
-  map,
-  basePath,
-  primaryColor,
-  secondaryColor,
-}: WidgetProps) {
+/**
+ * The custom element's React root, and the only place the one-per-page rule is decided.
+ * Everything a widget does to the page — claiming the API key, the URL fragment, the
+ * theme root — happens below this line in <Atlas>, so a duplicate touches none of it.
+ */
+export default function Widget(props: WidgetProps) {
+  const isSole = useSoleInstance()
+
+  return isSole ? <Atlas {...props} /> : null
+}
+
+function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: WidgetProps) {
   if (!atlasAuth.apiKey) {
     atlasAuth.apiKey = apiKey
   }
@@ -128,16 +190,24 @@ export default function Widget({
   )
 }
 
-customElements.define(
-  'sahaj-atlas',
-  r2wc(Widget, {
-    props: {
-      apiKey: 'string',
-      locale: 'string',
-      map: 'string',
-      basePath: 'string',
-      primaryColor: 'string',
-      secondaryColor: 'string',
-    },
-  }),
-)
+// Guarded: `customElements.define` throws NotSupportedError on a name that is already
+// registered, and two copies of the embed script on one page is a plausible mistake —
+// the docs name two different bundle URLs. The second copy is a no-op with a note to
+// the console, not an exception in the host's.
+if (customElements.get(ELEMENT_NAME)) {
+  warnHost(`<${ELEMENT_NAME}> is already defined — the embed script is on this page twice.`)
+} else {
+  customElements.define(
+    ELEMENT_NAME,
+    r2wc(Widget, {
+      props: {
+        apiKey: 'string',
+        locale: 'string',
+        map: 'string',
+        basePath: 'string',
+        primaryColor: 'string',
+        secondaryColor: 'string',
+      },
+    }),
+  )
+}
