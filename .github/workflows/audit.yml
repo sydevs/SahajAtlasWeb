@@ -1,0 +1,52 @@
+name: Audit
+
+# The scheduled half of the dependency-vulnerability check (issue #99).
+#
+# The PR gate in `ci.yml` fails on a high/critical advisory that isn't pinned in
+# scripts/audit-baseline.json. It deliberately tolerates two softer states, so a
+# PR is never blocked by something it didn't cause:
+#
+#   - a baselined advisory that has since been FIXED but not pruned, and
+#   - an audit that couldn't run at all (registry outage, pnpm output change).
+#
+# Both matter — an unpruned baseline slowly turns into a blanket allowlist, and a
+# permanently broken audit is a green check that checks nothing. This weekly run
+# is where they're enforced (`--strict`), because here a failure interrupts
+# nobody's work; it just shows up red in the Actions tab.
+#
+# Advisories arrive on their own schedule, not ours, which is the other reason to
+# run this independently of PR traffic: a quiet week shouldn't mean a blind one.
+#
+# Two known gaps, recorded so they aren't mistaken for coverage:
+#
+#   - Scope is `--prod`, matching the readiness report. A full `pnpm audit` today
+#     reports 8 further high advisories, all in the build toolchain (vite,
+#     vitest, eslint, @ladle/react, jsdom, typescript). Those run on developer
+#     machines and in CI, so widening this run to the whole tree is worth doing —
+#     it needs those ids added to the baseline in the same commit, or the weekly
+#     run is red from day one.
+#   - GitHub disables scheduled workflows after 60 days without repo activity.
+#     If this stops appearing in the Actions tab, that is why — re-enable it
+#     there; the PR gate keeps working regardless.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Weekly Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No `pnpm install`: `pnpm audit` resolves from the lockfile alone.
+      - run: pnpm audit:check --strict
