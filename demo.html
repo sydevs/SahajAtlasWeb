@@ -25,6 +25,16 @@
     <sahaj-atlas api-key="1cf076ab-9497-4696-95a3-cfd71334bbbc" locale="fr"></sahaj-atlas>
 
     <!--
+      A host anchor, for the foreign-hash check (issue #92). Load this page at
+      `#respond` — the shape a WordPress comment link has — and the widget must still
+      render, with `location.hash` left as `#respond` and the browser scrolled here.
+      Before, react-router read that hash as a location outside the `!` basename and
+      the widget rendered nothing at all.
+    -->
+    <div style="height: 150vh"></div>
+    <h2 id="respond">Host anchor (#respond)</h2>
+
+    <!--
       Embedded event/registration form: the same element in map="false" mode,
       booted directly on an event (or `<event-path>/register`) route via
       base-path. The event/register headers are self-sufficient (title, when,
