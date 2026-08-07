@@ -9,6 +9,7 @@ import scopeWidgetCss, {
   THEME_CLASSES,
   WIDGET_SCOPE,
   assertScoped,
+  isSelectorScoped,
   scopeSelector,
 } from './postcss-scope-widget.mjs'
 
@@ -173,6 +174,51 @@ describe('scopeWidgetCss', () => {
     // the transform itself, so it is asserted directly.
     expect(() => assertScoped(postcss.parse('a { color: red }'))).toThrow(/unscoped selector/)
     expect(() => assertScoped(postcss.parse('.sy-atlas a { color: red }'))).not.toThrow()
+  })
+})
+
+// This pass is not the last thing to touch a selector: native CSS nesting is flattened
+// downstream by the minifier, which moves the scope off the head of the string without
+// moving it out of the selector. Swiper 12 ships nested CSS and produced both shapes
+// below, and a head-anchored check failed the build on CSS that was correctly confined
+// (issue #104). These are the emitted forms, verbatim from `dist/`.
+describe('isSelectorScoped — flattened nesting', () => {
+  it('accepts a leading :is() list when every branch is scoped', () => {
+    expect(
+      isSelectorScoped(
+        ':is(:where(.sy-atlas) .swiper:not(.swiper-watch-progress),' +
+          ':where(.sy-atlas) :is(.swiper-watch-progress .swiper-slide-visible))' +
+          ' .swiper-lazy-preloader',
+      ),
+    ).toBe(true)
+  })
+
+  it('accepts the scope in the SUBJECT, which no head-anchored test can', () => {
+    // `.swiper-pagination { .swiper-pagination-disabled > & { … } }` flattens to this.
+    // The element being styled is the scoped one; its ancestor is not, and needn't be.
+    expect(
+      isSelectorScoped('.swiper-pagination-disabled>:is(:where(.sy-atlas) .swiper-pagination)'),
+    ).toBe(true)
+    expect(isSelectorScoped('button:is(:where(.sy-atlas) .swiper-pagination-bullet)')).toBe(true)
+  })
+
+  it('rejects an :is() list with even one unscoped branch', () => {
+    // The branch that isn't scoped is a way for the rule to match outside the widget,
+    // which is the whole thing this gate exists to prevent.
+    expect(isSelectorScoped(':is(:where(.sy-atlas) .a, .b) .c')).toBe(false)
+  })
+
+  it('still rejects a selector that merely mentions no scope at all', () => {
+    expect(isSelectorScoped('.swiper-pagination-bullet')).toBe(false)
+    expect(isSelectorScoped('main > .a')).toBe(false)
+    // A class that only starts with the scope's text is a different class.
+    expect(isSelectorScoped('.sy-atlas-thing .a')).toBe(false)
+  })
+
+  it('does not follow a sibling combinator up to a scoped compound', () => {
+    // `+`/`~` put the scoped part BESIDE the subject, not above it. Nothing we emit
+    // needs it, so it is refused rather than reasoned about.
+    expect(isSelectorScoped(':is(:where(.sy-atlas) .a) ~ .b')).toBe(false)
   })
 })
 
