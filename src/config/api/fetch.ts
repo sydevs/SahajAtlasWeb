@@ -138,6 +138,14 @@ const REGIONS_SELECT = {
 // titles sliver) or not at all in a `map=false` embed (the feed). The 5-minute default
 // therefore evicts the wholesale data during an ordinary idle gap and the next
 // navigation re-downloads all of it. See WHOLESALE_GC_TIME.
+//
+// And each pins `retry: false`, which is NOT a new policy — it is the one `fetchQuery`
+// applied for free (`if (options.retry === undefined) options.retry = false`) until
+// `query-client.ts` gave the client a `retry` default, at which point that guard became
+// dead code. It matters because these loaders are not leaves: `getRegion`/`getCountries`/
+// `getEvents` await them from inside a query that retries on its own, so a retry here
+// MULTIPLIES with that one — a single failing region open would make four requests for
+// the feed while `MAX_QUERY_RETRIES` promised two. Retrying belongs to the observer layer.
 
 const getRegions = async (): Promise<RegionNode[]> => {
   const { docs } = validateSDKResponse(
@@ -169,6 +177,7 @@ const loadRegions = (): Promise<RegionNode[]> =>
     queryFn: getRegions,
     staleTime: REGIONS_STALE_TIME,
     gcTime: WHOLESALE_GC_TIME,
+    retry: false,
     revalidateIfStale: true,
   })
 
@@ -206,6 +215,7 @@ const loadGeojson = (): Promise<Geojson> =>
     queryFn: getGeojson,
     staleTime: GEOJSON_STALE_TIME,
     gcTime: WHOLESALE_GC_TIME,
+    retry: false,
     revalidateIfStale: true,
   })
 
@@ -255,6 +265,7 @@ const loadEventTitles = (): Promise<Map<number, string>> =>
     // via applyRequestContext), and the drawer's fallback chrome reads this same sliver
     // cache-only — so the key has to have exactly one definition.
     ...eventTitlesQuery(activeLocale()),
+    retry: false,
     revalidateIfStale: true,
   })
 

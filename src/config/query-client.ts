@@ -131,7 +131,12 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
   try {
     const status = (error as { status?: unknown } | null | undefined)?.status
 
-    if (typeof status === 'number' && status >= 400 && status < 500) return false
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      // 408 (Request Timeout) and 425 (Too Early) are the two 4xx that describe a moment
+      // rather than a verdict — the request never really got a hearing, so a second one is
+      // not the same request again. Everything else in the range is an answer.
+      return status === 408 || status === 425
+    }
 
     const kind = classifyError(error)
 

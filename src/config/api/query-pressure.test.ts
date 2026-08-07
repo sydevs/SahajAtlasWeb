@@ -1,7 +1,8 @@
 import { QueryClient, QueryObserver } from '@tanstack/react-query'
 import { describe, it, expect, vi } from 'vitest'
 
-import { eventsQuery } from '@/config/api'
+import { eventTitlesQuery, eventsQuery, regionsQuery } from '@/config/api'
+import { WHOLESALE_GC_TIME } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 
 // `@/config/api` reaches the SDK client (and, through it, i18next) at import time. Mock
@@ -70,5 +71,19 @@ describe('eventsQuery pressure (issue #97)', () => {
     // Otherwise the entry is collected while the window is still open and the staleTime
     // above buys nothing on the very path it exists for (an unmounted drawer).
     expect(options.gcTime).toBeGreaterThan(options.staleTime)
+  })
+})
+
+describe('the wholesale factories carry their retention pin', () => {
+  // On the FACTORIES, not on the constants: a `gcTime` that is defined but never wired
+  // into the query contract reads exactly like one that is, and the default (5 min) would
+  // quietly evict the caches the whole fetch-once architecture is built on.
+  it('pins the region tree and the titles sliver for the session', () => {
+    expect(regionsQuery().gcTime).toBe(WHOLESALE_GC_TIME)
+    expect(eventTitlesQuery('en').gcTime).toBe(WHOLESALE_GC_TIME)
+  })
+
+  it('keeps the titles sliver per-locale, so a language switch refetches only it', () => {
+    expect(eventTitlesQuery('fr').queryKey).not.toEqual(eventTitlesQuery('en').queryKey)
   })
 })

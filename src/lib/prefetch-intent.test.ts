@@ -43,6 +43,21 @@ describe('createPrefetchIntent — dwell', () => {
     expect(warmed).toEqual([7])
   })
 
+  it('does not restart the clock when the same row enters twice', () => {
+    const warmed: number[] = []
+    const intent = createPrefetchIntent()
+
+    // A card fires `enter` from both `mouseenter` and `focus`, and clicking one focuses
+    // its anchor — so the second event arrives mid-dwell for the SAME row. Restarting
+    // there would push the warm past the click it exists to cover.
+    intent.enter(4, () => warmed.push(4))
+    vi.advanceTimersByTime(HOVER_DWELL_MS - 10)
+    intent.enter(4, () => warmed.push(4))
+    vi.advanceTimersByTime(10)
+
+    expect(warmed).toEqual([4])
+  })
+
   it('lets a stale leave cancel only its own row', () => {
     const warmed: number[] = []
     const intent = createPrefetchIntent()

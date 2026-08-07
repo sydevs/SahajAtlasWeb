@@ -89,8 +89,11 @@ export function createPrefetchIntent({
     pendingKey = null
   }
 
+  // Floored, so `maxInFlight` is a hard ceiling no matter what a caller's `run` does. An
+  // extra release would otherwise drive the counter negative and quietly RAISE the cap —
+  // the one failure mode of a budget that nobody would think to look for.
   const release = () => {
-    inFlight -= 1
+    inFlight = Math.max(0, inFlight - 1)
   }
 
   const fire = (run: () => unknown) => {
@@ -116,6 +119,12 @@ export function createPrefetchIntent({
 
   return {
     enter(key, run) {
+      // Already counting down for this row — leave the clock alone. A card fires `enter`
+      // from BOTH `mouseenter` and `focus` (clicking one focuses its anchor), and
+      // restarting on the second would make the dwell mean "150 ms since the last event"
+      // instead of "rested here for 150 ms", pushing the warm past the click that needed it.
+      if (pendingKey === key) return
+
       cancel()
       pendingKey = key
       timer = setTimeout(() => fire(run), delay)

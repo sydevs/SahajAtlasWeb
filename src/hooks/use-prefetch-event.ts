@@ -42,9 +42,14 @@ const hoverIntent = createPrefetchIntent()
  * ways in, one metered and one deliberately not, and an unmetered warm is not something
  * a new caller should be able to reach for by accident.
  *
- * It opts out of retries: a warm nobody is waiting for has no business re-queueing itself
- * against an API that just failed, and the view that actually needs the data reads it
- * through its own query, which does retry.
+ * It takes the global retry policy and **must not override it**, tempting as `retry:
+ * false` is for a speculative request. `prefetchQuery` → `fetchQuery` → `query.fetch(opts)`
+ * writes those options onto the SHARED `Query` object, and `useSuspenseQuery` reaches it
+ * through `fetchOptimistic`, which calls `query.fetch()` with no arguments and so inherits
+ * whatever the last writer left. Pinning `retry: false` here therefore disabled retries for
+ * EventView's own read of every card the pointer had ever touched — a per-fetch override
+ * is simply not expressible through a shared key. `shouldRetryQuery` already caps at one
+ * attempt and never retries a 4xx, which is all the restraint a warm needed.
  */
 function usePrefetchEvent() {
   const queryClient = useQueryClient()
@@ -53,10 +58,19 @@ function usePrefetchEvent() {
   return useCallback(
     // Returns the prefetch promise (it never rejects) so callers that meter concurrency
     // can tell when the request has actually settled.
-    (id: number) => queryClient.prefetchQuery({ ...eventQuery(id, locale), retry: false }),
+    (id: number) => queryClient.prefetchQuery(eventQuery(id, locale)),
     [queryClient, locale],
   )
 }
+
+/**
+ * Speculation is pointless while the browser says there's no network — and worse than
+ * pointless for the gate: React Query's default `networkMode: 'online'` *pauses* a fetch
+ * started offline rather than failing it, so the promise never settles, the in-flight slot
+ * is never returned, and two such warms would silently kill hover prefetching for the rest
+ * of the session.
+ */
+const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false
 
 /**
  * The hover/focus counterpart: same warm, gated by dwell + a shared concurrency cap
@@ -76,7 +90,11 @@ export function useHoverPrefetch() {
   const warm = usePrefetchEvent()
 
   return {
-    enter: (id: number) => hoverIntent.enter(id, () => warm(id)),
+    enter: (id: number) => {
+      if (isOffline()) return
+
+      hoverIntent.enter(id, () => warm(id))
+    },
     leave: (id: number) => hoverIntent.leave(id),
   }
 }
