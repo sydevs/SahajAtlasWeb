@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 
-import { type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
+import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
@@ -37,30 +37,43 @@ const PreviewController = lazy(() =>
  * The last rung: what renders when the failure is one of the things every other fallback
  * is built on top of (issue #92).
  *
- * `ErrorFallback` is a rich, localized, themed screen — and it sits INSIDE `Providers`
- * and `BrandTheme`, so a throw from either of those (or from the query client, or the
- * i18n boot) unmounted the whole widget with nothing on screen and nothing reported. It
- * doesn't take the host page down, which is why this went unnoticed; it just leaves a
- * hole in their layout.
+ * `ErrorFallback` is a rich, localized, themed screen — and it sits INSIDE `Providers` and
+ * `BrandTheme`, so a throw from either of those (or from the query client, or the i18n
+ * boot) unmounted the whole widget with nothing on screen and nothing reported. It doesn't
+ * take the host page down, which is why this went unnoticed; it just leaves a hole in
+ * their layout.
  *
  * So this rung depends on none of them: no `t()`, no theme tokens, no Tailwind class that
- * a CSS-injection failure could have taken with it, no query client. Inline styles that
- * set only spacing and size, inheriting the host's own colour and font, so it stays
- * legible whatever page it lands in. Untranslated English is the price of a fallback that
- * cannot itself fail — a translated one would have to read the thing that just broke.
+ * a CSS-injection failure could have taken with it, no query client — which is also why it
+ * lives here rather than in `components/molecules/Fallbacks` beside its two richer
+ * siblings. Inline styles set only spacing and size, inheriting the host's own colour and
+ * font, so it stays legible on whatever page it lands in. Untranslated English is the
+ * price of a fallback that cannot itself fail: a translated one would have to read the
+ * thing that just broke.
  */
-const ROOT_FALLBACK_STYLE = {
-  padding: '1.5rem',
-  fontSize: '0.875rem',
-  lineHeight: 1.5,
-  textAlign: 'center',
-} as const
-
 function RootFallback() {
   return (
-    <div role="alert" style={ROOT_FALLBACK_STYLE}>
+    <div role="alert" style={{ padding: '1.5rem', fontSize: '0.875rem', textAlign: 'center' }}>
       Sahaj Atlas could not be loaded. Please reload the page.
     </div>
+  )
+}
+
+/**
+ * The boundary that renders it. Exported because the widget entry mounts a SECOND one
+ * outside the router (`Widget.tsx`): this one covers `Providers`/`BrandTheme` and the app
+ * — including the standalone entry, which is why it stays here — while the entry's copy
+ * additionally covers the router, the theme wrapper and the mount decision itself, none of
+ * which anything below could catch.
+ */
+export function RootBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      FallbackComponent={RootFallback}
+      onError={(error) => reportInternalError(error, 'widget root')}
+    >
+      {children}
+    </ErrorBoundary>
   )
 }
 
@@ -96,10 +109,7 @@ export default function App({
   }, [apiKey])
 
   return (
-    <ErrorBoundary
-      FallbackComponent={RootFallback}
-      onError={(error) => reportInternalError(error, 'widget root')}
-    >
+    <RootBoundary>
       <Providers>
         <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
           <Suspense fallback={<LoadingFallback />}>
@@ -129,7 +139,7 @@ export default function App({
           </ErrorBoundary>
         </BrandTheme>
       </Providers>
-    </ErrorBoundary>
+    </RootBoundary>
   )
 }
 

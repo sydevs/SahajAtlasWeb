@@ -2,78 +2,21 @@ import type { MountRoute } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
 import { HashRouter, MemoryRouter } from 'react-router'
-import { useEffect, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useRef } from 'react'
 
-import App from './App'
+import App, { RootBoundary } from './App'
 import atlasAuth from './config/api/auth'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { HASH_BASE, mountRoute } from './lib/shape'
-import { reportInternalError } from './lib/report'
+import { reportIntegrationWarning, reportInternalError } from './lib/report'
 
 // Implementation of embeddable Widget
 // Demo in: demo.html
 // Based on: https://www.linkedin.com/pulse/converting-react-app-appendable-widget-using-web-mike-rahimi-wssnf/
 
 const ELEMENT_NAME = 'sahaj-atlas'
-
-/**
- * Say something to whoever integrated the widget, without trusting the host page's
- * console. A host may have replaced or removed `console.warn`, and a throw from here
- * would take down the very mount path being warned about — the same reasoning as
- * `reportInternalError` (`lib/report.ts`).
- */
-function warnHost(message: string): void {
-  try {
-    console.warn(`[${ELEMENT_NAME}] ${message}`)
-  } catch {
-    // Nothing left to do — a logger that throws is not worth a second attempt.
-  }
-}
-
-// Which instance owns the page. A widget owns page-global singletons — the API key
-// (`config/api/auth`), and BrandTheme's theme root + system-theme watcher — and a second
-// concurrent <sahaj-atlas> used to share them silently: running on instance A's key and
-// stealing its theme root out from under it. Exactly one instance runs now.
-let owner: symbol | null = null
-
-/**
- * Claim the page for this instance, once. `false` for a second concurrent element, which
- * renders nothing and says why in the console: a host misconfiguration belongs where the
- * integrator will see it, not as untranslated developer text injected into a public page.
- *
- * The claim is frozen in a ref rather than re-read per render, so a later re-render (an
- * attribute change) can never flip a duplicate into the owner — which would change how
- * many hooks that instance calls.
- */
-function useSoleInstance(): boolean {
-  const instance = useRef<symbol>()
-  const isOwner = useRef<boolean>()
-
-  if (isOwner.current === undefined) {
-    instance.current = Symbol(ELEMENT_NAME)
-    owner ??= instance.current
-    isOwner.current = owner === instance.current
-  }
-
-  useEffect(() => {
-    if (!isOwner.current) {
-      warnHost(`only one <${ELEMENT_NAME}> runs per page — this one will not render.`)
-
-      return
-    }
-
-    // Release the page on unmount, so an embed torn down and re-added (a page builder
-    // re-rendering its canvas) isn't locked out by its own ghost.
-    return () => {
-      if (owner === instance.current) owner = null
-    }
-  }, [])
-
-  return isOwner.current
-}
 
 type WidgetProps = {
   apiKey: string
@@ -91,7 +34,7 @@ type WidgetProps = {
 
 /**
  * Act on the mount decision (`mountRoute`, `lib/shape/hash.ts`): take the URL fragment
- * when it's free, and say so if the host won't let us.
+ * when it's free, and degrade if the host won't let us.
  *
  * The write is a **`replaceState`**, never a `window.location.hash = …` assignment. An
  * assignment pushes a host history entry, so the visitor's first Back press would appear
@@ -117,14 +60,17 @@ function claimFragment(route: MountRoute): MountRoute {
 }
 
 /**
- * The custom element's React root, and the only place the one-per-page rule is decided.
- * Everything a widget does to the page — claiming the API key, the URL fragment, the
- * theme root — happens below this line in <Atlas>, so a duplicate touches none of it.
+ * The custom element's React root. Nothing renders above this, which is why the outermost
+ * boundary sits here rather than deeper: from here it also covers <Atlas>'s own render
+ * body — the mount decision, the theme read, the i18n read — and the router itself, none
+ * of which the boundary inside <App> is structurally able to see.
  */
 export default function Widget(props: WidgetProps) {
-  const isSole = useSoleInstance()
-
-  return isSole ? <Atlas {...props} /> : null
+  return (
+    <RootBoundary>
+      <Atlas {...props} />
+    </RootBoundary>
+  )
 }
 
 function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: WidgetProps) {
@@ -143,10 +89,12 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
   // would teleport them back to `base-path`.
   //
   // `hash` is the normal case. `memory` is the host-anchor case (issue #92): a page
-  // arriving at `#respond` used to render a BLANK widget, because react-router reads
-  // that as a location outside the `!` basename. The widget now routes off-URL there
-  // instead of overwriting an anchor that is not its to take — so the host's on-load
-  // scroll, and anything of theirs that reads `location.hash` later, keep working.
+  // arriving at `#respond` used to render a BLANK widget, because react-router reads that
+  // as a location outside the `!` basename. The widget now routes off-URL there instead of
+  // overwriting an anchor that is not its to take — so the host's on-load scroll, and
+  // anything of theirs that reads `location.hash` later, keep working. The cost, and it is
+  // a real one: on such a page the widget's route is not in the URL, so it can't be
+  // deep-linked or shared from there.
   const mount = useRef<MountRoute>()
 
   if (!mount.current) {
@@ -161,8 +109,7 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
   // palette once mounted. `dir` derives from the ACTIVE locale (reactively) so
   // every descendant — and Tailwind's rtl: variants — follow text direction.
   const themeRootRef = useRef<HTMLDivElement>(null)
-  const { locale: activeLocale } = useLocale()
-  const { t } = useTranslation()
+  const { locale: activeLocale, t } = useLocale()
 
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still
@@ -202,24 +149,66 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
   )
 }
 
+// ===== THE CUSTOM ELEMENT ===== //
+
+// r2wc's element implements exactly the two standard lifecycle callbacks (and nothing else
+// this file needs), so a subclass can gate the mount without reaching into it.
+type AtlasElement = HTMLElement & {
+  connectedCallback(): void
+  disconnectedCallback(): void
+}
+
+const AtlasElementBase = r2wc(Widget, {
+  props: {
+    apiKey: 'string',
+    locale: 'string',
+    map: 'string',
+    basePath: 'string',
+    primaryColor: 'string',
+    secondaryColor: 'string',
+  },
+}) as new () => AtlasElement
+
+// Which element owns the page. A widget owns page-global singletons — the API key
+// (`config/api/auth`), and BrandTheme's theme root + system-theme watcher, whose own
+// comment has long admitted "a second concurrent embed would share these singletons" — so
+// a second <sahaj-atlas> used to run on instance A's key and steal its theme root, in
+// silence. Exactly one runs now, and the rule is enforced where the thing being counted
+// actually lives: the element, not a React render pass. A refused element never mounts a
+// React root at all, so it cannot reach the key, the fragment or the theme.
+let owner: AtlasElement | null = null
+
+class SahajAtlasElement extends AtlasElementBase {
+  connectedCallback() {
+    if (owner && owner !== this && owner.isConnected) {
+      reportIntegrationWarning(
+        `only one <${ELEMENT_NAME}> runs per page — this one will not render.`,
+      )
+
+      return
+    }
+
+    owner = this
+    super.connectedCallback()
+  }
+
+  disconnectedCallback() {
+    // Release on the way out, so an embed torn down and re-added (a page builder
+    // re-rendering its canvas) isn't locked out by its own ghost. A duplicate that was
+    // refused while this one lived stays refused — it gets no second connectedCallback.
+    if (owner === this) owner = null
+    super.disconnectedCallback()
+  }
+}
+
 // Guarded: `customElements.define` throws NotSupportedError on a name that is already
 // registered, and two copies of the embed script on one page is a plausible mistake —
 // the docs name two different bundle URLs. The second copy is a no-op with a note to
 // the console, not an exception in the host's.
 if (customElements.get(ELEMENT_NAME)) {
-  warnHost(`<${ELEMENT_NAME}> is already defined — the embed script is on this page twice.`)
-} else {
-  customElements.define(
-    ELEMENT_NAME,
-    r2wc(Widget, {
-      props: {
-        apiKey: 'string',
-        locale: 'string',
-        map: 'string',
-        basePath: 'string',
-        primaryColor: 'string',
-        secondaryColor: 'string',
-      },
-    }),
+  reportIntegrationWarning(
+    `<${ELEMENT_NAME}> is already defined — the embed script is on this page twice.`,
   )
+} else {
+  customElements.define(ELEMENT_NAME, SahajAtlasElement)
 }

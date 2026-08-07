@@ -99,15 +99,11 @@ describe('mountRoute', () => {
       expect(mountRoute(hash)).toEqual({ router: 'memory', path: '/' })
     })
 
-    it('still honours the base path for where to boot', () => {
+    it('still honours the base path for where to boot, and asks for no write', () => {
       expect(mountRoute('#respond', '/507/register')).toEqual({
         router: 'memory',
         path: '/507/register',
       })
-    })
-
-    it('never asks for a write', () => {
-      expect(mountRoute('#respond', '/507/register').write).toBeUndefined()
     })
   })
 

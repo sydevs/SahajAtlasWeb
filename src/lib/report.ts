@@ -146,6 +146,13 @@ export function classifyError(error: unknown): ErrorKind {
 }
 
 /**
+ * How the widget's own console output identifies itself in a host page's log, which is
+ * full of somebody else's. Same string as the custom element's tag name, but a different
+ * fact: this one is a log prefix, and `Widget.tsx` owns the element name.
+ */
+const LOG_PREFIX = 'sahaj-atlas'
+
+/**
  * Record a failure that happened *while rendering an error state* (issue #89).
  *
  * The error screen is the last thing between a viewer and a blank widget on someone else's
@@ -153,7 +160,8 @@ export function classifyError(error: unknown): ErrorKind {
  * a broken recovery path survives for months. This is the seam that keeps both: callers
  * degrade gracefully AND the cause is recorded.
  *
- * **This is the single call site for a real error reporter.** There is none in this repo
+ * **This and `reportIntegrationWarning` below are the only call sites a real error
+ * reporter needs to know about.** There is none in this repo
  * today (the only telemetry is `fathom-client`, for page views), so this logs to the
  * console; wiring Sentry or similar means changing this function and nothing else. Adding
  * one is a deliberate non-goal here: it would be a new dependency in a public bundle,
@@ -164,7 +172,28 @@ export function classifyError(error: unknown): ErrorKind {
  */
 export function reportInternalError(error: unknown, context: string): void {
   try {
-    console.error(`[sahaj-atlas] ${context}`, error)
+    console.error(`[${LOG_PREFIX}] ${context}`, error)
+  } catch {
+    // Nothing left to do — a logger that throws is not worth a second attempt.
+  }
+}
+
+/**
+ * Record a HOST-SIDE integration mistake — the embed script included twice, a second
+ * `<sahaj-atlas>` element on one page (issue #92).
+ *
+ * The same seam as `reportInternalError` at a lower severity, and it belongs here for the
+ * same reason: when a reporter is finally wired in, these are among the most valuable
+ * things it can carry, because each one produces a widget that renders nothing on a real
+ * customer's page while every gate in this repo stays green. `warn` rather than `error`
+ * because nothing is broken — the widget declined to do something twice.
+ *
+ * Guarded identically: a host is free to have replaced `console.warn` with something that
+ * throws, and the mount path must not die telling somebody about itself.
+ */
+export function reportIntegrationWarning(message: string): void {
+  try {
+    console.warn(`[${LOG_PREFIX}] ${message}`)
   } catch {
     // Nothing left to do — a logger that throws is not worth a second attempt.
   }

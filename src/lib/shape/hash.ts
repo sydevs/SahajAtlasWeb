@@ -15,9 +15,8 @@
  *   It wins over `base-path`, and nothing is written.
  * - **free** (no hash, `#`, `#!`, `#!/`, or an `#!…` whose path `safePath` rejects) — the
  *   fragment is unclaimed or is ours to normalise, so the widget takes it and boots at
- *   `base-path`. The write is a `replaceState`, never a `location.hash =` assignment:
- *   assigning PUSHES a host history entry, so the visitor's first Back press would appear
- *   to do nothing — the exact host-history pollution `dismissAction` is careful to avoid.
+ *   `base-path`. This function only says WHAT to write; `claimFragment` (`Widget.tsx`)
+ *   writes it, and why that write must be a `replaceState` is documented there.
  * - **foreign** (`#respond`) — the host's anchor. The widget leaves the URL completely
  *   alone (their on-load scroll, and anything of theirs that reads `location.hash` later,
  *   both keep working) and routes in memory instead, booting at `base-path`.
@@ -33,20 +32,14 @@ import { safePath } from './path'
  */
 export const HASH_BASE = '!'
 
-/** Which router the widget mounts, decided once from the hash it found. */
-export type MountRouter = 'hash' | 'memory'
-
 export type MountRoute = {
   /** `hash` — the widget owns the fragment; `memory` — the host does, so route off-URL. */
-  router: MountRouter
+  router: 'hash' | 'memory'
   /** The route to boot at. Informational for a deep link (hash history re-reads it). */
   path: string
   /** A hash to `replaceState` before mounting, or `undefined` to leave the URL untouched. */
   write?: string
 }
-
-/** The route a widget with no usable hash boots at: its host-declared `base-path`, or root. */
-const bootPath = (basePath: string | null | undefined): string => safePath(basePath) ?? '/'
 
 /**
  * Decide where the widget mounts and whether it may claim the URL fragment.
@@ -60,7 +53,10 @@ export const mountRoute = (
   basePath?: string | null,
 ): MountRoute => {
   const raw = (hash ?? '').replace(/^#/, '')
-  const path = bootPath(basePath)
+  // One reading of `base-path`, so the route the widget mounts at and the hash written to
+  // the address bar can never answer "where does this boot" differently.
+  const base = safePath(basePath)
+  const path = base ?? '/'
 
   // A host anchor. Not ours to overwrite — route in memory and never touch the URL.
   if (raw !== '' && !raw.startsWith(HASH_BASE)) return { router: 'memory', path }
@@ -72,12 +68,11 @@ export const mountRoute = (
 
   if (route && route !== '/') return { router: 'hash', path: route }
 
-  // Free: claim it — unless the fragment already routes where we'd send it. `#!` and
-  // `#!/` both mean the root, so with no `base-path` to apply there is nothing to write
-  // and no reason to rewrite the visitor's URL.
-  const write = `#${HASH_BASE}${safePath(basePath) ?? ''}`
-  const settled =
-    write === `#${raw}` || (path === '/' && (raw === HASH_BASE || raw === `${HASH_BASE}/`))
+  // Free: claim it — unless the fragment already routes where we'd send it. `#!` and `#!/`
+  // both mean the root, so with no `base-path` to apply there is nothing to write and no
+  // reason to rewrite the visitor's URL. (Every OTHER already-correct hash returned above,
+  // as a route.)
+  const settled = path === '/' && (raw === HASH_BASE || raw === `${HASH_BASE}/`)
 
-  return { router: 'hash', path, write: settled ? undefined : write }
+  return { router: 'hash', path, write: settled ? undefined : `#${HASH_BASE}${base ?? ''}` }
 }

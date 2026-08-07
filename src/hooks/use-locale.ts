@@ -23,7 +23,11 @@ const displayNames = (locale: string, type: 'language' | 'region'): Intl.Display
 }
 
 export function useLocale() {
-  const { i18n } = useTranslation()
+  // `t` is handed back alongside the locale because this hook already holds it: a caller
+  // that needs both would otherwise call `useTranslation` a second time on the same
+  // component, doubling the i18next subscription (and its per-render `getFixedT`) for a
+  // string the first call could have returned.
+  const { t, i18n } = useTranslation()
 
   // Subscribe to i18next's `languageChanged` so every consumer re-reads the active
   // language at once. The old local useState only updated for the instance whose
@@ -67,6 +71,7 @@ export function useLocale() {
   const setLocale = useCallback((next: string) => void i18n.changeLanguage(next), [i18n])
 
   return {
+    t,
     locale,
     languageCode: locale.split('-')[0],
     languageNames,
