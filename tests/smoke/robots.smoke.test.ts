@@ -9,8 +9,11 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // Cloudflare Pages reads them out of the build output, and `_headers` in
 // particular is a platform behaviour we assert rather than code we wrote.
 
-/** The static tag in index.html. Attribute order is rolldown's, so match loosely. */
-const NOINDEX_META = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i
+/**
+ * The static tag in index.html. Attribute-order-free on purpose: the assertion is
+ * "this document says noindex", not "rolldown emitted the attributes in our order".
+ */
+const NOINDEX_META = /<meta[^>]*\brobots\b[^>]*\bnoindex\b/i
 
 describe('indexing directives', () => {
   test.skipIf(skipWithoutPreview)('serves robots.txt with a site-wide Disallow', async () => {
@@ -26,18 +29,16 @@ describe('indexing directives', () => {
     expect(body).toMatch(/^User-agent:\s*\*$/im)
     expect(body).toMatch(/^Disallow:\s*\/$/im)
 
-    // The link-preview allowance is load-bearing, not decoration: the standalone
-    // build deliberately keeps its OG tags and JSON-LD, and ShareView can hand out
-    // a sahajatlas URL (`event.webUrl ?? window.location.href`). Dropping this group
-    // would leave us serving preview metadata no compliant scraper may fetch.
-    expect(body).toMatch(/^User-agent:\s*facebookexternalhit$/im)
+    // The link-preview allowance is load-bearing, not decoration: ShareView hands out
+    // `event.webUrl ?? window.location.href`, so a gated event IS shared as a
+    // sahajatlas URL. Dropping this group turns those cards into bare links.
+    expect(body).toMatch(/^User-agent:\s*redditbot$/im)
   })
 
   // `/` is backed by a real file; `/search` is a route only the `_redirects` SPA
-  // fallback resolves. Both matter and they are different paths through Pages: the
-  // second proves the `/*` header rule is matched against the REQUEST path, so a
-  // rewrite does not drop it. Without it every URL but `/` could be crawlable with
-  // the lane still green.
+  // fallback resolves. Both return the same shell, so this is not testing the header
+  // rule's path matching — it is testing that a rewrite doesn't drop either signal on
+  // the routes people are actually linked to.
   test.skipIf(skipWithoutPreview).each(['/', '/search'])(
     'serves noindex at %s, as a header and in the shell',
     async (path) => {
@@ -47,4 +48,27 @@ describe('indexing directives', () => {
       expect(await res.text()).toMatch(NOINDEX_META)
     },
   )
+
+  test.skipIf(skipWithoutPreview)('serves noindex on the non-document URLs too', async () => {
+    // This is the whole reason the header layer exists: embed.js carries no document,
+    // so no <meta> can reach it, and it is a fetchable URL of its own. If this fails,
+    // `/*` has stopped covering anything the meta doesn't already cover.
+    const res = await fetchPreview('/embed.js')
+
+    expect(res.headers.get('x-robots-tag')).toMatch(/noindex/i)
+    // Not the SPA shell wearing a 200 — the same guard as the robots.txt case.
+    expect(res.headers.get('content-type')).toMatch(/javascript|ecmascript/i)
+  })
+
+  test.skipIf(skipWithoutPreview)('adds the header without displacing the CORS rules', async () => {
+    // The regression this PR could realistically cause. `_headers` already carried
+    // `/assets/*` and `/locales/*` CORS rules (issue #91 — a font is always fetched in
+    // CORS mode, and blocked locale JSON renders every string as its raw key). Adding
+    // `/*` is only safe because Pages applies EVERY matching rule; this asserts that
+    // rather than trusting the doc quote in the comment there.
+    const res = await fetchPreview('/locales/en/common.json')
+
+    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+    expect(res.headers.get('x-robots-tag')).toMatch(/noindex/i)
+  })
 })

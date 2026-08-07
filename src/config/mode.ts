@@ -4,10 +4,11 @@ import { createContext, useContext } from 'react'
 //  - `standalone`: the standalone SPA build (BrowserRouter, main.tsx) vs. the
 //    embedded <sahaj-atlas> element (HashRouter). Canonical/og:url tags are only
 //    advertised in the standalone build — the widget's hash URLs are not canonical.
-//    NOT every head tag the standalone build emits is gated on this flag: the
-//    `noindex` robots directive (issue #106) ships from index.html and public/_headers
-//    instead, which the embed never serves — gated by construction rather than at
-//    runtime. So this flag is not the whole answer to "what do we tell crawlers".
+//    NOT every crawler directive the app emits is gated on this flag. The `noindex`
+//    (issue #106) ships from index.html, which the embed never serves, and from
+//    public/_headers, which governs our OWN URLs — embed.js and the assets included —
+//    but never a host page's document. Both are gated by construction rather than at
+//    runtime, so this flag is not the whole answer to "what do we tell crawlers".
 //  - `hasMap`: whether a Mapbox canvas renders (default true). map=false omits the
 //    whole map subtree; the MapController is then a no-op.
 //

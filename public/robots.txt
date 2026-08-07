@@ -33,23 +33,49 @@
 User-agent: *
 Disallow: /
 
-# Link-preview scrapers are not search engines, and they are the reason the OG tags and
-# JSON-LD stay in the standalone head. ShareView hands the share sheet
-# `event.webUrl ?? window.location.href`, so an event with no canonical link —
-# unpublished or gated — is shared as a sahajatlas.* URL; the address bar is
-# copy-pasteable regardless. Each of these honours robots.txt, so the blanket Disallow
-# above would have left us serving preview metadata that nothing was allowed to fetch.
-# None of them feeds a search index, so allowing them costs nothing against the policy.
+# Link-preview scrapers, allowed because they are not search engines and none of them
+# feeds an index — so allowing them costs nothing against the policy above.
+#
+# WHAT THIS ACTUALLY BUYS, stated honestly: this build is client-rendered and has no
+# prerender step, so the og:* tags and the schema.org JSON-LD are injected by
+# react-helmet-async at RUNTIME and none of these bots executes JavaScript. What they
+# can see in the served HTML is `<title>Sahaj Atlas</title>` and nothing else. So the
+# group is the difference between a generic-titled card and a bare link — NOT a rich
+# per-event unfurl, which a sahajatlas.* URL cannot produce today with or without this
+# file. Rich unfurls come from the canonical `webUrl` on WeMeditate, which is what
+# ShareView hands out whenever the event has one; the fallback
+# (`event.webUrl ?? window.location.href`, for an unpublished or gated event) is the
+# case that lands here. If prerendering is ever added, this group is what makes it
+# visible; see .claude/reports/RELEASE_READINESS.md §6.
+#
+# The list tracks `PlatformKey` in src/lib/share/platforms.ts — the targets the share
+# grid actually offers — plus the places a copy-pasted URL commonly lands. Keep the two
+# in step. `weibo` is a PlatformKey with no allowance here: its crawler's product token
+# could not be confirmed, and guessing one would be a rule that silently matches nothing.
+#
+# NOT ALL OF THEM OBEY THIS FILE, and that is fine — an allowance is a permission, not a
+# request. Slack states outright that it does not process robots.txt
+# (https://api.slack.com/robots), and Meta documents that facebookexternalhit may bypass
+# it for integrity checks. Their lines are kept because they cost nothing and both
+# vendors have changed this before. The ones where the allowance is load-bearing are the
+# documented robots.txt-honouring previewers: redditbot, Twitterbot, LinkedInBot.
 #
 # One group, many tokens: the format applies a group's rules to every User-agent line in
-# it. Slack appears twice because the unfurl bot's product token is
-# Slackbot-LinkExpanding and group selection matches the token, not a prefix of it.
+# it, and a crawler that matches a specific group never falls back to `*`. Slack appears
+# three times because group selection matches the whole product token rather than a
+# prefix of it, and its unfurl, its legacy and its image fetchers are separate tokens.
 User-agent: facebookexternalhit
 User-agent: Twitterbot
 User-agent: LinkedInBot
-User-agent: Slackbot
-User-agent: Slackbot-LinkExpanding
+User-agent: redditbot
 User-agent: WhatsApp
 User-agent: TelegramBot
 User-agent: Discordbot
+User-agent: Slackbot
+User-agent: Slackbot-LinkExpanding
+User-agent: Slack-ImgProxy
+User-agent: vkShare
+User-agent: OdklBot
+User-agent: Viber
+User-agent: line-poker
 Allow: /
