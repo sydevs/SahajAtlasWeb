@@ -889,9 +889,11 @@ export type ResetErrorBoundaryProps = ErrorBoundaryProps & {
  * lives here for the same reason `reset` does: every boundary in the app goes through this
  * component, so one wiring covers all of them and a boundary added later cannot forget to
  * report — where six hand-written `onError` props would drift the moment one call site was
- * copied without it. Before this, the only failure that reached `reportInternalError` was
- * the fallback-of-the-fallback, so the ordinary ones — the ones a viewer actually sees —
- * produced no signal at all.
+ * copied without it. Before this, the seam had five callers — but every one of them was a
+ * failure the code had already caught and worked around by hand (a refused href, an
+ * unclaimable fragment, a recovery ladder that couldn't resolve a rung, the
+ * fallback-of-the-fallback). Not one was an ordinary boundary trip, so the failures a
+ * viewer actually sees produced no signal at all.
  */
 export function ResetErrorBoundary({
   children,

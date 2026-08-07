@@ -19,6 +19,17 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { listResetKey } from '@/lib/shape'
+import { ResetErrorBoundary } from '@/components/molecules/Fallbacks/Fallbacks'
+
+// The seam itself is covered in `src/lib/report*.test.ts`; here it is mocked so the
+// question is only whether the boundary CALLS it. Partial, because `Fallbacks.tsx` imports
+// `classifyError`/`errorMessage` from the same module and those must stay real.
+const reported = vi.hoisted(() => vi.fn())
+
+vi.mock('@/lib/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/report')>()),
+  reportInternalError: reported,
+}))
 
 let container: HTMLDivElement
 
@@ -142,6 +153,61 @@ describe('resetKeys on the body-level boundaries', () => {
     })
     expect(container.textContent).toContain('results')
     expect(container.textContent).not.toContain('error')
+
+    act(() => root.unmount())
+  })
+})
+
+/**
+ * The wiring that turns a boundary trip into telemetry (issue #108).
+ *
+ * It lives in `ResetErrorBoundary` precisely so the six call sites don't each carry it,
+ * which means there is exactly one place it can silently stop working — and no amount of
+ * SSR markup can show whether `onError` fired. Same jsdom exception as the specs above,
+ * for the same reason: the behaviour IS the re-render.
+ */
+describe('ResetErrorBoundary reports through the seam', () => {
+  beforeEach(() => reported.mockClear())
+
+  it('reports a caught error with the surface name', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const root = createRoot(container)
+
+    act(() =>
+      root.render(
+        <ResetErrorBoundary context="test surface" fallbackRender={() => <p>error</p>}>
+          <Boom failing />
+        </ResetErrorBoundary>,
+      ),
+    )
+
+    expect(container.textContent).toContain('error')
+    expect(reported).toHaveBeenCalledOnce()
+    expect(reported.mock.calls[0]?.[1]).toBe('test surface')
+
+    act(() => root.unmount())
+  })
+
+  it('names the drawer surface by default, and still calls a caller’s own onError', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const ownOnError = vi.fn()
+    const root = createRoot(container)
+
+    act(() =>
+      root.render(
+        <ResetErrorBoundary fallbackRender={() => <p>error</p>} onError={ownOnError}>
+          <Boom failing />
+        </ResetErrorBoundary>,
+      ),
+    )
+
+    // Composed, not overridden — the same contract `onReset` has, and the same class of
+    // silent-swallow bug if it were assigned over the spread.
+    expect(ownOnError).toHaveBeenCalledOnce()
+    expect(reported).toHaveBeenCalledOnce()
+    expect(reported.mock.calls[0]?.[1]).toBe('view boundary')
 
     act(() => root.unmount())
   })
