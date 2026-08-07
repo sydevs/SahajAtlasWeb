@@ -132,7 +132,8 @@
     "back_to_region": "Evenementen in %{region} bekijken",
     "near_city": "Evenementen in de buurt van %{city} bekijken",
     "browse_countries": "Alle landen bekijken",
-    "search_label": "Of zoek een plaats"
+    "search_label": "Of zoek een plaats",
+    "unavailable": "Je kunt op dit moment niet deelnemen aan dit programma."
   },
   "country_site": {
     "title": "Er zijn nog geen lessen vermeld in %{country}.",

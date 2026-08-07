@@ -11,7 +11,8 @@ import { QueryErrorResetBoundary } from '@tanstack/react-query'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
-import { Button } from '@/components/atoms/Button'
+import { Button, controlSurface } from '@/components/atoms/Button'
+import { CallIcon } from '@/components/atoms/Icons'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
@@ -57,6 +58,7 @@ export type FallbackKind =
   | 'not-found-event'
   | 'not-found-region'
   | 'empty'
+  | 'unavailable'
   | 'country-site'
   | 'no-results'
   | 'no-nearby'
@@ -87,6 +89,12 @@ export type FallbackPolicy = {
   search: boolean
   /** Drop the active filters — offered only where they are why the list is empty. */
   clearFilters: boolean
+  /**
+   * Put the viewer in touch with a person. Only the register-blocked row: when a class is
+   * full or its registration has closed, the organiser is the one who can still let someone
+   * in — no button we render can. `onward` stands in when there is nobody to call.
+   */
+  contact: boolean
   /** Open the report modal, carrying the thrown message as context (issue #79). */
   report: boolean
 }
@@ -106,6 +114,7 @@ const DEAD_END = {
   onward: true,
   search: true,
   clearFilters: false,
+  contact: false,
   report: false,
 } as const
 
@@ -141,6 +150,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     onward: false,
     search: false,
     clearFilters: false,
+    contact: false,
     report: false,
   },
   server: {
@@ -151,6 +161,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     onward: false,
     search: false,
     clearFilters: false,
+    contact: false,
     report: true,
   },
   // A dead link is a wrong turn, not a malfunction — so it takes the empty state's
@@ -178,6 +189,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     onward: false,
     search: false,
     clearFilters: false,
+    contact: false,
     report: true,
   },
   // The catch-all, and where a zod parse failure lands: SahajCloud's shape drifting from
@@ -192,12 +204,33 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     onward: false,
     search: false,
     clearFilters: false,
+    contact: false,
     report: true,
   },
   // It used to be action-less, on the grounds that an empty region is nobody's mistake.
   // True — but it still left one sentence and nothing to press, which is the same dead end
   // whether the URL was wrong or merely barren.
   empty: { ...DEAD_END, messageKey: 'filters.no_events', fallbackText: 'No events found.' },
+  // A class that exists and is running, but can't be joined: full, ended, or registration
+  // closed. Not an error and not empty — the one row whose best next step is a PERSON, so
+  // it leads with the organiser's number and falls back to "somewhere else nearby" only
+  // when the event carries no contact. `visibleActions` enforces that either/or, because
+  // offering both would put a weaker option beside the one that can actually get you in.
+  //
+  // Its sentence comes from the caller, not this row: `useEventDisplay` already owns the
+  // status→copy table (full / ended / closed / hidden) and `event.test.ts` asserts it. The
+  // generic here is only what shows if that lookup ever comes back empty.
+  unavailable: {
+    messageKey: 'error.unavailable',
+    fallbackText: 'This program can’t be joined right now.',
+    color: 'neutral',
+    retry: false,
+    onward: true,
+    search: false,
+    clearFilters: false,
+    contact: true,
+    report: false,
+  },
   // A searched country that lists no programs at all (issue #82). Structurally a dead end
   // like the rest — the difference is only that the caller knows a better rung than the
   // ladder does, and passes it in.
@@ -216,6 +249,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     onward: false,
     search: false,
     clearFilters: true,
+    contact: false,
     report: false,
   },
   // The only row that offers nothing, and the only one entitled to: every match is simply
@@ -230,6 +264,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     onward: false,
     search: false,
     clearFilters: false,
+    contact: false,
     report: false,
   },
 }
@@ -302,6 +337,9 @@ export type SurfaceLimits = {
   canNavigate?: boolean
   /** The surface already leads with a geocoder (SearchView), so a second would be odd. */
   hasSearchChrome?: boolean
+  /** There is somebody to put the viewer in touch with — an organiser's number on the
+   *  event. Without one, `contact` gives way to `onward`. */
+  canContact?: boolean
 }
 
 /**
@@ -320,17 +358,36 @@ export type SurfaceLimits = {
  */
 export const visibleActions = (
   policy: FallbackPolicy,
-  { canRetry, canClearFilters = false, canNavigate = true, hasSearchChrome = false }: SurfaceLimits,
+  {
+    canRetry,
+    canClearFilters = false,
+    canNavigate = true,
+    hasSearchChrome = false,
+    canContact = false,
+  }: SurfaceLimits,
 ) => {
   const retry = policy.retry && canRetry
-  const onward = policy.onward && canNavigate
+  const contact = policy.contact && canContact
+  // Contact WINS over onward where a row grants both: for a class that's full, the
+  // organiser is the only one who can still let somebody in, and "see events nearby"
+  // beside that would offer a consolation prize as an equal. Onward is what's left when
+  // there is nobody to call.
+  const onward = policy.onward && canNavigate && !contact
   const search = policy.search && canNavigate && !hasSearchChrome
   const clearFilters = policy.clearFilters && canClearFilters
 
-  const promised = policy.retry || policy.onward || policy.search || policy.clearFilters
-  const offered = retry || onward || search || clearFilters
+  const promised =
+    policy.retry || policy.onward || policy.search || policy.clearFilters || policy.contact
+  const offered = retry || onward || search || clearFilters || contact
 
-  return { retry, onward, search, clearFilters, report: policy.report || (promised && !offered) }
+  return {
+    retry,
+    onward,
+    search,
+    clearFilters,
+    contact,
+    report: policy.report || (promised && !offered),
+  }
 }
 
 /** The onward rung's label. `kind` picks the sentence; the offer carries the name. */
@@ -392,9 +449,26 @@ export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
   )
 }
 
+/**
+ * The contact CTA is an anchor wearing a button's skin, because `tel:` is a real href a
+ * viewer may want to long-press or copy — not something to fake with an onClick.
+ * `h-auto min-h-10 whitespace-normal py-2` relaxes the recipe's fixed height and nowrap so
+ * a long international number wraps instead of overflowing a 375px sheet.
+ */
+const callSkin = controlSurface({
+  color: 'primary',
+  variant: 'flat',
+  className: 'h-auto min-h-10 whitespace-normal py-2',
+})
+
+/** Who to call when a class can't be joined — the organiser on the event. */
+export type FallbackContact = { phone: string; name?: string | null }
+
 export type FallbackActionsProps = {
   /** The result of `visibleActions` — what the policy AND the surface both allow. */
   actions: VisibleActions
+  /** The organiser's number, for the `contact` action. */
+  contact?: FallbackContact
   /** The thrown message, carried into the report as context (issue #79). */
   reportContext: string
   /** Reset the boundary and re-run the failed query. */
@@ -418,6 +492,7 @@ export type FallbackActionsProps = {
  */
 export function FallbackActions({
   actions,
+  contact,
   reportContext,
   resetErrorBoundary,
   onClearFilters,
@@ -427,11 +502,13 @@ export function FallbackActions({
   // before any locale JSON has arrived. `defaultValue` on each label for the same reason
   // again — a raw "error.retry" on a button is worse than an untranslated one.
   const { t } = useTranslation('common', { useSuspense: false })
+  const { t: tEvents } = useTranslation('events', { useSuspense: false })
   const openReport = useReportModal((state) => state.openReport)
 
   // `visibleActions` is the single answer to what shows — it already folded in whether a
   // filter set exists to drop — so nothing here re-derives it.
-  if (!actions.retry && !actions.report && !actions.clearFilters) return null
+  if (!actions.retry && !actions.report && !actions.clearFilters && !(actions.contact && contact))
+    return null
 
   // One wrappable row, not a column: these are peers — a way forward and a way to tell us —
   // and stacking short buttons vertically read as a list of steps rather than a choice.
@@ -447,6 +524,29 @@ export function FallbackActions({
         <Button color="primary" variant="flat" onClick={resetErrorBoundary}>
           {t('error.retry', { defaultValue: 'Try again' })}
         </Button>
+      )}
+      {actions.contact && contact && (
+        // The NUMBER is the label, not "Contact". On touch it dials; on desktop a bare
+        // `tel:` is a dead end, so the thing a desktop viewer actually needs — a number
+        // they can read and copy — has to be on screen rather than behind the press.
+        // (The event panel solves the same problem with a popover, which needs a circle to
+        // hang off; this row has buttons.) The accessible name says what it does.
+        <Link
+          aria-label={
+            contact.name
+              ? `${tEvents('actions.contact', { defaultValue: 'Contact' })} — ${contact.name}`
+              : tEvents('actions.contact', { defaultValue: 'Contact' })
+          }
+          className={callSkin}
+          color="neutral"
+          // Whitespace stripped from the URI, kept in the label: RFC 3966 has no room for
+          // spaces in a `tel:`, and some dialers choke, but "+44 20 1234 5678" is what a
+          // human reads back.
+          href={`tel:${contact.phone.replace(/\s+/g, '')}`}
+        >
+          <CallIcon size={18} />
+          {contact.phone}
+        </Link>
       )}
       {actions.clearFilters && (
         <Button color="primary" variant="flat" onClick={onClearFilters}>
@@ -638,6 +738,17 @@ export type FallbackPanelProps = {
   kind: FallbackKind
   /** Interpolation for the row's sentence — see `FallbackValues`. */
   values?: FallbackValues
+  /**
+   * The sentence itself, when its copy belongs to another owner. Exactly one row uses it:
+   * `unavailable`, whose four reasons (full / ended / closed / hidden) are already resolved
+   * and tested by `useEventDisplay`'s status table. Copying them into `ERROR_POLICY` would
+   * be the hand-agreement this whole table exists to remove — so the row keeps a generic
+   * and the caller supplies the specific one. Not a general escape hatch: everything the
+   * TABLE defines gets its copy from the table, where the en-parity test can see it.
+   */
+  message?: string
+  /** The organiser to put a viewer in touch with, for the `contact` action. */
+  contact?: FallbackContact
   /** The thrown message, for the report CTA. Absent for an empty list: nothing threw. */
   reportContext?: string
   /**
@@ -688,24 +799,29 @@ export type FallbackPanelProps = {
 export function FallbackPanel({
   kind,
   values,
+  message,
   reportContext,
   offer,
+  contact,
   resetErrorBoundary,
   onClearFilters,
   align,
   hasSearchChrome,
   children,
 }: FallbackPanelProps) {
-  const { policy, message: text } = useFallbackDisplay(kind, values)
+  const { policy, message: rowText } = useFallbackDisplay(kind, values)
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canClearFilters: !!onClearFilters,
+    canContact: !!contact,
     hasSearchChrome,
   })
+  const text = message ?? rowText
 
   const shared = {
     policy,
     message: text,
+    contact,
     reportContext: reportContext ?? text,
     resetErrorBoundary,
     onClearFilters,

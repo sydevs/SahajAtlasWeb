@@ -16,9 +16,15 @@ export default { title: 'Views' } satisfies StoryDefault
 const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
   'Native form': { event: mockEvent },
   Confirmation: { event: { ...mockEvent, id: 313 }, initialSubmitted: true },
-  // The route is deep-linkable, so a full event must render its state message
-  // here rather than an operative form (the CMS refuses it server-side too).
+  // The route is deep-linkable, so a full event must render its state message here rather
+  // than an operative form (the CMS refuses it server-side too). It goes through the shared
+  // `FallbackPanel`, whose next step is a PERSON: this one carries `contactPhone`, so it
+  // leads with the organiser's number.
   Full: { event: mockEventFull },
+  // The same state with nobody to call — the branch that proves the fallback: with no
+  // contact on the event, `visibleActions` swaps the number for the recovery ladder, so a
+  // viewer who can't join THIS class is still pointed at another one nearby.
+  'Full · no contact': { event: { ...mockEventFull, id: 314, contactPhone: null } },
   'External registration': {
     event: {
       ...mockEvent,

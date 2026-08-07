@@ -132,7 +132,8 @@
     "back_to_region": "Показати події: %{region}",
     "near_city": "Показати події поблизу: %{city}",
     "browse_countries": "Показати всі країни",
-    "search_label": "Або знайдіть місце"
+    "search_label": "Або знайдіть місце",
+    "unavailable": "До цієї програми зараз не можна долучитися."
   },
   "country_site": {
     "title": "Заняття в %{country} ще не додано.",

@@ -132,7 +132,8 @@
     "back_to_region": "Voir les événements : %{region}",
     "near_city": "Voir les événements près de %{city}",
     "browse_countries": "Voir tous les pays",
-    "search_label": "Ou recherchez un lieu"
+    "search_label": "Ou recherchez un lieu",
+    "unavailable": "Il n’est pas possible de rejoindre ce programme pour le moment."
   },
   "country_site": {
     "title": "Aucun cours n’est encore répertorié en %{country}.",

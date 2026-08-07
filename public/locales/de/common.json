@@ -132,7 +132,8 @@
     "back_to_region": "Veranstaltungen in %{region} ansehen",
     "near_city": "Veranstaltungen in der Nähe von %{city} ansehen",
     "browse_countries": "Alle Länder ansehen",
-    "search_label": "Oder suche nach einem Ort"
+    "search_label": "Oder suche nach einem Ort",
+    "unavailable": "Dieses Programm kann derzeit nicht besucht werden."
   },
   "country_site": {
     "title": "Für %{country} sind noch keine Kurse eingetragen.",

@@ -47,6 +47,21 @@ const BODY_CASES: {
     field: true,
   },
   {
+    kind: 'unavailable',
+    actions: 'contact',
+    note: 'A class that exists and is running but can’t be joined — full, ended, or registration closed. The only row whose next step is a PERSON: an organiser can still let somebody into a full class where no button of ours can, so the number leads and the onward rung stands down.',
+    props: {
+      message: 'This class is full.',
+      contact: { phone: '+44 20 1234 5678', name: 'Anna' },
+    },
+  },
+  {
+    kind: 'unavailable',
+    actions: 'onward (no contact)',
+    note: 'The same row with nobody to call. `visibleActions` swaps the number for the recovery ladder, so the viewer is pointed at another class nearby rather than left holding the reason.',
+    props: { message: 'This class is full.' },
+  },
+  {
     kind: 'no-results',
     actions: 'clearFilters',
     note: 'Filters are both the explanation AND the escape, so this keeps "Clear all" alone: an onward link would compete with the one action that restores results. Rendered on SearchView, whose header already IS a geocoder — hence no field.',
@@ -121,9 +136,11 @@ export const Default: Story = () => (
       description="The same table on the body surface used by every drawer and every empty list. Only the first is a throw — the rest are data states wearing the same clothes."
       title="Dead ends & empty lists · drawer body"
     >
+      {/* Keyed on kind + actions, not kind alone: `unavailable` appears twice, once per
+          branch of its contact/onward either-or. */}
       {BODY_CASES.map(({ kind, actions, note, props, field }) => (
         <StorySection
-          key={kind}
+          key={`${kind}-${actions}`}
           description={note}
           title={`${kind} — ${actions}`}
           variant="subsection"

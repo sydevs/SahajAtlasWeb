@@ -132,7 +132,8 @@
     "back_to_region": "Ver eventos en %{region}",
     "near_city": "Ver eventos cerca de %{city}",
     "browse_countries": "Ver todos los países",
-    "search_label": "O busca un lugar"
+    "search_label": "O busca un lugar",
+    "unavailable": "Ahora mismo no es posible unirse a este programa."
   },
   "country_site": {
     "title": "Todavía no hay clases registradas en %{country}.",

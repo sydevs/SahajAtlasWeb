@@ -16,6 +16,7 @@ const waysOut = (policy: FallbackPolicy) => ({
   onward: policy.onward,
   search: policy.search,
   clearFilters: policy.clearFilters,
+  contact: policy.contact,
   report: policy.report,
 })
 
@@ -62,13 +63,31 @@ describe('ERROR_POLICY', () => {
     expect(waysOut(ERROR_POLICY['not-found-event'])).toEqual(waysOut(ERROR_POLICY['not-found']))
   })
 
+  it('offers a person, not a button, when a class cannot be joined', () => {
+    // The one row whose best next step is somebody who can still let you in. Retrying and
+    // reporting are both wrong for it: the class is running, it just has no room.
+    expect(ERROR_POLICY.unavailable).toMatchObject({
+      contact: true,
+      onward: true,
+      retry: false,
+      report: false,
+    })
+  })
+
   it('marks a malfunction red and a dead end neutral', () => {
     // A red banner over "no events found" would tell a viewer the widget is broken when
     // nothing is. Register drift is invisible in review, so it's pinned here.
     for (const kind of ['offline', 'server', 'config', 'unknown'] as const) {
       expect(ERROR_POLICY[kind].color).toBe('danger')
     }
-    for (const kind of ['not-found', 'empty', 'no-results', 'no-nearby', 'country-site'] as const) {
+    for (const kind of [
+      'not-found',
+      'empty',
+      'no-results',
+      'no-nearby',
+      'country-site',
+      'unavailable',
+    ] as const) {
       expect(ERROR_POLICY[kind].color).toBe('neutral')
     }
   })
@@ -167,6 +186,20 @@ describe('visibleActions', () => {
     expect(
       visibleActions(ERROR_POLICY.empty, { canRetry: false, hasSearchChrome: true }),
     ).toMatchObject({ search: false, onward: true, report: false })
+  })
+
+  it('leads with the organiser and drops the onward rung when there is one to call', () => {
+    // Not both: "see events nearby" beside a number that can still get you into THIS class
+    // offers a consolation prize as an equal.
+    expect(
+      visibleActions(ERROR_POLICY.unavailable, { canRetry: false, canContact: true }),
+    ).toMatchObject({ contact: true, onward: false, report: false })
+  })
+
+  it('falls back to the onward rung when the event carries no contact', () => {
+    expect(
+      visibleActions(ERROR_POLICY.unavailable, { canRetry: false, canContact: false }),
+    ).toMatchObject({ contact: false, onward: true, report: false })
   })
 
   it('drops the clear-filters CTA when no filter set was handed in', () => {

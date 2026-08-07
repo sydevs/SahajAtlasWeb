@@ -190,12 +190,22 @@ separate — an inner fallback must never re-throw to escalate.
 - **Each such site needs its own `QueryErrorResetBoundary`** — `useSuspenseQuery` binds to
   the nearest one, and without it "Try again" re-throws the cached error.
 - **One table covers the empty states too, not just the failures.** `FallbackKind` spans
-  the five classified failures *and* the ways a list comes back empty (`empty`,
-  `no-results`, `no-nearby`, `country-site`), because a barren region and a URL that never
-  existed leave a viewer in exactly the same position. They render the same
-  `FallbackPanel`, so a policy row — not a component — is what differs. `not-found` and
-  `empty` are asserted equal but for their sentence; if they ever diverge, one has quietly
-  become the worse dead end.
+  the five classified failures *and* the ways a screen ends up with nothing to act on
+  (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`), because a barren
+  region and a URL that never existed leave a viewer in exactly the same position. They
+  render the same `FallbackPanel`, so a policy row — not a component — is what differs.
+  `not-found` and `empty` are asserted equal but for their sentence; if they ever diverge,
+  one has quietly become the worse dead end.
+- **`unavailable` is the row whose next step is a PERSON.** A class that is full, ended or
+  closed still exists — an organiser can let somebody in where no button of ours can, so
+  `contact` leads with their number and `visibleActions` stands `onward` down while there
+  is one. With no contact on the event the recovery ladder takes over, so a viewer is
+  pointed at another class nearby rather than left holding the reason. It is also the one
+  row that takes its sentence from the CALLER: `useEventDisplay` already owns the
+  status→copy table (full / ended / closed / hidden) and tests it, so copying those four
+  into `ERROR_POLICY` would be the hand-agreement the table exists to remove. Everything
+  the table itself defines still gets its copy from the table, where the en-parity test
+  can see it.
 - **A dead link is not a malfunction.** `color` is the register: `danger` (red,
   `role="alert"`) for a genuine failure, `neutral` (`role="status"`) for a dead end or an
   empty list. Red chrome on a not-found means the two have drifted.
