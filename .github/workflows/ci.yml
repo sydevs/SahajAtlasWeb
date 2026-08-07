@@ -30,7 +30,46 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:run # unit lane — smoke specs are excluded in vitest.config.ts
       - run: pnpm build
+      - name: Bundle-size budget
+        # Measures the EAGER first-load payload — the standalone shell's entry +
+        # modulepreload closure, and embed.js's static import graph — gzipped,
+        # against a committed budget. Per-chunk sizes are meaningless here (the
+        # build re-chunks freely), which is why nothing caught the payload
+        # growing to ~477 KiB gz unnoticed. Budget + rationale live in the script.
+        run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
+
+  # Dependency-vulnerability gate.
+  #
+  # THE TRADEOFF, since this is the decision reviewers will want justified:
+  # a plain `pnpm audit --audit-level high` as a hard gate is red on the day it
+  # lands (1 critical + 24 high are already in the lockfile) and would block every
+  # unrelated PR until the dependency-update tickets land; a purely scheduled
+  # report, meanwhile, cannot stop a regression from merging and is exactly the
+  # kind of check that goes unread — which is how 64 advisories accumulated with
+  # every gate green.
+  #
+  # So the gate is hard, but scoped: known findings are pinned in
+  # scripts/audit-baseline.json (each named with the ticket that owns it) and the
+  # job fails only on a high/critical advisory that ISN'T pinned. Green today,
+  # red the day a genuinely new one appears. Waiving one costs a reviewable line
+  # in that file rather than a silent pass.
+  #
+  # The complementary ratchet — nagging when a baselined advisory has been fixed
+  # but not pruned — lives in the weekly `audit.yml`, where it can't block a PR.
+  #
+  # No `pnpm install`: `pnpm audit` resolves from the lockfile alone.
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-audit.mjs
 
   # Smoke specs run against the Cloudflare Pages PR preview. We discover the
   # preview URL from the GitHub API (Cloudflare posts it on the PR) and wait
@@ -60,4 +99,34 @@ jobs:
         if: ${{ steps.preview.outputs.preview_url != '' }}
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
-        run: pnpm test:smoke
+        run: |
+          pnpm test:smoke
+          echo "### Smoke" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Smoke specs ran against \`$PREVIEW_URL\`." >> "$GITHUB_STEP_SUMMARY"
+
+      # A skip must never look like a pass. Discovery exits 0 with an empty URL
+      # when no preview turns up, and the specs then skip themselves — so before
+      # this step, a green "Smoke" check could equally mean "nothing ran". Now
+      # the invariant holds: green implies the specs executed.
+      #
+      # Same-repo PRs have the secrets and the Cloudflare integration, so a
+      # missing preview is a real failure — the deploy did not happen — and fails
+      # the job. Forked PRs get no preview by design, so they stay a graceful
+      # (but annotated) skip, as do local `pnpm test:smoke` runs.
+      - name: Report a missing preview
+        if: ${{ steps.preview.outputs.preview_url == '' }}
+        env:
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          MSG="No Cloudflare Pages preview was found for this commit — NO smoke specs ran."
+          {
+            echo "### Smoke"
+            echo ""
+            echo "⚠️ $MSG"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SAME_REPO" = "true" ]; then
+            echo "::error::$MSG This PR is from the same repository, so a preview was expected: the Cloudflare Pages deploy is missing or failed. Check the Pages build — a 0s 'Build failed' with a clean log is a transient rate-limit, so retry the deployment."
+            exit 1
+          fi
+          echo "::warning::$MSG Forked PRs have no preview deployment, so the specs were skipped."

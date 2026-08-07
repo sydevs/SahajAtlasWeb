@@ -16,6 +16,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:smoke": "vitest run --config vitest.smoke.config.ts tests/smoke",
+    "size": "node scripts/check-bundle-size.mjs",
+    "audit:check": "node scripts/check-audit.mjs",
     "ladle": "ladle serve",
     "ladle:build": "ladle build",
     "preview": "vite preview",
