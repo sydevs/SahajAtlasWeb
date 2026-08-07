@@ -1,7 +1,11 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventSummary, ShareContent } from '@/components/molecules'
+import { EventSummary } from '@/components/molecules'
+// Leaf path, not the barrel: ShareContent owns react-share, and the barrel is imported by
+// eager views — so a re-export there is enough to keep it in the eager graph even though
+// this view is lazy (issue #96). Same reason EventDetails reaches EventActions this way.
+import { ShareContent } from '@/components/molecules/ShareContent'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'

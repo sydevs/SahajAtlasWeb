@@ -73,17 +73,22 @@ export type { EventListItemProps } from './EventListItem'
 // The secondary action row under an event's Register CTA. A molecule (no data
 // lifecycle of its own — it reads the display resolver, like EventFacts), though
 // it's composed by the EventDetails organism.
-export { EventActions } from './EventActions'
-export type { EventActionsProps } from './EventActions'
+// EventActions and ShareContent are not re-exported here either, for the same reason as
+// ImageCarousel below: between them they own react-share, and every real consumer already
+// reaches them by leaf path from inside a lazily-loaded chunk — EventActions from
+// EventDetails, ShareContent from EventActions, RegistrationForm and ShareView. The barrel
+// edge alone was holding react-share in the eager graph (issue #96).
 
-// ShareContent — the copyable URL + social-links block, reused by the ShareView
-// drawer and the registration "thank you" screen. CopyField also serves the
-// event panel's desktop contact popover.
-export { ShareContent, CopyField } from './ShareContent'
-export type { ShareContentProps } from './ShareContent'
-
-export { ImageCarousel } from './ImageCarousel'
-export type { ImageCarouselProps, Slide } from './ImageCarousel'
+// ImageCarousel is deliberately NOT re-exported here. It owns Swiper (~86 KiB gz with the
+// modules and CSS it pulls), its one consumer is EventDetails — which already imports it by
+// leaf path, from inside the lazy details chunk — and nothing ever imported it through this
+// barrel. Re-exporting it anyway put Swiper in the EAGER graph of every host page: the
+// barrel is imported by views that are eager, and this edge was enough to keep the module
+// alive through tree-shaking (its `swiper/react` + `swiper/modules` imports carry side
+// effects, so dropping it is not a call rolldown will make on its own). That is the
+// "Swiper bundled twice" finding from the readiness report; the fix is the barrel rule this
+// file already follows everywhere else — a single-consumer component is reached by leaf
+// path, not surfaced here (issue #96).
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
