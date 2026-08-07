@@ -4,7 +4,9 @@
     "copy": "Copiar",
     "directions": "Como chegar",
     "share": "Compartilhar",
-    "website": "Site"
+    "website": "Site",
+    "add_calendar": "Adicionar à agenda",
+    "download_ics": "Baixar arquivo .ics"
   },
   "details": {
     "contact_for_timing": "Entre em contato com o anfitrião para saber os horários",

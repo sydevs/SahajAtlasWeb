@@ -4,7 +4,9 @@
     "copy": "Copier",
     "directions": "Itinéraire",
     "share": "Partager",
-    "website": "Site web"
+    "website": "Site web",
+    "add_calendar": "Ajouter à l'agenda",
+    "download_ics": "Télécharger le fichier .ics"
   },
   "details": {
     "contact_for_timing": "Contactez l’hôte pour les horaires",

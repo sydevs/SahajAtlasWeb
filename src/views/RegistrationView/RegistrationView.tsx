@@ -50,7 +50,7 @@ export function RegistrationView({
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
-  const { display, blockedMessage } = useEventDisplay(event)
+  const { display, blockedMessage, whereLine } = useEventDisplay(event)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -73,6 +73,29 @@ export function RegistrationView({
 
   const selectableDates = display.kind === 'course' ? futureDates.slice(0, 1) : futureDates
 
+  // Calendar-export inputs for the confirmation screen (issue #105). Built HERE
+  // because this view holds the FULL event doc: `getEventDoc` selects the whole
+  // `schedule` group, so it carries the exclusions / untilDate / monthDay /
+  // weekdayOfMonth that the trimmed feed deliberately omits. A feed event would
+  // silently export a series missing its cancelled sessions and its end date.
+  //
+  // `whereLine` is the same one-line place string the rest of the event surfaces
+  // show, so the calendar entry names the venue the way the panel did — but only
+  // for a PHYSICAL event. Online, that line reads "hosted from <somewhere>",
+  // which is where the class originates, not anywhere the viewer goes; as a
+  // calendar LOCATION it would send them to a city they have no business in. The
+  // event's own page rides the description instead (Atlas never holds the join
+  // link — the CMS delivers it after registration).
+  const calendarExport = event.schedule
+    ? {
+        id: event.id,
+        title: event.title,
+        schedule: event.schedule,
+        location: isOnline(event) ? undefined : whereLine,
+        url: event.webUrl,
+      }
+    : undefined
+
   return (
     <>
       <DrawerHeader className="justify-between">
@@ -86,6 +109,7 @@ export function RegistrationView({
         <EventSummary event={event} />
         {open && !external ? (
           <RegistrationForm
+            calendar={calendarExport}
             eventId={event.id}
             eventTitle={event.title}
             eventUrl={event.webUrl ?? window.location.href}

@@ -4,7 +4,9 @@
     "copy": "Kopírovat",
     "directions": "Trasa",
     "share": "Sdílet",
-    "website": "Web"
+    "website": "Web",
+    "add_calendar": "Přidat do kalendáře",
+    "download_ics": "Stáhnout soubor .ics"
   },
   "details": {
     "contact_for_timing": "Kontaktujte hostitele pro načasování",
