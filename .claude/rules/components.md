@@ -51,12 +51,36 @@ Fewer custom components means less maintenance and a consistent look.
 - Global styles and Tailwind layers live in `src/styles/globals.css`. The
   widget injects its CSS via JS (`vite-plugin-css-injected-by-js`) so it works
   when embedded — don't rely on a separate stylesheet `<link>`.
-- **That stylesheet lands in the HOST document, so every selector in it must be
-  scoped to our own DOM.** Never write a bare element or third-party class selector
-  (`.swiper-pagination-bullet`, `main`, `a`) or a `:root` custom property — nest it
-  under a class only we render (`.swiper …`, `.sx-calendar …`, `.event-pin-popover
-  …`). Both a bare `main {}` rule and a bare swiper-bullet rule have leaked out and
-  restyled host pages already.
+- **That stylesheet lands in the HOST document — scoping it is now MECHANICAL, not a
+  rule you follow** (issue #91). `scripts/postcss-scope-widget.mjs` runs last in the
+  PostCSS chain and rewrites every emitted selector to `:where(.sy-atlas)` — Preflight,
+  generated utilities, and the third-party sheets we `@import` (mapbox-gl, swiper,
+  vaul, Radix Colors) included — plus it namespaces every `@keyframes`.
+  `scripts/assert-css-scoped.mjs` reads the CSS back out of the built bundle and fails
+  `pnpm build` if anything escapes. So write plain selectors in `globals.css`; hand-
+  scoping is no longer required, and the old leaks (a bare `main {}`, a bare
+  swiper-bullet rule) can no longer ship.
+  Three things this does NOT cover, so they still need care:
+  - **A selector you write against `.sy-atlas` yourself is passed through untouched.**
+    That is the escape hatch for rules that must address the theme ROOT (which is also
+    where the light/dark class lives) rather than something inside it.
+  - **CSS a library injects at RUNTIME never reaches the pass.** vaul did exactly this
+    and leaked a bare `@keyframes fadeIn` into host pages until it was patched out
+    (`patches/vaul@1.1.2.patch`). If a new dependency injects its own `<style>`, scoping
+    it is a separate job.
+  - **The prefix is `:where()` on purpose — never "simplify" it to a bare class.** It
+    contributes zero specificity, so the cascade inside the widget is unchanged. A bare
+    `.sy-atlas` lifts every rule by one class, which then outranks that runtime-injected
+    third-party CSS: it broke the Mapbox geocoder's input padding, and the search icon
+    landed on top of the placeholder.
+- **The scope class must stay on the theme root**, the same element as the light/dark
+  class and `dir` — the scoped `dark:` / `rtl:` variants resolve both against one
+  ancestor. It is applied in `src/Widget.tsx` (embedded), `index.html` (standalone) and
+  the Ladle decorator; `src/lib/scope.ts` owns the name and `src/lib/scope.test.ts`
+  fails if the four drift apart.
+- **An overlay that portals to `document.body` will render unstyled.** Everything must
+  portal to `overlayContainer()` (`src/lib/overlay.ts`), which targets the theme root —
+  that is inside the scope; `document.body` is not.
 - **Host-authored rich text** carries the `.colored-links` utility, which owns the
   whole treatment for that content — link colour AND `break-words`. One unbreakable
   run (a pasted URL, or the U+2800 braille blanks authors use as spacing) otherwise

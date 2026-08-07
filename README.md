@@ -24,6 +24,7 @@ sends a CSP, allow:
 script-src  https://challenges.cloudflare.com
 frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
+font-src    <the origin you load the widget from>
 ```
 
 Without the first two the widget degrades gracefully rather than breaking: the form
@@ -35,6 +36,21 @@ own CDN) on the country list and on the country-website offer a search shows whe
 country lists no classes. Blocking it costs only the flag glyphs; the lists and the
 offer still render, and the requests carry `referrer-policy: no-referrer`, so your
 page's URL is never sent there.
+
+`font-src` is the widget's own origin — the same one the `<script>` above comes from.
+The widget **self-hosts its typeface**: it makes no request to `fonts.googleapis.com`
+or `fonts.gstatic.com`, so neither needs to be in your policy and no visitor IP is
+disclosed to a third party for a font. Blocking it costs only the typeface — text falls
+back to your system sans and everything keeps working.
+
+### The widget will not restyle your page
+
+Its stylesheet is injected into your document (there is no shadow DOM), but every
+selector in it is confined to the widget's own subtree and every animation name is
+namespaced, enforced by a build-time check. A page's headings, links, lists, forms,
+`.container`, a `.dark` theme class and its own Swiper or Mapbox instances are all
+left alone. The reverse is not guaranteed: aggressive global CSS on your page can
+still reach *into* the widget — see the note in `demo.html`.
 
 ## Stack
 
