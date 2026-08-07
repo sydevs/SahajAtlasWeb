@@ -116,3 +116,15 @@ export const FilterIcon: React.FC<IconSvgProps> = ({ ...props }) => (
     {...props}
   />
 )
+
+// Media transport (the carousel's pause/play toggle). Neither mirrors under RTL:
+// unlike a drill-in chevron, a transport control points along the direction of
+// TIME, not of reading — every platform's RTL UI keeps ▶ pointing right — so
+// they stay out of `flipRtl` even though the play triangle is asymmetric.
+export const PauseIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon paths={['M8 5h3v14H8zm5 0h3v14h-3z']} view="0 0 24 24" {...props} />
+)
+
+export const PlayIcon: React.FC<IconSvgProps> = ({ ...props }) => (
+  <BaseIcon paths={['M8 5v14l11-7z']} view="0 0 24 24" {...props} />
+)

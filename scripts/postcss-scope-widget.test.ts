@@ -9,6 +9,7 @@ import scopeWidgetCss, {
   THEME_CLASSES,
   WIDGET_SCOPE,
   assertScoped,
+  isSelectorScoped,
   scopeSelector,
 } from './postcss-scope-widget.mjs'
 
@@ -171,8 +172,81 @@ describe('scopeWidgetCss', () => {
   it('refuses to emit a stylesheet that could still restyle the host page', () => {
     // The safety net for shapes the transform fails to handle — unreachable through
     // the transform itself, so it is asserted directly.
-    expect(() => assertScoped(postcss.parse('a { color: red }'))).toThrow(/unscoped selector/)
+    expect(() => assertScoped(postcss.parse('a { color: red }'))).toThrow(/not confined/)
     expect(() => assertScoped(postcss.parse('.sy-atlas a { color: red }'))).not.toThrow()
+  })
+})
+
+// Why the head of the string stopped being sufficient: see the `isSelectorScoped`
+// docblock. What matters here is that the two accepted shapes below are the emitted
+// forms, verbatim from `dist/` — copied off a real build rather than imagined, since the
+// point of failure was a mismatch between what we assumed the bytes looked like and what
+// they were (issue #104).
+describe('isSelectorScoped — flattened nesting', () => {
+  it('accepts a leading :is() list when every branch is scoped', () => {
+    expect(
+      isSelectorScoped(
+        ':is(:where(.sy-atlas) .swiper:not(.swiper-watch-progress),' +
+          ':where(.sy-atlas) :is(.swiper-watch-progress .swiper-slide-visible))' +
+          ' .swiper-lazy-preloader',
+      ),
+    ).toBe(true)
+  })
+
+  it('accepts the scope in the SUBJECT, which no head-anchored test can', () => {
+    // `.swiper-pagination { .swiper-pagination-disabled > & { … } }` flattens to this.
+    // The element being styled is the scoped one; its ancestor is not, and needn't be.
+    expect(
+      isSelectorScoped('.swiper-pagination-disabled>:is(:where(.sy-atlas) .swiper-pagination)'),
+    ).toBe(true)
+    expect(isSelectorScoped('button:is(:where(.sy-atlas) .swiper-pagination-bullet)')).toBe(true)
+  })
+
+  it('rejects an :is() list with even one unscoped branch', () => {
+    // The branch that isn't scoped is a way for the rule to match outside the widget,
+    // which is the whole thing this gate exists to prevent.
+    expect(isSelectorScoped(':is(:where(.sy-atlas) .a, .b) .c')).toBe(false)
+  })
+
+  it('still rejects a selector that merely mentions no scope at all', () => {
+    expect(isSelectorScoped('.swiper-pagination-bullet')).toBe(false)
+    expect(isSelectorScoped('main > .a')).toBe(false)
+    // A class that only starts with the scope's text is a different class.
+    expect(isSelectorScoped('.sy-atlas-thing .a')).toBe(false)
+  })
+
+  it('does not follow a sibling combinator up to a scoped compound', () => {
+    // `+`/`~` put the scoped part BESIDE the subject, not above it. Nothing we emit
+    // needs it, so it is refused rather than reasoned about.
+    expect(isSelectorScoped(':is(:where(.sy-atlas) .a) ~ .b')).toBe(false)
+  })
+
+  it('refuses a sibling of the scope ROOT even when the scope leads the selector', () => {
+    // The head fast path used to wave these through — leading with the scope is not the
+    // same as confining the subject, and a sibling of the widget root is an arbitrary
+    // HOST element. Hand-writing `.sy-atlas ~ .foo` in globals.css would have been passed
+    // through untouched by the transform and then waved through by the gate.
+    expect(isSelectorScoped('.sy-atlas ~ .foo')).toBe(false)
+    expect(isSelectorScoped('.sy-atlas + .foo')).toBe(false)
+    expect(isSelectorScoped(':where(.sy-atlas) ~ .b')).toBe(false)
+
+    // …while the shapes that merely CONTAIN a `+`/`~` still resolve correctly through
+    // the slow path, rather than being rejected wholesale.
+    expect(isSelectorScoped(':where(.sy-atlas) .a:nth-child(2n+1)')).toBe(true)
+  })
+
+  it('credits a scope that IS the subject, or sits above it', () => {
+    expect(isSelectorScoped('.a .sy-atlas')).toBe(true)
+    expect(isSelectorScoped('.a > .sy-atlas .b')).toBe(true)
+  })
+
+  it('refuses scope-shaped tokens that do not actually confine', () => {
+    // Each of these mentions the scope but can still match outside it.
+    expect(isSelectorScoped(':has(.sy-atlas) .a')).toBe(false) // ancestor could be <body>
+    expect(isSelectorScoped(':not(.sy-atlas) .a')).toBe(false)
+    expect(isSelectorScoped('[class~="sy-atlas"] .a')).toBe(false)
+    expect(isSelectorScoped(':nth-child(2 of :where(.sy-atlas))')).toBe(false)
+    expect(isSelectorScoped(':is() .a')).toBe(false)
   })
 })
 

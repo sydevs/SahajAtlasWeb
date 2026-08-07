@@ -19,7 +19,8 @@
     "starting_on": "Od %{date}",
     "starting_soon": "Již brzy",
     "tel": "tel: %{phoneNumber}",
-    "view_photo": "Zobrazit fotku"
+    "view_photo": "Zobrazit fotku",
+    "pause_slideshow": "Pozastavit prezentaci"
   },
   "display": {
     "about": "O této lekci",

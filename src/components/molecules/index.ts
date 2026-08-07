@@ -70,20 +70,16 @@ export type { ListItemProps } from './ListItem'
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 
-// The secondary action row under an event's Register CTA. A molecule (no data
-// lifecycle of its own — it reads the display resolver, like EventFacts), though
-// it's composed by the EventDetails organism.
-export { EventActions } from './EventActions'
-export type { EventActionsProps } from './EventActions'
-
-// ShareContent — the copyable URL + social-links block, reused by the ShareView
-// drawer and the registration "thank you" screen. CopyField also serves the
-// event panel's desktop contact popover.
-export { ShareContent, CopyField } from './ShareContent'
-export type { ShareContentProps } from './ShareContent'
-
-export { ImageCarousel } from './ImageCarousel'
-export type { ImageCarouselProps, Slide } from './ImageCarousel'
+// NOTE: ImageCarousel, EventActions and ShareContent/CopyField are deliberately NOT
+// re-exported — the same rule the organisms barrel states for EventDetails and
+// RegistrationForm. Between them they own Swiper and react-share, and this barrel is
+// imported by EAGER views, so the re-export edge alone kept both in the first-load payload
+// of every host page (~45 KiB gz) even though nothing imported them through it. Tree-shaking
+// will not drop them: their `swiper/*` and react-share imports carry side effects. Every
+// real consumer already reaches them by leaf path from inside a lazily-loaded chunk —
+// EventActions and ImageCarousel from EventDetails, ShareContent from EventActions,
+// RegistrationForm and ShareView. That is the readiness report's "Swiper bundled twice"
+// finding; `index.test.ts` pins it (issue #96).
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'

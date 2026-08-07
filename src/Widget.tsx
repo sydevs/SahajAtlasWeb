@@ -13,6 +13,7 @@ import { getInitialTheme } from './hooks/use-theme'
 import { reportIntegrationWarning, reportInternalError } from './lib/report'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { HASH_BASE, mountRoute } from './lib/shape'
+import { queryClient } from './config/query-client'
 
 // Implementation of embeddable Widget
 // Demo in: demo.html
@@ -270,9 +271,16 @@ class SahajAtlasElement extends AtlasElementBase {
     // without this an element re-added with a DIFFERENT `api-key` would keep
     // authenticating as the first one — the element gate makes concurrent misuse
     // impossible, not sequential.
+    // The cache goes with it, for the same reason and on the same event. Only
+    // `['client', apiKey]` carries the credential in its key; `['regions']`, `['geojson']`,
+    // the titles sliver and every event are key-agnostic, so a re-add under a DIFFERENT
+    // api-key would read the first key's responses out of the cache. That window used to
+    // be React Query's 5-minute default and is now an hour (`WHOLESALE_GC_TIME`), which is
+    // what makes it worth closing here rather than relying on eviction.
     if (owner === this) {
       owner = null
       atlasAuth.apiKey = null
+      queryClient.clear()
     }
 
     super.disconnectedCallback()

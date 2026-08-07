@@ -21,7 +21,7 @@ opens the form, so a visitor who never reports anything never fetches it. If you
 sends a CSP, allow:
 
 ```
-script-src  https://challenges.cloudflare.com https://cdn.usefathom.com
+script-src  <the origin you load the widget from> https://challenges.cloudflare.com https://cdn.usefathom.com
 frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
 font-src    <the origin you load the widget from>
@@ -29,15 +29,25 @@ style-src   'unsafe-inline'
 connect-src https://ipwho.is https://cdn.usefathom.com
 ```
 
-One line per directive, deliberately: CSP ignores every repeat of a directive name
-after the first, so splitting these across two lines would silently drop the second.
-The two `usefathom.com` sources are needed only if analytics is enabled (see below);
-the list above is what the widget *adds* to a policy — it is not a complete policy,
-and it does not yet cover the map's own origins.
+**One line per directive, deliberately: CSP ignores every repeat of a directive name
+after the first**, so splitting `script-src` across two lines would silently drop the
+second — and you would be left believing you had allowed something you hadn't.
 
-Without the first two the widget degrades gracefully rather than breaking: the form
-detects the blocked challenge and offers a `mailto:` address instead of a submit button.
-Everything else — the map, search, event pages, registration — is unaffected.
+The widget's own origin, first in that `script-src`, is the source that must be right.
+The widget is code-split: the `<script>` tag fetches a small entry, which pulls the rest
+of the bundle as further script requests from that same origin, and the calendar,
+registration and share panels are fetched only when a viewer first opens them. A policy
+that allows the `<script>` tag but not those subresource fetches gives you a widget that
+looks fine and then fails on one of those three presses, which is a miserable thing to
+diagnose. (`'strict-dynamic'`, or a plain origin allow-list, covers all of it.)
+
+The two `usefathom.com` sources are needed only if analytics is enabled (see below); the
+list above is what the widget *adds* to a policy — it is not a complete policy, and it
+does not yet cover the map's own origins.
+
+Without the Turnstile sources the widget degrades gracefully rather than breaking: the
+form detects the blocked challenge and offers a `mailto:` address instead of a submit
+button. Everything else — the map, search, event pages, registration — is unaffected.
 
 `img-src` covers the country flags (`react-circle-flags` serves them as SVGs from its
 own CDN) on the country list and on the country-website offer a search shows when a

@@ -68,27 +68,65 @@ describe('embed bundle', () => {
     //
     // Every relative `.js` literal, not just the static-import shape: a lazy
     // chunk going missing is the same broken deploy, one interaction later.
-    const chunks = [...new Set([...body.matchAll(/["'](\.\/[^"']+\.js)["']/g)].map((m) => m[1]))]
+    //
+    // TRANSITIVE, not one level. `embed.js` names only its own imports, and the views
+    // behind a lazy seam are reached from a chunk it names rather than from the entry —
+    // so a one-level crawl stopped covering the calendar, registration and share chunks
+    // the moment those moved behind `React.lazy` (issue #96). Following each body means
+    // the set is the whole deploy the widget can ever ask for, however deep the seam.
+    // BACKTICKS matter as much as the transitivity. rolldown's minifier emits dynamic
+    // specifiers as template literals — `import(\`./CalendarView-<hash>.js\`)` — so a class
+    // of only `"` and `'` matched the static imports and silently skipped every lazy chunk
+    // in the build. The comment above has claimed otherwise since this spec was written.
+    const RELATIVE_JS = /["'`](\.\/[^"'`]+\.js)["'`]/g
+    // Chunks reference each other relative to their OWN directory. `embed.js` sits at the
+    // root and points into `./assets/`; everything under `assets/` points at siblings.
+    const resolveFrom = (path: string, spec: string) =>
+      `${path.slice(0, path.lastIndexOf('/'))}/${spec.replace(/^\.\//, '')}`
+
+    // The status alone proves nothing here. `public/_redirects` is `/* /index.html 200`,
+    // so a chunk the deploy is missing comes back as the SPA shell with a 200 — a check on
+    // `res.status` would pass for precisely the failure this spec exists to catch. The
+    // content type is what distinguishes a real chunk from the fallback HTML.
+    const broken: string[] = []
+    const seen = new Set<string>()
+    const queue = ['/embed.js']
+    const bodies = new Map<string, string>([['/embed.js', body]])
+
+    while (queue.length) {
+      const path = queue.pop() as string
+      const source = bodies.get(path)
+
+      if (!source) continue
+
+      for (const [, spec] of source.matchAll(RELATIVE_JS)) {
+        const next = resolveFrom(path, spec)
+
+        if (seen.has(next)) continue
+
+        seen.add(next)
+
+        // GET, not HEAD: the body is both the assertion and the next frontier. The whole
+        // deploy is ~440 KiB gzipped, and this lane runs separately from the PR gate.
+        const res = await fetchPreview(next)
+        const type = res.headers.get('content-type') ?? ''
+
+        if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
+          const text = await res.text()
+
+          bodies.set(next, text)
+          queue.push(next)
+        } else {
+          bodies.set(next, '')
+          broken.push(`${next} → ${res.status} ${type}`)
+        }
+      }
+    }
+
+    const chunks = [...seen]
 
     expect(chunks.length).toBeGreaterThan(0)
 
-    // The status alone proves nothing here. `public/_redirects` is
-    // `/* /index.html 200`, so a chunk the deploy is missing comes back as the
-    // SPA shell with a 200 — a check on `res.status` would pass for precisely
-    // the failure this spec exists to catch. The content type is what
-    // distinguishes a real chunk from the fallback HTML.
-    const broken = await Promise.all(
-      chunks.map(async (chunk) => {
-        // HEAD: only the headers matter, and the bodies are ~440 KiB gzipped.
-        const path = `/${chunk.replace(/^\.\//, '')}`
-        const res = await fetchPreview(path, { method: 'HEAD' })
-        const type = res.headers.get('content-type') ?? ''
-        const served = res.status === 200 && /javascript|ecmascript/i.test(type)
-
-        return served ? null : `${path} → ${res.status} ${type}`
-      }),
-    )
-
-    expect(broken.filter(Boolean)).toEqual([])
+    expect(broken).toEqual([])
   })
 })

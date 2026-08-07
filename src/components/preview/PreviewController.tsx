@@ -210,9 +210,11 @@ function PreviewFallback() {
 
 /**
  * Pin event/region query freshness while previewing. The controller seeds and live-
- * overlays ['event', id] / ['region', slug] via setQueryData; without this the global
- * staleTime of 0 lets a drawer's suspense query background-refetch on remount (e.g. after
- * closing register/share) and stomp unsaved live edits with the last-saved doc.
+ * overlays ['event', id] / ['region', slug] via setQueryData; without this a drawer's
+ * suspense query background-refetches on remount (e.g. after closing register/share) and
+ * stomps unsaved live edits with the last-saved doc. The client's `DEFAULT_STALE_TIME`
+ * only postpones that — a preview session needs `Infinity`, and these prefix defaults
+ * outrank the client's.
  */
 function usePinnedPreviewQueries(): void {
   const queryClient = useQueryClient()

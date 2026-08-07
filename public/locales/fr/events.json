@@ -19,7 +19,8 @@
     "starting_on": "À partir du %{date}",
     "starting_soon": "Bientôt",
     "tel": "tél: %{phoneNumber}",
-    "view_photo": "Voir la photo"
+    "view_photo": "Voir la photo",
+    "pause_slideshow": "Mettre le diaporama en pause"
   },
   "display": {
     "about": "À propos de ce cours",

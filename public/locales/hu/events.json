@@ -19,7 +19,8 @@
     "starting_on": "Starting %{date}",
     "starting_soon": "Starting soon",
     "tel": "tel: %{phoneNumber}",
-    "view_photo": "Fénykép megtekintése"
+    "view_photo": "Fénykép megtekintése",
+    "pause_slideshow": "Diavetítés szüneteltetése"
   },
   "display": {
     "about": "Erről a foglalkozásról",

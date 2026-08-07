@@ -19,7 +19,8 @@
     "starting_on": "Vanaf %{date}",
     "starting_soon": "Binnenkort van start",
     "tel": "tel: %{phoneNumber}",
-    "view_photo": "Foto bekijken"
+    "view_photo": "Foto bekijken",
+    "pause_slideshow": "Diavoorstelling pauzeren"
   },
   "display": {
     "about": "Over deze les",

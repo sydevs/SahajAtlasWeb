@@ -9,7 +9,18 @@
  * SHA and take the first `*.pages.dev` we find:
  *   1. commit statuses        → status.target_url
  *   2. deployment statuses    → status.environment_url
- *   3. the Cloudflare bot's PR comment body
+ *   3. check runs             → the Cloudflare app's output summary
+ *   4. the Cloudflare bot's PR comment body
+ *
+ * On THIS repo only source 3 is dependable, which is why it exists (PR #120).
+ * Cloudflare here posts neither commit statuses nor GitHub deployments — both
+ * queries come back empty — so discovery rested entirely on source 4, and the
+ * bot's comment is best-effort: it appeared on #121 and never on #120, whose
+ * deploy was otherwise healthy. That made the smoke gate flaky by construction,
+ * and since #99 made a missing preview HARD-FAIL a same-repo PR, the flake
+ * presented as a red check on a good commit. The check run, meanwhile, is the
+ * same object the "Cloudflare Pages: …" entry in the PR's check list comes from,
+ * so it is present exactly when the deploy is.
  *
  * If nothing is found within the timeout (e.g. a forked PR with no preview, or
  * the preview env isn't configured), we emit an EMPTY preview_url and exit 0 —
@@ -119,7 +130,26 @@ async function discover() {
     }
   }
 
-  // 3. PR comment from the Cloudflare bot — bot authors only. This repo is
+  // 3. Check runs. Cloudflare's app renders the preview URL into the check's
+  // output summary, which is where the "Cloudflare Pages: <project>" entry in the
+  // PR's check list gets its content — so it exists whenever the deploy does.
+  //
+  // Restricted to check runs owned by Cloudflare's GitHub App, matching the
+  // bot-author restriction on source 4 below: posting a check run needs an
+  // installed app with write access, a far higher bar than commenting, but the
+  // summary is still attacker-influenced markdown if any other app is installed.
+  // `pick()` is the real backstop; this narrows what reaches it.
+  const checks = await gh(`/repos/${repo}/commits/${sha}/check-runs?per_page=100`)
+  if (Array.isArray(checks?.check_runs)) {
+    for (const c of checks.check_runs) {
+      const slug = c.app?.slug || ''
+      if (!/cloudflare/i.test(slug) && !/^cloudflare pages/i.test(c.name || '')) continue
+      urls.push(...((c.output?.summary || '').match(PAGES_RE) || []))
+      if (c.details_url) urls.push(...(c.details_url.match(PAGES_RE) || []))
+    }
+  }
+
+  // 4. PR comment from the Cloudflare bot — bot authors only. This repo is
   // public, so any GitHub user can comment on a PR, and during the polling
   // window a comment is often the only candidate on offer.
   if (prNumber) {

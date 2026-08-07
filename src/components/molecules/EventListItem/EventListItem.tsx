@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { listRow } from '@/components/molecules/List/List'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { usePrefetchEvent } from '@/hooks/use-prefetch-event'
+import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
 import { EventChips } from '@/components/molecules/EventChips'
@@ -48,7 +48,7 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()
-  const prefetchEvent = usePrefetchEvent()
+  const prefetch = useHoverPrefetch()
 
   // Highlight this event's pin while the card is hovered/focused (no camera move).
   // The unmount cleanup clears any lingering highlight when the card unmounts
@@ -81,9 +81,20 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
 
   // Hover/focus: highlight this card's pin AND warm its detail query so opening it is a
   // cache hit. Shared by pointer + keyboard entry so the two can't drift.
+  //
+  // The highlight is immediate (it's a local paint, and lagging it would make the map
+  // feel unresponsive); the warm is a request, so it waits out a dwell in the shared
+  // gate — dragging the cursor down a paged-out list would otherwise fire one
+  // `GET /events/:id` per row crossed. `deactivate` is the half that makes the dwell
+  // real rather than merely delayed: leaving the row cancels the warm it started.
   const activate = () => {
     highlightEvent(event)
-    prefetchEvent(event.id)
+    prefetch.enter(event.id)
+  }
+
+  const deactivate = () => {
+    highlightEvent(null)
+    prefetch.leave(event.id)
   }
 
   return (
@@ -96,10 +107,10 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
         data-event-row
         className={listRow({ className: 'flex flex-col gap-1 py-4' })}
         href={event.path}
-        onBlur={() => highlightEvent(null)}
+        onBlur={deactivate}
         onFocus={activate}
         onMouseEnter={activate}
-        onMouseLeave={() => highlightEvent(null)}
+        onMouseLeave={deactivate}
       >
         <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
         <EventFacts
