@@ -19,7 +19,8 @@
     "starting_on": "Починаючи з %{date}",
     "starting_soon": "Скоро почнеться",
     "tel": "тел: %{phoneNumber}",
-    "view_photo": "Переглянути фото"
+    "view_photo": "Переглянути фото",
+    "pause_slideshow": "Призупинити слайдшоу"
   },
   "display": {
     "about": "Про це заняття",

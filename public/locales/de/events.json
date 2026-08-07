@@ -19,7 +19,8 @@
     "starting_on": "Beginn am %{date}",
     "starting_soon": "Bald geht es los",
     "tel": "tel: %{phoneNumber}",
-    "view_photo": "Foto ansehen"
+    "view_photo": "Foto ansehen",
+    "pause_slideshow": "Diashow pausieren"
   },
   "display": {
     "about": "Über diesen Kurs",
