@@ -470,7 +470,13 @@ export function reportInternalError(error: unknown, context: string): void {
   const kind = classifyError(error)
 
   try {
-    console[REPORTED_KINDS[kind] ? 'error' : 'warn'](`[${LOG_PREFIX}] ${context}`, error)
+    // Spelled as two calls rather than one computed member, because `no-console` allows
+    // `warn`/`error` by NAME — a `console[level]` form reads as a banned `console.log` to
+    // the rule and fails the lint gate.
+    const line = `[${LOG_PREFIX}] ${context}`
+
+    if (REPORTED_KINDS[kind]) console.error(line, error)
+    else console.warn(line, error)
   } catch {
     // Nothing left to do — a logger that throws is not worth a second attempt.
   }

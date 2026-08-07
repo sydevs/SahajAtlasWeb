@@ -26,7 +26,7 @@ frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
 font-src    <the origin you load the widget from>
 style-src   'unsafe-inline'
-connect-src https://ipwho.is https://cdn.usefathom.com https://*.ingest.sentry.io
+connect-src https://ipwho.is https://cdn.usefathom.com https://*.sentry.io
 ```
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name
@@ -61,13 +61,21 @@ third-party data flows described under
 below; every one of them can be switched off, and blocking any of them in your CSP costs
 only the feature it serves.
 
-`https://*.ingest.sentry.io` is the crash reporter. It is contacted **only after the
-widget has already failed**, never during normal use, and only on a build configured with
-a DSN — so on a healthy page there is no such request to block. Leaving it out of your
-policy is a supported choice: the widget notices the refusal, stops trying for the rest of
-the page's life, and behaves exactly as it would with reporting switched off. If you would
-rather it never attempt the request at all, `error-reporting="false"` is the explicit way
-to say so.
+`https://*.sentry.io` is the crash reporter. It is contacted **only after the widget has
+already failed**, never during normal use, and only on a build configured with a DSN — so
+on a healthy page there is no such request to block.
+
+The wildcard is deliberately that wide. A CSP host wildcard matches a **suffix only**, and
+Sentry organisations created since 2024 get a *regional* ingest host
+(`o123.ingest.us.sentry.io`, `…de.sentry.io`) which `*.ingest.sentry.io` does **not**
+match — a policy written that way would look correct and silently block everything. If you
+prefer to name one host, take the exact one from the DSN rather than deriving it.
+
+Leaving it out of your policy is a supported choice: the widget notices the refusal, stops
+trying for the rest of the page's life, and behaves exactly as it would with reporting
+switched off. You get one blocked request and one CSP-violation entry, not one per error.
+If you would rather it never attempt the request at all, `error-reporting="false"` is the
+explicit way to say so.
 
 `style-src 'unsafe-inline'` is the one hard ask: the widget has no stylesheet to link — it
 registers its CSS by appending `<style>` elements, which carry no nonce. Without it the
