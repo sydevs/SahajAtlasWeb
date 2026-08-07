@@ -43,6 +43,7 @@ const privacy: PrivacySettings = {
  * turn something off. Anything else (absent, empty, `true`) leaves the feature on: an
  * attribute nobody set must never silently disable a flow the host relies on.
  */
-export const attributeEnabled = (value?: string): boolean => value !== 'false' && value !== '0'
+export const attributeEnabled = (value?: string | null): boolean =>
+  value !== 'false' && value !== '0'
 
 export default privacy

@@ -21,17 +21,27 @@ export const supportedLanguages = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt
 // Language detection, spelled out — because `i18next-browser-languagedetector`'s
 // DEFAULTS are wrong for an embedded widget (issue #95). Left implicit, its `order`
 // reads cookies + localStorage and its `caches: ['localStorage']` WRITES `i18nextLng`
-// onto the HOST page's origin: storage we never declared to the integrator, on a domain
-// that isn't ours, through the one storage path in the widget not wrapped against a
-// sandboxed-iframe throw (compare `use-theme.ts`). Detection now reads the `?locale`
+// onto the HOST page's origin: storage on a domain that isn't ours, that no integrator
+// was ever told about — the reason to drop it is the undeclared write itself, not a
+// crash risk (the library does guard the access). Detection now reads the `?locale`
 // query param, then the browser's own language preference, and persists nothing —
 // `caches: []`. Nothing is lost: the widget's language is set per page load by the host
 // (`locale` attribute), the client record, or `?locale`, and a viewer's pick from the
 // settings menu lasts the session either way.
+//
+// Spread into `init` rather than passed by reference — the detector writes its own
+// defaults back into the object it is handed.
 export const i18nDetectionOptions = {
   order: ['querystring', 'navigator'],
   lookupQuerystring: 'locale',
   caches: [],
+  // `?locale=` is a param on the HOST's URL, so anyone who can link to their page can
+  // set it. `cimode` is i18next's own translator-debug pseudo-language: it is appended
+  // to `supportedLngs` internally, skips resource loading, and makes every `t()` return
+  // its raw key — so a link ending `?locale=cimode` renders somebody's embed as a list
+  // of dotted key names. It is the one detected value that has to be refused.
+  convertDetectedLanguage: (language: string) =>
+    /^(cimode|dev)$/i.test(language) ? 'en' : language,
 }
 
 export const i18nSharedOptions = {

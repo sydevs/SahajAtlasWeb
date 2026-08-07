@@ -20,7 +20,9 @@ i18n
     // inside somebody else's page — a host's console is not ours to fill (issue #95).
     debug: import.meta.env.DEV,
     ...i18nSharedOptions,
-    detection: i18nDetectionOptions,
+    // Copied, not shared: the detector merges its own defaults into whatever object it
+    // is given, which would mutate the module's exported config in place.
+    detection: { ...i18nDetectionOptions },
     backend: {
       crossDomain: true,
       loadPath: (lng, ns) => `${import.meta.env.VITE_HOST}/locales/${lng}/${ns}.json`,

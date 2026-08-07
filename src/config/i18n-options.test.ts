@@ -119,15 +119,22 @@ const UNTRANSLATED_EVENT_KEYS = [
 ]
 
 describe('locale key parity', () => {
-  it.each(offeredButNotEnglish)('%s: translates every key in the common namespace', (lng) => {
+  it.each(offeredButNotEnglish)('%s: answers every common-namespace key', (lng) => {
     // `common` is the widget's own chrome — controls, settings labels, accessible
     // names. It is small, and nothing in it should ever be answered in English to
     // someone who picked another language.
     expect(untranslated(lng, 'common')).toEqual([])
   })
 
-  it.each(offeredButNotEnglish)('%s: translates every event key but the known gaps', (lng) => {
-    expect(untranslated(lng, 'events')).toEqual(UNTRANSLATED_EVENT_KEYS)
+  it.each(offeredButNotEnglish)('%s: answers every event key but the known gaps', (lng) => {
+    // A SUPERSET check, deliberately: translations land one language at a time, and a
+    // gate that goes red when German fills in one of the seven would punish the fix.
+    // Shrinking the list is the ratchet's job, below.
+    const unexpected = untranslated(lng, 'events').filter(
+      (key) => !UNTRANSLATED_EVENT_KEYS.includes(key),
+    )
+
+    expect(unexpected).toEqual([])
   })
 
   it('lists no key that has since been translated everywhere', () => {
@@ -149,7 +156,22 @@ describe('i18nDetectionOptions', () => {
       order: ['querystring', 'navigator'],
       lookupQuerystring: 'locale',
       caches: [],
+      convertDetectedLanguage: expect.any(Function),
     })
+  })
+
+  // `?locale=` rides on the HOST's URL, so anyone who can link to their page can set
+  // it. `cimode` is i18next's translator-debug pseudo-language — it bypasses
+  // `supportedLngs` and makes every `t()` return its raw key, which would render an
+  // embed as a list of dotted key names.
+  it('refuses i18next debug pseudo-languages from the query param', () => {
+    const { convertDetectedLanguage: convert } = i18nDetectionOptions
+
+    expect(convert('cimode')).toBe('en')
+    expect(convert('CIMODE')).toBe('en')
+    expect(convert('dev')).toBe('en')
+    expect(convert('de')).toBe('de')
+    expect(convert('pt-BR')).toBe('pt-BR')
   })
 })
 

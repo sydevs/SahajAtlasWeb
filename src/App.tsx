@@ -204,19 +204,27 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
     !!primaryDomain &&
     !primaryDomain.includes('localhost')
   const lastTracked = useRef('')
+  // Whether the tracker on this page is OURS. `Fathom.load` returns early if
+  // `window.fathom` already exists, so on a host that runs its own Fathom we would
+  // otherwise write our routes into THEIR site — and the guarantees below are
+  // properties of our script tag, not theirs.
+  const ownsTracker = useRef(false)
 
   useEffect(() => {
+    if (!fathomEnabled || 'fathom' in window) return
+
+    ownsTracker.current = true
     // `auto: false` matters more than it looks: left on (the default), Fathom's script
     // records the page it lands on — the HOST's real URL, query string and all, which
     // may carry a reset token or an OAuth param and is not ours to send anywhere. The
     // effect below reports the widget's own route under the client's primary domain
     // instead, which is the only thing this analytics is for. `honorDNT` because a
     // visitor who set the header has already answered the question.
-    if (fathomEnabled) Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
+    Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
   }, [fathomEnabled])
 
   useEffect(() => {
-    if (!fathomEnabled || lastTracked.current === location.pathname) return
+    if (!fathomEnabled || !ownsTracker.current || lastTracked.current === location.pathname) return
     lastTracked.current = location.pathname
     Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
   }, [location.pathname, fathomEnabled, primaryDomain])
