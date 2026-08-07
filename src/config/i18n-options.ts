@@ -36,6 +36,16 @@ export const i18nDetectionOptions = {
 
 export const i18nSharedOptions = {
   fallbackLng: 'en',
+  // Not decoration — it is what makes `supportedLanguages` the resolvable set rather
+  // than a list the picker happens to draw from. i18next resolves a language into a
+  // CHAIN and the backend fetches every link, so without this a `pt-BR` viewer also
+  // fetched `/locales/pt/*` (two guaranteed 404s, since we ship `pt-BR` and not `pt`)
+  // and a `de-DE` browser fetched `/locales/de-DE/*` before finding the `de` we do
+  // ship. With it, both resolve straight to the shipped bundle. Measured against
+  // i18next itself in `i18n-options.test.ts` — it costs nothing at the SahajCloud
+  // boundary, because `resolvedLanguage` (what `activeLocale()` sends) already
+  // answered `en` for an unshipped language either way.
+  supportedLngs: supportedLanguages,
   defaultNS: 'common',
   ns: ['common', 'events'],
   interpolation: {

@@ -28,10 +28,7 @@ type WidgetProps = {
   // only (no Mapbox, no token needed) — the mode-agnostic <sahaj-atlas> element.
   map?: string
   // The two third-party data flows a host may have to decline, same "false"/"0"
-  // spelling as `map` (see config/privacy.ts). `analytics="false"` keeps the Fathom
-  // tracker out of the page; `geolocation="false"` keeps the visitor's IP away from the
-  // IP-geolocation service, at the cost of the nearby suggestion and localized online
-  // times. Both default on, so an existing embed is unchanged.
+  // spelling as `map` — see config/privacy.ts.
   analytics?: string
   geolocation?: string
   // Per-embed brand palette (hex). Each role overrides the client record's
@@ -143,7 +140,7 @@ function Atlas({
     mount.current = claimFragment(mountRoute(window.location.hash, basePath))
   }
 
-  const hasMap = map !== 'false' && map !== '0'
+  const hasMap = attributeEnabled(map)
 
   // The widget scopes its theme to this wrapper so it never mutates the host
   // page's <html>. Set the initial light/dark class synchronously to avoid a

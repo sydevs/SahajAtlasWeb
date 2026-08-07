@@ -146,5 +146,10 @@
   },
   "widget": {
     "label": "Sahaj Atlas — kostenlose Meditationskurse"
+  },
+  "theme": {
+    "light": "Helles Design",
+    "dark": "Dunkles Design",
+    "auto": "System (automatisch)"
   }
 }

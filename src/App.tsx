@@ -189,9 +189,7 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
   // map-click landing on the same URL isn't double-counted.
   //
   // Fathom injects OUR tracker script into the HOST's page, so the host gets the last
-  // word: `analytics="false"` on <sahaj-atlas> keeps it out entirely (issue #95). The
-  // build-time `VITE_FATHOM_ID` and the client record's real (non-localhost) domain
-  // remain the other two conditions — all three must hold.
+  // word: `analytics="false"` on <sahaj-atlas> keeps it out entirely (issue #95).
   const primaryDomain = useMemo(
     () =>
       client.allowedDomains

@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { createInstance } from 'i18next'
@@ -76,19 +76,124 @@ describe('supportedLanguages', () => {
   })
 })
 
-describe('i18nDetectionOptions', () => {
-  it('reads the locale query param and the browser preference, nothing else', () => {
-    expect(i18nDetectionOptions.order).toEqual(['querystring', 'navigator'])
-    expect(i18nDetectionOptions.lookupQuerystring).toBe('locale')
+// Widening the picker from two languages to ten makes the en fallback visible where it
+// never was: eight more audiences now see whatever their bundle is missing. `hu` shipped
+// with no `widget.label` at all — the accessible name of the widget root's
+// `role="region"` landmark (#92) — so a Hungarian embed announced an English name under
+// `lang="hu"`, the exact WCAG 3.1.2 mispronunciation that `lang` was added to prevent,
+// and WebKit drops the landmark entirely if that name ever resolves empty.
+const flatEntries = (value: unknown, prefix = ''): [string, unknown][] =>
+  typeof value === 'object' && value !== null
+    ? Object.entries(value).flatMap(([key, child]) => flatEntries(child, `${prefix}${key}.`))
+    : [[prefix.slice(0, -1), value]]
+
+const bundle = (locale: string, ns: string): unknown =>
+  JSON.parse(readFileSync(`${localesDir}/${locale}/${ns}.json`, 'utf8'))
+
+/** en keys with no non-blank translation in `locale`. Extra keys are fine — a language
+ *  with more plural categories than English (cs/ru/uk `_few`/`_many`) needs them. */
+const untranslated = (locale: string, ns: string): string[] => {
+  const translated = new Map(flatEntries(bundle(locale, ns)))
+
+  return flatEntries(bundle('en', ns))
+    .map(([key]) => key)
+    .filter((key) => !String(translated.get(key) ?? '').trim())
+}
+
+const offeredButNotEnglish = supportedLanguages.filter((lng) => lng !== 'en')
+
+/**
+ * Event-domain copy that landed after the last translation pass and renders the en
+ * fallback in every language. Enumerated rather than ignored, so the debt is a
+ * reviewable list naming what is missing — and the second test ratchets it: translate
+ * one everywhere and the gate tells you to delete the line.
+ */
+const UNTRANSLATED_EVENT_KEYS = [
+  'details.share_meditation',
+  'questions.accessibility',
+  'questions.guests',
+  'questions.healthInfo',
+  'questions.priorExperience',
+  'questions.referralSource',
+  'registration.register_meditation',
+]
+
+describe('locale key parity', () => {
+  it.each(offeredButNotEnglish)('%s: translates every key in the common namespace', (lng) => {
+    // `common` is the widget's own chrome — controls, settings labels, accessible
+    // names. It is small, and nothing in it should ever be answered in English to
+    // someone who picked another language.
+    expect(untranslated(lng, 'common')).toEqual([])
   })
 
-  // The default `caches: ['localStorage']` writes `i18nextLng` onto the HOST page's
-  // origin — undeclared storage on someone else's domain, and the one storage path the
-  // widget doesn't wrap against a sandboxed-iframe throw (issue #95).
-  it('persists no language cache on the host origin', () => {
-    expect(i18nDetectionOptions.caches).toEqual([])
-    expect(i18nDetectionOptions.order).not.toContain('localStorage')
-    expect(i18nDetectionOptions.order).not.toContain('sessionStorage')
-    expect(i18nDetectionOptions.order).not.toContain('cookie')
+  it.each(offeredButNotEnglish)('%s: translates every event key but the known gaps', (lng) => {
+    expect(untranslated(lng, 'events')).toEqual(UNTRANSLATED_EVENT_KEYS)
+  })
+
+  it('lists no key that has since been translated everywhere', () => {
+    const stale = UNTRANSLATED_EVENT_KEYS.filter((key) =>
+      offeredButNotEnglish.every((lng) => !untranslated(lng, 'events').includes(key)),
+    )
+
+    expect(stale, 'translated everywhere — remove from UNTRANSLATED_EVENT_KEYS').toEqual([])
+  })
+})
+
+describe('i18nDetectionOptions', () => {
+  // An exact shape, not a set of `not.toContain`s: the whole defect was that the
+  // options left OUT were supplied by the library — `caches: ['localStorage']` writing
+  // `i18nextLng` onto the HOST page's origin, and an `order` that read cookies and
+  // storage to find it (issue #95). Only an exhaustive assertion says "nothing else".
+  it('reads the locale query param and the browser preference, and persists nothing', () => {
+    expect(i18nDetectionOptions).toEqual({
+      order: ['querystring', 'navigator'],
+      lookupQuerystring: 'locale',
+      caches: [],
+    })
+  })
+})
+
+// `supportedLngs` is where the picker's list becomes a runtime contract, and what it
+// does is i18next's business, not ours — so this asserts the round trip against the
+// library rather than the option's value (see `.claude/rules/tests.md`). The backend is
+// a stub that answers only for a shipped bundle and records what was asked for, which is
+// exactly what the HTTP backend does over the network.
+const resolveThrough = async (lng: string) => {
+  const requested = new Set<string>()
+  const instance = createInstance()
+
+  await instance
+    .use({
+      type: 'backend',
+      init: () => {},
+      read: (language: string, _ns: string, done: (err: unknown, data: unknown) => void) => {
+        requested.add(language)
+
+        const ships = supportedLanguages.includes(language)
+
+        done(ships ? null : new Error('404'), ships ? { greeting: 'hello' } : false)
+      },
+    })
+    .init({ ...i18nSharedOptions, lng })
+
+  return { fetched: [...requested], resolved: instance.resolvedLanguage }
+}
+
+describe('supportedLngs', () => {
+  it('fetches only bundles that ship, for a regional tag we do and do not ship', async () => {
+    // `en-US` is what a US browser reports and what the deployed widget was seen
+    // fetching — two 404s per page load before this option, on every host page.
+    expect(await resolveThrough('en-US')).toEqual({ fetched: ['en'], resolved: 'en' })
+    // `de` ships and `de-DE` does not, so a German browser's tag resolves to the
+    // bundle we have; `pt-BR` ships and bare `pt` does not, so it must NOT be asked
+    // for — which is why `load: 'languageOnly'` would be the wrong fix here.
+    expect(await resolveThrough('de-DE')).toEqual({ fetched: ['de', 'en'], resolved: 'de' })
+    expect(await resolveThrough('pt-BR')).toEqual({ fetched: ['pt-BR', 'en'], resolved: 'pt-BR' })
+  })
+
+  it('falls back to en without fetching a language we do not ship', async () => {
+    // And `resolvedLanguage` stays `en` — which is what `activeLocale()` sends
+    // SahajCloud, so restricting the set changes nothing at that boundary.
+    expect(await resolveThrough('ja')).toEqual({ fetched: ['en'], resolved: 'en' })
   })
 })

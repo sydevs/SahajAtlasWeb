@@ -13,13 +13,18 @@
  *
  * Both default to enabled, so an existing embed behaves exactly as it did.
  *
- * A mutable in-memory singleton set once from the element's props, mirroring
- * `config/api/auth.ts` and `config/preview.ts`: page-global boot state, read directly
- * where it's needed rather than threaded through context. Nothing here is persisted,
- * and nothing re-renders on a change — a host flipping the attribute mid-session takes
- * effect on the next page load, which is when a consent decision is made anyway.
+ * A mutable in-memory singleton, mirroring `config/api/auth.ts` and `config/preview.ts`:
+ * page-global settings read directly where they're needed rather than threaded through
+ * `WidgetMode` — which would put the analytics flag through four App signatures to reach
+ * one expression, and give `useRecoveryOffer` (which renders above the provider, inside
+ * `RootBoundary`) the context default instead of the host's answer. Nothing is persisted.
+ *
+ * `Atlas` rewrites both on every render, so a host that changes an attribute mid-session
+ * is honoured from the next render on. One direction can't be taken back: a Fathom script
+ * already injected into the page stays there, since Fathom has no unload — switching
+ * analytics off stops the pageviews, not the script.
  */
-export type PrivacySettings = {
+type PrivacySettings = {
   /** Load Fathom and send pageviews (also requires VITE_FATHOM_ID + a real domain). */
   analytics: boolean
   /** Allow the passive IP-location lookup behind the nearby suggestion + online times. */
@@ -32,11 +37,11 @@ const privacy: PrivacySettings = {
 }
 
 /**
- * Read a boolean custom-element attribute. r2wc hands every attribute through as a
- * string, so `false` and `0` are the two spellings an integrator writes to turn
- * something off — the same convention `map="false"` already uses. Anything else
- * (absent, empty, `true`) leaves the feature on: an attribute nobody set must never
- * silently disable a flow the host is relying on.
+ * Read a boolean custom-element attribute — the shared reader for all three of them
+ * (`map` included), so the spelling can't diverge per attribute. r2wc hands every
+ * attribute through as a string, and `false`/`0` are the two an integrator writes to
+ * turn something off. Anything else (absent, empty, `true`) leaves the feature on: an
+ * attribute nobody set must never silently disable a flow the host relies on.
  */
 export const attributeEnabled = (value?: string): boolean => value !== 'false' && value !== '0'
 

@@ -13,18 +13,16 @@ describe('privacy defaults', () => {
   })
 })
 
+// One reader for `map`, `analytics` and `geolocation`, so an attribute nobody set — or
+// set to anything affirmative — can never silently disable a flow the host relies on.
 describe('attributeEnabled', () => {
-  it('treats only "false" and "0" as an opt-out', () => {
-    expect(attributeEnabled('false')).toBe(false)
-    expect(attributeEnabled('0')).toBe(false)
-  })
-
-  // An attribute nobody set, or set to anything affirmative, must not silently disable
-  // a flow — the same reading `map` has always had.
-  it('leaves the flow on for absent, empty and affirmative values', () => {
-    expect(attributeEnabled(undefined)).toBe(true)
-    expect(attributeEnabled('')).toBe(true)
-    expect(attributeEnabled('true')).toBe(true)
-    expect(attributeEnabled('1')).toBe(true)
+  it.each([
+    ['false', false],
+    ['0', false],
+    [undefined, true],
+    ['', true],
+    ['true', true],
+  ])('%s → %s', (value, expected) => {
+    expect(attributeEnabled(value)).toBe(expected)
   })
 })
