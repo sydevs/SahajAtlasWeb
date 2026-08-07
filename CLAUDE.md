@@ -26,11 +26,11 @@ event hierarchy.
 
 | Concern        | Choice |
 | -------------- | ------ |
-| Build tool     | Vite 5 (`vite.config.ts`), SPA, `type: module` |
+| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js` |
 | UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
 | Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash |
-| Data           | **TanStack Query** + `axios` (`src/config/api/`), **zod**-validated responses |
+| Data           | **TanStack Query** + **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-validated responses |
 | State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
 | i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |
 | Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
@@ -102,23 +102,23 @@ src/
   Widget.tsx          # Web-component entry — defines <sahaj-atlas> (map prop), wraps <App>
   App.tsx             # Providers + client bootstrap; renders the map (or not) + DrawerStack
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
-  providers.tsx       # React Query + Helmet + theme providers
+  providers.tsx       # React Query + Helmet (Radix is headless; BrandTheme mounts in App)
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
     atoms/            # Primitives: Drawer/, Modal/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
-    molecules/        # Compositions: Toolbar/, List/, ListItem/, EventListItem/, EventTime|Share|Images|Soon/, EventMetadata/, Fallbacks/
-    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, Mapbox/
+    molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, ActionRow/, EventMetadata/, ImageCarousel/, ShareContent/, FormField/, Fallbacks/
+    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
-  views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Calendar/Region/Event/Registration/Share
+  views/              # URL-driven drawer views (replace pages/): DrawerStack + Countries (the base)/Search/Calendar/Region/Online/Event/Registration/Filter/Share
   config/
     api/              # PayloadSDK client + zod-parsed fetchers (client.ts, fetch.ts, mutate.ts, auth.ts) + query factories (index.ts)
-    store.ts          # zustand stores (view / registration-draft / calendar-position; filters live in the URL)
+    store.ts          # zustand stores (view / camera-history / calendar-position / results-reveal / report-modal / registration-draft; filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
-    site.ts, responsive.ts
+    responsive.ts, query-client.ts, i18n-options.ts, preview.ts, theme/
   hooks/              # use-locale, use-mapbox, use-map-controller, use-theme
   lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
-                      # entity codecs (filters, sort, path, country, hierarchy); geo/camera/ics
+                      # entity codecs (filters, sort, path, country, hierarchy); geo.ts + camera.ts
                       # the maths; share/platforms.ts + country-sites.ts the static
                       # country-keyed tables (that's where such data belongs, not a src/data/);
                       # report.ts the never-throws error narrowing (errorMessage/classifyError/
@@ -142,7 +142,7 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   `useShallow` selectors in hot paths (the map). See `.claude/rules/i18n-and-state.md`.
 - **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
   `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open
-  drawers; `DrawerStack` renders RootView (base) + one nested vaul drawer per
+  drawers; `DrawerStack` renders CountriesView (base) + one nested vaul drawer per
   ancestor. No drawer-stack store. Dismissal is **history-aware**: every in-widget
   push stamps `location.state.depth` (`atlasPushState`, via the `Link` atom +
   `useAtlasNavigate`), so X / swipe / Esc go chronologically **back**

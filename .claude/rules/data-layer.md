@@ -112,10 +112,26 @@ react-router renders the string as the anchor's `href` — a plain click is inte
 but middle-click, ctrl-click and "copy link address" hand the browser the off-origin URL.
 `src/lib/shape/path.test.ts` pins each case.
 
-The `Link` atom is the backstop: an href that is neither site-relative nor
+The `Link` atom is the backstop: an href that is neither `safePath`-clean nor
 `https:`/`mailto:`/`tel:` renders as text and reports itself, because its internal branch
 hands an absolute `to` to react-router, which puts it on a plain anchor — a `javascript:`
 string arriving there would run in the HOST page's realm.
+
+Two properties of that guard are load-bearing and were each restored after being lost:
+
+- **The href alone decides it, before `isExternal` / `target="_blank"` are read.** Those
+  flags say how a link should RENDER; while they shared an expression with the scheme test
+  they short-circuited it, so an unsafe href passed alongside either one skipped the guard.
+- **It calls `safePath`, not `href.startsWith('/')`.** react-router's `ABSOLUTE_URL_REGEX`
+  matches a `//` prefix, so `//evil.com` is rendered verbatim *and* loses react-router's
+  click interception — a left-click leaves the host page. Reusing `safePath` keeps one
+  definition of "same-origin route" rather than a second, weaker one in the atom.
+
+The atom is **not** the app's only anchor: the `Button` atom's href form and
+`ActionRow`/`ActionCircle` render their own `<a>` and never reach it. Their hrefs are safe
+by provenance today (`SafeUrlSchema`, a `directionsUrl` we build, literal `mailto:`/`tel:`
+prefixes), not by a shared gate — lifting one predicate into `src/lib/shape/` for all three
+is a known follow-up.
 
 ## Mutations (`src/config/api/mutate.ts`)
 

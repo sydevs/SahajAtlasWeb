@@ -20,15 +20,15 @@ Format: `<type>(<scope>): <subject>`
 
 (Extend as new areas appear.)
 
-- `map` — Mapbox map, layers, clustering, view state (`src/components/mapbox/`)
+- `map` — Mapbox map, layers, clustering, view state (`src/components/organisms/Mapbox/`)
 - `search` — search bar / location search
-- `api` — data layer, axios client, fetchers (`src/config/api/`)
+- `api` — data layer, `@payloadcms/sdk` client, fetchers (`src/config/api/`)
 - `event` / `venue` / `region` / `area` / `country` — entity pages & components
 - `list` — event list views
 - `i18n` — localization, locale files
 - `state` — zustand stores
 - `widget` — web-component embedding, routing, providers
-- `ui` — NextUI/Tailwind components, theming, accent
+- `ui` — Radix/Tailwind components, theming, accent
 - `deps` — dependencies
 - `build` — Vite / TypeScript / build config
 - `claude` — `.claude/*` config, hooks, rules, skills
