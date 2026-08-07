@@ -59,10 +59,27 @@ const MapControllerContext = createContext<MapController>(NOOP)
 
 export const useMapController = () => useContext(MapControllerContext)
 
-// The fixed left-drawer footprint (matches --sy-drawer-w in the Drawer atom) and
-// the mobile peek height, fed to map padding directly — so the camera/controls
-// aren't occluded, without ever DOM-measuring the panel.
-const LEFT_DRAWER_PX = 352
+// The fixed left-drawer footprint and the mobile peek height, fed to map padding
+// directly — so the camera/controls aren't occluded, without ever DOM-measuring the panel.
+//
+// **`DRAWER_W_REM` is one half of a pair — see the other half before changing it.** The
+// drawer's actual width is the `22rem` fallback baked into its Tailwind classes,
+// `w-[var(--sy-drawer-w,22rem)]` in `components/atoms/Drawer/Drawer.tsx` and
+// `views/DrawerStack/DrawerStack.tsx`. A class string can't read a value from here (the
+// Tailwind JIT scanner needs a literal), so the two can only be kept in step by hand;
+// both of those sites carry a comment pointing back at this constant. Move one alone and
+// the map's camera padding silently stops matching the panel that occludes it — nothing
+// fails, the framing is just wrong by the difference.
+//
+// The rem→px conversion assumes the browser default 16px root font. Two things therefore
+// desync this without touching either literal: a host that restyles the root font size,
+// and a host that overrides the `--sy-drawer-w` custom property (nothing in this repo
+// sets it, so today the fallback always wins). Reading the resolved variable at runtime
+// would cover both and was considered — and rejected, because it puts a DOM read in the
+// map's hot path to serve an override that is not a supported feature yet. If hosts are
+// ever invited to set that variable, this is the constant that has to start resolving it.
+const DRAWER_W_REM = 22
+const LEFT_DRAWER_PX = DRAWER_W_REM * 16
 const MOBILE_PEEK_PX = 128
 const MAP_MARGIN = 20
 
