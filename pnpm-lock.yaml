@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   vaul@1.1.2:
-    hash: meiuiyyehgfgwkyzh6tibfvqs4
+    hash: vws2jspvtu54iwgjipl6x3nwrq
     path: patches/vaul@1.1.2.patch
 
 importers:
@@ -180,7 +180,7 @@ importers:
         version: 3.4.3
       vaul:
         specifier: 1.1.2
-        version: 1.1.2(patch_hash=meiuiyyehgfgwkyzh6tibfvqs4)(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 1.1.2(patch_hash=vws2jspvtu54iwgjipl6x3nwrq)(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       vite-plugin-css-injected-by-js:
         specifier: ^5.0.1
         version: 5.0.1(vite@8.1.4(@types/node@22.20.1)(esbuild@0.28.1)(jiti@1.21.7)(tsx@4.22.4)(yaml@2.7.0))
@@ -11325,7 +11325,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vaul@1.1.2(patch_hash=meiuiyyehgfgwkyzh6tibfvqs4)(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  vaul@1.1.2(patch_hash=vws2jspvtu54iwgjipl6x3nwrq)(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@radix-ui/react-dialog': 1.1.18(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1

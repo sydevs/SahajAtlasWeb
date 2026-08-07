@@ -63,6 +63,20 @@ function isPseudoElement(node) {
 }
 
 /**
+ * The prefix, wrapped in `:where()` so it contributes ZERO specificity.
+ *
+ * This is load-bearing, not tidiness. A bare `.sy-atlas` prefix raises every rule in the
+ * sheet by one class — including Tailwind's Preflight — and that outranks third-party CSS
+ * a library injects into the document at RUNTIME, which this pass never sees and so never
+ * lifts to match. It broke the Mapbox geocoder: scoped Preflight `.sy-atlas input`
+ * (0,1,1) beat Mapbox's own `.mbx…--Input { padding: 0 40px }` (0,1,0), the input lost its
+ * padding and the search icon sat on top of the placeholder. With `:where()` every rule
+ * keeps exactly the specificity it had, so the cascade inside the widget is unchanged and
+ * only the REACH of each selector is narrowed — which is all this pass is for.
+ */
+const prefix = (scope) => `:where(.${scope})`
+
+/**
  * Prefix one selector so it can only match inside the widget.
  *
  * Pure and exported so the tricky shapes are covered by the unit lane rather than only
@@ -77,33 +91,36 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
   const sel = root.first
 
   if (!sel || sel.nodes.length === 0) return selector
+  if (isSelectorScoped(selector, scope)) return selector
 
   const first = sel.nodes[0]
 
   // Already scoped by hand (`.sy-atlas`, `.sy-atlas.dark`, `.sy-atlas .foo`) — leave it.
+  // Hand-written scope selectors keep their real specificity on purpose: they are ours,
+  // and they are meant to beat the collapsed `:root` blocks they sit alongside.
   if (first.type === 'class' && first.value === scope) return selector
 
   // A root selector, alone or leading a compound (`html.dark`, `body > .foo`): swap the
-  // root token for the scope class in place.
+  // root token for the scope, which is the root of the widget's world.
   if (
     (first.type === 'tag' || first.type === 'pseudo') &&
     ROOT_SELECTORS.has(first.type === 'tag' ? first.value : first.value.toLowerCase())
   ) {
-    first.replaceWith(selectorParser.className({ value: scope }))
+    const rest = sel.nodes.slice(1).join('')
 
-    return root.toString()
+    return `${prefix(scope)}${rest}`
   }
 
   // A bare theme class — compound onto the scope element, which is where it lives.
   if (sel.nodes.length === 1 && first.type === 'class' && THEME_CLASSES.has(first.value)) {
-    return `.${scope}${selector}`
+    return `${prefix(scope)}${selector}`
   }
 
   const hasCombinator = sel.nodes.some((node) => COMBINATORS.has(node.type))
 
   // No combinator: a plain descendant prefix already says everything `:is()` would, and
   // keeps the output readable (and shorter — this is most of the stylesheet).
-  if (!hasCombinator) return `.${scope} ${selector}`
+  if (!hasCombinator) return `${prefix(scope)} ${selector}`
 
   // With a combinator the selector has to be wrapped so its own ancestor parts can be
   // satisfied BY the scope element. Trailing pseudo-elements move outside the wrapper:
@@ -117,12 +134,15 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
     node.remove()
   }
 
-  return `.${scope} :is(${sel.toString().trim()})${trailing.join('')}`
+  return `${prefix(scope)} :is(${sel.toString().trim()})${trailing.join('')}`
 }
 
-/** Does this selector already sit inside the widget scope? */
+/**
+ * Does this selector already sit inside the widget scope? Accepts both the pass's own
+ * `:where(.sy-atlas)` prefix and a hand-written `.sy-atlas` selector.
+ */
 export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
-  return new RegExp(`^\\.${scope}(?![\\w-])`).test(selector.trim())
+  return new RegExp(`^(:where\\()?\\.${scope}(?![\\w-])`).test(selector.trim())
 }
 
 /** Rules inside `@keyframes` are `from`/`to`/`50%` — not selectors, never prefixed. */
