@@ -3,10 +3,10 @@
 # Pre-PR validation.
 #
 # Default (lean gate): lint + typecheck + unit tests. Fast feedback before a PR.
-# --full: reproduce CI locally — + the production build.
+# --full: reproduce CI locally — + the production build and the size budget.
 #
 # CI (.github/workflows/ci.yml) is the source of truth:
-# lint + typecheck + test:run + build.
+# lint + typecheck + test:run + build + size.
 #
 # Usage:
 #   .claude/skills/pr-prep/check.sh            # lint + typecheck + unit
@@ -57,9 +57,21 @@ if [[ "$MODE" == "--full" ]]; then
   fi
   echo "✓ Build passed"
   echo
+
+  # Needs the build above, which is the whole reason it lives in --full: it is
+  # the one CI step the lean gate structurally cannot reach.
+  echo "=== Bundle-size budget ==="
+  if ! pnpm size; then
+    echo
+    echo "❌ Eager payload is outside its budget. See scripts/check-bundle-size.mjs."
+    exit 1
+  fi
+  echo "✓ Bundle size within budget"
+  echo
 else
   echo "ℹ Lean gate only (lint + typecheck + unit). Use --full to also run the"
-  echo "  production build. CI runs lint + typecheck + test:run + build on the PR."
+  echo "  production build + size budget. CI runs lint + typecheck + test:run +"
+  echo "  build + size on the PR."
   echo
 fi
 

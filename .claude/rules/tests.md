@@ -10,8 +10,27 @@ Two lanes, kept separate so the fast one never touches the network:
 - `pnpm test` — watch (inner loop). `pnpm test:run` — one-shot (CI + the pre-PR
   gate + the PostToolUse hook). `pnpm test:smoke` — needs `PREVIEW_URL`; skips
   gracefully without it.
-- CI gate runs `lint + typecheck + test:run + build + ladle:build`. The smoke job
-  runs separately against the deployed Cloudflare preview.
+- CI gate runs `lint + typecheck + test:run + build + size + ladle:build`. A
+  Dependency Audit job and the smoke job run separately; the smoke job targets
+  the deployed Cloudflare preview.
+
+## The smoke lane's two invariants (issue #99)
+
+- **A green Smoke check means the specs ran.** Discovery emits an empty URL and
+  exits 0 when no preview turns up, and the specs then `skipIf` themselves — so
+  the workflow annotates that state and **fails** it on same-repo PRs, where a
+  preview was expected. Forks and local runs keep the graceful skip. If you add a
+  spec, guard it with `test.skipIf(skipWithoutPreview)` like its siblings; the
+  loudness belongs to the job, not the spec.
+- **Status is not a result.** `public/_redirects` is `/* /index.html 200`, so
+  Cloudflare answers **200 `text/html`** for any path that isn't a built asset.
+  A spec asserting `res.status === 200` therefore passes for a missing file —
+  `embed.smoke.test.ts` learned this the hard way. Assert on the body or the
+  content type.
+
+The lane covers `embed.js` as well as the standalone page: the embed is what a
+host installs, so a deploy that breaks it while `index.html` stays healthy must
+not be a green check.
 
 ## Decision: node-only (no jsdom / Testing Library)
 

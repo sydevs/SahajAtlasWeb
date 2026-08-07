@@ -11,11 +11,12 @@ Validates that the current branch is PR-ready.
 | Gate                | Command                                        | Where                      |
 | ------------------- | ---------------------------------------------- | -------------------------- |
 | **Lean (default)**  | `pnpm lint && pnpm typecheck && pnpm test:run` | This skill, locally (fast) |
-| **Full (`--full`)** | + `pnpm build`                                 | Mirrors CI (`ci.yml`)      |
+| **Full (`--full`)** | + `pnpm build && pnpm size`                    | Mirrors CI (`ci.yml`)      |
 
-CI's gate is **lint + typecheck + test:run + build** (plus `ladle:build`, and a
-separate smoke job against the Cloudflare preview). The lean gate runs the fast
-node-only unit lane; `--full` adds the production build. See
+CI's gate is **lint + typecheck + test:run + build + size** (plus `ladle:build`,
+a separate dependency-audit job, and a separate smoke job against the Cloudflare
+preview). The lean gate runs the fast node-only unit lane; `--full` adds the
+production build and the eager-payload budget that reads it. See
 `.claude/rules/tests.md`.
 
 ## Quick start
@@ -30,8 +31,8 @@ node-only unit lane; `--full` adds the production build. See
 1. **Lint passes**: `pnpm lint`
 2. **Types check**: `pnpm typecheck`
 3. **Unit tests pass**: `pnpm test:run`
-4. **Build** (for build-affecting changes — deps, vite/ts config, entry points):
-   `pnpm build`
+4. **Build + size** (for build-affecting changes — deps, vite/ts config, entry
+   points): `pnpm build && pnpm size`
 5. **Visual check** (UI / map changes): run `pnpm dev` and verify in the widget,
    or drive it with the Playwright MCP and capture a screenshot.
 
@@ -41,6 +42,9 @@ node-only unit lane; `--full` adds the production build. See
 - `vite.config.ts` / `tsconfig.json` changes
 - Changes to entry points (`Widget.tsx`, `main.tsx`) or the web-component wiring
 - Anything that could break the production bundle but not the dev server
+- **Any new eager import.** The size budget only exists downstream of a build,
+  so making a view or library load at startup is invisible to the lean gate and
+  fails in CI instead.
 
 ## PR description format
 

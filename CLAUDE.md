@@ -54,6 +54,8 @@ pnpm lint:fix     # eslint . --fix (auto-fix + Prettier)
 pnpm test         # vitest watch (fast unit lane)
 pnpm test:run     # vitest run (one-shot — CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
+pnpm size         # eager-payload budget (CI gate — run after pnpm build)
+pnpm audit:check  # dependency-advisory gate vs scripts/audit-baseline.json
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
 ```
@@ -62,8 +64,26 @@ Two test lanes (see `.claude/rules/tests.md`): a **fast node-only unit lane**
 (co-located `src/**/*.test.ts(x)`, no jsdom — assert components via
 `renderToStaticMarkup`) and a **smoke lane** (`tests/smoke/`, fetch-based against
 the Cloudflare preview). CI (`.github/workflows/ci.yml`) gates PRs on
-lint + typecheck + **test:run** + build + `ladle:build`; the smoke job runs
-separately. A PostToolUse hook runs the unit lane on `src/**` edits.
+lint + typecheck + **test:run** + build + **`pnpm size`** + `ladle:build`, plus a
+**Dependency Audit** job; the smoke job runs separately. A PostToolUse hook runs
+the unit lane on `src/**` edits.
+
+Three of those gates exist because the thing they check had already gone wrong
+unnoticed (issue #99), and each is built so that passing means something:
+
+- **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the **eager payload**
+  — the standalone shell's entry + modulepreload closure, and `embed.js`'s import
+  graph, gzipped. Never budget a single chunk: the build re-chunks freely. It
+  fails when a graph is far **under** budget too, since that is both a ratchet
+  (lower `BUDGET_KIB` in the commit that won the space) and the signature of the
+  import walker half-breaking.
+- **`pnpm audit:check`** (`scripts/check-audit.mjs`) fails on a high/critical
+  advisory that isn't pinned in `scripts/audit-baseline.json` — green today, red
+  on a new one. Waiving one is a reviewable line naming the owning ticket. The
+  weekly `audit.yml` adds `--strict`, which also fails on baseline entries that
+  have since been fixed, where it can't block anyone's PR.
+- **A green Smoke check implies the specs ran.** A missing Cloudflare preview
+  annotates, and fails outright on same-repo PRs; forks keep the graceful skip.
 
 ## Code quality
 
