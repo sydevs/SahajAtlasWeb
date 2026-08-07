@@ -85,16 +85,10 @@ describe('AddToCalendar', () => {
     expect(html).not.toContain('st=2019')
   })
 
-  it('gives Google the series anchor plus the real recurrence', () => {
-    const html = render(<AddToCalendar event={event} />)
-
-    // Google DOES carry recurrence, so it gets the series start + the RRULE —
-    // the whole series, in the event's own timezone.
-    expect(html).toContain('dates=20190102T193000%2F20190102T204500')
-    expect(html).toContain('ctz=Europe%2FPrague')
-    expect(html).toContain('recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE')
-  })
-
+  // What is asserted HERE is the wiring — that `event` (including `from`) reaches
+  // the right builder per button. The URL shapes themselves belong to
+  // `src/lib/ics.test.ts`, which pins them against a parsed `URL` rather than a
+  // decoded markup string.
   it('anchors the recurrence-less providers on the registered session when given', () => {
     const html = render(
       <AddToCalendar event={{ ...event, from: new Date('2026-08-05T17:30:00Z') }} />,

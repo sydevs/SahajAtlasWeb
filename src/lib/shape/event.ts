@@ -93,6 +93,19 @@ export const withEndTime = (
   return end >= start ? end : end.plus({ days: 1 })
 }
 
+/**
+ * How long an occurrence runs when the CMS records no usable `endTime` — a
+ * placeless fallback so every occurrence has a non-zero span.
+ *
+ * Lives here, beside the one parser of the wire format, because TWO surfaces
+ * need it and they must not disagree: the calendar grid (which needs a visible
+ * block to lay out) and the iCalendar export (where a zero-length VEVENT is
+ * RFC-legal but draws as a hairline, and the provider URLs have no way to
+ * express it at all). It also matches the fallback in SahajCloud's own ICS
+ * builder, so a downloaded file and a confirmation-email attachment agree.
+ */
+export const DEFAULT_DURATION = { hours: 1 }
+
 // ── Shared display resolver (issue #52) ─────────────────────────────────────────
 //
 // Every event surface (panel, list card, form/share headers, calendar grid,

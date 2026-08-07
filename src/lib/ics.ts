@@ -2,7 +2,7 @@ import type { EventSchedule, Weekday } from '@/types'
 
 import { DateTime } from 'luxon'
 
-import { scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
+import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
 
 /**
  * Hand-rolled iCalendar (RFC 5545) export — no runtime dependency; the bundle is
@@ -87,20 +87,22 @@ const localStamp = (dt: DateTime): string => dt.toFormat("yyyyMMdd'T'HHmmss")
 const utcStamp = (dt: DateTime): string => dt.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'")
 
 /**
- * How long an occurrence runs when the CMS records no `endTime`. Matches the
- * fallback in SahajCloud's own ICS builder, so the file a viewer downloads here
- * and the one attached to their confirmation email describe the same event.
+ * End of an occurrence: the schedule's `endTime`, else `DEFAULT_DURATION`.
  *
  * A DTSTART with no DTEND is legal — RFC 5545 §3.6.1 makes it a zero-length
- * instant — but every calendar app then draws the class as a hairline, and the
- * three provider URLs below have no way to express it at all (their APIs require
- * an end). One default in one place beats a nullable end handled four ways.
+ * instant — but every calendar app draws that as a hairline, and the three
+ * provider URLs below have no way to express it at all (their APIs require an
+ * end). The fallback triggers on any end that isn't strictly AFTER the start,
+ * not merely on a missing one, so an `endTime` equal to the start time gets a
+ * real span too — the same condition `shape/calendar.ts` applies to the grid,
+ * from the same constant, so the block a viewer sees and the file they download
+ * can't describe one class two different lengths.
  */
-const DEFAULT_DURATION_MINUTES = 60
+const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime => {
+  const end = withEndTime(start, schedule.endTime)
 
-/** End of an occurrence: the schedule's `endTime`, else the default duration. */
-const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime =>
-  withEndTime(start, schedule.endTime) ?? start.plus({ minutes: DEFAULT_DURATION_MINUTES })
+  return end && end > start ? end : start.plus(DEFAULT_DURATION)
+}
 
 /**
  * The calendar DAY a date-only wire value means, in the event's zone. The CMS
@@ -285,13 +287,8 @@ export type BuildIcsOptions = {
  * counts from, so re-anchoring an 8-session course on session 5 would hand the
  * importer eight MORE sessions starting there.
  */
-const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
-  if (schedule.recurrenceType) return seriesStart(schedule)
-
-  const oneOff = from ?? schedule.upcomingDates?.[0]
-
-  return oneOff ? DateTime.fromJSDate(oneOff).setZone(eventZone(schedule)) : seriesStart(schedule)
-}
+const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
+  schedule.recurrenceType ? seriesStart(schedule) : occurrenceStart(schedule, from)
 
 /**
  * The anchor for a target that CANNOT carry recurrence (Outlook, Office 365,
@@ -306,9 +303,7 @@ const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
 const occurrenceStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
   const anchor = from ?? schedule.upcomingDates?.[0]
 
-  return anchor
-    ? DateTime.fromJSDate(anchor).setZone(eventZone(schedule))
-    : exportStart(schedule, from)
+  return anchor ? DateTime.fromJSDate(anchor).setZone(eventZone(schedule)) : seriesStart(schedule)
 }
 
 /** The full VCALENDAR text for an event, ready to serve as an `.ics` download. */

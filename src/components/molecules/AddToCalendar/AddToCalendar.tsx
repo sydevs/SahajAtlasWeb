@@ -54,15 +54,18 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
     window.setTimeout(() => URL.revokeObjectURL(href), 1000)
   }
 
+  // Brand names, so they are not translated — and unique, so they double as keys.
   const targets = [
-    { key: 'google', label: 'Google', href: buildGoogleCalendarUrl(event) },
-    { key: 'outlook', label: 'Outlook', href: buildOutlookCalendarUrl(event, 'live') },
-    { key: 'office365', label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
-    { key: 'yahoo', label: 'Yahoo', href: buildYahooCalendarUrl(event) },
+    { label: 'Google', href: buildGoogleCalendarUrl(event) },
+    { label: 'Outlook', href: buildOutlookCalendarUrl(event, 'live') },
+    { label: 'Office 365', href: buildOutlookCalendarUrl(event, 'office') },
+    { label: 'Yahoo', href: buildYahooCalendarUrl(event) },
   ]
 
+  // `gap-3` matches ShareContent's grid deliberately: the two rows stack on this
+  // one screen, so a different gap reads as a mistake rather than a distinction.
   return (
-    <div className="flex flex-row flex-wrap justify-center gap-2">
+    <div className="flex flex-row flex-wrap justify-center gap-3">
       {/* Apple Calendar has no add-by-URL endpoint — an .ics file IS the Apple
           path, and it doubles as the escape hatch for every other client
           (Thunderbird, Proton, a corporate desktop Outlook). The accessible name
@@ -79,16 +82,11 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
         Apple
       </Button>
 
-      {targets.map(({ key, label, href }) => (
-        <Button
-          key={key}
-          color="primary"
-          href={href}
-          rel="noopener noreferrer"
-          size="sm"
-          target="_blank"
-          variant="flat"
-        >
+      {/* The Button atom derives `rel="noopener noreferrer"` from `target="_blank"`
+          itself, so spelling it here would only opt this one row out of whatever
+          the atom decides an external link needs. */}
+      {targets.map(({ label, href }) => (
+        <Button key={label} color="primary" href={href} size="sm" target="_blank" variant="flat">
           {label}
         </Button>
       ))}

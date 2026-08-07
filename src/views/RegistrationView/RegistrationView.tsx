@@ -90,9 +90,16 @@ export function RegistrationView({
     ? {
         id: event.id,
         title: event.title,
-        schedule: event.schedule,
+        // The FILTERED dates, so the export can't anchor on a session that has
+        // already finished — the same guard the date picker above needed, and the
+        // one thing `lib/ics.ts` cannot re-derive on its own.
+        schedule: { ...event.schedule, upcomingDates: futureDates },
         location: isOnline(event) ? undefined : whereLine,
-        url: event.webUrl,
+        // The SAME fallback the share block uses. `webUrl` is `SafeUrlSchema`
+        // (`.nullish().catch(null)`), so passing it raw would leave the exported
+        // event with no link back for exactly the events whose CMS url is
+        // missing or non-http — while the share block still had one.
+        url: event.webUrl ?? window.location.href,
       }
     : undefined
 
