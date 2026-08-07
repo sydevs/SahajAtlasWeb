@@ -26,6 +26,9 @@ frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
 font-src    <the origin you load the widget from>
 style-src   'unsafe-inline'
+connect-src https://ipwho.is
+script-src  https://cdn.usefathom.com          # only if analytics is enabled
+connect-src https://cdn.usefathom.com          # only if analytics is enabled
 ```
 
 Without the first two the widget degrades gracefully rather than breaking: the form
@@ -37,6 +40,11 @@ own CDN) on the country list and on the country-website offer a search shows whe
 country lists no classes. Blocking it costs only the flag glyphs; the lists and the
 offer still render, and the requests carry `referrer-policy: no-referrer`, so your
 page's URL is never sent there.
+
+The last three lines cover the two third-party data flows described under
+[Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
+below; both can be switched off, and blocking either in your CSP costs only the feature
+it serves.
 
 `style-src 'unsafe-inline'` is the one hard ask: the widget has no stylesheet to link — it
 registers its CSS by appending `<style>` elements, which carry no nonce. Without it the
@@ -62,6 +70,55 @@ is open (standard scroll-lock, reverted on close), and the widget's own Mapbox/S
 libraries register a couple of document-global `@font-face` names of their own. The
 reverse direction is not guaranteed either: aggressive global CSS on your page can still
 reach *into* the widget — see the note in `demo.html`.
+
+### Privacy, storage and third-party requests
+
+Everything the widget does happens in your visitor's browser, on your origin — so your
+privacy notice, not ours, is the one that has to describe it. This is the complete list.
+
+**It sets no cookies**, and it stores two keys, both under your origin, both written
+inside a `try`/`catch` so a sandboxed iframe or a privacy mode that refuses storage
+degrades the setting rather than breaking the widget:
+
+| Key | Store | Holds | Lifetime |
+| --- | --- | --- | --- |
+| `theme` | `localStorage` | the viewer's light/dark/auto choice | until cleared |
+| `sahajAtlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
+
+The language picker deliberately persists **nothing**: i18next's language detector would
+by default cache `i18nextLng` on your origin, and that write is switched off. The
+language comes from the `locale` attribute, the API client's configured locale, or a
+`?locale=` query param, per page load.
+
+Two requests leave the browser for hosts that are neither yours nor SahajCloud's, and
+each has an attribute that turns it off:
+
+- **`https://ipwho.is` — IP geolocation.** Once per session, the widget asks a free,
+  keyless service to turn the visitor's IP into a city, so it can offer "classes near
+  you" before they type anything and show an online class's start time in their own
+  place. The request carries `referrer-policy: no-referrer` (your page's URL is never
+  disclosed), no API key, no cookies, and no identifier of ours; it times out after five
+  seconds and every failure is silent. It is skipped entirely when neither feature could
+  show — the suggestion already dismissed, a search already active, an in-person event.
+  An IP is personal data in the EU, so if your privacy notice cannot cover this, set
+  **`geolocation="false"`** and it is never called; you lose the nearby suggestion and
+  the localized online-event times, nothing else.
+- **`https://cdn.usefathom.com` — Fathom analytics.** Cookieless, aggregate pageview
+  counting for the atlas's own pages, loaded into your page only when all three hold: the
+  bundle was built with an analytics ID, your client record names a real (non-localhost)
+  primary domain, and you have not set **`analytics="false"`**. Its auto-tracking is
+  switched off, so it reports the widget's own route under that primary domain — **your
+  page's real URL and query string are never sent** — alongside the coarse, cookieless
+  referrer and device breakdown Fathom collects for any pageview. It sets no cookie or
+  persistent identifier, records no form value, and honours `DNT`.
+
+```html
+<sahaj-atlas api-key="…" analytics="false" geolocation="false"></sahaj-atlas>
+```
+
+The one thing a visitor can send us on purpose is a **class registration** — their name,
+email and any organiser questions — posted over HTTPS to SahajCloud when they submit the
+form. Nothing is sent in the background, and nothing is stored in the browser.
 
 ## Stack
 

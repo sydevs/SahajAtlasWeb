@@ -208,7 +208,13 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
   const lastTracked = useRef('')
 
   useEffect(() => {
-    if (fathomEnabled) Fathom.load(import.meta.env.VITE_FATHOM_ID)
+    // `auto: false` matters more than it looks: left on (the default), Fathom's script
+    // records the page it lands on — the HOST's real URL, query string and all, which
+    // may carry a reset token or an OAuth param and is not ours to send anywhere. The
+    // effect below reports the widget's own route under the client's primary domain
+    // instead, which is the only thing this analytics is for. `honorDNT` because a
+    // visitor who set the header has already answered the question.
+    if (fathomEnabled) Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
   }, [fathomEnabled])
 
   useEffect(() => {
