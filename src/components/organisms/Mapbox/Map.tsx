@@ -14,7 +14,6 @@ import ReactMapGL, {
 } from 'react-map-gl'
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
-import { useTranslation } from 'react-i18next'
 
 import {
   clusterLayer,
@@ -191,8 +190,10 @@ export function Mapbox() {
       setViewState: s.setViewState,
     })),
   )
-  const { locale, languageCode } = useLocale()
-  const { t } = useTranslation('common')
+  // `t` from `useLocale` — it already holds one for the default (`common`) namespace, and
+  // a second `useTranslation` here would double the i18next subscription on the app's
+  // hottest render path.
+  const { t, locale, languageCode } = useLocale()
   const { theme } = useTheme()
 
   // Mapbox's own control strings, which are otherwise English on every embed — the

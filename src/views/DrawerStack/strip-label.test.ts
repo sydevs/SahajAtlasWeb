@@ -20,23 +20,23 @@ const t = ((key: string, opts?: { title?: string }) => {
   return copy[key] ?? key
 }) as unknown as TFunction<'common'>
 
-const regions = [
-  { slug: 'gb', name: 'United Kingdom' },
-  { slug: 'london', name: 'London' },
-]
+const regionNames = new Map([
+  ['gb', 'United Kingdom'],
+  ['london', 'London'],
+])
 const titles = new Map([[7, 'Monday Evening Meditation']])
 
 describe('stripLabel', () => {
   it('names the root strip "Back", which cannot collide because there is only one root', () => {
-    expect(stripLabel(undefined, { t, regions, titles })).toBe('Back')
+    expect(stripLabel(undefined, { t, regionNames, titles })).toBe('Back')
   })
 
   it('gives nested regions different names — the case the generic label failed', () => {
     const gb: StackEntry = { kind: 'region', slug: 'gb', path: '/gb' }
     const london: StackEntry = { kind: 'region', slug: 'london', path: '/gb/london' }
 
-    expect(stripLabel(gb, { t, regions, titles })).toBe('Back to United Kingdom')
-    expect(stripLabel(london, { t, regions, titles })).toBe('Back to London')
+    expect(stripLabel(gb, { t, regionNames, titles })).toBe('Back to United Kingdom')
+    expect(stripLabel(london, { t, regionNames, titles })).toBe('Back to London')
   })
 
   it('falls back to the slug when the region cache has not been filled', () => {
@@ -50,13 +50,13 @@ describe('stripLabel', () => {
   it('names an event from the titles sliver', () => {
     const entry: StackEntry = { kind: 'event', id: 7, path: '/gb/london/7' }
 
-    expect(stripLabel(entry, { t, regions, titles })).toBe('Back to Monday Evening Meditation')
+    expect(stripLabel(entry, { t, regionNames, titles })).toBe('Back to Monday Evening Meditation')
   })
 
   it('degrades to plain "Back" for an event whose title is not cached', () => {
     const entry: StackEntry = { kind: 'event', id: 99, path: '/gb/london/99' }
 
-    expect(stripLabel(entry, { t, regions, titles })).toBe('Back')
+    expect(stripLabel(entry, { t, regionNames, titles })).toBe('Back')
   })
 
   it('names the standalone views from the copy they already own', () => {
@@ -68,7 +68,7 @@ describe('stripLabel', () => {
     ]
 
     for (const [entry, expected] of cases) {
-      expect(stripLabel(entry, { t, regions, titles })).toBe(expected)
+      expect(stripLabel(entry, { t, regionNames, titles })).toBe(expected)
     }
   })
 

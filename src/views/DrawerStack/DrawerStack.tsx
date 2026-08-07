@@ -1,3 +1,5 @@
+import type { RegionNode } from '@/types'
+
 import {
   type CSSProperties,
   Suspense,
@@ -11,8 +13,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
-import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 
@@ -237,15 +238,12 @@ export function DrawerStack() {
   const navigate = useNavigate()
   const isDesktop = useIsDesktop()
   const { hasMap, standalone } = useWidgetMode()
-  const { t } = useTranslation('common')
-  const { locale } = useLocale()
-  // Only the peek strips' accessible names read these, and only to say where a strip
-  // goes — so they are cache-only (`enabled: false`), on the same contract as
-  // `DrawerChrome`: never a fetch, and a miss costs the specific name rather than the
-  // strip. Both go through the shared factories, because a cache-only read under a
-  // divergent key doesn't error — it silently misses, and the names just stop appearing.
-  const { data: regionNodes } = useQuery({ ...regionsQuery(), enabled: false })
-  const { data: eventTitles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
+  // `t` comes off `useLocale` rather than a second `useTranslation`: the hook already
+  // holds one for the default (`common`) namespace and hands it back for exactly this
+  // reason — a second call would double this component's i18next subscription, and
+  // DrawerStack re-renders on every geocoder keystroke.
+  const { t, locale } = useLocale()
+  const queryClient = useQueryClient()
   const direction: Direction = isDesktop ? 'left' : 'bottom'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
@@ -314,6 +312,40 @@ export function DrawerStack() {
     ancestors: parentPaths.length,
   })
   const stackPaths = parentPaths.slice(0, stackDepth)
+
+  // The peek strips' accessible names, resolved from caches the app has already filled.
+  //
+  // Read through `getQueryData` rather than a `useQuery({ enabled: false })` pair, which
+  // is how `DrawerChrome` does the same lookup — and the difference is this component's
+  // lifetime, not taste. `DrawerChrome` mounts only while a view is loading or has
+  // thrown; DrawerStack is mounted for the whole session, so an observer here would be a
+  // permanent one, and React Query counts `gcTime` from the moment the LAST observer
+  // unmounts. Two of the wholesale caches would simply never be collected —
+  // `WHOLESALE_GC_TIME` unreachable, one retained titles Map per language visited — which
+  // is worst exactly where it is least visible, a `map=false` embed idling on a host page.
+  //
+  // Still cache-only, still through the shared factories (a read under a divergent key
+  // doesn't error, it silently misses), and still free to miss: the cost is the name, not
+  // the strip. The trade for dropping the subscription is that a label appears on the
+  // next render rather than the moment the cache fills — and DrawerStack re-renders on
+  // every location change, which is the only time a strip appears at all.
+  //
+  // A Map, not the region array: `stripLabel` runs per strip per render, and the region
+  // tree is the global list of every region in the world.
+  const stripNames = useMemo(() => {
+    // Explicit generics: these keys are plain tuples rather than DataTag-carrying ones,
+    // so `getQueryData` cannot infer what they hold.
+    const regions = queryClient.getQueryData<RegionNode[]>(regionsQuery().queryKey)
+
+    return {
+      // A nameless region is dropped rather than mapped to a blank, so it falls through
+      // to `stripLabel`'s slug rung instead of naming the strip the empty string.
+      regionNames: new Map(
+        regions?.flatMap((node) => (node.name ? [[node.slug, node.name] as const] : [])) ?? [],
+      ),
+      titles: queryClient.getQueryData<Map<number, string>>(eventTitlesQuery(locale).queryKey),
+    }
+  }, [queryClient, locale, location.pathname])
 
   // Mirror the active sheet's live top onto the peek strips AND the sheet
   // itself every frame, so both track a drag without waiting for the snap to
@@ -595,7 +627,7 @@ export function DrawerStack() {
               depth={stripDepth}
               direction={direction}
               gap={peekGap}
-              label={stripLabel(ancestor, { t, regions: regionNodes, titles: eventTitles })}
+              label={stripLabel(ancestor, { t, ...stripNames })}
               opacity={peekOpacity(stripDepth)}
               zIndex={30 + i}
               onClick={() => navigate(toStackTarget(path))}

@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next'
 import type { StackEntry } from '@/lib/shape'
 
 /**
@@ -18,15 +17,28 @@ import type { StackEntry } from '@/lib/shape'
  * `DrawerStack.tsx` to test one string would pull mapbox-gl, vaul and every eager view
  * into the node lane. The caches arrive as plain data for the same reason.
  */
+/**
+ * Only the two shapes of call this module makes. Narrower than i18next's `TFunction` on
+ * purpose, so it accepts the `t` from either `useTranslation('common')` or `useLocale()`
+ * (whose is typed against the default namespace) without either caller casting.
+ */
+export type StripTranslate = (key: string, options?: { title: string }) => string
+
 export type StripNaming = {
-  t: TFunction<'common'>
-  regions?: ReadonlyArray<{ slug: string; name?: string | null }>
-  titles?: Map<number, string>
+  t: StripTranslate
+  /**
+   * Region names by slug. A Map rather than the region array it comes from, because
+   * this is called once per strip per render of the whole drawer stack and the region
+   * tree is the global list — a `.find()` here would be a linear scan of every region
+   * in the world, per strip, per render.
+   */
+  regionNames?: ReadonlyMap<string, string>
+  titles?: ReadonlyMap<number, string>
 }
 
 export function stripLabel(
   entry: StackEntry | undefined,
-  { t, regions, titles }: StripNaming,
+  { t, regionNames, titles }: StripNaming,
 ): string {
   // The root ancestor is the countries index, which `resolveStack` has no entry for. It
   // is also unique within any stack — there is only ever one root — so the bare "Back"
@@ -36,7 +48,7 @@ export function stripLabel(
   const title = (() => {
     switch (entry.kind) {
       case 'region':
-        return regions?.find((node) => node.slug === entry.slug)?.name ?? entry.slug
+        return regionNames?.get(entry.slug) ?? entry.slug
       case 'event':
         return titles?.get(entry.id)
       case 'online':

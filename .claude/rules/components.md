@@ -167,9 +167,43 @@ one-shot read at mount. The image carousel is the worked example: the control is
 button whose accessible name stays PUT while `aria-pressed` carries the state (a name
 flipping "Pause"/"Play" beside `aria-pressed` announces the state twice and contradicts
 itself), and it renders only when the thing actually autoplays — under reduced motion
-there is nothing to pause, so the control is absent rather than inert. Note that
-framer-motion's own `useReducedMotion` reads the preference only at mount; the drawers
-and peek strips still animate unconditionally, which is the remaining work.
+there is nothing to pause, so the control is absent rather than inert.
+
+**The rest of the app's motion is off under that preference too, through three seams —
+one per animation technology, not one per component** (issue #102). Adding an animation
+means checking which seam already covers it before reaching for a fourth:
+
+- **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `motion.*` in
+  the tree (the peek strips, the drawer cross-fade). It is driven by
+  `usePrefersReducedMotion()`, NOT framer's own `reducedMotion="user"`: that reads the
+  media query once at mount, so a viewer who flips the setting mid-session keeps the
+  motion and then disagrees with the other two seams, which are live.
+- **vaul's drawers** animate in CSS, so they are switched off in CSS — an additive
+  `@media (prefers-reduced-motion: reduce)` block at the foot of `src/styles/vaul.css`,
+  below the vendored upstream sheet. It has to kill BOTH `animation` (the slide
+  keyframes) and `transition` (the inline transform the snap-point sheets ride);
+  vaul's own `[data-vaul-animate='false']` hook only covers the first.
+- **The map camera needs nothing, and adding it would be dead code.** mapbox-gl already
+  short-circuits `flyTo` to `jumpTo`, zeroes `easeTo`'s duration, and reads the media
+  query live — see the comment in `src/hooks/use-mapbox.ts` for the verification and for
+  the two ways to break it (`respectPrefersReducedMotion: false`, or `essential: true`
+  on a camera call).
+
+**Forms announce their errors, once** (WCAG 4.1.3 / 3.3.1, issue #102). `FormField`'s
+error span is `role="alert"` by default, which is what tells a viewer about the invalid
+fields they are NOT focused on; the `aria-describedby` id covers the one they are. Focus
+moves to the first invalid field via react-hook-form's own `shouldFocusError` — so a
+custom form control must **forward a ref** to something focusable or RHF skips it in
+silence (this is why `RadioGroup` is a `forwardRef`). Set `announceError={false}` on a
+form that validates as the viewer types: a live region fires on the first character of an
+email address, and such a form usually gates its submit on validity, so it has no failed
+submit to announce anyway.
+
+**Copy stays a prop, even for screen-reader-only text.** No atom calls `useTranslation` —
+`Spinner`'s `srLabel` is the one that was tempted, and it defaults to English instead,
+because a spinner renders in Suspense fallbacks that can run before the translation
+bundles load (where `t()` returns the raw key) and because it would pull react-i18next
+into the render path of every atom that composes it.
 
 **A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
 micro-movement as a drag and swallows the click, so a control without it fires only

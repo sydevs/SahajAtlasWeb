@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
@@ -48,10 +47,11 @@ const loadEventDetails = () =>
 // description can never hide the KPI (issue #52, WS4); elsewhere it renders
 // inline in the panel order.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
-  const { t } = useTranslation('common')
   const { standalone, hasMap } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
-  const { locale } = useLocale()
+  // `t` off `useLocale` rather than a second `useTranslation` — the hook already holds
+  // one for the default (`common`) namespace and returns it to avoid the duplicate.
+  const { t, locale } = useLocale()
   const isDesktop = useIsDesktop()
   const { collapsed } = useDrawerControl()
 

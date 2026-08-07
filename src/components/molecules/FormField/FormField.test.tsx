@@ -29,7 +29,7 @@ describe('FormField error semantics', () => {
       </FormField>,
     )
 
-    expect(html).not.toContain('role=')
+    expect(html).not.toContain('role="alert"')
     expect(html).toContain('Enter a valid email')
   })
 

@@ -71,18 +71,18 @@ export type RadioGroupProps = {
 }
 
 /**
- * The ref lands on the FIRST radio, which makes this group focusable by name from
- * outside — specifically by react-hook-form's `setFocus`, which the registration form
- * calls to put the caret on the first field that failed validation (issue #102).
+ * The ref lands on the FIRST radio, so react-hook-form's `shouldFocusError` can reach
+ * this group when a submit fails (issue #102).
  *
- * Without it a `Controller`-driven group is invisible to that: RHF stores whatever
- * `field.ref` is given, and a component that swallows the ref leaves it `undefined`,
- * whereupon `setFocus` does nothing at all and reports nothing — the form simply
- * doesn't move, which looks like the submit failing silently.
+ * A `Controller`-driven group that swallows the ref is invisible to that: RHF stores
+ * whatever `field.ref` was given, finds `undefined`, and skips the field in silence —
+ * so a submit with nothing chosen moves focus nowhere and says nothing, which reads as
+ * the submit button being broken. Same reason `Input`, `Textarea`, `Button` and `Link`
+ * all forward theirs.
  *
  * The first radio rather than the checked one, because `collapseAfter` may mean the
- * checked option isn't rendered; and a radio group is a single tab stop, so entering
- * it at the top is where a keyboard user expects to arrive anyway.
+ * checked option isn't rendered; and a radio group is a single tab stop, so entering it
+ * at the top is where a keyboard user expects to arrive anyway.
  */
 export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function RadioGroup(
   {

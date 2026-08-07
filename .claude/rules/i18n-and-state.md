@@ -177,6 +177,14 @@ of truth, so all are linkable/shareable:
   DrawerStack keeps the depth-0 entry's height in a **ref** (non-reactive, like
   `useCameraHistory`): it's read only at depth > 0 and written only at depth 0, so a
   write can never change the current render.
+  **Each strip is NAMED for where it lands** (`stripLabel`, `src/views/DrawerStack/
+  strip-label.ts`, issue #102) — they were all "Back", which gave a three-deep stack
+  three identically-named buttons going to three different places. The names come from
+  the `['regions']` tree and the event-titles sliver, read **cache-only**
+  (`enabled: false`) exactly as `DrawerChrome` reads them, so naming a strip can never
+  become a fetch and a cache miss costs the name rather than the strip. It's a separate
+  pure module because importing `DrawerStack.tsx` to test one string would drag
+  mapbox-gl, vaul and every eager view into the node lane.
 
 Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.
