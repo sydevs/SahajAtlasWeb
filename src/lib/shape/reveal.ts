@@ -206,7 +206,8 @@ export function revealRows<T extends Segmentable>(
 
   // Everything below reasons about `rows.length` — what is actually ON SCREEN — never
   // the requested count. The two diverge whenever the nearby segment is shorter than
-  // the count (a count of 99999 renders the 50 nearby matches, not 1000 rows), and
+  // the count (a count of 99999 renders the 50 nearby matches, not `MAX_REVEAL` of
+  // them — spelled as the constant so this line can't go stale when it moves), and
   // ceiling-gating on the raw count would then hide the control while a whole distant
   // segment sat unreached. It also keeps every `next` strictly greater than what's
   // shown, so no press can be a no-op.
