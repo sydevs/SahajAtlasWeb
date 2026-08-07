@@ -1,5 +1,6 @@
 import type { Slide } from './ImageCarousel'
 
+import { useEffect } from 'react'
 import YARLightbox from 'yet-another-react-lightbox'
 import Captions from 'yet-another-react-lightbox/plugins/captions'
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
@@ -31,9 +32,48 @@ export type LightboxProps = {
   onClose: () => void
 }
 
+/**
+ * Freeze the page behind the lightbox for as long as it is open.
+ *
+ * YARL does this itself by putting `.yarl__no_scroll` on `document.body`, but since #91
+ * every emitted selector is confined under the widget's scope class, and `document.body`
+ * is outside it — so the class still lands and matches nothing. These are that rule's
+ * three declarations, applied inline, which restores the behaviour without punching a
+ * hole in the scoping.
+ *
+ * Freezing the host page is deliberate here, and it is not the same call as the modal
+ * drawer's incidental scroll lock: the lightbox covers the entire viewport, so a page
+ * that scrolls behind it is just broken. Every property is captured and restored on
+ * close, so a host's own inline styles survive the round trip.
+ */
+function useFrozenPageScroll(active: boolean) {
+  useEffect(() => {
+    if (!active || typeof document === 'undefined') return
+
+    const { style } = document.body
+    const previous = {
+      height: style.height,
+      overflow: style.overflow,
+      overscrollBehavior: style.overscrollBehavior,
+    }
+
+    style.height = '100%'
+    style.overflow = 'hidden'
+    style.overscrollBehavior = 'none'
+
+    return () => {
+      style.height = previous.height
+      style.overflow = previous.overflow
+      style.overscrollBehavior = previous.overscrollBehavior
+    }
+  }, [active])
+}
+
 export function Lightbox({ slides, isOpen, index, onClose }: LightboxProps) {
   const single = slides.length <= 1
   const plugins = single ? [Captions, Zoom] : [Captions, Thumbnails, Zoom]
+
+  useFrozenPageScroll(isOpen)
 
   return (
     <YARLightbox
@@ -48,12 +88,8 @@ export function Lightbox({ slides, isOpen, index, onClose }: LightboxProps) {
       // also stops the lightbox from mounting into the host page's <body>, and it
       // picks up the brand palette + light/dark class it never had there.
       //
-      // One consequence, accepted: YARL locks scrolling by putting `.yarl__no_scroll` on
-      // `document.body`, and that rule is now scoped like everything else — so in an
-      // embed it no longer matches, and the host page can still scroll behind the
-      // lightbox. Reaching back out to freeze someone else's page is the thing this
-      // widget is trying to stop doing (the release review flags the modal drawer's
-      // host-scroll lock as a defect, not a feature), so the lock stays lost.
+      // It does cost YARL its own scroll lock, whose rule is now scoped out of reach —
+      // `useFrozenPageScroll` above puts those declarations back.
       portal={{ root: overlayContainer() ?? null }}
       // A single slide has nowhere to navigate, so drop the prev/next arrows
       // (YARL would otherwise show them and wrap back to the same image).
