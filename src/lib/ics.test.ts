@@ -2,7 +2,15 @@ import type { EventSchedule } from '@/types'
 
 import { describe, it, expect } from 'vitest'
 
-import { buildEventIcs, buildGoogleCalendarUrl, buildRrule, exclusionDates } from './ics'
+import {
+  buildEventIcs,
+  buildGoogleCalendarUrl,
+  buildOutlookCalendarUrl,
+  buildRrule,
+  buildYahooCalendarUrl,
+  exclusionDates,
+  icsFileName,
+} from './ics'
 
 // Wednesday 19:30–20:45 in Prague; 2026-07-01T17:30Z is 19:30 CEST.
 const weekly: EventSchedule = {
@@ -16,6 +24,9 @@ const weekly: EventSchedule = {
 
 const input = { id: 42, title: 'Evening Meditation', schedule: weekly }
 const NOW = new Date('2026-07-17T12:00:00Z')
+// A session further into the series than its start — what the registration
+// confirmation knows and passes as `from`.
+const SESSION = new Date('2026-07-29T17:30:00Z')
 
 describe('buildRrule', () => {
   it('is null for a one-off', () => {
@@ -234,14 +245,19 @@ describe('buildEventIcs', () => {
     expect(ics).toContain('\r\n')
   })
 
-  it('omits DTEND and RRULE for an open-ended one-off', () => {
+  it('omits RRULE for a one-off, and defaults its length to an hour', () => {
     const ics = buildEventIcs(
       { ...input, schedule: { ...weekly, recurrenceType: null, endTime: null } },
       { now: NOW },
     )
 
-    expect(ics).not.toContain('DTEND')
     expect(ics).not.toContain('RRULE')
+    // No `endTime` on the schedule. A bare DTSTART is RFC-legal but means a
+    // ZERO-length event (RFC 5545 §3.6.1), which every calendar app draws as a
+    // hairline — so it falls back to the same hour SahajCloud's own ICS builder
+    // uses, and the two descriptions of one class agree.
+    expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260701T193000')
+    expect(ics).toContain('DTEND;TZID=Europe/Prague:20260701T203000')
   })
 
   it('escapes and folds long text values', () => {
@@ -307,5 +323,111 @@ describe('buildGoogleCalendarUrl', () => {
     expect(url.searchParams.get('dates')).toBe('20260701T193000/20260701T204500')
     expect(url.searchParams.get('ctz')).toBe('Europe/Prague')
     expect(url.searchParams.get('recur')).toBe('RRULE:FREQ=WEEKLY;BYDAY=WE')
+  })
+
+  it('stays anchored on the SERIES start even when a session is given', () => {
+    // Google carries the RRULE, so DTSTART is the instance COUNT/BYDAY are
+    // reckoned from. Re-anchoring it on session five of a course would hand the
+    // importer five more sessions starting there.
+    const url = new URL(buildGoogleCalendarUrl({ ...input, from: SESSION }))
+
+    expect(url.searchParams.get('dates')).toBe('20260701T193000/20260701T204500')
+  })
+})
+
+// The three providers below take no recurrence parameter — none of their URL
+// APIs has one — so each gets a SINGLE occurrence, and the whole question is
+// which one. Never the series start: a class running since 2019 would drop a
+// 2019 date into the viewer's calendar and call it done.
+describe('recurrence-less providers anchor on the right occurrence', () => {
+  const longRunning: EventSchedule = {
+    ...weekly,
+    firstDate: new Date('2019-01-02T18:30:00Z'),
+    upcomingDates: [new Date('2026-07-22T17:30:00Z')],
+  }
+
+  it('outlook uses the registered session when there is one', () => {
+    const url = new URL(buildOutlookCalendarUrl({ ...input, from: SESSION }, 'live'))
+
+    // 2026-07-29 19:30 Prague (CEST, UTC+2) is 17:30Z.
+    expect(url.searchParams.get('startdt')).toBe('2026-07-29T17:30:00.000Z')
+    expect(url.searchParams.get('enddt')).toBe('2026-07-29T18:45:00.000Z')
+  })
+
+  it('outlook falls back to the next upcoming occurrence, not the 2019 start', () => {
+    const url = new URL(buildOutlookCalendarUrl({ ...input, schedule: longRunning }, 'live'))
+
+    expect(url.searchParams.get('startdt')).toBe('2026-07-22T17:30:00.000Z')
+    expect(url.searchParams.get('startdt')).not.toContain('2019')
+  })
+
+  it('yahoo does the same, in its own stamp format', () => {
+    const url = new URL(buildYahooCalendarUrl({ ...input, schedule: longRunning }))
+
+    expect(url.searchParams.get('v')).toBe('60')
+    expect(url.searchParams.get('st')).toBe('20260722T173000Z')
+    expect(url.searchParams.get('et')).toBe('20260722T184500Z')
+  })
+})
+
+describe('buildOutlookCalendarUrl', () => {
+  it('composes against the personal or the work host', () => {
+    expect(buildOutlookCalendarUrl(input, 'live')).toContain(
+      'https://outlook.live.com/calendar/0/deeplink/compose',
+    )
+    expect(buildOutlookCalendarUrl(input, 'office')).toContain(
+      'https://outlook.office.com/calendar/0/deeplink/compose',
+    )
+  })
+
+  it('carries the compose parameters Outlook requires', () => {
+    const url = new URL(
+      buildOutlookCalendarUrl(
+        { ...input, location: '5 Market St, Cambridge', url: 'https://atlas.example/42' },
+        'live',
+      ),
+    )
+
+    expect(url.searchParams.get('path')).toBe('/calendar/action/compose')
+    expect(url.searchParams.get('rru')).toBe('addevent')
+    expect(url.searchParams.get('subject')).toBe('Evening Meditation')
+    expect(url.searchParams.get('location')).toBe('5 Market St, Cambridge')
+    expect(url.searchParams.get('body')).toBe('https://atlas.example/42')
+  })
+})
+
+describe('buildYahooCalendarUrl', () => {
+  it('carries the title, UTC stamps and the location', () => {
+    const url = new URL(
+      buildYahooCalendarUrl({ ...input, location: 'Prague', description: 'Free class' }),
+    )
+
+    expect(url.origin + url.pathname).toBe('https://calendar.yahoo.com/')
+    expect(url.searchParams.get('title')).toBe('Evening Meditation')
+    expect(url.searchParams.get('in_loc')).toBe('Prague')
+    expect(url.searchParams.get('desc')).toBe('Free class')
+  })
+})
+
+describe('icsFileName', () => {
+  it('slugs a title to an ASCII filename', () => {
+    expect(icsFileName('Evening Meditation')).toBe('evening-meditation.ics')
+  })
+
+  it('folds accents onto their base letters rather than dropping them', () => {
+    expect(icsFileName('Méditation du soir')).toBe('meditation-du-soir.ics')
+  })
+
+  it('degrades a title with no Latin characters to a generic name', () => {
+    // Rather than emitting mojibake or an empty name into a Windows/Android
+    // filesystem. Transliterating properly would be a dependency for a filename.
+    expect(icsFileName('瞑想')).toBe('event.ics')
+  })
+
+  it('bounds the length and never leaves a trailing separator', () => {
+    const name = icsFileName('x'.repeat(200))
+
+    expect(name.length).toBeLessThanOrEqual(64)
+    expect(name).not.toContain('-.ics')
   })
 })

@@ -15,6 +15,39 @@ import { scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
  * We reference IANA TZIDs without a VTIMEZONE component: Google/Apple/Outlook
  * all resolve IANA ids natively, while a hand-generated VTIMEZONE (with its own
  * DST RRULEs) is exactly the kind of thing that goes subtly wrong.
+ *
+ * ## Why this is hand-rolled rather than a dependency (issue #105)
+ *
+ * Measured, not assumed. `datebook` (3.3 KiB gz, zero deps) and `calendar-link`
+ * (4.9 KiB gz, pulls dayjs — a SECOND date library beside the luxon we already
+ * ship) both emit `DTSTART:20260907T180000Z`: a bare UTC instant with **no
+ * `TZID`**. That is not a style difference. A weekly 19:00 London class anchored
+ * to a UTC instant silently becomes 18:00 for every occurrence after the October
+ * DST change, because the absolute instant is preserved and the wall-clock time
+ * is not. `ics` (23.6 KiB gz) is heavier still and no better on this point.
+ * Recurrence in the viewer's own timezone is the whole job here, so a library
+ * that cannot express it is not a smaller version of this file — it is a wrong
+ * one. (`calendar-link` also emits `LOCATION:a, b` with the comma unescaped, an
+ * RFC 5545 violation.)
+ *
+ * ## Why not the CMS's own `icalRule`
+ *
+ * SahajCloud computes `schedule.icalRule` (rrule-temporal's `toString()`), and it
+ * is selected onto the feed — but it is not usable as-is, for four reasons, and
+ * SahajCloud's own ICS builder rejects it for the same ones:
+ *
+ *  - a NON-recurring event still gets `FREQ=DAILY;COUNT=1` (one-offs are modelled
+ *    that way internally), so a single class would import as a series;
+ *  - its `EXDATE` is UTC-stamped while its `DTSTART` is TZID-local, and a UTC
+ *    EXDATE frequently fails to match a TZID-local instance — the cancelled
+ *    session then still shows;
+ *  - it carries no `DTEND` (`endTime` is absent from it entirely);
+ *  - it never folds lines at 75 octets.
+ *
+ * So the RRULE is rebuilt here from the structured fields, which the full event
+ * doc carries in full (`getEventDoc` selects `schedule: true`). Note the feed does
+ * NOT carry `monthDay` / `weekdayOfMonth` / `untilDate` / `exclusions` — build the
+ * export from the full doc, never from a feed event.
  */
 
 export type IcsEventInput = {
@@ -24,6 +57,13 @@ export type IcsEventInput = {
   description?: string | null
   location?: string | null
   url?: string | null
+  /**
+   * The specific session to anchor a recurrence-LESS target on — the date the
+   * viewer actually registered for. Only the providers whose URL API has no
+   * recurrence parameter (Outlook, Office 365, Yahoo) read it; the ICS and the
+   * Google link carry the real RRULE and so must stay anchored on the series.
+   */
+  from?: Date | null
 }
 
 const WEEKDAY_TO_LUXON: Record<Weekday, number> = {
@@ -46,9 +86,21 @@ const localStamp = (dt: DateTime): string => dt.toFormat("yyyyMMdd'T'HHmmss")
 
 const utcStamp = (dt: DateTime): string => dt.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'")
 
-/** Same-day end of an occurrence, when the schedule has an `endTime`. */
-const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime | null =>
-  withEndTime(start, schedule.endTime)
+/**
+ * How long an occurrence runs when the CMS records no `endTime`. Matches the
+ * fallback in SahajCloud's own ICS builder, so the file a viewer downloads here
+ * and the one attached to their confirmation email describe the same event.
+ *
+ * A DTSTART with no DTEND is legal — RFC 5545 §3.6.1 makes it a zero-length
+ * instant — but every calendar app then draws the class as a hairline, and the
+ * three provider URLs below have no way to express it at all (their APIs require
+ * an end). One default in one place beats a nullable end handled four ways.
+ */
+const DEFAULT_DURATION_MINUTES = 60
+
+/** End of an occurrence: the schedule's `endTime`, else the default duration. */
+const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime =>
+  withEndTime(start, schedule.endTime) ?? start.plus({ minutes: DEFAULT_DURATION_MINUTES })
 
 /**
  * The calendar DAY a date-only wire value means, in the event's zone. The CMS
@@ -224,23 +276,46 @@ export type BuildIcsOptions = {
 /**
  * The exported series anchor. Recurring series anchor at their first session
  * (RRULE COUNT counts from DTSTART; past occurrences in a calendar are normal).
- * A one-off anchors at its next upcoming occurrence when one exists — a
- * rescheduled one-off may carry a stale `firstDate` while `upcomingDates`
- * holds the real date (the same drift the display resolver trusts).
+ * A one-off anchors at the session the viewer registered for when we know it,
+ * else at its next upcoming occurrence — a rescheduled one-off may carry a stale
+ * `firstDate` while `upcomingDates` holds the real date (the same drift the
+ * display resolver trusts).
+ *
+ * `from` cannot move a RECURRING anchor: DTSTART is the instance the RRULE
+ * counts from, so re-anchoring an 8-session course on session 5 would hand the
+ * importer eight MORE sessions starting there.
  */
-const exportStart = (schedule: EventSchedule): DateTime => {
-  const upcoming = !schedule.recurrenceType && schedule.upcomingDates?.[0]
+const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
+  if (schedule.recurrenceType) return seriesStart(schedule)
 
-  return upcoming
-    ? DateTime.fromJSDate(upcoming).setZone(eventZone(schedule))
-    : seriesStart(schedule)
+  const oneOff = from ?? schedule.upcomingDates?.[0]
+
+  return oneOff ? DateTime.fromJSDate(oneOff).setZone(eventZone(schedule)) : seriesStart(schedule)
+}
+
+/**
+ * The anchor for a target that CANNOT carry recurrence (Outlook, Office 365,
+ * Yahoo — none of their URL APIs has a recurrence parameter). Those get a single
+ * event, so it has to be the RIGHT single event: the session the viewer
+ * registered for, else the next upcoming one.
+ *
+ * Never the series start, which is what `exportStart` gives a recurring event —
+ * a weekly class that has run since 2019 would otherwise drop a 2019 date into
+ * the viewer's calendar and call it done.
+ */
+const occurrenceStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
+  const anchor = from ?? schedule.upcomingDates?.[0]
+
+  return anchor
+    ? DateTime.fromJSDate(anchor).setZone(eventZone(schedule))
+    : exportStart(schedule, from)
 }
 
 /** The full VCALENDAR text for an event, ready to serve as an `.ics` download. */
 export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {}): string {
   const { schedule } = input
   const zone = eventZone(schedule)
-  const start = exportStart(schedule)
+  const start = exportStart(schedule, input.from)
   const end = occurrenceEnd(start, schedule)
   const rrule = buildRrule(schedule)
 
@@ -255,7 +330,7 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
     `DTSTAMP:${utcStamp(DateTime.fromJSDate(options.now ?? new Date()))}`,
     `SUMMARY:${escapeText(input.title)}`,
     `DTSTART;TZID=${zone}:${localStamp(start)}`,
-    ...(end ? [`DTEND;TZID=${zone}:${localStamp(end)}`] : []),
+    `DTEND;TZID=${zone}:${localStamp(end)}`,
     ...(rrule ? [`RRULE:${rrule}`] : []),
     ...exclusionDates(schedule).map((dt) => `EXDATE;TZID=${zone}:${localStamp(dt)}`),
     ...(input.location ? [`LOCATION:${escapeText(input.location)}`] : []),
@@ -270,11 +345,15 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
   return lines.map(fold).join('\r\n') + '\r\n'
 }
 
+/** The body text a provider link carries: the blurb, then the event's own page. */
+const details = (input: IcsEventInput): string =>
+  [input.description, input.url].filter(Boolean).join('\n\n')
+
 /** The Google Calendar "add event" template link — the RRULE rides `recur`. */
 export function buildGoogleCalendarUrl(input: IcsEventInput): string {
   const { schedule } = input
-  const start = exportStart(schedule)
-  const end = occurrenceEnd(start, schedule) ?? start
+  const start = exportStart(schedule, input.from)
+  const end = occurrenceEnd(start, schedule)
   const rrule = buildRrule(schedule)
 
   const params = new URLSearchParams({
@@ -284,11 +363,103 @@ export function buildGoogleCalendarUrl(input: IcsEventInput): string {
     ctz: eventZone(schedule),
   })
 
-  if (input.description || input.url) {
-    params.set('details', [input.description, input.url].filter(Boolean).join('\n\n'))
-  }
+  const body = details(input)
+
+  if (body) params.set('details', body)
   if (input.location) params.set('location', input.location)
   if (rrule) params.set('recur', `RRULE:${rrule}`)
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+/**
+ * Outlook's two deep-link hosts. Same compose endpoint and the same parameters;
+ * only the host differs — `outlook.live.com` is a personal Microsoft account,
+ * `outlook.office.com` a work/school (Microsoft 365) one. A viewer signed into
+ * the wrong one gets asked to sign in, which is why both are offered rather than
+ * us guessing.
+ */
+const OUTLOOK_HOSTS = {
+  live: 'https://outlook.live.com',
+  office: 'https://outlook.office.com',
+} as const
+
+export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
+
+/**
+ * An Outlook.com / Office 365 compose link.
+ *
+ * `startdt`/`enddt` are absolute UTC instants: the compose API takes no timezone
+ * parameter, so the instant is the only unambiguous thing to send — Outlook then
+ * renders it in the viewer's own calendar timezone, which is what they want to
+ * see. It also has **no recurrence parameter**, so this is deliberately a single
+ * occurrence anchored by `occurrenceStart`; the ICS download is the lossless
+ * path for a series, and the UI says so.
+ */
+export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
+  const { schedule } = input
+  const start = occurrenceStart(schedule, input.from)
+  const end = occurrenceEnd(start, schedule)
+
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: input.title,
+    startdt: start.toUTC().toISO() ?? '',
+    enddt: end.toUTC().toISO() ?? '',
+  })
+
+  const body = details(input)
+
+  if (body) params.set('body', body)
+  if (input.location) params.set('location', input.location)
+
+  return `${OUTLOOK_HOSTS[flavor]}/calendar/0/deeplink/compose?${params.toString()}`
+}
+
+/**
+ * A Yahoo Calendar link. `v=60` is the only version its endpoint accepts;
+ * `st`/`et` are UTC stamps. Like Outlook it carries no recurrence, so it gets the
+ * single occurrence the viewer registered for.
+ */
+export function buildYahooCalendarUrl(input: IcsEventInput): string {
+  const { schedule } = input
+  const start = occurrenceStart(schedule, input.from)
+  const end = occurrenceEnd(start, schedule)
+
+  const params = new URLSearchParams({
+    v: '60',
+    title: input.title,
+    st: utcStamp(start),
+    et: utcStamp(end),
+  })
+
+  const body = details(input)
+
+  if (body) params.set('desc', body)
+  if (input.location) params.set('in_loc', input.location)
+
+  return `https://calendar.yahoo.com/?${params.toString()}`
+}
+
+/**
+ * A filesystem-safe `.ics` filename for the download. ASCII-only: the
+ * `download` attribute reaches Windows and Android filesystems with very
+ * different ideas about what a filename may contain, and a title is CMS-authored
+ * free text in any script. A transliteration library would be a dependency for a
+ * filename, so a non-Latin title degrades to the generic name rather than to
+ * mojibake.
+ */
+export function icsFileName(title: string): string {
+  const slug = title
+    .normalize('NFKD')
+    // Combining marks, stripped AFTER NFKD has split them off their base letter
+    // (so "Méditation" slugs to "meditation", not "m-ditation").
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+    .slice(0, 60)
+
+  return `${slug || 'event'}.ics`
 }
