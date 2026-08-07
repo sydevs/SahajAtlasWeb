@@ -1,8 +1,58 @@
+diff --git a/dist/index.js b/dist/index.js
+index 7f343be1fafe1cf302ee6afc7268c29490895e34..3b8800d91459ad836a43033cd77b39d83d84f93c 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1,11 +1,16 @@
+ 'use client';
+ function __insertCSS(code) {
+-  if (!code || typeof document == 'undefined') return
+-  let head = document.head || document.getElementsByTagName('head')[0]
+-  let style = document.createElement('style')
+-  style.type = 'text/css'
+-  head.appendChild(style)
+-  ;style.styleSheet ? (style.styleSheet.cssText = code) : style.appendChild(document.createTextNode(code))
++  // vaul@1.1.2 patch (Sahaj Atlas #91): neutered. Upstream calls this at module
++  // scope to append its stylesheet to document.head — raw and unscoped. This
++  // widget is embedded in other people's pages, and that sheet defines bare
++  // `@keyframes fadeIn` / `fadeOut` / `slideFrom*`: keyframe names are
++  // document-global and last-definition-wins, so it silently hijacked any host
++  // animation of those names (Animate.css ships `fadeIn`, and a test page proved
++  // the host element changed). We already vendor this exact CSS as
++  // src/styles/vaul.css, which goes through the build's scoping pass and comes out
++  // confined to `.sy-atlas` with namespaced keyframes — so dropping the injection
++  // loses no styling, it only stops the unscoped duplicate.
++  return
+ }
+ 
+ Object.defineProperty(exports, '__esModule', { value: true });
 diff --git a/dist/index.mjs b/dist/index.mjs
-index 0dbbce5526681925a81804ced237a045a53c0355..6db8161ead66f6490d8ec58fbc8344d53827b6ea 100644
+index 0dbbce5526681925a81804ced237a045a53c0355..b310a87d80437733bba9de56c6c1f8d0ad46d4d3 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
-@@ -1339,6 +1339,12 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
+@@ -1,11 +1,16 @@
+ 'use client';
+ function __insertCSS(code) {
+-  if (!code || typeof document == 'undefined') return
+-  let head = document.head || document.getElementsByTagName('head')[0]
+-  let style = document.createElement('style')
+-  style.type = 'text/css'
+-  head.appendChild(style)
+-  ;style.styleSheet ? (style.styleSheet.cssText = code) : style.appendChild(document.createTextNode(code))
++  // vaul@1.1.2 patch (Sahaj Atlas #91): neutered. Upstream calls this at module
++  // scope to append its stylesheet to document.head — raw and unscoped. This
++  // widget is embedded in other people's pages, and that sheet defines bare
++  // `@keyframes fadeIn` / `fadeOut` / `slideFrom*`: keyframe names are
++  // document-global and last-definition-wins, so it silently hijacked any host
++  // animation of those names (Animate.css ships `fadeIn`, and a test page proved
++  // the host element changed). We already vendor this exact CSS as
++  // src/styles/vaul.css, which goes through the build's scoping pass and comes out
++  // confined to `.sy-atlas` with namespaced keyframes — so dropping the injection
++  // loses no styling, it only stops the unscoped duplicate.
++  return
+ }
+ 
+ import * as DialogPrimitive from '@radix-ui/react-dialog';
+@@ -1339,6 +1344,12 @@ function Root({ open: openProp, onOpenChange, children, onDrag: onDragProp, onRe
          modal
      ]);
      return /*#__PURE__*/ React__default.createElement(DialogPrimitive.Root, {

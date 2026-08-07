@@ -9,8 +9,9 @@ import atlasAuth from './config/api/auth'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
-import { HASH_BASE, mountRoute } from './lib/shape'
 import { reportIntegrationWarning, reportInternalError } from './lib/report'
+import { WIDGET_SCOPE_CLASS } from './lib/scope'
+import { HASH_BASE, mountRoute } from './lib/shape'
 
 // Implementation of embeddable Widget
 // Demo in: demo.html
@@ -126,6 +127,10 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
   // flash; BrandTheme adopts the wrapper as the theme root + paints the brand
   // palette once mounted. `dir` derives from the ACTIVE locale (reactively) so
   // every descendant — and Tailwind's rtl: variants — follow text direction.
+  // It also carries WIDGET_SCOPE_CLASS: every rule in our injected stylesheet is
+  // rewritten to sit under that class (issue #91), so without it here the embed
+  // renders completely unstyled. Same element as the theme class by necessity —
+  // the scoped `dark:` / `rtl:` variants resolve both against one ancestor.
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale, t } = useLocale()
 
@@ -142,7 +147,7 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
     <div
       ref={themeRootRef}
       aria-label={t('widget.label')}
-      className={getInitialTheme()}
+      className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`}
       dir={i18n.dir(activeLocale)}
       lang={activeLocale}
       role="region"

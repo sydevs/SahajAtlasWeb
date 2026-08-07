@@ -11,7 +11,13 @@ export const PREVIEW_URL = process.env.PREVIEW_URL?.replace(/\/$/, '')
 /** True when no preview URL is available — pass to `test.skipIf(...)`. */
 export const skipWithoutPreview = !PREVIEW_URL
 
-/** Fetch a path on the preview. Only call when a preview URL is present. */
-export function fetchPreview(path: string): Promise<Response> {
-  return fetch(`${PREVIEW_URL}${path}`)
+/**
+ * Fetch a path on the preview. Only call when a preview URL is present.
+ *
+ * `init` takes the usual fetch options — `{ method: 'HEAD' }` for an
+ * existence check, where pulling the body would move real megabytes for a
+ * status code.
+ */
+export function fetchPreview(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${PREVIEW_URL}${path}`, init)
 }

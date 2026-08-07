@@ -60,6 +60,12 @@ const drawer = tv({
       // an RTL locale actually ships. Everything else is already logical: the
       // stack's panel/cog positioning uses `start-*`, and directional icons
       // mirror via BaseIcon's `flipRtl`.
+      // **The `22rem` in both variants below is paired with `DRAWER_W_REM` in
+      // `hooks/use-map-controller.tsx`** — that constant becomes the map's left camera
+      // padding, so the map knows how much of itself this panel covers. Tailwind needs a
+      // literal here and can't read the constant, so changing this width means changing
+      // that one in the same edit; otherwise the map keeps framing around the old width
+      // and nothing anywhere fails to tell you.
       left: {
         content:
           'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',

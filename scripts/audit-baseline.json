@@ -1,0 +1,40 @@
+{
+  "note": [
+    "Known high/critical advisories in production dependencies at the moment the audit",
+    "gate landed (issue #99), each named with the ticket that owns the fix. The gate",
+    "(scripts/check-audit.mjs) fails on any high/critical advisory NOT listed here, so",
+    "this file is the line between 'debt we have already booked' and 'something new'.",
+    "",
+    "Adding an entry is an explicit, reviewable decision — give the id, the package, and",
+    "the ticket or reason. Removing entries is the point: the weekly audit workflow fails",
+    "when a listed advisory is no longer reported, so a fix prunes its own line.",
+    "",
+    "Baseline captured 2026-08-06: 64 advisories total, 1 critical + 24 high."
+  ],
+  "advisories": {
+    "GHSA-3jxr-9vmj-r5cp": "high · brace-expansion · DoS via exponential-time expansion of consecutive non-expanding {} groups — #101 (build-time transitive: tailwindcss > sucrase > glob > minimatch)",
+    "GHSA-mh99-v99m-4gvg": "high · brace-expansion · DoS via unbounded expansion length causing an OOM crash — #101 (build-time transitive)",
+    "GHSA-rgw5-rvv9-x895": "high · brace-expansion · DoS via unbounded intermediate arrays — #101 (build-time transitive)",
+    "GHSA-7p8r-x3mc-p8w7": "high · fast-uri · host confusion via backslash authority introducer — #101 (build-time transitive)",
+    "GHSA-v2hh-gcrm-f6hx": "high · fast-uri · host confusion via literal backslash authority delimiter — #101 (build-time transitive)",
+    "GHSA-5j98-mcp5-4vw2": "high · glob · command injection via the -c/--cmd CLI flag (the CLI is never invoked here) — #101 (build-time transitive)",
+    "GHSA-52cp-r559-cp3m": "high · js-yaml · quadratic CPU consumption via YAML merge-key chains — #101 (build-time transitive)",
+    "GHSA-5p4m-2wfm-xmqj": "high · js-yaml · quadratic CPU consumption in !!omap resolution — #101 (build-time transitive)",
+    "GHSA-23c5-xmqv-rm74": "high · minimatch · catastrophic backtracking from nested *() extglobs — #101 (build-time transitive)",
+    "GHSA-3ppc-4f35-3m26": "high · minimatch · ReDoS via repeated wildcards with a non-matching literal — #101 (build-time transitive)",
+    "GHSA-7r86-cg39-jmmj": "high · minimatch · matchOne() combinatorial backtracking via non-adjacent globstars — #101 (build-time transitive)",
+    "GHSA-c2c7-rcm5-vvqj": "high · picomatch · ReDoS via extglob quantifiers — #101 (build-time transitive)",
+    "GHSA-6g55-p6wh-862q": "high · postcss · arbitrary file read via an attacker-controlled sourceMappingURL — #101 (build-time transitive)",
+    "GHSA-r28c-9q8g-f849": "high · postcss · path traversal in previous-source-map auto-loading — #101 (build-time transitive)",
+    "GHSA-2w69-qvjg-hvjx": "high · react-router · XSS via open redirects — #101 (in-range: the lockfile is behind the declared range, so a plain `pnpm update` clears it). react-router DOES ship in the eager browser payload (the `types` chunk); the framework/data-mode advisories below do not apply to this app, which mounts a declarative HashRouter",
+    "GHSA-3cgp-3xvw-98x8": "high · react-router · XSS — #101 (in-range)",
+    "GHSA-49rj-9fvp-4h2h": "high · react-router · vendored turbo-stream v2 allows arbitrary constructor invocation — #101 (in-range)",
+    "GHSA-8v8x-cx79-35w7": "high · react-router · SSR XSS in ScrollRestoration (framework mode; unused here) — #101 (in-range)",
+    "GHSA-8x6r-g9mw-2r78": "high · react-router · DoS via unbounded path expansion in the __manifest endpoint (framework mode; unused here) — #101 (in-range)",
+    "GHSA-chx6-hx7r-mcp5": "high · react-router · unauthenticated DoS via inefficient route matching — #101 (in-range)",
+    "GHSA-cpj6-fhp6-mr6j": "high · react-router · pre-render data spoofing (framework mode; unused here) — #101 (in-range)",
+    "GHSA-rxv8-25v2-qmq8": "high · react-router, turbo-stream · DoS via reflected user input in single-fetch — #101 (in-range)",
+    "GHSA-4cwx-7wf7-3272": "high · undici · cross-user information disclosure and parse-time crash — #101 (in-range)",
+    "GHSA-hmx5-qpq5-p643": "critical · swiper · prototype pollution — #104 (needs a major bump, 11.2.1 → 12.1.2). Swiper ships in the EAGER browser payload (the `EventRegister` chunk, a static import of `App`), but the advisory fires through attacker-controlled Swiper params, and every param at ImageCarousel.tsx is a code literal — CMS data reaches the slides, never the config. Baselined as not-reachable, not as not-shipped"
+  }
+}

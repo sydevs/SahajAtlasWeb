@@ -12,8 +12,13 @@
  *   3. the Cloudflare bot's PR comment body
  *
  * If nothing is found within the timeout (e.g. a forked PR with no preview, or
- * the preview env isn't configured), we emit an EMPTY preview_url and exit 0 so
- * the smoke job skips gracefully instead of failing.
+ * the preview env isn't configured), we emit an EMPTY preview_url and exit 0 —
+ * discovery problems are reported, never fatal here.
+ *
+ * Whether an empty result is tolerable is the WORKFLOW's call, not this script's:
+ * ci.yml annotates it either way, and fails the smoke job when the PR is
+ * same-repo (secrets present, so a preview was expected). Keep the two in step —
+ * exiting non-zero here would turn a fork's expected skip into a red check.
  *
  * Env:
  *   GITHUB_TOKEN       (required) — read access to statuses/deployments/issues
@@ -68,8 +73,26 @@ async function gh(path) {
 // (the app + the `-design` Ladle playground), so a plain "first *.pages.dev"
 // fallback would smoke-test the wrong deploy — return null (keep polling, then
 // skip) rather than guess.
+//
+// Matched on the HOSTNAME, at a label boundary. A substring test accepts
+// `https://evil-sahajatlas.pages.dev`, and `pages.dev` subdomains are
+// first-come-first-served — so with source 3 below reading PR comments, anyone
+// who can comment could aim the smoke lane at a host they control and collect a
+// green check that verified nothing. That mattered less when a missing preview
+// merely skipped; ci.yml now hard-fails on one, which makes a hijacked URL the
+// more attractive target of the two.
 function pick(urls) {
-  return urls.find((u) => u.includes(project)) || null
+  return (
+    urls.find((u) => {
+      try {
+        const { hostname } = new URL(u)
+
+        return hostname === project || hostname.endsWith(`.${project}`)
+      } catch {
+        return false
+      }
+    }) || null
+  )
 }
 
 async function discover() {
@@ -96,11 +119,14 @@ async function discover() {
     }
   }
 
-  // 3. PR comment from the Cloudflare bot
+  // 3. PR comment from the Cloudflare bot — bot authors only. This repo is
+  // public, so any GitHub user can comment on a PR, and during the polling
+  // window a comment is often the only candidate on offer.
   if (prNumber) {
     const comments = await gh(`/repos/${repo}/issues/${prNumber}/comments`)
     if (Array.isArray(comments)) {
       for (const c of comments) {
+        if (c.user?.type !== 'Bot') continue
         urls.push(...((c.body || '').match(PAGES_RE) || []))
       }
     }

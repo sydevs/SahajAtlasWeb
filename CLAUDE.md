@@ -26,11 +26,11 @@ event hierarchy.
 
 | Concern        | Choice |
 | -------------- | ------ |
-| Build tool     | Vite 5 (`vite.config.ts`), SPA, `type: module` |
+| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js` |
 | UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
 | Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash, *unless* the host page's own anchor already does, in which case it routes in memory and writes nothing (`mountRoute`, `src/lib/shape/hash.ts`) |
-| Data           | **TanStack Query** + `axios` (`src/config/api/`), **zod**-validated responses |
+| Data           | **TanStack Query** + **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-validated responses |
 | State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
 | i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |
 | Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
@@ -54,6 +54,8 @@ pnpm lint:fix     # eslint . --fix (auto-fix + Prettier)
 pnpm test         # vitest watch (fast unit lane)
 pnpm test:run     # vitest run (one-shot — CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
+pnpm size         # eager-payload budget (CI gate — run after pnpm build)
+pnpm audit:check  # dependency-advisory gate vs scripts/audit-baseline.json
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
 ```
@@ -62,8 +64,26 @@ Two test lanes (see `.claude/rules/tests.md`): a **fast node-only unit lane**
 (co-located `src/**/*.test.ts(x)`, no jsdom — assert components via
 `renderToStaticMarkup`) and a **smoke lane** (`tests/smoke/`, fetch-based against
 the Cloudflare preview). CI (`.github/workflows/ci.yml`) gates PRs on
-lint + typecheck + **test:run** + build + `ladle:build`; the smoke job runs
-separately. A PostToolUse hook runs the unit lane on `src/**` edits.
+lint + typecheck + **test:run** + build + **`pnpm size`** + `ladle:build`, plus a
+**Dependency Audit** job; the smoke job runs separately. A PostToolUse hook runs
+the unit lane on `src/**` edits.
+
+Three of those gates exist because the thing they check had already gone wrong
+unnoticed (issue #99), and each is built so that passing means something:
+
+- **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the **eager payload**
+  — the standalone shell's entry + modulepreload closure, and `embed.js`'s import
+  graph, gzipped. Never budget a single chunk: the build re-chunks freely. It
+  fails when a graph is far **under** budget too, since that is both a ratchet
+  (lower `BUDGET_KIB` in the commit that won the space) and the signature of the
+  import walker half-breaking.
+- **`pnpm audit:check`** (`scripts/check-audit.mjs`) fails on a high/critical
+  advisory that isn't pinned in `scripts/audit-baseline.json` — green today, red
+  on a new one. Waiving one is a reviewable line naming the owning ticket. The
+  weekly `audit.yml` adds `--strict`, which also fails on baseline entries that
+  have since been fixed, where it can't block anyone's PR.
+- **A green Smoke check implies the specs ran.** A missing Cloudflare preview
+  annotates, and fails outright on same-repo PRs; forks keep the graceful skip.
 
 ## Code quality
 
@@ -82,23 +102,23 @@ src/
   Widget.tsx          # Web-component entry — defines <sahaj-atlas> (map prop), wraps <App>
   App.tsx             # Providers + client bootstrap; renders the map (or not) + DrawerStack
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
-  providers.tsx       # React Query + Helmet + theme providers
+  providers.tsx       # React Query + Helmet (Radix is headless; BrandTheme mounts in App)
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
     atoms/            # Primitives: Drawer/, Modal/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
-    molecules/        # Compositions: Toolbar/, List/, ListItem/, EventListItem/, EventTime|Share|Images|Soon/, EventMetadata/, Fallbacks/
-    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, Mapbox/
+    molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, ActionRow/, EventMetadata/, ImageCarousel/, ShareContent/, FormField/, Fallbacks/
+    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
-  views/              # URL-driven drawer views (replace pages/): DrawerStack + Root/Search/Calendar/Region/Event/Registration/Share
+  views/              # URL-driven drawer views (replace pages/): DrawerStack + Countries (the base)/Search/Calendar/Region/Online/Event/Registration/Filter/Share
   config/
     api/              # PayloadSDK client + zod-parsed fetchers (client.ts, fetch.ts, mutate.ts, auth.ts) + query factories (index.ts)
-    store.ts          # zustand stores (view / registration-draft / calendar-position; filters live in the URL)
+    store.ts          # zustand stores (view / camera-history / calendar-position / results-reveal / report-modal / registration-draft; filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
-    site.ts, responsive.ts
+    responsive.ts, query-client.ts, i18n-options.ts, preview.ts, theme/
   hooks/              # use-locale, use-mapbox, use-map-controller, use-theme
   lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
-                      # entity codecs (filters, sort, path, country, hierarchy); geo/camera/ics
+                      # entity codecs (filters, sort, path, country, hierarchy); geo.ts + camera.ts
                       # the maths; share/platforms.ts + country-sites.ts the static
                       # country-keyed tables (that's where such data belongs, not a src/data/);
                       # report.ts the never-throws error narrowing (errorMessage/classifyError/
@@ -122,7 +142,7 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   `useShallow` selectors in hot paths (the map). See `.claude/rules/i18n-and-state.md`.
 - **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
   `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open
-  drawers; `DrawerStack` renders RootView (base) + one nested vaul drawer per
+  drawers; `DrawerStack` renders CountriesView (base) + one nested vaul drawer per
   ancestor. No drawer-stack store. Dismissal is **history-aware**: every in-widget
   push stamps `location.state.depth` (`atlasPushState`, via the `Link` atom +
   `useAtlasNavigate`), so X / swipe / Esc go chronologically **back**
@@ -177,10 +197,14 @@ is `public/_redirects` (`/* /index.html 200`), which gives the app's standalone
 fallback; the standalone build does.) CI's smoke lane targets the app project via
 `CF_PROJECT=sahajatlas.pages.dev` (`.github/workflows/ci.yml`).
 
-There is also an "accent" theme sync via
-`.github/workflows/{push,sync}-accent.yml` (driven by `accent.json`) — leave
-those workflows alone unless the task is about theming. Use the **cloudflare-docs**
-MCP for Cloudflare Pages questions.
+Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
+
+The repo used to carry two **Accent** translation workflows
+(`.github/workflows/{push,sync}-accent.yml`, configured by `accent.json`). They were
+removed in #99: every run had failed since 2026-06-22 on EOL Node 16, so the sync was
+already dead, and reviving it would have re-armed a push-to-`main` job with repo write
+access running an unpinned global install alongside `ACCENT_API_KEY`. Locale JSON under
+`public/locales/` is hand-maintained (`pnpm i18n:add`) — that is now the only path.
 
 ## Git / PR workflow
 

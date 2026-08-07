@@ -22,6 +22,10 @@ import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
+// Registers the self-hosted Raleway faces (#91). A side-effect import beside the
+// stylesheet because that is what it is — the part of our CSS that a `url()` in an
+// injected stylesheet cannot express. See src/styles/fonts.ts.
+import '@/styles/fonts'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
 
