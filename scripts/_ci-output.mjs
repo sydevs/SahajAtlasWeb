@@ -21,7 +21,10 @@ import { appendFileSync } from 'node:fs'
 export function report(lines) {
   const text = lines.join('\n')
 
-  console.log(text)
+  // Actions parses stdout for `::command::` lines, and some of what we print is
+  // registry-sourced (advisory titles). Defang a line that starts with `::` so a
+  // hostile or merely unlucky title can't forge a workflow command.
+  console.log(text.replace(/^::/gm, '​::'))
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`)
   }
@@ -35,7 +38,13 @@ export function report(lines) {
  * @param {string} message
  */
 export function annotate(level, message) {
-  // Annotations are single-line: a newline would truncate the message and leave
-  // the rest as stray log output.
-  console.log(`::${level}::${message.replace(/\s*\n\s*/g, ' ')}`)
+  // Annotations are single-line, and `%`, CR and LF are the command format's
+  // own escapes — left raw, a message containing one is truncated or mangled,
+  // with the remainder spilling out as stray log output.
+  const escaped = message
+    .replace(/\s*\n\s*/g, ' ')
+    .replace(/%/g, '%25')
+    .replace(/\r/g, '%0D')
+
+  console.log(`::${level}::${escaped}`)
 }

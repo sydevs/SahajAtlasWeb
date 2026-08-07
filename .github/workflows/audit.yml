@@ -16,6 +16,18 @@ name: Audit
 #
 # Advisories arrive on their own schedule, not ours, which is the other reason to
 # run this independently of PR traffic: a quiet week shouldn't mean a blind one.
+#
+# Two known gaps, recorded so they aren't mistaken for coverage:
+#
+#   - Scope is `--prod`, matching the readiness report. A full `pnpm audit` today
+#     reports 8 further high advisories, all in the build toolchain (vite,
+#     vitest, eslint, @ladle/react, jsdom, typescript). Those run on developer
+#     machines and in CI, so widening this run to the whole tree is worth doing —
+#     it needs those ids added to the baseline in the same commit, or the weekly
+#     run is red from day one.
+#   - GitHub disables scheduled workflows after 60 days without repo activity.
+#     If this stops appearing in the Actions tab, that is why — re-enable it
+#     there; the PR gate keeps working regardless.
 
 on:
   schedule:

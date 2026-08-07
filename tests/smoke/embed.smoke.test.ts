@@ -19,14 +19,26 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
  * `retry: 2` in the smoke config would otherwise triple the round trips. Lazy
  * rather than a `beforeAll`, so a run with no preview URL skips without ever
  * touching the network.
+ *
+ * A failure is NOT cached. Caching one would quietly defeat the retry it was
+ * written to economise on: the preview is an edge deploy published seconds
+ * earlier, which is exactly when a transient 5xx or a dropped connection
+ * happens, and re-awaiting a settled rejection makes all three attempts
+ * identical and instant.
  */
 let embed: Promise<{ status: number; body: string }> | undefined
 
 function fetchEmbed() {
-  embed ??= fetchPreview('/embed.js').then(async (res) => ({
-    status: res.status,
-    body: await res.text(),
-  }))
+  embed ??= fetchPreview('/embed.js')
+    .then(async (res) => {
+      if (res.status !== 200) embed = undefined
+
+      return { status: res.status, body: await res.text() }
+    })
+    .catch((err) => {
+      embed = undefined
+      throw err
+    })
 
   return embed
 }
@@ -50,27 +62,33 @@ describe('embed bundle', () => {
     const { body } = await fetchEmbed()
 
     // `embed.js` is unhashed and mutable while the chunks it names are hashed,
-    // so a host (or proxy) holding a stale embed.js can ask for names the CDN no
-    // longer serves — a hard 404 with no fallback, and the widget simply never
-    // appears. Asserting the references resolve catches the deploy-side half of
-    // that skew: an embed.js published without its own chunks.
+    // so a host (or proxy) holding a stale embed.js can ask for names the deploy
+    // no longer contains, and the widget simply never appears. This catches the
+    // deploy-side half of that skew: an embed.js published without its chunks.
     //
     // Every relative `.js` literal, not just the static-import shape: a lazy
-    // chunk 404ing is the same broken deploy, one interaction later.
+    // chunk going missing is the same broken deploy, one interaction later.
     const chunks = [...new Set([...body.matchAll(/["'](\.\/[^"']+\.js)["']/g)].map((m) => m[1]))]
 
     expect(chunks.length).toBeGreaterThan(0)
 
-    const missing = await Promise.all(
+    // The status alone proves nothing here. `public/_redirects` is
+    // `/* /index.html 200`, so a chunk the deploy is missing comes back as the
+    // SPA shell with a 200 — a check on `res.status` would pass for precisely
+    // the failure this spec exists to catch. The content type is what
+    // distinguishes a real chunk from the fallback HTML.
+    const broken = await Promise.all(
       chunks.map(async (chunk) => {
-        // HEAD: only the status matters, and the bodies are ~440 KiB gzipped.
+        // HEAD: only the headers matter, and the bodies are ~440 KiB gzipped.
         const path = `/${chunk.replace(/^\.\//, '')}`
         const res = await fetchPreview(path, { method: 'HEAD' })
+        const type = res.headers.get('content-type') ?? ''
+        const served = res.status === 200 && /javascript|ecmascript/i.test(type)
 
-        return res.status === 200 ? null : `${path} → ${res.status}`
+        return served ? null : `${path} → ${res.status} ${type}`
       }),
     )
 
-    expect(missing.filter(Boolean)).toEqual([])
+    expect(broken.filter(Boolean)).toEqual([])
   })
 })

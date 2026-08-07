@@ -42,7 +42,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
 import { annotate, report } from './_ci-output.mjs'
@@ -71,10 +71,15 @@ const BUDGET_KIB = {
 }
 
 // A budget far above the real payload is a green check that checks nothing —
-// the exact failure this script was written against, just slower. Once a graph
-// is running this much under, the number has stopped describing the code and
-// should come down.
-const SLACK_RATIO = 0.1
+// the exact failure this script was written against, just slower. So running
+// this far UNDER budget fails too, and the fix is one line: bring BUDGET_KIB
+// down in the commit that won the space.
+//
+// It is also the only guard that catches the walkers half-breaking. They are
+// regexes over minified output; if one stops matching some import shape, the
+// graph shrinks, the total collapses, and an over-budget check alone would
+// report a comfortable pass on a payload it never measured.
+const SLACK_RATIO = 0.15
 
 const DIST = resolve(import.meta.dirname, '..', 'dist')
 const KIB = 1024
@@ -104,7 +109,18 @@ function staticImports(file) {
   return [...new Set(specifiers)]
     .filter((s) => s.startsWith('.'))
     .map((s) => join(here, s))
-    .filter((f) => existsSync(f))
+    .filter(inDist)
+}
+
+/**
+ * Is this a real file inside `dist/`?
+ *
+ * Existence alone isn't the claim the docblock above makes: `../../../etc/hosts`
+ * both resolves and exists, and would then be gzipped and named in the summary.
+ * Containment is what makes "a stray literal can't inflate the total" true.
+ */
+function inDist(file) {
+  return resolve(file).startsWith(DIST + sep) && existsSync(file)
 }
 
 /** Walk the static import closure from an entry file. Returns absolute paths. */
@@ -131,7 +147,9 @@ function htmlGraph(html) {
     ...[...source.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g)].map((m) => m[1]),
   ]
 
-  return hrefs.map((href) => join(DIST, href.replace(/^\//, '')))
+  // Same containment rule as the walker: an absolute or CDN href would
+  // otherwise become a bogus path and reach gzipBytes as a bare ENOENT.
+  return hrefs.map((href) => join(DIST, href.replace(/^\//, ''))).filter(inDist)
 }
 
 /** Measure one named graph: per-file gzip sizes, sorted heaviest first. */
@@ -142,6 +160,12 @@ function measure(name, files) {
 
   const kib = parts.reduce((sum, p) => sum + p.bytes, 0) / KIB
   const budget = BUDGET_KIB[name]
+
+  // Without this, an unbudgeted graph makes `spare` NaN, and NaN fails every
+  // comparison below — so a new entry would report `undefined KiB` and pass.
+  if (budget === undefined) {
+    throw new Error(`No BUDGET_KIB entry for the "${name}" graph.`)
+  }
 
   return { name, parts, kib, budget, spare: budget - kib }
 }
@@ -170,8 +194,18 @@ function main() {
   // scoring their UNION means a dropped preload hint can never make the payload
   // look smaller than it is — it can only show up as the warning below.
   const declared = htmlGraph(indexHtml)
-  const loaded = importClosure(declared[0])
 
+  if (!declared.length) {
+    annotate(
+      'error',
+      'Found no entry script in dist/index.html — the shell markup has changed, so ' +
+        'the standalone payload cannot be measured. Fix htmlGraph() in ' +
+        'scripts/check-bundle-size.mjs.',
+    )
+    process.exit(1)
+  }
+
+  const loaded = importClosure(declared[0])
   const embedGraph = importClosure(embedJs)
 
   // The walkers are regexes over minified output, so their silent failure mode
@@ -236,14 +270,15 @@ function main() {
   }
 
   const over = graphs.filter((g) => g.spare < 0)
-  const slack = graphs.filter((g) => g.spare > g.budget * SLACK_RATIO)
+  const under = graphs.filter((g) => g.spare > g.budget * SLACK_RATIO)
+  const name = (list) => list.map((g) => `${g.name} ${g.kib.toFixed(1)} KiB`).join('; ')
 
-  if (slack.length) {
+  if (under.length) {
     lines.push(
       '',
-      `> 📉 ${slack.map((g) => `\`${g.name}\``).join(' and ')} now ` +
-        `${slack.length === 1 ? 'runs' : 'run'} more than ` +
-        `${SLACK_RATIO * 100}% under budget. Lower BUDGET_KIB to lock the win in.`,
+      `> 📉 ${under.map((g) => `\`${g.name}\``).join(' and ')} now ` +
+        `${under.length === 1 ? 'runs' : 'run'} more than ${SLACK_RATIO * 100}% under ` +
+        'budget. Lower `BUDGET_KIB` to lock the win in.',
     )
   }
 
@@ -252,20 +287,27 @@ function main() {
   if (over.length) {
     annotate(
       'error',
-      `Bundle size over budget: ${over
-        .map((g) => `${g.name} ${g.kib.toFixed(1)} KiB > ${g.budget} KiB`)
-        .join('; ')}. Either reduce the eager payload, or — if the growth is ` +
-        'intended and justified — raise BUDGET_KIB in scripts/check-bundle-size.mjs ' +
-        'in the same commit, with the reason in the commit message.',
+      `Bundle size over budget: ${name(over)} (budget ${over[0].budget} KiB). Either ` +
+        'reduce the eager payload, or — if the growth is intended and justified — raise ' +
+        'BUDGET_KIB in scripts/check-bundle-size.mjs in the same commit, with the reason ' +
+        'in the commit message.',
     )
     process.exit(1)
   }
 
-  if (slack.length) {
+  // Failing, not nagging. A notice here would leave the budget describing a
+  // payload that no longer exists, which is the same silent green the whole
+  // script is aimed at — and it is also what a half-broken import walker looks
+  // like, where a pass would be actively false.
+  if (under.length) {
     annotate(
-      'notice',
-      `Bundle-size budget has slack: ${slack.map((g) => g.name).join(', ')} — ratchet BUDGET_KIB down.`,
+      'error',
+      `Bundle size is far UNDER budget: ${name(under)} against ${under[0].budget} KiB. ` +
+        'If the payload really shrank, lower BUDGET_KIB in scripts/check-bundle-size.mjs ' +
+        'to match — a budget this loose stops detecting anything. If it did not, the ' +
+        'import walker has stopped seeing part of the graph and these numbers are wrong.',
     )
+    process.exit(1)
   }
 }
 

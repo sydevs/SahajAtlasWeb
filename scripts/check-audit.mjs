@@ -102,19 +102,37 @@ function main() {
 
   const counts = audit.metadata?.vulnerabilities || {}
   const found = Object.values(audit.advisories || {})
-  const gated = found.filter((a) => GATED.includes(a.severity))
-
   const idOf = (a) => a.github_advisory_id || `npm-${a.id}`
-  const fresh = gated.filter((a) => !(idOf(a) in known))
-  const seen = new Set(gated.map(idOf))
-  const stale = Object.keys(known).filter((id) => !seen.has(id))
+
+  // Keyed by advisory id, not by advisory record: pnpm reports one entry per
+  // (advisory, package), so a single GHSA affecting two packages would otherwise
+  // make the printed count disagree with the number of lines in the baseline.
+  const gated = new Map(found.filter((a) => GATED.includes(a.severity)).map((a) => [idOf(a), a]))
+  const fresh = [...gated.entries()].filter(([id]) => !(id in known)).map(([, a]) => a)
+  const stale = Object.keys(known).filter((id) => !gated.has(id))
+
+  // Zero advisories against a non-empty baseline is not 24 simultaneous fixes;
+  // it's the audit having stopped looking (a swallowed registry error, or an
+  // `auditConfig.ignoreGhsas` added elsewhere). Treated as unavailable rather
+  // than clean, or the baseline's own emptiness becomes the all-clear.
+  if (!found.length && Object.keys(known).length) {
+    const message =
+      'Dependency audit reported zero advisories while the baseline lists ' +
+      `${Object.keys(known).length} — the audit is not looking, not clean. ` +
+      'Check `pnpm audit --prod` by hand.'
+
+    lines.push(`⚠️ ${message}`)
+    annotate(strict ? 'error' : 'warning', message)
+    report(lines)
+    process.exit(strict ? 1 : 0)
+  }
 
   lines.push(
     `${found.length} advisories in production dependencies — ` +
       `**${counts.critical || 0} critical, ${counts.high || 0} high**, ` +
       `${counts.moderate || 0} moderate, ${counts.low || 0} low.`,
     '',
-    `${gated.length} at or above **high**; ` +
+    `${gated.size} distinct advisories at or above **high**; ` +
       `**new (not in \`scripts/audit-baseline.json\`): ${fresh.length}**.`,
     '',
   )
@@ -166,7 +184,7 @@ function main() {
     annotate('notice', `Audit baseline has ${stale.length} fixed entries — safe to prune.`)
   }
 
-  annotate('notice', `Dependency audit: no new high/critical advisories (${gated.length} known).`)
+  annotate('notice', `Dependency audit: no new high/critical advisories (${gated.size} known).`)
 }
 
 main()

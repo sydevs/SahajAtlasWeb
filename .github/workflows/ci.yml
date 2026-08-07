@@ -58,11 +58,18 @@ jobs:
   # The complementary ratchet — nagging when a baselined advisory has been fixed
   # but not pruned — lives in the weekly `audit.yml`, where it can't block a PR.
   #
-  # No `pnpm install`: `pnpm audit` resolves from the lockfile alone.
+  # SCOPE: `--prod` only, matching how the readiness report measured. Advisories
+  # in the build toolchain (vite, vitest, eslint, jsdom, …) are NOT covered by
+  # this job — see the note in audit.yml.
+  #
+  # No `pnpm install`: `pnpm audit` resolves from the lockfile alone, so no
+  # dependency lifecycle scripts run here.
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read # the four read scopes above exist for preview discovery, not this
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
