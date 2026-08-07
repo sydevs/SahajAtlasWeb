@@ -41,6 +41,12 @@ export const useReveal = (key: string): RevealControls => {
   // enough to be felt on a mid-range phone. As a transition React keeps the current
   // rows interactive while the next page renders, and `pending` gives the control an
   // honest loading state instead of a button that looks ignored.
+  //
+  // Issue #98 profiled this and found it is not merely *a* cost but THE cost of the
+  // list: at 6x CPU throttle a scroll that was actively paging spent 71 of 100 frames
+  // over 32ms, while the same scroll over a settled list six times as long spent none.
+  // The transition is what keeps that off the frame the reader is looking at — it is
+  // load-bearing, not a nicety. See the note on `MAX_REVEAL` (`lib/shape/reveal.ts`).
   const [pending, startTransition] = useTransition()
   const current = storedKey === key
 

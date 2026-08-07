@@ -122,8 +122,17 @@ Five stores, each the single source of truth for its slice:
   browser unfocuses a disabled element and a keyboard user would lose their place on
   every press (`aria-busy` instead, with the re-entry guard doing the real work).
   `revealRows` splits the sorted set at the distance boundary, slices to the count, and
-  says what the control offers next — clamped at `MAX_REVEAL`, since the rows are
-  unvirtualized. **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
+  says what the control offers next — clamped at `MAX_REVEAL` (400), which bounds the DOM
+  this widget can grow inside a host page we don't own, **not** the point at which it
+  stutters. Issue #98 was raised to virtualize these rows and, profiling the real drawer
+  at 6x CPU throttle, measured the opposite of its own premise: a settled 331-row list
+  scrolled with **zero** frames over 32ms while a 50-row list that was actively paging
+  spent **71 of 100** frames over it. Rendering a card costs; owning one does not — so
+  windowing, which re-renders cards on every scroll, was measured to be a likely
+  regression (a `content-visibility: auto` A/B doubled p95 to confirm the shape) and the
+  ticket's sanctioned fallback — a lower ceiling — was taken instead. Reach for the
+  per-card render cost, not the row count, if this list ever needs to get faster.
+  **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
   `FOREIGN_NEARBY_KM` (half that) for an event whose `address.country` differs from the
   searched `?cc` — distance alone ranks Belgian classes over French ones for someone
   searching Lille. Both countries must be known to demote anything, so an online event

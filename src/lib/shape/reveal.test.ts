@@ -264,6 +264,28 @@ describe('revealRows', () => {
     expect(result.more).toBeNull()
   })
 
+  it('keeps the ceiling inside the DOM budget it was measured against', () => {
+    // A ratchet, not a restatement. Every other test here spells the ceiling as
+    // `MAX_REVEAL`, so they all pass just as happily at a million — which is how the
+    // bound this list has in someone else's page could be raised back with the whole
+    // gate green. Issue #98 profiled the real drawer and settled on a DOM budget rather
+    // than a row count: ~22 nodes per card, so 400 rows is ~8,900 nodes, against the
+    // ~22,000 the old 1,000-row ceiling allowed.
+    //
+    // Raising this means re-running that profile, not editing the number — the ceiling
+    // exists because the widget is embedded in a page whose DOM is not ours to grow.
+    const NODES_PER_ROW = 22
+    const NODE_BUDGET = 10_000
+
+    expect(MAX_REVEAL * NODES_PER_ROW).toBeLessThanOrEqual(NODE_BUDGET)
+    // Whole pages, so the last press lands exactly on the ceiling instead of being
+    // clamped to a stub that renders fewer rows than the button implied.
+    expect(MAX_REVEAL % PAGE_SIZE).toBe(0)
+    // And still far past any reading depth — a ceiling under a few pages would be a
+    // truncated product, not a bound.
+    expect(MAX_REVEAL).toBeGreaterThanOrEqual(PAGE_SIZE * 8)
+  })
+
   it('still offers the distant segment when a huge count only filled the nearby one', () => {
     // The ceiling is about ROWS RENDERED, not the number in the URL. A count past both
     // the ceiling and the nearby segment renders that segment and no more — so the

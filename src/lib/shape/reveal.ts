@@ -41,7 +41,7 @@ export const PAGE_SIZE = 25
 export const DEFAULT_REVEAL = PAGE_SIZE
 
 /**
- * Hard ceiling on the revealed count — 40 presses' worth of rows.
+ * Hard ceiling on the revealed count — 16 presses' worth of rows.
  *
  * The list renders every revealed row unvirtualized, and dropping the fetcher's
  * nearest-50 slice left nothing bounding that. The count is session state now rather
@@ -50,13 +50,38 @@ export const DEFAULT_REVEAL = PAGE_SIZE
  * the whole matching feed, inside somebody else's page.
  *
  * The tradeoff, taken deliberately: a matching set larger than this genuinely ends
- * here. That's the very shape of cap this issue removed, so the ceiling is set far
- * above any plausible search (the whole global feed is a few thousand events, and a
- * ranked list nobody scrolls past row 50 of does not need row 1001) — and the control
- * disappears at the ceiling rather than dead-ending, so it never lies about there
- * being more.
+ * here. The ceiling is still far above any plausible search (the whole global feed is a
+ * few thousand events, and a ranked list nobody scrolls past row 50 of does not need
+ * row 401) — and the control disappears at the ceiling rather than dead-ending, so it
+ * never lies about there being more.
+ *
+ * **This is the ceiling, NOT a jank threshold — issue #98 measured that distinction and
+ * it did not go the way the ticket assumed.** The list was to be virtualized because
+ * "1,000 mounted rows" reads like the reason a long list stutters. Profiled in the real
+ * vaul drawer at 6x CPU throttle, over an identical 40px-per-frame scroll:
+ *
+ *   - 331 rows / 7,331 DOM nodes, fully revealed:  median 8.3ms, p95 17.4ms, 0/100 frames >32ms
+ *   -  50 rows / 1,079 DOM nodes, actively paging: median 38.4ms, p95 175ms, 71/100 frames >32ms
+ *
+ * Six times the DOM scrolled *better*. What costs is RENDERING A CARD, not owning one:
+ * the janky frames were the `useTransition` reveal building the next page, and they did
+ * not coincide with the commit that grew the row count (1 of 71 did). A windowing
+ * virtualizer re-renders cards as they enter the viewport, so it would spend that same
+ * cost repeatedly on every scroll instead of once per row — the `content-visibility:
+ * auto` A/B run alongside it showed exactly that shape, doubling p95 (36→59ms) and
+ * quintupling the worst frame (61→307ms). So virtualizing this list was measured to be a
+ * likely REGRESSION, and the ticket's sanctioned fallback was taken instead.
+ *
+ * What the ceiling therefore buys is DOM hygiene inside a host page we don't own —
+ * ~22,000 nodes at the old 1,000 became ~8,900 at 400 — not smoothness. It sits just
+ * above the 331-row depth verified smooth above, so it is a measured bound rather than a
+ * guessed one, and 16 pages is roughly 15 deliberate presses past the first: far beyond
+ * any reading depth, and it never touches the auto-paged nearby segment.
+ *
+ * The real lever on the felt cost is the per-card render (`EventFacts` / `EventChips` and
+ * their date formatting), which is a different ticket's surface.
  */
-export const MAX_REVEAL = PAGE_SIZE * 40
+export const MAX_REVEAL = PAGE_SIZE * 16
 
 /**
  * The identity of a result set, for `useResultsReveal`. A reveal belongs to the set it
