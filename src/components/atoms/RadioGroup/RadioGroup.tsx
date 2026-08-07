@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, forwardRef, useState } from 'react'
 import clsx from 'clsx'
 import { tv } from 'tailwind-variants'
 
@@ -70,20 +70,37 @@ export type RadioGroupProps = {
   className?: string
 }
 
-export function RadioGroup({
-  name,
-  options,
-  value,
-  onChange,
-  onBlur,
-  'aria-label': ariaLabel,
-  'aria-describedby': describedBy,
-  isInvalid,
-  highlight,
-  collapseAfter,
-  moreLabel,
-  className,
-}: RadioGroupProps) {
+/**
+ * The ref lands on the FIRST radio, which makes this group focusable by name from
+ * outside — specifically by react-hook-form's `setFocus`, which the registration form
+ * calls to put the caret on the first field that failed validation (issue #102).
+ *
+ * Without it a `Controller`-driven group is invisible to that: RHF stores whatever
+ * `field.ref` is given, and a component that swallows the ref leaves it `undefined`,
+ * whereupon `setFocus` does nothing at all and reports nothing — the form simply
+ * doesn't move, which looks like the submit failing silently.
+ *
+ * The first radio rather than the checked one, because `collapseAfter` may mean the
+ * checked option isn't rendered; and a radio group is a single tab stop, so entering
+ * it at the top is where a keyboard user expects to arrive anyway.
+ */
+export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function RadioGroup(
+  {
+    name,
+    options,
+    value,
+    onChange,
+    onBlur,
+    'aria-label': ariaLabel,
+    'aria-describedby': describedBy,
+    isInvalid,
+    highlight,
+    collapseAfter,
+    moreLabel,
+    className,
+  },
+  ref,
+) {
   const [expanded, setExpanded] = useState(false)
 
   const collapsible = collapseAfter != null && moreLabel != null && options.length > collapseAfter
@@ -97,12 +114,13 @@ export function RadioGroup({
       className={clsx('flex flex-col gap-2', className)}
       role="radiogroup"
     >
-      {visible.map((option) => {
+      {visible.map((option, index) => {
         const checked = value === option.value
 
         return (
           <label key={option.value} className={radioOption({ checked, highlight, isInvalid })}>
             <input
+              ref={index === 0 ? ref : undefined}
               checked={checked}
               className="h-4 w-4 shrink-0 accent-primary"
               name={name}
@@ -127,4 +145,4 @@ export function RadioGroup({
       )}
     </div>
   )
-}
+})

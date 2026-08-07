@@ -323,7 +323,19 @@ function RegistrationFields({
             error={errors.startingAt && t('errors.starting_at')}
             label={t('registration.starting_date')}
           >
+            {/* `field.ref` is what makes a failed submit MOVE (issue #102).
+                react-hook-form focuses the first invalid field itself — that is
+                `shouldFocusError`, on by default — but it can only focus a field it
+                was handed a ref for, and it walks them in registration order, which
+                here is the order they are rendered in.
+
+                This is the first field, and until RadioGroup forwarded a ref it was
+                the one field RHF had to skip: a submit with no date chosen moved
+                focus nowhere and said nothing, so a screen-reader user was left on
+                the Register button with no indication of why it hadn't worked. The
+                other two are plain `register`ed inputs and were always covered. */}
             <RadioGroup
+              ref={field.ref}
               aria-label={t('registration.starting_date')}
               collapseAfter={VISIBLE_DATES}
               isInvalid={!!errors.startingAt}
