@@ -155,6 +155,12 @@ is a known follow-up.
   awaits + throws to the ErrorBoundary; a warm cache returns immediately and revalidates
   in the background when stale — so a navigation never *blocks* on a stale-window
   refetch. Don't switch these back to `fetchQuery` (it blocks on the stale refetch).
+  They also pin **`retry: false`**, which is not a policy of their own: `fetchQuery`
+  applied it for free while `retry` was `undefined`, and giving the client a `retry`
+  default (below) killed that guard. It matters because these loaders are **not leaves** —
+  `getRegion` / `getCountries` / `getEvents` await them from inside a query that retries
+  on its own, so a retry here MULTIPLIES with that one. Retrying belongs to the observer
+  layer; the imperative reads underneath it fetch once.
 - **The region index is memoized per feed load.** `indexedFeed(regions, geojson)`
   derives the region index + per-feature ancestry once per (cached) feed reference, and
   both `getCountries` / `getRegion` reuse it — not an O(features) rebuild per navigation.
@@ -164,7 +170,7 @@ is a known follow-up.
   suspends on — breaking the `clients/me` → data waterfall. Titles are *not* warmed there
   (the UI locale isn't resolved yet at mount, so it'd fetch under the wrong key).
 - **Event details are prefetched.** Cards warm `['event', id, locale]` on hover/focus
-  (`usePrefetchEvent`) and a region's first few cards on idle (`usePrefetchEvents`), so
+  (`useHoverPrefetch`) and a region's first few cards on idle (`usePrefetchEvents`), so
   opening an event is a cache hit, not a cold `findByID`. Build the key through the
   `eventQuery(id, locale)` factory (`config/api`) so the prefetch and the view's
   suspense read can't drift. The distance-ranked results list has the same contract in
@@ -178,6 +184,47 @@ is a known follow-up.
   appearing on every fallback with lint, typecheck and the unit lane all green. It is
   declared in `fetch.ts` beside its fetcher (declaring it in `index.ts` would close an
   import cycle) and re-exported from `config/api` with the rest.
+
+## Pressure knobs (`src/config/query-client.ts`, issue #97)
+
+React Query's defaults are tuned for an app that owns its page. This one is embedded on
+pages we don't, at whatever traffic those pages have, so all four are set explicitly.
+
+- **`staleTime` is a floor, not zero.** `DEFAULT_STALE_TIME` (30 s) under everything;
+  the caches that know their cadence override it. `EVENTS_STALE_TIME` is deliberately
+  *the same number* as `GEOJSON_STALE_TIME`, not an independent one: `eventsQuery`
+  issues no request — it re-runs the full-feed predicate, a zod parse per survivor and a
+  distance sort over the already-cached feed — so recomputing it more often than that
+  feed can change is work with no possible new answer. A drawer remount inside the
+  window costs nothing (`api/query-pressure.test.ts` counts the query fn).
+- **`gcTime` must exceed `staleTime`, always.** Retention is counted from the moment the
+  LAST OBSERVER unmounts, and the 5-minute default is shorter than `REGIONS_STALE_TIME` —
+  so the wholesale caches could be evicted while still nominally fresh and the fetch-once
+  architecture would quietly become fetch-once-per-idle-gap. Worst where least visible: a
+  `map=false` embed holds no observer on the feed at all. `WHOLESALE_GC_TIME` (1 h) pins
+  `['regions']` / `['geojson']` / `['event-titles']`; the derived events cache gets 2×
+  its own window, since it grows with use.
+- **Retry is bounded and 4xx-aware.** `shouldRetryQuery` — one retry, never for a 4xx
+  (except 408/425, which describe a moment rather than a verdict), never for our own
+  `not-found` / `config` kinds. `retryDelayFor` caps and **jitters** the backoff, so an
+  API coming back from an outage isn't met with every client's second attempt in the same
+  millisecond. The kind list mirrors `ERROR_POLICY`'s `retry` column — change both.
+  Mutations stay at `retry: 0`: the one mutation is a registration.
+- **Never override `retry` (or any option) per-fetch on a SHARED key.** `prefetchQuery` →
+  `fetchQuery` → `query.fetch(opts)` writes the options onto the shared `Query` object,
+  and `useSuspenseQuery` reads it back through `fetchOptimistic`, which calls
+  `query.fetch()` with **no arguments** — inheriting whatever the last writer left. A
+  `retry: false` meant for a speculative warm therefore disabled retries for EventView's
+  own read of every card the pointer had touched. The imperative loaders can pin it
+  because nothing reads their keys with suspense; the prefetch cannot.
+- **Hover prefetch is gated, not free.** `useHoverPrefetch` runs every warm through one
+  module-scope `createPrefetchIntent` (`src/lib/prefetch-intent.ts`): a 150 ms dwell, so
+  sweeping a paged-out list fires nothing, and a shared cap of 2 in flight, so patient
+  hovering can't become the same storm slowly. The gate is shared on purpose — a per-card
+  instance gives every card its own budget. It's skipped entirely while `navigator` says
+  we're offline, because `networkMode: 'online'` *pauses* such a fetch and its promise
+  would hold an in-flight slot forever. The idle warm-up (`usePrefetchEvents`,
+  `EAGER_COUNT = 3`) stays ungated: it's already bounded and it's the touch-device path.
 
 ## Errors
 

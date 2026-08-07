@@ -13,7 +13,12 @@ import type { Position } from 'geojson'
 
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
-import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
+import {
+  GEOJSON_STALE_TIME,
+  REGIONS_STALE_TIME,
+  WHOLESALE_GC_TIME,
+  queryClient,
+} from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import { atlasError } from '@/lib/report'
 import {
@@ -126,6 +131,21 @@ const REGIONS_SELECT = {
 // cache returns immediately and revalidates in the background when stale — so a
 // navigation past the stale window never *blocks* on the (cold-slow) refetch, the cause
 // of the "sometimes slow" region open. (Plain `fetchQuery` would block on that refetch.)
+//
+// Each also pins `gcTime`. These three caches are the whole point of the architecture —
+// fetched once, read by everything — but React Query counts retention from the moment
+// the LAST OBSERVER unmounts, and some of them are observed only intermittently (the
+// titles sliver) or not at all in a `map=false` embed (the feed). The 5-minute default
+// therefore evicts the wholesale data during an ordinary idle gap and the next
+// navigation re-downloads all of it. See WHOLESALE_GC_TIME.
+//
+// And each pins `retry: false`, which is NOT a new policy — it is the one `fetchQuery`
+// applied for free (`if (options.retry === undefined) options.retry = false`) until
+// `query-client.ts` gave the client a `retry` default, at which point that guard became
+// dead code. It matters because these loaders are not leaves: `getRegion`/`getCountries`/
+// `getEvents` await them from inside a query that retries on its own, so a retry here
+// MULTIPLIES with that one — a single failing region open would make four requests for
+// the feed while `MAX_QUERY_RETRIES` promised two. Retrying belongs to the observer layer.
 
 const getRegions = async (): Promise<RegionNode[]> => {
   const { docs } = validateSDKResponse(
@@ -144,11 +164,20 @@ const getRegions = async (): Promise<RegionNode[]> => {
 
 // Read the region tree through the shared React Query cache so the whole app fetches +
 // parses it once per (long) stale window rather than on every navigation.
+//
+// NOTE: this re-spells the key/fetcher/windows that `regionsQuery()` (`config/api/index.ts`)
+// declares for the React call sites — two authorities for one cache entry, kept equal by
+// hand. The repo's own answer to that is `eventTitlesQuery`, declared HERE beside its
+// fetcher and re-exported from `index.ts` to dodge the import cycle; moving `regionsQuery`
+// onto that pattern is the right fix and is out of scope for #97 (it restructures a loader
+// a sibling branch may hold). Change either copy and change both.
 const loadRegions = (): Promise<RegionNode[]> =>
   queryClient.ensureQueryData({
     queryKey: ['regions'],
     queryFn: getRegions,
     staleTime: REGIONS_STALE_TIME,
+    gcTime: WHOLESALE_GC_TIME,
+    retry: false,
     revalidateIfStale: true,
   })
 
@@ -185,6 +214,8 @@ const loadGeojson = (): Promise<Geojson> =>
     queryKey: ['geojson'],
     queryFn: getGeojson,
     staleTime: GEOJSON_STALE_TIME,
+    gcTime: WHOLESALE_GC_TIME,
+    retry: false,
     revalidateIfStale: true,
   })
 
@@ -222,6 +253,10 @@ export const eventTitlesQuery = (locale: string) => ({
   queryKey: ['event-titles', locale] as const,
   queryFn: getEventTitles,
   staleTime: GEOJSON_STALE_TIME,
+  // The most eviction-prone of the three: its only mounted observer is the drawer's
+  // fallback chrome, which reads it `enabled: false`. Pinned so a locale's titles are
+  // fetched once per session rather than once per idle gap.
+  gcTime: WHOLESALE_GC_TIME,
 })
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
@@ -230,6 +265,7 @@ const loadEventTitles = (): Promise<Map<number, string>> =>
     // via applyRequestContext), and the drawer's fallback chrome reads this same sliver
     // cache-only — so the key has to have exactly one definition.
     ...eventTitlesQuery(activeLocale()),
+    retry: false,
     revalidateIfStale: true,
   })
 
