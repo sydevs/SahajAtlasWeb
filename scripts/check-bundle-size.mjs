@@ -50,24 +50,26 @@ import { annotate, report } from './_ci-output.mjs'
 // ---------------------------------------------------------------------------
 // THE BUDGET. One constant, deliberately easy to edit.
 //
-// Set just above the payload as measured on 2026-08-06 (issue #99), so this
-// catches unnoticed *growth* without failing the day it lands — the current
-// size is oversized for an embed, but that is a separate problem with its own
-// ticket. Headroom is ~3%: enough to absorb a dependency patch bump, tight
-// enough that a newly-eager view trips it.
+// Set just above the payload as measured on 2026-08-06, so this catches
+// unnoticed *growth* without failing the day it lands. Headroom is ~3%: enough
+// to absorb a dependency patch bump, tight enough that a newly-eager view trips
+// it.
 //
-//   standalone  479.5 KiB  →  495
-//   embed       480.4 KiB  →  495
+//   standalone  382.1 KiB  →  395
+//   embed       383.6 KiB  →  395
 //
-// RATCHET THIS DOWN when the payload shrinks. Issue #96 (lazy-load the calendar,
-// registration and share drawers) is expected to take 150–250 KiB off both
-// numbers — that PR should lower these two values in the same commit, or the
-// budget quietly re-accumulates the slack it just won. `SLACK_RATIO` below says
-// that out loud rather than trusting this comment to be read.
+// Ratcheted here by issue #96, which took 99.7 KiB off both graphs by moving the
+// calendar, registration and share drawers behind lazy seams and dropping three
+// barrel re-exports that were holding Swiper and react-share in the eager graph.
+// The previous line was 495/495 against 479.5/480.4 (issue #99).
+//
+// RATCHET THIS DOWN again whenever the payload shrinks, or the budget quietly
+// re-accumulates the slack it just won. `SLACK_RATIO` below enforces that rather
+// than trusting this comment to be read.
 // ---------------------------------------------------------------------------
 const BUDGET_KIB = {
-  standalone: 495,
-  embed: 495,
+  standalone: 395,
+  embed: 395,
 }
 
 // A budget far above the real payload is a green check that checks nothing —
