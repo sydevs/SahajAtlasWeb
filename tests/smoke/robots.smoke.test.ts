@@ -4,21 +4,21 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
 // Smoke test: does the deploy actually resist direct indexing (issue #106)?
 //
-// Both halves of that answer are deploy-time facts the unit lane cannot reach.
+// Every part of that answer is a deploy-time fact the unit lane cannot reach.
 // `public/robots.txt` and `public/_headers` are inert files in the repo until
-// Cloudflare Pages reads them out of `dist/`, and `_headers` in particular is a
-// platform behaviour we are asserting rather than code we wrote: that a `/*` rule
-// still applies to a path only the `_redirects` SPA fallback resolves.
+// Cloudflare Pages reads them out of the build output, and `_headers` in
+// particular is a platform behaviour we assert rather than code we wrote.
+
+/** The static tag in index.html. Attribute order is rolldown's, so match loosely. */
+const NOINDEX_META = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i
 
 describe('indexing directives', () => {
   test.skipIf(skipWithoutPreview)('serves robots.txt with a site-wide Disallow', async () => {
     const res = await fetchPreview('/robots.txt')
 
-    // The content type is the assertion, not the status. `public/_redirects` is
+    // Content type, not status — see `.claude/rules/tests.md`. `_redirects` is
     // `/* /index.html 200`, so a robots.txt missing from the build comes back as
-    // the SPA shell with a 200 and `text/html` — `expect(res.status).toBe(200)`
-    // would pass for exactly the failure this spec exists to catch
-    // (`.claude/rules/tests.md`, "status is not a result").
+    // the SPA shell with a 200, which is the failure this spec exists to catch.
     expect(res.headers.get('content-type')).toMatch(/text\/plain/i)
 
     const body = await res.text()
@@ -33,28 +33,18 @@ describe('indexing directives', () => {
     expect(body).toMatch(/^User-agent:\s*facebookexternalhit$/im)
   })
 
-  test.skipIf(skipWithoutPreview)('serves noindex on the page and its header', async () => {
-    const res = await fetchPreview('/')
+  // `/` is backed by a real file; `/search` is a route only the `_redirects` SPA
+  // fallback resolves. Both matter and they are different paths through Pages: the
+  // second proves the `/*` header rule is matched against the REQUEST path, so a
+  // rewrite does not drop it. Without it every URL but `/` could be crawlable with
+  // the lane still green.
+  test.skipIf(skipWithoutPreview).each(['/', '/search'])(
+    'serves noindex at %s, as a header and in the shell',
+    async (path) => {
+      const res = await fetchPreview(path)
 
-    // The `/*` rule in public/_headers.
-    expect(res.headers.get('x-robots-tag')).toMatch(/noindex/i)
-
-    const html = await res.text()
-
-    // The static tag in index.html — the signal for a crawler that fetches the
-    // page but never executes the bundle that would inject a Helmet one.
-    expect(html).toMatch(/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i)
-  })
-
-  test.skipIf(skipWithoutPreview)('serves noindex on a deep link too', async () => {
-    // The route a visitor is most likely to be linked to is one no file backs:
-    // `_redirects` rewrites it to index.html. This asserts the rewrite keeps both
-    // signals — the header (matched against the REQUEST path, so `/*` still covers
-    // it) and the shell's static meta. Without it, every URL but `/` could be
-    // crawlable while the smoke lane stayed green.
-    const res = await fetchPreview('/search')
-
-    expect(res.headers.get('x-robots-tag')).toMatch(/noindex/i)
-    expect(await res.text()).toMatch(/<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i)
-  })
+      expect(res.headers.get('x-robots-tag')).toMatch(/noindex/i)
+      expect(await res.text()).toMatch(NOINDEX_META)
+    },
+  )
 })

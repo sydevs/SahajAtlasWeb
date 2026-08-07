@@ -22,24 +22,21 @@
 /locales/*
   Access-Control-Allow-Origin: *
 
-# Resist direct indexing of this deployment (issue #106) — search is owned by WeMeditate
-# and the other embedding sites, and every canonical this build emits already points at
-# SahajCloud's `webUrl`. See public/robots.txt for the whole picture; this is the half a
-# crawler reads once it has the response in hand.
+# Resist direct indexing (issue #106). The policy and the robots.txt interaction are
+# written down once, in public/robots.txt; what follows is only why this half exists.
 #
-# It is a HEADER as well as index.html's <meta> because the meta only covers documents:
-# `_redirects` rewrites every unknown path to index.html, so the meta does cover every
-# ROUTE, but not embed.js, the hashed assets or the locale JSON, each of which is a
-# fetchable URL of its own. The header covers all of them.
+# A HEADER reaches what a <meta> cannot. index.html's tag covers every ROUTE (`_redirects`
+# rewrites unknown paths to that shell), but embed.js, the hashed assets and the locale
+# JSON are each a fetchable URL with no document to carry a tag. This covers all of them.
 #
-# `/*` does not disturb the two rules above: Cloudflare Pages applies EVERY matching
-# rule ("an incoming request which matches multiple rules' URL patterns will inherit all
-# rules' headers"), so /assets/* keeps its CORS + immutable cache and additionally gets
-# this. Ordered last only for reading — combination is not order-sensitive.
+# `/*` does not disturb the two rules above: Cloudflare Pages applies EVERY matching rule
+# ("an incoming request which matches multiple rules' URL patterns will inherit all rules'
+# headers"), so /assets/* keeps its CORS + immutable cache and additionally gets this.
+# Ordered last for reading only — combination is not order-sensitive.
 #
-# This cannot leak into a host page's own indexing: X-Robots-Tag governs the URL it is
-# served on, and a directive on a subresource says nothing about the document embedding
-# it. `noindex` alone, deliberately — no `nofollow`, because the canonicals point at
-# WeMeditate and there is no reason to stop a crawler following them there.
+# It cannot leak into a host page's own indexing: X-Robots-Tag governs the URL it is served
+# on, and a directive on a subresource says nothing about the document embedding it.
+# `noindex` alone, deliberately — no `nofollow`, because the canonicals point at WeMeditate
+# and there is no reason to stop a crawler following them there.
 /*
   X-Robots-Tag: noindex

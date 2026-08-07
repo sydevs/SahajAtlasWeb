@@ -12,13 +12,16 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!--
-      Resist direct indexing (issue #106) — search is owned by WeMeditate, and this build's
-      canonicals already point there. Static and HERE rather than in App.tsx's standalone
-      <Helmet> block: index.html is the standalone shell, so this is embed-gated by
-      construction (no runtime gate to get wrong), and it lands in the first bytes rather
-      than after ~1 MB of JS — the crawlers least likely to execute that are the ones least
-      likely to have honoured robots.txt. `_redirects` serves this shell for every unknown
-      path, so one tag covers every route; public/_headers covers the non-document URLs.
+      Resist direct indexing (issue #106); the policy is written down in public/robots.txt.
+      Two things make this tag worth having on top of the X-Robots-Tag header:
+
+      It is the layer that does not depend on Cloudflare. `_headers` is a Pages construct,
+      so the header is absent under `pnpm preview`, behind a mirror, or after any move off
+      Pages — the tag travels with the document. And it is standalone-gated BY CONSTRUCTION
+      rather than by a runtime flag: index.html is the standalone shell, while the embed
+      loads embed.js into a page whose <head> is the host's, so no robots directive of ours
+      can reach a host site. `_redirects` serves this shell for every unknown path, so one
+      static tag covers every route.
     -->
     <meta name="robots" content="noindex" />
     <title>Sahaj Atlas</title>
