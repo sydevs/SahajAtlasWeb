@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 import postcss from 'postcss'
 
+import { WIDGET_SCOPE_CLASS } from '../src/lib/scope'
+
 import scopeWidgetCss, {
+  THEME_CLASSES,
   WIDGET_SCOPE,
   assertScoped,
   scopeSelector,
@@ -123,5 +128,44 @@ describe('scopeWidgetCss', () => {
     // the transform itself, so it is asserted directly.
     expect(() => assertScoped(postcss.parse('a { color: red }'))).toThrow(/unscoped selector/)
     expect(() => assertScoped(postcss.parse('.sy-atlas a { color: red }'))).not.toThrow()
+  })
+})
+
+const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+
+// The scope class is agreed between this build-time pass and the runtime, and a mismatch
+// is invisible to every other gate: the CSS still builds, lint and typecheck pass, and
+// the widget simply renders with no styles at all on a host page.
+describe('agreement with the runtime', () => {
+  it('uses the same class the app puts on the theme root', () => {
+    expect(WIDGET_SCOPE).toBe(WIDGET_SCOPE_CLASS)
+  })
+
+  it('is applied inline by the embedded widget, for a styled first paint', () => {
+    expect(read('src/Widget.tsx')).toContain('WIDGET_SCOPE_CLASS')
+  })
+
+  it('rides along with every theme write, which owns the theme root', () => {
+    // Standalone and Ladle have no widget wrapper — <html> is the theme root — and both
+    // reach it through applyTheme, so that is the one seam that applies the class.
+    expect(read('src/hooks/use-theme.ts')).toContain('classList.add(WIDGET_SCOPE_CLASS)')
+  })
+
+  // Half of THEME_CLASSES is ours: the classes applyTheme writes. A rule whose whole
+  // selector is one of them must COMPOUND onto the scope element rather than descend from
+  // it, so a renamed theme class silently turns the palette block into a selector that
+  // matches nothing — with every gate still green.
+  it('compounds the theme classes the theme machinery actually writes', () => {
+    const written = [
+      ...read('src/hooks/use-theme.ts').matchAll(/^ {2}(light|dark): '([\w-]+)',$/gm),
+    ].map((m) => m[2])
+
+    expect(written).toHaveLength(2)
+    for (const cls of written) expect(THEME_CLASSES.has(cls)).toBe(true)
+  })
+
+  it('keeps the Radix Colors pair, which ships those names in its own files', () => {
+    expect(THEME_CLASSES.has('light-theme')).toBe(true)
+    expect(THEME_CLASSES.has('dark-theme')).toBe(true)
   })
 })

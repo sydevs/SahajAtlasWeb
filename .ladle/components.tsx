@@ -10,7 +10,6 @@ import storyI18n from './i18n'
 import Providers from '@/providers'
 import { applyTheme, useTheme } from '@/hooks/use-theme'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
-import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
 import '@/styles/globals.css'
 // Stories mount components without App, so the self-hosted faces (#91) are registered
@@ -73,14 +72,6 @@ export const Provider: GlobalProvider = ({ children }) => {
 
   const wrapperRef = useRef<HTMLElement>(null)
   const { theme } = useTheme()
-
-  // Every selector in the built stylesheet is confined under the widget's scope class
-  // (issue #91). Ladle has no widget wrapper — <html> is the theme root here, exactly
-  // as in the standalone build — so it carries the class, or every story renders with
-  // no CSS behind it.
-  useEffect(() => {
-    document.documentElement.classList.add(WIDGET_SCOPE_CLASS)
-  }, [])
 
   // The view stories are full-view drawer pages (they own the whole canvas via the
   // ViewHarness), so they drop the usual component-preview padding and fill their

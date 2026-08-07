@@ -3,6 +3,8 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 
+import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
+
 const ThemeProps = {
   key: 'theme',
   light: 'light',
@@ -79,6 +81,13 @@ export const applyTheme = (theme: Theme) => {
 
   root.classList.remove(ThemeProps.light, ThemeProps.dark)
   root.classList.add(theme)
+  // The style scope rides along with the theme class because it belongs on the same
+  // element (issue #91): the scoped `dark:` / `rtl:` variants resolve the theme class
+  // and the scope against one ancestor. This is the seam that owns writes to the theme
+  // root, so standalone (initTheme) and Ladle get it here rather than each remembering.
+  // The embedded widget can't wait for a theme write — it renders the class inline on
+  // its wrapper (src/Widget.tsx) so the first paint is already styled.
+  root.classList.add(WIDGET_SCOPE_CLASS)
 }
 
 // ── System (prefers-color-scheme) resolution + watching ──────────────────────────

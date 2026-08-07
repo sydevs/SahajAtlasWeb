@@ -21,13 +21,16 @@
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
 import postcss from 'postcss'
 
 import { WIDGET_SCOPE, assertScoped } from './postcss-scope-widget.mjs'
 
-const DIST = 'dist'
+// Resolved against this module, not the cwd — matching the other scripts here — so the
+// gate can't pass or fail on where it happened to be invoked from.
+const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 
 // Origins the widget must never reach for a font. Self-hosting removed both, and a
 // re-added `@import` would silently reinstate the GDPR exposure and the two CSP
@@ -57,27 +60,28 @@ export function extractInjectedCss(source) {
   let at = source.indexOf(marker)
 
   while (at !== -1) {
-    let i = at + marker.length
-    let raw = ''
+    const start = at + marker.length
+    let i = start
 
-    while (i < source.length && source[i] !== '`') {
-      if (source[i] === '\\') {
-        raw += source[i] + source[i + 1]
-        i += 2
+    // Walk to the closing backtick, stepping over escaped ones. By `indexOf` rather than
+    // character by character: each of these strings is ~150 KB.
+    for (;;) {
+      const end = source.indexOf('`', i)
+      const escape = source.indexOf('\\', i)
+
+      if (end === -1) break
+
+      if (escape !== -1 && escape < end) {
+        i = escape + 2
         continue
       }
 
-      raw += source[i]
-      i += 1
+      i = end
+      break
     }
 
     // Undo the escaping the bundler applied to fit CSS inside a template literal.
-    found.push(
-      raw
-        .replace(/\\`/g, '`')
-        .replace(/\\\$\{/g, '${')
-        .replace(/\\\\/g, '\\'),
-    )
+    found.push(source.slice(start, i).replace(/\\(`|\$\{|\\)/g, '$1'))
     at = source.indexOf(marker, i)
   }
 
@@ -91,6 +95,12 @@ function fail(message) {
 
 let sheets = 0
 let rules = 0
+
+// The injector emits one copy of the same stylesheet per build entry, so the shared App
+// chunk carries it twice. Checking a sheet we have already checked adds no coverage and
+// doubles the parse of a ~150 KB string; the counter above still counts every copy, since
+// what it guards is "did we find any CSS at all".
+const checked = new Set()
 
 for (const file of jsFiles()) {
   const source = readFileSync(file, 'utf8')
@@ -110,10 +120,13 @@ for (const file of jsFiles()) {
 
     sheets += 1
 
+    if (checked.has(css)) continue
+    checked.add(css)
+
     const root = postcss.parse(css, { from: file })
 
     try {
-      assertScoped(root)
+      rules += assertScoped(root)
     } catch (error) {
       fail(`${file}: ${error instanceof Error ? error.message : String(error)}`)
     }
@@ -124,10 +137,6 @@ for (const file of jsFiles()) {
           `${file}: @keyframes ${atRule.params} is not namespaced — it would override a host animation`,
         )
       }
-    })
-
-    root.walkRules(() => {
-      rules += 1
     })
   }
 }

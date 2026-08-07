@@ -53,7 +53,14 @@ import latin from '@fontsource-variable/raleway/files/raleway-latin-wght-normal.
  * Unicode ranges are Google's own subset definitions, copied from the package's
  * `wght.css` — re-copy them when bumping @fontsource-variable/raleway.
  */
-const FAMILY = 'Sahaj Raleway'
+/**
+ * The face's family name. Exported because it is referenced from more than one place —
+ * `fontFamily.sans` in tailwind.config.js and the Mapbox geocoder's own theme
+ * (`src/components/organisms/Mapbox/themes.ts`), which builds its font stack from CSS-in-JS
+ * we don't control and so can't inherit ours. A renamed family that one of those misses
+ * fails silently: the text just falls back to the system sans.
+ */
+export const FONT_FAMILY = 'Sahaj Raleway'
 
 const SUBSETS = [
   {
@@ -72,21 +79,38 @@ const SUBSETS = [
 const STYLE_ID = 'sahaj-atlas-fonts'
 
 /**
+ * The CSS this module puts into the host document.
+ *
+ * Pure, and exported for the unit lane, because this is the ONE stylesheet of ours the
+ * build's scoping pass never sees — it is assembled at runtime, so nothing checks it the
+ * way `scripts/assert-css-scoped.mjs` checks the rest. `@font-face` carries no selector
+ * and cannot be scoped, so what has to be true instead is narrower: every block is an
+ * `@font-face`, and every one names OUR family rather than plain `Raleway`, which would
+ * override the face on a host page that self-hosts Raleway itself. `fonts.test.ts`
+ * asserts exactly that, so the one exemption from the invariant is mechanical too.
+ */
+export function fontFaceCss() {
+  return SUBSETS.map(
+    ({ url, range }) => `@font-face{font-family:'${FONT_FAMILY}';font-style:normal;
+font-display:swap;font-weight:100 900;
+src:url(${new URL(url, import.meta.url).href}) format('woff2-variations');
+unicode-range:${range}}`,
+  ).join('\n')
+}
+
+/**
  * Register the faces on the document. Idempotent (a second widget on the page, or a
  * remount, must not append a second copy) and a no-op without a DOM, so the node test
- * lane can import anything that pulls this in.
+ * lane can import anything that pulls this in. Runs on import — this module is consumed
+ * as a side-effect import beside `globals.css`, which is the thing it is part of.
  */
-export function installFonts() {
+function installFonts() {
   if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return
 
   const style = document.createElement('style')
 
   style.id = STYLE_ID
-  style.textContent = SUBSETS.map(
-    ({ url, range }) => `@font-face{font-family:'${FAMILY}';font-style:normal;font-display:swap;
-font-weight:100 900;src:url(${new URL(url, import.meta.url).href}) format('woff2-variations');
-unicode-range:${range}}`,
-  ).join('\n')
+  style.textContent = fontFaceCss()
 
   document.head.appendChild(style)
 }

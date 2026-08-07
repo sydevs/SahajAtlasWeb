@@ -49,18 +49,17 @@ const ROOT_SELECTORS = new Set([':root', 'html', 'body', ':host'])
 // so a rule whose whole selector is one of them has to compound, not descend. Radix
 // Colors' dark files are exactly this shape (`.dark, .dark-theme { --gray-1: … }`), and
 // so are our own brand-default blocks in globals.css.
-const THEME_CLASSES = new Set(['light', 'light-theme', 'dark', 'dark-theme'])
+// `light`/`dark` are OURS — the classes `applyTheme` writes (src/hooks/use-theme.ts);
+// `light-theme`/`dark-theme` come from Radix Colors' own files. Exported so
+// src/lib/scope.test.ts can pin the first pair against the theme module: rename a theme
+// class without updating this and the palette block silently descends instead of
+// compounding, which no other gate would notice.
+export const THEME_CLASSES = new Set(['light', 'light-theme', 'dark', 'dark-theme'])
 
-const COMBINATORS = new Set(['combinator'])
-
-/** Is this node a `::pseudo-element` (as opposed to a `:pseudo-class`)? */
-function isPseudoElement(node) {
-  if (node.type !== 'pseudo') return false
-
-  // `::before` and the legacy one-colon `:before` / `:after` / `:first-line` /
-  // `:first-letter` forms, plus vendor pseudo-elements like `::-webkit-scrollbar`.
-  return node.value.startsWith('::') || /^:(before|after|first-line|first-letter)$/.test(node.value)
-}
+// One parser instance for the whole run — `selectorParser()` builds a fresh Processor per
+// call, and this runs once per selector across a few thousand of them per build (and again
+// on every dev-server CSS edit).
+const parser = selectorParser()
 
 /**
  * The prefix, wrapped in `:where()` so it contributes ZERO specificity.
@@ -87,18 +86,18 @@ const prefix = (scope) => `:where(.${scope})`
  * @returns {string}
  */
 export function scopeSelector(selector, scope = WIDGET_SCOPE) {
-  const root = selectorParser().astSync(selector)
+  // Already scoped by hand (`.sy-atlas`, `.sy-atlas.dark`, `.sy-atlas .foo`) — leave it,
+  // before paying for a parse. Hand-written scope selectors keep their real specificity
+  // on purpose: they are ours, and are meant to beat the collapsed `:root` blocks they
+  // sit alongside.
+  if (isSelectorScoped(selector, scope)) return selector
+
+  const root = parser.astSync(selector)
   const sel = root.first
 
   if (!sel || sel.nodes.length === 0) return selector
-  if (isSelectorScoped(selector, scope)) return selector
 
   const first = sel.nodes[0]
-
-  // Already scoped by hand (`.sy-atlas`, `.sy-atlas.dark`, `.sy-atlas .foo`) — leave it.
-  // Hand-written scope selectors keep their real specificity on purpose: they are ours,
-  // and they are meant to beat the collapsed `:root` blocks they sit alongside.
-  if (first.type === 'class' && first.value === scope) return selector
 
   // A root selector, alone or leading a compound (`html.dark`, `body > .foo`): swap the
   // root token for the scope, which is the root of the widget's world.
@@ -116,7 +115,7 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
     return `${prefix(scope)}${selector}`
   }
 
-  const hasCombinator = sel.nodes.some((node) => COMBINATORS.has(node.type))
+  const hasCombinator = sel.nodes.some(selectorParser.isCombinator)
 
   // No combinator: a plain descendant prefix already says everything `:is()` would, and
   // keeps the output readable (and shorter — this is most of the stylesheet).
@@ -127,7 +126,7 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
   // `:is(.a > .b::before)` is invalid CSS, `:is(.a > .b)::before` is what was meant.
   const trailing = []
 
-  while (sel.nodes.length > 1 && isPseudoElement(sel.nodes[sel.nodes.length - 1])) {
+  while (sel.nodes.length > 1 && selectorParser.isPseudoElement(sel.nodes[sel.nodes.length - 1])) {
     const node = sel.nodes[sel.nodes.length - 1]
 
     trailing.unshift(node.toString())
@@ -140,9 +139,21 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
 /**
  * Does this selector already sit inside the widget scope? Accepts both the pass's own
  * `:where(.sy-atlas)` prefix and a hand-written `.sy-atlas` selector.
+ *
+ * Called once per selector by the transform and again by `assertScoped`, so the pattern is
+ * memoized per scope rather than recompiled a few thousand times per build.
  */
+const scopedPatterns = new Map()
+
 export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
-  return new RegExp(`^(:where\\()?\\.${scope}(?![\\w-])`).test(selector.trim())
+  let pattern = scopedPatterns.get(scope)
+
+  if (!pattern) {
+    pattern = new RegExp(`^(:where\\()?\\.${scope}(?![\\w-])`)
+    scopedPatterns.set(scope, pattern)
+  }
+
+  return pattern.test(selector.trim())
 }
 
 /** Rules inside `@keyframes` are `from`/`to`/`50%` — not selectors, never prefixed. */
@@ -212,10 +223,16 @@ function isScopeable(rule) {
  *
  * @param {import('postcss').Root} root
  * @param {string} [scope]
+ * @returns {number} how many rules were checked — so a caller reporting a count doesn't
+ *   need a second walk to get one.
  */
 export function assertScoped(root, scope = WIDGET_SCOPE) {
+  let checked = 0
+
   root.walkRules((rule) => {
     if (!isScopeable(rule)) return
+
+    checked += 1
 
     const leaked = rule.selectors.filter((selector) => !isSelectorScoped(selector, scope))
 
@@ -225,6 +242,8 @@ export function assertScoped(root, scope = WIDGET_SCOPE) {
       })
     }
   })
+
+  return checked
 }
 
 /**
