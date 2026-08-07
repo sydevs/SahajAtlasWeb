@@ -122,7 +122,18 @@
   },
   "error": {
     "generic": "Něco se pokazilo.",
-    "retry": "Zkusit znovu"
+    "retry": "Zkusit znovu",
+    "offline": "Zdá se, že jste offline.",
+    "server": "Naše servery mají momentálně potíže.",
+    "not_found": "Nepodařilo se najít, co hledáte.",
+    "config": "Atlas není na této stránce správně nastaven.",
+    "not_found_event": "Tuto událost se nepodařilo najít.",
+    "not_found_region": "Toto místo se nepodařilo najít.",
+    "back_to_region": "Zobrazit události: %{region}",
+    "near_city": "Zobrazit události poblíž: %{city}",
+    "browse_countries": "Procházet všechny země",
+    "search_label": "Nebo vyhledejte místo",
+    "unavailable": "Tento program teď není možné navštívit."
   },
   "country_site": {
     "title": "V %{country} zatím nejsou uvedeny žádné kurzy.",

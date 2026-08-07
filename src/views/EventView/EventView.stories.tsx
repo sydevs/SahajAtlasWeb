@@ -1,8 +1,9 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { Event } from '@/types'
 
-import { ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
 import {
@@ -46,25 +47,41 @@ type ExampleKey = keyof typeof EXAMPLES
 
 /**
  * EventView — the full event panel screen (header + facts → Register → actions →
- * images → About). Switch resolver states with the control.
+ * images → About). Switch resolver states with the Example control; the State control
+ * runs any of them into the drawer's fallback instead.
+ *
+ * "Not found · event" is the failure this view actually reaches: a link to an event the
+ * CMS no longer serves — SahajCloud answers 404 and `classifyError` reads the status. It
+ * is a dead end, not a malfunction, so it renders the empty-state register: a neutral note
+ * saying "that event" (not "that page"), a working close control, somewhere real to go,
+ * and no retry — a dead link fails identically every time.
+ *
+ * Each example renders at its own event path (`/united-kingdom/cambridge/<id>`), so the
+ * ladder drops the dead id and offers **Cambridge**, the nearest ancestor the region tree
+ * still knows — with nothing configured per error.
  */
-export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
+  example,
+  state,
+}) => {
   const { locale } = useLocale()
-  const event = EXAMPLES[example]
+  const event = EXAMPLES[example] ?? mockEvent
 
   return (
-    <ViewHarness
+    <ViewStory
+      example={example}
+      path={event.path}
       seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
-      seedKey={example}
+      state={state}
     >
       <EventView basePath={event.path} id={event.id} />
-    </ViewHarness>
+    </ViewStory>
   )
 }
 
 Default.storyName = 'Event'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'In person' }
+Default.args = { example: 'In person', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -72,4 +89,5 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'In person',
   },
+  state: stateControl('Not found · event'),
 }

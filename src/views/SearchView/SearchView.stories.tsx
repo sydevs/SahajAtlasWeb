@@ -1,11 +1,19 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { EventSlim } from '@/types'
 
 import { useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { ViewHarness, mockEventSeries, mockEventVariants } from '@/views/story-harness'
+import {
+  EMPTY,
+  NO_ERROR,
+  ViewStory,
+  stateControl,
+  mockEventSeries,
+  mockEventVariants,
+} from '@/views/story-harness'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
 import { eventsQuery } from '@/config/api'
@@ -82,7 +90,10 @@ const EXAMPLES: Record<string, Example> = {
       }),
     ],
   },
-  Empty: { search: '', events: [] },
+  // Not an "Empty" example — that lives on the State control, since any of these
+  // searches can come back with nothing. This one is a different empty: a search whose
+  // COUNTRY lists no programs at all, which needs `?cc=IS` and so is a property of the
+  // search rather than a state of it (issue #82).
   'Country website': { search: ICELAND, events: [] },
   Filtered: {
     search: FILTERED,
@@ -121,19 +132,36 @@ const eventsKey = (search: string, locale: string) => {
  * (react-router v7 throws on a nested `<Router>`), which lands one render in — so each
  * case seeds both the default key the first render reads and the key its own params
  * resolve to, and neither render ever reaches the absent backend.
+ *
+ * The State control carries no not-found flavour: a search has no slug to get wrong. What
+ * it reaches is a failed fetch — and `Offline` is the one to look at, since the results
+ * list is the screen a viewer lands on straight from a dropped connection: Try again only,
+ * no onward rung (that search fails identically) and no report CTA (connectivity isn't
+ * ours to fix, and the report POST needs the network that just went). The geocoder header
+ * and the toolbar survive it, because the boundary sits below them.
  */
-export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
+export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
+  example,
+  state,
+}) => {
   const { locale } = useLocale()
-  const { events } = EXAMPLES[example]
+  // `Empty` is a state of whichever search is selected, not a search of its own — so it
+  // strips the results and leaves the query (and therefore the header, the pills and the
+  // distance boundary) exactly as that example had them.
+  const events = state === EMPTY ? [] : (EXAMPLES[example] ?? EXAMPLES.Results).events
   // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
   // render would re-seed the URL in a loop. Memoized on the CASE, not on its query
   // string: two cases sharing a query would otherwise share one object and one seed, so
   // switching between them wouldn't re-seed and whatever the first left in the URL (a
   // cleared filter, a changed sort) would carry into the second.
-  const params = useMemo(() => new URLSearchParams(EXAMPLES[example].search), [example])
+  const params = useMemo(
+    () => new URLSearchParams((EXAMPLES[example] ?? EXAMPLES.Results).search),
+    [example],
+  )
 
   return (
-    <ViewHarness
+    <ViewStory
+      example={example}
       seed={(client: QueryClient) => {
         // Seed this case's list under EVERY case's key. `SeedSearchParams` lands one
         // render in, so switching the Example control re-creates the client while the
@@ -143,18 +171,18 @@ export const Default: Story<{ example: ExampleKey }> = ({ example }) => {
           client.setQueryData<EventSlim[]>(eventsKey(query, locale), events)
         }
       }}
-      seedKey={example}
+      state={state}
     >
       <SeedSearchParams params={params}>
         <SearchView />
       </SeedSearchParams>
-    </ViewHarness>
+    </ViewStory>
   )
 }
 
 Default.storyName = 'Search'
 Default.meta = { width: 'xsmall' }
-Default.args = { example: 'Results' }
+Default.args = { example: 'Results', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
@@ -162,4 +190,5 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'Results',
   },
+  state: stateControl(EMPTY),
 }

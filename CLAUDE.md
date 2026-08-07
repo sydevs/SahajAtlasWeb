@@ -100,7 +100,10 @@ src/
   lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
                       # entity codecs (filters, sort, path, country, hierarchy); geo/camera/ics
                       # the maths; share/platforms.ts + country-sites.ts the static
-                      # country-keyed tables (that's where such data belongs, not a src/data/)
+                      # country-keyed tables (that's where such data belongs, not a src/data/);
+                      # report.ts the never-throws error narrowing (errorMessage/classifyError/
+                      # atlasError/reportInternalError) — the KIND of a failure is domain, but the
+                      # copy + buttons it earns are UI, so ERROR_POLICY lives with the fallbacks
   types/              # zod schemas + inferred types per entity
 public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 ```

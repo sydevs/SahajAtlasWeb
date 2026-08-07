@@ -1,16 +1,19 @@
 import type { ReactNode } from 'react'
 import type { Client, IpLocation } from '@/types'
 
-import { Suspense, useMemo } from 'react'
+import { Suspense, useEffect, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
-import { ErrorFallback, LoadingFallback } from '@/components/molecules'
+import { DrawerControlContext } from '@/views/shared'
+import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
+import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
@@ -34,6 +37,9 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 //     in for the sheet with a flex column that fills the story canvas — a single,
 //     full-view page, not a boxed card. Paired with the stories' `width: 'xsmall'`
 //     default, this reads as the real drawer panel at phone width.
+//  4. The drawer's OWN fences. Suspense + ErrorBoundary in DrawerStack's nesting,
+//     with the drawer-shaped fallbacks — the harness used to wrap stories in the
+//     app-level ones, previewing a screen the drawer stack never renders (#89).
 //
 // Keyed on `seedKey` (the control's use-case) so switching case remounts with a
 // freshly seeded client.
@@ -59,17 +65,165 @@ const mockIpLocation: IpLocation = {
   country_code: 'GB',
 }
 
+/** A drawer control for stories: dismissable (so the fallbacks render their close
+ *  control), but with nowhere to actually go. */
+const STORY_DRAWER_CONTROL = {
+  collapsed: false,
+  canCollapse: false,
+  canDismiss: true,
+  toggle: () => {},
+  dismiss: () => {},
+}
+
 export type ViewHarnessProps = {
   /** The active use-case key — remounts + re-seeds when it changes. */
   seedKey: string
-  /** Populate the isolated query client with the case's mock data. */
-  seed: (client: QueryClient) => void
+  /** Populate the isolated query client with the case's mock data. Omit for a case that
+   *  renders no view (an error case, which throws before any query is read). */
+  seed?: (client: QueryClient) => void
   /** Widget mode; defaults to the map-less embed (`standalone`, no map). */
   mode?: WidgetMode
+  /**
+   * The pathname to render at. Needed by anything that reads the URL rather than props —
+   * above all the not-found recovery ladder, which walks the ancestry to find somewhere
+   * real to send the viewer. Without it every dead-link case would preview the floor rung
+   * ("Browse all countries") and none would show what the app actually offers.
+   */
+  path?: string
   children: ReactNode
 }
 
-export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps) {
+/**
+ * Seeds the pathname onto the decorator's own MemoryRouter (nesting a second Router throws
+ * in react-router v7), and holds `children` back until it lands.
+ *
+ * The gate is the point: `SeedSearchParams` accepts being one render late because a filter
+ * pill appearing a frame later is invisible. Here the first render would resolve a
+ * DIFFERENT recovery rung — "Browse all countries" — and the story would visibly flip to
+ * "See events in Antwerpen", which is exactly the layout shift these previews exist to
+ * catch rather than cause.
+ */
+function SeedPath({ path, children }: { path: string; children: ReactNode }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.pathname !== path) navigate(path, { replace: true })
+  }, [path, location.pathname, navigate])
+
+  return location.pathname === path ? <>{children}</> : null
+}
+
+/**
+ * Drive a story into its error state: render this as the harness's children and the
+ * value is thrown inside the boundary, exactly as a failing view's query would throw it,
+ * so DrawerErrorFallback classifies it for real.
+ *
+ * A thrower rather than a seeded rejection because the harness seeds its QueryClient
+ * synchronously and React Query has no public API for seeding a REJECTED query. It's
+ * passed as `children` rather than through a prop of its own so the harness keeps ONE
+ * slot for "what renders inside the boundary".
+ */
+export function Thrower({ error }: { error: unknown }): never {
+  throw error
+}
+
+/**
+ * Every failure a view story can throw, keyed by the label its control shows. The values
+ * are the REAL thrown fixtures, so a story exercises `classifyError` rather than asserting
+ * a kind it was handed.
+ */
+export const STORY_ERRORS = {
+  'Not found · place': mockNotFound.region,
+  'Not found · event': mockNotFound.event,
+  Offline: mockErrors.offline,
+  Server: mockErrors.server,
+  Config: mockErrors.config,
+  Unknown: mockErrors.unknown,
+} as const
+
+export type StoryErrorKey = keyof typeof STORY_ERRORS
+
+/** The control's "render the view normally" option. */
+export const NO_ERROR = 'None'
+
+/**
+ * A list that came back legitimately empty. On the same axis as the failures because it
+ * is the same screen — `FallbackPanel` on the `empty` row of the same policy table, and a
+ * viewer facing it is in exactly the position a dead link leaves them in (issue #89).
+ *
+ * The one option that is DATA rather than a throw, so `ViewStory` renders the view as
+ * normal and the story seeds an emptied version of whatever example is selected. That is
+ * what makes it a real second axis: every example can be seen empty, where "Empty" as an
+ * example was one fixed region nobody could vary.
+ */
+export const EMPTY = 'Empty'
+
+export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY
+
+/**
+ * The failures EVERY data-reading view can reach, because they come from the FETCH rather
+ * than the route: a dropped connection, a 5xx, a rejected API key, and the catch-all. A
+ * view adds its own not-found flavours (and `Empty`, where it has one) on top — those are
+ * the ones its ROUTES and its DATA can produce, and they're the only part that differs.
+ */
+const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Unknown'] as const
+
+/**
+ * The `error` argType for a view story, as a SECOND axis beside its examples — so any
+ * fallback can be seen against any example rather than the two sharing one control and
+ * making most combinations unreachable (issue #89).
+ *
+ * Pass what this view can reach that the others can't: its not-found flavour(s), and
+ * `EMPTY` if its list can come back empty. The fetch failures every view shares are
+ * appended. A view whose routes can't 404 and whose body is a single panel (the root,
+ * search, the calendar, an event) passes only what applies.
+ *
+ * A `select`, not a radio: with the shared failures appended this runs to seven options,
+ * and a radio column that tall pushes the Example control off the panel.
+ */
+export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[]) => ({
+  name: 'Fallback',
+  options: [NO_ERROR, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
+  control: { type: 'select' as const },
+  defaultValue: NO_ERROR as StoryFallbackArg,
+})
+
+export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
+  /** The example's key — folded into the harness's seedKey with the state. */
+  example: string
+  /** The selected fallback state, or `NO_ERROR` / `EMPTY` to render the view. */
+  state?: StoryFallbackArg
+}
+
+/**
+ * `ViewHarness` with the fallback axis folded in: renders `children` normally, or throws
+ * the selected fixture inside the drawer's boundary.
+ *
+ * `EMPTY` renders `children` too — nothing throws to produce an empty list, so the story
+ * seeds it. The harness can't: which key to empty, and what "empty" means for that view,
+ * is the story's own knowledge.
+ *
+ * Both axes go into `seedKey`, so switching either remounts with a freshly seeded client —
+ * without that, flipping from a failure back to the view would re-render onto a client the
+ * previous case left behind, and `EMPTY` would never re-seed at all.
+ *
+ * **`path` is what makes the failure fit the example.** The recovery ladder walks the URL's
+ * ancestry, so a story that passes its example's own canonical path gets the rung a real
+ * viewer would get — a city offers its parent region, a country has no ancestor and falls
+ * through to the IP guess — with no per-fallback stub anywhere.
+ */
+export function ViewStory({ example, state = NO_ERROR, children, ...harness }: ViewStoryProps) {
+  const thrown = state === NO_ERROR || state === EMPTY ? undefined : STORY_ERRORS[state]
+
+  return (
+    <ViewHarness {...harness} seedKey={`${example}·${state}`}>
+      {thrown ? <Thrower error={thrown} /> : children}
+    </ViewHarness>
+  )
+}
+
+export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarnessProps) {
   const client = useMemo(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
@@ -86,7 +240,7 @@ export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps)
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
     c.setQueryData(['ip-location'], mockIpLocation)
-    seed(c)
+    seed?.(c)
 
     return c
     // Re-seed only when the case changes; `seed` is a fresh closure each render.
@@ -96,25 +250,36 @@ export function ViewHarness({ seedKey, seed, mode, children }: ViewHarnessProps)
     <QueryClientProvider client={client}>
       <WidgetModeContext.Provider value={mode ?? { standalone: true, hasMap: false }}>
         <NoopMapControllerProvider>
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Suspense fallback={<LoadingFallback />}>
-              {/* A full-view drawer panel: fills the story canvas (the width-xsmall
-                  frame, which the global decorator renders un-padded for views) as a
-                  flex column so the view's DrawerHeader (shrink-0) and DrawerBody
-                  (flex-1, scrolls) lay out exactly as in the real sheet. The filled
-                  drawer context gives the header/body the SAME padding the map-less
-                  app renders (the `filled` mode's `pt-4`), so the story's top spacing
-                  matches the real drawer rather than the anchored default's `pt-2`. */}
-              <DrawerSlotsProvider direction="bottom" mode="filled">
-                <div
-                  key={seedKey}
-                  className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
-                >
-                  {children}
-                </div>
-              </DrawerSlotsProvider>
-            </Suspense>
-          </ErrorBoundary>
+          {/* A full-view drawer panel: fills the story canvas (the width-xsmall frame,
+              which the global decorator renders un-padded for views) as a flex column so
+              the view's DrawerHeader (shrink-0) and DrawerBody (flex-1, scrolls) lay out
+              exactly as in the real sheet. The filled drawer context gives the
+              header/body the SAME padding the map-less app renders (the `filled` mode's
+              `pt-4`), so the story's top spacing matches the real drawer rather than the
+              anchored default's `pt-2`.
+
+              The slots wrap the boundary, not the other way round: DrawerErrorFallback
+              and DrawerLoading render a DrawerBody, so they need the drawer context —
+              and this is the nesting DrawerStack itself uses (DrawerContent > Suspense >
+              ErrorBoundary > the view). */}
+          {/* A live drawer control, so the chrome the fallbacks render is exercisable
+              rather than inert: `canDismiss` decides whether they show a close button at
+              all, and without a provider every story would preview the root's control set
+              (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
+          <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>
+            <DrawerSlotsProvider direction="bottom" mode="filled">
+              <div
+                key={seedKey}
+                className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
+              >
+                <Suspense fallback={<DrawerLoading />}>
+                  <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+                    {path ? <SeedPath path={path}>{children}</SeedPath> : children}
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+            </DrawerSlotsProvider>
+          </DrawerControlContext.Provider>
         </NoopMapControllerProvider>
       </WidgetModeContext.Provider>
     </QueryClientProvider>

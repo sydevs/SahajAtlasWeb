@@ -316,7 +316,10 @@ describe('getRegion (region-tree derivation)', () => {
     await expect(api.getRegion('atlantis')).rejects.toThrow('Region not found')
   })
 
-  it('404s a region with no events under it (located or online)', async () => {
+  it('resolves a region with no events into an empty one, rather than 404ing', async () => {
+    // It used to throw, so the boundary rendered an error page — but no button there
+    // could help: a retry fails identically and an empty region isn't a wrong turn.
+    // The view renders EmptyEventList off this shape instead (issue #89).
     const empty = [
       {
         id: 7,
@@ -330,7 +333,16 @@ describe('getRegion (region-tree derivation)', () => {
 
     mockBackend([], empty)
 
-    await expect(api.getRegion('empty-land')).rejects.toThrow('no events')
+    const region = await api.getRegion('empty-land')
+
+    expect(region.eventCount).toBe(0)
+    expect(region.events).toEqual([])
+    expect(region.onlineEvents).toEqual([])
+    expect(region.subregions).toEqual([])
+    // No located events ⇒ nothing to frame. The map controller reads both and clears
+    // its boundary rather than fitting a degenerate bbox.
+    expect(region.bounds).toBeNull()
+    expect(region.center).toBeNull()
   })
 
   it('renders an online-only region (rolls up, does NOT 404)', async () => {

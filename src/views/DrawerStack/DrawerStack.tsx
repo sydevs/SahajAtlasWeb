@@ -11,17 +11,24 @@ import {
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ErrorBoundary } from 'react-error-boundary'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
-import { SettingsMenu } from '@/components/molecules'
+import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { useIsDesktop } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
-import { type StackEntry, atlasDepth, dismissAction, dismissDepth, resolveStack } from '@/lib/shape'
-import { DrawerControlContext, DrawerErrorFallback, DrawerLoading } from '@/views/shared'
+import {
+  type StackEntry,
+  atlasDepth,
+  dismissAction,
+  dismissDepth,
+  isFilterOverlay,
+  resolveStack,
+} from '@/lib/shape'
+import { DrawerControlContext } from '@/views/shared'
+import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { CalendarView } from '@/views/CalendarView/CalendarView'
@@ -48,6 +55,10 @@ const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar o
 // unambiguously on top.
 const PEEK_MOBILE = 10 // px above the sheet's top edge
 const PEEK_DESKTOP = 12 // px to the right of the left panel
+
+// Frames of a stationary sheet before the `--sy-sheet-top` mirror parks itself (~0.5s at
+// 60fps — well past the end of any vaul spring). See the effect for why it parks at all.
+const IDLE_FRAMES = 30
 
 // One uniform peek width per stack: every ancestor shares the same gap, and that gap
 // shrinks as the TOTAL depth grows — so each level stays evenly spaced while a taller
@@ -179,8 +190,7 @@ export function DrawerStack() {
   // the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile — rather
   // than replacing it. So the calendar stays the base view and the trailing `filters` entry
   // is peeled into the overlay below. (Map-less keeps the plain replace-stack behaviour.)
-  const filterOverlay =
-    hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
+  const filterOverlay = isFilterOverlay(entries, hasMap)
   const baseEntries = useMemo(
     () => (filterOverlay ? entries.slice(0, -1) : entries),
     [filterOverlay, entries],
@@ -243,34 +253,86 @@ export function DrawerStack() {
   // `position: fixed` resolves against the sheet, so the bar offsets by the
   // live top instead (issue #52, WS4).
   useEffect(() => {
-    // Gate the rAF loop to stacked views (root has no strips and no sticky bar
-    // — EventView, the bar's only host, always stacks above the root).
-    if (!hasMap || direction !== 'bottom' || parentPaths.length === 0) return
+    // Every bottom-sheet view, root included. The strips and the sticky register bar only
+    // exist above the root, but `--sy-sheet-top` has a third consumer now: the error and
+    // loading bodies centre themselves within the VISIBLE sheet, and the root can fail too
+    // (a cold `['countries']` read). Without the var there they'd centre inside a body that
+    // is `h-dvh` tall while only its top 300px is on screen — i.e. below the fold, which is
+    // the bug that made both states invisible on mobile in the first place (issue #89).
+    if (!hasMap || direction !== 'bottom') return
     let raf = 0
+    let still = 0
     let last = Number.NaN
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
-    // re-query the DOM every frame; the effect re-runs (resetting this) if direction flips.
+    // re-query the DOM every frame. `isConnected` is what makes caching safe now that the
+    // effect no longer re-runs per depth change: two elements carry `[data-vaul-drawer]`
+    // (the main sheet and the filter overlay) and both portal to `document.body`, so a
+    // resize across the md breakpoint can leave this holding the overlay — and once that
+    // closes, a detached node measures `top: 0` and would write `--sy-sheet-top: 0px` onto
+    // the LIVE strips, pinning every peek to the top of the viewport.
     let sheet: HTMLElement | null = null
     const tick = () => {
-      sheet ??= document.querySelector<HTMLElement>('[data-vaul-drawer]')
+      if (!sheet?.isConnected) sheet = document.querySelector<HTMLElement>('[data-vaul-drawer]')
       const el = stripsRef.current
 
-      if (sheet) {
+      // No sheet is still a settled frame: counting it as movement would re-arm the loop
+      // (and re-run the query) every frame forever, which is the cost this parks to avoid.
+      if (!sheet) {
+        still += 1
+      } else {
         const top = sheet.getBoundingClientRect().top
 
-        if (top !== last) {
+        if (top === last) {
+          still += 1
+        } else {
+          still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
           el?.style.setProperty('--sy-sheet-top', `${top}px`)
         }
       }
-      raf = requestAnimationFrame(tick)
+
+      // Park once the sheet has held still, and let the events that can move it wake the
+      // loop back up. Reading `getBoundingClientRect` forces a style/layout flush, so an
+      // always-on loop spends the map's frame budget on exactly the constrained devices —
+      // and the sheet is stationary for almost all of a session. Half a second of stillness
+      // is well past the end of any vaul spring.
+      raf = still > IDLE_FRAMES ? 0 : requestAnimationFrame(tick)
+    }
+
+    // Only OUR events wake it. These listen on the host page's document (the sheet is
+    // portaled, and the pointer goes down on whatever is inside it), so an unfiltered
+    // handler would restart the loop on any click anywhere on the embedding page — and on
+    // any CSS transition it runs, which on a transition-heavy host means the loop never
+    // parks at all. That would spend a third party's main-thread budget to solve a problem
+    // of ours. `resize` has no meaningful target and falls through, which is correct.
+    const wake = (event?: Event) => {
+      const target = event?.target
+
+      // A transition only moves the top edge when it is the SHEET's own — vaul animates
+      // the sheet element. Every `transition-colors` hover on a button inside it would
+      // otherwise re-arm 30 frames of layout reads for a colour change.
+      if (event?.type === 'transitionrun' && target !== sheet) return
+      if (target instanceof Node && sheet && !sheet.contains(target)) return
+
+      still = 0
+      raf ||= requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
+    // The three ways the top edge moves: a drag (no transition — vaul writes the transform
+    // per pointer event), a snap animation, and a viewport resize.
+    document.addEventListener('pointerdown', wake, true)
+    window.addEventListener('resize', wake)
+    document.addEventListener('transitionrun', wake, true)
 
-    return () => cancelAnimationFrame(raf)
-  }, [hasMap, direction, parentPaths.length])
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('pointerdown', wake, true)
+      window.removeEventListener('resize', wake)
+      document.removeEventListener('transitionrun', wake, true)
+    }
+  }, [hasMap, direction])
 
   // The calendar opens at the near-full snap on mobile — its month grid AND its list both need
   // the height — while every other view keeps the third-height open snap. Keyed on the view
@@ -299,14 +361,20 @@ export function DrawerStack() {
   // to pop — and `navigate(-1)` would navigate the *host page* away (the embedded
   // widget shares browser history) — so it climbs to the structural parent instead.
   // The root view (no parent) collapses to its peek.
-  const control = useMemo(
-    () => ({
+  const control = useMemo(() => {
+    // Resolved ONCE and read by both members below, so `canDismiss` can't drift from what
+    // pressing X actually does. The error fallback renders its own header (the view's is
+    // inside the boundary that caught) and must not offer a close that no-ops: at the root
+    // there is nothing to climb to, and `navigate(-1)` would take the HOST page back
+    // (issue #89).
+    const action = dismissAction({ hasParent: Boolean(parentPath), depth })
+
+    return {
       collapsed: snap === PEEK_SNAP,
       canCollapse,
+      canDismiss: action !== 'collapse',
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? OPEN_SNAP : PEEK_SNAP)),
       dismiss: () => {
-        const action = dismissAction({ hasParent: Boolean(parentPath), depth })
-
         // Mark the dismiss navigation as a transition: unmounting a heavy view (the calendar's
         // large grid) otherwise reconciles synchronously and freezes the click for a beat
         // ("nothing happened"). As a transition React keeps the UI responsive and swaps when ready.
@@ -317,9 +385,8 @@ export function DrawerStack() {
             else if (parentPath) navigate(toStackTarget(parentPath)) // 'fallback'
           })
       },
-    }),
-    [snap, canCollapse, parentPath, location, navigate, toStackTarget],
-  )
+    }
+  }, [snap, canCollapse, parentPath, depth, location, navigate, toStackTarget])
 
   // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened
   // over — chronologically when there's in-widget history, else a direct climb (query kept).
@@ -327,6 +394,8 @@ export function DrawerStack() {
     () => ({
       collapsed: false,
       canCollapse: false,
+      // Always parented to the calendar, so its X always goes somewhere.
+      canDismiss: true,
       toggle: () => {},
       // Same back-vs-climb decision as `control` (via `dismissAction`), but the overlay is
       // always parented to the calendar (`hasParent: true` → never 'collapse'), so 'fallback'
@@ -351,9 +420,9 @@ export function DrawerStack() {
           transition={{ duration: 0.15 }}
         >
           <Suspense fallback={<DrawerLoading />}>
-            <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+            <ResetErrorBoundary FallbackComponent={DrawerErrorFallback}>
               <TopView entry={top} parentPath={parentPath ?? '/'} />
-            </ErrorBoundary>
+            </ResetErrorBoundary>
           </Suspense>
         </motion.div>
       </AnimatePresence>
@@ -375,7 +444,15 @@ export function DrawerStack() {
         onOpenChange={(o) => !o && overlayControl.dismiss()}
       >
         <DrawerContent aria-label={t('filters.title')}>
-          <FilterView />
+          {/* The one drawer in the app with no fence of its own — a throw here escaped to
+              the app-level boundary and blanked the whole widget on the host page. Safe
+              today only because FilterView reads exclusively through non-suspense
+              `useQuery`; nothing structural was keeping it that way (issue #89). */}
+          <Suspense fallback={<DrawerLoading />}>
+            <ResetErrorBoundary FallbackComponent={DrawerErrorFallback}>
+              <FilterView />
+            </ResetErrorBoundary>
+          </Suspense>
         </DrawerContent>
       </Drawer>
     </DrawerControlContext.Provider>

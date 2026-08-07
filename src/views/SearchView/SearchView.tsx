@@ -1,12 +1,12 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
-import { ListToolbar, SortMenu } from '@/components/molecules'
+import { ListToolbar, ResetErrorBoundary, SortMenu } from '@/components/molecules'
 import { DynamicEventsList } from '@/components/organisms'
 import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
-import { parseCenter } from '@/lib/shape'
+import { listResetKey, parseCenter } from '@/lib/shape'
 import {
   CloseButton,
   FilterButton,
@@ -14,6 +14,7 @@ import {
   SearchField,
   useFrameOnTop,
 } from '@/views/shared'
+import { ErrorPanel } from '@/views/fallbacks'
 
 // A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or
 // truncated hand-typed value resolves to `undefined` so framing falls back to the
@@ -51,6 +52,10 @@ export function SearchView() {
     [frameSearch, searchParams.get('center'), searchParams.get('bbox')],
   )
 
+  // What the list boundary below resets on — see `listResetKey`: everything that changes
+  // WHAT is queried, minus the per-keystroke `?q`.
+  const resetKey = useMemo(() => listResetKey(searchParams), [searchParams])
+
   return (
     <>
       <DrawerHeader>
@@ -68,11 +73,17 @@ export function SearchView() {
       </DrawerToolbar>
       <DrawerBody>
         <GeolocationSuggestion />
-        <DynamicEventsList
-          hasSearchCenter={center !== undefined}
-          latitude={latitude}
-          longitude={longitude}
-        />
+        {/* The list owns the `['events', …]` read; the geocoder above it doesn't. Keeping
+            a failed list local means the search field stays live, so the escape from a
+            failed search is to run a different one — the most useful thing on the screen.
+            `resetKeys` is load-bearing; `listResetKey` explains why. */}
+        <ResetErrorBoundary FallbackComponent={ErrorPanel} resetKeys={[resetKey]}>
+          <DynamicEventsList
+            hasSearchCenter={center !== undefined}
+            latitude={latitude}
+            longitude={longitude}
+          />
+        </ResetErrorBoundary>
       </DrawerBody>
     </>
   )

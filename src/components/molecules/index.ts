@@ -15,11 +15,6 @@ export type { SearchFiltersProps } from './SearchFilters'
 // from the URL itself.
 export { ActiveFilterPills } from './ActiveFilterPills'
 
-// CountrySiteOffer — the national-website next step shown when a search lands in a
-// country that lists no programs at all (rendered by the events list's empty state).
-export { CountrySiteOffer } from './CountrySiteOffer'
-export type { CountrySiteOfferProps } from './CountrySiteOffer'
-
 // ListToolbar — the controls row above a results list (a Filters button, plus a
 // SortMenu on the search results). A thin justify-between layout; the views supply
 // the controls.
@@ -30,7 +25,18 @@ export type { ListToolbarProps } from './ListToolbar'
 // persisted in `?sort=`. A Radix DropdownMenu radio group (mirrors SettingsMenu).
 export { SortMenu } from './SortMenu'
 
-export { LoadingFallback, ErrorFallback } from './Fallbacks'
+// Fallbacks — every state that leaves a viewer with no content, from one policy table
+// (issue #89). `FallbackPanel` is the shared body: a dead link, a broken query and an empty
+// list are one component reading one table, not three that agree by hand. The table itself
+// and its narrowing function stay module-private — see the folder barrel for why.
+export {
+  LoadingFallback,
+  ErrorFallback,
+  FallbackPanel,
+  ResetErrorBoundary,
+  CENTERED_BODY,
+} from './Fallbacks'
+export type { FallbackAlign, FallbackKind } from './Fallbacks'
 
 // FormField — the label + control + help/error shell shared by the app's forms, and
 // `fieldErrorId`, the single definition of the aria-describedby id convention.

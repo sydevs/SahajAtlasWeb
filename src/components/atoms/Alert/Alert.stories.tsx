@@ -111,6 +111,25 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="`textAlign` is the other axis, and it changes the LAYOUT rather than just the text: `center` stacks the icon above the content, because an icon pinned to the left of centred text reads as a misaligned banner rather than a centred one. `left` is the default, and emits `text-start` explicitly so it survives a container that centres its own text."
+      title="Text alignment"
+    >
+      <div className="flex max-w-xs flex-col gap-3 text-center">
+        <Alert
+          color="neutral"
+          description="Left (the default) — the banner shape, holding its own alignment inside a centred container."
+          title="Left"
+        />
+        <Alert
+          color="primary"
+          description="Centre — icon above, everything centred on one axis."
+          textAlign="center"
+          title="Centre"
+        />
+      </div>
+    </StorySection>
+
     <div />
   </StoryWrapper>
 )

@@ -50,6 +50,11 @@ export const eventsQuery = (
   queryFn: () => api.getEvents(latitude, longitude, filters),
 })
 
+// The localized titles sliver's contract. Declared in `fetch.ts` beside the fetcher it
+// wraps (declaring it here would close an import cycle, since this module imports that
+// one) and surfaced here with the rest, so callers still find every factory in one place.
+export { eventTitlesQuery } from './fetch'
+
 // The wholesale region-tree query contract in one place — shared by the region
 // matcher, the Region filter's options, and the region-pill name lookup so the key +
 // fetcher + stale window can't drift. Locale-agnostic (region names ride the tree

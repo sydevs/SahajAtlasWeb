@@ -55,6 +55,10 @@ export const mockRegionNodes: RegionNode[] = [
     return [{ id, slug, name, subtitle: null, level: 'country', parent: null, webPath: `/${slug}`, webUrl: null }] // prettier-ignore
   }),
   { id: 8000, slug: 'cambridgeshire', name: 'Cambridgeshire', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/cambridgeshire', webUrl: null }, // prettier-ignore
+  // The parent of `mockCityWithVenuesRegion`. Present for the same reason as
+  // Cambridgeshire: the tree has to know the ancestors its own region fixtures sit under,
+  // or the recovery ladder walks past them and every dead link previews the same rung.
+  { id: 8010, slug: 'greater-london', name: 'Greater London', subtitle: null, level: 'region', parent: 9001, webPath: '/gb/greater-london', webUrl: null }, // prettier-ignore
   // The feed's own city ref, so the tree provably contains the region
   // `mockGeojson`'s located feature carries — renumber it there and this follows.
   { ...mockEventSlim.region, parent: 8000 },
@@ -194,19 +198,10 @@ export const mockCityWithVenuesRegion: Region = {
   events: offlineVariants.slice(0, 5),
 }
 
-/** Minimal region: no children, no events (the sparsest valid state). */
-export const mockMinimalRegion: Region = {
-  ...mockLeafRegion,
-  id: 8199,
-  slug: 'ely',
-  name: 'Ely',
-  eventCount: 0,
-  bounds: null,
-  center: null,
-  subregions: [],
-  events: [],
-  onlineEvents: [],
-}
+// No `mockMinimalRegion` any more: the empty region was a fixture of its own until
+// `Empty` moved onto the view stories' Fallback axis, which derives it from whichever
+// region is selected — so every example can be seen barren, rather than one fixed city
+// standing in for all of them.
 
 /** The map feed — a handful of features, some online, for the country/filter views. */
 export const mockGeojson: Geojson = {

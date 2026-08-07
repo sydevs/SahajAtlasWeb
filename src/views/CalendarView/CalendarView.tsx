@@ -12,7 +12,7 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { RightArrowIcon } from '@/components/atoms/Icons'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { ActiveFilterPills } from '@/components/molecules'
+import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import api from '@/config/api'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -25,7 +25,8 @@ import {
   eventsToCalendarEntries,
   filtersKey,
 } from '@/lib/shape'
-import { CloseButton, DrawerLoading, FilterButton } from '@/views/shared'
+import { CloseButton, FilterButton } from '@/views/shared'
+import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
 // Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
 // (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
@@ -230,9 +231,21 @@ export function CalendarView() {
         <CalendarControls controls={controls} />
       </DrawerHeader>
       <ActiveFilterPills />
-      <Suspense fallback={<DrawerLoading />}>
-        <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
-      </Suspense>
+      {/* The grid owns the `['calendar', …]` read; the header above (month nav, view
+          picker, filters, close) and the pills read none of it. So a failed grid is
+          survivable in place: escalating it to the drawer boundary would replace all that
+          working chrome to show the identical alert (issue #89).
+          `resetKeys` is load-bearing, not decoration; `listResetKey` (lib/shape/path.ts)
+          explains why the pathname alone isn't enough. */}
+      <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
+        {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
+            above, so the chrome-ful one drew a second header (and a second close button)
+            under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
+            the boundary, for the same reason. */}
+        <Suspense fallback={<DrawerLoadingBody />}>
+          <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
+        </Suspense>
+      </ResetErrorBoundary>
     </>
   )
 }

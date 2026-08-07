@@ -1,8 +1,9 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { Event, IpLocation } from '@/types'
 
-import { ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { ShareView } from '@/views/ShareView/ShareView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockEvent } from '@/mocks/events'
@@ -46,13 +47,33 @@ type RegionKey = keyof typeof REGIONS
  * ShareView — the share drawer screen: the event summary card over the copyable
  * link and the region-ordered share grid. Switch the Region control to watch the
  * grid reorder to that viewer's country (email is always the final option).
+ *
+ * Its dead link is an event's, so that body is identical to Registration's — the two
+ * sibling routes share one recovery rather than growing two copies of it (issue #89).
+ * Rendered at `<event-path>/share`, so the ladder drops both the `share` segment and the
+ * dead id and offers **Cambridge**.
+ *
+ * Region and State are separate axes on purpose: "Region: Not found" would read as
+ * nonsense, since region here means the VIEWER's country. Under a failure the region
+ * control is simply inert.
+ *
+ * Region leads, because it is what this story is FOR. Ladle orders the controls panel
+ * alphabetically by arg KEY, not by the order they're declared here — which is why the
+ * state axis is keyed `state` rather than `error` across every view story (`error` sorted
+ * above both `example` and `region`, putting the failure control first everywhere). Only
+ * Ladle's own global "Brand palette" sits higher; nothing in a story can outrank it.
  */
-export const Default: Story<{ region: RegionKey }> = ({ region }) => {
+export const Default: Story<{ region: RegionKey; state: StoryFallbackArg }> = ({
+  region,
+  state,
+}) => {
   const { locale } = useLocale()
   const { code, city, country } = REGIONS[region]
 
   return (
-    <ViewHarness
+    <ViewStory
+      example={region}
+      path={`${mockEvent.path}/share`}
       seed={(client: QueryClient) => {
         client.setQueryData<Event>(['event', mockEvent.id, locale], mockEvent)
         client.setQueryData<IpLocation>(['ip-location'], {
@@ -63,16 +84,16 @@ export const Default: Story<{ region: RegionKey }> = ({ region }) => {
           ...(code ? { country_code: code } : {}),
         })
       }}
-      seedKey={region}
+      state={state}
     >
-      <ShareView eventPath={`/demo/${mockEvent.id}`} />
-    </ViewHarness>
+      <ShareView eventPath={mockEvent.path} />
+    </ViewStory>
   )
 }
 
 Default.storyName = 'Share'
 Default.meta = { width: 'xsmall' }
-Default.args = { region: 'Default' }
+Default.args = { region: 'Default', state: NO_ERROR }
 Default.argTypes = {
   region: {
     name: 'Region',
@@ -80,4 +101,5 @@ Default.argTypes = {
     control: { type: 'select' },
     defaultValue: 'Default',
   },
+  state: stateControl('Not found · event'),
 }

@@ -41,9 +41,20 @@ export const childRoute = (parentPath: string, child: string | number): string =
  * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS
  * `webPath` can never reach an `<a href>` — the widget builds a safe `/slug`·`/id`
  * fallback instead. Returns `undefined` for anything else.
+ *
+ * `/\evil.com` is rejected alongside `//evil.com`: browsers normalise a leading
+ * backslash to a slash, so the standalone BrowserRouter build would render
+ * `<a href="/\evil.com">` and Chrome would resolve it to `https://evil.com` on a
+ * middle-click or "copy link address". Inert under the embedded HashRouter, but the
+ * guard is one character and this string can reach an href.
+ *
+ * TAB, LF and CR are rejected in that same position for the same reason, and it is not
+ * obvious: the WHATWG URL parser **strips** them before parsing, so `/<TAB>/evil.com`
+ * and `/<LF>\evil.com` are read as `//evil.com` and resolve off-origin — they would walk
+ * straight through a check that only looked at the character after the leading slash.
  */
 export const safePath = (path: string | null | undefined): string | undefined =>
-  path && path.startsWith('/') && !path.startsWith('//') ? path : undefined
+  path && path.startsWith('/') && !/^[/\\\t\n\r]/.test(path.slice(1)) ? path : undefined
 
 /**
  * True when `pathname` already is the canonical `target`, ignoring percent-
@@ -84,6 +95,29 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
     Math.abs(longitude) <= 180
     ? [longitude, latitude]
     : undefined
+}
+
+/**
+ * The part of a search URL that decides WHAT the results query asks for — everything
+ * except `?q`.
+ *
+ * SearchView's results boundary resets on this (issue #89). It can't reset on the whole
+ * query string: the geocoder mirrors every keystroke into `?q`, so a failing query would
+ * be retried once per character typed. And it can't reset on the pathname, which is what
+ * the drawer boundary already keys on — every re-search and filter change moves only the
+ * query string, so without a reset a single failure would pin its error over every later
+ * attempt, turning a transient failure into a permanent dead end.
+ *
+ * `?q` is safe to drop because nothing downstream reads it: it pre-fills the field's text
+ * and suppresses the IP prompt, and neither is part of the events query.
+ */
+export const listResetKey = (params: URLSearchParams): string => {
+  const rest = new URLSearchParams(params)
+
+  rest.delete('q')
+  rest.sort()
+
+  return rest.toString()
 }
 
 /**
@@ -198,3 +232,65 @@ export const resolveStack = (pathname: string): StackEntry[] => {
 
   return entries
 }
+
+/**
+ * The nearest region in a dead URL's ancestry that still exists — where to send someone
+ * whose link 404'd (issue #89).
+ *
+ * Drops the LAST entry before walking, because that entry *is* what failed: the top of the
+ * stack is the view that threw. Then takes the first ancestor whose slug the caller's set
+ * confirms. One rule covers every shape with no special-casing — it steps over the
+ * `register`/`share` segment, over a dead event id, and over a renamed venue slug the
+ * region tree no longer carries.
+ *
+ * Deliberately NOT `parentOf`: the parent of `<event>/register` is the event path, which
+ * 404s identically, so `parentOf` would offer a second dead link as the escape from the
+ * first. Returns the ancestor's SLUG; the caller resolves it to a canonical `webPath`,
+ * since the URL prefix may be a legacy chain.
+ *
+ * Pure and total — an unparseable path yields `undefined`, never a throw. It runs inside an
+ * error fallback, where a throw would blank the widget on someone else's page.
+ */
+export const nearestKnownRegion = (pathname: string, known: Set<string>): string | undefined => {
+  try {
+    const ancestors = resolveStack(pathname).slice(0, -1)
+
+    for (let i = ancestors.length - 1; i >= 0; i -= 1) {
+      const entry = ancestors[i]
+
+      if (entry?.kind === 'region' && known.has(entry.slug)) return entry.slug
+    }
+
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Whether the stack ends in a filter overlay rather than a stacked view.
+ *
+ * A trailing `filters` over a `calendar` isn't a nested drawer: DrawerStack renders it as a
+ * separate modal drawer OVER the still-mounted calendar, so the base drawer is still the
+ * calendar. The map-less build keeps the plain replace-stack behaviour, where the trailing
+ * entry IS the view — hence `hasMap`, which DrawerStack passes and the fallback chrome
+ * doesn't need (a chrome with no map is a map-less build by definition).
+ *
+ * The one definition of the rule. It was briefly two — this predicate and an inline copy in
+ * DrawerStack — and they had already drifted on the `hasMap` gate.
+ */
+export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =>
+  hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
+
+/**
+ * The entry the BASE drawer is showing — the stack's last, unless that's a filter overlay.
+ *
+ * Used by `DrawerChrome`, which would otherwise title the base drawer "Filters" whenever
+ * the calendar fails underneath an open overlay (issue #89).
+ *
+ * `hasMap` must be threaded through, not defaulted at the call site: the map-less build
+ * doesn't render an overlay at all, so at `/calendar/filters` the trailing entry IS the
+ * view and peeling it would title the Filters drawer "Calendar".
+ */
+export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry | undefined =>
+  isFilterOverlay(entries, hasMap) ? entries.at(-2) : entries.at(-1)

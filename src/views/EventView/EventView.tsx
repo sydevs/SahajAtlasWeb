@@ -1,8 +1,8 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
-import { EventMetadata } from '@/components/molecules'
+import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // Leaf-file imports (not the folder index): the index re-exports EventDetails,
 // and importing it statically here would pull the lazy-loaded panel chunk
 // (DOMPurify + action wiring) back into the main bundle.
@@ -19,12 +19,26 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
+import { ErrorPanel } from '@/views/fallbacks'
 
 // EventDetails pulls in DOMPurify + the action-row wiring; keep it out of the
 // main chunk (as pages/event.tsx used to) by lazy-loading it here.
-const EventDetails = lazy(() =>
-  import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
-)
+//
+// Minted per attempt rather than once at module scope, because React caches a lazy
+// component's REJECTED payload forever: after a failed chunk load, re-rendering the same
+// `lazy` re-throws the stored rejection instantly, so the boundary's "Try again" would be
+// the visibly-does-nothing button this work exists to remove (issue #89).
+//
+// It removes React's cache, not the browser's. The HTML module map also records a FAILED
+// module fetch per URL, and browsers reject a later `import()` of the same specifier from
+// that record without going to the network — so for a chunk that 404'd or was blocked by
+// the host's CSP, the retry can still resolve to nothing. It does recover the case a
+// remount can (a transient render throw inside the panel), which is why it's worth having;
+// making the network case recover too needs a cache-busting specifier.
+const loadEventDetails = () =>
+  lazy(() =>
+    import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
+  )
 
 // A single event (route `<event-path>`). The header (the title) is the mobile
 // sheet's 80px peek payload and stays pinned above the scrolling body; the chips
@@ -40,6 +54,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { collapsed } = useDrawerControl()
 
   const { data: event } = useSuspenseQuery(eventQuery(id, locale))
+  // The component itself is the state — the boundary's reset swaps in a fresh `lazy`. Held
+  // directly rather than as a counter a memo keys off, so the rule ("a retry needs a new
+  // lazy") is the code rather than something to reconstruct from a dep array. `useState`
+  // calls a function initializer, and `lazy()` returns an object, so this reads once.
+  const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -63,9 +82,19 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           content's own padding, leaving ~176px of blank space under a full-bleed
           carousel to clear a 65px bar. */}
       <DrawerBody className={stickyRegister ? 'pb-20' : undefined}>
-        <Suspense fallback={<Spinner className="mx-auto my-16" />}>
-          <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
-        </Suspense>
+        {/* The details are a lazy chunk, so they can fail on their own — a dropped
+            connection mid-session, or a host CSP blocking the chunk — after the event
+            itself resolved. Keeping that local means the title, the close button and the
+            sticky Register CTA all survive: the event is still bookable even when its
+            description isn't there (issue #89). */}
+        <ResetErrorBoundary
+          FallbackComponent={ErrorPanel}
+          onReset={() => setEventDetails(loadEventDetails())}
+        >
+          <Suspense fallback={<Spinner className="mx-auto my-16" />}>
+            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
+          </Suspense>
+        </ResetErrorBoundary>
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter

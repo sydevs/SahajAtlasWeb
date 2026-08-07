@@ -122,7 +122,18 @@
   },
   "error": {
     "generic": "Algo ha salido mal.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "offline": "Parece que no tienes conexión.",
+    "server": "Nuestros servidores tienen problemas en este momento.",
+    "not_found": "No hemos encontrado lo que buscabas.",
+    "config": "El Atlas no está configurado correctamente en esta página.",
+    "not_found_event": "No hemos encontrado ese evento.",
+    "not_found_region": "No hemos encontrado ese lugar.",
+    "back_to_region": "Ver eventos en %{region}",
+    "near_city": "Ver eventos cerca de %{city}",
+    "browse_countries": "Ver todos los países",
+    "search_label": "O busca un lugar",
+    "unavailable": "Ahora mismo no es posible unirse a este programa."
   },
   "country_site": {
     "title": "Todavía no hay clases registradas en %{country}.",

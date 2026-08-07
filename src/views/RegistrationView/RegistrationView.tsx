@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventSummary } from '@/components/molecules'
+import { EventSummary, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -50,7 +50,7 @@ export function RegistrationView({
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
-  const { display, contactHelper, blockedMessage } = useEventDisplay(event)
+  const { display, blockedMessage } = useEventDisplay(event)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -106,10 +106,29 @@ export function RegistrationView({
             <EventRegisterBar basePath={parentPath} event={event} />
           </div>
         ) : (
-          <div className="mx-auto flex w-full max-w-md flex-col items-center gap-2 py-6 text-center">
-            <p className="text-sm text-gray-11">{blockedMessage}</p>
-            {contactHelper && <p className="text-xs text-gray-11">{contactHelper}</p>}
-          </div>
+          // Full, ended, or registration closed — the class is real, it just can't be
+          // joined from here. That is the same shape as every other screen with nothing to
+          // act on, so it renders through the shared panel rather than as two bare
+          // paragraphs: the reason in the neutral register, then ONE next step.
+          //
+          // Which step is the point. A person can still let someone into a full class where
+          // no button of ours can, so the organiser's number leads whenever the event
+          // carries one; `visibleActions` swaps in the recovery ladder ("see events in
+          // <region>") only when there is nobody to call. The old `contactHelper` line said
+          // "contact the host to join" in words — the CTA says it as something to press, so
+          // rendering both would be saying it twice.
+          <FallbackPanel
+            align="start"
+            contact={
+              event.contactPhone
+                ? { phone: event.contactPhone, name: event.contactName }
+                : undefined
+            }
+            kind="unavailable"
+            // `useEventDisplay` owns the status→copy table and its tests; this row's own
+            // sentence is only the generic behind it.
+            message={blockedMessage ?? undefined}
+          />
         )}
       </DrawerBody>
     </>

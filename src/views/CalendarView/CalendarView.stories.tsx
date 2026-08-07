@@ -1,12 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
+import type { StoryFallbackArg } from '@/views/story-harness'
 import type { CalendarSourceEvent } from '@/lib/shape'
 
 import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { ViewHarness } from '@/views/story-harness'
+import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { useLocale } from '@/hooks/use-locale'
 import { DEFAULT_FILTERS, filtersKey, filtersToParams } from '@/lib/shape'
@@ -102,34 +103,69 @@ const activeFilters = {
 }
 const activeParams = filtersToParams(activeFilters)
 
+// "Grid failure" stays on the EXAMPLE axis rather than moving to the State control,
+// because the two throw at different depths and that is the whole point of the case: this
+// one trips the boundary BELOW the header (issue #89), so the month nav, the view picker,
+// the filter button, the close control and the pills all stay put and stay usable. The
+// State control throws at the view level, replacing all of that. Compare the two.
+const EXAMPLES = ['Month', 'Grid failure'] as const
+
+// Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
+// render rather than at fetch time. Deliberately unlike the seeded feed: what is being
+// previewed is the BOUNDARY, and the cheapest honest way to trip it is data the grid
+// cannot consume.
+const POISONED = { notAnArray: true }
+
 /**
  * CalendarView — the full-width month / week / list surface. Events are the (mocked) filtered
  * feed expanded into per-occurrence entries, labelled by city; our own header drives the views +
  * navigation, with the active-filter pills below it. Themed to our tokens (follows light/dark).
+ *
+ * The State control carries no not-found flavour: an unknown `?region=` slug means "no
+ * restriction", never a throw, so this view's routes cannot 404.
  */
-export const Default: Story = () => {
+export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFallbackArg }> = ({
+  example,
+  state,
+}) => {
   const { locale } = useLocale()
   const events = useMemo(() => mockCalendarEvents(), [])
 
   return (
-    <ViewHarness
+    <ViewStory
+      example={example}
       seed={(client: QueryClient) => {
         // Seed the default key (initial render) AND the active-filter key (once the params are
         // seeded into the URL) so the calendar resolves from cache either way.
         for (const filters of [DEFAULT_FILTERS, activeFilters]) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
-            events,
+            // The error case seeds a shape the expansion can't consume, so the throw
+            // happens where a Schedule-X or contract failure would: inside CalendarGrid's
+            // render, below the header. Cast because that is precisely the point — the
+            // types say this can't happen, and the boundary exists for when it does.
+            example === 'Grid failure' ? (POISONED as unknown as CalendarSourceEvent[]) : events,
           )
         }
       }}
-      seedKey="calendar"
+      state={state}
     >
       <SeedSearchParams params={activeParams}>
         <CalendarView />
       </SeedSearchParams>
-    </ViewHarness>
+    </ViewStory>
   )
+}
+
+Default.args = { example: 'Month', state: NO_ERROR }
+Default.argTypes = {
+  example: {
+    name: 'Example',
+    options: [...EXAMPLES],
+    control: { type: 'radio' },
+    defaultValue: 'Month',
+  },
+  state: stateControl(),
 }
 
 Default.storyName = 'Calendar'

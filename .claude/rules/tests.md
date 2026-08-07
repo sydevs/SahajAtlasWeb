@@ -15,8 +15,8 @@ Two lanes, kept separate so the fast one never touches the network:
 
 ## Decision: node-only (no jsdom / Testing Library)
 
-Mirrors WeMeditateWeb. The unit lane runs in the `node` environment. There is
-**no jsdom and no `@testing-library/react`**. Cover:
+Mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, and
+there is **no `@testing-library/react`**. Cover:
 
 - **Logic & contracts** — zod schemas (`src/types/`), zustand stores
   (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the api
@@ -26,9 +26,25 @@ Mirrors WeMeditateWeb. The unit lane runs in the `node` environment. There is
   `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover, portals,
   focus, and map interaction belong in Ladle / the browser, not here.
 
-Add `jsdom` + Testing Library only if a component genuinely needs DOM/interaction
-coverage that SSR markup can't express — and add it as its own decision, don't
-sneak it in.
+### The jsdom exception (issue #89)
+
+`jsdom` **is** a devDependency (pinned to the `27.x` line — 28+ raise their engine floor
+above this repo's `engines.node`, so a contributor on Node 20 could not install it), but
+the lane's default environment is still `node`.
+A spec opts in per-file with a `// @vitest-environment jsdom` docblock on line 1, so
+the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1.5s.
+
+**Reach for it only when the behaviour under test is a re-render that SSR markup
+cannot express.** Today exactly one spec qualifies: `src/views/reset-boundary.test.tsx`,
+which proves a `resetKeys` change clears an already-thrown ErrorBoundary — load-bearing,
+because the body-level boundaries in SearchView/CalendarView reset on the query string
+while the drawer boundary keys on the pathname, and a boundary that never resets turns a
+transient failure into a permanent dead end.
+
+Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
+prefer extracting the pure part first — that spec's companion, `listResetKey`
+(`src/lib/shape/path.ts`), carries most of the logic and is tested in the node lane with
+no DOM at all.
 
 ## Conventions
 

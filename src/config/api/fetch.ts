@@ -15,6 +15,7 @@ import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
 import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
+import { atlasError } from '@/lib/report'
 import {
   ancestorIds,
   boundsUnder,
@@ -156,7 +157,7 @@ const loadRegions = (): Promise<RegionNode[]> =>
 const getRegionNodeById = async (id: number): Promise<RegionNode> => {
   const node = (await loadRegions()).find((region) => region.id === id)
 
-  if (!node) throw new Error(`Region not found: ${id}`)
+  if (!node) throw atlasError('not-found', `Region not found: ${id}`)
 
   return node
 }
@@ -206,14 +207,29 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
   )
 }
 
+/**
+ * The titles sliver's query contract — key, fetcher and stale window together.
+ *
+ * Shared by the loader below and by the drawer's loading/error chrome, which reads the
+ * same sliver CACHE-ONLY to name the event whose view can't render. That read is
+ * `enabled: false`, so a divergent key wouldn't error — it would silently miss, and the
+ * title would just stop appearing on every fallback with every gate still green.
+ *
+ * Lives here rather than with the other factories in `config/api/index.ts` only because
+ * that module imports this one; it is re-exported there so callers find them together.
+ */
+export const eventTitlesQuery = (locale: string) => ({
+  queryKey: ['event-titles', locale] as const,
+  queryFn: getEventTitles,
+  staleTime: GEOJSON_STALE_TIME,
+})
+
 const loadEventTitles = (): Promise<Map<number, string>> =>
   queryClient.ensureQueryData({
-    // Every request sends the resolved locale (activeLocale, via applyRequestContext);
-    // key by that same value so a language switch re-keys the titles sliver (feed +
-    // regions stay cached) and the key can't drift from the locale actually sent.
-    queryKey: ['event-titles', activeLocale()],
-    queryFn: getEventTitles,
-    staleTime: GEOJSON_STALE_TIME,
+    // Through the shared factory: every request sends the resolved locale (activeLocale,
+    // via applyRequestContext), and the drawer's fallback chrome reads this same sliver
+    // cache-only — so the key has to have exactly one definition.
+    ...eventTitlesQuery(activeLocale()),
     revalidateIfStale: true,
   })
 
@@ -273,7 +289,15 @@ const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position)
 
 // The canonical route (`webPath`) is server-computed; fall back to a flat `/slug`.
 // Exported so the live-preview controller (issue #40) reuses the exact route derivation.
-export const regionRoute = (node: RegionNode): string => safePath(node.webPath) ?? `/${node.slug}`
+//
+// The FALLBACK is guarded too, not just `webPath`. `slug` is an unconstrained server
+// string, so `/${slug}` is an interpolation into an href: a slug of `/evil.com` yields
+// `//evil.com`, and react-router renders a foreign-origin `to` verbatim as a plain anchor
+// — a same-tab redirect in the HOST page's origin. Pre-dates issue #89, but that issue
+// puts this route on the error screen, which is the one screen a lost viewer is scanning
+// for something to click. `'/'` is the last resort: always safe, always exists.
+export const regionRoute = (node: RegionNode): string =>
+  safePath(node.webPath) ?? safePath(`/${node.slug}`) ?? '/'
 
 // ISO alpha-2 country code (drives the flag + localized name). Post-SahajCloud#556
 // the country slug *is* the ISO code, so it's derived straight from the slug — no
@@ -338,15 +362,15 @@ const getRegion = async (slug: string): Promise<Region> => {
   const { index, events } = indexedFeed(regions, geojson)
   const node = index.bySlug.get(slug)
 
-  if (!node) throw new Error(`Region not found: ${slug}`)
+  if (!node) throw atlasError('not-found', `Region not found: ${slug}`)
 
-  // A region with no events under it (located or online) isn't a destination — 404
-  // it (the nearest ErrorBoundary renders the not-found state) rather than render an
-  // empty page. Mirrors getCountries hiding 0-event countries from the home list.
+  // A region with no events under it (located or online) still resolves, and the view
+  // renders EmptyEventList. It used to 404 into the error boundary, but nothing a viewer
+  // could press there would help: a retry fails identically and it isn't a wrong turn
+  // (issue #89). getCountries still hides 0-event countries from the home list, so this
+  // is reached by a direct link or a region whose events have all ended — not by
+  // navigating in.
   const eventCount = countUnder(events, node.id)
-
-  if (eventCount === 0) throw new Error(`Region has no events: ${slug}`)
-
   const path = regionRoute(node)
   const isParent = node.level === 'country' || node.level === 'region'
   const bounds = boundsUnder(events, node.id)
@@ -572,7 +596,7 @@ const getClient = async () => {
     },
   })
 
-  if (!user) throw new Error('Not authenticated as an Atlas client')
+  if (!user) throw atlasError('config', 'Not authenticated as an Atlas client')
 
   return ClientSchema.parse(user)
 }

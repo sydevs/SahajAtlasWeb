@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest'
 import {
   childRoute,
   isCanonicalPath,
+  listResetKey,
+  nearestKnownRegion,
   parentOf,
   parseCenter,
   resolvePath,
@@ -24,6 +26,28 @@ describe('safePath', () => {
     expect(safePath('')).toBeUndefined()
     expect(safePath(null)).toBeUndefined()
     expect(safePath(undefined)).toBeUndefined()
+  })
+
+  it('rejects a backslash second character, which browsers normalise to a slash', () => {
+    // The standalone BrowserRouter build would render `<a href="/\evil.example">`, and
+    // Chrome resolves that to `https://evil.example` on a middle-click or copy-link.
+    expect(safePath('/\\evil.example')).toBeUndefined()
+    expect(safePath('/\\\\evil.example')).toBeUndefined()
+    // A backslash deeper in the path is just a character in a slug.
+    expect(safePath('/be/anna\\maria')).toBe('/be/anna\\maria')
+  })
+
+  it('rejects tab, LF and CR in that position — the URL parser strips them first', () => {
+    // The non-obvious one. WHATWG strips ASCII tab/LF/CR *before* parsing, so each of
+    // these is read as `//evil.example` and resolves off-origin — a guard that only
+    // looked at the character after the leading slash would pass all six.
+    for (const ws of ['\t', '\n', '\r']) {
+      expect(safePath(`/${ws}/evil.example`)).toBeUndefined()
+      expect(safePath(`/${ws}\\evil.example`)).toBeUndefined()
+    }
+
+    // Deeper in the path they're just characters, like the backslash above.
+    expect(safePath('/be/anna\tmaria')).toBe('/be/anna\tmaria')
   })
 })
 
@@ -193,5 +217,75 @@ describe('parseCenter', () => {
     // The extremes themselves are legitimate.
     expect(parseCenter('180,90')).toEqual([180, 90])
     expect(parseCenter('-180,-90')).toEqual([-180, -90])
+  })
+})
+
+describe('nearestKnownRegion', () => {
+  // The region tree a viewer's session has cached. `atlantis` and the dead venue are
+  // deliberately absent — those are the slugs that 404'd in the first place.
+  const known = new Set(['gb', 'cambridgeshire', 'india', 'fr', 'nouvelle-aquitaine'])
+
+  it('drops the failing terminal before walking — that entry IS what threw', () => {
+    // /gb/cambridgeshire/atlantis 404s on `atlantis`; offering it back would repeat the
+    // failure, so the walk starts one above it.
+    expect(nearestKnownRegion('/gb/cambridgeshire/atlantis', known)).toBe('cambridgeshire')
+  })
+
+  it("steps over a register/share segment to the event's region", () => {
+    // The load-bearing case: `parentOf` here yields the dead event path, so a parent-based
+    // recovery would hand the viewer a second dead link.
+    expect(nearestKnownRegion('/gb/cambridgeshire/999999/register', known)).toBe('cambridgeshire')
+    expect(nearestKnownRegion('/gb/cambridgeshire/999999/share', known)).toBe('cambridgeshire')
+    expect(nearestKnownRegion('/india/register', known)).toBe('india')
+  })
+
+  it('steps over slugs the tree no longer carries', () => {
+    // A renamed venue between the country and the event — skipped, not offered.
+    expect(nearestKnownRegion('/gb/renamed-venue/999999', known)).toBe('gb')
+  })
+
+  it('returns undefined when nothing in the chain resolves', () => {
+    expect(nearestKnownRegion('/999999', known)).toBeUndefined()
+    expect(nearestKnownRegion('/atlantis', known)).toBeUndefined()
+    expect(nearestKnownRegion('/', known)).toBeUndefined()
+    expect(nearestKnownRegion('/unknown-a/unknown-b', known)).toBeUndefined()
+  })
+
+  it('never throws, whatever the path or the set', () => {
+    // Runs inside an error fallback, where a throw blanks the widget on a host page.
+    for (const path of ['', '//', '/%E0%A4%A', '/a/'.repeat(200)]) {
+      expect(() => nearestKnownRegion(path, known)).not.toThrow()
+    }
+
+    expect(nearestKnownRegion('/gb/cambridgeshire/atlantis', new Set())).toBeUndefined()
+  })
+})
+
+describe('listResetKey', () => {
+  const key = (search: string) => listResetKey(new URLSearchParams(search))
+
+  it('ignores ?q — the geocoder rewrites it on every keystroke', () => {
+    // The reason this helper exists: keying the results boundary on the raw query string
+    // would retry a failing query once per character typed.
+    expect(key('center=0,0&q=Cam')).toBe(key('center=0,0&q=Cambridge'))
+    expect(key('center=0,0&q=Cam')).toBe(key('center=0,0'))
+  })
+
+  it('changes when what is actually queried changes', () => {
+    const base = key('center=0,0')
+
+    expect(key('center=4.35,50.85')).not.toBe(base) // a new place
+    expect(key('center=0,0&format=online')).not.toBe(base) // a filter
+    expect(key('center=0,0&all=1')).not.toBe(base) // the distance cap dismissed
+    expect(key('center=0,0&cc=GB')).not.toBe(base) // the searched country
+  })
+
+  it('is order-independent, so param reshuffling is not a reset', () => {
+    expect(key('center=0,0&format=online')).toBe(key('format=online&center=0,0'))
+  })
+
+  it('handles the bare search with no params', () => {
+    expect(key('')).toBe('')
+    expect(key('q=anything')).toBe('')
   })
 })

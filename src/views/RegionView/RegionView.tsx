@@ -16,6 +16,7 @@ import {
   CalendarButton,
   CloseButton,
   DrawerTitle,
+  EmptyEventList,
   GeolocationSuggestion,
   SearchButton,
   useFrameOnTop,
@@ -60,6 +61,12 @@ export function RegionView({ slug }: { slug: string }) {
   // Whether this view actually shows event cards (vs. only child-region cards).
   const hasEventList =
     region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
+  // Nothing to list at all — no child cards and no event cards. (`showOnlineCard` needs
+  // sub-regions, so with none, `hasEventList` already covers the online roll-up.)
+  // `getRegion` used to 404 a 0-event region into the error boundary; it resolves now,
+  // because no button on an error page could help here (issue #89), so the drawer says
+  // so plainly instead of rendering an empty <List>.
+  const isEmpty = region.subregions.length === 0 && !hasEventList
   // "All events are free" is the subtitle FALLBACK — stated once per list (no
   // Free chip repeats on cards) but only where events are actually listed;
   // a city's own subtitle takes the slot when present.
@@ -87,39 +94,43 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         <GeolocationSuggestion regionCenter={region.center} />
-        <List>
-          {/* On a region with sub-regions, the online roll-up opens in its own drawer
-              via this card, keeping the placeless classes out of the mixed list below. */}
-          {showOnlineCard && (
-            <ListItem
-              count={region.onlineEvents.length}
-              href={childRoute(region.path, 'online')}
-              icon={<MonitorIcon size={24} />}
-              label={tCommon('online_classes')}
-            />
-          )}
-          {/* Sub-regions (venues/centres, child areas) then this region's own located
-              events, in one list. Region ids and event ids come from independent
-              sequences, so namespace the keys. */}
-          {region.subregions.map((child) => (
-            <ListItem
-              key={`region-${child.id}`}
-              count={child.eventCount}
-              href={child.path}
-              label={child.name}
-              subtitle={child.subtitle}
-            />
-          ))}
-          {region.events.map((event) => (
-            <EventListItem key={`event-${event.id}`} event={event} />
-          ))}
-          {/* A region without an online roll-up card lists its online events inline,
-              after the located ones. */}
-          {!showOnlineCard &&
-            region.onlineEvents.map((event) => (
-              <EventListItem key={`online-${event.id}`} event={event} />
+        {isEmpty ? (
+          <EmptyEventList />
+        ) : (
+          <List>
+            {/* On a region with sub-regions, the online roll-up opens in its own drawer
+                via this card, keeping the placeless classes out of the mixed list below. */}
+            {showOnlineCard && (
+              <ListItem
+                count={region.onlineEvents.length}
+                href={childRoute(region.path, 'online')}
+                icon={<MonitorIcon size={24} />}
+                label={tCommon('online_classes')}
+              />
+            )}
+            {/* Sub-regions (venues/centres, child areas) then this region's own located
+                events, in one list. Region ids and event ids come from independent
+                sequences, so namespace the keys. */}
+            {region.subregions.map((child) => (
+              <ListItem
+                key={`region-${child.id}`}
+                count={child.eventCount}
+                href={child.path}
+                label={child.name}
+                subtitle={child.subtitle}
+              />
             ))}
-        </List>
+            {region.events.map((event) => (
+              <EventListItem key={`event-${event.id}`} event={event} />
+            ))}
+            {/* A region without an online roll-up card lists its online events inline,
+                after the located ones. */}
+            {!showOnlineCard &&
+              region.onlineEvents.map((event) => (
+                <EventListItem key={`online-${event.id}`} event={event} />
+              ))}
+          </List>
+        )}
       </DrawerBody>
     </>
   )

@@ -23,6 +23,23 @@ const alert = tv({
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
     // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.
     size: { md: '', sm: { base: 'gap-2 p-2' } },
+    /**
+     * Where the content sits, and with it the whole layout. `left` (the default) is the
+     * banner shape: icon in a column beside the text.
+     *
+     * `center` stacks instead — icon ABOVE the text, everything centred — because an icon
+     * pinned to the left of centred text reads as a misaligned banner rather than a
+     * centred one.
+     *
+     * `left` emits `text-start` rather than nothing: these render inside containers that
+     * centre their own text (the fallback panel does), and an unset alignment would
+     * inherit it. Declared LAST so its classes win the merge against `align` above, which
+     * sets the cross-axis for the row layout this replaces.
+     */
+    textAlign: {
+      left: { base: 'text-start' },
+      center: { base: 'flex-col items-center text-center' },
+    },
   },
   compoundVariants: [
     { color: 'primary', variant: 'flat', class: { base: 'bg-primary-3 text-primary-11' } },
@@ -44,7 +61,7 @@ const alert = tv({
     { color: 'neutral', variant: 'bordered', class: { base: 'border-gray-6 text-gray-12' } },
     { color: 'danger', variant: 'bordered', class: { base: 'border-danger-6 text-danger-11' } },
   ],
-  defaultVariants: { color: 'neutral', variant: 'flat', size: 'md' },
+  defaultVariants: { color: 'neutral', variant: 'flat', size: 'md', textAlign: 'left' },
 })
 
 // A round info/alert glyph used when no custom icon is supplied.
@@ -88,6 +105,7 @@ export function Alert({
   variant,
   size,
   align,
+  textAlign,
   title,
   description,
   icon,
@@ -100,8 +118,12 @@ export function Alert({
   // Default to vertically centring the icon (and dismiss button) when the alert is a
   // single line of text — exactly one of title/description and no extra children; a
   // taller two-line alert top-aligns. A caller can override via `align`.
+  //
+  // Moot under `textAlign="center"`, whose column layout centres everything on the
+  // cross-axis anyway; passing it on keeps the two variants independent rather than
+  // making one silently condition the other.
   const autoAlign = !children && Boolean(title) !== Boolean(description) ? 'center' : 'start'
-  const slots = alert({ color, variant, size, align: align ?? autoAlign })
+  const slots = alert({ color, variant, size, textAlign, align: align ?? autoAlign })
 
   return (
     <div className={slots.base({ className })} role={role}>

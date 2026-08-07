@@ -23,6 +23,12 @@ const dirtyDraft = {
  * FilterView — the filter form drawer: format / frequency / day / time / language controls,
  * plus the Apply bar. Previewed in a filled + dirty state (Apply active), the state you reach
  * after editing the form: several filters selected while nothing is applied yet.
+ *
+ * **No error case, deliberately.** Every read here is non-suspense — `useQuery` for the
+ * feed, `useRegionMatcher` over the cached region tree — so this view cannot reach an
+ * error boundary at all; a failed feed just leaves Apply without its count. It is the one
+ * view with no story in `Views › Error States`. If a suspense read is ever added here,
+ * this is the story that has to gain a case (issue #89).
  */
 export const Default: Story = () => (
   <ViewHarness seed={() => {}} seedKey="filter">

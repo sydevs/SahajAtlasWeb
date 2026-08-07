@@ -1,4 +1,4 @@
-import type { FallbackProps } from 'react-error-boundary'
+import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
 
@@ -7,16 +7,13 @@ import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
-import { DrawerBody } from '@/components/atoms/Drawer'
-import { Spinner } from '@/components/atoms/Spinner'
-import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
-import { GeolocationPrompt } from '@/components/molecules'
+import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
-import { useCameraHistory, useReportModal } from '@/config/store'
+import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useIpLocation } from '@/hooks/use-ip-location'
@@ -24,7 +21,7 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
 import { geocodeCountryCode } from '@/lib/geocode'
-import { errorMessage } from '@/lib/report'
+import { atlasError } from '@/lib/report'
 import {
   hasActivePlaceSearch,
   markGeolocationDismissed,
@@ -52,6 +49,14 @@ import {
 export type DrawerControl = {
   collapsed: boolean
   canCollapse: boolean
+  /**
+   * Whether `dismiss()` would actually go somewhere. False only at the root, where there
+   * is no parent to climb to and `navigate(-1)` would take the HOST page back. Read by the
+   * error/loading chrome, which renders its own header and must not offer a dead control
+   * (issue #89); the views' own headers don't need it, since a view that rendered at all
+   * has a working stack around it.
+   */
+  canDismiss: boolean
   toggle: () => void
   dismiss: () => void
 }
@@ -59,6 +64,7 @@ export type DrawerControl = {
 export const DrawerControlContext = createContext<DrawerControl>({
   collapsed: false,
   canCollapse: false,
+  canDismiss: false,
   toggle: () => {},
   dismiss: () => {},
 })
@@ -107,7 +113,10 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — this renders inside the error/loading chrome, where suspending
+  // on an in-flight namespace (a language switch mid-error) would escape the boundary and
+  // blank the widget instead of showing the failure.
+  const { t } = useTranslation('common', { useSuspense: false })
   const { dismiss } = useDrawerControl()
 
   return (
@@ -122,7 +131,10 @@ export function CloseButton({ className }: { className?: string }) {
 // Region filter). Same header-control chrome as the close control, so the header reads
 // as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
 
   return (
@@ -140,7 +152,10 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 // distance-ranked search view. Renders the same header-control chrome as the
 // close/filter controls so the header reads as one set of buttons.
 export function SearchButton() {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
 
   return (
@@ -154,7 +169,8 @@ export function SearchButton() {
 // the country list, or collapses the open list back to the peek. Hidden where the
 // sheet can't collapse (desktop / map-less).
 export function CollapseToggle() {
-  const { t } = useTranslation('common')
+  // See CloseButton: also rendered by the error/loading chrome, so it must not suspend.
+  const { t } = useTranslation('common', { useSuspense: false })
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
   if (!canCollapse) return null
@@ -180,7 +196,10 @@ export function CollapseToggle() {
 // icon-only header control carrying the active count as a badge (CountriesView's header),
 // so it reads as one set with the close/collapse chrome.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
   const location = useLocation()
   const count = activeFilterCount(useEventFilters())
@@ -234,7 +253,10 @@ function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
 // place navigates to /search with the geocoded bbox + centre (the SearchView
 // ranks events by distance from there). Carries the geocode→search behaviour that
 // used to live in the removed SearchBar.
-export function SearchField() {
+export function SearchField({
+  label,
+  syncToUrl,
+}: Pick<MapSearchProps, 'label' | 'syncToUrl'> = {}) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
 
@@ -266,7 +288,7 @@ export function SearchField() {
 
   return (
     <div className="min-w-0 flex-1">
-      <MapSearch onSelect={handleSelect} />
+      <MapSearch label={label} syncToUrl={syncToUrl} onSelect={handleSelect} />
     </div>
   )
 }
@@ -316,7 +338,7 @@ export function useEventFromPath(eventPath: string) {
   const resolved = resolvePath(eventPath)
 
   if (resolved?.kind !== 'event') {
-    throw new Error(`Not an event: ${eventPath}`)
+    throw atlasError('not-found', `Not an event: ${eventPath}`)
   }
 
   return useSuspenseQuery({
@@ -325,66 +347,36 @@ export function useEventFromPath(eventPath: string) {
   })
 }
 
-// Suspense fallback for a view whose data is still loading. Renders only the sheet's
-// inner body (a spinner) — the persistent DrawerContent supplies the sheet chrome —
-// so loading doesn't remount or re-animate the drawer. Mirrors the top-level
-// LoadingFallback (molecules/Fallbacks).
-export function DrawerLoading() {
-  const { t } = useTranslation('common')
-
-  return (
-    <DrawerBody className="flex items-center justify-center py-16">
-      <Spinner color="secondary" label={t('loading')} />
-    </DrawerBody>
-  )
-}
-
-// ErrorBoundary fallback for a view whose query failed — kept local to the drawer so
-// one failing view never blanks the whole stack. Renders inner body only (the
-// persistent DrawerContent supplies the chrome). Mirrors the top-level ErrorFallback
-// (molecules/Fallbacks): an Alert, plus a retry since resetErrorBoundary is available.
-export function DrawerErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  const { t } = useTranslation('common')
-  const { t: tEvents } = useTranslation('events')
-  const navigate = useAtlasNavigate()
-  const openReport = useReportModal((state) => state.openReport)
-  // One narrowing for both the banner and the report context — via the same shared
-  // helper the app-level ErrorFallback uses, so a given failure reads identically
-  // wherever it surfaces.
-  const description = errorMessage(error) ?? t('error.generic')
-
-  return (
-    <DrawerBody className="flex flex-col items-center justify-center gap-3 py-16">
-      <Alert align="start" className="max-w-xs" color="danger" description={description} />
-      <Button variant="flat" onClick={resetErrorBoundary}>
-        {t('error.retry')}
-      </Button>
-      {/* A dead direct link (e.g. a finished event the CMS no longer serves)
-          still offers a way back into live inventory (issue #52). */}
-      <Button color="primary" variant="flat" onClick={() => navigate('/search')}>
-        {tEvents('display.see_nearby')}
-      </Button>
-      {/* …and if it's us rather than the link, a way to tell us so, carrying the
-          thrown message as report context (issue #79). */}
-      <Button size="sm" variant="ghost" onClick={() => openReport(description)}>
-        {t('report.title')}
-      </Button>
-    </DrawerBody>
-  )
-}
-
-// The generic "no events" state for the region/online drawers when their list
-// comes back empty. Unreachable in the running app (a 0-event region 404s, and the
-// online roll-up card only links out when there ARE online events), but rendered so
-// a directly-typed URL — or a story's empty case — never shows a blank drawer.
-// Search has its own filter-aware empty state (DynamicEventsList's EmptyResults).
+/**
+ * The "no events" state for the region/online drawers when their list comes back empty: a
+ * region whose events have all ended, or an online roll-up reached by a hand-typed URL.
+ *
+ * The SAME component a dead link renders, on the `empty` row of the same table (issue #89)
+ * — so it gets the same way out: the nearest ancestor that does list classes, then a field
+ * to name somewhere else. The ladder reads the URL's ancestry, so a 0-event Antwerpen
+ * offers Belgium rather than offering itself back.
+ *
+ * Search keeps its own filter-aware empty states, which have better reasons available
+ * (DynamicEventsList's EmptyResults) — but renders them through this same panel.
+ */
 export function EmptyEventList() {
-  const { t } = useTranslation('common')
+  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
+  // where suspending on an in-flight namespace would escape the boundary and blank the
+  // widget instead of showing the failure. See CloseButton.
+  const { t } = useTranslation('common', { useSuspense: false })
 
   return (
-    <div className="p-4">
-      <Alert color="neutral" description={t('filters.no_events')} />
-    </div>
+    // `align="start"`: this stands in for the region's list, which begins at the top-left
+    // of the body — the same posture `fallbackAlign` gives these views' error states.
+    <FallbackPanel align="start" kind="empty">
+      {/* `label` is the field's accessible name AND its placeholder, so it does the whole
+          job of prompting: dropped out of a header, the default "search for events near…"
+          reads on this screen as a promise that there ARE nearby events. */}
+      <SearchField
+        label={t('error.search_label', { defaultValue: 'Or search for a place' })}
+        syncToUrl={false}
+      />
+    </FallbackPanel>
   )
 }
 

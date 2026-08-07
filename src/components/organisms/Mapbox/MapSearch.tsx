@@ -12,6 +12,20 @@ import { useMapbox } from '@/hooks/use-mapbox'
 export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
+  /**
+   * Mirror what's typed into `?q` on the current URL (default `true`), so a reload or a
+   * shared link keeps the query. Pass `false` where the current URL is known-bad — the
+   * error screen for a dead link (issue #89) — since writing state into a URL we've just
+   * told the viewer is broken only spreads it: embedded, that URL lives in the host page's
+   * `#!` fragment and rides along in anything the visitor copies.
+   */
+  syncToUrl?: boolean
+  /**
+   * Accessible name and placeholder. Defaults to the "search for events near…" phrasing,
+   * which is right in a header where position already says what the field is for — but
+   * reads as a promise of nearby events when the field is dropped into an error body.
+   */
+  label?: string
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to mount
@@ -37,13 +51,14 @@ class GeocoderBoundary extends Component<
   }
 }
 
-export function MapSearch({ onSelect }: MapSearchProps) {
+export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation('common')
+  const fieldLabel = label ?? t('search_placeholder')
 
   // Merge `q` into the existing query so the active filters (and bbox/center)
   // survive typing — they live only in the URL now. `replace` so per-keystroke
@@ -56,6 +71,8 @@ export function MapSearch({ onSelect }: MapSearchProps) {
   // and sort setters carry it for the same reason.
   const setQuery = (query: string) => {
     setSearchQuery(query)
+    if (!syncToUrl) return
+
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -80,9 +97,9 @@ export function MapSearch({ onSelect }: MapSearchProps) {
       <GeocoderBoundary
         fallback={
           <input
-            aria-label={t('search_placeholder')}
+            aria-label={fieldLabel}
             className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-sm text-foreground placeholder:text-gray-11"
-            placeholder={t('search_placeholder')}
+            placeholder={fieldLabel}
             type="search"
             value={searchQuery}
             onChange={(event) => setQuery(event.target.value)}
@@ -98,7 +115,7 @@ export function MapSearch({ onSelect }: MapSearchProps) {
             language: locale, // TOOD: Make sure this switches when locale changes
             proximity: mapbox?.getCenter(),
           }}
-          placeholder={t('search_placeholder')}
+          placeholder={fieldLabel}
           theme={controlTheme}
           value={searchQuery}
           onChange={setQuery}

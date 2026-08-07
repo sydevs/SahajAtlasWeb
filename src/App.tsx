@@ -14,7 +14,8 @@ import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
-import { ErrorFallback, LoadingFallback } from '@/components/molecules'
+import { atlasError } from '@/lib/report'
+import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
@@ -67,21 +68,15 @@ export default function App({
     <Providers>
       <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
         <Suspense fallback={<LoadingFallback />}>
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <ResetErrorBoundary FallbackComponent={ErrorFallback}>
             <AppShell
               apiKey={apiKey}
               defaultLocale={defaultLocale}
               hasMap={hasMap}
               standalone={standalone}
             />
-          </ErrorBoundary>
+          </ResetErrorBoundary>
         </Suspense>
-        {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
-            ErrorFallback is on screen — which is exactly when a viewer most wants it —
-            with its own Suspense fence so the lazy chunk can't suspend the app's.
-            Lazy because it carries react-hook-form + the form, which most viewers never
-            open; that costs nothing in the failures it exists for, since the Turnstile
-            script and the eventual POST (#80) already need the network anyway. */}
         {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
             ErrorFallback is on screen — which is exactly when a viewer most wants it.
             That placement means nothing above would catch a throw from here, so it gets
@@ -112,7 +107,7 @@ type AppShellProps = {
 }
 
 function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) {
-  if (!apiKey) throw new Error('Missing api key.')
+  if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
   const navigate = useNavigate()

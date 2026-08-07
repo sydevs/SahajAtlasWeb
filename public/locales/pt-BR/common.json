@@ -122,7 +122,18 @@
   },
   "error": {
     "generic": "Algo deu errado.",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "offline": "Você parece estar offline.",
+    "server": "Nossos servidores estão com problemas no momento.",
+    "not_found": "Não encontramos o que você procurava.",
+    "config": "O Atlas não está configurado corretamente nesta página.",
+    "not_found_event": "Não encontramos esse evento.",
+    "not_found_region": "Não encontramos esse lugar.",
+    "back_to_region": "Ver eventos em %{region}",
+    "near_city": "Ver eventos perto de %{city}",
+    "browse_countries": "Ver todos os países",
+    "search_label": "Ou busque um lugar",
+    "unavailable": "Não é possível participar deste programa no momento."
   },
   "country_site": {
     "title": "Ainda não há aulas cadastradas em %{country}.",

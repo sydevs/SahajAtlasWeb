@@ -74,7 +74,10 @@ Five stores, each the single source of truth for its slice:
   message when it was opened from an error CTA. A store rather than local state
   because its three triggers sit in unrelated subtrees (the settings cog,
   `ErrorFallback`, `DrawerErrorFallback`) and the two error CTAs must reach a host
-  mounted **outside** the ErrorBoundary that's rendering them (`App.tsx`). It is
+  mounted **outside** the ErrorBoundary that's rendering them (`App.tsx`). Whether
+  either error CTA renders at all is the classified failure's decision, not the
+  fallback's — `ERROR_POLICY` suppresses it for `offline`, since connectivity isn't
+  ours to fix and the report POST needs the network that just failed (issue #89). It is
   **not** part of the drawer stack: it never appears in the URL, `resolveStack`
   never sees it, and opening/closing it neither pushes nor pops history. The
   element that opened it is kept beside the store (non-reactive) so focus can
@@ -154,6 +157,84 @@ of truth, so all are linkable/shareable:
 
 Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.
+
+## Error boundaries (issue #89)
+
+**Where a boundary sits decides how far a failure propagates; `ERROR_POLICY`
+(`components/molecules/Fallbacks`) decides what it says and offers.** Two axes, kept
+separate — an inner fallback must never re-throw to escalate.
+
+- **Never split a view to manufacture a seam.** Every view calls `useSuspenseQuery` at the
+  top and *then* returns its header + body, so a boundary inside a view does not preserve
+  that view's header — the component returned nothing. Add a body-level boundary only
+  where a seam already exists: a child that owns its own suspense read below the chrome.
+  That's exactly three places (`CalendarGrid`, `DynamicEventsList`, the lazy
+  `EventDetails`); everywhere else the drawer boundary catches.
+- **The fallbacks render their own chrome.** `DrawerChrome` (`views/fallbacks.tsx`) rebuilds
+  the header from the URL + already-cached data — the region tree for a name, the titles
+  sliver for an event — so a load and an error both keep the drawer's identity and its
+  close control. `DrawerControl.canDismiss` says whether that close would actually go
+  anywhere; at the root it wouldn't, so the chrome offers the collapse instead.
+  **A LOADING chrome takes `interactive={false}`**, which swaps the geocoder for its inert
+  shape: `SearchField` mounts a Mapbox custom element bound to the live map, and as a
+  Suspense fallback — freshly mounted per path — it would instantiate one during a cold
+  start and tear it down again the moment the real view mounts its own. The ERROR chrome
+  keeps the working field, because there it is the escape hatch.
+  Below a view's own header (the calendar's grid) use `DrawerLoadingBody` /
+  `DrawerErrorBody`, never the chrome-ful pair — those draw a second header.
+- **Body-level boundaries need `resetKeys`.** The drawer boundary is keyed on the
+  *pathname*, but a re-search or a filter change moves only the query string — so without
+  one, a single failure pins its error over every later attempt and the boundary added to
+  contain a failure instead creates a permanent dead end. Search excludes `?q`
+  (`listResetKey`, `lib/shape/path.ts`): the geocoder rewrites it per keystroke.
+- **Each such site needs its own `QueryErrorResetBoundary`** — `useSuspenseQuery` binds to
+  the nearest one, and without it "Try again" re-throws the cached error.
+- **One table covers the empty states too, not just the failures.** `FallbackKind` spans
+  the five classified failures *and* the ways a screen ends up with nothing to act on
+  (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`), because a barren
+  region and a URL that never existed leave a viewer in exactly the same position. They
+  render the same `FallbackPanel`, so a policy row — not a component — is what differs.
+  `not-found` and `empty` are asserted equal but for their sentence; if they ever diverge,
+  one has quietly become the worse dead end.
+- **`unavailable` is the row whose next step is a PERSON.** A class that is full, ended or
+  closed still exists — an organiser can let somebody in where no button of ours can, so
+  `contact` leads with their number and `visibleActions` stands `onward` down while there
+  is one. With no contact on the event the recovery ladder takes over, so a viewer is
+  pointed at another class nearby rather than left holding the reason. It is also the one
+  row that takes its sentence from the CALLER: `useEventDisplay` already owns the
+  status→copy table (full / ended / closed / hidden) and tests it, so copying those four
+  into `ERROR_POLICY` would be the hand-agreement the table exists to remove. Everything
+  the table itself defines still gets its copy from the table, where the en-parity test
+  can see it.
+- **A dead link is not a malfunction.** `color` is the register: `danger` (red,
+  `role="alert"`) for a genuine failure, `neutral` (`role="status"`) for a dead end or an
+  empty list. Red chrome on a not-found means the two have drifted.
+- **The policy says what MAY render; `visibleActions` says what does.** It narrows by
+  surface — no boundary to reset, nowhere to navigate (the app-level fallback, where the
+  drawer stack never mounted), a geocoder already in the chrome (SearchView) — and
+  restores the report CTA if narrowing removed every way out the policy promised. A row
+  that promised *nothing* is left alone: `no-nearby` is a note about the list below it,
+  whose own "Show distant events" control is the way out.
+- **Actions sit outside the alert banner; the onward link sits inside it.** The split is
+  what each one is: `retry` / `clearFilters` / `report` operate on the screen you're
+  looking at, so out here they can't inherit its tint or be read as part of the sentence.
+  The onward rung *continues* the sentence ("we couldn't find that place… see events in
+  Belgium"), so it stays in the banner, where it reads as one thought rather than a filled
+  button competing with a retry that isn't there.
+- **One column, one width.** Banner, action row and geocoder are all `w-full` inside a
+  single `max-w-xs` box. Left to shrink-wrap they came out three different widths stacked
+  on a centre line. The field also carries its whole prompt in its own placeholder
+  (`error.search_label`) — a label line above it was one redundancy too many.
+- **The LIST views left-align; everything else centres.** `fallbackAlign`
+  (`views/fallbacks.tsx`) picks the posture from the URL, because the view boundary's
+  fallback is mounted by `DrawerStack` and the failing view never gets to say. On the root,
+  a region, its online roll-up and search, the panel stands in for a list that begins at the
+  top-left, so centring it moves the sentence away from where the reader is already looking.
+  The banner's own copy stays left-aligned in BOTH postures (`Alert textAlign="left"`).
+- **The fallback degrades, it never fails.** It runs where a throw would blank the widget
+  on a host page, so the parts that read data sit behind their own boundary and fall back
+  to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the single
+  call site a real error reporter wires into.
 
 Conventions:
 
