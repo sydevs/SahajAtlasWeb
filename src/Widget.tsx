@@ -3,6 +3,7 @@ import type { MountRoute } from './lib/shape'
 import r2wc from '@r2wc/react-to-web-component'
 import { HashRouter, MemoryRouter } from 'react-router'
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import App from './App'
 import atlasAuth from './config/api/auth'
@@ -161,14 +162,25 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
   // every descendant — and Tailwind's rtl: variants — follow text direction.
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale } = useLocale()
+  const { t } = useTranslation()
 
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still
-       carrying the theme class + brand CSS vars down to every descendant. */
+       carrying the theme class + brand CSS vars down to every descendant.
+       `lang` tracks the ACTIVE locale alongside `dir`, because the host page's
+       <html lang> is almost never the widget's: a French atlas on an English site
+       was being announced with English pronunciation (WCAG 3.1.2, Language of
+       Parts). Both attributes inherit down the DOM tree, which display:contents
+       does not interrupt. `role="region"` + a localized name make the embed a
+       landmark a screen-reader user can jump to and out of, rather than an
+       unbounded run of content in the middle of somebody else's page. */
     <div
       ref={themeRootRef}
+      aria-label={t('widget.label')}
       className={getInitialTheme()}
       dir={i18n.dir(activeLocale)}
+      lang={activeLocale}
+      role="region"
       style={{ display: 'contents' }}
     >
       <App

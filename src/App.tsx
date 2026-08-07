@@ -196,9 +196,14 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap }}>
-      <Helmet>
-        <meta content={locale} property="og:locale" />
-      </Helmet>
+      {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
+          describes their document, not the widget inside it, and the widget's hash URLs
+          were never canonical anyway (hence `standalone` existing at all). */}
+      {standalone && (
+        <Helmet>
+          <meta content={locale} property="og:locale" />
+        </Helmet>
+      )}
       {preview.active && (
         <Suspense fallback={null}>
           <PreviewController />

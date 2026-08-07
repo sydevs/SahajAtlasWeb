@@ -143,5 +143,8 @@
     "more": "Meer tonen",
     "farther": "Verre evenementen tonen",
     "showing": "%{shown} van %{total} evenementen weergegeven"
+  },
+  "widget": {
+    "label": "Sahaj Atlas — gratis meditatielessen"
   }
 }

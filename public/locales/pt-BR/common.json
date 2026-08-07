@@ -143,5 +143,8 @@
     "more": "Mostrar mais",
     "farther": "Mostrar eventos distantes",
     "showing": "Mostrando %{shown} de %{total} eventos"
+  },
+  "widget": {
+    "label": "Sahaj Atlas — aulas gratuitas de meditação"
   }
 }
