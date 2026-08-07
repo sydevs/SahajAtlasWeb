@@ -231,9 +231,7 @@ export function DrawerStack() {
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
-  // Held directly rather than as a counter a memo keys off, so the rule ("a retry needs a
-  // new lazy") is the code rather than something to reconstruct from a dep array.
-  // `useState` calls a function initializer, so this reads once. Same shape as EventView.
+  // Same shape, and the same reasoning, as EventView's `EventDetails`.
   const [secondary, setSecondary] = useState(loadSecondaryViews)
 
   const entries = useMemo(() => resolveStack(location.pathname), [location.pathname])
