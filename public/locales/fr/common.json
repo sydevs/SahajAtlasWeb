@@ -152,5 +152,9 @@
     "dark": "Thème sombre",
     "auto": "Système (auto)"
   },
-  "back_to": "Retour à %{title}"
+  "back_to": "Retour à %{title}",
+  "map": {
+    "find_my_location": "Trouver ma position",
+    "location_not_available": "Position non disponible"
+  }
 }

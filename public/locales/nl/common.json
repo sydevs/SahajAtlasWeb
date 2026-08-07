@@ -152,5 +152,9 @@
     "dark": "Donker thema",
     "auto": "Systeem (automatisch)"
   },
-  "back_to": "Terug naar %{title}"
+  "back_to": "Terug naar %{title}",
+  "map": {
+    "find_my_location": "Mijn locatie zoeken",
+    "location_not_available": "Locatie niet beschikbaar"
+  }
 }

@@ -152,5 +152,9 @@
     "dark": "Dunkles Design",
     "auto": "System (automatisch)"
   },
-  "back_to": "Zurück zu %{title}"
+  "back_to": "Zurück zu %{title}",
+  "map": {
+    "find_my_location": "Meinen Standort finden",
+    "location_not_available": "Standort nicht verfügbar"
+  }
 }

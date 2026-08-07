@@ -12,8 +12,12 @@ import {
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
+import clsx from 'clsx'
 
+import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { useIsDesktop } from '@/config/responsive'
@@ -28,6 +32,7 @@ import {
   isFilterOverlay,
   resolveStack,
 } from '@/lib/shape'
+import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -143,6 +148,13 @@ function TopView({
   }
 }
 
+// Every other control in the app draws this on focus; the strips drew nothing, so
+// tabbing into the stack was invisible. `ring-inset` because only a thin edge of each
+// strip escapes the sheet in front of it — an outset ring would paint into the sheet's
+// territory, which has the higher z-index, and never be seen.
+const PEEK_FOCUS =
+  'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus'
+
 // A simulated ancestor drawer: a semi-transparent panel stacked behind the active
 // sheet so the stack reads as one set of fading cards over the map rather than two
 // separate drawers. On mobile it sits `depth * PEEK` above the sheet's *live* top
@@ -201,7 +213,7 @@ function PeekStrip({
     <motion.button
       animate={{ ...offset, opacity }}
       aria-label={label}
-      className={className}
+      className={clsx(className, PEEK_FOCUS)}
       exit={{ ...flush, opacity: 0 }}
       initial={{ ...flush, opacity: 0 }}
       style={style}
@@ -226,6 +238,14 @@ export function DrawerStack() {
   const isDesktop = useIsDesktop()
   const { hasMap, standalone } = useWidgetMode()
   const { t } = useTranslation('common')
+  const { locale } = useLocale()
+  // Only the peek strips' accessible names read these, and only to say where a strip
+  // goes — so they are cache-only (`enabled: false`), on the same contract as
+  // `DrawerChrome`: never a fetch, and a miss costs the specific name rather than the
+  // strip. Both go through the shared factories, because a cache-only read under a
+  // divergent key doesn't error — it silently misses, and the names just stop appearing.
+  const { data: regionNodes } = useQuery({ ...regionsQuery(), enabled: false })
+  const { data: eventTitles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
   const direction: Direction = isDesktop ? 'left' : 'bottom'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
@@ -564,6 +584,10 @@ export function DrawerStack() {
       <AnimatePresence>
         {stackPaths.map((path, i) => {
           const stripDepth = stackPaths.length - i
+          // `parentPaths` is `['/', ...baseEntries.slice(0, -1).map(e => e.path)]`, so
+          // strip `i` is entry `i - 1` and strip 0 is the root (no entry). `stackPaths`
+          // only slices that array, so the alignment survives.
+          const ancestor = baseEntries[i - 1]
 
           return (
             <PeekStrip
@@ -571,7 +595,7 @@ export function DrawerStack() {
               depth={stripDepth}
               direction={direction}
               gap={peekGap}
-              label={t('back')}
+              label={stripLabel(ancestor, { t, regions: regionNodes, titles: eventTitles })}
               opacity={peekOpacity(stripDepth)}
               zIndex={30 + i}
               onClick={() => navigate(toStackTarget(path))}

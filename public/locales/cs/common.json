@@ -152,5 +152,9 @@
     "dark": "Tmavý motiv",
     "auto": "Systémový (auto)"
   },
-  "back_to": "Zpět na %{title}"
+  "back_to": "Zpět na %{title}",
+  "map": {
+    "find_my_location": "Najít mou polohu",
+    "location_not_available": "Poloha není dostupná"
+  }
 }

@@ -152,5 +152,9 @@
   "widget": {
     "label": "Sahaj Atlas — free meditation classes"
   },
-  "back_to": "Back to %{title}"
+  "back_to": "Back to %{title}",
+  "map": {
+    "find_my_location": "Find my location",
+    "location_not_available": "Location not available"
+  }
 }

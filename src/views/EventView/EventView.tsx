@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
@@ -47,6 +48,7 @@ const loadEventDetails = () =>
 // description can never hide the KPI (issue #52, WS4); elsewhere it renders
 // inline in the panel order.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
+  const { t } = useTranslation('common')
   const { standalone, hasMap } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
   const { locale } = useLocale()
@@ -91,7 +93,18 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           FallbackComponent={ErrorPanel}
           onReset={() => setEventDetails(loadEventDetails())}
         >
-          <Suspense fallback={<Spinner className="mx-auto my-16" />}>
+          {/* The one Spinner in the app with no visible label and no `decorative`, so
+              it is the one whose screen-reader-only text actually renders. The atom
+              defaults that text to English; this is a view, well past the i18n boot,
+              so it can hand over the translated word (issue #102). */}
+          <Suspense
+            fallback={
+              <Spinner
+                className="mx-auto my-16"
+                srLabel={t('loading', { defaultValue: 'Loading…' })}
+              />
+            }
+          >
             <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
           </Suspense>
         </ResetErrorBoundary>

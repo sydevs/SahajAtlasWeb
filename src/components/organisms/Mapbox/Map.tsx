@@ -14,6 +14,7 @@ import ReactMapGL, {
 } from 'react-map-gl'
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
+import { useTranslation } from 'react-i18next'
 
 import {
   clusterLayer,
@@ -191,7 +192,26 @@ export function Mapbox() {
     })),
   )
   const { locale, languageCode } = useLocale()
+  const { t } = useTranslation('common')
   const { theme } = useTheme()
+
+  // Mapbox's own control strings, which are otherwise English on every embed — the
+  // GeolocateControl below is the only control we render, and its whole accessible
+  // name comes from these two (issue #102).
+  //
+  // Two things to know before extending this. It is CONSTRUCTION-ONLY: `locale` is
+  // absent from react-map-gl's reconciliation whitelist (`settingNames` in its
+  // mapbox module) and mapbox-gl exposes no `setLocale`, so like the `language` prop
+  // below it is read once and a mid-session language switch does not relabel the
+  // control. And the keys are Mapbox's, not ours — the full set is `defaultLocale`
+  // in mapbox-gl; anything not overridden here silently stays English.
+  const mapLocale = useMemo(
+    () => ({
+      'GeolocateControl.FindMyLocation': t('map.find_my_location'),
+      'GeolocateControl.LocationNotAvailable': t('map.location_not_available'),
+    }),
+    [t],
+  )
 
   // The active filters (stable identity — this is the hot render path). Applied to
   // the feed below so the pins + cluster counts match the list.
@@ -317,6 +337,7 @@ export function Mapbox() {
       interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
       // @ts-ignore - Language is a valid property
       language={locale} // TOOD: Make sure this switches when locale changes
+      locale={mapLocale}
       mapStyle={MAP_STYLES[theme]}
       mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
       style={{ width: '100%', height: '100%' }}
