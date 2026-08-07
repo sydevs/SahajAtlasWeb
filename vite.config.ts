@@ -39,7 +39,10 @@ function stripDsStore(): Plugin {
 
       await Promise.all(
         entries
-          .filter((entry) => entry.name === '.DS_Store')
+          // `isFile()` matters: `rm` without `recursive` throws EISDIR on a directory that
+          // happens to carry the name, and `force` only swallows ENOENT — so the rejection
+          // would escape Promise.all and fail a build this has no business failing.
+          .filter((entry) => entry.isFile() && entry.name === '.DS_Store')
           .map((entry) => rm(resolve(entry.parentPath, entry.name), { force: true })),
       )
     },

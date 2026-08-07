@@ -122,6 +122,22 @@ export default function flattenEntryImports(entryName) {
         return
       }
 
+      // Enforce the invariant the docblock calls load-bearing, rather than trusting a
+      // ternary in another file to keep holding. Rewriting a hash-named entry would ship
+      // bytes that do not match the hash in their own filename — into a path `_headers`
+      // marks `immutable, max-age=31536000`, i.e. a URL promising content-addressing while
+      // serving something else. `pnpm size` cannot see it: flattening changes discovery,
+      // not bytes.
+      if (/-[A-Za-z0-9_-]{8}\.js$/.test(entry.fileName)) {
+        this.error(
+          `flattenEntryImports: refusing to rewrite hash-named "${entry.fileName}" — ` +
+            'generateBundle runs after hashing, so the emitted bytes would no longer match ' +
+            'the hash. Give this entry a stable name via `entryFileNames` first.',
+        )
+
+        return
+      }
+
       const { missing, code } = flattenedImports(bundle, entry)
 
       if (!missing.length) return
