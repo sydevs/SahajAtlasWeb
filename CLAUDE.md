@@ -85,7 +85,7 @@ src/
   providers.tsx       # React Query + Helmet (Radix is headless; BrandTheme mounts in App)
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
     atoms/            # Primitives: Drawer/, Modal/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
-    molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, EventMetadata/, ImageCarousel/, FormField/, Fallbacks/
+    molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, ActionRow/, EventMetadata/, ImageCarousel/, ShareContent/, FormField/, Fallbacks/
     organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
@@ -95,7 +95,7 @@ src/
     store.ts          # zustand stores (view / camera-history / calendar-position / results-reveal / report-modal / registration-draft; filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
-    responsive.ts, query-client.ts, preview.ts, theme/
+    responsive.ts, query-client.ts, i18n-options.ts, preview.ts, theme/
   hooks/              # use-locale, use-mapbox, use-map-controller, use-theme
   lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
                       # entity codecs (filters, sort, path, country, hierarchy); geo.ts + camera.ts

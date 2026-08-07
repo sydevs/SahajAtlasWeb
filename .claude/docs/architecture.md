@@ -16,12 +16,12 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
                  ▼
               <App>  (HashRouter, basename "!")
                  │
-   ┌─────────────┼───────────────────────────────────────────┐
+   ┌─────────────┼────────────────────────────────────────────┐
    │ Providers   │  hasMap? <Mapbox> (fixed, full viewport)   │
    │ (ReactQuery,│           + <DrawerStack>  (nested drawers)│
-   │  Helmet,    │  :        <DrawerStack>  (inline base +    │
-   │  BrandTheme)│             contained drawers, no map)     │
-   └─────────────┴───────────────────────────────────────────┘
+   │  Helmet)    │  :        <DrawerStack>  (inline base +    │
+   │ + BrandTheme│             contained drawers, no map)     │
+   └─────────────┴────────────────────────────────────────────┘
                  │
      resolveStack(pathname) → CountriesView + one drawer per ancestor
                  │

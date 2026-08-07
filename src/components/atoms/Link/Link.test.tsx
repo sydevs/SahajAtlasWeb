@@ -58,21 +58,43 @@ describe('Link — scheme guard', () => {
       expect(html).not.toContain('<a')
     },
   )
+
+  // "Site-relative" is `safePath`, not a leading slash. `//evil.com` is the one that
+  // bites: react-router treats a `//` prefix as absolute, renders it verbatim and drops
+  // its click interception, so a left-click navigates the HOST page off-origin. The
+  // backslash and TAB/LF/CR forms are the strings the WHATWG parser rewrites into that.
+  it.each(['//evil.com', '/\\evil.com', '/\t/evil.com', '/\n\\evil.com', '/\r/evil.com'])(
+    'refuses %j — passes a leading-slash test but is not a same-origin route',
+    (href) => {
+      silenceReport()
+      const html = render(<Link href={href}>x</Link>)
+
+      expect(html).toContain('<span')
+      expect(html).not.toContain('<a')
+      expect(html).not.toContain('evil.com')
+    },
+  )
 })
 
 describe('Link — allowed schemes still render as before', () => {
-  it.each(['https://example.com/', 'http://example.com/', 'mailto:a@example.com', 'tel:+4412345'])(
-    'renders %s on a plain <a>, with no rel or target the caller did not ask for',
-    (href) => {
-      const html = render(<Link href={href}>Go</Link>)
+  // `HTTPS:` is in the list because the two upstream guards that feed this atom
+  // (`SafeUrlSchema`, `validateWebUrl`) are case-insensitive: a case-sensitive test here
+  // would refuse a URL they already passed and silently degrade the link to text.
+  it.each([
+    'https://example.com/',
+    'http://example.com/',
+    'HTTPS://example.com/',
+    'mailto:a@example.com',
+    'tel:+4412345',
+  ])('renders %s on a plain <a>, with no rel or target the caller did not ask for', (href) => {
+    const html = render(<Link href={href}>Go</Link>)
 
-      expect(html).toMatch(/^<a[\s>]/)
-      expect(html).toContain(`href="${href}"`)
-      expect(html).toContain('Go')
-      expect(html).not.toContain('rel=')
-      expect(html).not.toContain('target=')
-    },
-  )
+    expect(html).toMatch(/^<a[\s>]/)
+    expect(html).toContain(`href="${href}"`)
+    expect(html).toContain('Go')
+    expect(html).not.toContain('rel=')
+    expect(html).not.toContain('target=')
+  })
 
   it.each([{ isExternal: true }, { target: '_blank' as const }])(
     'carries the safe rel + new tab when the caller asks for the external treatment (%o)',

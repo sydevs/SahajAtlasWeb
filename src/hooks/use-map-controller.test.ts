@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -23,29 +23,36 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const read = (relative: string) => readFileSync(join(SRC, relative), 'utf8')
 
-// Every file carrying a `--sy-drawer-w` fallback. A new one must be added here — which the
-// "at least one match" assertion below turns into a visible failure if a file is renamed
-// out from under this list.
-const CSS_SITES = ['components/atoms/Drawer/Drawer.tsx', 'views/DrawerStack/DrawerStack.tsx']
+// The sites are DISCOVERED, not listed. A hardcoded list would miss a fallback added to a
+// new file — precisely the failure mode this replaces, since the comments it supersedes
+// missed two of the five literals that already existed. Scanning also picks up a `.css`
+// site if the width ever moves there.
+const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
+  .filter((relative) => /\.(tsx?|css)$/.test(relative))
+  .filter((relative) => !relative.endsWith('use-map-controller.test.ts'))
+
+const FALLBACK = /--sy-drawer-w,\s*(\d+(?:\.\d+)?)rem/g
 
 describe('drawer width — the TS constant and its CSS twin', () => {
-  const declared = read('hooks/use-map-controller.tsx').match(
-    /const DRAWER_W_REM = (\d+(?:\.\d+)?)/,
-  )?.[1]
+  const controller = read('hooks/use-map-controller.tsx')
+  const declaredRem = controller.match(/const DRAWER_W_REM = (\d+(?:\.\d+)?)/)?.[1]
 
-  it('declares DRAWER_W_REM in use-map-controller', () => {
-    expect(declared).toBeDefined()
+  it('declares DRAWER_W_REM, and derives the px padding from it', () => {
+    expect(declaredRem).toBeDefined()
+    // Pins the derivation too: reverting to a hardcoded `352` would otherwise stay green
+    // while re-opening the very coupling this guards.
+    expect(controller).toMatch(/const LEFT_DRAWER_PX = DRAWER_W_REM \* 16\b/)
   })
 
-  it.each(CSS_SITES)('every --sy-drawer-w fallback in %s matches DRAWER_W_REM', (relative) => {
-    const fallbacks = [...read(relative).matchAll(/--sy-drawer-w,\s*(\d+(?:\.\d+)?)rem/g)].map(
-      (match) => match[1],
+  it('finds every --sy-drawer-w fallback under src/ and they all match DRAWER_W_REM', () => {
+    const found = SOURCE_FILES.flatMap((relative) =>
+      [...read(relative).matchAll(FALLBACK)].map(([, rem]) => `${relative}: ${rem}rem`),
     )
 
-    expect(fallbacks.length).toBeGreaterThan(0)
-
-    for (const value of fallbacks) {
-      expect(value).toBe(declared)
-    }
+    // Guards the scan itself: zero matches means the class strings were renamed and this
+    // spec silently stopped checking anything.
+    expect(found.length).toBeGreaterThan(0)
+    // Compared as a list so a failure names the offending file and value, not just "20".
+    expect(found).toEqual(found.map((entry) => `${entry.split(':')[0]}: ${declaredRem}rem`))
   })
 })
