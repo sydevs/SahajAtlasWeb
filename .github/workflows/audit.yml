@@ -1,0 +1,40 @@
+name: Audit
+
+# The scheduled half of the dependency-vulnerability check (issue #99).
+#
+# The PR gate in `ci.yml` fails on a high/critical advisory that isn't pinned in
+# scripts/audit-baseline.json. It deliberately tolerates two softer states, so a
+# PR is never blocked by something it didn't cause:
+#
+#   - a baselined advisory that has since been FIXED but not pruned, and
+#   - an audit that couldn't run at all (registry outage, pnpm output change).
+#
+# Both matter — an unpruned baseline slowly turns into a blanket allowlist, and a
+# permanently broken audit is a green check that checks nothing. This weekly run
+# is where they're enforced (`--strict`), because here a failure interrupts
+# nobody's work; it just shows up red in the Actions tab.
+#
+# Advisories arrive on their own schedule, not ours, which is the other reason to
+# run this independently of PR traffic: a quiet week shouldn't mean a blind one.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Weekly Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No `pnpm install`: `pnpm audit` resolves from the lockfile alone.
+      - run: node scripts/check-audit.mjs --strict
