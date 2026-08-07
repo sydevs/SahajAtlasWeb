@@ -46,7 +46,16 @@ function claimFragment(route: MountRoute): MountRoute {
   if (!route.write) return route
 
   try {
-    window.history.replaceState(window.history.state, '', route.write)
+    // Absolutised against the CURRENT location, not handed over as the bare `#!…`
+    // reference it is. A relative argument to `replaceState` resolves against the document
+    // BASE url, so on a host page carrying `<base href="/blog/">` a bare fragment would
+    // rewrite the visitor's path and drop their query string; a cross-origin `<base>`
+    // would throw instead, permanently downgrading that site to the memory branch below.
+    // react-router's own hash history special-cases `<base>` for the same reason.
+    const url = new URL(window.location.href)
+
+    url.hash = route.write
+    window.history.replaceState(window.history.state, '', url)
 
     return route
   } catch (error) {
@@ -92,9 +101,18 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
   // arriving at `#respond` used to render a BLANK widget, because react-router reads that
   // as a location outside the `!` basename. The widget now routes off-URL there instead of
   // overwriting an anchor that is not its to take — so the host's on-load scroll, and
-  // anything of theirs that reads `location.hash` later, keep working. The cost, and it is
-  // a real one: on such a page the widget's route is not in the URL, so it can't be
-  // deep-linked or shared from there.
+  // anything of theirs that reads `location.hash` later, keep working.
+  //
+  // The memory branch costs three real things, all of them better than a blank widget but
+  // none of them free: the widget's route isn't in the URL, so it can't be deep-linked or
+  // shared from that page; browser Back leaves the host page instead of stepping back
+  // through the widget; and in-widget link hrefs resolve against the host origin rather
+  // than the fragment, so a middle-click opens a host URL that probably 404s.
+  //
+  // Re-entrancy: `useLocale` can suspend on a cold i18n boot, which makes React discard
+  // and retry this render — recreating the ref and re-running `claimFragment`. That is
+  // safe, and not by accident: the retry reads the hash the first pass just wrote, so
+  // `mountRoute` returns it as a route and asks for no second write.
   const mount = useRef<MountRoute>()
 
   if (!mount.current) {
@@ -151,12 +169,31 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
 
 // ===== THE CUSTOM ELEMENT ===== //
 
-// r2wc's element implements exactly the two standard lifecycle callbacks (and nothing else
-// this file needs), so a subclass can gate the mount without reaching into it.
+// r2wc's element implements three standard callbacks; the third, `attributeChangedCallback`,
+// is the one that matters here — see the constructor below.
 type AtlasElement = HTMLElement & {
   connectedCallback(): void
   disconnectedCallback(): void
 }
+
+/**
+ * r2wc's own "am I connected" flag, a globally registered symbol.
+ *
+ * It initialises the flag to **true in its constructor**, and its `attributeChangedCallback`
+ * renders whenever the flag is set — so for any element carrying an attribute (every real
+ * `<sahaj-atlas>` carries `api-key`) the React root is mounted during attribute upgrade,
+ * BEFORE `connectedCallback` runs at all. A one-per-page rule enforced in
+ * `connectedCallback` would therefore refuse an element that had already mounted, and say
+ * so in a message that wasn't true.
+ *
+ * Resetting it to false in our constructor — base-class field initialisers run inside
+ * `super()`, so ours lands second — makes the element behave the way its lifecycle reads:
+ * attributes are still recorded on the way in, but nothing renders until
+ * `connectedCallback` has had its say. Verified against `@r2wc/core@1.2.0` with a fake
+ * renderer: the owner mounts once, at connection, with its `api-key` intact, and a refused
+ * element never mounts at all.
+ */
+const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 
 const AtlasElementBase = r2wc(Widget, {
   props: {
@@ -179,6 +216,11 @@ const AtlasElementBase = r2wc(Widget, {
 let owner: AtlasElement | null = null
 
 class SahajAtlasElement extends AtlasElementBase {
+  constructor() {
+    super()
+    ;(this as unknown as Record<symbol, boolean>)[R2WC_CONNECTED] = false
+  }
+
   connectedCallback() {
     if (owner && owner !== this && owner.isConnected) {
       reportIntegrationWarning(
@@ -196,7 +238,16 @@ class SahajAtlasElement extends AtlasElementBase {
     // Release on the way out, so an embed torn down and re-added (a page builder
     // re-rendering its canvas) isn't locked out by its own ghost. A duplicate that was
     // refused while this one lived stays refused — it gets no second connectedCallback.
-    if (owner === this) owner = null
+    //
+    // The API key goes with it. It's a module singleton claimed under `if (!apiKey)`, so
+    // without this an element re-added with a DIFFERENT `api-key` would keep
+    // authenticating as the first one — the element gate makes concurrent misuse
+    // impossible, not sequential.
+    if (owner === this) {
+      owner = null
+      atlasAuth.apiKey = null
+    }
+
     super.disconnectedCallback()
   }
 }
