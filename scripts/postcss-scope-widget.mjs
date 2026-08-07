@@ -212,8 +212,20 @@ function qualifiesPseudoElement(sel) {
  * So the real question is asked instead: is the subject — the final compound, the element
  * the rule paints — necessarily inside the scope? Which is what the pass has always been
  * for; the head of the string was only ever a proxy for it.
+ *
+ * The head match survives as a FAST PATH, but it is not sufficient on its own either, and
+ * that was true before #104 as well: `.sy-atlas ~ .foo` leads with the scope and styles a
+ * SIBLING of the widget root, which is an arbitrary host element. A head-anchored test
+ * accepts it. Nothing emits that shape today, but a hand-written rule in `globals.css`
+ * would be passed through untouched AND waved through the gate, so the fast path now
+ * declines any selector carrying a sibling combinator and lets the subject walk decide.
+ * (`+` also appears inside `:nth-child(2n+1)`, which merely sends a rare selector down
+ * the slow path and costs nothing.)
  */
 const scopedPatterns = new Map()
+
+/** `~` or `+` anywhere — deliberately over-broad; it only routes, it never decides. */
+const MAYBE_SIBLING = /[~+]/
 
 export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
   const trimmed = selector.trim()
@@ -225,7 +237,7 @@ export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
     scopedPatterns.set(scope, pattern)
   }
 
-  if (pattern.test(trimmed)) return true
+  if (pattern.test(trimmed) && !MAYBE_SIBLING.test(trimmed)) return true
 
   // Nothing without the class anywhere in it can be confined by it. This is what spares
   // the TRANSFORM a parse — its input is third-party selectors that never mention the

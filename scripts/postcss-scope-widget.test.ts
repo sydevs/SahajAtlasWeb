@@ -220,6 +220,34 @@ describe('isSelectorScoped — flattened nesting', () => {
     // needs it, so it is refused rather than reasoned about.
     expect(isSelectorScoped(':is(:where(.sy-atlas) .a) ~ .b')).toBe(false)
   })
+
+  it('refuses a sibling of the scope ROOT even when the scope leads the selector', () => {
+    // The head fast path used to wave these through — leading with the scope is not the
+    // same as confining the subject, and a sibling of the widget root is an arbitrary
+    // HOST element. Hand-writing `.sy-atlas ~ .foo` in globals.css would have been passed
+    // through untouched by the transform and then waved through by the gate.
+    expect(isSelectorScoped('.sy-atlas ~ .foo')).toBe(false)
+    expect(isSelectorScoped('.sy-atlas + .foo')).toBe(false)
+    expect(isSelectorScoped(':where(.sy-atlas) ~ .b')).toBe(false)
+
+    // …while the shapes that merely CONTAIN a `+`/`~` still resolve correctly through
+    // the slow path, rather than being rejected wholesale.
+    expect(isSelectorScoped(':where(.sy-atlas) .a:nth-child(2n+1)')).toBe(true)
+  })
+
+  it('credits a scope that IS the subject, or sits above it', () => {
+    expect(isSelectorScoped('.a .sy-atlas')).toBe(true)
+    expect(isSelectorScoped('.a > .sy-atlas .b')).toBe(true)
+  })
+
+  it('refuses scope-shaped tokens that do not actually confine', () => {
+    // Each of these mentions the scope but can still match outside it.
+    expect(isSelectorScoped(':has(.sy-atlas) .a')).toBe(false) // ancestor could be <body>
+    expect(isSelectorScoped(':not(.sy-atlas) .a')).toBe(false)
+    expect(isSelectorScoped('[class~="sy-atlas"] .a')).toBe(false)
+    expect(isSelectorScoped(':nth-child(2 of :where(.sy-atlas))')).toBe(false)
+    expect(isSelectorScoped(':is() .a')).toBe(false)
+  })
 })
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
