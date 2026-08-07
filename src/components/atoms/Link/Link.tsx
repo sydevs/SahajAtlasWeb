@@ -34,6 +34,11 @@ const link = tv({
 
 type LinkVariants = VariantProps<typeof link>
 
+// The only schemes allowed to reach an `<a href>`. Deliberately case-SENSITIVE: every
+// caller produces a lowercase scheme, and a stricter test can only ever refuse more —
+// never let something through — so there is nothing to gain by loosening it.
+const ALLOWED_SCHEME = /^https?:|^mailto:|^tel:/
+
 export type LinkProps = Omit<ComponentProps<'a'>, 'color' | 'href'> &
   LinkVariants & {
     href: string
@@ -82,21 +87,33 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   ref,
 ) {
   const classes = link({ color, className })
-  const external = isExternal || target === '_blank' || /^https?:|^mailto:|^tel:/.test(href)
   const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
+  const hasAllowedScheme = ALLOWED_SCHEME.test(href)
 
   // An href that is neither site-relative nor one of the three allowed schemes never
   // reaches the DOM. Not reachable today — every caller passes a `/…` route, an
   // `https:`/`mailto:`/`tel:` URL, or something already through `safePath` — but this atom
-  // is the last gate before a data-driven string becomes an `<a href>`, and the internal
-  // branch below hands an absolute `to` to react-router, which renders it verbatim on a
-  // plain anchor. A `javascript:` string arriving there would execute in the HOST page's
-  // realm. Rendering the text without the link fails visibly rather than dangerously.
-  if (!external && !href.startsWith('/')) {
+  // is the last gate before a data-driven string becomes an `<a href>`, and BOTH branches
+  // below put the string on a plain anchor (the internal one hands an absolute `to` to
+  // react-router, which renders it verbatim). A `javascript:` string arriving there would
+  // execute in the HOST page's realm. Rendering the text without the link fails visibly
+  // rather than dangerously.
+  //
+  // **The href alone decides this, before any flag is consulted.** `isExternal` and
+  // `target="_blank"` describe how a link should RENDER, not whether its string is safe to
+  // put in an href — while they were part of the same expression as the scheme test they
+  // short-circuited it, so a `javascript:` href passed alongside either one classified as
+  // "external" and skipped the guard entirely.
+  if (!href.startsWith('/') && !hasAllowedScheme) {
     reportInternalError(new Error(`Refusing to link to ${href}`), 'Link')
 
     return <span className={classes}>{children}</span>
   }
+
+  // Past the guard the flags are free to decide rendering only: an off-site scheme always
+  // takes the plain <a>, and a caller may force that treatment (plus the new-tab `rel`) for
+  // a site-relative path it wants opened in a new tab.
+  const external = hasAllowedScheme || isExternal || target === '_blank'
 
   if (external) {
     return (
