@@ -60,6 +60,20 @@ Fewer custom components means less maintenance and a consistent look.
   `pnpm build` if anything escapes. So write plain selectors in `globals.css`; hand-
   scoping is no longer required, and the old leaks (a bare `main {}`, a bare
   swiper-bullet rule) can no longer ship.
+  **The invariant the gate enforces is "the element a rule PAINTS is inside the widget",
+  not "the selector string starts with the scope"** (issue #104). Those were the same
+  thing until swiper 12 arrived shipping native CSS nesting: the pass leaves a nested
+  rule to its parent's prefix, correctly, and then the MINIFIER — which runs after us —
+  flattens the nesting and folds the scope into the middle or the subject of the
+  selector (`.swiper-pagination-disabled > :is(:where(.sy-atlas) .swiper-pagination)`).
+  A head-anchored check called that a leak and failed the build on sound CSS. So
+  `isSelectorScoped` now walks left from the subject looking for a compound pinned to
+  the scope. Two consequences: **we are not the last stage to rewrite a selector**, so
+  don't assume the emitted form matches what the pass wrote; and the check is
+  deliberately conservative in places (it refuses a scope reached across a sibling
+  combinator, because a sibling of the scope ROOT is a host element), so a red gate can
+  mean "not confined" rather than "leaks" — the message says which.
+
   Three things this does NOT cover, so they still need care:
   - **A selector you write against `.sy-atlas` yourself is passed through untouched.**
     That is the escape hatch for rules that must address the theme ROOT (which is also
@@ -144,3 +158,20 @@ in host pages, **and** runs standalone in dev. Because of that:
 `jsx-a11y` is enabled. Pair `onClick` on non-button elements with keyboard
 handlers (or use a real `<button>` / our `Button` atom), and provide `alt`/ARIA
 labels. The lint warns; don't ignore it on interactive elements.
+
+**Motion needs a way out** (WCAG 2.2.2, issue #104). Anything that moves on its own for
+more than five seconds needs a visible, keyboard-operable control to stop it, and must
+not move at all under `prefers-reduced-motion: reduce` — read via
+**`usePrefersReducedMotion`** (`src/hooks/use-reduced-motion.ts`), which is live, not a
+one-shot read at mount. The image carousel is the worked example: the control is a toggle
+button whose accessible name stays PUT while `aria-pressed` carries the state (a name
+flipping "Pause"/"Play" beside `aria-pressed` announces the state twice and contradicts
+itself), and it renders only when the thing actually autoplays — under reduced motion
+there is nothing to pause, so the control is absent rather than inert. Note that
+framer-motion's own `useReducedMotion` reads the preference only at mount; the drawers
+and peek strips still animate unconditionally, which is the remaining work.
+
+**A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
+micro-movement as a drag and swallows the click, so a control without it fires only
+intermittently on touch. The `Button` atom sets it for you; anything hand-rolled
+(`ActionRow`, the carousel's pause button) has to carry it itself.

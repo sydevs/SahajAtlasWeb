@@ -185,15 +185,51 @@ function qualifiesPseudoElement(sel) {
 }
 
 /**
- * Does this selector already sit inside the widget scope? Accepts both the pass's own
- * `:where(.sy-atlas)` prefix and a hand-written `.sy-atlas` selector.
+ * Does this selector only ever style elements inside the widget scope?
  *
- * Called once per selector by the transform and again by `assertScoped`, so the pattern is
- * memoized per scope rather than recompiled a few thousand times per build.
+ * The cheap answer is a scope token at the HEAD of the string — the pass's own
+ * `:where(.sy-atlas)` prefix, or a hand-written `.sy-atlas` selector. That was the whole
+ * test until issue #104, and it is still the path virtually every selector takes.
+ *
+ * It is not sufficient, because THIS PASS IS NOT THE LAST THING TO TOUCH THE SELECTOR.
+ * Native CSS nesting is flattened downstream of us, by the minifier, and flattening moves
+ * the scope off the head of the string without moving it out of the selector. Swiper 12
+ * brought this in — it dropped its LESS/SCSS sources in favour of nested CSS — and
+ * produced fifteen shapes of it, in two families:
+ *
+ *   .swiper:not(.swiper-watch-progress),                  →  :is(<scoped>, <scoped>)
+ *   .swiper-watch-progress .swiper-slide-visible {           .swiper-lazy-preloader
+ *     .swiper-lazy-preloader { … } }
+ *
+ *   .swiper-pagination {                                  →  .swiper-pagination-disabled
+ *     .swiper-pagination-disabled > & { … } }                > :is(<scoped>)
+ *
+ * Both are correctly confined — the element each one STYLES still has to be inside the
+ * widget — so a head-anchored test was failing the build on sound CSS. Note the second
+ * family: no amount of looking at the head of the string can accept it, because the
+ * scope legitimately lives in the SUBJECT.
+ *
+ * So the real question is asked instead: is the subject — the final compound, the element
+ * the rule paints — necessarily inside the scope? Which is what the pass has always been
+ * for; the head of the string was only ever a proxy for it.
+ *
+ * The head match survives as a FAST PATH, but it is not sufficient on its own either, and
+ * that was true before #104 as well: `.sy-atlas ~ .foo` leads with the scope and styles a
+ * SIBLING of the widget root, which is an arbitrary host element. A head-anchored test
+ * accepts it. Nothing emits that shape today, but a hand-written rule in `globals.css`
+ * would be passed through untouched AND waved through the gate, so the fast path now
+ * declines any selector carrying a sibling combinator and lets the subject walk decide.
+ * (`+` also appears inside `:nth-child(2n+1)`, which merely sends a rare selector down
+ * the slow path and costs nothing.)
  */
 const scopedPatterns = new Map()
 
+/** `~` or `+` anywhere — deliberately over-broad; it only routes, it never decides. */
+const MAYBE_SIBLING = /[~+]/
+
 export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
+  const trimmed = selector.trim()
+
   let pattern = scopedPatterns.get(scope)
 
   if (!pattern) {
@@ -201,7 +237,61 @@ export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
     scopedPatterns.set(scope, pattern)
   }
 
-  return pattern.test(selector.trim())
+  if (pattern.test(trimmed) && !MAYBE_SIBLING.test(trimmed)) return true
+
+  // Nothing without the class anywhere in it can be confined by it. This is what spares
+  // the TRANSFORM a parse — its input is third-party selectors that never mention the
+  // scope. On the ASSERT side every selector mentions it, and the head regex above is
+  // what short-circuits instead, leaving only the flattened shapes to parse.
+  if (!trimmed.includes(`.${scope}`)) return false
+
+  return isSubjectConfined(parser.astSync(trimmed).first, scope)
+}
+
+/**
+ * Scan right-to-left from the subject and report whether anything on its ANCESTOR chain
+ * pins it inside the scope. Walking backwards visits the subject's own compound first,
+ * then the combinator above it, then the next compound up — so the walk stops at the
+ * first step that isn't an ancestor step.
+ *
+ * Only the descendant and child combinators are ancestor steps. Refusing `+` and `~` is
+ * NECESSARY, not fastidious: a bare `.sy-atlas` counts as a scope token (a descendant of
+ * the root is inside the widget), so crediting siblings would accept
+ * `:is(:where(.sy-atlas)) ~ .b` — and a sibling of the scope ROOT is an arbitrary host
+ * element. That is a real leak, and it would ship green.
+ */
+function isSubjectConfined(sel, scope) {
+  if (!sel) return false
+
+  for (let i = sel.nodes.length - 1; i >= 0; i -= 1) {
+    const node = sel.nodes[i]
+
+    if (!selectorParser.isCombinator(node)) {
+      if (isScopeToken(node, scope)) return true
+      continue
+    }
+
+    const combinator = node.value.trim() || ' '
+
+    if (combinator !== ' ' && combinator !== '>') return false
+  }
+
+  return false
+}
+
+/**
+ * Does this one node confine its compound to the scope? Either it IS the scope class, or
+ * it is an `:is()`/`:where()` whose every branch is scoped.
+ *
+ * "Every" is what keeps the widened test a fix rather than a hole: one unscoped branch
+ * means the rule can match outside the widget, so `:is(:where(.sy-atlas) .a, .b) .c` is
+ * still rejected — the pass's own spec pins that.
+ */
+function isScopeToken(node, scope) {
+  if (node.type === 'class') return node.value === scope
+  if (node.type !== 'pseudo' || !/^:(is|where)$/i.test(node.value)) return false
+
+  return node.nodes?.length > 0 && node.nodes.every((b) => isSelectorScoped(b.toString(), scope))
 }
 
 /** Rules inside `@keyframes` are `from`/`to`/`50%` — not selectors, never prefixed. */
@@ -331,9 +421,16 @@ export function assertScoped(root, scope = WIDGET_SCOPE) {
     const leaked = rule.selectors.filter((selector) => !isSelectorScoped(selector, scope))
 
     if (leaked.length > 0) {
-      throw rule.error(`unscoped selector would leak into the host page: ${leaked.join(', ')}`, {
-        plugin: 'scope-widget-css',
-      })
+      // Two ways to get here, and the second one is not a bug in the CSS: a selector can
+      // also be a shape `isSubjectConfined` declines to reason about (a scope reached
+      // across a sibling combinator is the one that exists today — `swiper/css/navigation`
+      // would produce it). Saying so is worth the words: issue #104 was a day spent
+      // looking for a leak that a flattened-but-confined selector did not have.
+      throw rule.error(
+        `selector is not confined to the host-page scope — either it would leak, or it is ` +
+          `a shape this check declines to credit (see isSubjectConfined): ${leaked.join(', ')}`,
+        { plugin: 'scope-widget-css' },
+      )
     }
   })
 

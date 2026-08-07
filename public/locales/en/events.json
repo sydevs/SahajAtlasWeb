@@ -19,7 +19,8 @@
     "starting_on": "Starting %{date}",
     "starting_soon": "Starting soon",
     "tel": "tel: %{phoneNumber}",
-    "view_photo": "View photo"
+    "view_photo": "View photo",
+    "pause_slideshow": "Pause slideshow"
   },
   "display": {
     "about": "About this class",

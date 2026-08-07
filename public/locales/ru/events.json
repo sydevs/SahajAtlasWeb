@@ -19,7 +19,8 @@
     "starting_on": "Начало %{date}",
     "starting_soon": "Скоро начнётся",
     "tel": "тел: %{phoneNumber}",
-    "view_photo": "Посмотреть фото"
+    "view_photo": "Посмотреть фото",
+    "pause_slideshow": "Приостановить слайд-шоу"
   },
   "display": {
     "about": "Об этом занятии",

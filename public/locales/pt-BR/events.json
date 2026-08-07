@@ -19,7 +19,8 @@
     "starting_on": "Começando em %{date}",
     "starting_soon": "Começando em breve",
     "tel": "tel: %{phoneNumber}",
-    "view_photo": "Ver foto"
+    "view_photo": "Ver foto",
+    "pause_slideshow": "Pausar a apresentação"
   },
   "display": {
     "about": "Sobre esta aula",
