@@ -20,6 +20,7 @@ import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
+import privacy from '@/config/privacy'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). A side-effect import beside the
@@ -186,6 +187,11 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
 
   // Analytics: one pageview per real navigation. Dedupe repeats so a `replace` or a
   // map-click landing on the same URL isn't double-counted.
+  //
+  // Fathom injects OUR tracker script into the HOST's page, so the host gets the last
+  // word: `analytics="false"` on <sahaj-atlas> keeps it out entirely (issue #95). The
+  // build-time `VITE_FATHOM_ID` and the client record's real (non-localhost) domain
+  // remain the other two conditions — all three must hold.
   const primaryDomain = useMemo(
     () =>
       client.allowedDomains
@@ -195,7 +201,10 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
     [client.allowedDomains],
   )
   const fathomEnabled =
-    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
+    privacy.analytics &&
+    !!import.meta.env.VITE_FATHOM_ID &&
+    !!primaryDomain &&
+    !primaryDomain.includes('localhost')
   const lastTracked = useRef('')
 
   useEffect(() => {
