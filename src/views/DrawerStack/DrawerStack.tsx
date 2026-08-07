@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   Suspense,
+  lazy,
   startTransition,
   useCallback,
   useEffect,
@@ -31,13 +32,45 @@ import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
-import { CalendarView } from '@/views/CalendarView/CalendarView'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
-import { RegistrationView } from '@/views/RegistrationView/RegistrationView'
-import { ShareView } from '@/views/ShareView/ShareView'
+
+// The three views most visitors never open, split out of the eager graph (issue #96).
+// Each is the only consumer of a large dependency the widget otherwise pays for at
+// first paint on every host page: the calendar owns the whole Schedule-X stack (its
+// grid, its views and its theme CSS), registration owns react-hook-form + the resolver,
+// and share owns react-share's target composers.
+//
+// They are the RIGHT three to split because none of them can be the first thing on
+// screen by accident: each is reached by pressing something (the calendar button, an
+// event's Register / Share CTA) or by a deep link that is already a deliberate act.
+// The views that CAN be the entry — the country index, a region, search, an event —
+// stay eager, so the common path still resolves in the graph the host already fetched.
+//
+// Minted per attempt, not once at module scope, for the reason spelled out in
+// `EventView.tsx`: React caches a lazy component's REJECTED payload forever, so a
+// module-scope `lazy` would leave the drawer boundary's "Try again" re-throwing the
+// stored rejection instantly — the visibly-does-nothing button issue #89 removed. The
+// three are minted together because one reset serves one boundary; a fresh `lazy` for a
+// view that did not fail costs nothing (the object is inert until rendered), and only
+// one of them is ever mounted at a time.
+const loadSecondaryViews = () => ({
+  CalendarView: lazy(() =>
+    import('@/views/CalendarView/CalendarView').then((m) => ({ default: m.CalendarView })),
+  ),
+  RegistrationView: lazy(() =>
+    import('@/views/RegistrationView/RegistrationView').then((m) => ({
+      default: m.RegistrationView,
+    })),
+  ),
+  ShareView: lazy(() =>
+    import('@/views/ShareView/ShareView').then((m) => ({ default: m.ShareView })),
+  ),
+})
+
+type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 
 // Mobile bottom-sheet snap ladder (ascending; vaul reads a string as px, a number
 // as a fraction of the sheet height):
@@ -76,14 +109,25 @@ type Direction = 'left' | 'bottom'
 // Dispatch the active (top) view's inner content. Only the top view is rendered
 // (ancestors are peek panels, not rendered views), so each view frames the map for
 // its level on mount.
-function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: string }) {
+//
+// The three lazy views arrive as a prop rather than being read from module scope, so the
+// identity that a boundary reset replaces is the one this renders — see `loadSecondaryViews`.
+function TopView({
+  entry,
+  parentPath,
+  secondary,
+}: {
+  entry: StackEntry | null
+  parentPath: string
+  secondary: SecondaryViews
+}) {
   if (!entry) return <CountriesView />
 
   switch (entry.kind) {
     case 'search':
       return <SearchView />
     case 'calendar':
-      return <CalendarView />
+      return <secondary.CalendarView />
     case 'filters':
       return <FilterView />
     case 'region':
@@ -93,9 +137,9 @@ function TopView({ entry, parentPath }: { entry: StackEntry | null; parentPath: 
     case 'event':
       return <EventView basePath={entry.path} id={entry.id} />
     case 'register':
-      return <RegistrationView eventPath={entry.eventPath} parentPath={parentPath} />
+      return <secondary.RegistrationView eventPath={entry.eventPath} parentPath={parentPath} />
     case 'share':
-      return <ShareView eventPath={entry.eventPath} />
+      return <secondary.ShareView eventPath={entry.eventPath} />
   }
 }
 
@@ -186,6 +230,11 @@ export function DrawerStack() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
+  // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
+  // Held directly rather than as a counter a memo keys off, so the rule ("a retry needs a
+  // new lazy") is the code rather than something to reconstruct from a dep array.
+  // `useState` calls a function initializer, so this reads once. Same shape as EventView.
+  const [secondary, setSecondary] = useState(loadSecondaryViews)
 
   const entries = useMemo(() => resolveStack(location.pathname), [location.pathname])
   // Filters over the full-width calendar (map mode) render as a separate modal drawer OVER
@@ -421,9 +470,18 @@ export function DrawerStack() {
           initial={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
+          {/* Suspense OUTSIDE the boundary, so a lazy view's chunk load is a suspend that
+              shows `DrawerLoading` — the shared chrome (header + close control, rebuilt
+              from the URL) over a spinner — and only a FAILED load throws inward to the
+              boundary. That is what keeps a first open of the calendar / register / share
+              drawer from flashing blank or unstyled: the drawer's identity is on screen
+              from the first frame, and only its body arrives late (issue #96). */}
           <Suspense fallback={<DrawerLoading />}>
-            <ResetErrorBoundary FallbackComponent={DrawerErrorFallback}>
-              <TopView entry={top} parentPath={parentPath ?? '/'} />
+            <ResetErrorBoundary
+              FallbackComponent={DrawerErrorFallback}
+              onReset={() => setSecondary(loadSecondaryViews())}
+            >
+              <TopView entry={top} parentPath={parentPath ?? '/'} secondary={secondary} />
             </ResetErrorBoundary>
           </Suspense>
         </motion.div>
