@@ -264,26 +264,26 @@ describe('revealRows', () => {
     expect(result.more).toBeNull()
   })
 
-  it('keeps the ceiling inside the DOM budget it was measured against', () => {
-    // A ratchet, not a restatement. Every other test here spells the ceiling as
-    // `MAX_REVEAL`, so they all pass just as happily at a million — which is how the
-    // bound this list has in someone else's page could be raised back with the whole
-    // gate green. Issue #98 profiled the real drawer and settled on a DOM budget rather
-    // than a row count: ~22 nodes per card, so 400 rows is ~8,900 nodes, against the
-    // ~22,000 the old 1,000-row ceiling allowed.
+  it('strands the distant segment when the nearby one alone fills the ceiling', () => {
+    // NOT a desirable behaviour — an assertion of a known sharp edge, so it is pinned
+    // rather than rediscovered. When the nearby segment on its own reaches the ceiling,
+    // the control goes away and the distant events behind it become unreachable for that
+    // search: `rows` and the clamp are on the COMBINED count, so no press could add a
+    // distant row without dropping a nearby one, and offering one would be the no-op the
+    // rest of this file is careful to avoid.
     //
-    // Raising this means re-running that profile, not editing the number — the ceiling
-    // exists because the widget is embedded in a page whose DOM is not ours to grow.
-    const NODES_PER_ROW = 22
-    const NODE_BUDGET = 10_000
+    // It predates issue #98 — but that issue lowered MAX_REVEAL from 1,000 to 400, which
+    // moves this from "needs 1,000 nearby matches" to "needs 400", and the nearby segment
+    // AUTO-pages on scroll, so it is reachable with no press at all. Fixing it properly
+    // means a per-segment budget, which is a design change, not a constant.
+    const result = reveal([...near(MAX_REVEAL + 10), ...far(50)], { shown: MAX_REVEAL })
 
-    expect(MAX_REVEAL * NODES_PER_ROW).toBeLessThanOrEqual(NODE_BUDGET)
-    // Whole pages, so the last press lands exactly on the ceiling instead of being
-    // clamped to a stub that renders fewer rows than the button implied.
-    expect(MAX_REVEAL % PAGE_SIZE).toBe(0)
-    // And still far past any reading depth — a ceiling under a few pages would be a
-    // truncated product, not a bound.
-    expect(MAX_REVEAL).toBeGreaterThanOrEqual(PAGE_SIZE * 8)
+    expect(result.rows).toHaveLength(MAX_REVEAL)
+    expect(result.more).toBeNull()
+    expect(result.next).toBeNull()
+    // The live region still reports the true total, so the count never lies — it is the
+    // only place the unreachable remainder is acknowledged.
+    expect(result.total).toBe(MAX_REVEAL + 60)
   })
 
   it('still offers the distant segment when a huge count only filled the nearby one', () => {
@@ -311,5 +311,37 @@ describe('revealRows', () => {
         }
       }
     }
+  })
+})
+
+// A ratchet on the CONSTANT, not on `revealRows` — hence its own block. Every ceiling
+// test above spells the bound as `MAX_REVEAL`, so all of them pass just as happily at a
+// million; nothing else in the suite would notice the DOM bound being given back.
+describe('MAX_REVEAL', () => {
+  it('stays inside the DOM budget it was chosen against', () => {
+    // ~22 nodes per card, measured in the running widget (331 rows rendered 7,331 nodes),
+    // so 400 rows is ~8,800. An AVERAGE over real cards — chips and a distance line come
+    // and go — so treat it as a sizing estimate, not a per-row invariant.
+    //
+    // The budget is OURS, picked to sit just above the profiled-smooth depth; it is not
+    // an external standard (Lighthouse's DOM audit warns an order of magnitude lower,
+    // which this product cannot meet). Raising the ceiling means re-running that profile
+    // and moving this number deliberately, which is the whole point of failing here.
+    const NODES_PER_ROW = 22
+    const NODE_BUDGET = 10_000
+
+    expect(MAX_REVEAL * NODES_PER_ROW).toBeLessThanOrEqual(NODE_BUDGET)
+  })
+
+  it('is a whole number of pages, so the last press lands exactly on it', () => {
+    // Otherwise the final press is clamped to a stub that reveals fewer rows than the
+    // button implied.
+    expect(MAX_REVEAL % PAGE_SIZE).toBe(0)
+  })
+
+  it('stays far past any plausible reading depth', () => {
+    // The other direction: a ceiling of a page or two would be a truncated product
+    // wearing a bound's clothes.
+    expect(MAX_REVEAL).toBeGreaterThanOrEqual(PAGE_SIZE * 8)
   })
 })

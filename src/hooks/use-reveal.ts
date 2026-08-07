@@ -42,11 +42,10 @@ export const useReveal = (key: string): RevealControls => {
   // rows interactive while the next page renders, and `pending` gives the control an
   // honest loading state instead of a button that looks ignored.
   //
-  // Issue #98 profiled this and found it is not merely *a* cost but THE cost of the
-  // list: at 6x CPU throttle a scroll that was actively paging spent 71 of 100 frames
-  // over 32ms, while the same scroll over a settled list six times as long spent none.
-  // The transition is what keeps that off the frame the reader is looking at — it is
-  // load-bearing, not a nicety. See the note on `MAX_REVEAL` (`lib/shape/reveal.ts`).
+  // Issue #98 profiled this and found it is not merely *a* cost but THE cost of the list
+  // — more than the mounted rows it was assumed to be second to. So the transition is
+  // load-bearing, not a nicety. Numbers live with `MAX_REVEAL` (`lib/shape/reveal.ts`),
+  // in one place so they can't drift apart.
   const [pending, startTransition] = useTransition()
   const current = storedKey === key
 
