@@ -3,7 +3,12 @@ import type { EventFilters } from '@/lib/shape'
 import fetch from './fetch'
 import mutate from './mutate'
 
-import { REGIONS_STALE_TIME } from '@/config/query-client'
+import {
+  EVENTS_GC_TIME,
+  EVENTS_STALE_TIME,
+  REGIONS_STALE_TIME,
+  WHOLESALE_GC_TIME,
+} from '@/config/query-client'
 import { filtersKey } from '@/lib/shape'
 
 const api = {
@@ -48,6 +53,14 @@ export const eventsQuery = (
     locale,
   ] as const,
   queryFn: () => api.getEvents(latitude, longitude, filters),
+  // This query makes no request — it re-derives the list from the already-cached feed
+  // (full-feed predicate + a zod parse per surviving event + a distance sort). With
+  // React Query's default `staleTime: 0` every remount of the drawer redid all of it
+  // against bytes that could not have changed, so it's fresh for as long as the feed
+  // it derives from is; the gc window is twice that, so an entry can't be dropped
+  // before it even goes stale. See EVENTS_STALE_TIME.
+  staleTime: EVENTS_STALE_TIME,
+  gcTime: EVENTS_GC_TIME,
 })
 
 // The localized titles sliver's contract. Declared in `fetch.ts` beside the fetcher it
@@ -63,6 +76,10 @@ export const regionsQuery = () => ({
   queryKey: ['regions'] as const,
   queryFn: () => api.getRegions(),
   staleTime: REGIONS_STALE_TIME,
+  // Pinned, because the default gcTime (5 min) is SHORTER than the stale window above:
+  // the tree could be evicted while still nominally fresh, and every navigation after
+  // an idle gap would re-read the whole of /regions. See WHOLESALE_GC_TIME.
+  gcTime: WHOLESALE_GC_TIME,
 })
 
 export default api

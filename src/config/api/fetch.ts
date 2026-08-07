@@ -13,7 +13,12 @@ import type { Position } from 'geojson'
 
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
-import { GEOJSON_STALE_TIME, REGIONS_STALE_TIME, queryClient } from '@/config/query-client'
+import {
+  GEOJSON_STALE_TIME,
+  REGIONS_STALE_TIME,
+  WHOLESALE_GC_TIME,
+  queryClient,
+} from '@/config/query-client'
 import { centerOfBounds, distanceKm } from '@/lib/geo'
 import { atlasError } from '@/lib/report'
 import {
@@ -126,6 +131,13 @@ const REGIONS_SELECT = {
 // cache returns immediately and revalidates in the background when stale — so a
 // navigation past the stale window never *blocks* on the (cold-slow) refetch, the cause
 // of the "sometimes slow" region open. (Plain `fetchQuery` would block on that refetch.)
+//
+// Each also pins `gcTime`. These three caches are the whole point of the architecture —
+// fetched once, read by everything — but React Query counts retention from the moment
+// the LAST OBSERVER unmounts, and some of them are observed only intermittently (the
+// titles sliver) or not at all in a `map=false` embed (the feed). The 5-minute default
+// therefore evicts the wholesale data during an ordinary idle gap and the next
+// navigation re-downloads all of it. See WHOLESALE_GC_TIME.
 
 const getRegions = async (): Promise<RegionNode[]> => {
   const { docs } = validateSDKResponse(
@@ -149,6 +161,7 @@ const loadRegions = (): Promise<RegionNode[]> =>
     queryKey: ['regions'],
     queryFn: getRegions,
     staleTime: REGIONS_STALE_TIME,
+    gcTime: WHOLESALE_GC_TIME,
     revalidateIfStale: true,
   })
 
@@ -185,6 +198,7 @@ const loadGeojson = (): Promise<Geojson> =>
     queryKey: ['geojson'],
     queryFn: getGeojson,
     staleTime: GEOJSON_STALE_TIME,
+    gcTime: WHOLESALE_GC_TIME,
     revalidateIfStale: true,
   })
 
@@ -222,6 +236,10 @@ export const eventTitlesQuery = (locale: string) => ({
   queryKey: ['event-titles', locale] as const,
   queryFn: getEventTitles,
   staleTime: GEOJSON_STALE_TIME,
+  // The most eviction-prone of the three: its only mounted observer is the drawer's
+  // fallback chrome, which reads it `enabled: false`. Pinned so a locale's titles are
+  // fetched once per session rather than once per idle gap.
+  gcTime: WHOLESALE_GC_TIME,
 })
 
 const loadEventTitles = (): Promise<Map<number, string>> =>
