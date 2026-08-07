@@ -232,7 +232,7 @@ module.exports = {
     },
     fontFamily: {
       // 'Sahaj Raleway', not 'Raleway' — the face is self-hosted and declared in
-      // src/styles/fonts.css, and @font-face is document-global: declaring the plain
+      // src/styles/fonts.ts, and @font-face is document-global: declaring the plain
       // name would override the font on a host page that ships its own Raleway (#91).
       sans: ['Sahaj Raleway', ...defaultTheme.fontFamily.sans],
       serif: defaultTheme.fontFamily.serif,

@@ -3,8 +3,6 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 
-import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
-
 const ThemeProps = {
   key: 'theme',
   light: 'light',
@@ -81,13 +79,14 @@ export const applyTheme = (theme: Theme) => {
 
   root.classList.remove(ThemeProps.light, ThemeProps.dark)
   root.classList.add(theme)
-  // The style scope rides along with the theme class because it belongs on the same
-  // element (issue #91): the scoped `dark:` / `rtl:` variants resolve the theme class
-  // and the scope against one ancestor. This is the seam that owns writes to the theme
-  // root, so standalone (initTheme) and Ladle get it here rather than each remembering.
-  // The embedded widget can't wait for a theme write — it renders the class inline on
-  // its wrapper (src/Widget.tsx) so the first paint is already styled.
-  root.classList.add(WIDGET_SCOPE_CLASS)
+  // NB: deliberately does NOT write the style scope class (issue #91). It belongs on the
+  // same element as the theme class, so putting it here looks right — but `getThemeRoot()`
+  // falls back to `document.documentElement`, and BrandTheme releases the module-level
+  // root on unmount. With two embeds on a page the survivor's next theme write would then
+  // stamp `sy-atlas` onto the HOST page's <html> and apply the entire widget stylesheet —
+  // Preflight, `.container`, the lot — to their site. Each owner applies the class to an
+  // element it actually owns instead: the wrapper in Widget.tsx, <html> in index.html,
+  // and the Ladle decorator.
 }
 
 // ── System (prefers-color-scheme) resolution + watching ──────────────────────────

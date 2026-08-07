@@ -18,6 +18,6 @@
  * inside it; anything that escapes to `document.body` renders unstyled.
  *
  * Keep in sync with `WIDGET_SCOPE` in `scripts/postcss-scope-widget.mjs`
- * (`src/lib/scope.test.ts` fails if they drift).
+ * (`scripts/postcss-scope-widget.test.ts` fails if they drift).
  */
 export const WIDGET_SCOPE_CLASS = 'sy-atlas'

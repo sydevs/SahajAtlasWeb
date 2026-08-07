@@ -78,6 +78,35 @@ describe('scopeSelector', () => {
     }
   })
 
+  it('hoists a pseudo-element together with the pseudo-classes that qualify it', () => {
+    // `:hover` binds to the pseudo-element, not the compound, so stopping at the first
+    // pseudo-class would strand the `::` inside the wrapper and kill the rule.
+    expect(scopeSelector('.a .b::-webkit-scrollbar-thumb:hover')).toBe(
+      ':where(.sy-atlas) :is(.a .b)::-webkit-scrollbar-thumb:hover',
+    )
+  })
+
+  it('refuses shapes whose :is() body would be invalid, instead of emitting a dead rule', () => {
+    // `:is()` is a FORGIVING selector list: an invalid body doesn't throw and doesn't
+    // fail the prefix check — the rule just silently matches nothing. That is the same
+    // failure class this pass exists to end, pointed inward, so it has to be loud.
+    expect(() => scopeSelector('.a::before + .b')).toThrow(/silently match nothing/)
+    expect(() => scopeSelector('.a > ::before')).toThrow(/silently match nothing/)
+  })
+
+  it('does not mistake an escaped variant class for a pseudo-element', () => {
+    // Tailwind emits `.before\:content-\[\'\'\]` — a class whose NAME contains "before".
+    // A text-based validity check fired on it and broke the build.
+    expect(scopeSelector(String.raw`.dark .before\:underline`)).toBe(
+      String.raw`:where(.sy-atlas) :is(.dark .before\:underline)`,
+    )
+  })
+
+  it('collapses only a BARE root pseudo, so :host(...) keeps its condition', () => {
+    // Replacing the node wholesale would drop `(.theme)` and the rule would over-match.
+    expect(scopeSelector(':host(.theme) .a')).toBe(':where(.sy-atlas) :is(:host(.theme) .a)')
+  })
+
   it('passes through selectors already written against the scope', () => {
     // The escape hatch for hand-written rules that must address the theme root.
     expect(scopeSelector('.sy-atlas')).toBe('.sy-atlas')
@@ -123,6 +152,22 @@ describe('scopeWidgetCss', () => {
     expect(css).not.toContain(':is(>')
   })
 
+  it('refuses to rename a keyframe named after an animation keyword', async () => {
+    // The rename is a token substitution over the `animation` shorthand, so
+    // `@keyframes ease` would rewrite the timing function and leave the animation
+    // nameless. Fail loudly rather than corrupt the value.
+    await expect(
+      run('@keyframes ease { to { opacity: 1 } } .x { animation: 1s ease }'),
+    ).rejects.toThrow(/animation keyword/)
+  })
+
+  it('skips a rule nested any depth inside another rule', async () => {
+    const css = await run('.a { @media (min-width: 40rem) { & > .b { color: red } } }')
+
+    expect(css).toContain(':where(.sy-atlas) .a')
+    expect(css).not.toContain(':is(>')
+  })
+
   it('refuses to emit a stylesheet that could still restyle the host page', () => {
     // The safety net for shapes the transform fails to handle — unreachable through
     // the transform itself, so it is asserted directly.
@@ -145,10 +190,18 @@ describe('agreement with the runtime', () => {
     expect(read('src/Widget.tsx')).toContain('WIDGET_SCOPE_CLASS')
   })
 
-  it('rides along with every theme write, which owns the theme root', () => {
-    // Standalone and Ladle have no widget wrapper — <html> is the theme root — and both
-    // reach it through applyTheme, so that is the one seam that applies the class.
-    expect(read('src/hooks/use-theme.ts')).toContain('classList.add(WIDGET_SCOPE_CLASS)')
+  it('is on <html> for the two builds with no widget wrapper', () => {
+    expect(read('index.html')).toMatch(new RegExp(`<html[^>]*class="[^"]*${WIDGET_SCOPE}`))
+    expect(read('.ladle/components.tsx')).toContain('classList.add(WIDGET_SCOPE_CLASS)')
+  })
+
+  it('is never written to whatever getThemeRoot() happens to return', () => {
+    // It would look natural in `applyTheme` — the class belongs on the theme root, which
+    // that function owns. But `getThemeRoot()` falls back to `document.documentElement`,
+    // and BrandTheme releases the module-level root on unmount, so with two embeds on one
+    // page the survivor's next theme write would stamp the scope onto the HOST page's
+    // <html> and apply the entire widget stylesheet to their site.
+    expect(read('src/hooks/use-theme.ts')).not.toContain('classList.add(WIDGET_SCOPE_CLASS)')
   })
 
   // Half of THEME_CLASSES is ours: the classes applyTheme writes. A rule whose whole

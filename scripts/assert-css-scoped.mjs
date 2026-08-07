@@ -37,11 +37,11 @@ const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 // origins the README no longer asks hosts for.
 const FORBIDDEN_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com']
 
-const jsFiles = () => {
+const distFiles = (ext) => {
   if (!existsSync(DIST)) fail(`no ${DIST}/ — run \`vite build\` first`)
 
   return readdirSync(DIST, { recursive: true, encoding: 'utf8' })
-    .filter((name) => name.endsWith('.js'))
+    .filter((name) => name.endsWith(ext))
     .map((name) => join(DIST, name))
 }
 
@@ -93,6 +93,13 @@ function fail(message) {
   process.exit(1)
 }
 
+// A stylesheet that reaches the host document but isn't scoped-by-selector. `@font-face`
+// carries no selector, so the pass can't touch it and `assertScoped` can't see it — but
+// the family name IS document-global and last-wins, which is the same property that made
+// bare `@keyframes` a leak. Ours is namespaced; Swiper's icon font is upstream's and is
+// allowed through by name so the exemption is visible rather than silent.
+const ALLOWED_FONT_FAMILIES = new Set(['Sahaj Raleway', 'swiper-icons'])
+
 let sheets = 0
 let rules = 0
 
@@ -102,8 +109,25 @@ let rules = 0
 // what it guards is "did we find any CSS at all".
 const checked = new Set()
 
-for (const file of jsFiles()) {
+// A .css asset means the injector failed to inline one — it would be linked, not injected,
+// and this gate would never see it.
+const strayCss = distFiles('.css')
+
+if (strayCss.length > 0) {
+  fail(`${strayCss.join(', ')}: CSS emitted as a separate asset, outside what this gate reads`)
+}
+
+// Every injection site stamps the style tag's id, so the count of sites is knowable
+// independently of how the CSS itself is quoted. The extractor only recognises a template
+// literal — which is a minifier artefact, not a contract — so without this cross-check a
+// chunk whose injection came out double-quoted would be skipped in SILENCE, and the
+// `sheets === 0` guard would not fire as long as some other chunk still matched.
+let injectionSites = 0
+
+for (const file of distFiles('.js')) {
   const source = readFileSync(file, 'utf8')
+
+  injectionSites += source.split('sahaj-atlas-style').length - 1
 
   // Checked against the whole chunk, not just the stylesheets inside it: the faces are
   // registered from `src/styles/fonts.ts` now, so a regression could reappear either as
@@ -138,12 +162,32 @@ for (const file of jsFiles()) {
         )
       }
     })
+
+    root.walkAtRules('font-face', (atRule) => {
+      let family
+
+      atRule.walkDecls('font-family', (decl) => {
+        family = decl.value.replace(/^['"]|['"]$/g, '').trim()
+      })
+
+      if (!family || !ALLOWED_FONT_FAMILIES.has(family)) {
+        fail(
+          `${file}: @font-face declares "${family}" — font families are document-global, so it would override that face on a host page`,
+        )
+      }
+    })
   }
 }
 
 if (sheets === 0) {
   fail(
     'found no injected CSS in dist/ — either the build emitted none, or the injector changed shape and this extractor needs updating',
+  )
+}
+
+if (sheets !== injectionSites) {
+  fail(
+    `found ${sheets} stylesheet(s) but ${injectionSites} injection site(s) — a chunk's CSS was not extracted, so it went unchecked`,
   )
 }
 

@@ -76,7 +76,7 @@ Fewer custom components means less maintenance and a consistent look.
 - **The scope class must stay on the theme root**, the same element as the light/dark
   class and `dir` — the scoped `dark:` / `rtl:` variants resolve both against one
   ancestor. It is applied in `src/Widget.tsx` (embedded), `index.html` (standalone) and
-  the Ladle decorator; `src/lib/scope.ts` owns the name and `src/lib/scope.test.ts`
+  the Ladle decorator; `src/lib/scope.ts` owns the name and `scripts/postcss-scope-widget.test.ts`
   fails if the four drift apart.
 - **An overlay that portals to `document.body` will render unstyled.** Everything must
   portal to `overlayContainer()` (`src/lib/overlay.ts`), which targets the theme root —

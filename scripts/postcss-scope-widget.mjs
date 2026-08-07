@@ -20,10 +20,10 @@ import selectorParser from 'postcss-selector-parser'
  *
  * Two things are rewritten:
  *
- *   1. Selectors → `.sy-atlas :is(<selector>)`. `:is()` matters: the plain descendant
- *      form `.sy-atlas .dark .text-white` would demand a `.dark` element *inside* the
- *      scope, but `.dark` (and `dir`, which drives the rtl: variants) sit on the scope
- *      element ITSELF. Wrapped, the same element can satisfy both halves. Selectors
+ *   1. Selectors → `:where(.sy-atlas) :is(<selector>)`. `:is()` matters: the plain
+ *      descendant form `.sy-atlas .dark .text-white` would demand a `.dark` element
+ *      *inside* the scope, but `.dark` (and `dir`, which drives the rtl: variants) sit on
+ *      the scope element ITSELF. Wrapped, one element satisfies both halves. Selectors
  *      that address the root — `:root`, `html`, `body`, `:host`, and a bare theme class
  *      like `.dark` (Radix Colors ships one) — map onto the scope element instead of
  *      under it. Anything already written against `.sy-atlas` is passed through, which
@@ -45,15 +45,15 @@ export const WIDGET_SCOPE = 'sy-atlas'
 // rather than nesting under it. `:host` appears in Tailwind 3.4's Preflight (`html, :host`).
 const ROOT_SELECTORS = new Set([':root', 'html', 'body', ':host'])
 
-// The light/dark classes live on the SAME element as the scope class (the theme root),
-// so a rule whose whole selector is one of them has to compound, not descend. Radix
-// Colors' dark files are exactly this shape (`.dark, .dark-theme { --gray-1: … }`), and
-// so are our own brand-default blocks in globals.css.
+// The light/dark classes live on the SAME element as the scope class (the theme root), so
+// a rule whose whole selector is one of them has to compound, not descend. Radix Colors'
+// dark files are exactly this shape (`.dark, .dark-theme { --gray-1: … }`), and so are our
+// own brand-default blocks in globals.css.
+//
 // `light`/`dark` are OURS — the classes `applyTheme` writes (src/hooks/use-theme.ts);
-// `light-theme`/`dark-theme` come from Radix Colors' own files. Exported so
-// src/lib/scope.test.ts can pin the first pair against the theme module: rename a theme
-// class without updating this and the palette block silently descends instead of
-// compounding, which no other gate would notice.
+// `light-theme`/`dark-theme` come from Radix Colors. Exported so the spec can pin the
+// first pair against the theme module: rename a theme class without updating this and the
+// palette block silently descends instead of compounding, which no other gate would catch.
 export const THEME_CLASSES = new Set(['light', 'light-theme', 'dark', 'dark-theme'])
 
 // One parser instance for the whole run — `selectorParser()` builds a fresh Processor per
@@ -100,10 +100,14 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
   const first = sel.nodes[0]
 
   // A root selector, alone or leading a compound (`html.dark`, `body > .foo`): swap the
-  // root token for the scope, which is the root of the widget's world.
+  // root token for the scope, which is the root of the widget's world. Only a BARE one —
+  // a functional `:host(.theme)` carries a condition that dropping the node would discard,
+  // leaving a rule that over-matches inside the widget, so that falls through to the
+  // ordinary prefixing below.
   if (
     (first.type === 'tag' || first.type === 'pseudo') &&
-    ROOT_SELECTORS.has(first.type === 'tag' ? first.value : first.value.toLowerCase())
+    ROOT_SELECTORS.has(first.type === 'tag' ? first.value : first.value.toLowerCase()) &&
+    (first.type === 'tag' || first.nodes === undefined || first.nodes.length === 0)
   ) {
     const rest = sel.nodes.slice(1).join('')
 
@@ -122,18 +126,62 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
   if (!hasCombinator) return `${prefix(scope)} ${selector}`
 
   // With a combinator the selector has to be wrapped so its own ancestor parts can be
-  // satisfied BY the scope element. Trailing pseudo-elements move outside the wrapper:
+  // satisfied BY the scope element. Pseudo-elements move outside the wrapper:
   // `:is(.a > .b::before)` is invalid CSS, `:is(.a > .b)::before` is what was meant.
+  // The walk takes the pseudo-CLASSES that qualify a pseudo-element with it
+  // (`::-webkit-scrollbar-thumb:hover`), since those bind to the pseudo-element, not to
+  // the compound — stopping at the first pseudo-class would leave the `::` inside.
   const trailing = []
 
-  while (sel.nodes.length > 1 && selectorParser.isPseudoElement(sel.nodes[sel.nodes.length - 1])) {
+  while (sel.nodes.length > 1) {
     const node = sel.nodes[sel.nodes.length - 1]
+
+    if (node.type !== 'pseudo') break
+
+    const isElement = selectorParser.isPseudoElement(node)
+
+    // A pseudo-CLASS only comes along if it is qualifying a pseudo-element further left in
+    // the same compound; otherwise it belongs to the compound and stays inside the wrapper.
+    if (!isElement && !qualifiesPseudoElement(sel)) break
 
     trailing.unshift(node.toString())
     node.remove()
+
+    if (isElement) break
   }
 
-  return `${prefix(scope)} :is(${sel.toString().trim()})${trailing.join('')}`
+  const body = sel.toString().trim()
+
+  // A pseudo-element left inside the wrapper, or a body ending in a combinator, produces
+  // a rule that parses but matches NOTHING — the forgiving `:is()` list swallows the
+  // error, so it neither throws nor trips the prefix check in `assertScoped`. That is a
+  // silently dead rule, the same failure class this pass exists to end, pointed inward.
+  // Checked on the AST, not the text: a string test for `::`/`before` would fire on
+  // Tailwind's own escaped variant classes (`.before\:content-\[\'\'\]`).
+  const stillInvalid =
+    sel.nodes.some(selectorParser.isPseudoElement) ||
+    selectorParser.isCombinator(sel.nodes[sel.nodes.length - 1])
+
+  if (stillInvalid) {
+    throw new Error(
+      `scope-widget-css: cannot safely wrap "${selector}" — the :is() body would be invalid ("${body}"), and the rule would silently match nothing`,
+    )
+  }
+
+  return `${prefix(scope)} :is(${body})${trailing.join('')}`
+}
+
+/** Is there a pseudo-element further left in this compound, before anything else? */
+function qualifiesPseudoElement(sel) {
+  for (let i = sel.nodes.length - 2; i >= 0; i -= 1) {
+    const node = sel.nodes[i]
+
+    // Anything that isn't a pseudo — a combinator, a class, a tag — ends the run.
+    if (node.type !== 'pseudo') return false
+    if (selectorParser.isPseudoElement(node)) return true
+  }
+
+  return false
 }
 
 /**
@@ -161,6 +209,39 @@ function isKeyframeStep(rule) {
   return rule.parent?.type === 'atrule' && /keyframes$/i.test(rule.parent.name)
 }
 
+// Words that can appear in an `animation` shorthand as something other than a name.
+// The rename is a token substitution over that shorthand, so a keyframe actually CALLED
+// one of these would rewrite the wrong token — `@keyframes ease` turns `animation: 1s ease`
+// into `animation: 1s sy-atlas-ease`, losing the timing function and leaving the animation
+// nameless. Nothing ships such a name today; if one ever appears, fail loudly rather than
+// corrupt the value.
+const ANIMATION_KEYWORDS = new Set([
+  'normal',
+  'reverse',
+  'alternate',
+  'alternate-reverse',
+  'none',
+  'forwards',
+  'backwards',
+  'both',
+  'running',
+  'paused',
+  'infinite',
+  'linear',
+  'ease',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+  'step-start',
+  'step-end',
+  'initial',
+  'inherit',
+  'unset',
+  'revert',
+  'revert-layer',
+  'auto',
+])
+
 /**
  * Rename every `@keyframes` in the sheet and rewrite the declarations that use them.
  * Two passes, because a keyframe may be defined after its first use.
@@ -173,6 +254,13 @@ function namespaceKeyframes(root, scope) {
     const name = atRule.params.trim()
 
     if (name.startsWith(`${scope}-`)) return
+
+    if (ANIMATION_KEYWORDS.has(name.toLowerCase())) {
+      throw atRule.error(
+        `@keyframes ${name} is named after an animation keyword; renaming it would corrupt the shorthand values that use it`,
+        { plugin: 'scope-widget-css' },
+      )
+    }
 
     const scoped = `${scope}-${name}`
 
@@ -205,7 +293,13 @@ function escapeRegExp(value) {
  * is invalid CSS that browsers drop silently.
  */
 function isNested(rule) {
-  return rule.parent?.type === 'rule'
+  // Walk the whole ancestor chain, not just the immediate parent: a rule nested inside an
+  // `@media` inside a rule still belongs to its outer rule's prefix.
+  for (let node = rule.parent; node; node = node.parent) {
+    if (node.type === 'rule') return true
+  }
+
+  return false
 }
 
 /** Rules this pass is responsible for: everything but keyframe steps and nested rules. */

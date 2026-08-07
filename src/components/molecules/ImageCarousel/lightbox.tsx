@@ -47,6 +47,13 @@ export function Lightbox({ slides, isOpen, index, onClose }: LightboxProps) {
       // widget's scope class, so a lightbox mounted outside it renders unstyled. It
       // also stops the lightbox from mounting into the host page's <body>, and it
       // picks up the brand palette + light/dark class it never had there.
+      //
+      // One consequence, accepted: YARL locks scrolling by putting `.yarl__no_scroll` on
+      // `document.body`, and that rule is now scoped like everything else — so in an
+      // embed it no longer matches, and the host page can still scroll behind the
+      // lightbox. Reaching back out to freeze someone else's page is the thing this
+      // widget is trying to stop doing (the release review flags the modal drawer's
+      // host-scroll lock as a defect, not a feature), so the lock stays lost.
       portal={{ root: overlayContainer() ?? null }}
       // A single slide has nowhere to navigate, so drop the prev/next arrows
       // (YARL would otherwise show them and wrap back to the same image).

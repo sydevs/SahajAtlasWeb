@@ -10,11 +10,20 @@ import storyI18n from './i18n'
 import Providers from '@/providers'
 import { applyTheme, useTheme } from '@/hooks/use-theme'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
+import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
 import '@/styles/globals.css'
 // Stories mount components without App, so the self-hosted faces (#91) are registered
 // here too — otherwise every preview renders in the fallback system sans.
 import '@/styles/fonts'
+
+// Ladle has no widget wrapper — <html> is the theme root here, exactly as in the
+// standalone build — so it carries the style scope class or no rule in the sheet matches
+// anything (issue #91). At module scope, not in an effect: an effect runs after the first
+// render and every story would paint unstyled for a frame.
+if (typeof document !== 'undefined') {
+  document.documentElement.classList.add(WIDGET_SCOPE_CLASS)
+}
 
 // Brand presets sampled from real tenants (issue #16). Selecting one runs the
 // production applyPalette on the story wrapper, so Ladle previews exactly what
