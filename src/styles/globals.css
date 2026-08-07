@@ -1,4 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+/* EVERY selector below is rescoped at build time (issue #91).
+ *
+ * This stylesheet is injected into the HOST page's <head>, so a top-level selector
+ * restyles somebody else's site. `scripts/postcss-scope-widget.mjs` runs last in the
+ * PostCSS chain and confines the whole emitted sheet — Tailwind's Preflight and
+ * utilities, the imports below, and everything written here — under `.sy-atlas`, the
+ * class on the widget's theme root. So write plain selectors here; the pass handles
+ * them, and `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
+ *
+ * The one thing to know: a selector you write against `.sy-atlas` yourself is passed
+ * through untouched. That is the escape hatch for rules that must address the theme
+ * ROOT (which is also where the light/dark class lives) rather than something inside
+ * it — the pass can't tell those apart on its own.
+ */
+/* Raleway used to be `@import`ed from fonts.googleapis.com here. It is self-hosted
+ * now and registered from `src/styles/fonts.ts` — a CSS url() would resolve against
+ * the HOST page's origin, so the face has to be declared with a runtime-resolved URL.
+ */
 @import 'mapbox-gl/dist/mapbox-gl.css';
 @import 'swiper/css';
 @import 'swiper/css/a11y';
@@ -147,6 +164,16 @@
 }
 
 @layer base {
+  /* Preflight sets `line-height: 1.5` on `html` and then `line-height: inherit` on
+     `body`. Inside the widget both of those ARE the theme root, so the second one
+     lands on the same element as the first and wins — and inherits the HOST page's
+     line-height into every line of our copy. Restate the intended value; the widget
+     is the root of its own world. (`body { margin: 0 }` collapses the same way and is
+     harmless: the wrapper is `display: contents` and has no box to give a margin to.) */
+  .sy-atlas {
+    line-height: 1.5;
+  }
+
   /* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
      or `:root`. This stylesheet is injected into the HOST document, and Swiper is a
      popular library, so `.swiper` roots routinely exist on host pages: theming that

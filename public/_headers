@@ -1,0 +1,13 @@
+# Cloudflare Pages reads this from dist/ (like public/_redirects).
+#
+# The widget is embedded in OTHER sites, so everything it loads at runtime is a
+# cross-origin request from the host page's point of view. Fonts are the strict case:
+# a font is always fetched in CORS mode, so a missing Access-Control-Allow-Origin
+# means the self-hosted Raleway silently fails to render (issue #91).
+#
+# Pages already serves static assets with `access-control-allow-origin: *`; this pins
+# that rather than leaving a rendering requirement on a platform default. Hashed,
+# immutable build assets, so the long cache is safe — a change ships under a new URL.
+/assets/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable

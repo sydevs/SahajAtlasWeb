@@ -5,6 +5,8 @@ import Captions from 'yet-another-react-lightbox/plugins/captions'
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 
+import { overlayContainer } from '@/lib/overlay'
+
 import 'yet-another-react-lightbox/styles.css'
 import 'yet-another-react-lightbox/plugins/captions.css'
 import 'yet-another-react-lightbox/plugins/thumbnails.css'
@@ -39,6 +41,13 @@ export function Lightbox({ slides, isOpen, index, onClose }: LightboxProps) {
       index={index}
       open={isOpen}
       plugins={plugins}
+      // Portal into the theme root rather than YARL's default `document.body`, like
+      // every other overlay in the app (`overlayContainer`). Required since #91: the
+      // built stylesheet — YARL's own `.yarl__*` rules included — is confined under the
+      // widget's scope class, so a lightbox mounted outside it renders unstyled. It
+      // also stops the lightbox from mounting into the host page's <body>, and it
+      // picks up the brand palette + light/dark class it never had there.
+      portal={{ root: overlayContainer() ?? null }}
       // A single slide has nowhere to navigate, so drop the prev/next arrows
       // (YARL would otherwise show them and wrap back to the same image).
       render={single ? { buttonPrev: () => null, buttonNext: () => null } : undefined}
