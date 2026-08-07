@@ -36,8 +36,10 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
+import { annotate, report } from './_ci-output.mjs'
 
 /** Severities that fail the gate. Moderate/low are reported by the weekly run only. */
 const GATED = ['critical', 'high']
@@ -46,23 +48,6 @@ const ROOT = resolve(import.meta.dirname, '..')
 const BASELINE_FILE = resolve(import.meta.dirname, 'audit-baseline.json')
 
 const strict = process.argv.slice(2).includes('--strict')
-const out = []
-
-function say(...lines) {
-  out.push(...lines)
-}
-
-function flush() {
-  console.log(out.join('\n'))
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${out.join('\n')}\n`)
-  }
-}
-
-/** GitHub Actions annotation — visible on the run even when the log is folded. */
-function annotate(level, message) {
-  console.log(`::${level}::${message}`)
-}
 
 /**
  * Run the audit and parse it.
@@ -99,17 +84,16 @@ function main() {
   const baseline = JSON.parse(readFileSync(BASELINE_FILE, 'utf8'))
   const known = baseline.advisories || {}
   const audit = runAudit()
-
-  say('### Dependency audit (`pnpm audit --prod`)', '')
+  const lines = ['### Dependency audit (`pnpm audit --prod`)', '']
 
   if (!audit) {
     const message =
       'Dependency audit produced no parseable output — the registry may be ' +
       'unreachable, or pnpm changed its JSON shape. No advisories were checked.'
 
-    say(`⚠️ ${message}`)
+    lines.push(`⚠️ ${message}`)
     annotate('warning', message)
-    flush()
+    report(lines)
     // Unavailable is not the same as clean. It never reds an unrelated PR, but
     // the weekly run treats it as a failure so a permanently broken check can't
     // masquerade as a passing one.
@@ -125,43 +109,42 @@ function main() {
   const seen = new Set(gated.map(idOf))
   const stale = Object.keys(known).filter((id) => !seen.has(id))
 
-  say(
+  lines.push(
     `${found.length} advisories in production dependencies — ` +
       `**${counts.critical || 0} critical, ${counts.high || 0} high**, ` +
       `${counts.moderate || 0} moderate, ${counts.low || 0} low.`,
     '',
-    `${gated.length} at or above **high**, of which ` +
-      `**${fresh.length} ${fresh.length === 1 ? 'is' : 'are'} new** ` +
-      `(not in \`scripts/audit-baseline.json\`).`,
+    `${gated.length} at or above **high**; ` +
+      `**new (not in \`scripts/audit-baseline.json\`): ${fresh.length}**.`,
     '',
   )
 
   if (fresh.length) {
-    say('| Severity | Package | Advisory | Fix |', '| --- | --- | --- | --- |')
+    lines.push('| Severity | Package | Advisory | Fix |', '| --- | --- | --- | --- |')
     for (const a of fresh) {
       const fix = a.patched_versions && a.patched_versions !== '<0.0.0' ? a.patched_versions : '—'
 
-      say(
+      lines.push(
         `| ${a.severity} | \`${a.module_name}\` | [${idOf(a)}](${a.url}) ${a.title} | \`${fix}\` |`,
       )
     }
-    say('')
+    lines.push('')
   }
 
   if (stale.length) {
-    say(
-      `${stale.length} baseline entr${stale.length === 1 ? 'y is' : 'ies are'} no longer ` +
-        `reported and should be removed from \`scripts/audit-baseline.json\`: ` +
+    lines.push(
+      `Fixed since the baseline was written, remove from ` +
+        `\`scripts/audit-baseline.json\` (${stale.length}): ` +
         `${stale.map((id) => `\`${id}\``).join(', ')}`,
       '',
     )
   }
 
-  flush()
+  report(lines)
 
   if (fresh.length) {
     const message =
-      `${fresh.length} new high/critical advisor${fresh.length === 1 ? 'y' : 'ies'}: ` +
+      `New high/critical advisories (${fresh.length}): ` +
       `${fresh.map((a) => `${idOf(a)} (${a.module_name})`).join(', ')}. ` +
       'Update the dependency, or — if it cannot be fixed now — add the id to ' +
       'scripts/audit-baseline.json with the ticket that owns it.'
@@ -180,7 +163,7 @@ function main() {
   }
 
   if (stale.length) {
-    annotate('notice', `Audit baseline has ${stale.length} stale entr(y/ies) — safe to prune.`)
+    annotate('notice', `Audit baseline has ${stale.length} fixed entries — safe to prune.`)
   }
 
   annotate('notice', `Dependency audit: no new high/critical advisories (${gated.length} known).`)

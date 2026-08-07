@@ -3,9 +3,10 @@
 /**
  * Bundle-size budget for the EAGER first-load payload.
  *
- * Run after `pnpm build`:
- *   node scripts/check-bundle-size.mjs           # check against the budgets below
- *   node scripts/check-bundle-size.mjs --print   # measure and report, never fail
+ * Run after `pnpm build` (it measures whatever is in `dist/`, so a stale build
+ * gives stale numbers):
+ *
+ *   pnpm build && pnpm size
  *
  * ## What it measures, and why it measures it this way
  *
@@ -40,9 +41,11 @@
  * bytes-on-the-wire.
  */
 
-import { appendFileSync, existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
+
+import { annotate, report } from './_ci-output.mjs'
 
 // ---------------------------------------------------------------------------
 // THE BUDGET. One constant, deliberately easy to edit.
@@ -59,18 +62,22 @@ import { gzipSync } from 'node:zlib'
 // RATCHET THIS DOWN when the payload shrinks. Issue #96 (lazy-load the calendar,
 // registration and share drawers) is expected to take 150–250 KiB off both
 // numbers — that PR should lower these two values in the same commit, or the
-// budget quietly re-accumulates the slack it just won.
+// budget quietly re-accumulates the slack it just won. `SLACK_RATIO` below says
+// that out loud rather than trusting this comment to be read.
 // ---------------------------------------------------------------------------
 const BUDGET_KIB = {
   standalone: 495,
   embed: 495,
 }
 
+// A budget far above the real payload is a green check that checks nothing —
+// the exact failure this script was written against, just slower. Once a graph
+// is running this much under, the number has stopped describing the code and
+// should come down.
+const SLACK_RATIO = 0.1
+
 const DIST = resolve(import.meta.dirname, '..', 'dist')
 const KIB = 1024
-
-const args = process.argv.slice(2)
-const printOnly = args.includes('--print')
 
 /** Gzipped size of one built file, in bytes. */
 function gzipBytes(file) {
@@ -133,27 +140,28 @@ function measure(name, files) {
     .map((file) => ({ file: relative(DIST, file), bytes: gzipBytes(file) }))
     .sort((a, b) => b.bytes - a.bytes)
 
-  return {
-    name,
-    parts,
-    kib: parts.reduce((sum, p) => sum + p.bytes, 0) / KIB,
-    budget: BUDGET_KIB[name],
-  }
-}
+  const kib = parts.reduce((sum, p) => sum + p.bytes, 0) / KIB
+  const budget = BUDGET_KIB[name]
 
-function report(lines) {
-  console.log(lines.join('\n'))
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`)
-  }
+  return { name, parts, kib, budget, spare: budget - kib }
 }
 
 function main() {
   const indexHtml = join(DIST, 'index.html')
   const embedJs = join(DIST, 'embed.js')
 
-  if (!existsSync(indexHtml) || !existsSync(embedJs)) {
-    console.error('No production build found — run `pnpm build` first.')
+  // Name the paths: if the build is fine and one of these was renamed (the embed
+  // filename is `entryFileNames` in vite.config.ts), the message has to point at
+  // the rename rather than send someone to rebuild a build they just ran.
+  const missing = [indexHtml, embedJs].filter((f) => !existsSync(f))
+
+  if (missing.length) {
+    annotate(
+      'error',
+      `Bundle-size check found no build output at ${missing.map((f) => relative(DIST, f)).join(', ')} ` +
+        '— run `pnpm build` first, or update the entry names in scripts/check-bundle-size.mjs ' +
+        'if vite.config.ts renamed them.',
+    )
     process.exit(1)
   }
 
@@ -164,21 +172,42 @@ function main() {
   const declared = htmlGraph(indexHtml)
   const loaded = importClosure(declared[0])
 
+  const embedGraph = importClosure(embedJs)
+
+  // The walkers are regexes over minified output, so their silent failure mode
+  // is finding NOTHING and scoring a payload of one small entry file — an
+  // under-budget pass that means the opposite of what it says. A real graph is
+  // several chunks; one file means rolldown's output shape moved.
+  for (const [entry, graph] of [
+    ['index.html', loaded],
+    ['embed.js', embedGraph],
+  ]) {
+    if (graph.length < 2) {
+      annotate(
+        'error',
+        `Import walker found no chunks for ${entry} — the build's output shape has ` +
+          'probably changed, and these sizes cannot be trusted. Fix staticImports() ' +
+          'in scripts/check-bundle-size.mjs.',
+      )
+      process.exit(1)
+    }
+  }
+
   const graphs = [
     measure('standalone', [...new Set([...declared, ...loaded])]),
-    measure('embed', importClosure(embedJs)),
+    measure('embed', embedGraph),
   ]
 
-  const lines = ['### Bundle size — eager payload (gzipped)', '', '| Graph | Size | Budget | |']
-
-  lines.push('| --- | ---: | ---: | :-- |')
+  const lines = [
+    '### Bundle size — eager payload (gzipped)',
+    '',
+    '| Graph | Size | Budget | |',
+    '| --- | ---: | ---: | :-- |',
+  ]
 
   for (const g of graphs) {
-    const over = g.kib > g.budget
-    const delta = (g.budget - g.kib).toFixed(1)
-    const verdict = over
-      ? `❌ over by ${(g.kib - g.budget).toFixed(1)} KiB`
-      : `✅ ${delta} KiB spare`
+    const verdict =
+      g.spare < 0 ? `❌ over by ${(-g.spare).toFixed(1)} KiB` : `✅ ${g.spare.toFixed(1)} KiB spare`
 
     lines.push(`| \`${g.name}\` | ${g.kib.toFixed(1)} KiB | ${g.budget} KiB | ${verdict} |`)
   }
@@ -206,18 +235,37 @@ function main() {
     )
   }
 
+  const over = graphs.filter((g) => g.spare < 0)
+  const slack = graphs.filter((g) => g.spare > g.budget * SLACK_RATIO)
+
+  if (slack.length) {
+    lines.push(
+      '',
+      `> 📉 ${slack.map((g) => `\`${g.name}\``).join(' and ')} now ` +
+        `${slack.length === 1 ? 'runs' : 'run'} more than ` +
+        `${SLACK_RATIO * 100}% under budget. Lower BUDGET_KIB to lock the win in.`,
+    )
+  }
+
   report(lines)
 
-  const over = graphs.filter((g) => g.kib > g.budget)
-
-  if (over.length && !printOnly) {
-    console.error(
-      `\nBundle size over budget: ${over.map((g) => g.name).join(', ')}.\n` +
-        'Either reduce the eager payload, or — if the growth is intended and ' +
-        'justified — raise BUDGET_KIB in scripts/check-bundle-size.mjs in the ' +
-        'same commit, with the reason in the commit message.',
+  if (over.length) {
+    annotate(
+      'error',
+      `Bundle size over budget: ${over
+        .map((g) => `${g.name} ${g.kib.toFixed(1)} KiB > ${g.budget} KiB`)
+        .join('; ')}. Either reduce the eager payload, or — if the growth is ` +
+        'intended and justified — raise BUDGET_KIB in scripts/check-bundle-size.mjs ' +
+        'in the same commit, with the reason in the commit message.',
     )
     process.exit(1)
+  }
+
+  if (slack.length) {
+    annotate(
+      'notice',
+      `Bundle-size budget has slack: ${slack.map((g) => g.name).join(', ')} — ratchet BUDGET_KIB down.`,
+    )
   }
 }
 

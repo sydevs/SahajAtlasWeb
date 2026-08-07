@@ -69,7 +69,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/check-audit.mjs
+      - run: pnpm audit:check
 
   # Smoke specs run against the Cloudflare Pages PR preview. We discover the
   # preview URL from the GitHub API (Cloudflare posts it on the PR) and wait
@@ -101,9 +101,11 @@ jobs:
           PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
         run: |
           pnpm test:smoke
-          echo "### Smoke" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "✅ Smoke specs ran against \`$PREVIEW_URL\`." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Smoke"
+            echo ""
+            echo "✅ Smoke specs ran against \`$PREVIEW_URL\`."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # A skip must never look like a pass. Discovery exits 0 with an empty URL
       # when no preview turns up, and the specs then skip themselves — so before
@@ -126,7 +128,7 @@ jobs:
             echo "⚠️ $MSG"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$SAME_REPO" = "true" ]; then
-            echo "::error::$MSG This PR is from the same repository, so a preview was expected: the Cloudflare Pages deploy is missing or failed. Check the Pages build — a 0s 'Build failed' with a clean log is a transient rate-limit, so retry the deployment."
+            echo "::error::$MSG This PR is from the same repository, so a preview was expected. See the 'Discover Cloudflare Pages preview URL' step above for which stage failed — nothing posted, or posted but unreachable. If the Pages build itself failed in 0s with a clean log, that is a transient rate-limit: retry the deployment."
             exit 1
           fi
           echo "::warning::$MSG Forked PRs have no preview deployment, so the specs were skipped."

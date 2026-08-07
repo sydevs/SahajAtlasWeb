@@ -12,8 +12,13 @@
  *   3. the Cloudflare bot's PR comment body
  *
  * If nothing is found within the timeout (e.g. a forked PR with no preview, or
- * the preview env isn't configured), we emit an EMPTY preview_url and exit 0 so
- * the smoke job skips gracefully instead of failing.
+ * the preview env isn't configured), we emit an EMPTY preview_url and exit 0 —
+ * discovery problems are reported, never fatal here.
+ *
+ * Whether an empty result is tolerable is the WORKFLOW's call, not this script's:
+ * ci.yml annotates it either way, and fails the smoke job when the PR is
+ * same-repo (secrets present, so a preview was expected). Keep the two in step —
+ * exiting non-zero here would turn a fork's expected skip into a red check.
  *
  * Env:
  *   GITHUB_TOKEN       (required) — read access to statuses/deployments/issues

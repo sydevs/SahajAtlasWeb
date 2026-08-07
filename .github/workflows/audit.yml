@@ -37,4 +37,4 @@ jobs:
         with:
           node-version: 22
       # No `pnpm install`: `pnpm audit` resolves from the lockfile alone.
-      - run: node scripts/check-audit.mjs --strict
+      - run: pnpm audit:check --strict
