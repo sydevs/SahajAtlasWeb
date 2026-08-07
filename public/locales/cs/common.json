@@ -143,5 +143,8 @@
     "more": "Zobrazit více",
     "farther": "Zobrazit vzdálené události",
     "showing": "Zobrazeno %{shown} z %{total} událostí"
+  },
+  "widget": {
+    "label": "Sahaj Atlas — bezplatné kurzy meditace"
   }
 }

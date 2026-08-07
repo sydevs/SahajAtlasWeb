@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 
-import { type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
+import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
@@ -14,7 +14,7 @@ import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
-import { atlasError } from '@/lib/report'
+import { atlasError, reportInternalError } from '@/lib/report'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
@@ -36,6 +36,50 @@ const PreviewController = lazy(() =>
 )
 
 // ===== APP ===== //
+
+/**
+ * The last rung: what renders when the failure is one of the things every other fallback
+ * is built on top of (issue #92).
+ *
+ * `ErrorFallback` is a rich, localized, themed screen — and it sits INSIDE `Providers` and
+ * `BrandTheme`, so a throw from either of those (or from the query client, or the i18n
+ * boot) unmounted the whole widget with nothing on screen and nothing reported. It doesn't
+ * take the host page down, which is why this went unnoticed; it just leaves a hole in
+ * their layout.
+ *
+ * So this rung depends on none of them: no `t()`, no theme tokens, no Tailwind class that
+ * a CSS-injection failure could have taken with it, no query client — which is also why it
+ * lives here rather than in `components/molecules/Fallbacks` beside its two richer
+ * siblings. Inline styles set only spacing and size, inheriting the host's own colour and
+ * font, so it stays legible on whatever page it lands in. Untranslated English is the
+ * price of a fallback that cannot itself fail: a translated one would have to read the
+ * thing that just broke.
+ */
+function RootFallback() {
+  return (
+    <div role="alert" style={{ padding: '1.5rem', fontSize: '0.875rem', textAlign: 'center' }}>
+      Sahaj Atlas could not be loaded. Please reload the page.
+    </div>
+  )
+}
+
+/**
+ * The boundary that renders it. Exported because the widget entry mounts a SECOND one
+ * outside the router (`Widget.tsx`): this one covers `Providers`/`BrandTheme` and the app
+ * — including the standalone entry, which is why it stays here — while the entry's copy
+ * additionally covers the router, the theme wrapper and the mount decision itself, none of
+ * which anything below could catch.
+ */
+export function RootBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      FallbackComponent={RootFallback}
+      onError={(error) => reportInternalError(error, 'widget root')}
+    >
+      {children}
+    </ErrorBoundary>
+  )
+}
 
 type AppProps = {
   apiKey: string | undefined | null
@@ -69,19 +113,20 @@ export default function App({
   }, [apiKey])
 
   return (
-    <Providers>
-      <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
-        <Suspense fallback={<LoadingFallback />}>
-          <ResetErrorBoundary FallbackComponent={ErrorFallback}>
-            <AppShell
-              apiKey={apiKey}
-              defaultLocale={defaultLocale}
-              hasMap={hasMap}
-              standalone={standalone}
-            />
-          </ResetErrorBoundary>
-        </Suspense>
-        {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
+    <RootBoundary>
+      <Providers>
+        <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
+          <Suspense fallback={<LoadingFallback />}>
+            <ResetErrorBoundary FallbackComponent={ErrorFallback}>
+              <AppShell
+                apiKey={apiKey}
+                defaultLocale={defaultLocale}
+                hasMap={hasMap}
+                standalone={standalone}
+              />
+            </ResetErrorBoundary>
+          </Suspense>
+          {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
             ErrorFallback is on screen — which is exactly when a viewer most wants it.
             That placement means nothing above would catch a throw from here, so it gets
             its own boundary: unbounded, a render error would unmount the whole widget on
@@ -93,11 +138,12 @@ export default function App({
             react-hook-form, zod — are already in the eager graph via the registration
             form. Splitting it measured 0.6 kB gz LARGER across the first paint, for four
             extra requests. */}
-        <ErrorBoundary fallbackRender={() => null}>
-          <ReportIssueModal apiKey={apiKey} />
-        </ErrorBoundary>
-      </BrandTheme>
-    </Providers>
+          <ErrorBoundary fallbackRender={() => null}>
+            <ReportIssueModal apiKey={apiKey} />
+          </ErrorBoundary>
+        </BrandTheme>
+      </Providers>
+    </RootBoundary>
   )
 }
 
@@ -164,9 +210,14 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap }}>
-      <Helmet>
-        <meta content={locale} property="og:locale" />
-      </Helmet>
+      {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
+          describes their document, not the widget inside it, and the widget's hash URLs
+          were never canonical anyway (hence `standalone` existing at all). */}
+      {standalone && (
+        <Helmet>
+          <meta content={locale} property="og:locale" />
+        </Helmet>
+      )}
       {preview.active && (
         <Suspense fallback={null}>
           <PreviewController />

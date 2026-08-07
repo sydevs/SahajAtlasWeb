@@ -53,17 +53,28 @@ the lane's default environment is still `node`.
 A spec opts in per-file with a `// @vitest-environment jsdom` docblock on line 1, so
 the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1.5s.
 
-**Reach for it only when the behaviour under test is a re-render that SSR markup
-cannot express.** Today exactly one spec qualifies: `src/views/reset-boundary.test.tsx`,
-which proves a `resetKeys` change clears an already-thrown ErrorBoundary — load-bearing,
-because the body-level boundaries in SearchView/CalendarView reset on the query string
-while the drawer boundary keys on the pathname, and a boundary that never resets turns a
-transient failure into a permanent dead end.
+**Reach for it only when the behaviour under test is a re-render that SSR markup cannot
+express, or an agreement with a router/DOM API that a pure test can only assume.** Two
+specs qualify today:
+
+- `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
+  already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
+  SearchView/CalendarView reset on the query string while the drawer boundary keys on the
+  pathname, and a boundary that never resets turns a transient failure into a permanent
+  dead end.
+- `src/lib/shape/hash.router.test.tsx` — mounts a real `HashRouter` to prove `mountRoute`
+  and react-router agree about which fragments are the widget's (issue #92). This one is
+  the cautionary tale for the rule below: `hash.test.ts` covered the classifier
+  exhaustively and still missed that **react-router writes `#/!/gb/london`, not
+  `#!/gb/london`** — it normalises the basename `!` to `/!`. A pure spec can only pin what
+  our function decides, never whether the library it is modelling agrees. When a helper
+  exists to feed a third-party API, assert the round trip against that API.
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
-prefer extracting the pure part first — that spec's companion, `listResetKey`
-(`src/lib/shape/path.ts`), carries most of the logic and is tested in the node lane with
-no DOM at all.
+prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`
+(`src/lib/shape/path.ts`) carries most of that logic and is tested in the node lane with
+no DOM at all. Extracting first is still right; it just isn't sufficient on its own where
+the pure part encodes a foreign contract.
 
 ## Conventions
 
