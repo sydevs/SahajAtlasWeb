@@ -116,7 +116,7 @@ src/
     mode.ts           # WidgetMode context (standalone + hasMap)
     i18n.ts           # i18next init
     responsive.ts, query-client.ts, i18n-options.ts, preview.ts, theme/
-  hooks/              # use-locale, use-mapbox, use-map-controller, use-theme
+  hooks/              # use-locale, use-mapbox, use-map-controller, use-theme, use-reduced-motion
   lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
                       # entity codecs (filters, sort, path, country, hierarchy); geo.ts + camera.ts
                       # the maths; share/platforms.ts + country-sites.ts the static
