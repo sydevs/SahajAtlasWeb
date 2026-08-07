@@ -862,6 +862,17 @@ export function FallbackPanel({
   )
 }
 
+export type ResetErrorBoundaryProps = ErrorBoundaryProps & {
+  /**
+   * What to call this boundary in a report — it rides along as the `atlas.context` tag, so
+   * a Sentry issue says which surface failed without anyone reading a component stack.
+   * The default suits the five in-drawer boundaries, which are all one kind of thing; the
+   * app-level one (`App.tsx`) names itself, because "the widget failed to boot" and "a
+   * drawer failed to load" are not the same alert.
+   */
+  context?: string
+}
+
 /**
  * An `ErrorBoundary` whose reset actually re-runs the failed query.
  *
@@ -873,13 +884,35 @@ export function FallbackPanel({
  * Deliberately does NOT bundle a `Suspense`: the five call sites nest one differently —
  * outside the boundary, inside it, or not at all — and normalizing that would move
  * loading states nobody asked to move.
+ *
+ * **It is also where an ordinary boundary trip becomes telemetry** (issue #108). Reporting
+ * lives here for the same reason `reset` does: every boundary in the app goes through this
+ * component, so one wiring covers all of them and a boundary added later cannot forget to
+ * report — where six hand-written `onError` props would drift the moment one call site was
+ * copied without it. Before this, the only failure that reached `reportInternalError` was
+ * the fallback-of-the-fallback, so the ordinary ones — the ones a viewer actually sees —
+ * produced no signal at all.
  */
-export function ResetErrorBoundary({ children, onReset, ...props }: ErrorBoundaryProps) {
+export function ResetErrorBoundary({
+  children,
+  context = 'view boundary',
+  onError,
+  onReset,
+  ...props
+}: ResetErrorBoundaryProps) {
   return (
     <QueryErrorResetBoundary>
       {({ reset }) => (
         <ErrorBoundary
           {...props}
+          // COMPOSED for the same reason as `onReset` below — a caller may want to know
+          // too, and swallowing that silently is the bug this component exists to prevent.
+          // The seam decides everything else: whether the failure's kind is worth an event,
+          // and what may travel with it.
+          onError={(error, info) => {
+            reportInternalError(error, context)
+            onError?.(error, info)
+          }}
           // COMPOSED, not overridden: a caller's own `onReset` has work of its own to do
           // (EventView mints a fresh `lazy`, since React caches a rejected one forever).
           // Assigning `reset` over the spread would swallow it silently — the exact class

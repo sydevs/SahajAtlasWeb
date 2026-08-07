@@ -118,7 +118,9 @@ export default function App({
       <Providers>
         <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
           <Suspense fallback={<LoadingFallback />}>
-            <ResetErrorBoundary FallbackComponent={ErrorFallback}>
+            {/* `context` names this one in a report: everything below is a drawer failing
+                to load, this is the widget failing to boot. */}
+            <ResetErrorBoundary FallbackComponent={ErrorFallback} context="app">
               <AppShell
                 apiKey={apiKey}
                 defaultLocale={defaultLocale}
@@ -139,7 +141,14 @@ export default function App({
             react-hook-form, zod — are already in the eager graph via the registration
             form. Splitting it measured 0.6 kB gz LARGER across the first paint, for four
             extra requests. */}
-          <ErrorBoundary fallbackRender={() => null}>
+          <ErrorBoundary
+            fallbackRender={() => null}
+            // Failing to nothing is right on screen, but it must not also fail to nothing
+            // in the log: this is the one boundary whose fallback leaves NO trace a viewer
+            // could report, so the seam is the only way anyone learns the reporting
+            // affordance is the thing that broke (issue #108).
+            onError={(error) => reportInternalError(error, 'report modal')}
+          >
             <ReportIssueModal apiKey={apiKey} />
           </ErrorBoundary>
         </BrandTheme>

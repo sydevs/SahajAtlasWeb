@@ -28,10 +28,11 @@ type WidgetProps = {
   // Render the map canvas? Default true; `map="false"` (or "0") renders content-
   // only (no Mapbox, no token needed) — the mode-agnostic <sahaj-atlas> element.
   map?: string
-  // The two third-party data flows a host may have to decline, same "false"/"0"
+  // The third-party data flows a host may have to decline, same "false"/"0"
   // spelling as `map` — see config/privacy.ts.
   analytics?: string
   geolocation?: string
+  errorReporting?: string
   // Per-embed brand palette (hex). Each role overrides the client record's
   // color; omitted roles fall back to the record, then the built-in default.
   // (No `backgroundColor`: the page surface is a fixed default now.)
@@ -95,6 +96,7 @@ function Atlas({
   map,
   analytics,
   geolocation,
+  errorReporting,
   basePath,
   primaryColor,
   secondaryColor,
@@ -108,6 +110,7 @@ function Atlas({
   // analytics block in App.tsx and by `useIpLocation`, both of which run after this.
   privacy.analytics = attributeEnabled(analytics)
   privacy.ipLookup = attributeEnabled(geolocation)
+  privacy.errorReporting = attributeEnabled(errorReporting)
 
   // NB: the initial locale is applied by App's AppShell effect (from `defaultLocale`
   // below), which runs once on mount and again only if the host changes the prop.
@@ -228,6 +231,7 @@ const AtlasElementBase = r2wc(Widget, {
     map: 'string',
     analytics: 'string',
     geolocation: 'string',
+    errorReporting: 'string',
     basePath: 'string',
     primaryColor: 'string',
     secondaryColor: 'string',
