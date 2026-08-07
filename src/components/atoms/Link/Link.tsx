@@ -89,15 +89,26 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   const classes = link({ color, className })
   const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
   const hasAllowedScheme = ALLOWED_SCHEME.test(href)
+  // One name for "the caller asked for the external treatment", so the three places that
+  // consult it can't drift into subtly different spellings.
+  const wantsNewTab = isExternal || target === '_blank'
 
   // An href that is neither site-relative nor one of the three allowed schemes never
   // reaches the DOM. Not reachable today — every caller passes a `/…` route, an
-  // `https:`/`mailto:`/`tel:` URL, or something already through `safePath` — but this atom
-  // is the last gate before a data-driven string becomes an `<a href>`, and BOTH branches
-  // below put the string on a plain anchor (the internal one hands an absolute `to` to
-  // react-router, which renders it verbatim). A `javascript:` string arriving there would
-  // execute in the HOST page's realm. Rendering the text without the link fails visibly
-  // rather than dangerously.
+  // `https:`/`mailto:`/`tel:` URL, or something already through `safePath` — but this is
+  // the last gate for every href routed THROUGH THIS ATOM, and both branches below put the
+  // string on a plain anchor (the internal one hands an absolute `to` to react-router,
+  // which renders it verbatim). A `javascript:` string arriving there would execute in the
+  // HOST page's realm. Rendering the text without the link fails visibly rather than
+  // dangerously.
+  //
+  // It is **not** the app's only anchor, and this guard does not cover the others: the
+  // `Button` atom's href form and `ActionRow`/`ActionCircle` render their own `<a>` and
+  // never reach this code. What keeps those safe today sits upstream of them — a
+  // `SafeUrlSchema`-parsed `event.website`, a `directionsUrl` we build ourselves, a literal
+  // `mailto:`/`tel:` prefix — not this function. Lifting the predicate into
+  // `src/lib/shape/` so all three anchors share one gate is the deeper fix, and wants its
+  // own ticket rather than a copy of this branch in each component.
   //
   // **The href alone decides this, before any flag is consulted.** `isExternal` and
   // `target="_blank"` describe how a link should RENDER, not whether its string is safe to
@@ -110,19 +121,14 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     return <span className={classes}>{children}</span>
   }
 
-  // Past the guard the flags are free to decide rendering only: an off-site scheme always
-  // takes the plain <a>, and a caller may force that treatment (plus the new-tab `rel`) for
-  // a site-relative path it wants opened in a new tab.
-  const external = hasAllowedScheme || isExternal || target === '_blank'
-
-  if (external) {
+  if (hasAllowedScheme || wantsNewTab) {
     return (
       <a
         ref={ref}
         className={classes}
         href={href}
-        rel={rel ?? (target === '_blank' || isExternal ? 'noopener noreferrer' : undefined)}
-        target={target ?? (isExternal ? '_blank' : undefined)}
+        rel={rel ?? (wantsNewTab ? 'noopener noreferrer' : undefined)}
+        target={target ?? (wantsNewTab ? '_blank' : undefined)}
         {...props}
       >
         {children}

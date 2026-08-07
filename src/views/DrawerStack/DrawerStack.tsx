@@ -131,10 +131,8 @@ function PeekStrip({
   if (isLeft) {
     // Match the drawer atom's left variant: flush + square on tablet, floating +
     // rounded at ≥lg — geometry lives in these classes, not inline styles.
-    // The `22rem` is the same paired literal the Drawer atom carries: its twin is
-    // `DRAWER_W_REM` in `hooks/use-map-controller.tsx`, which feeds the map's left
-    // camera padding. Changing the drawer width means moving every `--sy-drawer-w`
-    // fallback AND that constant together.
+    // Width is the paired `22rem` — twin is `DRAWER_W_REM` in
+    // `hooks/use-map-controller.tsx`; see the Drawer atom for why.
     className =
       'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
@@ -548,7 +546,9 @@ export function DrawerStack() {
                 (`PEEK_DESKTOP` × the decay series above), so the cog sits 2rem out
                 — 3rem at ≥lg, where the drawer itself is already inset by 1rem. That
                 leaves ~9px of air at the deepest stack; a tighter gap and the strips
-                render under the cog. */}
+                render under the cog.
+                Both `22rem` fallbacks below are the drawer-width pair — twin is
+                `DRAWER_W_REM` in `hooks/use-map-controller.tsx`. */}
             {!wide && (
               <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
             )}

@@ -65,11 +65,15 @@ export const useMapController = () => useContext(MapControllerContext)
 // **`DRAWER_W_REM` is one half of a pair — see the other half before changing it.** The
 // drawer's actual width is the `22rem` fallback baked into its Tailwind classes,
 // `w-[var(--sy-drawer-w,22rem)]` in `components/atoms/Drawer/Drawer.tsx` and
-// `views/DrawerStack/DrawerStack.tsx`. A class string can't read a value from here (the
-// Tailwind JIT scanner needs a literal), so the two can only be kept in step by hand;
-// both of those sites carry a comment pointing back at this constant. Move one alone and
-// the map's camera padding silently stops matching the panel that occludes it — nothing
-// fails, the framing is just wrong by the difference.
+// `views/DrawerStack/DrawerStack.tsx` (whose SettingsMenu offset reads the same variable).
+// A class string can't read a value from here — the Tailwind JIT scanner needs a literal —
+// so the two can only be kept in step by hand. Move one alone and nothing throws: the
+// map's camera padding just stops matching the panel that occludes it, and the framing is
+// quietly wrong by the difference.
+//
+// `use-map-controller.test.ts` scans those files and fails if any fallback stops matching
+// this constant. That test exists because comments alone demonstrably did not hold — the
+// first version of this pairing named two files and missed two of the five literals.
 //
 // The rem→px conversion assumes the browser default 16px root font. Two things therefore
 // desync this without touching either literal: a host that restyles the root font size,

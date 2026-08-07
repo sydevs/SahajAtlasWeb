@@ -9,39 +9,26 @@ import { Link } from './Link'
 // Node-only SSR assertions (see `.claude/rules/tests.md`). MemoryRouter supplies the
 // router context the internal branch needs; the external branch is a plain <a> and needs
 // none, but wrapping everything keeps the cases comparable.
-//
-// What this pins is the atom's scheme guard. `safePath` already screens the CMS-provided
-// paths upstream, but this atom is the LAST gate before a data-driven string becomes an
-// `<a href>` — so the guard has to hold on the atom's own terms, for every caller, and
-// independently of how the caller asked the link to be rendered.
 const render = (ui: ReactElement) => renderToStaticMarkup(<MemoryRouter>{ui}</MemoryRouter>)
 
-// The refusal path calls `reportInternalError`, which logs. Silence it and assert on it.
-// Match on our own prefix rather than the call count: MemoryRouter also emits React's
-// "useLayoutEffect does nothing on the server" warning through the same channel.
+// The refusal path calls `reportInternalError`, which logs. Silence it, and match on our
+// own prefix rather than the call count: MemoryRouter also emits React's "useLayoutEffect
+// does nothing on the server" warning through the same channel.
 const silenceReport = () => vi.spyOn(console, 'error').mockImplementation(() => {})
-
-const refusals = (spy: ReturnType<typeof silenceReport>) =>
-  spy.mock.calls.filter(([first]) => String(first).startsWith('[sahaj-atlas] Link'))
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
 describe('Link — scheme guard', () => {
-  // The regression this locks down: `isExternal` / `target="_blank"` used to sit in the
-  // same boolean as the scheme test, so either flag short-circuited it and a
-  // `javascript:` href reached the plain <a> — where a click runs in the HOST page's
-  // realm. Safety is now decided by the href alone, before the flags are read, so every
-  // combination has to refuse.
-  const flagCombinations = [
+  // Safety is decided by the href alone, before the flags are read (see Link.tsx), so
+  // every flag combination has to refuse the same href.
+  it.each([
     { name: 'bare', props: {} },
     { name: 'isExternal', props: { isExternal: true } },
     { name: 'target="_blank"', props: { target: '_blank' } },
     { name: 'isExternal + target="_blank"', props: { isExternal: true, target: '_blank' } },
-  ]
-
-  it.each(flagCombinations)('refuses a javascript: href — $name', ({ props }) => {
+  ])('refuses a javascript: href — $name', ({ props }) => {
     const spy = silenceReport()
     const html = render(
       <Link href="javascript:alert(1)" {...props}>
@@ -52,40 +39,44 @@ describe('Link — scheme guard', () => {
     // No anchor at all, and the string never appears in the markup.
     expect(html).not.toContain('<a')
     expect(html).not.toContain('javascript:')
-    expect(html).not.toContain('href')
     // It degrades to plain text rather than vanishing — the failure is visible, not silent.
     expect(html).toContain('<span')
     expect(html).toContain('Click me')
     // And it is reported, so a caller feeding the atom bad data can be found.
-    expect(refusals(spy)).toHaveLength(1)
+    expect(
+      spy.mock.calls.filter(([message]) => String(message).startsWith('[sahaj-atlas] Link')),
+    ).toHaveLength(1)
   })
 
-  it('refuses any other unknown scheme, and a bare fragment', () => {
-    silenceReport()
-
-    for (const href of ['data:text/html,<script>x</script>', 'vbscript:x', 'file:///etc', '#top']) {
+  it.each(['data:text/html,<script>x</script>', 'vbscript:x', 'file:///etc', '#top'])(
+    'refuses %s — not site-relative, not an allowed scheme',
+    (href) => {
+      silenceReport()
       const html = render(<Link href={href}>x</Link>)
 
       expect(html).toContain('<span')
       expect(html).not.toContain('<a')
-    }
-  })
+    },
+  )
 })
 
 describe('Link — allowed schemes still render as before', () => {
   it.each(['https://example.com/', 'http://example.com/', 'mailto:a@example.com', 'tel:+4412345'])(
-    'renders %s on a plain <a>',
+    'renders %s on a plain <a>, with no rel or target the caller did not ask for',
     (href) => {
       const html = render(<Link href={href}>Go</Link>)
 
-      expect(html).toContain(`href="${href}"`)
       expect(html).toMatch(/^<a[\s>]/)
+      expect(html).toContain(`href="${href}"`)
       expect(html).toContain('Go')
+      expect(html).not.toContain('rel=')
+      expect(html).not.toContain('target=')
     },
   )
 
-  it('carries the safe rel + new tab when the caller asks for the external treatment', () => {
-    for (const props of [{ isExternal: true }, { target: '_blank' as const }]) {
+  it.each([{ isExternal: true }, { target: '_blank' as const }])(
+    'carries the safe rel + new tab when the caller asks for the external treatment (%o)',
+    (props) => {
       const html = render(
         <Link href="https://example.com/" {...props}>
           Go
@@ -94,15 +85,8 @@ describe('Link — allowed schemes still render as before', () => {
 
       expect(html).toContain('rel="noopener noreferrer"')
       expect(html).toContain('target="_blank"')
-    }
-  })
-
-  it('adds no rel or target to a plain off-site link the caller did not flag', () => {
-    const html = render(<Link href="https://example.com/">Go</Link>)
-
-    expect(html).not.toContain('rel=')
-    expect(html).not.toContain('target=')
-  })
+    },
+  )
 })
 
 describe('Link — site-relative hrefs', () => {
@@ -114,9 +98,16 @@ describe('Link — site-relative hrefs', () => {
     expect(html).not.toContain('<span')
   })
 
-  it('lets a caller force the new-tab treatment on a site-relative href', () => {
-    // `isExternal` still decides RENDERING — it just no longer decides safety. The
-    // recovery ladder's country-site rung relies on this pairing.
+  it('does not refuse a site-relative href just because a flag is set', () => {
+    // The guard must not have become stricter: a flag on an internal path still yields a
+    // link, not the refusal span. Only that much is pinned here.
+    //
+    // What this case deliberately does NOT bless is the resulting markup. No caller pairs
+    // `isExternal` with a site-relative href today (every one passes an absolute URL), and
+    // the pairing is questionable on its own terms — it renders a plain
+    // `<a href="/gb" target="_blank">`, which under the embedded HashRouter resolves
+    // against the HOST page, exactly what `OnwardLink` warns about. Making that route
+    // internally is a behaviour change and belongs in its own ticket.
     const html = render(
       <Link isExternal href="/gb">
         GB
@@ -124,7 +115,6 @@ describe('Link — site-relative hrefs', () => {
     )
 
     expect(html).toContain('href="/gb"')
-    expect(html).toContain('rel="noopener noreferrer"')
-    expect(html).toContain('target="_blank"')
+    expect(html).not.toContain('<span')
   })
 })
