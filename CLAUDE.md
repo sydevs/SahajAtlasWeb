@@ -37,7 +37,7 @@ event hierarchy.
 | Calendar       | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) — the full-width CalendarView's month/week/list grid; its header is our own (driven via the `calendar-controls` plugin, SX's built-in header hidden) |
 | Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets) |
 | Embedding      | `@r2wc/react-to-web-component` (`src/Widget.tsx`), CSS injected by JS for shadow-free embedding |
-| Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects` |
+| Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects`, headers via `public/_headers`, indexing policy in `public/robots.txt` |
 
 The app is also runnable standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx` (demo in `demo.html`).
@@ -190,12 +190,30 @@ Two **Cloudflare Pages** projects deploy from this repo, both on the current
   `pnpm ladle:build`, served at `sahajatlas-design.pages.dev`.
 
 Build command and output dir are configured in the Cloudflare dashboard, not in
-the repo (there's no `wrangler`/`_routes.json`). The only repo-level deploy file
-is `public/_redirects` (`/* /index.html 200`), which gives the app's standalone
-`BrowserRouter` build its SPA deep-link fallback — Cloudflare Pages reads it from
-`dist/`. (The embeddable widget uses `HashRouter`, so it doesn't depend on the
-fallback; the standalone build does.) CI's smoke lane targets the app project via
-`CF_PROJECT=sahajatlas.pages.dev` (`.github/workflows/ci.yml`).
+the repo (there's no `wrangler`/`_routes.json`). Three repo-level deploy files live
+in `public/`, and **Pages reads all three out of the build output**:
+
+- **`_redirects`** (`/* /index.html 200`) — the app's standalone `BrowserRouter`
+  build's SPA deep-link fallback. (The embeddable widget uses `HashRouter`, so it
+  doesn't depend on it; the standalone build does.)
+- **`_headers`** — CORS on `/assets/*` + `/locales/*` (issue #91: a font is always
+  fetched in CORS mode, and blocked locale JSON renders every string as its raw
+  key), plus `X-Robots-Tag: noindex` on `/*` (issue #106). Pages applies **every**
+  matching rule, so a broad rule doesn't displace a specific one.
+- **`robots.txt`** — `Disallow: /`, with an allow-group for the link-preview
+  scrapers (issue #106). Search is owned by WeMeditate and the other embedding
+  sites; this build's canonicals already point there. That file is where the whole
+  indexing policy is written down — read it before changing any of the three.
+
+**`public/` is copied into BOTH build outputs** — `dist/` by `pnpm build` and
+`build/` by `pnpm ladle:build` — so all three files govern `sahajatlas-design` as
+well as the app. Wanted for the indexing policy (a component playground is no more
+a search surface than the app is); worth remembering before editing one "for the
+app". Ladle generates its own `index.html`, so the `<meta robots>` in ours is the
+one signal the playground does *not* get — the header covers it there.
+
+CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
+(`.github/workflows/ci.yml`) and asserts all of the above against the preview.
 
 Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
 

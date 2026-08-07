@@ -32,6 +32,13 @@ The lane covers `embed.js` as well as the standalone page: the embed is what a
 host installs, so a deploy that breaks it while `index.html` stays healthy must
 not be a green check.
 
+It also covers the three files in `public/` that only Cloudflare Pages executes —
+`_redirects`, `_headers`, `robots.txt`. Those are inert text in the repo, so no
+local gate can tell you they work; `robots.smoke.test.ts` is where "Pages applies
+every matching `_headers` rule" stops being a doc quote in a comment and becomes an
+assertion (it pins the #91 CORS headers against displacement by the #106 `/*` rule).
+A claim about platform behaviour belongs here rather than in a comment.
+
 ## Decision: node-only (no jsdom / Testing Library)
 
 Mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, and
