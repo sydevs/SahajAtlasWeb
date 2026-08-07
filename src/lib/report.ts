@@ -246,6 +246,18 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     // Explicit rather than inherited: `false` is already the default, but the whole
     // posture of this file is that what we do NOT send is a decision, not an accident.
     sendDefaultPii: false,
+    // Both of these override a default that reaches OUT of the widget, which is the one
+    // class of default a thing embedded in someone else's page cannot accept:
+    //
+    //  - `release` defaults to `window.SENTRY_RELEASE?.id` — a global belonging to the
+    //    HOST. A site running its own Sentry would silently stamp every one of our events
+    //    with THEIR release version, so our issues would claim to come from a deploy that
+    //    isn't ours. Pinned to nothing until we have a real build version to put here.
+    //  - `sendClientReports` defaults to true, which posts a periodic outcome summary to
+    //    the ingest endpoint when the page is hidden. It is SDK bookkeeping we have no use
+    //    for, and it would turn one crash into a second uninvited request from their page.
+    release: undefined,
+    sendClientReports: false,
     // **Every default integration off.** The list is not dead weight, it is the part that
     // would collect things we have no business collecting from a page we don't own:
     // `BrowserApiErrors`/`GlobalHandlers` hook the host's own error events, `Breadcrumbs`

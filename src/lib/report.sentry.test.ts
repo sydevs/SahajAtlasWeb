@@ -189,6 +189,14 @@ describe('what is allowed to travel with an event', () => {
     expect(options.integrations).toEqual([])
     expect(options.sendDefaultPii).toBe(false)
 
+    // Two defaults that reach OUT of the widget, pinned because a version bump could
+    // reinstate either one silently. `release` otherwise reads `window.SENTRY_RELEASE`
+    // — the HOST's global, which would stamp our events with their deploy version — and
+    // `sendClientReports` otherwise posts an extra outcome beacon from their page when
+    // it is hidden.
+    expect(options).toHaveProperty('release', undefined)
+    expect(options.sendClientReports).toBe(false)
+
     const beforeSend = options.beforeSend as (event: Record<string, unknown>) => unknown
     const scrubbed = beforeSend({
       user: { email: 'someone@example.com' },
