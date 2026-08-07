@@ -141,7 +141,10 @@ of truth, so all are linkable/shareable:
   has no feed features and so no geometry to resolve a point against, so the geocoder's
   answer has to ride in the URL (it drives the country-website offer, `useCountrySite`).
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
-  in `src/lib/shape/path.ts`). Dismissal is history-aware: `dismissAction`
+  in `src/lib/shape/path.ts`) — of the ROUTER's location, to be exact, which on a host page
+  whose anchor the widget declined to take is a MemoryRouter's rather than the address
+  bar's (`mountRoute`, `src/lib/shape/hash.ts`; issue #92). Nothing below the router can
+  tell, which is the point. Dismissal is history-aware: `dismissAction`
   (`src/lib/shape/navigation.ts`) maps X / swipe / Esc to a chronological
   `navigate(-1)` when the in-widget `atlasDepth(location)` > 0 (restoring the prior
   camera), and only to the structural parent for a fresh deep link (depth 0) — never
@@ -233,8 +236,18 @@ separate — an inner fallback must never re-throw to escalate.
   The banner's own copy stays left-aligned in BOTH postures (`Alert textAlign="left"`).
 - **The fallback degrades, it never fails.** It runs where a throw would blank the widget
   on a host page, so the parts that read data sit behind their own boundary and fall back
-  to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the single
-  call site a real error reporter wires into.
+  to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the call
+  site a real error reporter wires into, alongside `reportIntegrationWarning` for the
+  host-side mistakes (a doubled script, a duplicate element) that produce a widget which
+  renders nothing while every gate stays green.
+- **Above all of it is `RootBoundary`** (`App.tsx`, issue #92), whose fallback is static,
+  untranslated and inline-styled. Everything above catches failures *in the app*; this one
+  catches failures in what the app is built on — `Providers`, `BrandTheme`, the query
+  client, the i18n boot — which used to unmount the widget in silence. It therefore reads
+  none of them: a rung that has to consult the thing that just broke is not a rung. It is
+  mounted twice, deliberately: in `App` (covering both entries) and at the widget
+  element's React root in `Widget.tsx`, where it additionally sees the mount decision, the
+  theme wrapper and the router itself.
 
 Conventions:
 

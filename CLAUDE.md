@@ -29,7 +29,7 @@ event hierarchy.
 | Build tool     | Vite 5 (`vite.config.ts`), SPA, `type: module` |
 | UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
-| Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash |
+| Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash, *unless* the host page's own anchor already does, in which case it routes in memory and writes nothing (`mountRoute`, `src/lib/shape/hash.ts`) |
 | Data           | **TanStack Query** + `axios` (`src/config/api/`), **zod**-validated responses |
 | State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
 | i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |

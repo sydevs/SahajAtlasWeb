@@ -68,8 +68,21 @@ Fewer custom components means less maintenance and a consistent look.
 This app ships as the `<sahaj-atlas>` custom element (`src/Widget.tsx`) embedded
 in host pages, **and** runs standalone in dev. Because of that:
 
-- Routing uses **HashRouter** with basename `!` (the widget owns `window.location.hash`).
-  Build links with `react-router` `<Link>` / `useNavigate`, never hardcode `#!`.
+- Routing uses **HashRouter** with basename `!` — but only when the fragment is the
+  widget's to take. `mountRoute` (`src/lib/shape/hash.ts`) decides that once at mount, and
+  on a host URL already carrying an anchor (`#respond`, `#comment-123` — routine on
+  WordPress) the widget mounts a **MemoryRouter** instead and never writes to the URL at
+  all. It used to render blank there. Consequences worth knowing: on such a page the
+  widget's route isn't linkable, Back leaves the host page, and `<Link>` hrefs resolve
+  against the host origin (issue #92).
+  Build links with `react-router` `<Link>` / `useNavigate`, never hardcode `#!` — and note
+  the hash has **two** spellings, `#!/x` (what the widget writes at boot) and `#/!/x` (what
+  react-router writes thereafter, having normalised the basename to `/!`).
+- **One `<sahaj-atlas>` per page.** A second element is refused in `connectedCallback` and
+  never mounts, because the API key (`config/api/auth`) and BrandTheme's theme root are
+  page-global singletons a second instance would silently share. A second copy of the embed
+  *script* is a no-op too (`customElements.get` guard). Both say so via
+  `reportIntegrationWarning` (`src/lib/report.ts`).
 - Don't assume control of `<head>`, global CSS, or the full viewport — the host
   page owns those. Scope styles to the widget's own DOM.
 - Provider stack lives in `src/providers.tsx` (React Query + Helmet + theme).
