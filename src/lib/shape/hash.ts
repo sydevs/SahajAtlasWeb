@@ -52,7 +52,14 @@ export const mountRoute = (
   hash: string | null | undefined,
   basePath?: string | null,
 ): MountRoute => {
-  const raw = (hash ?? '').replace(/^#/, '')
+  // Both spellings of our own basename, because the widget writes one and react-router
+  // writes the other. The boot write below produces `#!/gb/london`; `Router` normalises
+  // the basename `!` to `/!` and `joinPaths` puts a slash in front, so the moment the
+  // visitor clicks anything the address bar reads `#/!/gb/london`. Recognising only the
+  // first spelling meant every reload of a page the visitor had navigated to was read as
+  // the HOST's anchor — the exact failure this module exists to prevent, aimed at
+  // ourselves. `hash.router.test.tsx` pins both directions against the real router.
+  const raw = (hash ?? '').replace(/^#/, '').replace(/^\//, '')
   // One reading of `base-path`, so the route the widget mounts at and the hash written to
   // the address bar can never answer "where does this boot" differently.
   const base = safePath(basePath)

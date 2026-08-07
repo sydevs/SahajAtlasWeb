@@ -38,12 +38,13 @@ describe('mountRoute', () => {
 
   describe('a rootish widget hash', () => {
     // `#!` and `#!/` both route to `/`, so with nothing to apply there is nothing to write:
-    // the URL the visitor is looking at stays exactly as it is.
-    it.each(['#!', '#!/'])('leaves %s alone when there is no base path', (hash) => {
+    // the URL the visitor is looking at stays exactly as it is. `#/!` is the SAME hash in
+    // react-router's own spelling — see the `raw` comment in hash.ts.
+    it.each(['#!', '#!/', '#/!', '#/!/'])('leaves %s alone when there is no base path', (hash) => {
       expect(mountRoute(hash)).toEqual({ router: 'hash', path: '/', write: undefined })
     })
 
-    it.each(['#!', '#!/'])('applies the base path over %s', (hash) => {
+    it.each(['#!', '#!/', '#/!', '#/!/'])('applies the base path over %s', (hash) => {
       expect(mountRoute(hash, '/507/register')).toEqual({
         router: 'hash',
         path: '/507/register',
@@ -53,10 +54,13 @@ describe('mountRoute', () => {
   })
 
   describe('a widget route already in the hash', () => {
-    it('wins over the base path and writes nothing', () => {
+    // Both spellings, because the widget writes `#!…` at boot and react-router writes
+    // `#/!…` for every navigation after it. `hash.router.test.tsx` proves that pairing
+    // against the real router; these pin the classification.
+    it.each(['#!/gb/london', '#/!/gb/london'])('%s wins over the base path', (hash) => {
       // The visitor navigated here, or deep-linked to it — re-applying `base-path` would
       // teleport them away from the page they asked for.
-      expect(mountRoute('#!/gb/london', '/507/register')).toEqual({
+      expect(mountRoute(hash, '/507/register')).toEqual({
         router: 'hash',
         path: '/gb/london',
         write: undefined,
