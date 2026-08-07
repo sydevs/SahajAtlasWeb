@@ -1,5 +1,12 @@
 <!doctype html>
-<html lang="en">
+
+<!--
+  `sy-atlas` is the widget's style scope (src/lib/scope.ts). Every selector in the
+  built stylesheet is confined under it, and standalone there is no widget wrapper
+  to carry it — <html> is the theme root, so it carries it here. Without it the
+  standalone app renders unstyled.
+-->
+<html class="sy-atlas" lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />

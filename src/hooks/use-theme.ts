@@ -79,6 +79,14 @@ export const applyTheme = (theme: Theme) => {
 
   root.classList.remove(ThemeProps.light, ThemeProps.dark)
   root.classList.add(theme)
+  // NB: deliberately does NOT write the style scope class (issue #91). It belongs on the
+  // same element as the theme class, so putting it here looks right — but `getThemeRoot()`
+  // falls back to `document.documentElement`, and BrandTheme releases the module-level
+  // root on unmount. With two embeds on a page the survivor's next theme write would then
+  // stamp `sy-atlas` onto the HOST page's <html> and apply the entire widget stylesheet —
+  // Preflight, `.container`, the lot — to their site. Each owner applies the class to an
+  // element it actually owns instead: the wrapper in Widget.tsx, <html> in index.html,
+  // and the Ladle decorator.
 }
 
 // ── System (prefers-color-scheme) resolution + watching ──────────────────────────

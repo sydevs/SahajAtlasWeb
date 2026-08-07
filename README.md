@@ -24,6 +24,8 @@ sends a CSP, allow:
 script-src  https://challenges.cloudflare.com
 frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
+font-src    <the origin you load the widget from>
+style-src   'unsafe-inline'
 ```
 
 Without the first two the widget degrades gracefully rather than breaking: the form
@@ -35,6 +37,31 @@ own CDN) on the country list and on the country-website offer a search shows whe
 country lists no classes. Blocking it costs only the flag glyphs; the lists and the
 offer still render, and the requests carry `referrer-policy: no-referrer`, so your
 page's URL is never sent there.
+
+`style-src 'unsafe-inline'` is the one hard ask: the widget has no stylesheet to link — it
+registers its CSS by appending `<style>` elements, which carry no nonce. Without it the
+widget renders completely unstyled rather than degrading.
+
+`font-src` is the widget's own origin — the same one the `<script>` above comes from.
+The widget **self-hosts its typeface**: it makes no request to `fonts.googleapis.com`
+or `fonts.gstatic.com`, so neither needs to be in your policy and no visitor IP is
+disclosed to a third party for a font. Blocking it costs only the typeface — text falls
+back to your system sans and everything keeps working.
+
+### The widget will not restyle your page
+
+Its stylesheet is injected into your document (there is no shadow DOM), but every
+selector in it is confined to the widget's own subtree and every animation name is
+namespaced, enforced by a build-time check. A page's headings, links, lists, forms,
+`.container`, a `.dark` theme class and its own Swiper or Mapbox instances are all
+left alone.
+
+Two honest exceptions, both transient and neither one styling your content: opening a
+modal panel inside the widget sets `overflow: hidden` on your `<body>` for as long as it
+is open (standard scroll-lock, reverted on close), and the widget's own Mapbox/Swiper
+libraries register a couple of document-global `@font-face` names of their own. The
+reverse direction is not guaranteed either: aggressive global CSS on your page can still
+reach *into* the widget — see the note in `demo.html`.
 
 ## Stack
 

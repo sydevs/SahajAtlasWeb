@@ -7,6 +7,7 @@ import atlasAuth from './config/api/auth'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
+import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { safePath } from './lib/shape'
 
 // Implementation of embeddable Widget
@@ -73,6 +74,10 @@ export default function Widget({
   // flash; BrandTheme adopts the wrapper as the theme root + paints the brand
   // palette once mounted. `dir` derives from the ACTIVE locale (reactively) so
   // every descendant — and Tailwind's rtl: variants — follow text direction.
+  // It also carries WIDGET_SCOPE_CLASS: every rule in our injected stylesheet is
+  // rewritten to sit under that class (issue #91), so without it here the embed
+  // renders completely unstyled. Same element as the theme class by necessity —
+  // the scoped `dark:` / `rtl:` variants resolve both against one ancestor.
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale } = useLocale()
 
@@ -82,7 +87,7 @@ export default function Widget({
           carrying the theme class + brand CSS vars down to every descendant. */}
       <div
         ref={themeRootRef}
-        className={getInitialTheme()}
+        className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`}
         dir={i18n.dir(activeLocale)}
         style={{ display: 'contents' }}
       >
