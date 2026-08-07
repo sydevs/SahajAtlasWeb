@@ -197,10 +197,14 @@ is `public/_redirects` (`/* /index.html 200`), which gives the app's standalone
 fallback; the standalone build does.) CI's smoke lane targets the app project via
 `CF_PROJECT=sahajatlas.pages.dev` (`.github/workflows/ci.yml`).
 
-There is also an "accent" theme sync via
-`.github/workflows/{push,sync}-accent.yml` (driven by `accent.json`) — leave
-those workflows alone unless the task is about theming. Use the **cloudflare-docs**
-MCP for Cloudflare Pages questions.
+Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
+
+The repo used to carry two **Accent** translation workflows
+(`.github/workflows/{push,sync}-accent.yml`, configured by `accent.json`). They were
+removed in #99: every run had failed since 2026-06-22 on EOL Node 16, so the sync was
+already dead, and reviving it would have re-armed a push-to-`main` job with repo write
+access running an unpinned global install alongside `ACCENT_API_KEY`. Locale JSON under
+`public/locales/` is hand-maintained (`pnpm i18n:add`) — that is now the only path.
 
 ## Git / PR workflow
 
