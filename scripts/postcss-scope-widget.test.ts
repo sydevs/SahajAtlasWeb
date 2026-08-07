@@ -172,16 +172,16 @@ describe('scopeWidgetCss', () => {
   it('refuses to emit a stylesheet that could still restyle the host page', () => {
     // The safety net for shapes the transform fails to handle — unreachable through
     // the transform itself, so it is asserted directly.
-    expect(() => assertScoped(postcss.parse('a { color: red }'))).toThrow(/unscoped selector/)
+    expect(() => assertScoped(postcss.parse('a { color: red }'))).toThrow(/not confined/)
     expect(() => assertScoped(postcss.parse('.sy-atlas a { color: red }'))).not.toThrow()
   })
 })
 
-// This pass is not the last thing to touch a selector: native CSS nesting is flattened
-// downstream by the minifier, which moves the scope off the head of the string without
-// moving it out of the selector. Swiper 12 ships nested CSS and produced both shapes
-// below, and a head-anchored check failed the build on CSS that was correctly confined
-// (issue #104). These are the emitted forms, verbatim from `dist/`.
+// Why the head of the string stopped being sufficient: see the `isSelectorScoped`
+// docblock. What matters here is that the two accepted shapes below are the emitted
+// forms, verbatim from `dist/` — copied off a real build rather than imagined, since the
+// point of failure was a mismatch between what we assumed the bytes looked like and what
+// they were (issue #104).
 describe('isSelectorScoped — flattened nesting', () => {
   it('accepts a leading :is() list when every branch is scoped', () => {
     expect(

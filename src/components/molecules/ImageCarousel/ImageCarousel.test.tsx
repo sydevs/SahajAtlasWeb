@@ -9,8 +9,9 @@ import { ImageCarousel, type Slide } from './ImageCarousel'
 // never had. Whether pressing it actually halts Swiper is a live-instance
 // question the SSR markup can't answer — that is verified in the browser.
 //
-// The reduced-motion read is a `useSyncExternalStore` whose server snapshot is
-// `false`, so these render as "motion is allowed" and never touch `window`.
+// `usePrefersReducedMotion` is left unmocked on purpose: it answers "motion is
+// allowed" here without touching `window` (see its docblock), so these run in
+// the node lane AND the lane would notice if that ever stopped being true.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
@@ -28,6 +29,14 @@ describe('ImageCarousel', () => {
     // A toggle button: the name stays put and the state rides on aria-pressed,
     // which starts unpressed because the carousel starts playing.
     expect(html).toContain('aria-pressed="false"')
+  })
+
+  it('opts the control out of vaul dragging, or touch taps would be swallowed', () => {
+    // The carousel renders on the drawer, where vaul reads a tap with any
+    // micro-movement as a drag and eats the click. Losing this attribute breaks
+    // the control on touch only — invisible to every other gate, so it is pinned
+    // here rather than trusted to review.
+    expect(renderToStaticMarkup(<ImageCarousel slides={slides} />)).toContain('data-vaul-no-drag')
   })
 
   it('renders no pause control for a single slide, which never autoplays', () => {

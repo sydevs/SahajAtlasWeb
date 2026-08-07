@@ -1,11 +1,12 @@
 import type { Swiper as SwiperClass } from 'swiper'
 
-import { Suspense, lazy, useEffect, useState, useSyncExternalStore } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Autoplay, Pagination, A11y, EffectFade } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 
 import { PauseIcon, PlayIcon } from '@/components/atoms/Icons'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
 /** One carousel slide; also shown full-screen in the lightbox. */
 export type Slide = {
@@ -23,40 +24,6 @@ export type Slide = {
 const Lightbox = lazy(() => import('./lightbox').then((m) => ({ default: m.Lightbox })))
 
 const AUTOPLAY_DELAY_MS = 4000
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
-
-function subscribeToMotionPreference(onChange: () => void) {
-  const query = window.matchMedia(REDUCED_MOTION_QUERY)
-
-  query.addEventListener('change', onChange)
-
-  return () => query.removeEventListener('change', onChange)
-}
-
-/**
- * The viewer's OS "reduce motion" setting, read live — the repo's first
- * reduced-motion support (issue #104).
- *
- * `useSyncExternalStore` rather than a `matchMedia(...).matches` read at render,
- * because the preference is a thing that CHANGES: a viewer who turns it on
- * mid-session should see the carousel settle, not keep animating until the
- * component happens to re-render for some other reason.
- *
- * The server snapshot is `false`, which is also the node unit lane's answer —
- * `renderToStaticMarkup` uses it, so nothing in this component touches `window`
- * there. That means a hypothetical SSR pass would emit the autoplaying markup
- * and correct itself on the client; the widget is client-only today, so the
- * question is theoretical, and answering it the other way would hide the
- * control from everyone until hydration.
- */
-function usePrefersReducedMotion() {
-  return useSyncExternalStore(
-    subscribeToMotionPreference,
-    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
-    () => false,
-  )
-}
 
 export type ImageCarouselProps = {
   slides: Slide[]
@@ -89,10 +56,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
   // config below only decides whether autoplay starts AT INIT — every later
   // change is ours to apply.
   //
-  // Comparing against `running` is what keeps this idempotent: `start()` has no
-  // re-entry guard of its own and a second call would queue a second timer. It
-  // is also the right field to compare — a transient interaction pause sets
-  // `paused`, not `running`, so this effect never mistakes one for a stop.
+  // `running` is the right field to compare against: a transient interaction
+  // pause sets `paused`, not `running`, so this effect never mistakes one for a
+  // stop. Comparing at all is what stops a re-render from restarting the 4s
+  // countdown and re-emitting `autoplayStart` — `start()` has no re-entry guard
+  // of its own. (It would not leak a timer; `run()` clears the previous one.)
   useEffect(() => {
     if (!swiper || swiper.destroyed) return
 
@@ -160,13 +128,22 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             flipped between "Pause"/"Play" alongside `aria-pressed` would announce
             the state twice, and disagree with itself while doing so.
 
-            Fixed white-on-black rather than the theme tokens the Button atom
-            carries: this sits on top of an arbitrary photo, where only a
-            self-supplied backdrop makes the contrast predictable. It is the same
-            reasoning (and the same white) as the pagination bullets it sits
-            beside. */}
+            A plain button rather than the Button atom: every colour the atom
+            offers is a theme token, and this sits on top of an arbitrary photo,
+            where only a self-supplied backdrop makes the contrast predictable.
+            It is the same reasoning (and the same white) as the pagination
+            bullets it sits beside.
+
+            `data-vaul-no-drag` is the part that does NOT come for free with that
+            choice. The carousel renders inside the drawer (EventDetails), and
+            vaul reads a tap carrying any micro-movement as a drag and swallows
+            the click — so without it the one control this exists to add would
+            fire only intermittently on touch, which is where it matters most.
+            The Button atom sets it on every button; ActionRow carries it by hand
+            for exactly this reason. */}
         {autoplays && (
           <button
+            data-vaul-no-drag
             aria-label={t('details.pause_slideshow')}
             aria-pressed={paused}
             className="absolute bottom-2 end-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white outline-none transition-colors hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-focus"

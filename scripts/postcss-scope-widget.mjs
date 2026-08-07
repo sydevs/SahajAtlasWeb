@@ -227,45 +227,39 @@ export function isSelectorScoped(selector, scope = WIDGET_SCOPE) {
 
   if (pattern.test(trimmed)) return true
 
-  // Nothing without the class anywhere in it can be confined by it, and this is the
-  // answer for every unscoped third-party selector the transform is about to prefix —
-  // so the parse below is reached only by the handful that really do carry a scope.
+  // Nothing without the class anywhere in it can be confined by it. This is what spares
+  // the TRANSFORM a parse — its input is third-party selectors that never mention the
+  // scope. On the ASSERT side every selector mentions it, and the head regex above is
+  // what short-circuits instead, leaving only the flattened shapes to parse.
   if (!trimmed.includes(`.${scope}`)) return false
 
   return isSubjectConfined(parser.astSync(trimmed).first, scope)
 }
 
 /**
- * Walk left from the subject compound for as long as each step is an ANCESTOR step, and
- * report whether any compound reached pins itself inside the scope.
+ * Scan right-to-left from the subject and report whether anything on its ANCESTOR chain
+ * pins it inside the scope. Walking backwards visits the subject's own compound first,
+ * then the combinator above it, then the next compound up — so the walk stops at the
+ * first step that isn't an ancestor step.
  *
- * Only the descendant and child combinators are followed. A sibling combinator (`+`, `~`)
- * puts the scoped compound beside the subject rather than above it, and while that also
- * happens to confine the subject in every shape we emit, the argument depends on the
- * scoped part being a strict descendant of the scope root — too fine a distinction to
- * rest a host-page guarantee on. Nothing needs it, so it is refused.
+ * Only the descendant and child combinators are ancestor steps. Refusing `+` and `~` is
+ * NECESSARY, not fastidious: a bare `.sy-atlas` counts as a scope token (a descendant of
+ * the root is inside the widget), so crediting siblings would accept
+ * `:is(:where(.sy-atlas)) ~ .b` — and a sibling of the scope ROOT is an arbitrary host
+ * element. That is a real leak, and it would ship green.
  */
 function isSubjectConfined(sel, scope) {
   if (!sel) return false
 
-  /** @type {import('postcss-selector-parser').Node[][]} */
-  const compounds = [[]]
-  /** Combinator i joins compound i to compound i + 1. */
-  const combinators = []
+  for (let i = sel.nodes.length - 1; i >= 0; i -= 1) {
+    const node = sel.nodes[i]
 
-  for (const node of sel.nodes) {
-    if (selectorParser.isCombinator(node)) {
-      combinators.push(node.value.trim() || ' ')
-      compounds.push([])
-    } else {
-      compounds[compounds.length - 1].push(node)
+    if (!selectorParser.isCombinator(node)) {
+      if (isScopeToken(node, scope)) return true
+      continue
     }
-  }
 
-  for (let i = compounds.length - 1; i >= 0; i -= 1) {
-    if (compounds[i].some((node) => isScopeToken(node, scope))) return true
-
-    const combinator = combinators[i - 1]
+    const combinator = node.value.trim() || ' '
 
     if (combinator !== ' ' && combinator !== '>') return false
   }
@@ -415,9 +409,16 @@ export function assertScoped(root, scope = WIDGET_SCOPE) {
     const leaked = rule.selectors.filter((selector) => !isSelectorScoped(selector, scope))
 
     if (leaked.length > 0) {
-      throw rule.error(`unscoped selector would leak into the host page: ${leaked.join(', ')}`, {
-        plugin: 'scope-widget-css',
-      })
+      // Two ways to get here, and the second one is not a bug in the CSS: a selector can
+      // also be a shape `isSubjectConfined` declines to reason about (a scope reached
+      // across a sibling combinator is the one that exists today — `swiper/css/navigation`
+      // would produce it). Saying so is worth the words: issue #104 was a day spent
+      // looking for a leak that a flattened-but-confined selector did not have.
+      throw rule.error(
+        `selector is not confined to the host-page scope — either it would leak, or it is ` +
+          `a shape this check declines to credit (see isSubjectConfined): ${leaked.join(', ')}`,
+        { plugin: 'scope-widget-css' },
+      )
     }
   })
 
