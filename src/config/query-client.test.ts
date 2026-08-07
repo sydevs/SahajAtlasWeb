@@ -12,11 +12,14 @@ import {
   shouldRetryQuery,
 } from './query-client'
 
+import { sdkError } from '@/mocks/errors'
 import { atlasError } from '@/lib/report'
 
-// A PayloadSDKError as the retry predicate sees it: a duck-typed `status`, matched
-// without `instanceof` for the same cross-realm reason `classifyError` avoids it.
-const httpError = (status: number) => Object.assign(new Error(`HTTP ${status}`), { status })
+// `sdkError` is the shared fixture for "a PayloadSDKError as we see it" — an Error
+// carrying a duck-typed `status`, matched without `instanceof` for the same cross-realm
+// reason `classifyError` avoids it. Reused rather than re-declared so this spec and
+// `report.test.ts` can't end up asserting against two different shapes of SDK error.
+const httpError = (status: number) => sdkError(status, `HTTP ${status}`)
 
 describe('shouldRetryQuery', () => {
   it('allows exactly MAX_QUERY_RETRIES extra attempts', () => {
@@ -79,6 +82,11 @@ describe('retryDelayFor', () => {
   })
 })
 
+// These hold by construction today — `EVENTS_*` are derived from the feed's window, and
+// the wholesale pair are hand-chosen literals. They are tripwires, not derivations: the
+// relations are what the comments in query-client.ts promise, and the moment someone
+// replaces a derived constant with an independent literal (the obvious "let's tune the
+// events window separately" edit) this is what notices the promise broke.
 describe('cache window invariants', () => {
   it('never garbage-collects a cache before it goes stale', () => {
     // The load-bearing relation. A gcTime below the stale window makes the stale window

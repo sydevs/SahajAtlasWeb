@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 
 import { eventQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
@@ -37,17 +37,16 @@ const scheduleIdle = (run: () => void): (() => void) => {
 const hoverIntent = createPrefetchIntent()
 
 /**
- * Returns a stable callback that warms an event's detail query (`['event', id, locale]`)
- * so opening it is a cache hit rather than a cold `findByID` round-trip.
+ * The raw warm: fills `['event', id, locale]` so opening the event is a cache hit rather
+ * than a cold `findByID` round-trip. **Module-private** — the two hooks below are the
+ * ways in, one metered and one deliberately not, and an unmetered warm is not something
+ * a new caller should be able to reach for by accident.
  *
- * This is the **unthrottled** warm — for deliberate, already-bounded callers (the idle
- * warm-up below). Anything driven by pointer movement wants `useHoverPrefetch`.
- *
- * The prefetch opts out of retries: a warm nobody is waiting for has no business
- * re-queueing itself against an API that just failed, and the view that actually needs
- * the data reads it through its own query, which does retry.
+ * It opts out of retries: a warm nobody is waiting for has no business re-queueing itself
+ * against an API that just failed, and the view that actually needs the data reads it
+ * through its own query, which does retry.
  */
-export function usePrefetchEvent() {
+function usePrefetchEvent() {
   const queryClient = useQueryClient()
   const { locale } = useLocale()
 
@@ -65,33 +64,21 @@ export function usePrefetchEvent() {
  * `leave` to its `mouseleave`/`blur` — the fetch then runs during the pointer's
  * travel-to-click for a card the viewer is actually aiming at, and not at all for the
  * hundred cards they merely swept across on the way.
+ *
+ * Deliberately no per-card unmount teardown, though a card CAN unmount mid-dwell (the
+ * list re-pages under a stationary cursor). This hook runs on every row of the repo's
+ * one memoized 1000-row list, and a ref + a cleanup effect on all thousand of them would
+ * buy the cancellation of at most one pending warm — the gate holds a single timer. The
+ * uncancelled case costs one speculative request, which the concurrency cap already
+ * bounds; every case where the pointer actually leaves is covered by `leave`.
  */
 export function useHoverPrefetch() {
   const warm = usePrefetchEvent()
-  // The last id this card started a dwell for, so the unmount teardown below is KEYED.
-  // A bare `dispose()` would have every unmounting card cancel whatever dwell happens to
-  // be pending — and rows unmount constantly as the list re-pages, so the row actually
-  // under the cursor would lose its warm to a neighbour's teardown.
-  const entered = useRef<number | null>(null)
 
-  // Drop this card's own pending dwell if it unmounts mid-hover.
-  useEffect(
-    () => () => {
-      if (entered.current !== null) hoverIntent.leave(entered.current)
-    },
-    [],
-  )
-
-  return useMemo(
-    () => ({
-      enter: (id: number) => {
-        entered.current = id
-        hoverIntent.enter(id, () => warm(id))
-      },
-      leave: (id: number) => hoverIntent.leave(id),
-    }),
-    [warm],
-  )
+  return {
+    enter: (id: number) => hoverIntent.enter(id, () => warm(id)),
+    leave: (id: number) => hoverIntent.leave(id),
+  }
 }
 
 /**

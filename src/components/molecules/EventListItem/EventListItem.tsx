@@ -85,8 +85,8 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
   // The highlight is immediate (it's a local paint, and lagging it would make the map
   // feel unresponsive); the warm is a request, so it waits out a dwell in the shared
   // gate — dragging the cursor down a paged-out list would otherwise fire one
-  // `GET /events/:id` per row crossed. `deactivate` is the matching half: the pending
-  // warm has to be cancellable or the dwell only delays the storm.
+  // `GET /events/:id` per row crossed. `deactivate` is the half that makes the dwell
+  // real rather than merely delayed: leaving the row cancels the warm it started.
   const activate = () => {
     highlightEvent(event)
     prefetch.enter(event.id)

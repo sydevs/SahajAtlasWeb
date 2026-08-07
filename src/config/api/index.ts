@@ -78,7 +78,9 @@ export const regionsQuery = () => ({
   staleTime: REGIONS_STALE_TIME,
   // Pinned, because the default gcTime (5 min) is SHORTER than the stale window above:
   // the tree could be evicted while still nominally fresh, and every navigation after
-  // an idle gap would re-read the whole of /regions. See WHOLESALE_GC_TIME.
+  // an idle gap would re-read the whole of /regions. See WHOLESALE_GC_TIME — and
+  // `loadRegions` in `./fetch`, which spells the same four options for the imperative
+  // read and has to be changed with this.
   gcTime: WHOLESALE_GC_TIME,
 })
 

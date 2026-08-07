@@ -156,6 +156,13 @@ const getRegions = async (): Promise<RegionNode[]> => {
 
 // Read the region tree through the shared React Query cache so the whole app fetches +
 // parses it once per (long) stale window rather than on every navigation.
+//
+// NOTE: this re-spells the key/fetcher/windows that `regionsQuery()` (`config/api/index.ts`)
+// declares for the React call sites — two authorities for one cache entry, kept equal by
+// hand. The repo's own answer to that is `eventTitlesQuery`, declared HERE beside its
+// fetcher and re-exported from `index.ts` to dodge the import cycle; moving `regionsQuery`
+// onto that pattern is the right fix and is out of scope for #97 (it restructures a loader
+// a sibling branch may hold). Change either copy and change both.
 const loadRegions = (): Promise<RegionNode[]> =>
   queryClient.ensureQueryData({
     queryKey: ['regions'],

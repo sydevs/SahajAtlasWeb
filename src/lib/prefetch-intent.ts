@@ -89,27 +89,22 @@ export function createPrefetchIntent({
     pendingKey = null
   }
 
+  const release = () => {
+    inFlight -= 1
+  }
+
   const fire = (run: () => unknown) => {
-    timer = null
-    pendingKey = null
+    cancel()
 
     if (inFlight >= maxInFlight) return
 
     inFlight += 1
 
-    // Guard the release so a promise that both resolves and rejects — or a `run` that
-    // throws after returning nothing sensible — can't decrement the counter twice and
-    // hand out more budget than exists.
-    let released = false
-    const release = () => {
-      if (released) return
-      released = true
-      inFlight -= 1
-    }
-
     try {
       const result = run()
 
+      // Exactly one of these paths runs, and a settled promise calls back exactly once,
+      // so the slot is returned exactly once without needing a latch to prove it.
       if (isThenable(result)) result.then(release, release)
       else release()
     } catch {

@@ -64,9 +64,15 @@ export const WHOLESALE_GC_TIME = 60 * 60 * 1000
 /**
  * The derived events cache gets a shorter leash than the wholesale ones, because unlike
  * them it GROWS with use: one entry per (quantized centre × filter set × locale) the
- * session visits. Twice the stale window, which is the real invariant — an entry
- * evicted before it goes stale would make `EVENTS_STALE_TIME` unobservable, and the
- * remount-costs-nothing guarantee with it.
+ * session visits, each holding its own freshly-parsed copy of the matching set.
+ *
+ * The floor is `EVENTS_STALE_TIME` — React Query starts the gc clock when the last
+ * observer unmounts, never before the data landed, so anything less would evict entries
+ * while still fresh and make the stale window unobservable. The doubling on top buys the
+ * *stale* half deliberately: `useSuspenseQuery` re-paints instantly from a stale entry
+ * and revalidates behind it, but SUSPENDS when the entry is gone — so retention past
+ * staleness is the difference between a repaint and a spinner on a drawer the viewer
+ * left ten minutes ago. Two windows is where that stops being worth the memory.
  */
 export const EVENTS_GC_TIME = 2 * EVENTS_STALE_TIME
 
@@ -100,22 +106,43 @@ export const MAX_RETRY_DELAY = 4000
  * server explicitly asking for *less* traffic — retrying it is the one response that
  * makes things worse. Only 5xx, network and unrecognised failures get a second chance.
  *
- * Our own throws (`atlasError`) carry no HTTP status, so they're read through
- * `classifyError` instead: `not-found` and `config` are the same "answered,
- * definitively" cases in our own vocabulary — a dead region link and a missing API key
- * both fail identically on attempt two. `offline` is deliberately still retryable;
- * React Query's default `networkMode: 'online'` pauses rather than burns those attempts.
+ * The raw `status` read exists **because `classifyError` deliberately maps only some
+ * statuses** (401/403 → config, 404 → not-found, 5xx → server): 400/409/422/429 fall
+ * through to `unknown` there, which is right for what the screen SAYS and wrong for
+ * whether to try again. It is not a second, independent status table — everything it
+ * can't decide is handed straight to the classifier.
+ *
+ * Our own throws (`atlasError`) carry no HTTP status at all, so they're read through
+ * `classifyError`: `not-found` and `config` are the same "answered, definitively" cases
+ * in our own vocabulary — a dead region link and a missing API key both fail identically
+ * on attempt two. `offline` is deliberately still retryable; React Query's default
+ * `networkMode: 'online'` pauses those rather than burning the attempt.
+ *
+ * **The kind list here mirrors the `retry` column of `ERROR_POLICY`**
+ * (`components/molecules/Fallbacks`), which decides whether the viewer is offered a
+ * "Try again" button for the same failure. They are two statements of one judgement in
+ * two layers; a new kind, or a flipped flag, has to be made in both. Unifying them means
+ * a `RETRYABLE_KINDS` in `lib/report.ts` that both import — worth doing, out of scope
+ * here (it edits a molecule a sibling branch holds).
  */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
   if (failureCount >= MAX_QUERY_RETRIES) return false
 
-  const status = (error as { status?: unknown } | null | undefined)?.status
+  try {
+    const status = (error as { status?: unknown } | null | undefined)?.status
 
-  if (typeof status === 'number' && status >= 400 && status < 500) return false
+    if (typeof status === 'number' && status >= 400 && status < 500) return false
 
-  const kind = classifyError(error)
+    const kind = classifyError(error)
 
-  return kind !== 'not-found' && kind !== 'config'
+    return kind !== 'not-found' && kind !== 'config'
+  } catch {
+    // Guarded for the same reason `classifyError` is: this runs inside the retryer on
+    // whatever a third party rejected with, and a throwing `status` getter must not
+    // escape into React Query's internals. An unreadable failure isn't retried — we
+    // can't tell whether a second attempt would be anything but more load.
+    return false
+  }
 }
 
 /**
