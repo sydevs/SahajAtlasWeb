@@ -1,0 +1,53 @@
+# Cloudflare Pages serves this from dist/ (like public/_redirects and public/_headers).
+#
+# Search is owned by WeMeditate and the other embedding sites (issue #106). This
+# deployment is the standalone build of an EMBEDDABLE widget: every canonical link and
+# every share URL it emits already points at SahajCloud's `webUrl` — the WeMeditate
+# surface — so a sahajatlas.* URL in a result page is a duplicate of somebody else's
+# page, not a destination of its own. Hence: resist direct indexing.
+#
+# THE INTERACTION THAT MATTERS. `Disallow` means "do not fetch", not "do not index".
+# A compliant crawler that never fetches / also never sees the `noindex` we serve
+# there (the static <meta name="robots"> in index.html and the `X-Robots-Tag` in
+# public/_headers), so the two signals do not stack — the stronger one is hidden by
+# the weaker. Residual risk, accepted deliberately: a URL that is linked from an
+# external page can still be listed URL-only, with no title or snippet.
+#   If sahajatlas.* is ever FOUND in an index, this file is the thing to relax, not
+#   tighten — replace `Disallow: /` with `Allow: /` so the crawler can fetch the page,
+#   read the noindex and drop the entry, then restore this once it is gone.
+User-agent: *
+Disallow: /
+
+# Link-preview scrapers are not search engines, and they are the reason the OG tags
+# and JSON-LD stay in the standalone head. ShareView hands the share sheet
+# `event.webUrl ?? window.location.href` (ShareView.tsx), so an event with no
+# canonical link — unpublished or gated — is shared as a sahajatlas.* URL; the
+# address bar is copy-pasteable regardless. Each of these bots honours robots.txt,
+# so a blanket Disallow would have left us serving preview metadata that nothing
+# was allowed to fetch. None of them feeds a search index, so allowing them costs
+# nothing against the goal above.
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Both spellings: the unfurl bot's product token is Slackbot-LinkExpanding, and
+# robots.txt group selection matches the token rather than a prefix of it.
+User-agent: Slackbot
+Allow: /
+
+User-agent: Slackbot-LinkExpanding
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: Discordbot
+Allow: /

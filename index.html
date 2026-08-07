@@ -11,6 +11,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Resist direct indexing (issue #106) — search is owned by WeMeditate, and this build's
+      canonicals already point there. Static and HERE rather than in App.tsx's standalone
+      <Helmet> block: index.html is the standalone shell, so this is embed-gated by
+      construction (no runtime gate to get wrong), and it lands in the first bytes rather
+      than after ~1 MB of JS — the crawlers least likely to execute that are the ones least
+      likely to have honoured robots.txt. `_redirects` serves this shell for every unknown
+      path, so one tag covers every route; public/_headers covers the non-document URLs.
+    -->
+    <meta name="robots" content="noindex" />
     <title>Sahaj Atlas</title>
     <meta
       key="viewport"
