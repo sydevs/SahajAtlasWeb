@@ -18,16 +18,17 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
                  │
    ┌─────────────┼───────────────────────────────────────────┐
    │ Providers   │  hasMap? <Mapbox> (fixed, full viewport)   │
-   │ (Radix,     │           + <DrawerStack>  (nested drawers)│
-   │  ReactQuery,│  :        <DrawerStack>  (inline base +    │
-   │  Helmet)    │             contained drawers, no map)     │
+   │ (ReactQuery,│           + <DrawerStack>  (nested drawers)│
+   │  Helmet,    │  :        <DrawerStack>  (inline base +    │
+   │  BrandTheme)│             contained drawers, no map)     │
    └─────────────┴───────────────────────────────────────────┘
                  │
-       resolveStack(pathname) → RootView + one drawer per ancestor
+     resolveStack(pathname) → CountriesView + one drawer per ancestor
                  │
-     RootView / SearchView / RegionView / EventView / RegistrationView / ShareView
+     CountriesView / SearchView / CalendarView / RegionView / OnlineView /
+       EventView / RegistrationView / FilterView / ShareView
                  │
-            React Query  →  axios client (src/config/api)
+        React Query  →  PayloadSDK client (src/config/api)
                  │              │ clients API-Key <apiKey>, ?locale=<lng>
                  ▼              ▼
    zod parse + client-side shaping   SahajCloud REST (VITE_SAHAJCLOUD_URL + /api)
@@ -36,8 +37,10 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 ## Entry points
 
 - **`src/Widget.tsx`** — defines `customElements.define('sahaj-atlas', …)`, sets
-  the API key + locale + `map` flag, ensures `window.location.hash`, and mounts
-  `<App>` inside a `HashRouter` (basename `!`). This is the embeddable build.
+  the API key and derives the `map` flag, ensures `window.location.hash`, and mounts
+  `<App>` inside a `HashRouter` (basename `!`). This is the embeddable build. It
+  deliberately does **not** apply the locale — that happens in App's shell effect, so
+  the render body never calls `i18n.changeLanguage`.
 - **`src/main.tsx`** — standalone dev entry (`index.html`, `BrowserRouter`); `?map=0`
   renders content-only, iframe-friendly.
 - **`src/App.tsx`** — bootstraps the client (`useSuspenseQuery(['client', apiKey])`),
@@ -51,31 +54,36 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 | ----------- | ----------------------------------- | -------------- |
 | Web component | `src/Widget.tsx`                  | Host-page embedding, props → app |
 | Navigation  | `src/views/DrawerStack/`, `src/lib/shape/path.ts` | `resolveStack(pathname)` → open drawers; no drawer-stack store |
-| Views       | `src/views/`                        | RootView/SearchView/RegionView/EventView/RegistrationView/ShareView |
+| Views       | `src/views/`                        | CountriesView (the base) + Search/Calendar/Region/Online/Event/Registration/Filter/Share |
 | Map seam    | `src/hooks/use-map-controller.tsx`  | `MapController` (real + no-op); the only place that knows `map` vs map-less |
 | Map         | `src/components/organisms/Mapbox/`  | ReactMapGL, layers, clustering, search |
 | UI          | `src/components/`                   | Atomic components (atoms/molecules/organisms), Radix + Tailwind |
-| Data        | `src/config/api/`                   | axios client, zod-validated fetchers, mutations |
-| State       | `src/config/store.ts`               | zustand: view / search / registration-draft |
+| Data        | `src/config/api/`                   | shared `PayloadSDK` client, zod-validated fetchers, mutations |
+| State       | `src/config/store.ts`               | zustand: view / camera-history / calendar-position / results-reveal / report-modal / registration-draft (filters + sort live in the URL) |
 | i18n        | `src/config/i18n.ts`, `public/locales/` | i18next + HTTP backend |
 | Types       | `src/types/`                        | zod schemas + inferred entity types |
 
 ## Data flow
 
-1. The widget receives `apiKey` (+ optional `locale`, `map`) from the host page.
+1. The widget receives `apiKey` (+ optional `locale`, `map`, `basePath`,
+   `primaryColor`, `secondaryColor`) from the host page.
 2. `App` fetches the **client** record (domain, default locale, home region) via
    React Query, configures locale + analytics, and navigates to the home region on
    first load.
 3. `DrawerStack` resolves the current pathname (`resolveStack`) into an ancestor
-   chain and renders RootView (the base) plus one drawer per ancestor — each a
+   chain and renders CountriesView (the base) plus one drawer per ancestor — each a
    normal Suspense query, deep-link-safe by construction.
 4. The map fetches a clustered **geojson** source of all event points; clicking a
    cluster expands zoom, clicking a point `navigate`s to the entity's `webPath`
    (rebuilding the drawer stack to that entity's ancestors).
 5. Views drive the camera exclusively through `useMapController()` — never the map
    or a store directly — so map-less mode needs no view-level branching.
-6. Every axios request carries `Authorization: clients API-Key <apiKey>` and
-   `?locale=` via the request interceptor.
+6. Every SahajCloud request carries `Authorization: clients API-Key <apiKey>` and
+   `?locale=<resolved language>`, plus the preview secret header + `draft=true`
+   during a live-preview session. There is no interceptor: the shared
+   `PayloadSDK<Config>` is constructed with a wrapped `fetch` (`interceptFetch`)
+   that runs `applyRequestContext` on every call, so auth/locale attach in exactly
+   one place and no fetcher re-attaches them. See `.claude/rules/data-layer.md`.
 
 ## Build & deploy
 
@@ -100,3 +108,4 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 - i18n + state: `.claude/rules/i18n-and-state.md`
 - Components: `.claude/rules/components.md`
 - Code style: `.claude/rules/code-style.md`
+- Tests: `.claude/rules/tests.md`
