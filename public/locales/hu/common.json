@@ -151,5 +151,6 @@
   },
   "widget": {
     "label": "Sahaj Atlas — ingyenes meditációs tanfolyamok"
-  }
+  },
+  "back_to": "Vissza ide: %{title}"
 }

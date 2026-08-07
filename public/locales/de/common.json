@@ -151,5 +151,6 @@
     "light": "Helles Design",
     "dark": "Dunkles Design",
     "auto": "System (automatisch)"
-  }
+  },
+  "back_to": "Zurück zu %{title}"
 }
