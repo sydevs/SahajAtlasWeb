@@ -4,9 +4,58 @@
 // owns the locale JSON) can't drift between the two.
 //
 // Keep this module side-effect-free: Ladle imports it without booting the app's
-// HTTP backend / language detector.
+// HTTP backend / language detector — and so the unit lane can assert this config
+// without a network request (importing `config/i18n` boots the HTTP backend, which
+// would make the fast lane fetch locale JSON).
+//
+// The languages the settings picker offers, and the only ones detection may resolve
+// to. **This list IS `public/locales/` — `i18n-options.test.ts` fails if the two
+// drift**, in either direction: a bundle nobody can select is dead weight, and a code
+// with no bundle renders the en fallback while telling SahajCloud to send content in a
+// language the viewer didn't get. Every entry must also be a locale SahajCloud is
+// translated into (its `src/lib/locales/index.ts` is the source of truth, and
+// `activeLocale()` in config/api/client.ts sends the resolved language straight
+// through) — all ten are, since sydevs/SahajCloud#578 added hu + nl.
+export const supportedLanguages = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt-BR', 'ru', 'uk']
+
+// Language detection, spelled out — because `i18next-browser-languagedetector`'s
+// DEFAULTS are wrong for an embedded widget (issue #95). Left implicit, its `order`
+// reads cookies + localStorage and its `caches: ['localStorage']` WRITES `i18nextLng`
+// onto the HOST page's origin: storage on a domain that isn't ours, that no integrator
+// was ever told about — the reason to drop it is the undeclared write itself, not a
+// crash risk (the library does guard the access). Detection now reads the `?locale`
+// query param, then the browser's own language preference, and persists nothing —
+// `caches: []`. Nothing is lost: the widget's language is set per page load by the host
+// (`locale` attribute), the client record, or `?locale`, and a viewer's pick from the
+// settings menu lasts the session either way.
+//
+// Spread into `init` rather than passed by reference — the detector writes its own
+// defaults back into the object it is handed.
+export const i18nDetectionOptions = {
+  order: ['querystring', 'navigator'],
+  lookupQuerystring: 'locale',
+  caches: [],
+  // `?locale=` is a param on the HOST's URL, so anyone who can link to their page can
+  // set it. `cimode` is i18next's own translator-debug pseudo-language: it is appended
+  // to `supportedLngs` internally, skips resource loading, and makes every `t()` return
+  // its raw key — so a link ending `?locale=cimode` renders somebody's embed as a list
+  // of dotted key names. It is the one detected value that has to be refused.
+  convertDetectedLanguage: (language: string) =>
+    /^(cimode|dev)$/i.test(language) ? 'en' : language,
+}
+
 export const i18nSharedOptions = {
   fallbackLng: 'en',
+  // Not decoration — it is what makes `supportedLanguages` the resolvable set rather
+  // than a list the picker happens to draw from. i18next resolves a language into a
+  // CHAIN and the backend fetches every link, so without this a `pt-BR` viewer also
+  // fetched `/locales/pt/*` (two guaranteed 404s, since we ship `pt-BR` and not `pt`)
+  // and a `de-DE` browser fetched `/locales/de-DE/*` before finding the `de` we do
+  // ship. With it, both resolve straight to the shipped bundle. Measured against
+  // i18next itself in `i18n-options.test.ts` — it costs nothing at the SahajCloud
+  // boundary, because `resolvedLanguage` (what `activeLocale()` sends) already
+  // answered `en` for an unshipped language either way.
+  supportedLngs: supportedLanguages,
   defaultNS: 'common',
   ns: ['common', 'events'],
   interpolation: {

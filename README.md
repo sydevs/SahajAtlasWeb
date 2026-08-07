@@ -21,23 +21,31 @@ opens the form, so a visitor who never reports anything never fetches it. If you
 sends a CSP, allow:
 
 ```
-script-src  <the origin you load the widget from>
-script-src  https://challenges.cloudflare.com
+script-src  <the origin you load the widget from> https://challenges.cloudflare.com https://cdn.usefathom.com
 frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
 font-src    <the origin you load the widget from>
 style-src   'unsafe-inline'
+connect-src https://ipwho.is https://cdn.usefathom.com
 ```
 
-The first line is the widget's own origin, and it is the one that must be right. The
-widget is code-split: the `<script>` tag fetches a small entry, which pulls the rest of
-the bundle as further script requests from that same origin, and the calendar,
+**One line per directive, deliberately: CSP ignores every repeat of a directive name
+after the first**, so splitting `script-src` across two lines would silently drop the
+second — and you would be left believing you had allowed something you hadn't.
+
+The widget's own origin, first in that `script-src`, is the source that must be right.
+The widget is code-split: the `<script>` tag fetches a small entry, which pulls the rest
+of the bundle as further script requests from that same origin, and the calendar,
 registration and share panels are fetched only when a viewer first opens them. A policy
 that allows the `<script>` tag but not those subresource fetches gives you a widget that
 looks fine and then fails on one of those three presses, which is a miserable thing to
 diagnose. (`'strict-dynamic'`, or a plain origin allow-list, covers all of it.)
 
-Without the two Turnstile lines the widget degrades gracefully rather than breaking: the
+The two `usefathom.com` sources are needed only if analytics is enabled (see below); the
+list above is what the widget *adds* to a policy — it is not a complete policy, and it
+does not yet cover the map's own origins.
+
+Without the Turnstile sources the widget degrades gracefully rather than breaking: the
 form detects the blocked challenge and offers a `mailto:` address instead of a submit
 button. Everything else — the map, search, event pages, registration — is unaffected.
 
@@ -46,6 +54,11 @@ own CDN) on the country list and on the country-website offer a search shows whe
 country lists no classes. Blocking it costs only the flag glyphs; the lists and the
 offer still render, and the requests carry `referrer-policy: no-referrer`, so your
 page's URL is never sent there.
+
+The last three lines cover the two third-party data flows described under
+[Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
+below; both can be switched off, and blocking either in your CSP costs only the feature
+it serves.
 
 `style-src 'unsafe-inline'` is the one hard ask: the widget has no stylesheet to link — it
 registers its CSS by appending `<style>` elements, which carry no nonce. Without it the
@@ -71,6 +84,78 @@ is open (standard scroll-lock, reverted on close), and the widget's own Mapbox/S
 libraries register a couple of document-global `@font-face` names of their own. The
 reverse direction is not guaranteed either: aggressive global CSS on your page can still
 reach *into* the widget — see the note in `demo.html`.
+
+### Privacy, storage and third-party requests
+
+Everything the widget does happens in your visitor's browser, on your origin — so your
+privacy notice, not ours, is the one that has to describe it. This section lists every
+request it makes to somebody other than you and SahajCloud, and every key it stores.
+
+**It sets no cookies.** It stores four keys under your origin — two of its own, written
+inside a `try`/`catch` so a sandboxed iframe or a privacy mode that refuses storage
+degrades the setting rather than breaking the widget, and two written by Mapbox GL:
+
+| Key | Store | Holds | Lifetime |
+| --- | --- | --- | --- |
+| `theme` | `localStorage` | the viewer's light/dark/auto choice | until cleared |
+| `sahajAtlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
+| `mapbox.eventData:<token>` | `localStorage` | Mapbox GL's own telemetry bookkeeping | until cleared |
+| `mapbox.eventData.uuid:<token>` | `localStorage` | a persistent anonymous id Mapbox generates | until cleared |
+
+Two caveats worth knowing about that table. The `theme` key is **not namespaced**: if
+your page stores its own `theme` preference under that name, the widget will read and
+overwrite it — namespacing it is a known fix, not yet made. And the two `mapbox.*` keys
+appear only when the map renders, so `map="false"` removes them along with everything
+else in the Mapbox bullet below.
+
+The language picker deliberately persists **nothing**: i18next's language detector would
+by default cache `i18nextLng` on your origin, and that write is switched off. The
+language comes from the `locale` attribute, the API client's configured locale, or a
+`?locale=` query param, per page load.
+
+Requests leave the browser for these hosts, none of them yours or SahajCloud's. Each has
+an attribute that turns it off:
+
+- **`https://ipwho.is` — IP geolocation.** Once per session, the widget asks a free,
+  keyless service to turn the visitor's IP into a city, so it can offer "classes near
+  you" before they type anything and show an online class's start time in their own
+  place. The request carries `referrer-policy: no-referrer` (your page's URL is never
+  disclosed), no API key, no cookies, and no identifier of ours; it times out after five
+  seconds and every failure is silent. It is skipped entirely when neither feature could
+  show — the suggestion already dismissed, a search already active, an in-person event.
+  An IP is personal data in the EU, so if your privacy notice cannot cover this, set
+  **`geolocation="false"`** and it is never called; you lose the nearby suggestion and
+  the localized online-event times, nothing else.
+- **`https://cdn.usefathom.com` — Fathom analytics.** Cookieless, aggregate pageview
+  counting for the atlas's own pages, loaded into your page only when all three hold: the
+  bundle was built with an analytics ID, your client record names a real (non-localhost)
+  primary domain, and you have not set **`analytics="false"`**. Its auto-tracking is
+  switched off, so it reports the widget's own route under that primary domain — **your
+  page's real URL and query string are never sent** — alongside the coarse, cookieless
+  referrer and device breakdown Fathom collects for any pageview. It sets no cookie or
+  persistent identifier and records no form value. `DNT` is honoured in the sense Fathom
+  implements — a visitor sending the header is not counted — but the script itself is
+  still fetched, so their IP does reach Fathom.
+- **`api.mapbox.com` and `events.mapbox.com` — the map.** Unavoidable if you render one:
+  tiles, styles and fonts come from `api.mapbox.com`, the place search sends the
+  visitor's **typed query** and the current map centre there, and Mapbox GL posts a
+  map-load telemetry event to `events.mapbox.com` carrying the anonymous id from the
+  table above. This is Mapbox's own behaviour, not ours, and the only switch is
+  **`map="false"`**, which drops the whole Mapbox subtree — the widget then renders as
+  lists and event pages with no map at all.
+- **`react-circle-flags.pages.dev`** serves the country flag SVGs (`referrer-policy:
+  no-referrer`), and **`challenges.cloudflare.com`** loads the Turnstile captcha, but
+  only if a visitor opens the report-issue form. Both are described in the CSP section
+  above; neither carries an identifier.
+
+```html
+<sahaj-atlas api-key="…" analytics="false" geolocation="false"></sahaj-atlas>
+```
+
+Two things a visitor can send us on purpose, both on submit and never in the background:
+a **class registration** (their name, email and any organiser questions) and a **report
+about an issue** (their message, and the page they were on with its query string and
+fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the browser.
 
 ## Stack
 

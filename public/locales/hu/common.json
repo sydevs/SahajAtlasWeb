@@ -143,5 +143,13 @@
     "more": "Több megjelenítése",
     "farther": "Távoli események megjelenítése",
     "showing": "%{shown} / %{total} esemény megjelenítve"
+  },
+  "theme": {
+    "light": "Világos téma",
+    "dark": "Sötét téma",
+    "auto": "Rendszer (automatikus)"
+  },
+  "widget": {
+    "label": "Sahaj Atlas — ingyenes meditációs tanfolyamok"
   }
 }

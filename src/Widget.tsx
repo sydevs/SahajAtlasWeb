@@ -6,6 +6,7 @@ import { useRef } from 'react'
 
 import App, { RootBoundary } from './App'
 import atlasAuth from './config/api/auth'
+import privacy, { attributeEnabled } from './config/privacy'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
@@ -27,6 +28,10 @@ type WidgetProps = {
   // Render the map canvas? Default true; `map="false"` (or "0") renders content-
   // only (no Mapbox, no token needed) — the mode-agnostic <sahaj-atlas> element.
   map?: string
+  // The two third-party data flows a host may have to decline, same "false"/"0"
+  // spelling as `map` — see config/privacy.ts.
+  analytics?: string
+  geolocation?: string
   // Per-embed brand palette (hex). Each role overrides the client record's
   // color; omitted roles fall back to the record, then the built-in default.
   // (No `backgroundColor`: the page surface is a fixed default now.)
@@ -84,10 +89,25 @@ export default function Widget(props: WidgetProps) {
   )
 }
 
-function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: WidgetProps) {
+function Atlas({
+  apiKey,
+  locale,
+  map,
+  analytics,
+  geolocation,
+  basePath,
+  primaryColor,
+  secondaryColor,
+}: WidgetProps) {
   if (!atlasAuth.apiKey) {
     atlasAuth.apiKey = apiKey
   }
+
+  // Derived purely from props and idempotent, so a discarded render (see the
+  // `useLocale` note below) writes the same values again. Read non-reactively by the
+  // analytics block in App.tsx and by `useIpLocation`, both of which run after this.
+  privacy.analytics = attributeEnabled(analytics)
+  privacy.ipLookup = attributeEnabled(geolocation)
 
   // NB: the initial locale is applied by App's AppShell effect (from `defaultLocale`
   // below), which runs once on mount and again only if the host changes the prop.
@@ -121,7 +141,7 @@ function Atlas({ apiKey, locale, map, basePath, primaryColor, secondaryColor }: 
     mount.current = claimFragment(mountRoute(window.location.hash, basePath))
   }
 
-  const hasMap = map !== 'false' && map !== '0'
+  const hasMap = attributeEnabled(map)
 
   // The widget scopes its theme to this wrapper so it never mutates the host
   // page's <html>. Set the initial light/dark class synchronously to avoid a
@@ -206,6 +226,8 @@ const AtlasElementBase = r2wc(Widget, {
     apiKey: 'string',
     locale: 'string',
     map: 'string',
+    analytics: 'string',
+    geolocation: 'string',
     basePath: 'string',
     primaryColor: 'string',
     secondaryColor: 'string',

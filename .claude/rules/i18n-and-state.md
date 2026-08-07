@@ -29,13 +29,33 @@ alwaysApply: false
   anything else — `t('x', { total })` with `%{total}` — or build the string in
   code. Only pass `count` when the key genuinely has `_one`/`_other` forms (see
   `locations.description_one` / `venues.description_one`).
-- Locale is detected from the `locale` query param (`lookupQuerystring: 'locale'`)
-  and can be overridden by the widget's `locale` prop or the client's
-  `client.locale` (see `App.tsx`). Read the active locale with `useLocale()`,
-  not `i18n.language` directly.
-- Adding a language: add the `public/locales/<lng>/` JSON files, extend
-  `supportedLanguages` in `i18n.ts`, and check `MAP_WORLDVIEWS` in
-  `src/components/mapbox/map.tsx` for whether a worldview is needed.
+- **Detection is spelled out, and persists nothing** (`i18nDetectionOptions`,
+  `src/config/i18n-options.ts`): `order: ['querystring', 'navigator']`, `caches: []`.
+  The library's defaults would read cookies + localStorage and write `i18nextLng`
+  onto the HOST page's origin — undeclared storage on a domain that isn't ours
+  (issue #95). It can still be overridden by the widget's `locale` prop or the
+  client's `client.locale` (see `App.tsx`). Read the active locale with
+  `useLocale()`, not `i18n.language` directly. `?locale=cimode` is refused
+  (`convertDetectedLanguage`): it is i18next's translator-debug pseudo-language,
+  and a link carrying it would render somebody's embed as raw dotted key names.
+- **`supportedLanguages` (`src/config/i18n-options.ts`) is BOTH the picker's list and
+  i18next's `supportedLngs`** — and `i18n-options.test.ts` pins it to
+  `public/locales/` in both directions, so a bundle nobody can select and a code
+  with no bundle are equally a failure. Adding a language: add the
+  `public/locales/<lng>/` JSON files (both namespaces), add the code to that one
+  array, confirm SahajCloud is translated into it (its `src/lib/locales/index.ts`
+  is the source of truth — `activeLocale()` sends the resolved language straight
+  through), add the bundle to `.ladle/i18n.ts` so stories can render it, and check
+  `MAP_WORLDVIEWS` in `src/components/organisms/Mapbox/Map.tsx` for whether a
+  worldview is needed.
+  Do **not** reach for `load: 'languageOnly'` to stop a regional tag being fetched:
+  it strips `pt-BR` — a bundle we ship — to a `pt` we don't. `supportedLngs` already
+  resolves `en-US`→`en` and `de-DE`→`de` without fetching either.
+- **The `common` namespace is at full parity across all ten locales, enforced per
+  locale**; `events` carries a short list of known-untranslated keys
+  (`UNTRANSLATED_EVENT_KEYS`) that ratchets down. A missing key is not always
+  cosmetic: `widget.label` is the accessible name of the widget root's
+  `role="region"` landmark, and WebKit drops the role entirely when it resolves empty.
 - Locale JSON under `public/locales/` is hand-maintained — keep keys in sync
   across languages; `en` is the `fallbackLng`. Add a key across every locale with
   `pnpm i18n:add <dotted.key> '<{lng:value}>' [ns]` (`scripts/add-locale-key.mjs`).

@@ -12,7 +12,7 @@ import {
   SettingsIcon,
   SunFilledIcon,
 } from '@/components/atoms/Icons'
-import { supportedLanguages } from '@/config/i18n'
+import { supportedLanguages } from '@/config/i18n-options'
 import { useReportModal } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
