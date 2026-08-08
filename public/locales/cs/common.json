@@ -135,7 +135,8 @@
     "near_city": "Zobrazit události poblíž: %{city}",
     "browse_countries": "Procházet všechny země",
     "search_label": "Nebo vyhledejte místo",
-    "unavailable": "Tento program teď není možné navštívit."
+    "unavailable": "Tento program teď není možné navštívit.",
+    "share_unavailable": "Pro tuto meditaci zatím není odkaz ke sdílení."
   },
   "country_site": {
     "title": "V %{country} zatím nejsou uvedeny žádné kurzy.",

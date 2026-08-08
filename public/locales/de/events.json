@@ -22,8 +22,7 @@
     "starting_soon": "Bald geht es los",
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Foto ansehen",
-    "pause_slideshow": "Diashow pausieren",
-    "share_unavailable": "Für diese Meditation gibt es noch keinen Link zum Teilen."
+    "pause_slideshow": "Diashow pausieren"
   },
   "display": {
     "about": "Über diesen Kurs",

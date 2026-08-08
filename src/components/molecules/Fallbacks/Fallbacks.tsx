@@ -59,6 +59,7 @@ export type FallbackKind =
   | 'not-found-region'
   | 'empty'
   | 'unavailable'
+  | 'share-unavailable'
   | 'country-site'
   | 'no-results'
   | 'no-nearby'
@@ -226,6 +227,34 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     color: 'neutral',
     retry: false,
     onward: true,
+    search: false,
+    clearFilters: false,
+    contact: true,
+    report: false,
+  },
+  // The share screen for a class with no link to give out: no canonical page on the main
+  // site, and a host page the widget routes off-URL on, so the address bar names their
+  // article rather than this meditation (issue #115). Nothing is broken and nothing is
+  // missing from the class — only the link is — so this is the neutral register.
+  //
+  // Its own row rather than `unavailable`'s, which it briefly borrowed, for the reason
+  // `FallbackValues` states: a state that needs a different sentence gets a different row,
+  // so every sentence stays under the test that pins `fallbackText` to the shipped en copy.
+  // `unavailable` also grants `onward`, which here would answer "you can't share this" with
+  // "see events in Cambridgeshire" — walking the viewer away from the class they were
+  // trying to pass on.
+  //
+  // `contact` alone, so the one thing that still works without a URL leads: a person can be
+  // told about a class where a link can't. With nobody to call, `visibleActions`'
+  // promised-but-not-offered rule surfaces the report CTA — accepted rather than designed
+  // around, because a class with neither a public page nor a contact IS a gap worth
+  // hearing about, and it beats a sentence with nothing at all beside it.
+  'share-unavailable': {
+    messageKey: 'error.share_unavailable',
+    fallbackText: 'There is no link to share for this meditation yet.',
+    color: 'neutral',
+    retry: false,
+    onward: false,
     search: false,
     clearFilters: false,
     contact: true,

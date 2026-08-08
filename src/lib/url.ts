@@ -30,6 +30,19 @@ export const validateWebUrl = (url: string | null | undefined): string | undefin
  * Returning `undefined` is the point: a caller must then show no link rather than a
  * wrong one. Both candidates go through `validateWebUrl`, so a `file://` document or a
  * CMS value that slipped a non-http scheme can't reach a third-party share intent.
+ *
+ * **Known residue, deliberately left:** `currentHref` is passed through whole, host query
+ * string included, and that string reaches the clipboard, `navigator.share` and every
+ * `react-share` intent. `hostPageUrl` (`lib/report.ts`) reduces the same URL to
+ * `origin + pathname` before telemetry, for the reason stated there — a host's query can
+ * carry a reset token or an email address — and Fathom is loaded `auto: false` on the same
+ * grounds. Sharing does NOT follow suit, because the host page's query is sometimes what
+ * makes the page resolve at all: WordPress's default permalinks are `/?p=123`, and this
+ * whole feature exists for WordPress hosts. Stripping it would hand out a link to their
+ * home page carrying our fragment. The trade — leak a host param, or break the link on a
+ * query-routed host — is a product call rather than a refactor, and it predates the
+ * `linkable` axis (which narrowed the exposure from three modes to two). Pinned by the
+ * `EMBEDDED_HASH` fixture in `url.test.ts`, which carries a query for exactly that reason.
  */
 export const shareableUrl = (
   canonical: string | null | undefined,

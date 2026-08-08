@@ -21,7 +21,11 @@ describe('shareableUrl', () => {
   const CANONICAL = 'https://wemeditate.example/uk/cambridge/monday-meditation'
   // What `window.location.href` reads in each of the three modes the widget runs in.
   const STANDALONE = 'https://sahajatlas.example/united-kingdom/cambridge/101'
-  const EMBEDDED_HASH = 'https://host.example/classes#/!/united-kingdom/cambridge/101'
+  // Carries a host query on purpose: everything before the `#` belongs to the host page,
+  // and this fixture is what makes it visible that we hand it on unchanged. See the
+  // "known residue" note on `shareableUrl` — the fragment is the widget's whole route, so
+  // the two halves of this string cannot be treated the same way.
+  const EMBEDDED_HASH = 'https://host.example/?p=123&mc_eid=abc#/!/united-kingdom/cambridge/101'
   const EMBEDDED_MEMORY = 'https://host.example/blog/post#respond'
 
   it('prefers the canonical URL in every mode', () => {
@@ -36,6 +40,9 @@ describe('shareableUrl', () => {
   // identifying URL they always have when the event has no canonical.
   it('falls back to the address bar in the two linkable modes', () => {
     expect(shareableUrl(null, STANDALONE, true)).toBe(STANDALONE)
+    // Host query and all — see the "known residue" note on `shareableUrl`. If this ever
+    // becomes `origin + pathname + hash`, that was a deliberate decision and this is the
+    // assertion it has to change.
     expect(shareableUrl(null, EMBEDDED_HASH, true)).toBe(EMBEDDED_HASH)
   })
 

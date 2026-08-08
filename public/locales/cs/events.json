@@ -22,8 +22,7 @@
     "starting_soon": "Již brzy",
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Zobrazit fotku",
-    "pause_slideshow": "Pozastavit prezentaci",
-    "share_unavailable": "Pro tuto meditaci zatím není odkaz ke sdílení."
+    "pause_slideshow": "Pozastavit prezentaci"
   },
   "display": {
     "about": "O této lekci",

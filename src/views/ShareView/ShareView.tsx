@@ -46,18 +46,17 @@ export function ShareView({ eventPath }: { eventPath: string }) {
                sheet and every react-share target all need a URL, and the only string
                within reach is the HOST page's, which names their article and not this
                meditation. So this screen says so instead of handing out a link that goes
-               somewhere else (issue #115). The `unavailable` register is the right one:
-               the class is real, this just can't be done from here — and it leads with the
-               organiser's number when the event carries one, which is the one way to pass
-               the class on that doesn't need a URL. */
+               somewhere else (issue #115). `align="start"` to match the identical panel on
+               the sibling register route, which shares this recovery rather than growing a
+               second copy of it. */
             <FallbackPanel
+              align="start"
               contact={
                 event.contactPhone
                   ? { phone: event.contactPhone, name: event.contactName }
                   : undefined
               }
-              kind="unavailable"
-              message={t('details.share_unavailable')}
+              kind="share-unavailable"
             />
           )}
         </div>

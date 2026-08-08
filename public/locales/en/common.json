@@ -14,7 +14,8 @@
     "near_city": "See events near %{city}",
     "browse_countries": "Browse all countries",
     "search_label": "Or search for a place",
-    "unavailable": "This program can’t be joined right now."
+    "unavailable": "This program can’t be joined right now.",
+    "share_unavailable": "There is no link to share for this meditation yet."
   },
   "events": "events",
   "explore": "Explore",
