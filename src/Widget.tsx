@@ -235,12 +235,15 @@ type AtlasElement = HTMLElement & {
  * `connectedCallback` would therefore refuse an element that had already mounted, and say
  * so in a message that wasn't true.
  *
- * Resetting it to false in our constructor — base-class field initialisers run inside
- * `super()`, so ours lands second — makes the element behave the way its lifecycle reads:
- * attributes are still recorded on the way in, but nothing renders until
- * `connectedCallback` has had its say. Verified against `@r2wc/core@1.2.0` with a fake
- * renderer: the owner mounts once, at connection, with its `api-key` intact, and a refused
- * element never mounts at all.
+ * Resetting it to false in our constructor makes the element behave the way its lifecycle
+ * reads: attributes are still recorded on the way in, but nothing renders until
+ * `connectedCallback` has had its say. What guarantees ours lands second is a language
+ * rule, not a version of r2wc — base-class field initialisers run inside `super()`, so a
+ * derived constructor body always follows them. That is worth stating as the reason,
+ * because it is what survives an upgrade: `@r2wc/core` 1.3.1 rewrote the constructor to
+ * use class fields (it was an assignment in 1.2.0, which this was first verified against)
+ * and the ordering is unchanged. Verified with a fake renderer on both: the owner mounts
+ * once, at connection, with its `api-key` intact, and a refused element never mounts.
  */
 const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 
