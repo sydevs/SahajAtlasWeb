@@ -79,7 +79,11 @@ those are derived client-side:
   the region filter's matcher + options (read via the `regionsQuery()` factory in `config/api`).
 - **`getEvent`** → raw `/api/events/:id` (depth 1, region + images populated).
   The Lexical `description` is serialized to HTML client-side
-  (`src/lib/shape/lexical.ts`) and rendered through DOMPurify in `EventPanel`.
+  (`src/lib/shape/lexical.ts`) and rendered through `sanitizeDescription`
+  (`components/organisms/EventDetails/sanitize.ts`) into `dangerouslySetInnerHTML`.
+  That allowlist must stay a **superset of what the serializer emits** — its spec
+  round-trips `lexicalToHtml`'s output to enforce it, because a tag the sanitizer
+  drops keeps its text and so goes missing in silence (issue #101).
 - **`getClient`** → `/api/clients/me` via the raw `request` helper — the bare
   `sdk.me()` can't carry the required `select` — an API-key self-read of locale, theme
   colors, home `region`. **`getAtlasConfig`** → `sy-atlas-config` global (map defaults).

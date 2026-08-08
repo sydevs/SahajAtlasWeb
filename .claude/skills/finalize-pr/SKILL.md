@@ -76,7 +76,7 @@ branch diff touches one of those:
 ```bash
 # path-based: the auth/data layer, widget entry, HTML-rendering sinks, deps, secrets/build config
 git diff --name-only origin/main...HEAD | grep -E \
-  'src/config/api/|src/Widget\.tsx|src/lib/shape/lexical|src/components/organisms/EventPanel/|src/types/event|package\.json|(^|/)\.env|vite\.config\.ts'
+  'src/config/api/|src/Widget\.tsx|src/lib/shape/lexical|src/components/organisms/EventDetails/|src/types/event|package\.json|(^|/)\.env|vite\.config\.ts'
 
 # content-based: any newly-introduced HTML sink, wherever it lands
 git diff origin/main...HEAD -- src | grep -E '^\+' | grep -E 'dangerouslySetInnerHTML|dompurify|DOMPurify|\.innerHTML'
