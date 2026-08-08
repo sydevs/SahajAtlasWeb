@@ -16,10 +16,12 @@ categories — and point at specific lines.
 - **Build**: Vite. Env via `import.meta.env.VITE_*` (only `VITE_`-prefixed vars
   reach the bundle). Public defaults in `.env`; secrets in `.env.local` (gitignored).
 - **Auth**: a client API key (`atlasAuth.apiKey`) passed as the widget's `apiKey`
-  prop and sent as `Authorization: Bearer …` by the axios interceptor
-  (`src/config/api/fetch.ts`, `src/config/api/auth.ts`).
-- **Data**: axios → Atlas REST API, responses validated with zod (`src/types/`).
-- **Render**: React, NextUI, Mapbox GL. `dompurify` is available for sanitizing HTML.
+  prop and sent as `Authorization: clients API-Key …` by `applyRequestContext`,
+  which the SDK client's wrapped `fetch` runs on every request
+  (`src/config/api/client.ts`, `src/config/api/auth.ts`).
+- **Data**: `@payloadcms/sdk` → the SahajCloud REST API, responses validated with
+  zod (`src/types/`).
+- **Render**: React, Radix UI, Mapbox GL. `dompurify` is available for sanitizing HTML.
 - **Embedding**: `@r2wc/react-to-web-component`, HashRouter.
 
 ## Focus areas

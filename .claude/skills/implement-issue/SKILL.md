@@ -229,7 +229,7 @@ changes, and re-runs `/finalize-pr` (which re-pushes + re-runs CI).
   ask whether to extend or open new.
 - **Tests** — a fast node-only unit lane (`pnpm test:run`, co-located
   `src/**/*.test.ts(x)`) runs on the gate; add specs for new logic/contracts
-  (schemas, stores, helpers, the api interceptor). For behavioral/UI changes the
+  (schemas, stores, helpers, the SDK client's request context). For behavioral/UI changes the
   lane can't cover, verify in the running widget (Playwright MCP) and describe
   the manual check in the PR. See `.claude/rules/tests.md`.
 
