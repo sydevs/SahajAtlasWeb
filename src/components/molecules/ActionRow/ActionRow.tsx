@@ -2,7 +2,7 @@ import { type ReactNode, forwardRef } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { controlSurface } from '@/components/atoms/Button'
-import { reportInternalError } from '@/lib/report'
+import { atlasError, reportInternalError } from '@/lib/report'
 import { isSafeHref } from '@/lib/shape'
 
 // The labelled tonal-circle action button + its horizontal row (issue #52, WS3):
@@ -100,7 +100,7 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
     // user than inert content. And `tel:` is in the allowed set precisely so gating here
     // cannot break this row's phone link, its most common href.
     if (!isSafeHref(href)) {
-      reportInternalError(new Error(`Refusing to link to ${href}`), 'ActionCircle')
+      reportInternalError(atlasError('unknown', `Refusing to link to ${href}`), 'ActionCircle')
 
       return <span className={styles.base()}>{content}</span>
     }

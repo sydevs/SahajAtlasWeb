@@ -47,6 +47,17 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  * before parsing, so all three are read as `//evil.com`. Reimplementing the test here is how
  * a second, weaker definition gets born; `path.test.ts` pins each case against this one.
  *
+ * Two things it deliberately does NOT promise:
+ *
+ * - **It judges the scheme, not the payload.** `tel:${event.contactPhone}` passes because it
+ *   starts with `tel:`, whatever the CMS put after the colon. That is sound — no `tel:` or
+ *   `mailto:` body executes or crosses an origin — but it means this gate is not a reason to
+ *   retire an upstream check like `SafeUrlSchema` on the value being concatenated.
+ * - **Safe is not the same as routable.** A site-relative `/gb` passes at all three anchors,
+ *   but only `Link` has react-router behind it; on a `Button`/`ActionCircle` it renders a
+ *   plain `<a>` that navigates the HOST document away. Read this as a shared safety floor,
+ *   never as a shared capability — see the note in `Fallbacks.tsx`'s `OnwardLink`.
+ *
  * Takes a non-string safely and never throws: these anchors render inside the error
  * fallback, where a throw would blank the widget on somebody else's page.
  */

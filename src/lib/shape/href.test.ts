@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 import { hasAllowedScheme, isSafeHref } from './href'
@@ -126,6 +128,12 @@ describe('hasAllowedScheme', () => {
 describe('the JSX anchor inventory', () => {
   const srcDir = fileURLToPath(new URL('../../', import.meta.url))
 
+  const GATED_ANCHORS = [
+    'components/atoms/Button/Button.tsx',
+    'components/atoms/Link/Link.tsx',
+    'components/molecules/ActionRow/ActionRow.tsx',
+  ]
+
   // Only `.tsx` — JSX is the sink this predicate guards. `lexicalToHtml` (`lexical.ts`) also
   // emits `<a href>`, but as an HTML *string* sanitized by DOMPurify downstream: a different
   // sink with a different mechanism, deliberately out of this inventory.
@@ -137,39 +145,70 @@ describe('the JSX anchor inventory', () => {
         !entry.name.includes('.test.') &&
         !entry.name.includes('.stories.'),
     )
-    .map((entry) => `${entry.parentPath}/${entry.name}`.slice(srcDir.length))
+    .map((entry) => relative(srcDir, join(entry.parentPath, entry.name)).split(sep).join('/'))
+
+  // Parsed, not grepped. A regex over the raw text has to strip comments first, and every
+  // cheap way of doing that has a FALSE PASS in it — an unpaired `/*` inside a string or a
+  // line comment swallows everything up to the next docblock, hiding a real anchor from the
+  // one test whose whole job is to find it. `typescript` is already a devDependency.
+  const rendersJsxAnchor = (source: string, fileName: string): boolean => {
+    const parsed = ts.createSourceFile(
+      fileName,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    )
+    let found = false
+
+    const visit = (node: ts.Node): void => {
+      if (found) return
+
+      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const tag = node.tagName.getText(parsed)
+
+        // `<a>` and the namespaced spellings that still render one (`<motion.a>`).
+        if (tag === 'a' || tag.endsWith('.a')) {
+          found = true
+
+          return
+        }
+      }
+
+      ts.forEachChild(node, visit)
+    }
+
+    ts.forEachChild(parsed, visit)
+
+    return found
+  }
 
   it('finds source files to scan (the walk itself must not silently break)', () => {
     expect(sources.length).toBeGreaterThan(50)
   })
 
   it('is exactly the three components that call isSafeHref', () => {
-    const withAnchor = sources.filter((relative) => {
-      const source = readFileSync(`${srcDir}${relative}`, 'utf8')
-        // Prose mentioning `<a>` is not an anchor. Block comments carry most of it in this
-        // repo; whole-line `//` comments carry the rest.
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/^\s*\/\/.*$/gm, '')
+    const withAnchor = sources.filter((path) =>
+      rendersJsxAnchor(readFileSync(join(srcDir, path), 'utf8'), path),
+    )
 
-      return /<a[\s>]/.test(source)
-    })
-
-    // If this fails with a FOURTH file, that file renders an anchor: route its href through
-    // `isSafeHref` (`lib/shape/href.ts`) and add it here. Don't just add it here.
-    expect(withAnchor.sort()).toEqual([
-      'components/atoms/Button/Button.tsx',
-      'components/atoms/Link/Link.tsx',
-      'components/molecules/ActionRow/ActionRow.tsx',
-    ])
+    // A FOURTH file here renders an anchor: route its href through `isSafeHref`
+    // (`lib/shape/href.ts`), then add it below. Adding it below on its own defeats the test.
+    //
+    // Known blind spots, since a guard that oversells itself is worse than none: this sees
+    // JSX only, so `React.createElement('a', …)` (as `AddToCalendar`'s detached blob anchor
+    // legitimately uses) and an element-type variable (`const Tag = 'a'`) do not trip it, and
+    // `.ts` files are not scanned at all.
+    expect(withAnchor.sort()).toEqual(GATED_ANCHORS)
   })
 
-  it('has every one of them calling the shared gate', () => {
-    for (const relative of [
-      'components/atoms/Button/Button.tsx',
-      'components/atoms/Link/Link.tsx',
-      'components/molecules/ActionRow/ActionRow.tsx',
-    ]) {
-      expect(readFileSync(`${srcDir}${relative}`, 'utf8')).toContain('isSafeHref(')
+  it('has every one of them importing and calling the shared gate', () => {
+    for (const path of GATED_ANCHORS) {
+      const source = readFileSync(join(srcDir, path), 'utf8')
+
+      // The import, not just the name — otherwise prose mentioning `isSafeHref` satisfies it.
+      expect(source).toMatch(/import\s*\{[^}]*\bisSafeHref\b[^}]*\}\s*from/)
+      expect(source).toContain('isSafeHref(href)')
     }
   })
 })

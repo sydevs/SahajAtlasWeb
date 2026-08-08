@@ -4,7 +4,7 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { AnchorIcon } from '@/components/atoms/Icons'
 import { rememberCamera } from '@/config/store'
-import { reportInternalError } from '@/lib/report'
+import { atlasError, reportInternalError } from '@/lib/report'
 import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
 
 // The app's link atom. Internal targets route through react-router's <Link>
@@ -99,7 +99,11 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   // short-circuited it, so a `javascript:` href passed alongside either one classified as
   // "external" and skipped the guard entirely.
   if (!isSafeHref(href)) {
-    reportInternalError(new Error(`Refusing to link to ${href}`), 'Link')
+    // `atlasError`, not a bare `Error`: an unclassified failure is guessed at, and
+    // `classifyError` ends on `navigator.onLine` — so an offline viewer's refusal was
+    // classified `offline`, which `REPORTED_KINDS` withholds from the reporter. The refusal
+    // has nothing to do with connectivity, and it is exactly the report we want.
+    reportInternalError(atlasError('unknown', `Refusing to link to ${href}`), 'Link')
 
     return <span className={classes}>{children}</span>
   }
