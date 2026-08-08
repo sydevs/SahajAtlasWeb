@@ -133,6 +133,18 @@ export function formatElapsed(ms) {
 }
 
 /**
+ * Evidence strings quote API-supplied text (a check run's name) into the step
+ * summary. Source 3 accepts a run whose NAME starts with "cloudflare pages" from
+ * any installed app, not only Cloudflare's own, so treat that text as hostile:
+ * flatten it to one line and cap it, since a newline is what turns a quoted name
+ * into a forged summary line (`report()` only defangs a leading `::`).
+ * @param {string} text
+ */
+export function note(text) {
+  return String(text).replace(/\s+/g, ' ').trim().slice(0, 120)
+}
+
+/**
  * What the deadline expiring means, given what we saw before it did. Positive
  * evidence separates a slow deploy from an absent one — the whole point of the
  * second output, since only the latter is a real failure.
@@ -145,22 +157,21 @@ export function timeoutStatus({ lastUrl, evidence }) {
 }
 
 /**
- * One sentence a reader can act on, naming the last thing we saw. The elapsed
- * wait is `emit`'s to print — it prefixes every line with it, so repeating it
- * here would say the same number twice in the one sentence.
+ * One sentence a reader can act on, naming the last thing we saw. Only the three
+ * timeout outcomes reach here — `error` carries its own message straight from
+ * `fail()`. The elapsed wait is `emit`'s to print (it prefixes every line with
+ * it), so repeating it here would say the same number twice in one sentence.
  * @param {string} status
- * @param {{ lastUrl?: string | null, evidence?: string | null, detail?: string }} ctx
+ * @param {{ lastUrl?: string | null, evidence?: string | null }} ctx
  */
-export function explain(status, { lastUrl, evidence, detail } = {}) {
+export function explain(status, { lastUrl, evidence } = {}) {
   switch (status) {
     case STATUS.unreachable:
       return `${lastUrl} was posted for this commit but never answered a request — the deploy exists, so re-run this job.`
     case STATUS.pending:
       return `a Cloudflare deploy exists for this commit (last seen: ${evidence}) but no ${project} preview URL had been posted — a slow deploy, so re-run this job.`
-    case STATUS.absent:
-      return 'no Cloudflare signal of any kind for this commit — no check run, no deployment, no bot comment. The Pages build does not appear to have started.'
     default:
-      return detail || 'discovery could not run.'
+      return 'no Cloudflare signal of any kind for this commit — no check run, no deployment, no bot comment. The Pages build does not appear to have started.'
   }
 }
 
@@ -246,7 +257,7 @@ async function discover() {
     for (const s of statuses) {
       if (s.target_url) urls.push(...(s.target_url.match(PAGES_RE) || []))
       if (/cloudflare/i.test(s.context || '')) {
-        evidence.push(`commit status "${s.context}" (${s.state})`)
+        evidence.push(note(`commit status "${s.context}" (${s.state})`))
       }
     }
   }
@@ -262,7 +273,7 @@ async function discover() {
         }
       }
       if (/cloudflare|pages/i.test(d.environment || '')) {
-        evidence.push(`deployment "${d.environment}"`)
+        evidence.push(note(`deployment "${d.environment}"`))
       }
     }
   }
@@ -287,7 +298,7 @@ async function discover() {
       if (!/cloudflare/i.test(slug) && !/^cloudflare pages/i.test(c.name || '')) continue
       urls.push(...((c.output?.summary || '').match(PAGES_RE) || []))
       if (c.details_url) urls.push(...(c.details_url.match(PAGES_RE) || []))
-      evidence.push(`check run "${c.name}" (${c.conclusion || c.status})`)
+      evidence.push(note(`check run "${c.name}" (${c.conclusion || c.status})`))
     }
   }
 

@@ -4,6 +4,7 @@ import {
   STATUS,
   explain,
   formatElapsed,
+  note,
   pick,
   timeoutStatus,
 } from './get-cloudflare-preview-url.mjs'
@@ -86,6 +87,21 @@ describe('explain', () => {
     )
 
     for (const message of messages) expect(message).not.toMatch(/\d+m\d+s|\b\d+s\b/)
+  })
+})
+
+describe('note', () => {
+  // Source 3 accepts a check run whose NAME starts with "cloudflare pages" from
+  // any installed app, and that name is quoted into the step summary — so a
+  // newline in it would forge a summary line. `report()` only defangs a leading
+  // `::`, which a forged line placed mid-string would sail past.
+  it('flattens a multi-line name onto one line', () => {
+    expect(note('Cloudflare Pages: x\n::error::forged')).toBe('Cloudflare Pages: x ::error::forged')
+    expect(note('  a \r\n\t b  ')).toBe('a b')
+  })
+
+  it('caps the length so one name cannot swamp the summary', () => {
+    expect(note('x'.repeat(500))).toHaveLength(120)
   })
 })
 
