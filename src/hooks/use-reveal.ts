@@ -41,6 +41,11 @@ export const useReveal = (key: string): RevealControls => {
   // enough to be felt on a mid-range phone. As a transition React keeps the current
   // rows interactive while the next page renders, and `pending` gives the control an
   // honest loading state instead of a button that looks ignored.
+  //
+  // Issue #98 profiled this and found it is not merely *a* cost but THE cost of the list
+  // — more than the mounted rows it was assumed to be second to. So the transition is
+  // load-bearing, not a nicety. Numbers live with `MAX_REVEAL` (`lib/shape/reveal.ts`),
+  // in one place so they can't drift apart.
   const [pending, startTransition] = useTransition()
   const current = storedKey === key
 
