@@ -11,6 +11,13 @@
 # Everything Vite emits under /assets/ is content-hashed, so the long immutable cache is
 # safe — a change ships under a new URL. `embed.js` deliberately sits outside this rule at
 # the dist root: it is the one stable URL hosts hardcode, and it must stay revalidated.
+#
+# `v<major>/embed.js` (issue #94) sits outside it for the SAME reason and on purpose. It is
+# a compatibility channel, not an immutable artifact — every deploy rewrites it with the
+# latest build of that major — so it wants exactly the revalidating default `embed.js`
+# already relies on, and pinning a rule here whose path matching was never checked against a
+# live deploy would read as a guarantee while being a guess. `docs/releasing.md` carries
+# this as an explicit post-deploy check rather than an assumption.
 /assets/*
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
