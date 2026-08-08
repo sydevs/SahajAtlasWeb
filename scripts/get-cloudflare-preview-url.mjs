@@ -145,20 +145,22 @@ export function timeoutStatus({ lastUrl, evidence }) {
 }
 
 /**
- * One sentence a reader can act on, naming the wait and the last thing we saw.
+ * One sentence a reader can act on, naming the last thing we saw. The elapsed
+ * wait is `emit`'s to print — it prefixes every line with it, so repeating it
+ * here would say the same number twice in the one sentence.
  * @param {string} status
- * @param {{ lastUrl?: string | null, evidence?: string | null, elapsed: string, detail?: string }} ctx
+ * @param {{ lastUrl?: string | null, evidence?: string | null, detail?: string }} ctx
  */
-export function explain(status, { lastUrl, evidence, elapsed, detail }) {
+export function explain(status, { lastUrl, evidence, detail } = {}) {
   switch (status) {
     case STATUS.unreachable:
-      return `${lastUrl} was posted for this commit but never answered a request in ${elapsed} — the deploy exists, so re-run this job.`
+      return `${lastUrl} was posted for this commit but never answered a request — the deploy exists, so re-run this job.`
     case STATUS.pending:
-      return `A Cloudflare deploy exists for this commit (last seen: ${evidence}) but no ${project} preview URL had been posted after ${elapsed} — a slow deploy, so re-run this job.`
+      return `a Cloudflare deploy exists for this commit (last seen: ${evidence}) but no ${project} preview URL had been posted — a slow deploy, so re-run this job.`
     case STATUS.absent:
-      return `No Cloudflare signal of any kind for this commit in ${elapsed} — no check run, no deployment, no bot comment. The Pages build does not appear to have started.`
+      return 'no Cloudflare signal of any kind for this commit — no check run, no deployment, no bot comment. The Pages build does not appear to have started.'
     default:
-      return detail || 'Discovery could not run.'
+      return detail || 'discovery could not run.'
   }
 }
 
@@ -346,24 +348,20 @@ async function main() {
       emit(url, STATUS.found)
       return
     }
+    // Don't sleep past the deadline: the reported wait should be the budget we
+    // actually set, not the budget plus a trailing poll interval.
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) break
     console.log(
       url
         ? `Preview URL ${url} not reachable yet — waiting…`
         : `No ${project} preview URL yet${lastEvidence ? ` (${lastEvidence})` : ''} — waiting…`,
     )
-    await sleep(POLL_MS)
+    await sleep(Math.min(POLL_MS, remaining))
   }
 
   const status = timeoutStatus({ lastUrl, evidence: lastEvidence })
-  emit(
-    '',
-    status,
-    explain(status, {
-      lastUrl,
-      evidence: lastEvidence,
-      elapsed: formatElapsed(Date.now() - startedAt),
-    }),
-  )
+  emit('', status, explain(status, { lastUrl, evidence: lastEvidence }))
 }
 
 // Guarded so the spec can import the pure helpers without running discovery.

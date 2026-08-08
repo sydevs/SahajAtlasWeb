@@ -148,6 +148,13 @@ jobs:
               MSG="Cloudflare had not published a usable preview before discovery gave up — NO smoke specs ran."
               HINT="A Cloudflare deploy for this commit WAS seen ($PREVIEW_STATUS), so this is a slow deploy rather than a broken one: RE-RUN this job. The 'Discover Cloudflare Pages preview URL' step reports how long it waited and what it last saw. If it keeps happening, raise PREVIEW_TIMEOUT_MS on that step rather than re-running by hand."
               ;;
+            error)
+              MSG="Preview discovery could not run — NO smoke specs ran."
+              HINT="This is a fault in the discovery step itself, not in Cloudflare: read the 'Discover Cloudflare Pages preview URL' step, which prints why (usually a missing GITHUB_TOKEN / PR_HEAD_SHA)."
+              ;;
+            # `absent`, and anything unrecognised — an unknown status is treated as
+            # the loud case on purpose, so a future status can't quietly inherit
+            # the softer "just re-run it" advice.
             *)
               MSG="No Cloudflare Pages preview was found for this commit — NO smoke specs ran."
               HINT="Nothing from Cloudflare turned up for this commit at all, so the deploy did not happen: INVESTIGATE, don't re-run. If the Pages build failed in 0s with a clean log, that is a transient rate-limit — retry the deployment itself."

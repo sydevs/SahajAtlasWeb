@@ -60,27 +60,32 @@ describe('timeoutStatus', () => {
 })
 
 describe('explain', () => {
-  const elapsed = '10m00s'
-
+  // The two cases must not read alike: one asks for a re-run, the other for an
+  // investigation, and ci.yml relays whichever it is told.
   it('tells the reader to re-run when a deploy was seen', () => {
     for (const status of [STATUS.pending, STATUS.unreachable]) {
       const message = explain(status, {
         lastUrl: `https://x.${HOST}`,
         evidence: 'check run "Cloudflare Pages: sahajatlas-design" (success)',
-        elapsed,
       })
 
       expect(message).toContain('re-run')
-      expect(message).toContain(elapsed)
     }
   })
 
   it('tells the reader nothing turned up when there was no signal', () => {
-    const message = explain(STATUS.absent, { lastUrl: null, evidence: null, elapsed })
+    const message = explain(STATUS.absent, { lastUrl: null, evidence: null })
 
-    expect(message).toContain('No Cloudflare signal')
+    expect(message).toContain('no Cloudflare signal')
     expect(message).not.toContain('re-run')
-    expect(message).toContain(elapsed)
+  })
+
+  it('leaves the elapsed wait to the caller that prefixes every line with it', () => {
+    const messages = [STATUS.pending, STATUS.unreachable, STATUS.absent].map((status) =>
+      explain(status, { lastUrl: `https://x.${HOST}`, evidence: 'check run' }),
+    )
+
+    for (const message of messages) expect(message).not.toMatch(/\d+m\d+s|\b\d+s\b/)
   })
 })
 
