@@ -130,8 +130,8 @@ A spec opts in per-file with a `// @vitest-environment jsdom` docblock on line 1
 the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1.5s.
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
-express, or an agreement with a router/DOM API that a pure test can only assume.** Two
-specs qualify today:
+express, an agreement with a router/DOM API that a pure test can only assume, or a library
+whose whole job IS the DOM.** Three specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
   already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
@@ -145,6 +145,14 @@ specs qualify today:
   `#!/gb/london`** — it normalises the basename `!` to `/!`. A pure spec can only pin what
   our function decides, never whether the library it is modelling agrees. When a helper
   exists to feed a third-party API, assert the round trip against that API.
+- `src/components/organisms/EventDetails/sanitize.test.ts` — the least optional of the
+  three: DOMPurify sanitizes by parsing into a real document and walking it, so there is
+  no pure half to extract. It asserts that the CMS-prose allowlist is load-bearing, which
+  it silently was not for as long as `USE_PROFILES` sat beside it overriding it (issue
+  #101). It also round-trips `lexicalToHtml`'s own output through the sanitizer, because
+  the two files have to agree on a tag set and the first draft of the tightened list
+  deleted five heading levels without failing anything — a stripped tag keeps its text, so
+  the loss reads as prose.
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`
