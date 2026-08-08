@@ -1,4 +1,5 @@
 import type { Story, StoryDefault } from '@ladle/react'
+import type { EventSchedule } from '@/types'
 
 // Not in the organisms barrel (reached only via the RegistrationView drawer);
 // import from the co-located file.
@@ -9,6 +10,18 @@ import { RegistrationForm } from './RegistrationForm'
 export default { title: 'Organisms' } satisfies StoryDefault
 
 const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
+
+// A real weekly recurrence, so the Confirmation story's calendar links carry an
+// actual RRULE + TZID rather than a degenerate one-off.
+const weeklySchedule: EventSchedule = {
+  firstDate: new Date('2026-07-01T17:30:00Z'),
+  firstDate_tz: 'Europe/Prague',
+  endTime: '20:45',
+  recurrenceType: 'WEEKLY',
+  interval: 1,
+  weekdays: ['WE'],
+  upcomingDates,
+}
 
 /**
  * RegistrationForm — the form-only registration component, rendered in the
@@ -72,6 +85,30 @@ export const Default: Story = () => (
           eventId={4}
           eventTitle="Validation demo"
           eventUrl="https://atlas.example/e/4"
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="The post-submit confirmation. Two blocks under the thank-you line: add-to-calendar (Apple downloads an .ics; the other four are link-outs) and the share grid. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
+      title="Confirmation"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          initialSubmitted
+          calendar={{
+            id: 5,
+            title: 'Evening Meditation',
+            schedule: weeklySchedule,
+            location: '5 Market St, Prague',
+            url: 'https://atlas.example/e/5',
+          }}
+          eventId={5}
+          eventTitle="Evening Meditation"
+          eventUrl="https://atlas.example/e/5"
           isOnline={false}
           questions={[]}
           upcomingDates={upcomingDates}

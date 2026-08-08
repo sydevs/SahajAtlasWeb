@@ -25,6 +25,11 @@ const LEAF_PATH_ONLY = [
   'EventActions',
   'ShareContent',
   'CopyField',
+  // The iCalendar builder (issue #105). Lighter than the two above — luxon is
+  // already eager, so the leak would be `lib/ics.ts` alone — which is exactly why
+  // it needs naming HERE: a few KiB lands inside the size budget's slack and
+  // `pnpm size` would stay green while the regression shipped.
+  'AddToCalendar',
 ]
 
 describe('molecules barrel', () => {

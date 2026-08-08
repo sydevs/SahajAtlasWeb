@@ -70,8 +70,8 @@ export type { ListItemProps } from './ListItem'
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 
-// NOTE: ImageCarousel, EventActions and ShareContent/CopyField are deliberately NOT
-// re-exported — the same rule the organisms barrel states for EventDetails and
+// NOTE: ImageCarousel, EventActions, ShareContent/CopyField and AddToCalendar are
+// deliberately NOT re-exported — the same rule the organisms barrel states for EventDetails and
 // RegistrationForm. Between them they own Swiper and react-share, and this barrel is
 // imported by EAGER views, so the re-export edge alone kept both in the first-load payload
 // of every host page (~45 KiB gz) even though nothing imported them through it. Tree-shaking

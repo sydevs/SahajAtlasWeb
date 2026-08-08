@@ -4,7 +4,9 @@
     "copy": "Копіювати",
     "directions": "Маршрут",
     "share": "Поділитися",
-    "website": "Сайт"
+    "website": "Сайт",
+    "add_calendar": "До календаря",
+    "download_ics": "Завантажити файл .ics"
   },
   "details": {
     "contact_for_timing": "Зв'яжіться з господарем для уточнення часу",

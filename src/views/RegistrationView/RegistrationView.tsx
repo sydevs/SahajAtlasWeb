@@ -50,7 +50,7 @@ export function RegistrationView({
   const { frameEvent } = useMapController()
 
   const { data: event } = useEventFromPath(eventPath)
-  const { display, blockedMessage } = useEventDisplay(event)
+  const { display, blockedMessage, whereLine } = useEventDisplay(event)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -73,6 +73,36 @@ export function RegistrationView({
 
   const selectableDates = display.kind === 'course' ? futureDates.slice(0, 1) : futureDates
 
+  // Calendar-export inputs for the confirmation screen (issue #105). Built HERE
+  // because this view holds the FULL event doc: `getEventDoc` selects the whole
+  // `schedule` group, so it carries the exclusions / untilDate / monthDay /
+  // weekdayOfMonth that the trimmed feed deliberately omits. A feed event would
+  // silently export a series missing its cancelled sessions and its end date.
+  //
+  // `whereLine` is the same one-line place string the rest of the event surfaces
+  // show, so the calendar entry names the venue the way the panel did — but only
+  // for a PHYSICAL event. Online, that line reads "hosted from <somewhere>",
+  // which is where the class originates, not anywhere the viewer goes; as a
+  // calendar LOCATION it would send them to a city they have no business in. The
+  // event's own page rides the description instead (Atlas never holds the join
+  // link — the CMS delivers it after registration).
+  const calendarExport = event.schedule
+    ? {
+        id: event.id,
+        title: event.title,
+        // The FILTERED dates, so the export can't anchor on a session that has
+        // already finished — the same guard the date picker above needed, and the
+        // one thing `lib/ics.ts` cannot re-derive on its own.
+        schedule: { ...event.schedule, upcomingDates: futureDates },
+        location: isOnline(event) ? undefined : whereLine,
+        // The SAME fallback the share block uses. `webUrl` is `SafeUrlSchema`
+        // (`.nullish().catch(null)`), so passing it raw would leave the exported
+        // event with no link back for exactly the events whose CMS url is
+        // missing or non-http — while the share block still had one.
+        url: event.webUrl ?? window.location.href,
+      }
+    : undefined
+
   return (
     <>
       <DrawerHeader className="justify-between">
@@ -86,6 +116,7 @@ export function RegistrationView({
         <EventSummary event={event} />
         {open && !external ? (
           <RegistrationForm
+            calendar={calendarExport}
             eventId={event.id}
             eventTitle={event.title}
             eventUrl={event.webUrl ?? window.location.href}

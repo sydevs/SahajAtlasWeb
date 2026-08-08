@@ -4,7 +4,9 @@
     "copy": "Kopieren",
     "directions": "Route",
     "share": "Teilen",
-    "website": "Webseite"
+    "website": "Webseite",
+    "add_calendar": "Zum Kalender",
+    "download_ics": ".ics-Datei herunterladen"
   },
   "details": {
     "contact_for_timing": "Kontaktieren Sie den Gastgeber für die Zeiten",
