@@ -112,12 +112,28 @@ react-router renders the string as the anchor's `href` — a plain click is inte
 but middle-click, ctrl-click and "copy link address" hand the browser the off-origin URL.
 `src/lib/shape/path.test.ts` pins each case.
 
-The `Link` atom is the backstop: an href that is neither `safePath`-clean nor
-`https:`/`mailto:`/`tel:` renders as text and reports itself, because its internal branch
-hands an absolute `to` to react-router, which puts it on a plain anchor — a `javascript:`
-string arriving there would run in the HOST page's realm.
+### `isSafeHref` is the sink-level gate
 
-Two properties of that guard are load-bearing and were each restored after being lost:
+**`isSafeHref` (`src/lib/shape/href.ts`) is the last thing every caller-supplied href passes
+before it reaches the DOM** — `safePath`-clean OR one of the three allowed schemes
+(`https:`/`mailto:`/`tel:`, case-insensitively, to agree with `SafeUrlSchema` and
+`validateWebUrl` upstream). An href that is neither renders as inert content and reports
+itself via `reportInternalError`; a `javascript:` string reaching an anchor would run in the
+HOST page's realm.
+
+The app renders **three** anchors, and all three ask it (issue #114): the `Link` atom, the
+`Button` atom's href form, and `ActionRow`/`ActionCircle`. The latter two used to render a
+raw `<a href>` that never reached the `Link` atom's copy of the check. Their hrefs were safe
+by *provenance* — a `SafeUrlSchema`-parsed `event.website`, a `directionsUrl` we build,
+literal `mailto:`/`tel:` prefixes — which is not a property the next component or the next
+caller inherits. **No live hole was ever found; the predicate is defense-in-depth.** What
+justifies it is the recurrence rate: the `Link` atom's guard was lost and restored twice,
+and #100 found `//evil.com` passing an `href.startsWith('/')` check that read as correct.
+`ALLOWED_SCHEME` now has exactly one definition and `src/lib/shape/href.test.ts` is the one
+place its cases are pinned.
+
+Three properties of that guard are load-bearing, and the first two were each restored after
+being lost:
 
 - **The href alone decides it, before `isExternal` / `target="_blank"` are read.** Those
   flags say how a link should RENDER; while they shared an expression with the scheme test
@@ -125,13 +141,19 @@ Two properties of that guard are load-bearing and were each restored after being
 - **It calls `safePath`, not `href.startsWith('/')`.** react-router's `ABSOLUTE_URL_REGEX`
   matches a `//` prefix, so `//evil.com` is rendered verbatim *and* loses react-router's
   click interception — a left-click leaves the host page. Reusing `safePath` keeps one
-  definition of "same-origin route" rather than a second, weaker one in the atom.
+  definition of "same-origin route" rather than a second, weaker one in an atom.
+- **Refusing is not failing.** It takes a non-string safely and never throws, because all
+  three anchors render inside the error fallback, where a throw blanks the widget on
+  somebody else's page. The failure mode is identical at each site — report, then render the
+  same content on a non-interactive `<span>` — deliberately not a fall-through to a
+  `<button>`, which would leave a focusable control that does nothing.
 
-The atom is **not** the app's only anchor: the `Button` atom's href form and
-`ActionRow`/`ActionCircle` render their own `<a>` and never reach it. Their hrefs are safe
-by provenance today (`SafeUrlSchema`, a `directionsUrl` we build, literal `mailto:`/`tel:`
-prefixes), not by a shared gate — lifting one predicate into `src/lib/shape/` for all three
-is a known follow-up.
+`hasAllowedScheme` ships from the same module and is **not** a substitute for the gate: it
+answers the RENDERING question (plain `<a>` vs. client-routed) that the `Link` atom needs,
+and on its own it refuses every internal route in the app.
+
+Adding a fourth anchor means calling `isSafeHref` — not writing a fresh check that looks
+correct for its one call site.
 
 ## Mutations (`src/config/api/mutate.ts`)
 
