@@ -14,8 +14,13 @@ const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',
     content: 'min-w-0 truncate uppercase leading-none',
+    // The close button carries the app's standard focus ring, not just the opacity
+    // lift it used to have on its own (issue #102): opacity is also what HOVER does,
+    // so on a chip the pointer happens to be over, a keyboard user got no signal at
+    // all that focus had landed there. The ring is the same
+    // `focus-visible:ring-2 ring-focus` every other control draws.
     close:
-      'shrink-0 rounded-full opacity-60 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100',
+      'shrink-0 rounded-full opacity-60 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },

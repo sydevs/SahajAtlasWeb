@@ -15,12 +15,15 @@ import { useMediaQuery } from 'react-responsive'
  *
  * NOT framer-motion's `useReducedMotion`, despite that already being a dependency: it
  * reads the preference ONCE at mount (`useState(prefersReducedMotion.current)`) and never
- * updates. Worth knowing because the remaining reduced-motion surfaces in the readiness
- * report — the drawers and peek strips — are framer-motion animations whose natural fix
- * is a single `<MotionConfig reducedMotion="user">` in `providers.tsx`. That is the right
- * fix for them, but it runs on the non-reactive read, so the two answers can disagree for
- * the rest of a session in which the viewer flips the setting. Whoever lands it should
- * decide whether to close that gap rather than discover it.
+ * updates.
+ *
+ * That mattered for the drawers and peek strips, and issue #102 settled it: `providers.tsx`
+ * passes `MotionConfig` an explicit `always`/`never` computed from THIS hook, rather than
+ * the `reducedMotion="user"` that would have been the obvious spelling — because `"user"`
+ * runs on framer's own mount-once read, and would have disagreed with the two live seams
+ * beside it (the vaul media query, and mapbox-gl's own check) for the rest of any session
+ * in which the viewer flipped the setting. See `.claude/rules/components.md` for the three
+ * seams and which one a new animation falls under.
  */
 export function usePrefersReducedMotion() {
   return useMediaQuery({ query: '(prefers-reduced-motion: reduce)' })

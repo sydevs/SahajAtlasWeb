@@ -42,9 +42,31 @@ export type SpinnerProps = VariantProps<typeof spinner> & {
    * layered over the control's own label.
    */
   decorative?: boolean
+  /**
+   * The screen-reader-only name for the busy state, used when there is no visible
+   * `label`. It arrives as a prop — like every other atom's copy — rather than the
+   * atom reaching for `t()` itself, and that is deliberate on two counts (issue #102).
+   *
+   * A spinner is what a Suspense fallback renders, and some of those run before the
+   * translation bundles have finished loading; `useTranslation` there resolves to the
+   * raw key, so localizing in here would trade one untranslated string for a worse
+   * one. It would also make this the first atom to depend on react-i18next, pulling
+   * the provider into the render path of every atom that composes it (Button does).
+   *
+   * The default is English because English is the app's `fallbackLng` — a caller with
+   * no translation to hand degrades to exactly the word this used to hard-code.
+   */
+  srLabel?: string
 }
 
-export function Spinner({ color, size, label, className, decorative = false }: SpinnerProps) {
+export function Spinner({
+  color,
+  size,
+  label,
+  className,
+  decorative = false,
+  srLabel = 'Loading',
+}: SpinnerProps) {
   const { base, icon, label: labelClass } = spinner({ color, size })
 
   return (
@@ -69,7 +91,7 @@ export function Spinner({ color, size, label, className, decorative = false }: S
         />
       </svg>
       {label && <span className={labelClass()}>{label}</span>}
-      {!label && !decorative && <span className="sr-only">Loading</span>}
+      {!label && !decorative && <span className="sr-only">{srLabel}</span>}
     </div>
   )
 }

@@ -22,6 +22,26 @@ export const usePaddingState = create<PaddingState>((set) => ({
 const FLY_CURVE = 1.2
 const FLY_SPEED = 1.0
 
+// REDUCED MOTION IS ALREADY HANDLED, AND DELIBERATELY NOT HANDLED HERE (issue #102).
+//
+// This looked like the obvious third place to add a `prefers-reduced-motion` check,
+// beside `providers.tsx` and `styles/vaul.css`. It isn't: mapbox-gl does it itself, in
+// the same three calls this hook makes. `flyTo` short-circuits to `jumpTo` under the
+// preference, `easeTo` sets `duration = 0`, and `fitBounds` reaches one of them through
+// `_fitInternal` — all gated on `_respectPrefersReducedMotion`, which defaults on, and
+// on a media-query read that is live rather than cached (`browser.prefersReducedMotion`
+// re-reads `.matches` per call), so it agrees with our own hook mid-session.
+//
+// Nothing is lost on the way through. flyTo's reduced-motion branch `pick`s
+// `center/zoom/bearing/pitch/around/padding/retainPadding` into the jump, so the drawer
+// offset survives — and `fitBoundsOptions` below contributes only `maxZoom` (consumed by
+// `cameraForBounds` before any of this) and `padding`. A hand-rolled branch here would
+// therefore be a re-implementation that can only drift from the one that actually runs.
+//
+// Two ways to break it, both by addition: setting `respectPrefersReducedMotion: false`
+// on the map, or passing `essential: true` on a camera call — Mapbox's documented opt-out
+// for camera moves that carry meaning. Neither is used, and neither should be.
+
 export function useMapbox() {
   const { mapbox } = useMap()
   const padding = usePaddingState((s) => s.padding)

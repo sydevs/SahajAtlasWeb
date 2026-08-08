@@ -151,5 +151,10 @@
   },
   "widget": {
     "label": "Sahaj Atlas — ingyenes meditációs tanfolyamok"
+  },
+  "back_to": "Vissza ide: %{title}",
+  "map": {
+    "find_my_location": "Helyzetem megkeresése",
+    "location_not_available": "A helymeghatározás nem érhető el"
   }
 }

@@ -151,5 +151,10 @@
     "light": "Tema claro",
     "dark": "Tema escuro",
     "auto": "Sistema (automático)"
+  },
+  "back_to": "Voltar para %{title}",
+  "map": {
+    "find_my_location": "Encontrar minha localização",
+    "location_not_available": "Localização não disponível"
   }
 }
