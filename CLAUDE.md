@@ -221,19 +221,24 @@ Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
 
 ### Releasing (issue #94)
 
-`package.json` carries a real semver version, and the build emits the widget entry
-**twice** from one build: `embed.js` (mutable — every deploy upgrades every host) and
-`v<major>/embed.js`, a per-major compatibility channel a host can install so a major
-bump is something they opt into. The copy is made by
-`scripts/emit-versioned-entry.mjs`, which rebases the entry's `./assets/*` specifiers
-one directory up; it must run **after** `flattenEntryImports` and asserts that it did.
-Bumping `package.json` is the only edit needed to move the path.
+`package.json` carries a real semver version, and the build emits the widget entry at
+`embed.js` **and** at `v<major>/embed.js` — one per supported major — from one build.
+The copies are made by `scripts/emit-versioned-entry.mjs`, which rebases the entry's
+`./assets/*` specifiers one directory up; it must run **after** `flattenEntryImports`
+and asserts that it did (via that module's own `flattenedImports`, so the two cannot
+disagree). Bumping `package.json` is the only edit needed to move the path.
 
-**No URL this repo publishes can pin a *build*** — Pages serves one deployment at a
-time, so a file that stops being emitted stops being served. The corollary is the one
-rule worth remembering: **never let a major stop being emitted without a deprecation
-window** — add the retired one to `LEGACY_CHANNELS` first, because `_redirects` turns
-its absence into the SPA shell at 200 rather than a legible 404.
+**Every channel serves the current build**, so the versioned path is a *declaration* of
+the major a host integrated against — not a code freeze, and not a pin to a build.
+Pages serves one deployment at a time, so nothing here can hold an old build; real
+pinning would need npm + a CDN. Don't let the docs drift back into promising more.
+
+The one hazard is a channel that stops being emitted: `_redirects` turns its absence
+into the SPA shell at 200, not a legible 404, so a pinned host's widget vanishes with
+every gate green. That is why `OLDEST_SUPPORTED_MAJOR` is a **floor** that emits every
+major up to the current one, rather than a list someone has to remember to append to —
+forgetting costs ~5.6 KB, never an outage. The smoke lane asserts every channel the
+floor implies.
 
 `CHANGELOG.md` is host-facing (what an embedding site can observe) and
 **`docs/releasing.md`** is the whole contract: what each URL promises, the

@@ -26,8 +26,10 @@ it. Pinning becomes meaningful at `v1/`; until then `embed.js` is the path to in
 ### Added
 
 - **A versioned embed entry, `v<major>/embed.js`, emitted beside `embed.js`** from the same
-  build, so a host can install a path whose major version cannot change under them.
-  `embed.js` is unchanged and keeps serving the latest build. ([#94])
+  build, so a host's markup records which major it was integrated against and a breaking
+  change can be announced to the sites it affects. Note what it is not: every channel serves
+  the current build, so the path is a declaration rather than a code freeze — see
+  `docs/releasing.md`. `embed.js` is unchanged. ([#94])
 - **This changelog and a release process** (`docs/releasing.md`), covering the version-bump
   procedure, the pin-vs-latest tradeoff, rollback, and the cache-skew failure mode. ([#94])
 - **Three privacy opt-out attributes**, all defaulting to enabled so an existing embed is

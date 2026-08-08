@@ -17,33 +17,48 @@ allowed to do to a host.
 | URL | Contains | Changes when | Install it if |
 | --- | --- | --- | --- |
 | `/embed.js` | latest build, always | every deploy | you want fixes the moment they ship |
-| `/v<major>/embed.js` | latest build **of that major** | every deploy, until the major is retired | you want a major version bump to be something you opt into |
+| `/v<major>/embed.js` | latest build, at a path naming a major | every deploy, until the major is retired | you want your markup to record which major you built against |
 
 Both are served with `cache-control: public, max-age=0, must-revalidate`, and the chunks
 they import are content-hashed and served `immutable`.
 
 ### What the versioned path does and does not promise
 
-**It is a compatibility channel, not an immutable artifact.** `v1/embed.js` carries the
-latest build of major 1 — patches and features arrive there unannounced, exactly as they do
-on `embed.js`. What it buys is the ability to ship a *breaking* change to `embed.js` and
-`v2/` while `v1/` keeps serving code the v1 hosts can still run.
+**Be precise here, because the path looks like it promises more than it does.**
 
-**No URL this repo publishes can pin a build.** Cloudflare Pages serves one deployment at a
-time, so `dist/` is the whole world: a file that stops being emitted stops being served,
-immediately and everywhere. Pinning a *build* would need artifact hosting that keeps old
-versions addressable — publishing to npm and letting jsDelivr/unpkg serve
-`@sahaj/atlas@0.9.0/embed.js` is the usual answer, and it is a real option worth taking
-before third-party (non-first-party) adoption. It is out of scope here; this ticket buys
-the mechanism and the vocabulary, not immutability.
+**Every channel serves the current build.** On any given deploy, `/v0/embed.js` and
+`/v1/embed.js` are byte-identical to `/embed.js`. A host on `/v1/embed.js` is therefore
+**not** insulated from a breaking change by the path alone. The pin is a declaration, not a
+code freeze.
+
+What it actually buys:
+
+1. **A host's markup records the major they integrated against.** That is the thing that did
+   not exist before, and it is what makes a breaking change communicable to the people it
+   affects instead of discovered by them.
+2. **It is the prerequisite for a freeze, not the freeze itself.** Serving v1 hosts the old
+   code when v2 ships means publishing that older build to `v1/` — which this repo does not
+   automate, and which Cloudflare Pages' one-deployment-at-a-time model does not do for
+   free. Doing it would be a deliberate ops act (see the dashboard follow-ups below).
+3. **Real pinning — a host holding a BUILD — needs artifact hosting.** Publishing to npm so
+   a CDN can serve an immutable `@0.9.0` path is the usual answer, and it is a real option
+   worth taking before non-first-party adoption. Out of scope here.
+
+Do not let this section drift back into promising a freeze the mechanism does not perform.
 
 **A retired channel is worse than no channel**, so retiring one is a deliberate act with a
 window. If `v1/embed.js` simply stops being emitted, a pinned host does not get a clean
 404: `public/_redirects` is `/* /index.html 200`, so Cloudflare answers with the SPA shell
 as `text/html` at 200, the host's `<script type="module">` fails to parse, and the widget
-disappears with nothing in the console that names the cause. `LEGACY_CHANNELS` in
-`scripts/emit-versioned-entry.mjs` is where a retired major keeps being emitted; an entry
-there costs about 6 KB per deploy.
+disappears with nothing in the console that names the cause.
+
+The build is arranged so that **cannot happen by forgetting**. `OLDEST_SUPPORTED_MAJOR` in
+`scripts/emit-versioned-entry.mjs` is a floor, and every major from it through the current
+one is emitted automatically — so cutting a release requires no memory, and the failure
+direction is ~5.6 KB of dead weight rather than a channel that vanishes. Retiring a major
+is one reviewable increment of that number, taken after the window has run out.
+`tests/smoke/embed.smoke.test.ts` asserts every channel the floor implies, not just the
+current one.
 
 ### The `0.x` caveat, in force today
 
@@ -99,9 +114,10 @@ What contains it today:
   well-behaved cache revalidates before reuse and never holds a stale copy across a deploy.
 - The chunks are `immutable` with a one-year max-age, which is safe precisely because a
   changed chunk ships under a new URL.
-- `tests/smoke/embed.smoke.test.ts` crawls both entries against the deployed preview and
-  fails if any chunk they name is missing — catching the *deploy-side* half, an entry
-  published without its chunks.
+- `tests/smoke/embed.smoke.test.ts` crawls `embed.js`'s whole transitive chunk graph against
+  the deployed preview and fails if any of it is missing — catching the *deploy-side* half,
+  an entry published without its chunks — and pins every channel's specifiers to that same
+  set, so a channel can never point at a different build's chunks.
 
 What is **not** contained: a host-side proxy or a WordPress caching plugin that ignores
 revalidation. Those exist, we cannot reach them, and the honest mitigation is that the
@@ -116,9 +132,9 @@ window is short and a hard refresh clears it. Do not describe this as solved.
    **major**. Internal refactors are not a release at all.
 2. **Bump `package.json`.** The channel path is derived from it (`channelFor`), so this is
    the single source of truth — nothing else needs editing to move the path.
-3. **On a major bump, add the outgoing major to `LEGACY_CHANNELS`** in
-   `scripts/emit-versioned-entry.mjs`, in the same commit. Skipping this is what turns a
-   release into an outage for every pinned host.
+3. **A major bump needs nothing extra** — the outgoing major keeps being emitted, because
+   `OLDEST_SUPPORTED_MAJOR` is a floor rather than a list to append to. Retiring one is a
+   separate, deliberate commit that raises the floor.
 4. **Rename `## [Unreleased]` to `## [x.y.z] — YYYY-MM-DD`** in `CHANGELOG.md` and open a
    fresh empty `Unreleased` above it.
 5. **Merge, and confirm the deploy is green.** The deploy is the release — there is no

@@ -2,19 +2,79 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, test } from 'vitest'
 
-import { channelFor } from '../../scripts/emit-versioned-entry.mjs'
+import { currentChannel, supportedChannels } from '../../scripts/emit-versioned-entry.mjs'
 
 import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
 /**
- * The channel directory the deploy is expected to publish, derived from the SAME function
- * the build derives it from (issue #94). Hardcoding `v0` here would let a version bump
- * move the emitted path while this spec kept proving the old one was still served — which
- * it would be, as the SPA shell, with a 200.
+ * Read straight from package.json, then handed to the same `supportedChannels` the build
+ * uses. Hardcoding a channel here would let a version bump move the emitted paths while
+ * this spec kept proving an old one — which it would still "prove", as the SPA shell.
  */
-const CHANNEL = channelFor(
-  JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version,
-)
+const VERSION: string = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+).version
+
+/**
+ * Every relative `.js` specifier in a built module, deduped.
+ *
+ * BACKTICKS matter as much as the shape. rolldown's minifier emits dynamic specifiers as
+ * template literals — `import(\`./CalendarView-<hash>.js\`)` — so a class of only `"` and
+ * `'` matched the static imports and silently skipped every lazy chunk in the build.
+ *
+ * `\.\.?/` covers `../` as well as `./`: chunks under `assets/` reference siblings, but the
+ * versioned entry climbs out of its channel directory (issue #94), and one regex for both
+ * describes is one fewer place for that claim to drift.
+ */
+const specifiersIn = (source: string) => [
+  ...new Set([...source.matchAll(/["'`](\.\.?\/[^"'`]+\.js)["'`]/g)].map(([, s]) => s)),
+]
+
+/**
+ * Resolve a specifier against the path of the module that named it. `new URL` rather than
+ * string surgery, so `./` and `../` are handled by the same rule the browser uses — the
+ * origin is a throwaway, only the pathname is read.
+ */
+const resolveFrom = (path: string, specifier: string) =>
+  new URL(specifier, `https://smoke.invalid${path}`).pathname
+
+/**
+ * One GET per URL for the whole file. `retry: 2` in `vitest.smoke.config.ts` re-runs a
+ * whole failing spec, so an unmemoized fetch is really three, and several specs here read
+ * the same two entry files. Lazy rather than a `beforeAll`, so a run with no preview URL
+ * skips without ever touching the network.
+ *
+ * A failure is NOT cached. Caching one would quietly defeat the retry it was written to
+ * economise on: the preview is an edge deploy published seconds earlier, which is exactly
+ * when a transient 5xx or a dropped connection happens, and re-awaiting a settled rejection
+ * makes all three attempts identical and instant.
+ */
+const responses = new Map<string, Promise<{ status: number; type: string; body: string }>>()
+
+function fetchOnce(path: string) {
+  let pending = responses.get(path)
+
+  if (!pending) {
+    pending = fetchPreview(path)
+      .then(async (res) => {
+        if (res.status !== 200) responses.delete(path)
+
+        return {
+          status: res.status,
+          type: res.headers.get('content-type') ?? '',
+          body: await res.text(),
+        }
+      })
+      .catch((err) => {
+        responses.delete(path)
+        throw err
+      })
+
+    responses.set(path, pending)
+  }
+
+  return pending
+}
 
 // Smoke test: does the deploy serve the thing a HOST installs?
 //
@@ -28,38 +88,9 @@ const CHANNEL = channelFor(
 // (`.claude/rules/tests.md`), and booting the widget in a real browser belongs
 // to local Playwright verification, not CI.
 
-/**
- * The embed bundle, fetched once and shared. Both specs need the same body, and
- * `retry: 2` in the smoke config would otherwise triple the round trips. Lazy
- * rather than a `beforeAll`, so a run with no preview URL skips without ever
- * touching the network.
- *
- * A failure is NOT cached. Caching one would quietly defeat the retry it was
- * written to economise on: the preview is an edge deploy published seconds
- * earlier, which is exactly when a transient 5xx or a dropped connection
- * happens, and re-awaiting a settled rejection makes all three attempts
- * identical and instant.
- */
-let embed: Promise<{ status: number; body: string }> | undefined
-
-function fetchEmbed() {
-  embed ??= fetchPreview('/embed.js')
-    .then(async (res) => {
-      if (res.status !== 200) embed = undefined
-
-      return { status: res.status, body: await res.text() }
-    })
-    .catch((err) => {
-      embed = undefined
-      throw err
-    })
-
-  return embed
-}
-
 describe('embed bundle', () => {
   test.skipIf(skipWithoutPreview)('serves embed.js with the widget registration', async () => {
-    const { status, body } = await fetchEmbed()
+    const { status, body } = await fetchOnce('/embed.js')
 
     expect(status).toBe(200)
     expect(body.length).toBeGreaterThan(0)
@@ -73,7 +104,7 @@ describe('embed bundle', () => {
   })
 
   test.skipIf(skipWithoutPreview)('serves every chunk embed.js references', async () => {
-    const { body } = await fetchEmbed()
+    const { body } = await fetchOnce('/embed.js')
 
     // `embed.js` is unhashed and mutable while the chunks it names are hashed,
     // so a host (or proxy) holding a stale embed.js can ask for names the deploy
@@ -88,20 +119,10 @@ describe('embed bundle', () => {
     // so a one-level crawl stopped covering the calendar, registration and share chunks
     // the moment those moved behind `React.lazy` (issue #96). Following each body means
     // the set is the whole deploy the widget can ever ask for, however deep the seam.
-    // BACKTICKS matter as much as the transitivity. rolldown's minifier emits dynamic
-    // specifiers as template literals — `import(\`./CalendarView-<hash>.js\`)` — so a class
-    // of only `"` and `'` matched the static imports and silently skipped every lazy chunk
-    // in the build. The comment above has claimed otherwise since this spec was written.
-    const RELATIVE_JS = /["'`](\.\/[^"'`]+\.js)["'`]/g
-    // Chunks reference each other relative to their OWN directory. `embed.js` sits at the
-    // root and points into `./assets/`; everything under `assets/` points at siblings.
-    const resolveFrom = (path: string, spec: string) =>
-      `${path.slice(0, path.lastIndexOf('/'))}/${spec.replace(/^\.\//, '')}`
+    //
+    // `specifiersIn` / `resolveFrom` are shared with the versioned-channel describe below,
+    // so the specifier shape and the path arithmetic have one definition each.
 
-    // The status alone proves nothing here. `public/_redirects` is `/* /index.html 200`,
-    // so a chunk the deploy is missing comes back as the SPA shell with a 200 — a check on
-    // `res.status` would pass for precisely the failure this spec exists to catch. The
-    // content type is what distinguishes a real chunk from the fallback HTML.
     const broken: string[] = []
     const seen = new Set<string>()
     const queue = ['/embed.js']
@@ -113,7 +134,7 @@ describe('embed bundle', () => {
 
       if (!source) continue
 
-      for (const [, spec] of source.matchAll(RELATIVE_JS)) {
+      for (const spec of specifiersIn(source)) {
         const next = resolveFrom(path, spec)
 
         if (seen.has(next)) continue
@@ -122,17 +143,14 @@ describe('embed bundle', () => {
 
         // GET, not HEAD: the body is both the assertion and the next frontier. The whole
         // deploy is ~440 KiB gzipped, and this lane runs separately from the PR gate.
-        const res = await fetchPreview(next)
-        const type = res.headers.get('content-type') ?? ''
+        const { status, type, body: text } = await fetchOnce(next)
 
-        if (res.status === 200 && /javascript|ecmascript/i.test(type)) {
-          const text = await res.text()
-
+        if (status === 200 && /javascript|ecmascript/i.test(type)) {
           bodies.set(next, text)
           queue.push(next)
         } else {
           bodies.set(next, '')
-          broken.push(`${next} → ${res.status} ${type}`)
+          broken.push(`${next} → ${status} ${type}`)
         }
       }
     }
@@ -145,68 +163,63 @@ describe('embed bundle', () => {
   })
 })
 
-// The versioned channel (issue #94). `embed.js` above is the mutable URL every host shares;
-// this is the per-major path a host installs to keep a major bump from arriving unannounced.
-// It is emitted as a COPY of the entry with its specifiers rebased one directory up, and
-// nothing local can prove that rebase is right: the bytes are identical either way, so
-// `pnpm size` and `pnpm build` both stay green while every chunk import 404s.
-describe(`versioned embed channel (/${CHANNEL})`, () => {
-  /** Relative specifiers in a built module, in source order. */
-  const specifiersIn = (source: string) => [
-    ...new Set([...source.matchAll(/["'`](\.\.?\/[^"'`]+\.js)["'`]/g)].map(([, s]) => s)),
-  ]
+// The versioned channels (issue #94). `embed.js` above is the mutable URL every host
+// shares; these are the per-major paths whose presence lets a host declare which major they
+// integrated against. Each is a COPY of the entry with its specifiers rebased one directory
+// up, and nothing local can prove that rebase is right: the bytes are identical either way,
+// so `pnpm build` and `pnpm size` both stay green while every chunk import 404s.
+//
+// EVERY supported channel, not just the current one. A release that stopped emitting an
+// older major would take a pinned host's widget away silently — `_redirects` answers the
+// missing path with the SPA shell at 200 — and a spec that only checked the current channel
+// would stay green right through it.
+describe('versioned embed channels', () => {
+  const channels = supportedChannels(VERSION)
 
-  test.skipIf(skipWithoutPreview)('serves the versioned entry as the widget', async () => {
-    const res = await fetchPreview(`/${CHANNEL}/embed.js`)
+  test.skipIf(skipWithoutPreview)(`publishes ${channels.join(', ')}`, async () => {
+    expect(channels).toContain(currentChannel())
 
-    // Content type, not status. `_redirects` is `/* /index.html 200`, so an unpublished
-    // channel comes back as the SPA shell with a 200 — the exact failure this spec exists
-    // to catch would pass a status check.
-    expect(res.headers.get('content-type') ?? '').toMatch(/javascript|ecmascript/i)
+    const notServed: string[] = []
 
-    const body = await res.text()
+    for (const channel of channels) {
+      const { type, body } = await fetchOnce(`/${channel}/embed.js`)
 
-    // Not a stub or a redirect page: the custom-element registration from src/Widget.tsx.
-    expect(body).toContain('customElements.define')
-    expect(body).toContain('sahaj-atlas')
-  })
+      // Content type, not status. `_redirects` is `/* /index.html 200`, so an unpublished
+      // channel comes back as the SPA shell with a 200 — the exact failure this spec exists
+      // to catch would pass a status check. The registration from src/Widget.tsx then says
+      // it is the widget rather than some other JavaScript.
+      const ok =
+        /javascript|ecmascript/i.test(type) &&
+        body.includes('customElements.define') &&
+        body.includes('sahaj-atlas')
 
-  test.skipIf(skipWithoutPreview)('resolves its chunks from the channel directory', async () => {
-    const body = await (await fetchPreview(`/${CHANNEL}/embed.js`)).text()
-    const specifiers = specifiersIn(body)
-
-    expect(specifiers.length).toBeGreaterThan(0)
-
-    // Every one must CLIMB. A copy that kept `./assets/…` would ask for
-    // `/<channel>/assets/…`, which does not exist — and would be answered by the SPA shell
-    // with a 200, so only the content type below can tell.
-    expect(specifiers.filter((s) => !s.startsWith('../'))).toEqual([])
-
-    const broken: string[] = []
-
-    for (const specifier of specifiers) {
-      const res = await fetchPreview(`/${CHANNEL}/${specifier}`.replace(/\/[^/]+\/\.\.\//, '/'))
-      const type = res.headers.get('content-type') ?? ''
-
-      if (!(res.status === 200 && /javascript|ecmascript/i.test(type))) {
-        broken.push(`${specifier} → ${res.status} ${type}`)
-      }
+      if (!ok) notServed.push(`${channel} → ${type || 'no content-type'}`)
     }
 
-    expect(broken).toEqual([])
+    expect(notServed).toEqual([])
   })
 
-  // One build, two entry paths — not a post-build copy taken from some other deploy. If
-  // these sets ever diverge, the pinned path is serving an entry whose chunks belong to a
-  // different build, which is the cache-skew failure the channel exists to make avoidable.
-  test.skipIf(skipWithoutPreview)('names the same chunks as the mutable entry', async () => {
-    const [versioned, mutable] = await Promise.all(
-      [`/${CHANNEL}/embed.js`, '/embed.js'].map(async (p) => (await fetchPreview(p)).text()),
-    )
+  // The rebase, and the fact that both paths came out of ONE build.
+  //
+  // There is deliberately no fetch of the channel's chunks here. They resolve to the very
+  // `/assets/…` URLs the crawl above already fetched and asserted — a strict subset — so
+  // re-requesting them would spend a round trip each to re-learn the same thing. What is
+  // genuinely unproven is textual: that the specifiers CLIMB (a copy that kept `./assets/…`
+  // would ask for `/<channel>/assets/…`, which the SPA shell answers at 200), and that the
+  // set matches the mutable entry's, which is what makes them one build rather than a copy
+  // taken from some other deploy.
+  test.skipIf(skipWithoutPreview)('climbs to the same chunks as the mutable entry', async () => {
+    const mutable = await fetchOnce('/embed.js')
+    const expected = specifiersIn(mutable.body).map((s) => resolveFrom('/embed.js', s))
 
-    const normalize = (specifiers: string[]) =>
-      specifiers.map((s) => s.replace(/^\.\.?\//, '')).sort()
+    expect(expected.length).toBeGreaterThan(0)
 
-    expect(normalize(specifiersIn(versioned))).toEqual(normalize(specifiersIn(mutable)))
+    for (const channel of channels) {
+      const { body } = await fetchOnce(`/${channel}/embed.js`)
+      const specifiers = specifiersIn(body)
+
+      expect(specifiers.filter((s) => !s.startsWith('../'))).toEqual([])
+      expect(specifiers.map((s) => resolveFrom(`/${channel}/embed.js`, s))).toEqual(expected)
+    }
   })
 })
