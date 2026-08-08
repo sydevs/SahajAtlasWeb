@@ -17,7 +17,7 @@ outcomes, not implementation details.]
 [Optional. Only if non-obvious from the file list — e.g. multi-file refactors
 where the structural change isn't apparent from individual diffs.]
 
-- `src/components/mapbox/layers.ts` — [what changes]
+- `src/components/organisms/Mapbox/layers.ts` — [what changes]
 
 ## Verification
 

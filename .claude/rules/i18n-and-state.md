@@ -66,7 +66,7 @@ alwaysApply: false
 
 ## zustand stores (`src/config/store.ts`)
 
-Five stores, each the single source of truth for its slice:
+Six stores, each the single source of truth for its slice:
 
 - **`useViewState`** — map camera (`zoom/latitude/longitude`), current
   `selection`, and `boundary`. The map's hot path reads it via a `useShallow`

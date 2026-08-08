@@ -53,7 +53,8 @@ and `src/config/api/auth.ts`.
 - **`https://ipwho.is`** — free, keyless IP-geolocation used by `useIpLocation`
   (`src/hooks/use-ip-location.ts`) to power the passive "events near you"
   suggestion. One lookup per session via a **bare `fetch`** — deliberately not the
-  shared axios client, whose interceptor would attach the SahajCloud
+  shared PayloadSDK client, whose wrapped `fetch` (`interceptFetch` →
+  `applyRequestContext`, `src/config/api/client.ts`) would attach the SahajCloud
   `Authorization: clients API-Key …` and `locale` to a third-party host. No secret
   and nothing to configure (the origin is a constant); the bundle is public. The
   lookup **fails silently** (returns `null`, no prompt) on any error — a host page's

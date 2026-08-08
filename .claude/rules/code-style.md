@@ -50,7 +50,8 @@ style rather than assuming the class works.
 - **Components** use **PascalCase, folder-per-component** (mirroring WeMeditateWeb):
   `src/components/<tier>/<Name>/{<Name>.tsx, <Name>.stories.tsx, index.ts}` — e.g.
   `atoms/Drawer/Drawer.tsx`. A folder may hold a small family of related
-  exports named after the primary (e.g. `EventShare/`). Views (`src/views/`)
+  exports named after the primary (e.g. `ShareContent/`, which also exports
+  `CopyField`). Views (`src/views/`)
   follow the same convention. See `DESIGN_SYSTEM.md`.
 - **Everything else stays kebab-case**: hooks (`use-mapbox.ts`), config
   (`store.ts`), types (`event.ts`), and

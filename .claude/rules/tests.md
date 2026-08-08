@@ -45,8 +45,10 @@ Mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, 
 there is **no `@testing-library/react`**. Cover:
 
 - **Logic & contracts** — zod schemas (`src/types/`), zustand stores
-  (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the api
-  interceptor (`src/config/api/fetch.ts`).
+  (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the
+  per-request context the SDK client attaches (`applyRequestContext` /
+  `interceptFetch`, `src/config/api/client.ts`) and the fetchers that parse
+  through it (`src/config/api/fetch.ts`).
 - **Presentational components** — assert the SSR output with
   `renderToStaticMarkup` from `react-dom/server` (see
   `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover, portals,
@@ -95,8 +97,8 @@ the pure part encodes a foreign contract.
   small factory objects in the spec. Don't add a `tests/fixtures/` dump — keep
   fixtures next to the assertions that use them.
 - **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see
-  `src/config/api/fetch.test.ts`): mock `axios` / `@/config/i18n`, not our own
-  logic. Don't test Radix / react-map-gl / library internals — only *our*
+  `src/config/api/fetch.test.ts`): mock `@payloadcms/sdk` / `@/config/i18n`, not
+  our own logic. Don't test Radix / react-map-gl / library internals — only *our*
   contracts.
 
 ## Type-checking & the edit-loop hook
