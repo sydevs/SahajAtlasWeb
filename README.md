@@ -26,7 +26,7 @@ frame-src   https://challenges.cloudflare.com
 img-src     https://react-circle-flags.pages.dev
 font-src    <the origin you load the widget from>
 style-src   'unsafe-inline'
-connect-src https://ipwho.is https://cdn.usefathom.com
+connect-src https://ipwho.is https://cdn.usefathom.com https://*.sentry.io
 ```
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name
@@ -55,10 +55,27 @@ country lists no classes. Blocking it costs only the flag glyphs; the lists and 
 offer still render, and the requests carry `referrer-policy: no-referrer`, so your
 page's URL is never sent there.
 
-The last three lines cover the two third-party data flows described under
+The three `connect-src` hosts, and the two `usefathom.com` sources, cover the
+third-party data flows described under
 [Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
-below; both can be switched off, and blocking either in your CSP costs only the feature
-it serves.
+below; every one of them can be switched off, and blocking any of them in your CSP costs
+only the feature it serves.
+
+`https://*.sentry.io` is the crash reporter. It is contacted **only after the widget has
+already failed**, never during normal use, and only on a build configured with a DSN — so
+on a healthy page there is no such request to block.
+
+The wildcard is deliberately that wide. A CSP host wildcard matches a **suffix only**, and
+Sentry organisations created since 2024 get a *regional* ingest host
+(`o123.ingest.us.sentry.io`, `…de.sentry.io`) which `*.ingest.sentry.io` does **not**
+match — a policy written that way would look correct and silently block everything. If you
+prefer to name one host, take the exact one from the DSN rather than deriving it.
+
+Leaving it out of your policy is a supported choice: the widget notices the refusal, stops
+trying for the rest of the page's life, and behaves exactly as it would with reporting
+switched off. You get one blocked request and one CSP-violation entry, not one per error.
+If you would rather it never attempt the request at all, `error-reporting="false"` is the
+explicit way to say so.
 
 `style-src 'unsafe-inline'` is the one hard ask: the widget has no stylesheet to link — it
 registers its CSS by appending `<style>` elements, which carry no nonce. Without it the
@@ -136,6 +153,20 @@ an attribute that turns it off:
   persistent identifier and records no form value. `DNT` is honoured in the sense Fathom
   implements — a visitor sending the header is not counted — but the script itself is
   still fetched, so their IP does reach Fathom.
+- **`*.ingest.sentry.io` — crash reporting.** Sent **only when the widget has already
+  broken**, so a healthy page never contacts it, and only on a build configured with a
+  DSN. An event carries the error and its stack from our own code, which of the widget's
+  screens failed, and **your page as origin and path only — never its query string or
+  fragment**, which on your site can carry a reset token, an OAuth `#access_token` or an
+  email address. Nothing else is collected: the reporter runs with every default
+  integration switched off, so it installs no global error handler on your page (your own
+  scripts' exceptions are never captured), records no breadcrumbs of your console output,
+  clicks or network requests, and reads no form value, cookie or storage key. There is no
+  session replay. As with any request, your visitor's IP reaches Sentry in transit. Two
+  failures are deliberately never reported at all: a visitor who is simply offline, and a
+  dead link. Set **`error-reporting="false"`** and nothing is ever sent; you lose only our
+  ability to find out that the widget is broken on your site before somebody emails us a
+  screenshot.
 - **`api.mapbox.com` and `events.mapbox.com` — the map.** Unavoidable if you render one:
   tiles, styles and fonts come from `api.mapbox.com`, the place search sends the
   visitor's **typed query** and the current map centre there, and Mapbox GL posts a
@@ -149,7 +180,7 @@ an attribute that turns it off:
   above; neither carries an identifier.
 
 ```html
-<sahaj-atlas api-key="…" analytics="false" geolocation="false"></sahaj-atlas>
+<sahaj-atlas api-key="…" analytics="false" geolocation="false" error-reporting="false"></sahaj-atlas>
 ```
 
 Two things a visitor can send us on purpose, both on submit and never in the background:

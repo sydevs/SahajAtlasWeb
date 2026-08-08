@@ -1,5 +1,7 @@
 import type { Report } from '@/types/report'
 
+import privacy from '@/config/privacy'
+
 /**
  * Narrow an unknown thrown value to a displayable message.
  *
@@ -152,29 +154,338 @@ export function classifyError(error: unknown): ErrorKind {
  */
 const LOG_PREFIX = 'sahaj-atlas'
 
+// ── Automatic error reporting (issue #108) ──────────────────────────────────────
+
 /**
- * Record a failure that happened *while rendering an error state* (issue #89).
+ * Which classified kinds earn a Sentry event.
  *
- * The error screen is the last thing between a viewer and a blank widget on someone else's
- * page, so nothing it does may throw — but a swallowed failure that no one ever sees is how
- * a broken recovery path survives for months. This is the seam that keeps both: callers
- * degrade gracefully AND the cause is recorded.
+ * Not every failure a boundary renders is news, and two are deliberately silent for
+ * reasons `ERROR_POLICY` already acts on where a *viewer* can see them:
  *
- * **This and `reportIntegrationWarning` below are the only call sites a real error
- * reporter needs to know about.** There is none in this repo
- * today (the only telemetry is `fathom-client`, for page views), so this logs to the
- * console; wiring Sentry or similar means changing this function and nothing else. Adding
- * one is a deliberate non-goal here: it would be a new dependency in a public bundle,
- * needs a DSN, and needs every host page to allow its `connect-src`.
+ *  - **`offline`** — the browser itself says there is no link. Nothing on our side is
+ *    broken, and the POST that would carry the news needs the network that just failed.
+ *    It is the same reasoning that withholds the report CTA from a viewer here: asking
+ *    anyone — a person or a beacon — to tell us about their own dropped connection
+ *    spends an attempt that cannot arrive.
+ *  - **`not-found`** — a dead link is not a malfunction. These are somebody's stale
+ *    bookmark or a region unpublished in the CMS, and a project filling up with other
+ *    people's expired URLs is a project nobody reads. It is why the viewer gets the
+ *    neutral register rather than the danger one.
  *
- * Its own body is guarded, because a host page is free to replace `console.error` with
- * something that throws — and logging must never be the thing that takes the widget down.
+ * The three that remain are the ones a maintainer can act on: **`server`** (SahajCloud is
+ * down — or a CORS/CSP block is being reported as one), **`config`** (a customer's API key
+ * is wrong or expired, so their embed is dead on arrival), and **`unknown`** (ours — a
+ * render crash, a schema drift, a refused link).
+ *
+ * A row here is one line to flip, on purpose. If a 404 spike ever turns out to be our own
+ * routing rather than the world's stale links, this is where that gets decided — not in a
+ * condition spelled out somewhere in the call path.
+ */
+const REPORTED_KINDS: Record<ErrorKind, boolean> = {
+  offline: false,
+  'not-found': false,
+  server: true,
+  config: true,
+  unknown: true,
+}
+
+/**
+ * How this module talks to the loaded SDK — one function wide, so nothing above the seam
+ * ever holds a Sentry object and the import's shape stays a local concern.
+ */
+type Reporter = (error: unknown, kind: ErrorKind, context: string) => void
+
+/**
+ * The load, memoized for the life of the page. `undefined` — never attempted; a promise
+ * resolving to `null` — attempted and unavailable, which is remembered on purpose (see
+ * `captureError`).
+ */
+let reporterLoad: Promise<Reporter | null> | undefined
+
+/**
+ * A hard ceiling on events per page load, and how many have gone.
+ *
+ * `dedupeIntegration` collapses the identical repeats — the `Link`-per-row case — but it
+ * compares against the PREVIOUS event only, so a screen failing several different ways in
+ * a loop slips straight through it. The two are not the same mechanism doing one job:
+ * dedupe is about accuracy (one issue, not fifty), this is the absolute bound.
+ *
+ * It matters more here than in an app that owns its page. A runaway render loop on
+ * somebody else's site would spend their visitor's bandwidth and our quota, and the first
+ * few events already say everything the fiftieth would.
+ */
+const MAX_EVENTS_PER_PAGE = 10
+let sent = 0
+
+/**
+ * The DSN, if reporting is live at all — two gates, both read per call rather than once
+ * at module load.
+ *
+ * An absent `VITE_SENTRY_DSN` is the default posture and the important one: the `import()`
+ * below is then never reached, so the SDK is never fetched and the behaviour is exactly
+ * the console-only one this seam had before. `privacy.errorReporting` is the host's veto
+ * (`error-reporting="false"`), read live so a host that changes the attribute mid-session
+ * is honoured from the next failure rather than the next reload.
+ */
+function reportingDsn(): string | null {
+  const dsn = import.meta.env.VITE_SENTRY_DSN
+
+  return typeof dsn === 'string' && dsn && privacy.errorReporting ? dsn : null
+}
+
+/**
+ * Build the reporter: fetch the SDK, stand up a client, and hand back the one call.
+ *
+ * **A `BrowserClient` on a private `Scope`, deliberately — NOT `Sentry.init`.** `init`
+ * installs global `onerror` / `onunhandledrejection` handlers on the page, and this widget
+ * lives in somebody else's. It would capture the HOST's unrelated exceptions into our
+ * project: their bugs in our issue list, their quota spend on our plan, their inline
+ * script's stack trace on our servers. A client bound to a scope we own captures the
+ * errors we hand it and nothing else, which is also what makes it the leanest shape —
+ * Sentry documents this same pattern for tree-shaking.
+ */
+async function loadReporter(dsn: string): Promise<Reporter | null> {
+  // Dynamic on purpose. `report.ts` is in the eager graph — App, Widget, the Link atom and
+  // every fallback import it — so a static import would put the whole SDK in front of
+  // first paint for the overwhelming majority of sessions that never fail. This way the
+  // only visitor who pays for it is one already looking at a broken widget.
+  const {
+    BrowserClient,
+    Scope,
+    dedupeIntegration,
+    defaultStackParser,
+    linkedErrorsIntegration,
+    makeFetchTransport,
+  } = await import('@sentry/browser')
+
+  // Whether the ingest endpoint has refused us. See the transport below: this is the
+  // latch that makes "one blocked request, not one per error" true.
+  let refused = false
+
+  const client = new BrowserClient({
+    dsn,
+    /**
+     * The fetch transport, wrapped so that the FIRST refusal is the last attempt.
+     *
+     * Sentry's own transport does not learn from a blocked request. It records a
+     * `network_error` outcome and rethrows; `Client.sendEnvelope` catches that and returns
+     * `{}`. The only back-off state it keeps comes from `X-Sentry-Rate-Limits` on a
+     * *response* — and a request the host's CSP blocked never produces one. So without
+     * this, a host whose `connect-src` omits the ingest origin would get one blocked
+     * request AND one browser CSP-violation error in their console for every reported
+     * failure, for the life of the page.
+     *
+     * That is precisely the noise this seam exists to avoid, and it is a promise the
+     * README makes to integrators — that declining the origin costs them nothing. The
+     * latch is what makes the promise true.
+     */
+    transport: (options) => {
+      // The second argument matters on a page we don't own. Left off, the transport calls
+      // `getNativeImplementation('fetch')`, which — if anything on the host has wrapped
+      // `window.fetch`, as every analytics and consent script does — creates a HIDDEN
+      // IFRAME in their `<head>` to salvage a pristine one, and does it again on each
+      // failed send. Handing it the page's `fetch` keeps us out of their DOM; a wrapped
+      // fetch is not our problem to route around.
+      const inner = makeFetchTransport(options, (...args) => fetch(...args))
+
+      return {
+        ...inner,
+        send: (envelope) => {
+          if (refused) return Promise.resolve({})
+
+          return Promise.resolve(inner.send(envelope)).catch(() => {
+            refused = true
+
+            return {}
+          })
+        },
+      }
+    },
+    stackParser: defaultStackParser,
+    environment: import.meta.env.MODE,
+    // Explicit rather than inherited: `false` is already the default, but the whole
+    // posture of this file is that what we do NOT send is a decision, not an accident.
+    sendDefaultPii: false,
+    // The SAME cap the human report applies to a thrown message, for the same reason and
+    // now from one place. `exception.value` is otherwise uncapped — v10's
+    // `applyClientOptions` truncates only `if (maxValueLength)`, and there is no default —
+    // and a thrown message is not always ours: engines build their own, sometimes out of
+    // the very URL we are careful never to send (see `claimFragment` in `Widget.tsx`).
+    maxValueLength: MAX_ERROR_LENGTH,
+    // Both of these override a default that reaches OUT of the widget, which is the one
+    // class of default a thing embedded in someone else's page cannot accept:
+    //
+    //  - `release` defaults to `window.SENTRY_RELEASE?.id` — a global belonging to the
+    //    HOST. A site running its own Sentry would silently stamp every one of our events
+    //    with THEIR release version, so our issues would claim to come from a deploy that
+    //    isn't ours. Pinned to nothing until we have a real build version to put here.
+    //  - `sendClientReports` defaults to true, which posts a periodic outcome summary to
+    //    the ingest endpoint when the page is hidden. It is SDK bookkeeping we have no use
+    //    for, and it would turn one crash into a second uninvited request from their page.
+    release: undefined,
+    sendClientReports: false,
+    // **An explicit, minimal list — required, and not for the reason it looks like.**
+    //
+    // It would be easy to read this as "defaults off". It isn't: `getDefaultIntegrations`
+    // runs inside `Sentry.init`, and a bare `new BrowserClient(...)` never installs a
+    // default integration at all. What makes the option load-bearing is that `Client.init`
+    // does `this._options.integrations.some(...)`, which THROWS on `undefined` — inside a
+    // fallback, where a throw blanks the widget.
+    //
+    // So nothing here is being suppressed; the two below are being chosen, and each is a
+    // pure event processor that touches nothing on the host page:
+    //
+    //  - `dedupe` — the seam is now called from render bodies. `Link` reports a refused
+    //    href while rendering, so ONE malformed `webPath` in a search-results list is one
+    //    event per row per render pass. That was free while this was console-only.
+    //  - `linkedErrors` — walks `error.cause`. Without it the chain is dropped, which is
+    //    most of the diagnostic value whenever a foreign failure is rethrown as ours.
+    //
+    // What we still decline is everything that reaches OUT of the widget, and none of it
+    // is reachable from here anyway: `GlobalHandlers` would hook the host's own error
+    // events, `Breadcrumbs` would record their console output, DOM clicks and the full URL
+    // of every fetch their page makes, `HttpContext` would set `request.url` from
+    // `location.href` — the one string `hostPageUrl` exists to avoid.
+    integrations: [dedupeIntegration(), linkedErrorsIntegration()],
+    beforeSend: (event, hint) => {
+      // **An allowlist, not a blocklist** — because the scope we capture on is not as
+      // private as `new Scope()` makes it look. `getCombinedScopeData` always merges
+      // `getGlobalScope()`, and the global carrier is keyed by SDK *version string*: a
+      // host page running this same `@sentry/browser` version shares that carrier with
+      // us. Their `setTag`/`setExtra`/`setContext` would ride out on OUR events, and ours
+      // on theirs — the cross-tenant contamination #95 found between two Fathom trackers,
+      // one layer down. So the event is rebuilt from what we know we put on it rather
+      // than trimmed of what we happened to think of.
+      //
+      // Dropping `extra` closes a second hole on its own: a thrown plain object is
+      // serialized into it wholesale, so anything a caller threw instead of an `Error`
+      // would leave the page in full.
+      event.tags = {
+        'atlas.kind': event.tags?.['atlas.kind'],
+        'atlas.context': event.tags?.['atlas.context'],
+      }
+      delete event.user
+      delete event.extra
+      delete event.contexts
+      delete event.breadcrumbs
+
+      // `request.url` is set, not deleted: the host page is the most useful field on the
+      // event, and `hostPageUrl` is the form we are allowed to have — origin and path,
+      // never the query or fragment, which on somebody else's site can carry a
+      // password-reset token, an OAuth `#access_token` or an email address. One policy,
+      // two paths out (see the docblock on `hostPageUrl` below).
+      //
+      // NOTE this genuinely costs us something here that it does not cost the human
+      // report. That docblock says nothing diagnostic is lost because the in-widget route
+      // travels separately as `path` — true there, false here: under HashRouter the
+      // widget's route IS the fragment. `atlas.context` names the boundary, which is the
+      // cheap part of what we gave up; carrying the route as its own tag is a follow-up.
+      event.request = { url: hostPageUrl() }
+
+      // Attachments are appended AFTER this hook, so nothing above can remove one. Only
+      // the host could have set it (we never attach), which is exactly why it goes.
+      if (hint) hint.attachments = []
+
+      return event
+    },
+  })
+
+  const scope = new Scope()
+
+  scope.setClient(client)
+  client.init()
+
+  return (error, kind, context) => {
+    // A CHILD scope per event. Tags set on the shared one persist, so the second failure
+    // of a session would arrive wearing the first one's kind — and a mislabelled event is
+    // worse than an unlabelled one.
+    const event = scope.clone()
+
+    event.setTag('atlas.kind', kind)
+    event.setTag('atlas.context', context)
+    event.captureException(error)
+  }
+}
+
+/**
+ * Hand a classified failure to Sentry, if there is anything to hand it to.
+ *
+ * Never awaited and never throws: the caller is inside an error fallback, where a rejected
+ * promise nobody caught is an unhandled rejection in the host's console and a throw blanks
+ * the widget on their page.
+ */
+function captureError(error: unknown, kind: ErrorKind, context: string): void {
+  const dsn = reportingDsn()
+
+  if (!dsn || !REPORTED_KINDS[kind] || sent >= MAX_EVENTS_PER_PAGE) return
+
+  sent += 1
+
+  // The FAILURE is remembered too, not just the success. A host whose CSP omits the ingest
+  // origin — or whose network drops the chunk — fails this import every time, and
+  // re-attempting per error would turn one broken screen into a stream of blocked requests
+  // and exactly the console noise this seam exists to avoid. One attempt, one answer, for
+  // the life of the page.
+  reporterLoad ??= loadReporter(dsn).catch(() => null)
+
+  reporterLoad.then((send) => send?.(error, kind, context)).catch(() => {})
+}
+
+/**
+ * Record a failure the widget has already absorbed (issues #89, #108).
+ *
+ * It began as "a failure while rendering an error state", and that is no longer what it
+ * is: since #108 every ErrorBoundary reports through here (via `ResetErrorBoundary`),
+ * alongside the handful of imperative callers that swallow something and carry on — a
+ * refused `Link` href, a fragment the host wouldn't let us claim, a recovery ladder that
+ * couldn't resolve a rung.
+ *
+ * What unites them is the part that matters: each one has ALREADY degraded gracefully, so
+ * nothing here may throw — but a swallowed failure no one ever sees is how a broken
+ * recovery path survives for months. This is the seam that keeps both.
+ *
+ * **This is the single call site the error reporter is wired into** (issue #108), which is
+ * what the promise made here originally bought: Sentry arrived by changing this function
+ * and nothing else, and `@sentry/browser` is imported from exactly one place in the repo.
+ * Callers still just say what went wrong and where; the seam decides the failure's kind
+ * (`classifyError`), whether that kind is worth an event (`REPORTED_KINDS`), and what may
+ * travel with it.
+ *
+ * The console line is unconditional and comes first — it is the only signal on a build
+ * with no DSN, on a host that has declined reporting, and on a developer's machine. **Its
+ * LEVEL follows the same table that decides what is worth an event**, because the console
+ * it writes to belongs to the host: now that every boundary reports, a dead link would
+ * otherwise put a red error in a stranger's log for something we have already said is not
+ * a malfunction. Saying "not news" to Sentry and "error" to them would be the same
+ * judgement pointing two ways.
+ *
+ * Both halves are guarded, in both directions: a host page is free to replace
+ * `console.error` with something that throws, and that must not cost us the report; a
+ * reporting failure must not cost us the line in their log. Neither may reach the caller,
+ * because every caller has already absorbed the failure.
  */
 export function reportInternalError(error: unknown, context: string): void {
+  // Classified once and shared: `classifyError` never throws (it guards its own body), and
+  // computing it twice invites the log and the event to disagree about what happened.
+  const kind = classifyError(error)
+
   try {
-    console.error(`[${LOG_PREFIX}] ${context}`, error)
+    // Spelled as two calls rather than one computed member, because `no-console` allows
+    // `warn`/`error` by NAME — a `console[level]` form reads as a banned `console.log` to
+    // the rule and fails the lint gate.
+    const line = `[${LOG_PREFIX}] ${context}`
+
+    if (REPORTED_KINDS[kind]) console.error(line, error)
+    else console.warn(line, error)
   } catch {
     // Nothing left to do — a logger that throws is not worth a second attempt.
+  }
+
+  try {
+    captureError(error, kind, context)
+  } catch {
+    // Nothing left to do — see above. `captureError` is written not to throw; this is the
+    // guarantee rather than the expectation.
   }
 }
 
@@ -182,11 +493,27 @@ export function reportInternalError(error: unknown, context: string): void {
  * Record a HOST-SIDE integration mistake — the embed script included twice, a second
  * `<sahaj-atlas>` element on one page (issue #92).
  *
- * The same seam as `reportInternalError` at a lower severity, and it belongs here for the
- * same reason: when a reporter is finally wired in, these are among the most valuable
- * things it can carry, because each one produces a widget that renders nothing on a real
- * customer's page while every gate in this repo stays green. `warn` rather than `error`
+ * The same seam as `reportInternalError` at a lower severity. `warn` rather than `error`
  * because nothing is broken — the widget declined to do something twice.
+ *
+ * **It stays console-only, and that is a decision rather than an omission** (issue #108).
+ * These are the most tempting thing in the file to send — each one produces a widget that
+ * renders nothing on a real customer's page while every gate in this repo stays green —
+ * and they are sent anyway by nobody, for two reasons that survive wanting the data:
+ *
+ *  - **They fire before the host has been asked.** The duplicate-script warning runs at
+ *    module load, from the `customElements.define` guard, and the duplicate-element one
+ *    from `connectedCallback` — both potentially before `<sahaj-atlas>`'s attributes have
+ *    been read into `config/privacy`. A beacon here could therefore leave a page whose
+ *    owner had set `error-reporting="false"`, which is the one thing #95's posture says we
+ *    do not do. An opt-out you can outrun is not an opt-out.
+ *  - **It is a misconfiguration, not a crash, and it recurs per pageview.** A doubled
+ *    embed on a busy page would post one event on every single load, indefinitely, with no
+ *    host-side way to stop it — and the reader who can actually fix it is whoever installed
+ *    the embed, who has the console line right there.
+ *
+ * If the blind spot proves real, the fix is to queue these and flush once the privacy
+ * attributes have been read — not to drop the gate.
  *
  * Guarded identically: a host is free to have replaced `console.warn` with something that
  * throws, and the mount path must not die telling somebody about itself.

@@ -10,7 +10,7 @@ import privacy, { attributeEnabled } from './config/privacy'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
-import { reportIntegrationWarning, reportInternalError } from './lib/report'
+import { atlasError, reportIntegrationWarning, reportInternalError } from './lib/report'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { HASH_BASE, mountRoute } from './lib/shape'
 import { queryClient } from './config/query-client'
@@ -28,10 +28,11 @@ type WidgetProps = {
   // Render the map canvas? Default true; `map="false"` (or "0") renders content-
   // only (no Mapbox, no token needed) — the mode-agnostic <sahaj-atlas> element.
   map?: string
-  // The two third-party data flows a host may have to decline, same "false"/"0"
+  // The third-party data flows a host may have to decline, same "false"/"0"
   // spelling as `map` — see config/privacy.ts.
   analytics?: string
   geolocation?: string
+  errorReporting?: string
   // Per-embed brand palette (hex). Each role overrides the client record's
   // color; omitted roles fall back to the record, then the built-in default.
   // (No `backgroundColor`: the page surface is a fixed default now.)
@@ -69,7 +70,27 @@ function claimFragment(route: MountRoute): MountRoute {
     // A sandboxed iframe (or a `file://` document) can refuse a same-document
     // replaceState. Mounting a HashRouter over a fragment we failed to claim renders
     // nothing at all, so degrade to the off-URL routing the host-anchor case uses.
-    reportInternalError(error, 'widget: could not claim the URL fragment')
+    //
+    // **The engine's own error is deliberately not what gets reported** (issue #108). A
+    // refused `replaceState` throws a DOMException whose message embeds the URL it
+    // refused — the host's query string and fragment included — and a thrown message is
+    // the one field that reaches Sentry unfiltered. Sending it would walk the host's
+    // reset token straight past `hostPageUrl`, which exists to strip exactly that. So we
+    // report a sentence we built. The exception's NAME is the diagnostic half
+    // (`SecurityError` means sandboxed) and carries no URL; it is read behind a guard
+    // because a hostile getter must not take the mount path down with it.
+    let name = 'unknown'
+
+    try {
+      name = String((error as { name?: unknown })?.name ?? 'unknown')
+    } catch {
+      // Keep the default — a label is not worth a throw here.
+    }
+
+    reportInternalError(
+      atlasError('unknown', `refused replaceState claiming the URL fragment (${name})`),
+      'widget: could not claim the URL fragment',
+    )
 
     return { router: 'memory', path: route.path }
   }
@@ -95,6 +116,7 @@ function Atlas({
   map,
   analytics,
   geolocation,
+  errorReporting,
   basePath,
   primaryColor,
   secondaryColor,
@@ -108,6 +130,7 @@ function Atlas({
   // analytics block in App.tsx and by `useIpLocation`, both of which run after this.
   privacy.analytics = attributeEnabled(analytics)
   privacy.ipLookup = attributeEnabled(geolocation)
+  privacy.errorReporting = attributeEnabled(errorReporting)
 
   // NB: the initial locale is applied by App's AppShell effect (from `defaultLocale`
   // below), which runs once on mount and again only if the host changes the prop.
@@ -228,6 +251,7 @@ const AtlasElementBase = r2wc(Widget, {
     map: 'string',
     analytics: 'string',
     geolocation: 'string',
+    errorReporting: 'string',
     basePath: 'string',
     primaryColor: 'string',
     secondaryColor: 'string',

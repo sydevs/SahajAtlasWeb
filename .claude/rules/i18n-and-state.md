@@ -273,10 +273,20 @@ separate — an inner fallback must never re-throw to escalate.
   The banner's own copy stays left-aligned in BOTH postures (`Alert textAlign="left"`).
 - **The fallback degrades, it never fails.** It runs where a throw would blank the widget
   on a host page, so the parts that read data sit behind their own boundary and fall back
-  to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the call
-  site a real error reporter wires into, alongside `reportIntegrationWarning` for the
+  to a static rung, reporting why via `reportInternalError` (`lib/report.ts`) — the one
+  call site Sentry is wired into (issue #108), alongside `reportIntegrationWarning` for the
   host-side mistakes (a doubled script, a duplicate element) that produce a widget which
   renders nothing while every gate stays green.
+- **Telemetry hangs off the seam, never off a component.** `@sentry/browser` is imported
+  from exactly one place in the repo and `import()`-ed there, so it stays out of the eager
+  graph and out of a build with no `VITE_SENTRY_DSN`. Two consequences worth keeping:
+  boundaries report by going through **`ResetErrorBoundary`** (whose composed `onError`
+  covers all six sites at once, so a new boundary cannot forget), and the seam — not the
+  caller — decides what is worth sending. `REPORTED_KINDS` withholds `offline` (the POST
+  needs the network that just failed) and `not-found` (a dead link is not a malfunction),
+  mirroring the two calls `ERROR_POLICY` already makes where a viewer can see them. It is a
+  `BrowserClient` on a private `Scope`, **not `Sentry.init`**: `init` hooks the page's
+  global error events, and on a host page those are somebody else's.
 - **Above all of it is `RootBoundary`** (`App.tsx`, issue #92), whose fallback is static,
   untranslated and inline-styled. Everything above catches failures *in the app*; this one
   catches failures in what the app is built on — `Providers`, `BrandTheme`, the query
