@@ -94,6 +94,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Emits `preview_url` and `preview_status`. It waits 10 minutes by default —
+      # a number measured against 86 real Cloudflare builds, see the script's
+      # header — and never fails the job itself. Set PREVIEW_TIMEOUT_MS here to
+      # wait longer, but raise this job's `timeout-minutes` with it: the budget
+      # has to leave room for install plus the specs.
       - name: Discover Cloudflare Pages preview URL
         id: preview
         env:
@@ -123,19 +128,38 @@ jobs:
       # missing preview is a real failure — the deploy did not happen — and fails
       # the job. Forked PRs get no preview by design, so they stay a graceful
       # (but annotated) skip, as do local `pnpm test:smoke` runs.
+      #
+      # BOTH branches below stay red on a same-repo PR — that is the invariant,
+      # and a slow deploy is still a run that verified nothing. What differs is
+      # what we ask the reader to DO, because only one of them is a defect
+      # (issue #132). `preview_status` carries the distinction the script can
+      # honestly draw: `absent` means Cloudflare posted nothing at all for this
+      # commit, while `pending`/`unreachable` mean a deploy demonstrably exists
+      # and we stopped waiting on it. The old single message asked the reader to
+      # work out which — from a script that had already discarded it.
       - name: Report a missing preview
         if: ${{ steps.preview.outputs.preview_url == '' }}
         env:
           SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          PREVIEW_STATUS: ${{ steps.preview.outputs.preview_status }}
         run: |
-          MSG="No Cloudflare Pages preview was found for this commit — NO smoke specs ran."
+          case "$PREVIEW_STATUS" in
+            pending | unreachable)
+              MSG="Cloudflare had not published a usable preview before discovery gave up — NO smoke specs ran."
+              HINT="A Cloudflare deploy for this commit WAS seen ($PREVIEW_STATUS), so this is a slow deploy rather than a broken one: RE-RUN this job. The 'Discover Cloudflare Pages preview URL' step reports how long it waited and what it last saw. If it keeps happening, raise PREVIEW_TIMEOUT_MS on that step rather than re-running by hand."
+              ;;
+            *)
+              MSG="No Cloudflare Pages preview was found for this commit — NO smoke specs ran."
+              HINT="Nothing from Cloudflare turned up for this commit at all, so the deploy did not happen: INVESTIGATE, don't re-run. If the Pages build failed in 0s with a clean log, that is a transient rate-limit — retry the deployment itself."
+              ;;
+          esac
           {
             echo "### Smoke"
             echo ""
             echo "⚠️ $MSG"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$SAME_REPO" = "true" ]; then
-            echo "::error::$MSG This PR is from the same repository, so a preview was expected. See the 'Discover Cloudflare Pages preview URL' step above for which stage failed — nothing posted, or posted but unreachable. If the Pages build itself failed in 0s with a clean log, that is a transient rate-limit: retry the deployment."
+            echo "::error::$MSG This PR is from the same repository, so a preview was expected. $HINT"
             exit 1
           fi
           echo "::warning::$MSG Forked PRs have no preview deployment, so the specs were skipped."

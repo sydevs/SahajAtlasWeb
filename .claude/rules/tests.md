@@ -28,6 +28,34 @@ Two lanes, kept separate so the fast one never touches the network:
   `embed.smoke.test.ts` learned this the hard way. Assert on the body or the
   content type.
 
+The first invariant is about what GREEN means, so it says nothing about whose
+fault red is — and "no preview" is not one thing (issue #132).
+`scripts/get-cloudflare-preview-url.mjs` therefore emits a second output beside
+`preview_url`: **`preview_status`**, one of `found` / `unreachable` / `pending` /
+`absent` / `error`, which ci.yml branches its message on. **`absent`** — no
+Cloudflare signal of any kind for the SHA — is a defect: *investigate*.
+**`pending` / `unreachable`** mean a deploy demonstrably exists and we stopped
+waiting: *re-run*. Both still fail a same-repo PR. The step summary carries the
+elapsed wait and the last observed state, so a slow deploy is legible without
+opening the raw log. Two findings behind that script, so they aren't re-derived:
+
+- **There is no observable "Cloudflare is building" state.** Across 230 check
+  runs on this repo every one was already `completed` when first visible, with
+  `started_at == completed_at`, and GitHub pre-creates a `queued` check *suite*
+  for every installed app on every push — so Cloudflare's is indistinguishable
+  from the vercel / railway / sentry suites of apps that post nothing at all.
+  Waiting adaptively on an in-progress signal is not available. The deadline is
+  flat, and justified in the script's header against 86 measured builds
+  (p50 99s · p95 373s · max 453s) rather than against a feeling; the 6-minute one
+  it replaced sat *below* the 95th percentile, which is how #124 went red on a
+  healthy commit. Override with `PREVIEW_TIMEOUT_MS`, don't edit the constant.
+- **The discovery *sources* (#122) and `pick()`'s hostname-boundary match are
+  load-bearing.** The latter is a security property: `pages.dev` subdomains are
+  first-come-first-served and one source reads PR comments, so a substring match
+  would let anyone who can comment aim the smoke lane at a host they control and
+  collect a green check that verified nothing. Both are pinned by
+  `scripts/get-cloudflare-preview-url.test.ts`.
+
 The lane covers `embed.js` as well as the standalone page: the embed is what a
 host installs, so a deploy that breaks it while `index.html` stays healthy must
 not be a green check.
