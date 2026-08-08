@@ -14,7 +14,7 @@ Two lanes, kept separate so the fast one never touches the network:
   Dependency Audit job and the smoke job run separately; the smoke job targets
   the deployed Cloudflare preview.
 
-## The smoke lane's two invariants (issue #99)
+## The smoke lane's three invariants (issues #99, #138)
 
 - **A green Smoke check means the specs ran.** Discovery emits an empty URL and
   exits 0 when no preview turns up, and the specs then `skipIf` themselves — so
@@ -27,6 +27,19 @@ Two lanes, kept separate so the fast one never touches the network:
   A spec asserting `res.status === 200` therefore passes for a missing file —
   `embed.smoke.test.ts` learned this the hard way. Assert on the body or the
   content type.
+- **A green Smoke check means the specs ran against THIS commit** (issue #138).
+  Cloudflare publishes two hosts per project — the per-deployment alias
+  (`a73c3b0c.sahajatlas.pages.dev`, one commit forever) and a stable **branch**
+  alias (`fix-report-form-delivery.sahajatlas.pages.dev`, whatever deployed to that
+  branch most recently) — and `pick()`'s host gate accepts both, because whose host
+  it is and whose build it serves are different questions. So discovery **ranks
+  candidates by provenance** instead of taking the first match: the deployment
+  named by our own check run for the head SHA wins (that run's `details_url` ends
+  in the deployment UUID, whose first 8 characters *are* the alias — an unbroken
+  chain from commit to host), then a deploy-shaped URL from a per-SHA source, then
+  a branch alias; a Cloudflare comment naming some **other** commit is refused
+  outright. The weak tiers exist so a change in Cloudflare's output degrades
+  discovery rather than reddening every same-repo PR under invariant one.
 
 ### Why a red Smoke check now says which kind of red (issue #132)
 
@@ -85,14 +98,20 @@ Two findings behind that script, so they aren't re-derived:
   comment" — `user.type` is GitHub's word, not self-declared.) Both are pinned by
   `scripts/get-cloudflare-preview-url.test.ts`.
 
-  **Known gap, deliberately still open:** that URL harvest is not scoped to the
-  head SHA, and Cloudflare's comment also carries a stable *branch alias*
-  (`<branch>.<project>.pages.dev`) that `pick()` accepts. While commit B builds,
-  the alias still resolves to commit A — so the lane can go green having smoke-
-  tested the previous commit. Scoping the harvest is #122's territory and was
-  fenced off as a non-goal by #132; it wants its own ticket, and tightening it
-  needs a check first that the check-run summary carries a per-commit URL, or
-  discovery breaks outright.
+  **That gap is closed (#138)** — see invariant three above. The check first
+  demanded before tightening it has been made: our check run's summary carries the
+  per-deployment URL on every one of PRs #133–#137, so the strongest tier is the
+  one that fires and the fallbacks are genuinely fallbacks. The refusal is logged
+  by name (`Ignoring <url> — not attributable to <sha>`), because a correct refusal
+  that reads as an oversight is one someone eventually "fixes".
+- **A passing unit spec is not evidence that the thing it tests is reachable.**
+  #132 added the `failed` status, spec'd `timeoutStatus` returning it, and then
+  never destructured `failure` in `main()` — so `timeoutStatus` was called without
+  it and `failed` could not occur in production for as long as its four assertions
+  stayed green. Both reviews and CI missed it, because the defect was in the
+  *wiring*, which no pure test can see. When a helper's output feeds a caller, be
+  sure something exercises the caller — a live run of the script against a real SHA
+  is what caught this one.
 
 The lane covers `embed.js` as well as the standalone page: the embed is what a
 host installs, so a deploy that breaks it while `index.html` stays healthy must
