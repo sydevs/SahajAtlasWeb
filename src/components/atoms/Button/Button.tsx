@@ -2,6 +2,8 @@ import { type ComponentProps, type ReactNode, type Ref, forwardRef } from 'react
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
+import { reportInternalError } from '@/lib/report'
+import { isSafeHref } from '@/lib/shape'
 
 /**
  * The shared control surface: the colour × variant matrix, the size scale, the
@@ -191,6 +193,25 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
 
     if ('href' in props && props.href != null) {
       const { href, target, rel, ...anchorProps } = props as { href: string } & ComponentProps<'a'>
+
+      // The same gate the `Link` atom applies, asked of the same predicate — this arm is one
+      // of the app's three anchors, and until #114 it was the one that had none. Nothing
+      // reaching it today is unsafe (the calendar link-outs are `https:` URLs built in
+      // `lib/ics.ts`; the contact button is a literal `mailto:`), but that is provenance,
+      // which the next caller does not inherit. Note what this does NOT cover: the `.ics`
+      // download builds a `blob:` URL on a detached anchor of its own and never comes
+      // through here.
+      //
+      // The failure mode is deliberately the `Link` atom's, not a second one — report, and
+      // degrade to the same content on a non-interactive `<span>` carrying the control's
+      // classes, so the refusal is visible rather than a blank space or a live control that
+      // silently does nothing. Like `Link`'s span, it takes no props: `target`/`download`
+      // and friends are meaningless on a span, and this path is unreachable by design.
+      if (!isSafeHref(href)) {
+        reportInternalError(new Error(`Refusing to link to ${href}`), 'Button')
+
+        return <span className={classes}>{content}</span>
+      }
 
       return (
         <a

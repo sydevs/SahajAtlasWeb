@@ -2,6 +2,8 @@ import { type ReactNode, forwardRef } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { controlSurface } from '@/components/atoms/Button'
+import { reportInternalError } from '@/lib/report'
+import { isSafeHref } from '@/lib/shape'
 
 // The labelled tonal-circle action button + its horizontal row (issue #52, WS3):
 // a tinted circle with a text label below, Google-Maps style. All circles carry
@@ -90,6 +92,22 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
   )
 
   if (href) {
+    // The third of the app's three anchors, gated on the same predicate as the `Link` and
+    // `Button` atoms (#114). Its one production caller passes a `directionsUrl` we build, a
+    // `SafeUrlSchema`-parsed `event.website`, or a literal `tel:` — all safe by provenance,
+    // none of it a property this component can rely on. `tel:` and `mailto:` are in the
+    // allowed set precisely so gating here cannot break a working phone link.
+    //
+    // Failure mode matches `Link`'s: report, then render the same icon + label column on a
+    // non-interactive `<span>`. Deliberately NOT a fall-through to the `<button>` arm below
+    // — that would produce a focusable control that does nothing, which is a worse dead end
+    // for a keyboard user than inert content.
+    if (!isSafeHref(href)) {
+      reportInternalError(new Error(`Refusing to link to ${href}`), 'ActionCircle')
+
+      return <span className={styles.base()}>{content}</span>
+    }
+
     return (
       <a
         ref={ref as React.Ref<HTMLAnchorElement>}
