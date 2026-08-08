@@ -6,7 +6,8 @@
    Provides the [data-vaul-drawer] slide/snap transforms + drag-handle styling that
    position the drawers; without it, snap-point sheets render off-screen.
    To refresh: `cp node_modules/vaul/style.css src/styles/vaul.css`, re-add this
-   header, and re-fix the [data-vaul-handle-hitarea] colon typo. */
+   header, re-fix the [data-vaul-handle-hitarea] colon typo, and re-append the
+   reduced-motion block at the FOOT of this file (it is ours, not vaul's). */
 
 [data-vaul-drawer] {
   touch-action: none;
@@ -264,5 +265,34 @@
 @keyframes slideToRight {
   to {
     transform: translate3d(var(--initial-transform, 100%), 0, 0);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   OURS, not vaul's — appended for issue #102. Everything above this line is the
+   vendored upstream stylesheet; keep additions below it so a refresh is a clean
+   overwrite plus a re-append.
+
+   The drawers are the one motion surface framer-motion's MotionConfig cannot
+   reach (`src/providers.tsx`): vaul animates in CSS, so it has to be turned off
+   in CSS. Both properties are needed and neither covers the other — the
+   slide-in/out are @keyframes (`animation`), while the snap-point sheets are
+   moved by an inline transform that travels on the `transition` declared at the
+   top of this file. vaul's own `[data-vaul-animate='false']` hook only kills the
+   former, which is why this is a media block rather than a prop.
+
+   Stopping the animation does NOT strand a drawer half-open: the keyframes only
+   supply the journey (the resting position is the element's base style), and
+   Radix's Presence — which vaul mounts on — reads `animationName: none` as
+   "already finished" and unmounts on close immediately instead of waiting for an
+   animationend that will never fire. Reduced motion here means instant, not absent.
+
+   `!important` matches the existing `[data-vaul-animate='false']` rule and beats
+   the inline transition vaul writes while dragging. */
+@media (prefers-reduced-motion: reduce) {
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    animation: none !important;
+    transition: none !important;
   }
 }

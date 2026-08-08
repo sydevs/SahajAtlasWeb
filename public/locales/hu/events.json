@@ -4,7 +4,9 @@
     "copy": "Másolás",
     "directions": "Útvonal",
     "share": "Megosztás",
-    "website": "Weboldal"
+    "website": "Weboldal",
+    "add_calendar": "Naptárba",
+    "download_ics": ".ics fájl letöltése"
   },
   "details": {
     "contact_for_timing": "Contact host for timings",

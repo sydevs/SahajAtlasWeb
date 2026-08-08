@@ -9,7 +9,9 @@
     "the ticket or reason. Removing entries is the point: the weekly audit workflow fails",
     "when a listed advisory is no longer reported, so a fix prunes its own line.",
     "",
-    "Baseline captured 2026-08-06: 64 advisories total, 1 critical + 24 high."
+    "Baseline captured 2026-08-06: 64 advisories total, 1 critical + 24 high.",
+    "Amended 2026-08-07: +4 high published that day (image-size, nanoid), booked below.",
+    "Both are absent from the shipped bundle — verified by grepping dist/, not assumed."
   ],
   "advisories": {
     "GHSA-3jxr-9vmj-r5cp": "high · brace-expansion · DoS via exponential-time expansion of consecutive non-expanding {} groups — #101 (build-time transitive: tailwindcss > sucrase > glob > minimatch)",
@@ -34,6 +36,11 @@
     "GHSA-chx6-hx7r-mcp5": "high · react-router · unauthenticated DoS via inefficient route matching — #101 (in-range)",
     "GHSA-cpj6-fhp6-mr6j": "high · react-router · pre-render data spoofing (framework mode; unused here) — #101 (in-range)",
     "GHSA-rxv8-25v2-qmq8": "high · react-router, turbo-stream · DoS via reflected user input in single-fetch — #101 (in-range)",
-    "GHSA-4cwx-7wf7-3272": "high · undici · cross-user information disclosure and parse-time crash — #101 (in-range)"
+    "GHSA-4cwx-7wf7-3272": "high · undici · cross-user information disclosure and parse-time crash — #101 (in-range)",
+
+    "GHSA-w3rx-r6r6-pgpr": "high · image-size · DoS via an infinite loop in the ICNS parser — #101 (server-side transitive: @payloadcms/sdk > payload). `payload` is a TYPES-ONLY dependency — its dist imports only qs-esm at runtime (see .claude/rules/data-layer.md) — so image-size never reaches the browser, and nothing in this app parses an image header. Verified absent from dist/, not assumed. No patched version published as of 2026-08-07",
+    "GHSA-5p2g-fcmc-qvqq": "high · image-size · DoS via infinite loops in the JXL and HEIF parsers — #101 (same path, same reasoning, also unpatched)",
+    "GHSA-28wg-ghj8-5hjv": "high · nanoid · non-secure generators loop indefinitely on a negative size — #101 (build-time transitive: tailwind-variants > tailwindcss peer > postcss). Patched in >=3.3.16, but the lockfile holds 3.3.8 under postcss 8.4.38's own pin, so it comes for free when postcss moves under #101 rather than warranting an override now. Verified absent from dist/ — the only `nanoid` string in the bundle is zod's `.nanoid()` validator name",
+    "GHSA-2v37-7h3g-55p8": "high · nanoid · custom generators loop indefinitely when size is zero — #101 (same path, patched in >=3.3.17, same reasoning)"
   }
 }

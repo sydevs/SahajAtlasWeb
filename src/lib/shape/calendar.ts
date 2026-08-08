@@ -2,7 +2,7 @@ import type { EventSchedule, EventType } from '@/types'
 
 import { DateTime } from 'luxon'
 
-import { eventTimeZone, scheduleTimeZone, withEndTime } from './event'
+import { DEFAULT_DURATION, eventTimeZone, scheduleTimeZone, withEndTime } from './event'
 import {
   type EventFilters,
   type TimePeriod,
@@ -67,10 +67,6 @@ export type CalendarEntry = {
 // Schedule-X reads a plain wall-clock string; we hand it the occurrence already
 // resolved into its display zone, so what the grid shows is the local class time.
 const SX_FORMAT = 'yyyy-MM-dd HH:mm'
-
-// A placeless fallback length for an occurrence with no stored `endTime`, so every
-// entry has a non-zero span for the week/day views to lay out.
-const DEFAULT_DURATION = { hours: 1 }
 
 /**
  * Expand events into calendar entries — one per `upcomingDates` occurrence whose start

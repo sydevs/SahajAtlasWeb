@@ -49,7 +49,9 @@ const loadEventDetails = () =>
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone, hasMap } = useWidgetMode()
   const { frameEvent, clearSelection } = useMapController()
-  const { locale } = useLocale()
+  // `t` off `useLocale` rather than a second `useTranslation` — the hook already holds
+  // one for the default (`common`) namespace and returns it to avoid the duplicate.
+  const { t, locale } = useLocale()
   const isDesktop = useIsDesktop()
   const { collapsed } = useDrawerControl()
 
@@ -91,7 +93,18 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           FallbackComponent={ErrorPanel}
           onReset={() => setEventDetails(loadEventDetails())}
         >
-          <Suspense fallback={<Spinner className="mx-auto my-16" />}>
+          {/* The one Spinner in the app with no visible label and no `decorative`, so
+              it is the one whose screen-reader-only text actually renders. The atom
+              defaults that text to English; this is a view, well past the i18n boot,
+              so it can hand over the translated word (issue #102). */}
+          <Suspense
+            fallback={
+              <Spinner
+                className="mx-auto my-16"
+                srLabel={t('loading', { defaultValue: 'Loading…' })}
+              />
+            }
+          >
             <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
           </Suspense>
         </ResetErrorBoundary>

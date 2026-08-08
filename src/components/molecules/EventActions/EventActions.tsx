@@ -1,4 +1,4 @@
-import { FloatingPortal } from '@floating-ui/react'
+import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -26,10 +26,12 @@ function ContactPopover({
   name?: string | null
   phone: string
 }) {
-  const { isOpen, refs, floatingStyles, getReferenceProps, getFloatingProps } = usePopover({
-    placement: 'top',
-    role: 'dialog',
-  })
+  const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
+    {
+      placement: 'top',
+      role: 'dialog',
+    },
+  )
 
   return (
     <>
@@ -42,15 +44,30 @@ function ContactPopover({
       />
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
-          <div
-            ref={refs.setFloating}
-            className="z-50 flex min-w-56 flex-col gap-2 rounded-md border border-gray-6 bg-gray-2 p-3 shadow-md"
-            style={floatingStyles}
-            {...getFloatingProps()}
-          >
-            {name && <div className="text-sm font-medium">{name}</div>}
-            <CopyField value={phone} />
-          </div>
+          {/* The panel is PORTALED to the theme root, so in DOM order it is nowhere
+              near the circle that opened it: without a focus manager a keyboard or
+              screen-reader user pressed Contact, was told a dialog opened, and then
+              tabbed on into whatever follows the map — never reaching the number.
+
+              So unlike the Dropdown atom, which uses `initialFocus={-1}` because its
+              panel is a filter surface a viewer may want to leave alone, this one pulls
+              focus IN: the copy button is the whole reason the popover was opened. The
+              rest matches Dropdown — non-modal (the page behind stays live, this is a
+              phone number, not a task to finish) and `returnFocus` so Esc or an outside
+              click puts the caret back on the Contact circle rather than at the top of
+              the document. Esc and outside-click themselves come from `useDismiss` in
+              `usePopover`; the manager only decides where focus goes. */}
+          <FloatingFocusManager context={context} modal={false} returnFocus={true}>
+            <div
+              ref={refs.setFloating}
+              className="z-50 flex min-w-56 flex-col gap-2 rounded-md border border-gray-6 bg-gray-2 p-3 shadow-md"
+              style={floatingStyles}
+              {...getFloatingProps({ 'aria-label': label })}
+            >
+              {name && <div className="text-sm font-medium">{name}</div>}
+              <CopyField value={phone} />
+            </div>
+          </FloatingFocusManager>
         </FloatingPortal>
       )}
     </>

@@ -4,7 +4,9 @@
     "copy": "Copy",
     "directions": "Directions",
     "share": "Share",
-    "website": "Website"
+    "website": "Website",
+    "add_calendar": "Add to calendar",
+    "download_ics": "Download .ics file"
   },
   "details": {
     "contact_for_timing": "Contact host for timings",

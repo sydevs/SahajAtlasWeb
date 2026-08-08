@@ -1,3 +1,4 @@
+import type { IcsEventInput } from '@/lib/ics'
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
 
 import {
@@ -18,6 +19,7 @@ import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
 import { RadioGroup, type RadioOption } from '@/components/atoms/RadioGroup'
 import { fieldChrome } from '@/components/atoms/Select'
+import { AddToCalendar } from '@/components/molecules/AddToCalendar'
 import { FormField, fieldErrorId } from '@/components/molecules/FormField'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
@@ -50,6 +52,14 @@ export type RegistrationFormProps = {
   isOnline: boolean
   eventTitle: string
   eventUrl: string
+  /**
+   * Export primitives for the confirmation screen's add-to-calendar block
+   * (issue #105). Optional, and deliberately NOT an `Event`: the form stays
+   * config-driven, so RegistrationView builds this from the full event doc —
+   * which is also the only place that HAS the exclusion/untilDate fields the
+   * trimmed feed omits. Absent → the block doesn't render.
+   */
+  calendar?: Omit<IcsEventInput, 'from'>
   /** Zone the starting-date options render in — the event's own zone for
    *  physical events, the viewer's for online (issue #52 time contract). */
   timeZone?: string
@@ -81,6 +91,7 @@ export function RegistrationForm({
   isOnline,
   eventTitle,
   eventUrl,
+  calendar,
   onClose,
   initialSubmitted = false,
 }: RegistrationFormProps) {
@@ -159,6 +170,20 @@ export function RegistrationForm({
       {submitted ? (
         <div className="flex flex-col gap-3 text-center">
           <p>{t('registration.followup')}</p>
+
+          {/* The moment calendar export is most wanted (issue #105). `calendar`
+              is optional so the form stays generic: it takes export primitives
+              from RegistrationView, never an Event. Anchored on the session that
+              was actually submitted — `mutation.variables` holds it, so no extra
+              state — falling back to the next occurrence when the confirmation
+              is being previewed rather than earned. */}
+          {calendar && (
+            <>
+              <div className="mt-2 font-semibold">{t('actions.add_calendar')}</div>
+              <AddToCalendar event={{ ...calendar, from: mutation.variables?.startingAt }} />
+            </>
+          )}
+
           <div className="mt-2 font-semibold">{t('registration.invite_friend')}</div>
           <ShareContent country={country} label={eventTitle} url={eventUrl} />
         </div>
@@ -323,7 +348,19 @@ function RegistrationFields({
             error={errors.startingAt && t('errors.starting_at')}
             label={t('registration.starting_date')}
           >
+            {/* `field.ref` is what makes a failed submit MOVE (issue #102).
+                react-hook-form focuses the first invalid field itself — that is
+                `shouldFocusError`, on by default — but it can only focus a field it
+                was handed a ref for, and it walks them in registration order, which
+                here is the order they are rendered in.
+
+                This is the first field, and until RadioGroup forwarded a ref it was
+                the one field RHF had to skip: a submit with no date chosen moved
+                focus nowhere and said nothing, so a screen-reader user was left on
+                the Register button with no indication of why it hadn't worked. The
+                other two are plain `register`ed inputs and were always covered. */}
             <RadioGroup
+              ref={field.ref}
               aria-label={t('registration.starting_date')}
               collapseAfter={VISIBLE_DATES}
               isInvalid={!!errors.startingAt}

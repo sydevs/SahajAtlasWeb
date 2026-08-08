@@ -41,7 +41,7 @@ export const PAGE_SIZE = 25
 export const DEFAULT_REVEAL = PAGE_SIZE
 
 /**
- * Hard ceiling on the revealed count — 40 presses' worth of rows.
+ * Hard ceiling on the revealed count — 16 presses' worth of rows.
  *
  * The list renders every revealed row unvirtualized, and dropping the fetcher's
  * nearest-50 slice left nothing bounding that. The count is session state now rather
@@ -49,14 +49,48 @@ export const DEFAULT_REVEAL = PAGE_SIZE
  * it is the only thing standing between a long enough session and a commit that builds
  * the whole matching feed, inside somebody else's page.
  *
- * The tradeoff, taken deliberately: a matching set larger than this genuinely ends
- * here. That's the very shape of cap this issue removed, so the ceiling is set far
- * above any plausible search (the whole global feed is a few thousand events, and a
- * ranked list nobody scrolls past row 50 of does not need row 1001) — and the control
- * disappears at the ceiling rather than dead-ending, so it never lies about there
- * being more.
+ * Two separate questions, kept apart because issue #98 conflated them and the
+ * measurements came out the other way round:
+ *
+ * **Why a ceiling at all — DOM hygiene in a page we don't own.** ~22,000 nodes at the old
+ * 1,000 rows, ~8,900 at 400. That budget is ours, not an external standard; Lighthouse's
+ * DOM audit starts warning an order of magnitude lower, which the product genuinely
+ * cannot take.
+ *
+ * **Why 400 — it is the deepest list actually profiled smooth,** rounded to a whole page.
+ * The ticket came to virtualize these rows assuming mounted row count is what makes a
+ * long list stutter. Profiled in the real vaul drawer at 6x CPU throttle over an
+ * identical 40px-per-frame scroll, it is not:
+ *
+ *   - 331 rows / 7,331 DOM nodes, fully revealed:  median 8.3ms, p95 17.4ms, 0/100 frames >32ms
+ *   -  50 rows / 1,079 DOM nodes, actively paging: median 38.4ms, p95 175ms, 71/100 frames >32ms
+ *
+ * Six times the DOM scrolled *better*. What costs is RENDERING a card, not owning one:
+ * the janky frames were the `useTransition` reveal building the next page, and only 1 of
+ * the 71 coincided with the commit that grew the row count. A windowing virtualizer
+ * re-renders cards as they enter the viewport, so it would pay that cost repeatedly on
+ * every scroll rather than once per row.
+ *
+ * That inference was checked against the browser-native analogue, NOT against a
+ * virtualizer: `content-visibility: auto` also defers per-row work to scroll-in, and made
+ * the same list worse (p95 36→59ms, worst frame 61→307ms — a noisier run whose own plain
+ * baseline was 36ms, so compare inside that pair rather than against the 17.4ms above).
+ * Different mechanism, same direction. So windowing here is a *likely* regression, not a
+ * measured one, and the ticket's sanctioned fallback was taken instead.
+ *
+ * **The sharp edge, which is the real cost of lowering this.** A matching set larger than
+ * the ceiling ends here, and the control disappears rather than dead-ending, so it never
+ * lies about there being more. But within the nearby segment the list AUTO-pages on
+ * scroll, so a search with more than `MAX_REVEAL` nearby matches reaches the ceiling with
+ * no press at all — and `more` goes null there, putting the whole distant segment out of
+ * reach for that search, announced only in the `sr-only` live region. That was
+ * implausible at 1,000 nearby matches and is merely unlikely at 400. `reveal.test.ts`
+ * pins the behaviour so it is asserted rather than discovered.
+ *
+ * The real lever on the felt cost is the per-card render (`EventFacts` / `EventChips` and
+ * their date formatting), which is a different ticket's surface.
  */
-export const MAX_REVEAL = PAGE_SIZE * 40
+export const MAX_REVEAL = PAGE_SIZE * 16
 
 /**
  * The identity of a result set, for `useResultsReveal`. A reveal belongs to the set it
@@ -181,7 +215,8 @@ export function revealRows<T extends Segmentable>(
 
   // Everything below reasons about `rows.length` — what is actually ON SCREEN — never
   // the requested count. The two diverge whenever the nearby segment is shorter than
-  // the count (a count of 99999 renders the 50 nearby matches, not 1000 rows), and
+  // the count (a count of 99999 renders the 50 nearby matches, not `MAX_REVEAL` of
+  // them — spelled as the constant so this line can't go stale when it moves), and
   // ceiling-gating on the raw count would then hide the control while a whole distant
   // segment sat unreached. It also keeps every `next` strictly greater than what's
   // shown, so no press can be a no-op.

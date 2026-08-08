@@ -122,8 +122,17 @@ Five stores, each the single source of truth for its slice:
   browser unfocuses a disabled element and a keyboard user would lose their place on
   every press (`aria-busy` instead, with the re-entry guard doing the real work).
   `revealRows` splits the sorted set at the distance boundary, slices to the count, and
-  says what the control offers next — clamped at `MAX_REVEAL`, since the rows are
-  unvirtualized. **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
+  says what the control offers next — clamped at `MAX_REVEAL`, which bounds the DOM this
+  widget can grow inside a host page we don't own, **not** the point at which it stutters.
+  Issue #98 was raised to virtualize these rows and, profiling the real drawer, measured
+  the opposite of its own premise: rendering a card costs, owning one does not, so
+  windowing — which re-renders cards on every scroll — was judged a likely regression and
+  the ticket's sanctioned fallback, a lower ceiling, was taken instead. **Reach for the
+  per-card render cost, not the row count, if this list ever needs to get faster.** The
+  numbers, and the sharp edge the lower ceiling brings with it (a nearby segment that
+  fills the ceiling on its own strands the distant segment behind it), live in one place:
+  the `MAX_REVEAL` docblock.
+  **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
   `FOREIGN_NEARBY_KM` (half that) for an event whose `address.country` differs from the
   searched `?cc` — distance alone ranks Belgian classes over French ones for someone
   searching Lille. Both countries must be known to demote anything, so an online event
@@ -177,6 +186,14 @@ of truth, so all are linkable/shareable:
   DrawerStack keeps the depth-0 entry's height in a **ref** (non-reactive, like
   `useCameraHistory`): it's read only at depth > 0 and written only at depth 0, so a
   write can never change the current render.
+  **Each strip is NAMED for where it lands** (`stripLabel`, `src/views/DrawerStack/
+  strip-label.ts`, issue #102) — they were all "Back", which gave a three-deep stack
+  three identically-named buttons going to three different places. The names come from
+  the `['regions']` tree and the event-titles sliver, read **cache-only**
+  (`enabled: false`) exactly as `DrawerChrome` reads them, so naming a strip can never
+  become a fetch and a cache miss costs the name rather than the strip. It's a separate
+  pure module because importing `DrawerStack.tsx` to test one string would drag
+  mapbox-gl, vaul and every eager view into the node lane.
 
 Camera control goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`), never a store or the map directly.

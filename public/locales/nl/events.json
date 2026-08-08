@@ -4,7 +4,9 @@
     "copy": "Kopiëren",
     "directions": "Route",
     "share": "Delen",
-    "website": "Website"
+    "website": "Website",
+    "add_calendar": "In agenda",
+    "download_ics": ".ics-bestand downloaden"
   },
   "details": {
     "contact_for_timing": "Neem contact op met de gastheer voor de tijden",

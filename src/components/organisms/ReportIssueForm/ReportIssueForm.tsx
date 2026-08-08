@@ -123,8 +123,16 @@ export function ReportIssueForm({
     >
       <ModalBody>
         <div className="flex flex-col gap-4 py-2">
+          {/* `announceError={false}` on both fields, because this form is the shape
+              FormField's default is wrong for (issue #102): it validates on every
+              keystroke (`mode: 'onChange'` above) and it gates Send on `isValid`, so
+              there is no failed submit to announce — only an assertive interruption
+              on the first character of a message or an email address. The errors are
+              still wired to each control through `aria-describedby`, so a reader
+              standing on the field is told what is wrong with it. */}
           <FormField
             required
+            announceError={false}
             error={errors.message && messageError}
             htmlFor="report-message"
             label={t('report.message_label')}
@@ -148,6 +156,7 @@ export function ReportIssueForm({
           </FormField>
 
           <FormField
+            announceError={false}
             error={errors.email && t('report.errors.email')}
             help={t('report.email_help')}
             htmlFor="report-email"

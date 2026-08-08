@@ -4,7 +4,9 @@
     "copy": "Копировать",
     "directions": "Маршрут",
     "share": "Поделиться",
-    "website": "Сайт"
+    "website": "Сайт",
+    "add_calendar": "В календарь",
+    "download_ics": "Скачать файл .ics"
   },
   "details": {
     "contact_for_timing": "Свяжитесь с организатором, чтобы узнать время",

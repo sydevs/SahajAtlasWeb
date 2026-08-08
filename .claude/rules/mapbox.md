@@ -106,6 +106,31 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   only for the instant world reset + cluster expansion. Map padding is set from the
   known drawer width per breakpoint by the MapController (no DOM measurement).
 
+## Reduced motion is the library's job here, not ours
+
+Do **not** add a `prefers-reduced-motion` branch to `use-mapbox.ts` — mapbox-gl already
+has one in each of the three calls that hook makes (`flyTo` short-circuits to `jumpTo`,
+`easeTo` zeroes its duration, `fitBounds` reaches one of them), gated on
+`respectPrefersReducedMotion`, which defaults on, and on a live `.matches` read rather
+than a cached one. `flyTo`'s branch preserves `padding`/`retainPadding` through the jump,
+and `fitBoundsOptions` contributes only `maxZoom` + `padding`, so nothing of ours is lost
+on that path (verified against the installed source; see the comment in the hook).
+
+Two ways to break it, both by addition: setting `respectPrefersReducedMotion: false` on
+the map, or passing **`essential: true`** on a camera call — Mapbox's documented opt-out.
+
+The map's other reduced-motion behaviour is the library's too: pan/zoom inertia is
+disabled outright under the preference.
+
+## Localizing Mapbox's own control strings
+
+The `locale` prop on `<ReactMapGL>` overrides Mapbox's built-in UI strings by key
+(`GeolocateControl.FindMyLocation`, …). It is **construction-only** — `locale` is not in
+react-map-gl's reconciliation whitelist and mapbox-gl exposes no `setLocale` — so a
+mid-session language switch does not relabel a control. That is the same limitation the
+`language` prop carries. Keys not overridden stay English; the full set is `defaultLocale`
+in mapbox-gl.
+
 ## Geo helpers
 
 Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math (bounding
