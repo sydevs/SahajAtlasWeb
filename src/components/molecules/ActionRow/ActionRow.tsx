@@ -2,6 +2,8 @@ import { type ReactNode, forwardRef } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { controlSurface } from '@/components/atoms/Button'
+import { atlasError, reportInternalError } from '@/lib/report'
+import { isSafeHref } from '@/lib/shape'
 
 // The labelled tonal-circle action button + its horizontal row (issue #52, WS3):
 // a tinted circle with a text label below, Google-Maps style. All circles carry
@@ -90,6 +92,19 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
   )
 
   if (href) {
+    // The shared gate (`lib/shape/href.ts`), with the `Link` atom's failure mode: report,
+    // then render the same icon + label column on a non-interactive `<span>`.
+    //
+    // Site-specific: deliberately NOT a fall-through to the `<button>` arm below, which
+    // would leave a focusable control that does nothing — a worse dead end for a keyboard
+    // user than inert content. And `tel:` is in the allowed set precisely so gating here
+    // cannot break this row's phone link, its most common href.
+    if (!isSafeHref(href)) {
+      reportInternalError(atlasError('unknown', `Refusing to link to ${href}`), 'ActionCircle')
+
+      return <span className={styles.base()}>{content}</span>
+    }
+
     return (
       <a
         ref={ref as React.Ref<HTMLAnchorElement>}

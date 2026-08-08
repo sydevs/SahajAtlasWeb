@@ -21,7 +21,6 @@ secret that ends up in the bundle.
 | `VITE_MAPBOX_ACCESSTOKEN`   | `.env.local` | Mapbox GL **public** token (`pk.…`) — safe to ship in the bundle |
 | `VITE_SAHAJCLOUD_API_KEY`   | `.env.local` | Published `sahaj-atlas-client` API key the widget uses in dev (passed as the `apiKey` prop; sent as `Authorization: clients API-Key …`) |
 | `VITE_FATHOM_ID`            | `.env.local` | Fathom analytics site id (optional; analytics disabled if unset / on localhost) |
-| `VITE_GOOGLE_PLACES_API_KEY`| `.env.local` | Google Places key (optional, location search) |
 | `SAHAJCLOUD_DOCS_PASSWORD`  | `.env.local` | HTTP basic-auth password for the SahajCloud OpenAPI docs; used **only** by the `pnpm types:openapi` script (never `VITE_`-prefixed — tooling-only, never in the bundle) |
 
 ## Secrets that must NOT reach the client
@@ -30,6 +29,7 @@ secret that ends up in the bundle.
   management API). It is **not** `VITE_`-prefixed and must never be referenced in
   client code or committed. The `security-scan` hook blocks staging files that
   contain `sk.`/secret patterns.
+
 (`ACCENT_API_KEY` used to live here for the Accent translation-sync workflows. Those
 were removed in #99 — see CLAUDE.md → Deployment — so the secret is no longer read by
 anything in this repo and can be revoked.)
@@ -53,7 +53,8 @@ and `src/config/api/auth.ts`.
 - **`https://ipwho.is`** — free, keyless IP-geolocation used by `useIpLocation`
   (`src/hooks/use-ip-location.ts`) to power the passive "events near you"
   suggestion. One lookup per session via a **bare `fetch`** — deliberately not the
-  shared axios client, whose interceptor would attach the SahajCloud
+  shared PayloadSDK client, whose wrapped `fetch` (`interceptFetch` →
+  `applyRequestContext`, `src/config/api/client.ts`) would attach the SahajCloud
   `Authorization: clients API-Key …` and `locale` to a third-party host. No secret
   and nothing to configure (the origin is a constant); the bundle is public. The
   lookup **fails silently** (returns `null`, no prompt) on any error — a host page's

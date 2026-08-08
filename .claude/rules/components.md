@@ -95,6 +95,16 @@ Fewer custom components means less maintenance and a consistent look.
 - **An overlay that portals to `document.body` will render unstyled.** Everything must
   portal to `overlayContainer()` (`src/lib/overlay.ts`), which targets the theme root —
   that is inside the scope; `document.body` is not.
+- **Host-authored rich text is sanitized by an allowlist, and the allowlist has to be
+  load-bearing.** `sanitizeDescription` (`organisms/EventDetails/sanitize.ts`) is the only
+  DOMPurify call in the repo. Two ways it has already been silently inert: an option that
+  *replaces* rather than intersects with `ALLOWED_TAGS` (`USE_PROFILES` did exactly that,
+  so the real policy was the full HTML profile), and the options that are independent of
+  `ALLOWED_ATTR` entirely — `ALLOW_DATA_ATTR` / `ALLOW_ARIA_ATTR` default to **true** and
+  have to be turned off by name. This markup lands in a HOST page, so the difference is
+  `style` overlays, `img src` beacons, `form` credential prompts and live `data-vaul-*`
+  hooks. Assert on the sanitizer's output when you change its config; nothing else will
+  tell you (issue #101).
 - **Host-authored rich text** carries the `.colored-links` utility, which owns the
   whole treatment for that content — link colour AND `break-words`. One unbreakable
   run (a pasted URL, or the U+2800 braille blanks authors use as spacing) otherwise
@@ -152,6 +162,21 @@ in host pages, **and** runs standalone in dev. Because of that:
   what it needs as props: it reads the searched place from a prop rather than
   `useSearchParams`, since `?q` is rewritten on every geocoder keystroke and router
   context bypasses `memo` entirely.
+
+## Rendering an anchor
+
+**Don't render a bare `<a href={…}>`.** Use the `Link` atom; if a component genuinely must
+emit its own anchor, its href goes through **`isSafeHref`** (`src/lib/shape/href.ts`) first —
+`safePath`-clean or an allowed scheme — and a refusal reports via `reportInternalError` and
+degrades to inert content. Exactly three components render a JSX anchor (`Link`, `Button`'s
+href form, `ActionRow`'s `ActionCircle`), and `src/lib/shape/href.test.ts` **asserts** that
+inventory, so a fourth turns the unit lane red until it is gated.
+
+Why it is a shared predicate and not a check per component — including the two properties that
+were each lost and restored, and why "site-relative" must be `safePath` rather than
+`startsWith('/')` — is in `.claude/rules/data-layer.md` → "Server-provided routes are untrusted
+until `safePath`". That rule is path-scoped to the data layer, so it does not auto-load here;
+read it before touching an anchor.
 
 ## Accessibility
 
