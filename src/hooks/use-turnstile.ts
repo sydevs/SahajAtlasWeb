@@ -129,7 +129,6 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
   useEffect(() => {
     if (disabled || !SITE_KEY) return
 
-    let widgetId: string | undefined
     let cancelled = false
 
     setToken(null)
@@ -149,7 +148,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
           return
         }
 
-        widgetId = widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: SITE_KEY,
           theme,
           language: languageCode,
@@ -170,7 +169,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
         // `render` returns undefined rather than a widget id when it refuses — most
         // often a sitekey the embedding domain isn't registered for. No widget means no
         // token, so that is blocked, not ready.
-        setStatus(widgetId ? 'ready' : 'blocked')
+        setStatus(widgetIdRef.current ? 'ready' : 'blocked')
       })
       .catch(() => {
         if (!cancelled) setStatus('blocked')
@@ -178,14 +177,17 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
 
     return () => {
       cancelled = true
-      if (widgetId) window.turnstile?.remove(widgetId)
-      if (widgetIdRef.current === widgetId) widgetIdRef.current = undefined
+      // The ref is written only past the `cancelled` guard above, and React runs this
+      // cleanup before the next effect body — so it holds THIS run's widget or nothing.
+      if (widgetIdRef.current) window.turnstile?.remove(widgetIdRef.current)
+      widgetIdRef.current = undefined
     }
   }, [disabled, theme, languageCode])
 
-  // Stable across renders (no deps) so a caller can hold it in a mutation callback
-  // without re-subscribing. `reset` re-runs the challenge, which calls the same
-  // `callback` on success — so the token comes back through the normal path.
+  // Stable across renders (no deps): the caller passes this straight to `useMutation`'s
+  // `onError`, and a fresh identity each render would re-run the observer's setOptions
+  // for nothing. `reset` re-runs the challenge, which calls the same `callback` on
+  // success — so the new token arrives through the normal path.
   const reset = useCallback(() => {
     if (!widgetIdRef.current) return
 

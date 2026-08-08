@@ -37,8 +37,11 @@ vi.mock('react-i18next', () => ({
         'report.sent': 'Thank you — your report is on its way to the team.',
         'report.blocked': "The security check couldn't load, so this form can't be sent.",
         'report.errors.message': `Please write at least ${opts?.min} characters.`,
+        // No `report.errors.captcha`: reaching that branch needs a REJECTED mutation, and
+        // the node lane renders SSR markup once — `initialFailed` can only stage the
+        // generic failure. The branch is a compile-time total Record over the synced code
+        // union, and the copy itself is covered by the locale-parity gate.
         'report.errors.send_failed': `We couldn't send your report. Please try again, or email us at ${opts?.email}.`,
-        'report.errors.captcha': 'The security check needs doing again.',
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),

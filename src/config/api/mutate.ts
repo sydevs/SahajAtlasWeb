@@ -46,25 +46,27 @@ const RefusalBodySchema = z.object({
     .nonempty(),
 })
 
-/** The first `{ code }` entry a thrown SDK error carries, if any. Shared by both
- *  mutations, since every coded refusal SahajCloud sends has this one body shape. */
-const refusalOf = (error: unknown): { code: string; message?: string } | undefined => {
+/**
+ * Re-cast a thrown SDK error as the caller's own refusal class when the body carries a
+ * `code`; any other failure (network, 404, validation) passes through untouched.
+ *
+ * One helper for both mutations, because every coded refusal SahajCloud sends has this
+ * same body shape — the alternative is each endpoint growing its own near-copy, and the
+ * next one inheriting whichever spelling it happened to land beside.
+ */
+const asRefusal = <Code extends string>(
+  error: unknown,
+  refused: (code: Code, message: string) => Error,
+  fallbackMessage: string,
+): unknown => {
   const parsed = RefusalBodySchema.safeParse(error)
   const refusal = parsed.success ? parsed.data.errors.find((entry) => entry.code) : undefined
 
-  return refusal?.code ? { code: refusal.code, message: refusal.message } : undefined
-}
+  if (!refusal?.code) return error
 
-/** Re-cast a thrown SDK error as a `RegistrationRefusedError` when it carries a
- *  refusal code; any other failure (network, 404, validation) passes through. */
-const asRefusal = (error: unknown): unknown => {
-  const refusal = refusalOf(error)
-
-  if (!refusal) return error
-
-  return new RegistrationRefusedError(
-    refusal.code as EventRegistrationErrorCode,
-    refusal.message ?? (error instanceof Error ? error.message : 'Registration refused'),
+  return refused(
+    refusal.code as Code,
+    refusal.message ?? (error instanceof Error ? error.message : fallbackMessage),
   )
 }
 
@@ -96,7 +98,11 @@ const createRegistration = async (
 
     return RegistrationResponseSchema.parse(response)
   } catch (error) {
-    throw asRefusal(error)
+    throw asRefusal<EventRegistrationErrorCode>(
+      error,
+      (code, message) => new RegistrationRefusedError(code, message),
+      'Registration refused',
+    )
   }
 }
 
@@ -132,10 +138,11 @@ const REPORT_SUBJECT = 'Issue report'
 /**
  * Trim a context value to the endpoint's own bound for that field.
  *
- * Not belt-and-braces: every `context` string is bounded server-side, and an over-long
- * one is a **400 for the whole message**. The user agent is the realistic offender (the
- * bound is 500), and losing a bug report to a long browser string would be the worst
- * possible trade — a truncated user agent still identifies the browser.
+ * Every `context` string is bounded server-side, and an over-long one is a **400 for the
+ * whole message**. `path` and `locale` we build ourselves and are belt-and-braces; the
+ * two that matter are foreign input — `userAgent` (bound 500) and `error` (2000, the
+ * thrown message). Losing a bug report to a long browser string would be the worst
+ * possible trade, and a truncated user agent still identifies the browser.
  */
 const clamp = (value: string, max: number) => value.slice(0, max)
 
@@ -181,13 +188,10 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
 
     return ContactResponseSchema.parse(response)
   } catch (error) {
-    const refusal = refusalOf(error)
-
-    if (!refusal) throw error
-
-    throw new ContactRefusedError(
-      refusal.code as ContactAdminErrorCode,
-      refusal.message ?? (error instanceof Error ? error.message : 'Message refused'),
+    throw asRefusal<ContactAdminErrorCode>(
+      error,
+      (code, message) => new ContactRefusedError(code, message),
+      'Message refused',
     )
   }
 }

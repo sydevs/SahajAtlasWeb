@@ -1,3 +1,4 @@
+import type { ContactAdminErrorCode } from '@/types/payload/contact-types'
 import type { ReportContext, ReportPayload } from '@/lib/report'
 
 import { useEffect } from 'react'
@@ -23,6 +24,20 @@ import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } fro
  * inbox either way.
  */
 const CONTACT_EMAIL = 'contact@sydevelopers.com'
+
+/**
+ * Our copy for each refusal the endpoint can name, keyed by its machine-readable code.
+ * A total `Record` over the synced union — exactly as `RegistrationForm` does — so a
+ * `pnpm types:cms` that ADDS a code fails the build here instead of silently routing the
+ * new case to the generic "try again" sentence.
+ *
+ * `captcha_failed` is the token being forged, expired, or already redeemed. The challenge
+ * has been reset underneath the viewer by then, so the copy tells them to wait for it and
+ * re-send rather than offering the email escape.
+ */
+const REFUSAL_MESSAGE_KEYS: Record<ContactAdminErrorCode, string> = {
+  captcha_failed: 'report.errors.captcha',
+}
 
 export type ReportIssueFormProps = {
   /**
@@ -138,15 +153,17 @@ export function ReportIssueForm({
       ? t('report.errors.message_max', { max: REPORT_MESSAGE_MAX })
       : t('report.errors.message', { min: REPORT_MESSAGE_MIN })
 
-  // A captcha rejection is the one failure the viewer can act on directly, and the
-  // challenge has already been reset underneath them — so say to wait and re-send,
-  // rather than the generic "try again or email us". Every other failure (offline, 5xx,
-  // a 502 from the mailer) gets the generic sentence, which carries the address that
-  // still works. The thrown message never reaches the screen; it is developer text.
-  const failureMessage =
-    mutation.error instanceof ContactRefusedError && mutation.error.code === 'captcha_failed'
-      ? t('report.errors.captcha')
-      : t('report.errors.send_failed', { email: CONTACT_EMAIL })
+  // A named refusal gets its own sentence; everything else (offline, 5xx, a 502 from the
+  // mailer) gets the generic one, which carries the address that still works. The thrown
+  // message never reaches the screen — it is developer text, and it travels in the report.
+  const refusalKey =
+    mutation.error instanceof ContactRefusedError
+      ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
+      : undefined
+
+  const failureMessage = refusalKey
+    ? t(refusalKey)
+    : t('report.errors.send_failed', { email: CONTACT_EMAIL })
 
   const failed = initialFailed || mutation.isError
 
