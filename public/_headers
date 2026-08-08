@@ -21,3 +21,24 @@
 # string as its raw key. Hand-edited and unhashed, so no long cache.
 /locales/*
   Access-Control-Allow-Origin: *
+
+# Resist direct indexing (issue #106). The policy and the robots.txt interaction are
+# written down once, in public/robots.txt; what follows is only why this half exists.
+#
+# A HEADER reaches what a <meta> cannot. index.html's tag covers every ROUTE (`_redirects`
+# rewrites unknown paths to that shell), but embed.js, the hashed assets and the locale
+# JSON are each a fetchable URL with no document to carry a tag. This covers all of them.
+#
+# `/*` does not disturb the two rules above: Cloudflare Pages applies EVERY matching rule
+# ("an incoming request which matches multiple rules' URL patterns will inherit all rules'
+# headers"), so /assets/* keeps its CORS + immutable cache and additionally gets this.
+# Ordered last for reading only: these three rules set disjoint header NAMES, and order
+# would start to matter the moment two rules set the same one (Pages joins repeated
+# values with a comma). The smoke lane pins the CORS half against exactly that.
+#
+# It cannot leak into a host page's own indexing: X-Robots-Tag governs the URL it is served
+# on, and a directive on a subresource says nothing about the document embedding it.
+# `noindex` alone, deliberately — no `nofollow`, because the canonicals point at WeMeditate
+# and there is no reason to stop a crawler following them there.
+/*
+  X-Robots-Tag: noindex
