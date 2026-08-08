@@ -74,10 +74,15 @@ const createRegistration = async (
   eventId: number,
   data: Registration,
 ): Promise<RegistrationResponse> => {
+  // Only the REQUEST is guarded: a `.parse()` inside this try would hand `asRefusal` a
+  // ZodError, whose `.errors` are `{ message, code }` — the very shape a refusal body has
+  // — so schema drift would be re-cast as a server refusal carrying a zod issue code.
+  let response: unknown
+
   try {
     // A custom (non-CRUD) endpoint → the SDK's raw `request` helper. `request` throws a
     // PayloadSDKError on a non-2xx, so a failed registration still rejects to the caller.
-    const response = await requestJson({
+    response = await requestJson({
       method: 'POST',
       path: `/events/${eventId}/register`,
       json: {
@@ -95,8 +100,6 @@ const createRegistration = async (
         locale: activeLocale(),
       },
     })
-
-    return RegistrationResponseSchema.parse(response)
   } catch (error) {
     throw asRefusal<EventRegistrationErrorCode>(
       error,
@@ -104,6 +107,8 @@ const createRegistration = async (
       'Registration refused',
     )
   }
+
+  return RegistrationResponseSchema.parse(response)
 }
 
 // Confirmation returned by `POST /api/contact-admin` (ContactAdminResponse). Nothing is
@@ -183,10 +188,12 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
     // forgeable source for the same row (and the schema would strip it anyway).
   }
 
-  try {
-    const response = await requestJson({ method: 'POST', path: '/contact-admin', json })
+  // The parse deliberately sits OUTSIDE the try — see `createRegistration`: a ZodError
+  // looks exactly like a refusal body to `asRefusal`.
+  let response: unknown
 
-    return ContactResponseSchema.parse(response)
+  try {
+    response = await requestJson({ method: 'POST', path: '/contact-admin', json })
   } catch (error) {
     throw asRefusal<ContactAdminErrorCode>(
       error,
@@ -194,6 +201,8 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
       'Message refused',
     )
   }
+
+  return ContactResponseSchema.parse(response)
 }
 
 export default {

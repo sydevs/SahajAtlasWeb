@@ -95,6 +95,24 @@ export function ReportIssueForm({
 
   const mutation = useMutation({
     mutationFn: api.contactAdmin,
+    /**
+     * React Query's default `networkMode: 'online'` **pauses** a mutation fired while the
+     * browser reports itself offline: no request, no throw, no `onError` — it sits
+     * `isPending` until connectivity returns.
+     *
+     * That default is wrong for this form specifically, in both directions. Forward: the
+     * viewer gets a spinner that never resolves, on the one screen in the widget that
+     * exists BECAUSE something already failed — often the network — so the honest failure
+     * state this ticket is about would be the one state it could never reach. Backward: a
+     * paused mutation outlives the modal, and the query client resumes it on the `online`
+     * event, so a viewer who gave up, reopened the form and sent a second report would
+     * have both delivered.
+     *
+     * `'always'` makes the fetch attempt and fail like any other error, which is what the
+     * failure copy already describes — and it carries the email address, which is a route
+     * that still works when ours doesn't.
+     */
+    networkMode: 'always',
     // A Turnstile token is single-use and the endpoint redeems it during verification —
     // BEFORE it tries to send the email. So after a 502 (mail provider down) the token is
     // already spent, and re-submitting it would be refused as a replay for as long as the
@@ -156,8 +174,13 @@ export function ReportIssueForm({
   // A named refusal gets its own sentence; everything else (offline, 5xx, a 502 from the
   // mailer) gets the generic one, which carries the address that still works. The thrown
   // message never reaches the screen — it is developer text, and it travels in the report.
+  // `hasOwnProperty`, not a bare index: `code` is a cast over a `z.string()`, so at
+  // runtime it is whatever the response body said. A bare lookup walks the prototype
+  // chain, and a code of `constructor` / `toString` would hand `t()` a truthy non-string
+  // in place of the failure sentence. Same spelling `isErrorKind` uses in lib/report.ts.
   const refusalKey =
-    mutation.error instanceof ContactRefusedError
+    mutation.error instanceof ContactRefusedError &&
+    Object.prototype.hasOwnProperty.call(REFUSAL_MESSAGE_KEYS, mutation.error.code)
       ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
       : undefined
 
@@ -264,12 +287,19 @@ export function ReportIssueForm({
       </ModalBody>
 
       <ModalFooter>
-        <Button variant="flat" onClick={onClose}>
+        {/* Disabled mid-flight, as RegistrationForm does: closing here unmounts the form
+            while the POST continues, so the viewer would never learn whether the report
+            they just sent arrived. */}
+        <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
           {t('report.cancel')}
         </Button>
         {blocked ? (
           // No captcha means no token, so the form can never be sent. Offer the route
           // that still works instead of a button that would only ever be disabled.
+          // The href is a bare literal on purpose. If anyone ever prefills `?subject=` or
+          // `?body=` from the message or the thrown error, every interpolated part needs
+          // `encodeURIComponent` — an unencoded `&` or newline in a report body silently
+          // forges extra mailto fields (commit 368e1f7).
           <Button color="primary" href={`mailto:${CONTACT_EMAIL}`} variant="flat">
             {CONTACT_EMAIL}
           </Button>

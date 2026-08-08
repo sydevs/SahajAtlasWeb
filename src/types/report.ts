@@ -17,7 +17,10 @@ export const ReportSchema = z.object({
    */
   // Trimmed first: a trailing space would otherwise fail `.email()` with an inline error
   // pointing at a defect the viewer cannot see.
-  email: z.string().trim().email().or(z.literal('')).optional(),
+  // `.max(254)` mirrors the endpoint's own bound (SahajCloud#602). Without it an
+  // over-long address passes here and 400s the whole report, surfacing as the generic
+  // "couldn't send" with nothing pointing at the field that caused it.
+  email: z.string().trim().email().max(254).or(z.literal('')).optional(),
   /** Trimmed first, so a whitespace-only message can't satisfy the minimum. */
   message: z.string().trim().min(REPORT_MESSAGE_MIN).max(REPORT_MESSAGE_MAX),
 })

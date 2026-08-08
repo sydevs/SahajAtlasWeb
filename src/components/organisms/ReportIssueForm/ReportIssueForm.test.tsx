@@ -41,7 +41,7 @@ vi.mock('react-i18next', () => ({
         // the node lane renders SSR markup once — `initialFailed` can only stage the
         // generic failure. The branch is a compile-time total Record over the synced code
         // union, and the copy itself is covered by the locale-parity gate.
-        'report.errors.send_failed': `We couldn't send your report. Please try again, or email us at ${opts?.email}.`,
+        'report.errors.send_failed': `Your report wasn't sent. Try again once the security check has refreshed, or email us at ${opts?.email}.`,
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),
@@ -119,7 +119,7 @@ describe('ReportIssueForm', () => {
     // The whole point of issue #103: before this, submit alerted the payload and showed
     // the thank-you screen regardless, so a report that reached nobody read as delivered.
     expect(html).not.toContain('Thank you')
-    expect(html).toContain('t send your report')
+    expect(html).toContain('t sent. Try again once the security check')
     // The address the endpoint mails anyway, so a viewer whose POST won't go through
     // still has a route that works — this form is often reached because the network is.
     expect(html).toContain('contact@sydevelopers.com')
@@ -131,8 +131,9 @@ describe('ReportIssueForm', () => {
   it('renders the failure as an assertive alert', () => {
     const html = render(<ReportIssueForm initialFailed context={context} onClose={noop} />)
 
-    // Unlike the per-keystroke field errors (announceError={false}), a failed submit is
-    // worth interrupting for — there is no other signal that nothing was sent.
-    expect(html).toContain('role="alert"')
+    // Tie the role to THIS sentence: a bare `role="alert"` is also satisfied by the
+    // captcha-blocked banner and by FormField's own error span, so the loose assertion
+    // would pass with the failure alert deleted.
+    expect(html).toMatch(/role="alert"[^>]*>(?:(?!<\/div>).)*?wasn(?:&#x27;|')t sent/s)
   })
 })

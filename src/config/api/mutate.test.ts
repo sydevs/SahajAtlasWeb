@@ -1,6 +1,7 @@
 import type { ReportContext } from '@/lib/report'
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import z from 'zod'
 
 import mutate, { ContactRefusedError, RegistrationRefusedError } from './mutate'
 
@@ -188,11 +189,16 @@ describe('contactAdmin', () => {
     await expect(mutate.contactAdmin(report)).rejects.toBe(badGateway)
   })
 
-  it('rejects a success body that is not the contract', async () => {
+  it('rejects a success body that is not the contract, as a parse failure', async () => {
     // `ok: true` is the whole receipt — nothing is persisted — so the parse is the only
     // thing standing between a shape change and a thank-you screen for a lost report.
     sdk.request.mockResolvedValue(jsonResponse({ ok: false }))
 
-    await expect(mutate.contactAdmin(report)).rejects.toThrow()
+    // NOT a ContactRefusedError. A ZodError's `.errors` are `{ message, code }` — the
+    // very shape a refusal body has — so a `.parse()` inside the request's catch would be
+    // re-cast as a server refusal carrying a zod issue code. A bare `.rejects.toThrow()`
+    // passes either way and would have certified that bug.
+    await expect(mutate.contactAdmin(report)).rejects.toBeInstanceOf(z.ZodError)
+    await expect(mutate.contactAdmin(report)).rejects.not.toBeInstanceOf(ContactRefusedError)
   })
 })
