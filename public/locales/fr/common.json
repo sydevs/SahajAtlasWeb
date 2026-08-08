@@ -117,7 +117,9 @@
     "errors": {
       "email": "Saisissez une adresse e-mail valide.",
       "message": "Veuillez écrire au moins %{min} caractères.",
-      "message_max": "Veuillez rester sous %{max} caractères."
+      "message_max": "Veuillez rester sous %{max} caractères.",
+      "send_failed": "Nous n'avons pas pu envoyer votre signalement. Réessayez ou écrivez-nous à %{email}.",
+      "captcha": "La vérification de sécurité doit être refaite. Attendez qu'elle se rafraîchisse, puis renvoyez."
     }
   },
   "error": {

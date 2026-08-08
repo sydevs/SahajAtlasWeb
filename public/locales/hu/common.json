@@ -117,7 +117,9 @@
     "errors": {
       "email": "Adjon meg érvényes e-mail-címet.",
       "message": "Írjon legalább %{min} karaktert.",
-      "message_max": "Kérjük, maradjon %{max} karakter alatt."
+      "message_max": "Kérjük, maradjon %{max} karakter alatt.",
+      "send_failed": "Nem sikerült elküldeni a bejelentésedet. Próbáld újra, vagy írj nekünk a %{email} címre.",
+      "captcha": "A biztonsági ellenőrzést újra el kell végezni. Várd meg, amíg frissül, majd küldd el újra."
     }
   },
   "error": {

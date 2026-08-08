@@ -117,7 +117,9 @@
     "errors": {
       "email": "Voer een geldig e-mailadres in.",
       "message": "Schrijf minstens %{min} tekens.",
-      "message_max": "Blijf onder de %{max} tekens."
+      "message_max": "Blijf onder de %{max} tekens.",
+      "send_failed": "We konden je melding niet versturen. Probeer het opnieuw of mail ons op %{email}.",
+      "captcha": "De veiligheidscontrole moet opnieuw. Wacht tot deze is vernieuwd en verstuur het opnieuw."
     }
   },
   "error": {

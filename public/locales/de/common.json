@@ -117,7 +117,9 @@
     "errors": {
       "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
       "message": "Bitte schreiben Sie mindestens %{min} Zeichen.",
-      "message_max": "Bitte bleiben Sie unter %{max} Zeichen."
+      "message_max": "Bitte bleiben Sie unter %{max} Zeichen.",
+      "send_failed": "Dein Bericht konnte nicht gesendet werden. Bitte versuche es erneut oder schreib uns an %{email}.",
+      "captcha": "Die Sicherheitsprüfung muss erneut durchgeführt werden. Warte, bis sie aktualisiert ist, und sende dann noch einmal."
     }
   },
   "error": {

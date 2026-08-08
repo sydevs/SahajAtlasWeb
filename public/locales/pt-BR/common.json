@@ -117,7 +117,9 @@
     "errors": {
       "email": "Digite um endereço de e-mail válido.",
       "message": "Escreva pelo menos %{min} caracteres.",
-      "message_max": "Use menos de %{max} caracteres."
+      "message_max": "Use menos de %{max} caracteres.",
+      "send_failed": "Não conseguimos enviar seu relato. Tente novamente ou escreva para %{email}.",
+      "captcha": "A verificação de segurança precisa ser refeita. Aguarde a atualização e envie novamente."
     }
   },
   "error": {

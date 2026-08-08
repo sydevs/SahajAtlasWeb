@@ -1,8 +1,9 @@
 import type { ReportContext, ReportPayload } from '@/lib/report'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
@@ -11,10 +12,16 @@ import { Input } from '@/components/atoms/Input'
 import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
+import api from '@/config/api'
+import { ContactRefusedError } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
-/** Where a viewer is directed when the captcha can't load and the form can't be sent. */
+/**
+ * Where a viewer is directed when the form can't deliver — the captcha never loaded, or
+ * the POST failed. The same address the endpoint mails, so the report reaches the same
+ * inbox either way.
+ */
 const CONTACT_EMAIL = 'contact@sydevelopers.com'
 
 export type ReportIssueFormProps = {
@@ -28,6 +35,11 @@ export type ReportIssueFormProps = {
   onClose: () => void
   /** Story-only: start on the thank-you screen rather than the live form. */
   initialSubmitted?: boolean
+  /**
+   * Story-only: render the send-failed state without a real failed request. Shows the
+   * generic failure; the captcha-rejection wording is a live-only path.
+   */
+  initialFailed?: boolean
   /** Story-only: render the degraded state as if Turnstile were blocked. */
   captchaUnavailable?: boolean
   /** Pre-fill the fields. Seeded values are validated on mount, so their state shows. */
@@ -35,12 +47,15 @@ export type ReportIssueFormProps = {
 }
 
 /**
- * The report-issue form (issue #79): an optional reply address, the message, and a
+ * The report-issue form (issues #79/#103): an optional reply address, the message, and a
  * Turnstile challenge, over the auto-attached `context` the viewer never types.
  *
- * Submit does not reach the network yet — SahajCloud's shared `POST /api/contact-admin`
- * lands in sydevs/SahajCloud#602 and is wired up in #80; until then it alerts the exact
- * payload that call will carry, so the follow-up only has to swap in the mutation.
+ * Submit POSTs to SahajCloud's shared `/api/contact-admin` (sydevs/SahajCloud#602), which
+ * verifies the token and emails the team. **The thank-you screen is derived from the
+ * mutation's own success and nothing else** — it used to be set beside a `window.alert`,
+ * so every report "sent" successfully and none of them went anywhere. This form is
+ * reached BECAUSE something already failed, often the network, so its failure state has
+ * to be the honest one.
  *
  * The modal unmounts its content on close, so this remounts fresh on each reopen — and
  * the captcha is torn down with it, so a reopened form always gets a new challenge.
@@ -49,12 +64,35 @@ export function ReportIssueForm({
   context,
   onClose,
   initialSubmitted = false,
+  initialFailed = false,
   captchaUnavailable = false,
   initialValues,
 }: ReportIssueFormProps) {
   const { t } = useTranslation('common')
-  const [submitted, setSubmitted] = useState(initialSubmitted)
-  const { containerRef, token, status } = useTurnstile({ disabled: captchaUnavailable })
+  const {
+    containerRef,
+    token,
+    status,
+    reset: resetCaptcha,
+  } = useTurnstile({
+    disabled: captchaUnavailable,
+  })
+
+  const mutation = useMutation({
+    mutationFn: api.contactAdmin,
+    // A Turnstile token is single-use and the endpoint redeems it during verification —
+    // BEFORE it tries to send the email. So after a 502 (mail provider down) the token is
+    // already spent, and re-submitting it would be refused as a replay for as long as the
+    // form stays open. Reset on every failure, not just the 403: the one case where the
+    // token survives is a request that never reached the server, where a fresh challenge
+    // costs nothing.
+    onError: resetCaptcha,
+  })
+
+  // Nothing else may set this. `mutation.isSuccess` means a resolved, zod-parsed
+  // `{ ok: true }` — the endpoint answers 502 rather than a false 200 when the mail
+  // itself fails, so a resolved promise really does mean the message was delivered.
+  const submitted = initialSubmitted || mutation.isSuccess
 
   const {
     register,
@@ -100,11 +138,25 @@ export function ReportIssueForm({
       ? t('report.errors.message_max', { max: REPORT_MESSAGE_MAX })
       : t('report.errors.message', { min: REPORT_MESSAGE_MIN })
 
+  // A captcha rejection is the one failure the viewer can act on directly, and the
+  // challenge has already been reset underneath them — so say to wait and re-send,
+  // rather than the generic "try again or email us". Every other failure (offline, 5xx,
+  // a 502 from the mailer) gets the generic sentence, which carries the address that
+  // still works. The thrown message never reaches the screen; it is developer text.
+  const failureMessage =
+    mutation.error instanceof ContactRefusedError && mutation.error.code === 'captcha_failed'
+      ? t('report.errors.captcha')
+      : t('report.errors.send_failed', { email: CONTACT_EMAIL })
+
+  const failed = initialFailed || mutation.isError
+
   return (
     <form
       className="flex min-h-0 flex-1 flex-col"
       onSubmit={handleSubmit((values) => {
-        if (!token) return
+        // No token means the challenge isn't solved (or was just reset after a failed
+        // send). The control is disabled in that state; this is the belt to its braces.
+        if (!token || mutation.isPending) return
 
         const payload: ReportPayload = {
           // A blank optional input registers as '' — omit it rather than sending an
@@ -115,10 +167,7 @@ export function ReportIssueForm({
           context,
         }
 
-        // TODO(#80): swap this for the createReport mutation once SahajCloud's shared
-        // POST /api/contact-admin lands (sydevs/SahajCloud#602).
-        window.alert(JSON.stringify(payload, null, 2))
-        setSubmitted(true)
+        mutation.mutate(payload)
       })}
     >
       <ModalBody>
@@ -186,6 +235,14 @@ export function ReportIssueForm({
           {blocked && (
             <Alert align="start" color="secondary" description={t('report.blocked')} role="alert" />
           )}
+
+          {/* A failed submit is the one thing here worth interrupting a screen reader
+              for — unlike the field errors above (`announceError={false}`), which fire
+              per keystroke on a form that gates its own submit. The typed message is
+              still in the fields behind this, so the retry costs nothing to compose. */}
+          {failed && (
+            <Alert align="start" color="danger" description={failureMessage} role="alert" />
+          )}
         </div>
       </ModalBody>
 
@@ -200,7 +257,13 @@ export function ReportIssueForm({
             {CONTACT_EMAIL}
           </Button>
         ) : (
-          <Button color="primary" disabled={!isValid || !token} type="submit" variant="flat">
+          <Button
+            color="primary"
+            disabled={!isValid || !token}
+            isLoading={mutation.isPending}
+            type="submit"
+            variant="flat"
+          >
             {t('report.submit')}
           </Button>
         )}

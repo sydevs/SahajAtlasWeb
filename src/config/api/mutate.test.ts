@@ -1,6 +1,8 @@
+import type { ReportContext } from '@/lib/report'
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import mutate, { RegistrationRefusedError } from './mutate'
+import mutate, { ContactRefusedError, RegistrationRefusedError } from './mutate'
 
 // Same boundary mock as fetch.test.ts: the SDK is stubbed so `requestJson` runs
 // against a controlled Response, and i18n is stubbed so importing the client
@@ -85,5 +87,112 @@ describe('createRegistration', () => {
     sdk.request.mockRejectedValue(offline)
 
     await expect(mutate.createRegistration(42, registration)).rejects.toBe(offline)
+  })
+})
+
+const context: ReportContext = {
+  path: '/india/pune/e/42',
+  pageUrl: 'https://host.example/find-a-class',
+  locale: 'en',
+  client: 'Sahaja Yoga UK',
+  userAgent: 'Mozilla/5.0 (Macintosh)',
+}
+
+const report = { message: 'The venue address is wrong.', turnstileToken: 'tok-1', context }
+
+describe('contactAdmin', () => {
+  it('posts the report to the shared endpoint and parses the receipt', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
+
+    await expect(mutate.contactAdmin({ ...report, email: 'ada@example.org' })).resolves.toEqual({
+      ok: true,
+    })
+
+    const [options] = sdk.request.mock.calls[0]
+
+    expect(options.method).toBe('POST')
+    expect(options.path).toBe('/contact-admin')
+    expect(options.json.message).toBe('The venue address is wrong.')
+    expect(options.json.email).toBe('ada@example.org')
+    // The endpoint is general-purpose; the Atlas framing is this caller's subject.
+    expect(options.json.subject).toBe('Issue report')
+    // A captcha-gated endpoint verifies the token SERVER-side — it has to travel in the
+    // body, not just be solved in the browser.
+    expect(options.json.turnstileToken).toBe('tok-1')
+  })
+
+  it('maps our context onto the endpoint’s, dropping the client it derives itself', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
+
+    await mutate.contactAdmin(report)
+
+    const [options] = sdk.request.mock.calls[0]
+
+    // Ours is `pageUrl`, theirs is `hostUrl`. A silent rename here would drop the host
+    // page from every report while every gate stayed green.
+    expect(options.json.context).toEqual({
+      path: '/india/pune/e/42',
+      hostUrl: 'https://host.example/find-a-class',
+      locale: 'en',
+      userAgent: 'Mozilla/5.0 (Macintosh)',
+    })
+    // The service name comes from the authenticated API key server-side; sending our
+    // cached copy would be a second, forgeable source for the same row.
+    expect(options.json.context).not.toHaveProperty('client')
+  })
+
+  it('omits a blank reply address rather than sending an empty Reply-To', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
+
+    await mutate.contactAdmin({ ...report, email: '' })
+
+    expect(sdk.request.mock.calls[0][0].json).not.toHaveProperty('email')
+  })
+
+  it('clamps context values to the bounds the endpoint enforces', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
+
+    await mutate.contactAdmin({
+      ...report,
+      context: { ...context, userAgent: 'U'.repeat(900), error: 'E'.repeat(2500) },
+    })
+
+    // Over-bound context is a 400 for the WHOLE message — losing a bug report to a long
+    // browser string would be the worst possible trade.
+    const sent = sdk.request.mock.calls[0][0].json.context
+
+    expect(sent.userAgent).toHaveLength(500)
+    expect(sent.error).toHaveLength(2000)
+  })
+
+  it('re-casts a 403 captcha rejection as a ContactRefusedError carrying the code', async () => {
+    sdk.request.mockRejectedValue(
+      new FakeSDKError(
+        [{ message: 'Captcha verification failed. Please try again.', code: 'captcha_failed' }],
+        403,
+      ),
+    )
+
+    // The form resets its challenge on this, so the sender can retry in place.
+    await expect(mutate.contactAdmin(report)).rejects.toBeInstanceOf(ContactRefusedError)
+    await expect(mutate.contactAdmin(report)).rejects.toMatchObject({ code: 'captcha_failed' })
+  })
+
+  it('passes an uncoded failure through untouched — a 502 means the email never sent', async () => {
+    // The endpoint answers 502 rather than a false 200 when the mail provider refuses,
+    // so this MUST reach the form as a failure.
+    const badGateway = new FakeSDKError([{ message: 'Could not deliver your message.' }], 502)
+
+    sdk.request.mockRejectedValue(badGateway)
+
+    await expect(mutate.contactAdmin(report)).rejects.toBe(badGateway)
+  })
+
+  it('rejects a success body that is not the contract', async () => {
+    // `ok: true` is the whole receipt — nothing is persisted — so the parse is the only
+    // thing standing between a shape change and a thank-you screen for a lost report.
+    sdk.request.mockResolvedValue(jsonResponse({ ok: false }))
+
+    await expect(mutate.contactAdmin(report)).rejects.toThrow()
   })
 })

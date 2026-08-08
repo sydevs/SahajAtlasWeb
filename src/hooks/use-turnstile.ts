@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
@@ -31,6 +31,7 @@ type TurnstileRenderOptions = {
 type TurnstileApi = {
   render: (container: HTMLElement, options: TurnstileRenderOptions) => string | undefined
   remove: (widgetId: string) => void
+  reset: (widgetId: string) => void
 }
 
 declare global {
@@ -95,10 +96,26 @@ export type UseTurnstile = {
   /** The solved token, or null while unsolved/expired. */
   token: string | null
   status: TurnstileStatus
+  /**
+   * Discard the current token and re-run the challenge in place.
+   *
+   * **A Turnstile token is single-use**, and the server redeems it the moment it
+   * verifies — before it does the work the token was gating. So after ANY failed
+   * submit the token in hand may already be spent, and re-sending it would be refused
+   * for the rest of the widget's life. A caller whose submit failed must reset rather
+   * than offer a retry that cannot succeed.
+   *
+   * No-op while the challenge isn't rendered (blocked / still loading), so a caller
+   * never has to check `status` first.
+   */
+  reset: () => void
 }
 
 export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): UseTurnstile {
   const containerRef = useRef<HTMLDivElement>(null)
+  // Held in a ref as well as the effect closure, so `reset` can reach the live widget
+  // without re-running (and thus re-rendering) the challenge.
+  const widgetIdRef = useRef<string | undefined>(undefined)
   const [token, setToken] = useState<string | null>(null)
   const [status, setStatus] = useState<TurnstileStatus>(
     disabled || !SITE_KEY ? 'blocked' : 'loading',
@@ -132,7 +149,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
           return
         }
 
-        widgetId = window.turnstile.render(containerRef.current, {
+        widgetId = widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: SITE_KEY,
           theme,
           language: languageCode,
@@ -162,8 +179,19 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     return () => {
       cancelled = true
       if (widgetId) window.turnstile?.remove(widgetId)
+      if (widgetIdRef.current === widgetId) widgetIdRef.current = undefined
     }
   }, [disabled, theme, languageCode])
 
-  return { containerRef, token, status }
+  // Stable across renders (no deps) so a caller can hold it in a mutation callback
+  // without re-subscribing. `reset` re-runs the challenge, which calls the same
+  // `callback` on success — so the token comes back through the normal path.
+  const reset = useCallback(() => {
+    if (!widgetIdRef.current) return
+
+    setToken(null)
+    window.turnstile?.reset(widgetIdRef.current)
+  }, [])
+
+  return { containerRef, token, status, reset }
 }

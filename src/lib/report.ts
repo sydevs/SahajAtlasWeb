@@ -613,9 +613,10 @@ export function buildReportContext({
 }
 
 /**
- * What #80 will POST to SahajCloud's shared `/api/contact-admin` (sydevs/SahajCloud#602).
- * Today it's simply what the submit handler alerts, so the follow-up only has to swap
- * in the mutation.
+ * What the report form POSTs to SahajCloud's shared `/api/contact-admin`
+ * (sydevs/SahajCloud#602, wired in #103). `api.contactAdmin` maps it onto that
+ * endpoint's own body — notably `pageUrl` → `hostUrl` — and clamps each context value to
+ * the bound the endpoint enforces.
  */
 export type ReportPayload = Report & {
   turnstileToken: string
