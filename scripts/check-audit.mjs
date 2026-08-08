@@ -80,6 +80,30 @@ function runAudit() {
   }
 }
 
+/**
+ * Whatever `pnpm.auditConfig` is suppressing, described for the annotation —
+ * or null when nothing is.
+ *
+ * This is the one suppression channel the report itself cannot expose: pnpm
+ * filters the ignored ids out before writing the JSON, so a silenced advisory
+ * is indistinguishable from an absent one. Reading the config directly is the
+ * only way to see it, which is why the check lives here rather than keying off
+ * anything in the audit output.
+ */
+function auditSuppression() {
+  let config
+
+  try {
+    config = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')).pnpm?.auditConfig
+  } catch {
+    return null
+  }
+
+  const ignored = [...(config?.ignoreGhsas || []), ...(config?.ignoreCves || [])]
+
+  return ignored.length ? ignored.join(', ') : null
+}
+
 function main() {
   const baseline = JSON.parse(readFileSync(BASELINE_FILE, 'utf8'))
   const known = baseline.advisories || {}
@@ -111,31 +135,43 @@ function main() {
   const fresh = [...gated.entries()].filter(([id]) => !(id in known)).map(([, a]) => a)
   const stale = Object.keys(known).filter((id) => !gated.has(id))
 
-  // Two ways a clean report can be a lie — a swallowed registry error, or an
-  // `auditConfig.ignoreGhsas` added elsewhere. Either is "the audit stopped
-  // looking", which is not the same as clean and must not read as green.
+  // Three ways a quiet report can be a lie. The baseline used to catch the first
+  // of them on its own — zero advisories against a non-empty list — and issue
+  // #101 fixed all 27 entries and emptied it, so that tell no longer fires and
+  // the others have to be named explicitly.
   //
-  // The original tell was zero advisories against a NON-EMPTY baseline. Issue
-  // #101 fixed all 27 entries and emptied the list, which retires that signal:
-  // zero is now the expected state, so it can no longer distinguish a healthy
-  // run from a blind one. The graph size carries that weight instead — pnpm
-  // reports `totalDependencies` (417 at the time of writing), and a run that
-  // audited none of them audited nothing.
+  // Be exact about what each one reaches. A guard that reads as broader cover
+  // than it gives is worse than no guard, because it stops anyone looking for the
+  // real one:
   //
-  // An ABSENT field is skipped rather than failed: an older pnpm not reporting
-  // the count is not evidence that the audit was blind, and this check exists to
+  //  - `pnpm.auditConfig` (`ignoreGhsas` / `ignoreCves`) drops advisories at the
+  //    SOURCE. It changes neither the graph nor the report's totals, so nothing
+  //    else in this file can see it — the run simply comes back quieter. Now that
+  //    the baseline is empty it is the only remaining way to hide a finding, and
+  //    unlike a baseline line it records no owner and no reason. Its presence is
+  //    therefore the failure, not a thing to inspect.
+  //  - `totalDependencies === 0` means the audit walked no packages: a wrong
+  //    working directory, or a lockfile with nothing in it. Narrow and cheap.
+  //    A registry outage is NOT this case — unparseable output is caught above.
+  //  - Zero advisories against a NON-EMPTY baseline. Vacuous while the list is
+  //    empty; kept for when it refills.
+  //
+  // An ABSENT `totalDependencies` is skipped rather than failed: an older pnpm
+  // not reporting the count is not evidence of a blind run, and this exists to
   // catch silence, not to invent it.
+  const suppression = auditSuppression()
   const audited = audit.metadata?.totalDependencies
-  const emptyAgainstBaseline = !found.length && Object.keys(known).length > 0
+  const blindReason = suppression
+    ? `\`pnpm.auditConfig\` suppresses advisories at the source (${suppression}). ` +
+      'Waivers belong in scripts/audit-baseline.json, which names the ticket that owns each one.'
+    : audited === 0
+      ? 'it walked zero packages — a wrong working directory or an empty lockfile.'
+      : !found.length && Object.keys(known).length
+        ? `it found nothing while the baseline lists ${Object.keys(known).length}.`
+        : null
 
-  if (audited === 0 || emptyAgainstBaseline) {
-    const message =
-      audited === 0
-        ? 'Dependency audit walked zero packages — the audit is not looking, ' +
-          'not clean. Check `pnpm audit --prod` by hand.'
-        : 'Dependency audit reported zero advisories while the baseline lists ' +
-          `${Object.keys(known).length} — the audit is not looking, not clean. ` +
-          'Check `pnpm audit --prod` by hand.'
+  if (blindReason) {
+    const message = `Dependency audit is not looking, not clean: ${blindReason} Check \`pnpm audit --prod\` by hand.`
 
     lines.push(`⚠️ ${message}`)
     annotate(strict ? 'error' : 'warning', message)
