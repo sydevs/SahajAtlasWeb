@@ -7,7 +7,8 @@
  *
  * Cloudflare's GitHub integration surfaces the preview URL a few different ways
  * depending on account settings, so we probe several sources for the PR's head
- * SHA and take the first `*.pages.dev` we find:
+ * SHA and take the BEST-ATTESTED `*.pages.dev` we find (see "WHICH url" below —
+ * it used to be the first one, which is issue #138):
  *   1. commit statuses        → status.target_url
  *   2. deployment statuses    → status.environment_url
  *   3. check runs             → the Cloudflare app's output summary
@@ -121,18 +122,35 @@
  *                deployment UUID, and the alias is that UUID's first 8 chars — an
  *                unbroken chain from the commit to the host being tested.
  *   attested   — deploy-shaped, from an object GitHub returned for this SHA.
- *   alias      — a branch alias from such an object, or a Cloudflare comment
- *                naming this SHA: true when written, not pinned to stay true.
- *   loose      — everything else. Never selected — and never recorded as a URL,
- *                so ignoring one leaves the status `pending`, not `unreachable`.
+ *   claimed    — deploy-shaped, from a Cloudflare comment naming this SHA. Below
+ *                the check run, because the comment is edited in place and may
+ *                still be showing the last deploy; above any branch alias,
+ *                because it does at least name one immutable build.
+ *   alias      — a branch alias, from either kind of source. True when written,
+ *                pinned to nothing thereafter.
+ *   loose      — everything else. Never selected — and never recorded as the
+ *                `lastUrl`, so ignoring one cannot report `unreachable`. It is
+ *                still NAMED in the summary (`explain`), because an unexplained
+ *                refusal reads as an oversight.
  *
- * The only URLs this refuses that the old code accepted are comment URLs that do
- * not name the head commit — precisely the #135 case. Checked across PRs
- * #133–#137: our own check run's summary carries the per-deployment URL every
- * time, so the strongest tier is the one that actually fires. The weaker tiers
- * exist only so a change in Cloudflare's formatting degrades discovery rather
- * than reddening every same-repo PR. #132 recorded the per-commit URL as
- * unverified and fenced the fix off as a non-goal; it is verified now.
+ * What this REFUSES that the old code accepted — enumerated, because "the only
+ * thing it refuses is X" is the kind of confident scope claim that has twice
+ * shipped a regression in this repo. All four losses are in source 4:
+ *
+ *   1. a Cloudflare comment naming a different commit — the #135 case, the point
+ *      of the ticket;
+ *   2. a comment from any NON-Cloudflare bot, which the old code harvested from
+ *      unconditionally — a deliberate narrowing, since a discovery fallback has
+ *      no business being wider than the integration it backs up;
+ *   3. the bare project host, which is PRODUCTION rather than any preview;
+ *   4. nothing else. Sources 1–3 all harvest at `commit` scope, which lands on a
+ *      selectable tier, so per-SHA discovery loses nothing at all.
+ *
+ * Checked across PRs #133–#137: our own check run's summary carries the
+ * per-deployment URL every time, so the strongest tier is the one that actually
+ * fires. The weaker tiers exist only so a change in Cloudflare's formatting
+ * degrades discovery rather than reddening every same-repo PR. #132 recorded the
+ * per-commit URL as unverified and fenced the fix off as a non-goal; verified now.
  *
  * Env:
  *   GITHUB_TOKEN        (required) — read access to statuses/deployments/issues
@@ -160,16 +178,28 @@ const project = process.env.CF_PROJECT || 'sahajatlas.pages.dev' // the app's *.
 const shortSha = (sha || '').slice(0, 7)
 
 /**
- * The head short SHA as a WHOLE token. A bare `includes` also matches inside a
- * longer hex run, and Cloudflare's comment is a table that can carry more than
+ * The head short SHA as a whole hex TOKEN. A bare `includes` also matches inside
+ * a longer hex run, and Cloudflare's comment is a table that can carry more than
  * one commit reference — so the substring test could call a stale comment
  * "naming the head commit" on a coincidence.
  *
- * Built only from a real hex prefix: an unexpected `PR_HEAD_SHA` must degrade to
- * "no comment ever names the head" (weakest tier unusable, everything else
- * unaffected) rather than throw an invalid-regex out of the poll loop.
+ * Only the LEFT boundary is anchored; the run may then continue. A trailing `\b`
+ * looks tighter and is a bug: it rejects every longer spelling of the very same
+ * commit (`56c6b0d1`, or the full 40 hex), and git's abbreviation length grows
+ * with a repo's object count. Since this now gates the URL harvest and not just
+ * the evidence, a stricter test would retire source 4 wholesale the day
+ * Cloudflare prints one more digit — turning same-repo PRs `absent`, whose
+ * advice is "INVESTIGATE, don't re-run". The false positive it would buy (a
+ * DIFFERENT commit whose hex happens to extend this prefix) is both rarer and
+ * cheaper than that.
+ *
+ * Built only from a real hex prefix, so an unexpected `PR_HEAD_SHA` degrades to
+ * "no comment names the head" rather than throwing an invalid regex out of the
+ * poll loop.
  */
-const SHORT_SHA_RE = /^[0-9a-f]{7}$/i.test(shortSha) ? new RegExp(`\\b${shortSha}\\b`, 'i') : null
+const SHORT_SHA_RE = /^[0-9a-f]{7}$/i.test(shortSha)
+  ? new RegExp(`\\b${shortSha}[0-9a-f]*\\b`, 'i')
+  : null
 
 // The project's own slug, for telling our check run ("Cloudflare Pages:
 // sahajatlas") from the sibling playground's ("…: sahajatlas-design").
@@ -276,19 +306,33 @@ export function timeoutStatus({ lastUrl, evidence, failure }) {
  * timeout outcomes reach here — `error` carries its own message straight from
  * `fail()`. The elapsed wait is `emit`'s to print (it prefixes every line with
  * it), so repeating it here would say the same number twice in one sentence.
+ * `refused` is named wherever we have one. Without it the `absent` sentence —
+ * "no check run, no deployment, no bot comment" — is flatly contradicted by the
+ * poll line printed seconds earlier naming the URL we declined, and a reader who
+ * scrolls up finds a perfectly good-looking preview sitting there unexplained.
+ * That is the precise shape this ticket warns about: a correct refusal that reads
+ * as an oversight is one somebody eventually "fixes".
+ *
  * @param {string} status
- * @param {{ lastUrl?: string | null, evidence?: string | null, failure?: string | null }} ctx
+ * @param {{ lastUrl?: string | null, evidence?: string | null, failure?: string | null, refused?: string | null }} ctx
  */
-export function explain(status, { lastUrl, evidence, failure } = {}) {
+export function explain(status, { lastUrl, evidence, failure, refused } = {}) {
+  // Only ever an ADDITION to the sentence: the status was already decided, and a
+  // refused URL is not evidence that THIS commit deployed — it is evidence that
+  // another one did.
+  const ignored = refused
+    ? ` The only ${project} URL seen (${refused}) names a different commit, so it was not tested.`
+    : ''
+
   switch (status) {
     case STATUS.failed:
       return `the ${project} deploy for this commit FINISHED AND FAILED (${failure}) — re-running this job cannot help; read the Cloudflare deployment log.`
     case STATUS.unreachable:
       return `${lastUrl} was posted for this commit but never answered a request — the deploy exists, so re-run this job.`
     case STATUS.pending:
-      return `a Cloudflare deploy exists for this commit (last seen: ${evidence}) but no ${project} preview URL had been posted — a slow deploy, so re-run this job.`
+      return `a Cloudflare deploy exists for this commit (last seen: ${evidence}) but no ${project} preview URL had been posted — a slow deploy, so re-run this job.${ignored}`
     default:
-      return 'no Cloudflare signal of any kind for this commit — no check run, no deployment, no bot comment. The Pages build does not appear to have started.'
+      return `no Cloudflare signal of any kind for this commit — no check run, no deployment, and no bot comment naming it. The Pages build does not appear to have started.${ignored}`
   }
 }
 
@@ -382,8 +426,9 @@ export function pick(urls, host = project) {
  * only the second one makes a green Smoke check mean this commit was tested.
  */
 export const PROVENANCE = {
-  deployment: 3,
-  attested: 2,
+  deployment: 4,
+  attested: 3,
+  claimed: 2,
   alias: 1,
   loose: 0,
 }
@@ -420,11 +465,14 @@ function leadingLabel(url) {
  * @param {string} [detailsUrl]
  */
 export function deploymentAlias(detailsUrl) {
-  const match = /\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i.exec(
-    detailsUrl || '',
+  // The LAST uuid, because the docblock says "ending in": the path is
+  // `/pages/view/<project>/<deployment>`, and an earlier segment that also
+  // parsed as a uuid would otherwise win and name a host that exists nowhere.
+  const all = String(detailsUrl || '').match(
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
   )
 
-  return match ? match[1].toLowerCase() : null
+  return all ? all[all.length - 1].slice(0, 8).toLowerCase() : null
 }
 
 /**
@@ -432,17 +480,28 @@ export function deploymentAlias(detailsUrl) {
  * the three sources GitHub returns FOR THE HEAD SHA, `pr` for a Cloudflare
  * comment naming that SHA, `none` for a comment that names some other commit.
  *
- * A comment caps at `alias` even when the URL is deploy-shaped, because the
- * comment is edited in place per deploy and we cannot see, retrospectively,
- * whether Cloudflare blanks the URL cells while a build runs — so a body naming
- * the head SHA might still be showing the previous deploy's link. Capping it
- * means the check run always wins that race, and ties fall to the check run
- * anyway, since sources 1–3 are harvested before source 4.
+ * A comment is capped BELOW the equivalent check-run tier (`claimed` < `attested`)
+ * because it is edited in place per deploy, and we cannot see retrospectively
+ * whether Cloudflare blanks its URL cells while a build runs — so a body naming
+ * the head SHA might still show the previous deploy's link. The check run must
+ * therefore win that race outright rather than tie it and fall back on source
+ * order. It still ranks ABOVE a branch alias: it names one immutable build, and a
+ * branch alias names none.
+ *
+ * Deploy-shape is read at BOTH scopes, not only at `commit`. Reading it only for
+ * per-SHA sources left a comment's two URLs indistinguishable, so which one won
+ * came down to the order Cloudflare happened to print its table in — reproducing,
+ * one level down, the exact "source order decided it" defect this ticket exists
+ * to remove.
+ *
+ * `host` is threaded in, rather than read off the module, so the production test
+ * below follows CF_PROJECT instead of a stale copy of it.
  *
  * @param {{ url: string, scope: 'commit' | 'pr' | 'none' }} candidate
  * @param {string | null} [deployment]
+ * @param {string} [host]
  */
-export function provenanceOf({ url, scope }, deployment = null) {
+export function provenanceOf({ url, scope }, deployment = null, host = project) {
   const label = leadingLabel(url)
   if (!label) return PROVENANCE.loose
   if (deployment && label === deployment) return PROVENANCE.deployment
@@ -451,12 +510,13 @@ export function provenanceOf({ url, scope }, deployment = null) {
   // a branch alias — but this script only ever runs for a PR head, so
   // production is never the right answer here, whereas a branch alias at least
   // belongs to the branch under review.
-  if (label === projectSlug) return PROVENANCE.loose
-  if (scope === 'commit') {
-    return DEPLOY_LABEL_RE.test(label) ? PROVENANCE.attested : PROVENANCE.alias
-  }
+  if (label === String(host).toLowerCase().split('.')[0]) return PROVENANCE.loose
+  if (scope === 'none') return PROVENANCE.loose
 
-  return scope === 'pr' ? PROVENANCE.alias : PROVENANCE.loose
+  const deployShaped = DEPLOY_LABEL_RE.test(label)
+  if (scope === 'commit') return deployShaped ? PROVENANCE.attested : PROVENANCE.alias
+
+  return deployShaped ? PROVENANCE.claimed : PROVENANCE.alias
 }
 
 /**
@@ -468,8 +528,12 @@ export function provenanceOf({ url, scope }, deployment = null) {
  * @param {{ host?: string, deployment?: string | null }} [options]
  */
 export function pickPreview(candidates, { host = project, deployment = null } = {}) {
-  for (const tier of [PROVENANCE.deployment, PROVENANCE.attested, PROVENANCE.alias]) {
-    const urls = candidates.filter((c) => provenanceOf(c, deployment) === tier).map((c) => c.url)
+  const tiers = [PROVENANCE.deployment, PROVENANCE.attested, PROVENANCE.claimed, PROVENANCE.alias]
+
+  for (const tier of tiers) {
+    const urls = candidates
+      .filter((c) => provenanceOf(c, deployment, host) === tier)
+      .map((c) => c.url)
     const url = pick(urls, host)
     if (url) return url
   }
@@ -584,23 +648,29 @@ async function discover() {
         evidence.push(line)
         continue
       }
+
+      // CANDIDATES may come from a run admitted on its NAME; CONCLUSIONS may
+      // not. A name is self-declared, so an installed App with `checks:write`
+      // could call itself "Cloudflare Pages: sahajatlas" — and the three things
+      // below are the ones that would then be its word rather than Cloudflare's:
+      // which deployment is this commit's, what the summary quotes, and whether
+      // the build FAILED. That last is the sharpest: `failed` tells the reader
+      // "re-running cannot help", so a forged one is a red Smoke check nobody
+      // can clear. URLs are the safe half — `pick()` bounds them to hosts only
+      // Cloudflare serves — which is why the name-only path still feeds the
+      // harvest above and keeps its resilience if the app slug ever changes.
+      //
+      // Same rule as source 1's "both the context AND the author".
+      if (!/cloudflare/i.test(slug)) continue
+
       preferred = line
       // Which deployment this commit produced, straight from the run GitHub
-      // returned for it — but ONLY from a run owned by Cloudflare's own App.
-      // The loop above also admits a run on its NAME, and a name is
-      // self-declared: without this gate an installed App with `checks:write`
-      // could call itself "Cloudflare Pages: sahajatlas" and hand us any
-      // `details_url` it liked. It still could not aim us off-host — `pick()`
-      // decides that — but it could STEER selection between builds of our own
-      // site, which is the defect this ticket exists to close. Same rule as
-      // source 1's "both the context AND the author".
-      //
-      // Last-write-wins across runs: `/check-runs` defaults to `filter=latest`,
-      // which returns one run per check NAME. That makes the run unique per
-      // APP, not globally — which is precisely why the slug gate matters. An
+      // returned for it. Last-write-wins: `/check-runs` defaults to
+      // `filter=latest`, which returns one run per check NAME — unique per APP,
+      // not globally, which is the other reason the gate above matters. An
       // in-progress run may carry no deployment yet; that resolves to null and
       // the weaker tiers cover the gap until it does.
-      if (/cloudflare/i.test(slug)) deployment = deploymentAlias(c.details_url)
+      deployment = deploymentAlias(c.details_url)
       // Our project's deploy has finished and did not succeed. `neutral` is
       // Cloudflare's skipped-build conclusion, which is not a failure.
       if (c.status === 'completed' && c.conclusion && !SUCCESS_CONCLUSIONS.has(c.conclusion)) {
@@ -673,11 +743,18 @@ async function reachable(url) {
  * sitting right there in the PR, which is how a correct refusal gets "fixed".
  * @param {{ url: string | null, refused: string | null, evidence: string | null }} seen
  */
-function waitingLine({ url, refused, evidence }) {
+export function waitingLine({ url, refused, evidence }, sha = shortSha, host = project) {
   if (url) return `Preview URL ${url} not reachable yet — waiting…`
-  if (refused) return `Ignoring ${refused} — not attributable to ${shortSha} — waiting…`
 
-  return `No ${project} preview URL yet${evidence ? ` (${evidence})` : ''} — waiting…`
+  // Both, never one or the other: a poll can have a live sibling run AND a stale
+  // comment, and dropping the evidence half loses the "a deploy exists" signal
+  // that separates a slow build from an absent one.
+  const seen = [
+    refused ? `ignoring ${refused} — not attributable to ${sha}` : '',
+    evidence || '',
+  ].filter(Boolean)
+
+  return `No ${host} preview URL yet${seen.length ? ` (${seen.join('; ')})` : ''} — waiting…`
 }
 
 async function main() {
@@ -689,6 +766,7 @@ async function main() {
   let lastUrl = null
   let lastEvidence = null
   let lastFailure = null
+  let lastRefused = null
 
   while (Date.now() < deadline) {
     // `failure` is read here, not just computed in discover(): without it
@@ -700,6 +778,7 @@ async function main() {
     if (url) lastUrl = url
     if (evidence) lastEvidence = evidence
     if (failure) lastFailure = failure
+    if (refused) lastRefused = refused
 
     if (url && (await reachable(url))) {
       emit(url, STATUS.found)
@@ -713,7 +792,17 @@ async function main() {
     await sleep(Math.min(POLL_MS, remaining))
   }
 
-  const seen = { lastUrl, evidence: lastEvidence, failure: lastFailure }
+  // `refused` rides along into the SUMMARY, not just the poll log — that is the
+  // one line a reader actually sees, and without it `absent` denies the very URL
+  // the log named. It deliberately does not reach `timeoutStatus`: a URL naming a
+  // different commit is evidence that some OTHER commit deployed, so it must not
+  // soften `absent` into "a deploy exists, re-run".
+  const seen = {
+    lastUrl,
+    evidence: lastEvidence,
+    failure: lastFailure,
+    refused: lastUrl ? null : lastRefused,
+  }
   const status = timeoutStatus(seen)
   emit('', status, explain(status, seen))
 }

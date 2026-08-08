@@ -41,9 +41,18 @@ Two lanes, kept separate so the fast one never touches the network:
   named by our own check run for the head SHA wins (that run's `details_url` ends
   in the deployment UUID, whose first 8 characters *are* the alias — an unbroken
   chain from commit to host), then a deploy-shaped URL from a per-SHA source, then
-  a branch alias; a Cloudflare comment naming some **other** commit is refused
-  outright. The weak tiers exist so a change in Cloudflare's output degrades
-  discovery rather than reddening every same-repo PR under invariant one.
+  one from a Cloudflare comment naming the head, then a branch alias; a comment
+  naming some **other** commit is refused outright, and so is the bare project
+  host, which is production rather than any preview. The weak tiers exist so a
+  change in Cloudflare's output degrades discovery rather than reddening every
+  same-repo PR under invariant one.
+  **Deploy-shape is read at every tier, not only the per-SHA ones.** Reading it
+  only for per-SHA sources left a single comment's two URLs indistinguishable, so
+  which won came down to the order Cloudflare printed its table in — reproducing
+  the very "source order decided it" defect the invariant exists to remove, one
+  level down. A refused URL is also **named in the step summary**: without that,
+  `absent` ("no check run, no deployment, no bot comment") flatly contradicts the
+  poll line printed seconds earlier naming the URL that was declined.
 
 ### Why a red Smoke check now says which kind of red (issue #132)
 
