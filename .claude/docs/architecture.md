@@ -65,8 +65,9 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 
 ## Data flow
 
-1. The widget receives `apiKey` (+ optional `locale`, `map`, `basePath`,
-   `primaryColor`, `secondaryColor`) from the host page.
+1. The widget receives `apiKey` (+ optional `locale`, `map`, `analytics`,
+   `geolocation`, `errorReporting`, `basePath`, `primaryColor`,
+   `secondaryColor`) from the host page.
 2. `App` fetches the **client** record (domain, default locale, home region) via
    React Query, configures locale + analytics, and navigates to the home region on
    first load.
@@ -98,8 +99,9 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
   `BrowserRouter` build comes from `public/_redirects` (`/* /index.html 200`),
   which Vite copies into `dist/`. (Cloudflare ignores `vercel.json`, so it was
   removed.) The widget build uses `HashRouter` and needs no fallback.
-- **Theming ("accent")**: `accent.json` + `.github/workflows/{push,sync}-accent.yml`
-  sync a shared accent theme. Out of scope unless the task is about theming.
+- **Translations**: there is no sync pipeline. Locale JSON under `public/locales/`
+  is hand-maintained (`pnpm i18n:add`) — the two **Accent** translation-sync
+  workflows were removed in #99 (see `CLAUDE.md` → Deployment).
 
 ## Conventions index
 

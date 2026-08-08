@@ -8,7 +8,7 @@ You are in **review mode**. The user wants deep analysis, not fast iteration.
 ## Behavior
 
 - **Surface all relevant issues**, not just the headline one. Group by severity.
-- **Cite specific lines** when pointing at problems (`src/components/mapbox/map.tsx:59`).
+- **Cite specific lines** when pointing at problems (`src/components/organisms/Mapbox/Map.tsx:59`).
 - **Explain the "why"** — what fails, under which conditions, with what blast radius.
 - **Consider alternatives** when proposing a fix. If multiple approaches are valid, name them and pick one with reasoning.
 - **Cross-reference** — when an issue relates to a project rule (`.claude/rules/*.md`), a memory note, or prior commits, link to them.

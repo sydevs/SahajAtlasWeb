@@ -21,7 +21,7 @@ Title: `feat(<scope>): <subject>`
 
 ## Files affected (optional)
 
-- `src/components/mapbox/...`
+- `src/components/organisms/Mapbox/...`
 - `src/config/api/...`
 
 ## References (optional)

@@ -203,7 +203,7 @@ component barrels.
   folder path. See `organisms/index.ts`.
 - Component folders and files are **PascalCase** (`Chip/Chip.tsx`); non-component
   files stay kebab-case (hooks `use-x.ts` exporting `useX`, config, types, pages,
-  layouts); zustand stores `useXState` (see [`.claude/rules/code-style.md`](.claude/rules/code-style.md)).
+  layouts); zustand stores are plain `useX` hooks (see [`.claude/rules/code-style.md`](.claude/rules/code-style.md)).
 
 ### Props typing
 

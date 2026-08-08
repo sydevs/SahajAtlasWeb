@@ -28,7 +28,7 @@ Format: `<type>(<scope>): <subject>`
 - `i18n` — localization, locale files
 - `state` — zustand stores
 - `widget` — web-component embedding, routing, providers
-- `ui` — Radix/Tailwind components, theming, accent
+- `ui` — Radix/Tailwind components, theming
 - `deps` — dependencies
 - `build` — Vite / TypeScript / build config
 - `claude` — `.claude/*` config, hooks, rules, skills
