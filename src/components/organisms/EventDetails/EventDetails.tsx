@@ -1,8 +1,8 @@
-import createDOMPurify from 'dompurify'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EventRegisterBar } from './EventRegister'
+import { sanitizeDescription } from './sanitize'
 
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
@@ -10,17 +10,6 @@ import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
-
-const DOMPurify = createDOMPurify(window)
-
-// ADD_ATTR keeps host-authored `target` links working; force the safe rel on
-// them so a `target="_blank"` in prose can never reverse-tabnab via
-// window.opener (belt-and-braces — modern browsers imply noopener).
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A' && node.getAttribute('target')) {
-    node.setAttribute('rel', 'noopener noreferrer')
-  }
-})
 
 /**
  * The pair every surface in this folder takes: the event, plus the route it was
@@ -88,27 +77,7 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
         <div className="flex flex-col gap-2">
           <h2 className="text-md font-semibold">{t('display.about')}</h2>
           <div
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(descriptionHtml, {
-                USE_PROFILES: { html: true },
-                ALLOWED_TAGS: [
-                  'p',
-                  'b',
-                  'i',
-                  'em',
-                  'strong',
-                  'a',
-                  'ul',
-                  'ol',
-                  'li',
-                  'del',
-                  'br',
-                  'h3',
-                ],
-                ALLOWED_ATTR: ['href'],
-                ADD_ATTR: ['target'],
-              }),
-            }}
+            dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
             // `colored-links` carries the host-prose treatment, wrapping included.
             className="colored-links flex flex-col gap-2 text-sm normal-nums leading-snug"
           />
