@@ -61,7 +61,7 @@ A spec opts in per-file with a `// @vitest-environment jsdom` docblock on line 1
 the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1.5s.
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
-express, or an agreement with a router/DOM API that a pure test can only assume.** Two
+express, or an agreement with a router/DOM API that a pure test can only assume.** Three
 specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
@@ -76,6 +76,13 @@ specs qualify today:
   `#!/gb/london`** — it normalises the basename `!` to `/!`. A pure spec can only pin what
   our function decides, never whether the library it is modelling agrees. When a helper
   exists to feed a third-party API, assert the round trip against that API.
+- `src/components/organisms/ReportIssueForm/ReportIssueForm.submit.test.tsx` — drives a
+  real submit and asserts the thank-you screen appears only for a RESOLVED post (issue
+  #103). It is the third cautionary tale: the SSR sibling spec renders that screen through
+  a story prop (`initialSubmitted`), and the prop short-circuits the derivation — so with
+  that spec alone, restoring the bug it was written for keeps the lane green. **A spec
+  that can only reach a state through the door the story uses is not covering the state,
+  it is covering the door.**
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`

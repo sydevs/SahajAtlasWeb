@@ -174,7 +174,9 @@ matched by `*.local`). Full list in `.claude/docs/environment.md`. Key vars:
 - `VITE_SAHAJCLOUD_API_KEY` — published `sahaj-atlas-client` API key passed to the widget in dev
 - `VITE_FATHOM_ID` — Fathom analytics site id (optional)
 - `VITE_TURNSTILE_SITE_KEY` — Cloudflare Turnstile **site** key for the report-issue
-  form (public by design; `.env` ships the always-passes test key)
+  form (public by design; `.env` ships the always-passes test key, and production must
+  override it — the form delivers real email since #103, so this key is what stands in
+  front of it)
 
 **Never** commit real secrets. `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) and other
 non-`VITE_` secrets must never appear in client code — the bundle is public.
