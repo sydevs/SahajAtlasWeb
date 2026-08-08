@@ -261,12 +261,12 @@ export function revealRows<T extends Segmentable>(
   // Every match this list can put ON SCREEN: `total` less the nearby tail the reserve
   // holds back. Deliberately a different number from `total` — the announcement counts
   // matches, `next` counts rows, and conflating them is how a press ends up a no-op.
-  const revealable = nearRevealable.length + far.length
+  const reachable = nearRevealable.length + far.length
 
-  // What the segment(s) on screen can still show. Reaching zero does NOT mean the list
-  // has ended: the crossing into the distant segment may still be on offer, and the
-  // reserve above guarantees the ceiling has left room for it.
-  const remainingHere = Math.min(active.length, MAX_REVEAL) - revealed
+  // What the ACTIVE segment(s) can still show. Reaching zero does NOT mean the list has
+  // ended: the crossing into the distant segment may still be on offer, and the reserve
+  // above guarantees the ceiling has left room for it.
+  const remainingActive = Math.min(active.length, MAX_REVEAL) - revealed
   // The one press that changes which segments are active. It is never automatic (see
   // `auto` in `DynamicEventsList`) — the distance boundary is crossed on purpose.
   const crossing = !showAll && far.length > 0
@@ -276,7 +276,7 @@ export function revealRows<T extends Segmentable>(
   // distant. `null` only when nothing is left that a press could reveal — offering one
   // the clamp would undo is the one thing worse than stopping.
   const more: RevealMore | null =
-    remainingHere > 0 ? (showAll ? 'farther' : 'more') : crossing ? 'farther' : null
+    remainingActive > 0 ? (showAll ? 'farther' : 'more') : crossing ? 'farther' : null
 
   return {
     rows,
@@ -285,7 +285,7 @@ export function revealRows<T extends Segmentable>(
     // rows already read stay on screen and the distant ones append below them.
     next: more
       ? {
-          shown: Math.min(revealed + PAGE_SIZE, revealable, MAX_REVEAL),
+          shown: Math.min(revealed + PAGE_SIZE, reachable, MAX_REVEAL),
           showAll: showAll || more === 'farther',
         }
       : null,

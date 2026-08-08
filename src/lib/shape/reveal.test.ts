@@ -284,17 +284,18 @@ describe('revealRows', () => {
     expect(result.total).toBe(MAX_REVEAL + 60)
 
     // And the press DELIVERS: a page of distant rows appended below the nearby ones,
-    // rather than a re-slice of the same segment. The state it applies is the `next`
-    // above, so this is the press the control actually offers.
-    const after = reveal(events, { shown: MAX_NEARBY_REVEAL + PAGE_SIZE, showAll: true })
+    // rather than a re-slice of the same segment. Fed the `next` just asserted, so this
+    // is literally the press the control offers rather than a hand-copy of it.
+    const after = reveal(events, result.next!)
 
+    // By the fixture's tag, not by re-deriving the distance rule the module owns.
     expect(after.rows).toHaveLength(MAX_NEARBY_REVEAL + PAGE_SIZE)
-    expect(after.rows.slice(0, MAX_NEARBY_REVEAL).every((event) => event.distance === 10)).toBe(
+    expect(after.rows.slice(0, MAX_NEARBY_REVEAL).every((event) => event.id.startsWith('n'))).toBe(
       true,
     )
-    expect(
-      after.rows.slice(MAX_NEARBY_REVEAL).every((event) => (event.distance ?? 0) > NEARBY_KM),
-    ).toBe(true)
+    expect(after.rows.slice(MAX_NEARBY_REVEAL).every((event) => event.id.startsWith('f'))).toBe(
+      true,
+    )
   })
 
   it('spends the reserve on distant rows, then stops at the ceiling', () => {

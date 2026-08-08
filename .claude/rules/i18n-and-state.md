@@ -128,20 +128,14 @@ Six stores, each the single source of truth for its slice:
   the opposite of its own premise: rendering a card costs, owning one does not, so
   windowing — which re-renders cards on every scroll — was judged a likely regression and
   the ticket's sanctioned fallback, a lower ceiling, was taken instead. **Reach for the
-  per-card render cost, not the row count, if this list ever needs to get faster.** The
-  numbers live in one place: the `MAX_REVEAL` docblock.
-  **That ceiling is two numbers as well, because one budget across two segments deletes a
-  segment rather than trimming a list** (issue #129). Applied to the COMBINED count, a
-  nearby segment long enough to fill it on its own left no press that could add a distant
-  row without dropping a nearby one — so the control unmounted and everything past the
-  boundary was unreachable for that search, announced only by the `sr-only` region still
-  counting to a total nothing could show. `MAX_NEARBY_REVEAL` (300, twelve pages) caps the
-  nearby segment **only while there is a distant one**, leaving the rest of `MAX_REVEAL`
-  for the crossing to reveal into; an undivided list keeps the whole budget. The reserve
-  has to stay **strict** — it is what makes the crossing press non-empty by construction,
-  the same no-op-free property every other `next` has — and `MAX_REVEAL` still bounds
-  `rows.length` whichever segments are showing, which is the DOM promise. The ratchet in
-  `reveal.test.ts` is expressed over both constants, so neither can be given back quietly.
+  per-card render cost, not the row count, if this list ever needs to get faster.**
+  **That ceiling is PER-SEGMENT, because one budget across two segments deletes a segment
+  rather than trimming a list** (issue #129): `MAX_NEARBY_REVEAL` caps the nearby segment
+  while a distant one exists, which is what keeps the crossing reachable, and it must stay
+  **strictly** below `MAX_REVEAL` — that gap is the whole fix, not a spare. `MAX_REVEAL`
+  still bounds `rows.length` whichever segments show. The numbers, the bug it closes and
+  the strictness argument live in one place: the two docblocks in `reveal.ts`, ratcheted
+  over both constants by `reveal.test.ts`.
   **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
   `FOREIGN_NEARBY_KM` (half that) for an event whose `address.country` differs from the
   searched `?cc` — distance alone ranks Belgian classes over French ones for someone
