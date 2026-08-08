@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 
 import { channelFor } from '../../scripts/emit-versioned-entry.mjs'
+
 import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
 /**
@@ -151,8 +152,9 @@ describe('embed bundle', () => {
 // `pnpm size` and `pnpm build` both stay green while every chunk import 404s.
 describe(`versioned embed channel (/${CHANNEL})`, () => {
   /** Relative specifiers in a built module, in source order. */
-  const specifiersIn = (source: string) =>
-    [...new Set([...source.matchAll(/["'`](\.\.?\/[^"'`]+\.js)["'`]/g)].map(([, s]) => s))]
+  const specifiersIn = (source: string) => [
+    ...new Set([...source.matchAll(/["'`](\.\.?\/[^"'`]+\.js)["'`]/g)].map(([, s]) => s)),
+  ]
 
   test.skipIf(skipWithoutPreview)('serves the versioned entry as the widget', async () => {
     const res = await fetchPreview(`/${CHANNEL}/embed.js`)
@@ -202,7 +204,8 @@ describe(`versioned embed channel (/${CHANNEL})`, () => {
       [`/${CHANNEL}/embed.js`, '/embed.js'].map(async (p) => (await fetchPreview(p)).text()),
     )
 
-    const normalize = (specifiers: string[]) => specifiers.map((s) => s.replace(/^\.\.?\//, '')).sort()
+    const normalize = (specifiers: string[]) =>
+      specifiers.map((s) => s.replace(/^\.\.?\//, '')).sort()
 
     expect(normalize(specifiersIn(versioned))).toEqual(normalize(specifiersIn(mutable)))
   })

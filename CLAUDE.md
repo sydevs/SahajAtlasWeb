@@ -26,7 +26,7 @@ event hierarchy.
 
 | Concern        | Choice |
 | -------------- | ------ |
-| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js` |
+| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js`, which is also copied to `v<major>/embed.js` (`docs/releasing.md`) |
 | UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
 | Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash, *unless* the host page's own anchor already does, in which case it routes in memory and writes nothing (`mountRoute`, `src/lib/shape/hash.ts`) |
@@ -218,6 +218,28 @@ CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and asserts all of the above against the preview.
 
 Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
+
+### Releasing (issue #94)
+
+`package.json` carries a real semver version, and the build emits the widget entry
+**twice** from one build: `embed.js` (mutable — every deploy upgrades every host) and
+`v<major>/embed.js`, a per-major compatibility channel a host can install so a major
+bump is something they opt into. The copy is made by
+`scripts/emit-versioned-entry.mjs`, which rebases the entry's `./assets/*` specifiers
+one directory up; it must run **after** `flattenEntryImports` and asserts that it did.
+Bumping `package.json` is the only edit needed to move the path.
+
+**No URL this repo publishes can pin a *build*** — Pages serves one deployment at a
+time, so a file that stops being emitted stops being served. The corollary is the one
+rule worth remembering: **never let a major stop being emitted without a deprecation
+window** — add the retired one to `LEGACY_CHANNELS` first, because `_redirects` turns
+its absence into the SPA shell at 200 rather than a legible 404.
+
+`CHANGELOG.md` is host-facing (what an embedding site can observe) and
+**`docs/releasing.md`** is the whole contract: what each URL promises, the
+pin-vs-latest tradeoff, rollback, the cache-skew failure mode, and the Cloudflare
+**dashboard-only** follow-ups that merging a PR cannot complete. Host-facing sections
+there move to the integrator guide when #93 lands.
 
 The repo used to carry two **Accent** translation workflows
 (`.github/workflows/{push,sync}-accent.yml`, configured by `accent.json`). They were

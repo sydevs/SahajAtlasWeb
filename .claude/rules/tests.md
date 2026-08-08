@@ -98,6 +98,14 @@ The lane covers `embed.js` as well as the standalone page: the embed is what a
 host installs, so a deploy that breaks it while `index.html` stays healthy must
 not be a green check.
 
+It covers **`v<major>/embed.js`** for a sharper version of the same reason (issue
+#94). That copy differs from `embed.js` only in having its specifiers rebased one
+directory up, so a wrong rebase is byte-for-byte invisible to `pnpm build` and
+`pnpm size` and shows up only as a fetch from the channel path — which no local
+gate makes. The channel name comes from the same `channelFor` the build uses, so a
+version bump cannot leave the spec proving a path that is no longer emitted (it
+would still "pass" on status: that path is the SPA shell).
+
 It also covers the three files in `public/` that only Cloudflare Pages executes —
 `_redirects`, `_headers`, `robots.txt`. Those are inert text in the repo, so no
 local gate can tell you they work; `robots.smoke.test.ts` is where "Pages applies

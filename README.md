@@ -12,6 +12,19 @@ Mapbox experience with a country → region → area → venue → event hierarc
 The same build also runs standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx`, demoed in `demo.html`.
 
+### Versioning
+
+The build publishes the widget entry at two URLs: **`/embed.js`**, which always carries the
+latest build, and **`/v<major>/embed.js`**, a per-major compatibility channel that lets a
+host opt into a major version bump rather than receive it. **Install `/embed.js` today** —
+the project is pre-1.0, and semver's `0.x` line makes no compatibility promise, so the `v0`
+channel exists to prove the mechanism rather than to protect anyone with it.
+
+[`CHANGELOG.md`](CHANGELOG.md) records what an embedding host can observe;
+[`docs/releasing.md`](docs/releasing.md) has the full contract — the pin-vs-latest tradeoff,
+rollback, and the cache-skew failure mode. (Host-facing installation docs are being
+reworked in #93; this section moves into that guide when it lands.)
+
 ### Content-Security-Policy for embedding hosts
 
 The widget's **Report an issue** form is protected by a
