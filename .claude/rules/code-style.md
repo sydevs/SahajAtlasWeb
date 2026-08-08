@@ -49,10 +49,10 @@ style rather than assuming the class works.
 
 - **Components** use **PascalCase, folder-per-component** (mirroring WeMeditateWeb):
   `src/components/<tier>/<Name>/{<Name>.tsx, <Name>.stories.tsx, index.ts}` — e.g.
-  `atoms/Drawer/Drawer.tsx`. A folder may hold a small family of related
-  exports named after the primary (e.g. `ShareContent/`, which also exports
-  `CopyField`). Views (`src/views/`)
-  follow the same convention. See `DESIGN_SYSTEM.md`.
+  `atoms/Drawer/Drawer.tsx`. A folder may hold a small family of related exports
+  named after the primary (e.g. `Fallbacks/`, which exports `LoadingFallback`,
+  `ErrorFallback` and `FallbackPanel`). Views (`src/views/`) follow the same
+  convention. See `DESIGN_SYSTEM.md`.
 - **Everything else stays kebab-case**: hooks (`use-mapbox.ts`), config
   (`store.ts`), types (`event.ts`), and
   the grouped icon/mapbox sub-module source files.
@@ -63,8 +63,9 @@ style rather than assuming the class works.
 - **Export style**: components and hooks use **named** exports; pages, layouts,
   and entry/singleton modules (`App`, `Widget`, `providers`, `config/api/*`,
   `config/i18n`) use default exports.
-- **Props types**: name them `<Component>Props` (e.g. `EventListItemProps`); fall
-  back to a local `Props` only when that name would clash with an imported type.
+- **Props types**: name them `<Component>Props` (e.g. `EventListItemProps`). When
+  that name would clash with an imported type, alias the **import** rather than
+  renaming ours, so the exported type keeps its name (see `DESIGN_SYSTEM.md`).
 - zod schemas are `XSchema`; the inferred type is `X` (see `src/types/`).
 
 ## TypeScript

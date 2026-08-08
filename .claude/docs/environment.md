@@ -29,6 +29,7 @@ secret that ends up in the bundle.
   management API). It is **not** `VITE_`-prefixed and must never be referenced in
   client code or committed. The `security-scan` hook blocks staging files that
   contain `sk.`/secret patterns.
+
 (`ACCENT_API_KEY` used to live here for the Accent translation-sync workflows. Those
 were removed in #99 — see CLAUDE.md → Deployment — so the secret is no longer read by
 anything in this repo and can be revoked.)

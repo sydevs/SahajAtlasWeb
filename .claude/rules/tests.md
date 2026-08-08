@@ -47,8 +47,9 @@ there is **no `@testing-library/react`**. Cover:
 - **Logic & contracts** — zod schemas (`src/types/`), zustand stores
   (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the
   per-request context the SDK client attaches (`applyRequestContext` /
-  `interceptFetch`, `src/config/api/client.ts`) and the fetchers that parse
-  through it (`src/config/api/fetch.ts`).
+  `interceptFetch`, `src/config/api/client.ts` — specced from `fetch.test.ts`,
+  which is why there is no `client.test.ts`), and the fetchers that parse their
+  responses through zod (`src/config/api/fetch.ts`).
 - **Presentational components** — assert the SSR output with
   `renderToStaticMarkup` from `react-dom/server` (see
   `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover, portals,

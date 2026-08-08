@@ -22,7 +22,10 @@ categories — and point at specific lines.
 - **Data**: `@payloadcms/sdk` → the SahajCloud REST API, responses validated with
   zod (`src/types/`).
 - **Render**: React, Radix UI, Mapbox GL. `dompurify` is available for sanitizing HTML.
-- **Embedding**: `@r2wc/react-to-web-component`, HashRouter.
+- **Embedding**: `@r2wc/react-to-web-component`. Routing is **HashRouter or
+  MemoryRouter**, chosen at mount from the host page's own fragment
+  (`claimFragment(mountRoute(...))`, `src/Widget.tsx` + `src/lib/shape/hash.ts`,
+  issue #92) — an untrusted input picking a branch, so audit both.
 
 ## Focus areas
 
@@ -48,9 +51,13 @@ Score each finding **Critical / High / Medium / Low**. Be specific —
 
 ### 3. Embedded-widget trust boundary
 
-- The widget receives `apiKey`, `locale`, `basePath` as props from an untrusted
-  host page. Validate/normalize them; don't `eval`, build selectors, or navigate
-  based on unsanitized host input.
+- The widget receives **nine** props from an untrusted host page (`WidgetProps`,
+  `src/Widget.tsx`): `apiKey`, `locale`, `basePath`, `map`, the three privacy
+  flags `analytics` / `geolocation` / `errorReporting` (which gate third-party
+  data flows — see `src/config/privacy.ts`), and `primaryColor` /
+  `secondaryColor`, host-supplied hex fed into the runtime palette. Validate and
+  normalize them; don't `eval`, build selectors, or navigate on unsanitized host
+  input.
 - `window.location.hash` manipulation — ensure routing can't be coerced into an
   open redirect or `javascript:` navigation.
 - Reflected query params (`locale`, search input) written back into the DOM.
