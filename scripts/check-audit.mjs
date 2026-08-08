@@ -111,15 +111,31 @@ function main() {
   const fresh = [...gated.entries()].filter(([id]) => !(id in known)).map(([, a]) => a)
   const stale = Object.keys(known).filter((id) => !gated.has(id))
 
-  // Zero advisories against a non-empty baseline is not 24 simultaneous fixes;
-  // it's the audit having stopped looking (a swallowed registry error, or an
-  // `auditConfig.ignoreGhsas` added elsewhere). Treated as unavailable rather
-  // than clean, or the baseline's own emptiness becomes the all-clear.
-  if (!found.length && Object.keys(known).length) {
+  // Two ways a clean report can be a lie — a swallowed registry error, or an
+  // `auditConfig.ignoreGhsas` added elsewhere. Either is "the audit stopped
+  // looking", which is not the same as clean and must not read as green.
+  //
+  // The original tell was zero advisories against a NON-EMPTY baseline. Issue
+  // #101 fixed all 27 entries and emptied the list, which retires that signal:
+  // zero is now the expected state, so it can no longer distinguish a healthy
+  // run from a blind one. The graph size carries that weight instead — pnpm
+  // reports `totalDependencies` (417 at the time of writing), and a run that
+  // audited none of them audited nothing.
+  //
+  // An ABSENT field is skipped rather than failed: an older pnpm not reporting
+  // the count is not evidence that the audit was blind, and this check exists to
+  // catch silence, not to invent it.
+  const audited = audit.metadata?.totalDependencies
+  const emptyAgainstBaseline = !found.length && Object.keys(known).length > 0
+
+  if (audited === 0 || emptyAgainstBaseline) {
     const message =
-      'Dependency audit reported zero advisories while the baseline lists ' +
-      `${Object.keys(known).length} — the audit is not looking, not clean. ` +
-      'Check `pnpm audit --prod` by hand.'
+      audited === 0
+        ? 'Dependency audit walked zero packages — the audit is not looking, ' +
+          'not clean. Check `pnpm audit --prod` by hand.'
+        : 'Dependency audit reported zero advisories while the baseline lists ' +
+          `${Object.keys(known).length} — the audit is not looking, not clean. ` +
+          'Check `pnpm audit --prod` by hand.'
 
     lines.push(`⚠️ ${message}`)
     annotate(strict ? 'error' : 'warning', message)
