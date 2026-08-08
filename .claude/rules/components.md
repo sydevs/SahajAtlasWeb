@@ -153,6 +153,21 @@ in host pages, **and** runs standalone in dev. Because of that:
   `useSearchParams`, since `?q` is rewritten on every geocoder keystroke and router
   context bypasses `memo` entirely.
 
+## Rendering an anchor
+
+**Don't render a bare `<a href={…}>`.** Use the `Link` atom; if a component genuinely must
+emit its own anchor, its href goes through **`isSafeHref`** (`src/lib/shape/href.ts`) first —
+`safePath`-clean or an allowed scheme — and a refusal reports via `reportInternalError` and
+degrades to inert content. Exactly three components render a JSX anchor (`Link`, `Button`'s
+href form, `ActionRow`'s `ActionCircle`), and `src/lib/shape/href.test.ts` **asserts** that
+inventory, so a fourth turns the unit lane red until it is gated.
+
+Why it is a shared predicate and not a check per component — including the two properties that
+were each lost and restored, and why "site-relative" must be `safePath` rather than
+`startsWith('/')` — is in `.claude/rules/data-layer.md` → "Server-provided routes are untrusted
+until `safePath`". That rule is path-scoped to the data layer, so it does not auto-load here;
+read it before touching an anchor.
+
 ## Accessibility
 
 `jsx-a11y` is enabled. Pair `onClick` on non-button elements with keyboard

@@ -2,6 +2,8 @@ import { type ComponentProps, type ReactNode, type Ref, forwardRef } from 'react
 import { tv, type VariantProps } from 'tailwind-variants'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
+import { atlasError, reportInternalError } from '@/lib/report'
+import { isSafeHref } from '@/lib/shape'
 
 /**
  * The shared control surface: the colour × variant matrix, the size scale, the
@@ -191,6 +193,26 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
 
     if ('href' in props && props.href != null) {
       const { href, target, rel, ...anchorProps } = props as { href: string } & ComponentProps<'a'>
+
+      // The shared gate (`lib/shape/href.ts`), and the same failure mode as the `Link` atom
+      // rather than a second one: report, then degrade to the same content on a
+      // non-interactive `<span>` carrying the control's classes.
+      //
+      // Like `Link`'s span it takes NO props, and that is a real loss, not a free one:
+      // `target`/`download`/`rel` are meaningless on a span, but `aria-label`, `id` and
+      // `onClick` are dropped too — so an `isIconOnly` Button whose only accessible name was
+      // an `aria-label` degrades to unnamed content. Accepted because this path is
+      // unreachable by design and a refusal is a developer error to be found in the report,
+      // not a state to design for; spelled out so nobody reads the span as lossless.
+      //
+      // Site-specific: the `.ics` download does NOT come through here. It builds a `blob:`
+      // URL on a detached anchor of its own (see `downloadIcs` in `AddToCalendar`), so
+      // `blob:` staying out of the allowed set costs it nothing.
+      if (!isSafeHref(href)) {
+        reportInternalError(atlasError('unknown', `Refusing to link to ${href}`), 'Button')
+
+        return <span className={classes}>{content}</span>
+      }
 
       return (
         <a
