@@ -27,7 +27,11 @@ Two lanes, kept separate so the fast one never touches the network:
   A spec asserting `res.status === 200` therefore passes for a missing file —
   `embed.smoke.test.ts` learned this the hard way. Assert on the body or the
   content type.
-- **A green Smoke check means the specs ran against THIS commit** (issue #138).
+- **A green Smoke check means the specs ran against this commit wherever Cloudflare
+  attests one — and never against a commit it explicitly names as a different one**
+  (issue #138). The hedge is honest, not decorative: the `alias` floor below can
+  still pick a host that serves another build, and a headline promising more than
+  the tiers deliver is how the next reader stops checking.
   Cloudflare publishes two hosts per project — the per-deployment alias
   (`a73c3b0c.sahajatlas.pages.dev`, one commit forever) and a stable **branch**
   alias (`fix-report-form-delivery.sahajatlas.pages.dev`, whatever deployed to that

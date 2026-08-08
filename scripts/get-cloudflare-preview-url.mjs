@@ -159,6 +159,18 @@ const project = process.env.CF_PROJECT || 'sahajatlas.pages.dev' // the app's *.
 
 const shortSha = (sha || '').slice(0, 7)
 
+/**
+ * The head short SHA as a WHOLE token. A bare `includes` also matches inside a
+ * longer hex run, and Cloudflare's comment is a table that can carry more than
+ * one commit reference — so the substring test could call a stale comment
+ * "naming the head commit" on a coincidence.
+ *
+ * Built only from a real hex prefix: an unexpected `PR_HEAD_SHA` must degrade to
+ * "no comment ever names the head" (weakest tier unusable, everything else
+ * unaffected) rather than throw an invalid-regex out of the poll loop.
+ */
+const SHORT_SHA_RE = /^[0-9a-f]{7}$/i.test(shortSha) ? new RegExp(`\\b${shortSha}\\b`, 'i') : null
+
 // The project's own slug, for telling our check run ("Cloudflare Pages:
 // sahajatlas") from the sibling playground's ("…: sahajatlas-design").
 const projectSlug = project.split('.')[0].toLowerCase()
@@ -376,6 +388,13 @@ export const PROVENANCE = {
   loose: 0,
 }
 
+/**
+ * How much a SOURCE knows about the head commit, for keeping the better reading
+ * when one URL turns up twice. Ordered, not just labelled: `commit` beats `pr`
+ * beats `none`.
+ */
+const SCOPE_RANK = { none: 0, pr: 1, commit: 2 }
+
 /** Cloudflare's per-deployment alias: the deployment UUID's first 8 hex chars. */
 const DEPLOY_LABEL_RE = /^[0-9a-f]{8}$/
 
@@ -427,6 +446,12 @@ export function provenanceOf({ url, scope }, deployment = null) {
   const label = leadingLabel(url)
   if (!label) return PROVENANCE.loose
   if (deployment && label === deployment) return PROVENANCE.deployment
+  // The BARE project host is production, not a preview. It clears `pick()` and
+  // isn't deploy-shaped, so it would otherwise land on the `alias` floor beside
+  // a branch alias — but this script only ever runs for a PR head, so
+  // production is never the right answer here, whereas a branch alias at least
+  // belongs to the branch under review.
+  if (label === projectSlug) return PROVENANCE.loose
   if (scope === 'commit') {
     return DEPLOY_LABEL_RE.test(label) ? PROVENANCE.attested : PROVENANCE.alias
   }
@@ -478,7 +503,6 @@ async function discover() {
    * @type {Map<string, 'commit' | 'pr' | 'none'>}
    */
   const candidates = new Map()
-  const SCOPE_RANK = { none: 0, pr: 1, commit: 2 }
 
   /**
    * @param {'commit' | 'pr' | 'none'} scope
@@ -562,12 +586,21 @@ async function discover() {
       }
       preferred = line
       // Which deployment this commit produced, straight from the run GitHub
-      // returned for it. Assigned rather than merged because `/check-runs`
-      // defaults to `filter=latest`, which returns one run per check NAME — so
-      // there is exactly one run for our project here, and no older one to
-      // shadow it. An in-progress run may not carry a deployment yet; that
-      // resolves to null and the weaker tiers cover the gap until it does.
-      deployment = deploymentAlias(c.details_url)
+      // returned for it — but ONLY from a run owned by Cloudflare's own App.
+      // The loop above also admits a run on its NAME, and a name is
+      // self-declared: without this gate an installed App with `checks:write`
+      // could call itself "Cloudflare Pages: sahajatlas" and hand us any
+      // `details_url` it liked. It still could not aim us off-host — `pick()`
+      // decides that — but it could STEER selection between builds of our own
+      // site, which is the defect this ticket exists to close. Same rule as
+      // source 1's "both the context AND the author".
+      //
+      // Last-write-wins across runs: `/check-runs` defaults to `filter=latest`,
+      // which returns one run per check NAME. That makes the run unique per
+      // APP, not globally — which is precisely why the slug gate matters. An
+      // in-progress run may carry no deployment yet; that resolves to null and
+      // the weaker tiers cover the gap until it does.
+      if (/cloudflare/i.test(slug)) deployment = deploymentAlias(c.details_url)
       // Our project's deploy has finished and did not succeed. `neutral` is
       // Cloudflare's skipped-build conclusion, which is not a failure.
       if (c.status === 'completed' && c.conclusion && !SUCCESS_CONCLUSIONS.has(c.conclusion)) {
@@ -599,7 +632,7 @@ async function discover() {
       for (const c of comments) {
         if (c.user?.type !== 'Bot') continue
         const fromCloudflare = /cloudflare/i.test(c.user?.login || '')
-        const namesHead = Boolean(shortSha) && (c.body || '').includes(shortSha)
+        const namesHead = Boolean(SHORT_SHA_RE?.test(c.body || ''))
 
         harvest(fromCloudflare && namesHead ? 'pr' : 'none', c.body)
         if (fromCloudflare && namesHead) {

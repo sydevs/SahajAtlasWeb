@@ -107,6 +107,14 @@ describe('provenanceOf', () => {
     expect(provenanceOf({ url: BRANCH, scope: 'none' })).toBe(PROVENANCE.loose)
   })
 
+  // The bare project host is PRODUCTION. It clears `pick()` and is not
+  // deploy-shaped, so it would otherwise sit on the floor beside a branch alias
+  // — but this script only runs for a PR head, so production is never right.
+  it('refuses the bare project host, which is production rather than a preview', () => {
+    expect(provenanceOf({ url: `https://${HOST}`, scope: 'commit' })).toBe(PROVENANCE.loose)
+    expect(pickPreview(from('commit', `https://${HOST}`), { host: HOST })).toBeNull()
+  })
+
   it('caps a comment that DOES name the head commit at the weakest usable tier', () => {
     // Deploy-shaped, but still `alias`: the comment is edited in place per deploy
     // and we cannot see retrospectively whether Cloudflare blanks the URL cells
