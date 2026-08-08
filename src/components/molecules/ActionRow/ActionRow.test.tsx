@@ -11,23 +11,24 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// ActionCircle is the third of the app's three anchors and, until #114, the second of the
-// two that rendered a raw `<a href>` with no gate of their own.
+// ActionCircle is the third of the app's three JSX anchors and, until #114, the second of
+// the two that rendered a raw `<a href>` with no gate of their own.
+//
+// As in Button.test.tsx, the predicate's case table stays in `src/lib/shape/href.test.ts`.
+// This spec proves the wiring and the hrefs this row really carries.
 describe('ActionCircle — href gate', () => {
-  it.each([
-    'javascript:alert(1)',
-    'data:text/html,<script>x</script>',
-    '//evil.com',
-    '/\\evil.com',
-    '/\r/evil.com',
-  ])('refuses %j — renders no anchor and no href', (href) => {
+  // Refusing must not silently promote the action to a focusable control that does nothing —
+  // that is a worse dead end for a keyboard user than inert content.
+  it('refuses an unsafe href, degrading to a non-interactive span and not the button arm', () => {
     const spy = silenceReport()
-    const html = renderToStaticMarkup(<ActionCircle href={href} icon={<svg />} label="Contact" />)
+    const html = renderToStaticMarkup(
+      <ActionCircle href="javascript:alert(1)" icon={<svg />} label="Contact" />,
+    )
 
     expect(html).not.toContain('<a')
     expect(html).not.toContain('href=')
-    expect(html).not.toContain('evil.com')
-    expect(html).not.toContain('javascript:')
+    expect(html).toMatch(/^<span[\s>]/)
+    expect(html).not.toContain('<button')
     // The label survives, so the refusal is visible rather than a hole in the row.
     expect(html).toContain('Contact')
     expect(
@@ -37,26 +38,22 @@ describe('ActionCircle — href gate', () => {
     ).toHaveLength(1)
   })
 
-  // Refusing must not silently promote the action to a focusable control that does nothing —
-  // that is a worse dead end for a keyboard user than inert content.
-  it('degrades to a non-interactive span, not to the button arm', () => {
+  it('refuses //evil.com rather than emitting it as a same-origin-looking route', () => {
     silenceReport()
     const html = renderToStaticMarkup(
-      <ActionCircle href="javascript:alert(1)" icon={<svg />} label="Contact" />,
+      <ActionCircle href="//evil.com" icon={<svg />} label="Contact" />,
     )
 
-    expect(html).toMatch(/^<span[\s>]/)
-    expect(html).not.toContain('<button')
+    expect(html).not.toContain('evil.com')
   })
 
-  // Its one production caller passes exactly these three shapes: a `directionsUrl` we build,
-  // a `SafeUrlSchema`-parsed `event.website`, and a literal `tel:`. A gate that broke the
-  // phone link would be worse than no gate at all.
+  // Its one production caller passes exactly three shapes: a `directionsUrl` we build, a
+  // `SafeUrlSchema`-parsed `event.website`, and a literal `tel:`. A gate that broke the phone
+  // link would be worse than no gate at all.
   it.each([
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
     'https://example.org/',
     'tel:+441234567890',
-    'mailto:someone@example.org',
   ])('still renders %j as a real anchor', (href) => {
     const html = renderToStaticMarkup(<ActionCircle href={href} icon={<svg />} label="Go" />)
 

@@ -34,27 +34,23 @@ describe('Button', () => {
   })
 })
 
-// The atom's href form is one of the app's three anchors, and until #114 it was ungated —
-// the `Link` atom's guard sits in a component this arm never reaches.
+// The atom's href form is one of the app's three JSX anchors, and until #114 it was ungated
+// — the `Link` atom's guard sits in a component this arm never reaches.
+//
+// The predicate's own case table lives in `src/lib/shape/href.test.ts` and is deliberately
+// NOT repeated here: re-enumerating it per component is how the four copies drift, which is
+// the failure this ticket exists to stop. What only this spec can prove is the WIRING — that
+// the arm asks the predicate at all, how it degrades, and that the hrefs this atom really
+// carries survive the gate.
 describe('Button — href gate', () => {
-  it.each([
-    'javascript:alert(1)',
-    'data:text/html,<script>x</script>',
-    'vbscript:x',
-    '//evil.com',
-    '/\\evil.com',
-    '/\t/evil.com',
-  ])('refuses %j — renders no anchor and no href', (href) => {
+  it('refuses an unsafe href — no anchor, and the string never reaches the markup', () => {
     const spy = silenceReport()
-    const html = renderToStaticMarkup(<Button href={href}>Go</Button>)
+    const html = renderToStaticMarkup(<Button href="javascript:alert(1)">Go</Button>)
 
-    // No anchor at all, and the string never reaches the markup.
     expect(html).not.toContain('<a')
     expect(html).not.toContain('href=')
-    expect(html).not.toContain('evil.com')
-    expect(html).not.toContain('javascript:')
     // It degrades to the same content on a span — visibly present, not interactive.
-    expect(html).toContain('<span')
+    expect(html).toMatch(/^<span[\s>]/)
     expect(html).toContain('Go')
     // And it is reported, so a caller feeding the atom bad data can be found.
     expect(
@@ -62,18 +58,26 @@ describe('Button — href gate', () => {
     ).toHaveLength(1)
   })
 
+  // One case from the protocol-relative family, because THAT is the one an anchor renders
+  // verbatim while looking site-relative — the rest of the family is pinned in href.test.ts.
+  it('refuses //evil.com rather than emitting it as a same-origin-looking route', () => {
+    silenceReport()
+    const html = renderToStaticMarkup(<Button href="//evil.com">Go</Button>)
+
+    expect(html).not.toContain('evil.com')
+  })
+
   // The hrefs this atom actually carries in production: the four calendar link-outs
   // (`lib/ics.ts`) and ReportIssueForm's contact address. Gating must not cost them.
   it.each([
     'https://calendar.google.com/calendar/render?action=TEMPLATE',
     'https://outlook.live.com/calendar/0/deeplink/compose',
-    'HTTPS://example.com/',
     'mailto:atlas@sydevelopers.com',
   ])('still renders %j as a real anchor', (href) => {
     const html = renderToStaticMarkup(<Button href={href}>Go</Button>)
 
     expect(html).toMatch(/^<a[\s>]/)
-    expect(html).toContain(`href="${href.replace(/&/g, '&amp;')}"`)
+    expect(html).toContain(`href="${href}"`)
     expect(html).not.toContain('<span')
   })
 

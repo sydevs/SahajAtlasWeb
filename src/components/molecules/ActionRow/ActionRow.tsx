@@ -92,16 +92,13 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
   )
 
   if (href) {
-    // The third of the app's three anchors, gated on the same predicate as the `Link` and
-    // `Button` atoms (#114). Its one production caller passes a `directionsUrl` we build, a
-    // `SafeUrlSchema`-parsed `event.website`, or a literal `tel:` — all safe by provenance,
-    // none of it a property this component can rely on. `tel:` and `mailto:` are in the
-    // allowed set precisely so gating here cannot break a working phone link.
+    // The shared gate (`lib/shape/href.ts`), with the `Link` atom's failure mode: report,
+    // then render the same icon + label column on a non-interactive `<span>`.
     //
-    // Failure mode matches `Link`'s: report, then render the same icon + label column on a
-    // non-interactive `<span>`. Deliberately NOT a fall-through to the `<button>` arm below
-    // — that would produce a focusable control that does nothing, which is a worse dead end
-    // for a keyboard user than inert content.
+    // Site-specific: deliberately NOT a fall-through to the `<button>` arm below, which
+    // would leave a focusable control that does nothing — a worse dead end for a keyboard
+    // user than inert content. And `tel:` is in the allowed set precisely so gating here
+    // cannot break this row's phone link, its most common href.
     if (!isSafeHref(href)) {
       reportInternalError(new Error(`Refusing to link to ${href}`), 'ActionCircle')
 

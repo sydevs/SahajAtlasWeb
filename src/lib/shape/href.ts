@@ -24,16 +24,22 @@ export const hasAllowedScheme = (href: unknown): boolean =>
   typeof href === 'string' && ALLOWED_SCHEME.test(href)
 
 /**
- * **The gate every caller-supplied `<a href>` in the app passes through**: true only for a
- * string that is either a safe site-relative route or one of the three allowed schemes.
+ * **The gate every href the app puts on a JSX `<a>` passes through**: true only for a string
+ * that is either a safe site-relative route or one of the three allowed schemes.
  *
- * It is one predicate in one place because the app renders three anchors — the `Link` atom,
- * the `Button` atom's href form, and `ActionRow`'s `ActionCircle` — and safety used to be
- * asserted once per CALLER instead of once at the sink. Every href reaching them was safe
+ * It is one predicate in one place because the app renders three such anchors — the `Link`
+ * atom, the `Button` atom's href form, and `ActionRow`'s `ActionCircle` — and safety used to
+ * be asserted once per CALLER instead of once at the sink. Every href reaching them was safe
  * by provenance, which is not a property the next component or the next caller inherits.
  * That is also why the recurrences look accidental rather than careless: the `Link` atom's
  * own guard was lost and restored twice, and #100 found `//evil.com` walking through an
- * `href.startsWith('/')` test that read as correct.
+ * `href.startsWith('/')` test that read as correct. `href.test.ts` pins the three-anchor
+ * inventory so a fourth cannot be added without meeting this function.
+ *
+ * It is **not** the app's only path from a URL to an anchor: `lexicalToHtml` (`lexical.ts`)
+ * serializes CMS rich text to an HTML *string* containing `<a href>`, which is sanitized by
+ * DOMPurify where it is rendered rather than gated here. Different sink, different
+ * mechanism — don't read this as covering it.
  *
  * "Same-origin route" is **`safePath`**, never a fresh leading-slash check. `safePath` is
  * the repo's single definition and already rejects `//evil.com`, `/\evil.com` and the
@@ -45,4 +51,4 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  * fallback, where a throw would blank the widget on somebody else's page.
  */
 export const isSafeHref = (href: unknown): boolean =>
-  typeof href === 'string' && (safePath(href) !== undefined || ALLOWED_SCHEME.test(href))
+  typeof href === 'string' && (safePath(href) !== undefined || hasAllowedScheme(href))

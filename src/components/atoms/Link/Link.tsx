@@ -83,28 +83,15 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
 ) {
   const classes = link({ color, className })
   const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
-  // Whether the href names a scheme rather than a route — a RENDERING question (plain <a>
-  // vs. client-routed), asked through the shared module so the atom holds no second copy of
-  // the scheme list.
-  const hasScheme = hasAllowedScheme(href)
   // One name for "the caller asked for the external treatment", so the three places that
   // consult it can't drift into subtly different spellings.
   const wantsNewTab = isExternal || target === '_blank'
 
-  // An href that is neither a safe site-relative path nor one of the three allowed schemes
-  // never reaches the DOM. Not reachable today — every caller passes a `/…` route, an
-  // `https:`/`mailto:`/`tel:` URL, or something already through `safePath` — but this is
-  // the last gate for every href routed THROUGH THIS ATOM, and both branches below put the
-  // string on a plain anchor (the internal one hands an absolute `to` to react-router,
-  // which renders it verbatim). A `javascript:` string arriving there would execute in the
-  // HOST page's realm. Rendering the text without the link fails visibly rather than
-  // dangerously.
-  //
-  // **The predicate is `isSafeHref` (`lib/shape/href.ts`), and it is not this atom's.** The
-  // app renders three anchors — this one, the `Button` atom's href form and
-  // `ActionRow`/`ActionCircle` — and all three now ask the same question and fail the same
-  // way. The reasoning that used to live here lives there, including why "site-relative" is
-  // `safePath` rather than `startsWith('/')` and why the scheme test is case-insensitive.
+  // The shared gate — `isSafeHref` (`lib/shape/href.ts`), which is where the reasoning
+  // lives. It matters especially here because BOTH branches below put the string on a plain
+  // anchor: the internal one hands an absolute `to` to react-router, which renders it
+  // verbatim, so a `javascript:` string arriving there would execute in the HOST page's
+  // realm. Degrading to text fails visibly rather than dangerously.
   //
   // **The href alone decides this, before any flag is consulted.** `isExternal` and
   // `target="_blank"` describe how a link should RENDER, not whether its string is safe to
@@ -117,7 +104,9 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     return <span className={classes}>{children}</span>
   }
 
-  if (hasScheme || wantsNewTab) {
+  // A scheme URL can't be client-routed, so it takes the plain anchor — a RENDERING
+  // question, asked of the shared module so the atom keeps no second copy of the scheme list.
+  if (hasAllowedScheme(href) || wantsNewTab) {
     return (
       <a
         ref={ref}

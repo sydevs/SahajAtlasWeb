@@ -114,15 +114,14 @@ but middle-click, ctrl-click and "copy link address" hand the browser the off-or
 
 ### `isSafeHref` is the sink-level gate
 
-**`isSafeHref` (`src/lib/shape/href.ts`) is the last thing every caller-supplied href passes
-before it reaches the DOM** — `safePath`-clean OR one of the three allowed schemes
-(`https:`/`mailto:`/`tel:`, case-insensitively, to agree with `SafeUrlSchema` and
-`validateWebUrl` upstream). An href that is neither renders as inert content and reports
-itself via `reportInternalError`; a `javascript:` string reaching an anchor would run in the
-HOST page's realm.
+**`isSafeHref` (`src/lib/shape/href.ts`) is the last thing an href passes before it reaches a
+JSX `<a>`** — `safePath`-clean OR one of the three allowed schemes (`https:`/`mailto:`/`tel:`,
+case-insensitively, to agree with `SafeUrlSchema` and `validateWebUrl` upstream). An href that
+is neither renders as inert content and reports itself via `reportInternalError`; a
+`javascript:` string reaching an anchor would run in the HOST page's realm.
 
-The app renders **three** anchors, and all three ask it (issue #114): the `Link` atom, the
-`Button` atom's href form, and `ActionRow`/`ActionCircle`. The latter two used to render a
+The app renders **three** such anchors, and all three ask it (issue #114): the `Link` atom,
+the `Button` atom's href form, and `ActionRow`/`ActionCircle`. The latter two used to render a
 raw `<a href>` that never reached the `Link` atom's copy of the check. Their hrefs were safe
 by *provenance* — a `SafeUrlSchema`-parsed `event.website`, a `directionsUrl` we build,
 literal `mailto:`/`tel:` prefixes — which is not a property the next component or the next
@@ -131,6 +130,19 @@ justifies it is the recurrence rate: the `Link` atom's guard was lost and restor
 and #100 found `//evil.com` passing an `href.startsWith('/')` check that read as correct.
 `ALLOWED_SCHEME` now has exactly one definition and `src/lib/shape/href.test.ts` is the one
 place its cases are pinned.
+
+**Three is an asserted number, not a claim in prose.** `href.test.ts` walks `src/**/*.tsx`,
+collects every file rendering a JSX anchor, and fails if the set is not exactly those three or
+if one of them stops calling `isSafeHref`. A fourth anchor therefore turns the unit lane red
+with instructions rather than shipping ungated — the manual grep that this ticket's acceptance
+criteria described, made executable, because a grep nobody re-runs is how the first three
+recurrences happened.
+
+That inventory covers JSX only. **`lexicalToHtml` (`src/lib/shape/lexical.ts`) is a separate
+href sink**: it serializes CMS rich text into an HTML *string* containing `<a href>`, and its
+safety comes from the DOMPurify pass where that string is rendered, not from `isSafeHref`.
+Different sink, different mechanism — don't read the three-anchor rule as covering it, and
+don't "fix" it by routing a string builder through a JSX-anchor predicate.
 
 Three properties of that guard are load-bearing, and the first two were each restored after
 being lost:

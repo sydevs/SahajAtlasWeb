@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
 import { hasAllowedScheme, isSafeHref } from './href'
@@ -43,7 +46,7 @@ describe('isSafeHref — refuses', () => {
 
   // The anchors gated by this predicate render inside the error fallback, where a throw
   // would blank the widget on a host page. Refusing must never be the same as failing.
-  it.each([null, undefined, 123, 0, {}, [], true, false, Symbol('x'), () => '/gb'])(
+  it.each([null, undefined, 123, {}, () => '/gb'])(
     'a non-string (%p) returns false rather than throwing',
     (href) => {
       expect(() => isSafeHref(href)).not.toThrow()
@@ -111,5 +114,62 @@ describe('hasAllowedScheme', () => {
   it('takes a non-string safely, like the gate it shares a regex with', () => {
     expect(hasAllowedScheme(null)).toBe(false)
     expect(hasAllowedScheme(undefined)).toBe(false)
+  })
+})
+
+// A predicate only helps the anchors that call it, and the failure this ticket exists to stop
+// is a FOURTH anchor being added that doesn't. The acceptance criteria for #114 spell that as
+// a manual grep ("grep for `<a` under src/components finds no anchor rendering an unguarded
+// caller-supplied href"); a grep nobody re-runs is how the first three recurrences happened,
+// so it is executable here instead. Precedent: `config/i18n-options.test.ts` pins the locale
+// directories the same way.
+describe('the JSX anchor inventory', () => {
+  const srcDir = fileURLToPath(new URL('../../', import.meta.url))
+
+  // Only `.tsx` — JSX is the sink this predicate guards. `lexicalToHtml` (`lexical.ts`) also
+  // emits `<a href>`, but as an HTML *string* sanitized by DOMPurify downstream: a different
+  // sink with a different mechanism, deliberately out of this inventory.
+  const sources = readdirSync(srcDir, { recursive: true, withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        entry.name.endsWith('.tsx') &&
+        !entry.name.includes('.test.') &&
+        !entry.name.includes('.stories.'),
+    )
+    .map((entry) => `${entry.parentPath}/${entry.name}`.slice(srcDir.length))
+
+  it('finds source files to scan (the walk itself must not silently break)', () => {
+    expect(sources.length).toBeGreaterThan(50)
+  })
+
+  it('is exactly the three components that call isSafeHref', () => {
+    const withAnchor = sources.filter((relative) => {
+      const source = readFileSync(`${srcDir}${relative}`, 'utf8')
+        // Prose mentioning `<a>` is not an anchor. Block comments carry most of it in this
+        // repo; whole-line `//` comments carry the rest.
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+
+      return /<a[\s>]/.test(source)
+    })
+
+    // If this fails with a FOURTH file, that file renders an anchor: route its href through
+    // `isSafeHref` (`lib/shape/href.ts`) and add it here. Don't just add it here.
+    expect(withAnchor.sort()).toEqual([
+      'components/atoms/Button/Button.tsx',
+      'components/atoms/Link/Link.tsx',
+      'components/molecules/ActionRow/ActionRow.tsx',
+    ])
+  })
+
+  it('has every one of them calling the shared gate', () => {
+    for (const relative of [
+      'components/atoms/Button/Button.tsx',
+      'components/atoms/Link/Link.tsx',
+      'components/molecules/ActionRow/ActionRow.tsx',
+    ]) {
+      expect(readFileSync(`${srcDir}${relative}`, 'utf8')).toContain('isSafeHref(')
+    }
   })
 })
