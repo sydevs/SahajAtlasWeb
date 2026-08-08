@@ -33,10 +33,13 @@ export type WidgetMode = {
   linkable: boolean
 }
 
-export const WidgetModeContext = createContext<WidgetMode>({
-  standalone: false,
-  hasMap: true,
-  linkable: true,
-})
+/**
+ * What a subtree with no provider above it renders as: the embedded widget, with a map,
+ * whose route is in the URL. Every axis defaults to the behaviour that predates it, so
+ * adding one can't change how anything already rendered.
+ */
+export const DEFAULT_WIDGET_MODE: WidgetMode = { standalone: false, hasMap: true, linkable: true }
+
+export const WidgetModeContext = createContext<WidgetMode>(DEFAULT_WIDGET_MODE)
 
 export const useWidgetMode = () => useContext(WidgetModeContext)

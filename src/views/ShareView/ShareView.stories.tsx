@@ -93,7 +93,7 @@ export const Default: Story<{ region: RegionKey; share: ShareKey; state: StoryFa
   return (
     <ViewStory
       example={`${region}·${share}`}
-      mode={{ standalone: false, hasMap: false, linkable }}
+      mode={{ linkable }}
       path={`${mockEvent.path}/share`}
       seed={(client: QueryClient) => {
         client.setQueryData<Event>(['event', mockEvent.id, locale], { ...mockEvent, webUrl })
