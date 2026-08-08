@@ -109,9 +109,8 @@ export const MAX_REVEAL = PAGE_SIZE * 16
  * and it is why the reserve must be STRICT — `MAX_NEARBY_REVEAL < MAX_REVEAL`, pinned in
  * `reveal.test.ts`, since an equal pair silently reinstates the bug.
  *
- * It applies only when something lies beyond the boundary. An undivided list (no searched
- * place) or one whose matches are all nearby has no second segment to reserve for, so it
- * keeps the whole budget and behaves exactly as it did before.
+ * An undivided list — no searched place, or every match nearby — has no second segment to
+ * reserve for, so it keeps the whole budget and behaves exactly as it did before.
  *
  * The cost is at the other end, and it is the honest trade: a search with more than
  * `MAX_NEARBY_REVEAL` nearby matches AND a distant segment stops at 300 nearby rows
@@ -259,14 +258,18 @@ export function revealRows<T extends Segmentable>(
   // the list COUNTS up to, whether or not the distant segment is showing yet.
   const total = sorted.length
   // Every match this list can put ON SCREEN: `total` less the nearby tail the reserve
-  // holds back. Deliberately a different number from `total` — the announcement counts
-  // matches, `next` counts rows, and conflating them is how a press ends up a no-op.
+  // holds back. A different number from `total` because they count different things —
+  // the announcement counts MATCHES, `next` counts ROWS — so this is what keeps a stored
+  // count describing rows that exist rather than pointing past the end of the list. It is
+  // NOT what keeps a press non-empty: `total` here would never produce a no-op either
+  // (`more` is null whenever `revealed` has reached it). The strict reserve is what makes
+  // the crossing press non-empty, and it is the only thing that does.
   const reachable = nearRevealable.length + far.length
 
-  // What the ACTIVE segment(s) can still show. Reaching zero does NOT mean the list has
+  // Whether the ACTIVE segment(s) have anything left. `false` does NOT mean the list has
   // ended: the crossing into the distant segment may still be on offer, and the reserve
   // above guarantees the ceiling has left room for it.
-  const remainingActive = Math.min(active.length, MAX_REVEAL) - revealed
+  const hasMoreActive = revealed < Math.min(active.length, MAX_REVEAL)
   // The one press that changes which segments are active. It is never automatic (see
   // `auto` in `DynamicEventsList`) — the distance boundary is crossed on purpose.
   const crossing = !showAll && far.length > 0
@@ -275,8 +278,13 @@ export function revealRows<T extends Segmentable>(
   // this press reaches it or because it is already showing and everything below is
   // distant. `null` only when nothing is left that a press could reveal — offering one
   // the clamp would undo is the one thing worse than stopping.
-  const more: RevealMore | null =
-    remainingActive > 0 ? (showAll ? 'farther' : 'more') : crossing ? 'farther' : null
+  const more: RevealMore | null = hasMoreActive
+    ? showAll
+      ? 'farther'
+      : 'more'
+    : crossing
+      ? 'farther'
+      : null
 
   return {
     rows,
