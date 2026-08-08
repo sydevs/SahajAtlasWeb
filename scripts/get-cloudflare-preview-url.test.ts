@@ -6,6 +6,7 @@ import {
   formatElapsed,
   note,
   pick,
+  timeoutFrom,
   timeoutStatus,
 } from './get-cloudflare-preview-url.mjs'
 
@@ -22,10 +23,10 @@ describe('pick', () => {
 
   it('refuses a host that merely CONTAINS the project name', () => {
     // The security property, pinned: `pages.dev` subdomains are first-come-
-    // first-served, and source 4 reads PR comments — so a substring match would
-    // let anyone who can comment aim the smoke lane at a host they control and
-    // collect a green check that verified nothing. Matching is on the hostname,
-    // at a label boundary.
+    // first-served, and source 4 scrapes URLs out of bot comments — so a
+    // substring match would let a bot belonging to any installed GitHub App aim
+    // the smoke lane at a host somebody else controls, and collect a green check
+    // that verified nothing. Matching is on the hostname, at a label boundary.
     expect(pick(['https://evil-sahajatlas.pages.dev'], HOST)).toBeNull()
     expect(pick(['https://sahajatlas.pages.dev.evil.com'], HOST)).toBeNull()
     expect(pick([`https://${HOST}@evil.com/`], HOST)).toBeNull()
@@ -35,16 +36,45 @@ describe('pick', () => {
     expect(pick(['https://abc.sahajatlas-design.pages.dev'], HOST)).toBeNull()
   })
 
+  it('matches case-insensitively in both directions', () => {
+    // PAGES_RE carries the `i` flag, so an uppercase URL can reach pick(); and
+    // CF_PROJECT is hand-typed, so the configured host can carry one too. Both
+    // sides normalise — a "harden the match" refactor must not drop either.
+    expect(pick([`https://ABC.SahajAtlas.PAGES.DEV`], HOST)).toBe(
+      'https://ABC.SahajAtlas.PAGES.DEV',
+    )
+    expect(pick([`https://abc.${HOST}`], 'SahajAtlas.Pages.Dev')).toBe(`https://abc.${HOST}`)
+  })
+
   it('skips unparseable candidates rather than throwing', () => {
     expect(pick(['not a url', `https://${HOST}`], HOST)).toBe(`https://${HOST}`)
     expect(pick([], HOST)).toBeNull()
   })
 })
 
+describe('timeoutFrom', () => {
+  // A bad override must be IGNORED, not honoured. Read as seconds,
+  // PREVIEW_TIMEOUT_MS=600 is a 0.6s deadline — one poll, then a confident
+  // "the deploy did not happen" about a build that was never given time.
+  it('ignores anything that is not a positive number', () => {
+    const fallback = timeoutFrom(undefined)
+
+    expect(fallback).toBe(600_000)
+    for (const bad of ['', '0', '-5', 'abc', '10m', 'NaN']) {
+      expect(timeoutFrom(bad)).toBe(fallback)
+    }
+  })
+
+  it('honours a positive override, capped', () => {
+    expect(timeoutFrom('90000')).toBe(90_000)
+    expect(timeoutFrom('1e9', 720_000)).toBe(720_000)
+  })
+})
+
 describe('timeoutStatus', () => {
-  // Only `absent` is a real failure — the deploy did not happen. The other two
-  // mean we stopped waiting on a deploy that demonstrably exists, which wants a
-  // re-run, not an investigation (issue #132).
+  // `absent` (nothing happened) and `failed` (it happened and broke) both want a
+  // human; `pending` / `unreachable` mean we stopped waiting on a deploy that
+  // demonstrably exists, which wants a re-run (issue #132).
   it('reports a URL that never answered as unreachable', () => {
     expect(timeoutStatus({ lastUrl: `https://x.${HOST}`, evidence: null })).toBe(STATUS.unreachable)
   })
@@ -57,6 +87,22 @@ describe('timeoutStatus', () => {
 
   it('reports no signal at all as absent', () => {
     expect(timeoutStatus({ lastUrl: null, evidence: null })).toBe(STATUS.absent)
+  })
+
+  // The case that makes the distinction worth having. A FAILED build still posts
+  // a check run, so counting that as "a deploy exists" would tell the reader to
+  // re-run a job that fails identically — the very habit the ticket set out to
+  // break. It outranks both other signals.
+  it('reports a finished-and-failed deploy as failed, over any other signal', () => {
+    const failure = 'check run "Cloudflare Pages: sahajatlas" (failure)'
+
+    expect(timeoutStatus({ lastUrl: null, evidence: null, failure })).toBe(STATUS.failed)
+    expect(timeoutStatus({ lastUrl: null, evidence: 'sibling (success)', failure })).toBe(
+      STATUS.failed,
+    )
+    expect(timeoutStatus({ lastUrl: `https://x.${HOST}`, evidence: null, failure })).toBe(
+      STATUS.failed,
+    )
   })
 })
 
@@ -79,6 +125,13 @@ describe('explain', () => {
 
     expect(message).toContain('no Cloudflare signal')
     expect(message).not.toContain('re-run')
+  })
+
+  it('tells the reader a failed build explicitly CANNOT be fixed by re-running', () => {
+    const message = explain(STATUS.failed, { failure: 'check run "x" (failure)' })
+
+    expect(message).toContain('re-running this job cannot help')
+    expect(message).toContain('Cloudflare deployment log')
   })
 
   it('leaves the elapsed wait to the caller that prefixes every line with it', () => {

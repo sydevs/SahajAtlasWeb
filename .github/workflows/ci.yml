@@ -80,8 +80,10 @@ jobs:
 
   # Smoke specs run against the Cloudflare Pages PR preview. We discover the
   # preview URL from the GitHub API (Cloudflare posts it on the PR) and wait
-  # until it's reachable, then fetch the root page. Skips gracefully (empty
-  # preview_url) when no preview is posted — e.g. forked PRs without secrets.
+  # until it's reachable, then fetch the root page. A missing preview is a
+  # graceful skip only on FORKS (no secrets, no preview by design); on a
+  # same-repo PR it fails the job — see "Report a missing preview" below, which
+  # also decides what the failure tells you to do about it.
   smoke:
     name: Smoke
     runs-on: ubuntu-latest
@@ -97,8 +99,9 @@ jobs:
       # Emits `preview_url` and `preview_status`. It waits 10 minutes by default —
       # a number measured against 86 real Cloudflare builds, see the script's
       # header — and never fails the job itself. Set PREVIEW_TIMEOUT_MS here to
-      # wait longer, but raise this job's `timeout-minutes` with it: the budget
-      # has to leave room for install plus the specs.
+      # wait longer; it is in MILLISECONDS, and the script caps it, because an
+      # override past this job's `timeout-minutes` gets the job CANCELLED, which
+      # skips the reporting step below and leaves a red check with no message.
       - name: Discover Cloudflare Pages preview URL
         id: preview
         env:
@@ -147,6 +150,10 @@ jobs:
             pending | unreachable)
               MSG="Cloudflare had not published a usable preview before discovery gave up — NO smoke specs ran."
               HINT="A Cloudflare deploy for this commit WAS seen ($PREVIEW_STATUS), so this is a slow deploy rather than a broken one: RE-RUN this job. The 'Discover Cloudflare Pages preview URL' step reports how long it waited and what it last saw. If it keeps happening, raise PREVIEW_TIMEOUT_MS on that step rather than re-running by hand."
+              ;;
+            failed)
+              MSG="The Cloudflare Pages build for this commit FAILED — NO smoke specs ran."
+              HINT="Cloudflare finished and did not succeed, so re-running this job will fail identically: read the Cloudflare deployment log. If that build failed in 0s with a clean log, it is a transient rate-limit — retry the DEPLOYMENT (not this job)."
               ;;
             error)
               MSG="Preview discovery could not run — NO smoke specs ran."

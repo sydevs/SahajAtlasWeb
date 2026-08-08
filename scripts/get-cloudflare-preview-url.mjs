@@ -89,11 +89,14 @@
  *   GITHUB_REPOSITORY   (auto in Actions) — "owner/repo"
  *   PR_HEAD_SHA         (required) — the PR head commit
  *   PR_NUMBER           (optional) — enables the PR-comment fallback
- *   CF_PROJECT          (optional) — prefer URLs containing this project slug
- *   PREVIEW_TIMEOUT_MS  (optional) — override the discovery deadline
+ *   CF_PROJECT          (optional) — the app's `*.pages.dev` HOST. Only a URL whose
+ *                       hostname IS this host, or a subdomain of it, is accepted
+ *                       (`pick`) — not a substring or slug test.
+ *   PREVIEW_TIMEOUT_MS  (optional) — the discovery deadline, in MILLISECONDS.
+ *                       Ignored unless positive; capped at MAX_TIMEOUT_MS.
  */
 
-import { appendFileSync } from 'node:fs'
+import { appendFileSync, realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { report } from './_ci-output.mjs'
@@ -104,12 +107,58 @@ const sha = process.env.PR_HEAD_SHA
 const prNumber = process.env.PR_NUMBER
 const project = process.env.CF_PROJECT || 'sahajatlas.pages.dev' // the app's *.pages.dev host (not the -design playground)
 
+const shortSha = (sha || '').slice(0, 7)
+
+// The project's own slug, for telling our check run ("Cloudflare Pages:
+// sahajatlas") from the sibling playground's ("…: sahajatlas-design").
+const projectSlug = project.split('.')[0].toLowerCase()
+
+/** @param {string} [name] */
+function runProject(name) {
+  const match = /:\s*([a-z0-9-]+)\s*$/i.exec(name || '')
+
+  return match ? match[1].toLowerCase() : null
+}
+
+// Cloudflare skips a build it has nothing to do for, and reports that as
+// `neutral`. That is not a failed deploy.
+const SUCCESS_CONCLUSIONS = new Set(['success', 'neutral', 'skipped'])
+
 // 10 minutes — justified against 86 measured builds in the header comment, not
 // against the feel of it. Overridable so a queue deeper than any yet observed is
 // a workflow edit rather than a code change.
 const DEFAULT_TIMEOUT_MS = 10 * 60_000
-const TIMEOUT_MS = Number(process.env.PREVIEW_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS
+
+// Must stay under the Smoke job's `timeout-minutes` minus install + the specs.
+const MAX_TIMEOUT_MS = 12 * 60_000
+
+/**
+ * Milliseconds. A bad override is IGNORED rather than honoured: read as seconds,
+ * `PREVIEW_TIMEOUT_MS=600` would be a 0.6s deadline, one poll, and then a
+ * confident "the deploy did not happen — investigate" about a build that had not
+ * been given time to start. Wrong advice, stated loudly, is the failure mode this
+ * whole ticket is about.
+ * @param {string | undefined} raw
+ */
+export function timeoutFrom(raw, max = MAX_TIMEOUT_MS) {
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_TIMEOUT_MS
+
+  // Capped as well as floored: an override larger than the Smoke job's own
+  // `timeout-minutes` gets the job CANCELLED, which skips the reporting step and
+  // produces a red check carrying no message at all.
+  return Math.min(parsed, max)
+}
+
+const TIMEOUT_MS = timeoutFrom(process.env.PREVIEW_TIMEOUT_MS)
 const POLL_MS = 15_000
+
+// Bound every request, so a hung socket cannot outlive the budget. undici's
+// defaults are 300s, and the Smoke job's `timeout-minutes` cap CANCELS the job —
+// which would skip the reporting step and leave a red check with no message at
+// all, strictly worse than the timeout this ticket set out to fix.
+const REQUEST_TIMEOUT_MS = 15_000
+
 const PAGES_RE = /https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.pages\.dev/gi
 
 /** The `preview_status` output's vocabulary — see the header comment. */
@@ -117,6 +166,7 @@ export const STATUS = {
   found: 'found',
   unreachable: 'unreachable',
   pending: 'pending',
+  failed: 'failed',
   absent: 'absent',
   error: 'error',
 }
@@ -148,9 +198,12 @@ export function note(text) {
  * What the deadline expiring means, given what we saw before it did. Positive
  * evidence separates a slow deploy from an absent one — the whole point of the
  * second output, since only the latter is a real failure.
- * @param {{ lastUrl: string | null, evidence: string | null }} seen
+ * @param {{ lastUrl?: string | null, evidence?: string | null, failure?: string | null }} seen
  */
-export function timeoutStatus({ lastUrl, evidence }) {
+export function timeoutStatus({ lastUrl, evidence, failure }) {
+  // A finished-and-failed deploy outranks everything: it is the one outcome
+  // where waiting longer and re-running are both the wrong answer.
+  if (failure) return STATUS.failed
   if (lastUrl) return STATUS.unreachable
 
   return evidence ? STATUS.pending : STATUS.absent
@@ -162,10 +215,12 @@ export function timeoutStatus({ lastUrl, evidence }) {
  * `fail()`. The elapsed wait is `emit`'s to print (it prefixes every line with
  * it), so repeating it here would say the same number twice in one sentence.
  * @param {string} status
- * @param {{ lastUrl?: string | null, evidence?: string | null }} ctx
+ * @param {{ lastUrl?: string | null, evidence?: string | null, failure?: string | null }} ctx
  */
-export function explain(status, { lastUrl, evidence } = {}) {
+export function explain(status, { lastUrl, evidence, failure } = {}) {
   switch (status) {
+    case STATUS.failed:
+      return `the ${project} deploy for this commit FINISHED AND FAILED (${failure}) — re-running this job cannot help; read the Cloudflare deployment log.`
     case STATUS.unreachable:
       return `${lastUrl} was posted for this commit but never answered a request — the deploy exists, so re-run this job.`
     case STATUS.pending:
@@ -189,6 +244,14 @@ function fail(msg) {
 function emit(url, status, detail) {
   const elapsed = formatElapsed(Date.now() - startedAt)
 
+  // The OUTPUTS are the contract; the summary is presentation. Write them first:
+  // if `$GITHUB_STEP_SUMMARY` is unwritable, `report()` throws, and with the
+  // order reversed that throw would take the outputs with it — leaving ci.yml to
+  // read an empty status and blame Cloudflare for a filesystem problem.
+  if (process.env.GITHUB_OUTPUT) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `preview_url=${url}\npreview_status=${status}\n`)
+  }
+
   report([
     '### Preview discovery',
     '',
@@ -196,22 +259,25 @@ function emit(url, status, detail) {
       ? `✅ \`${status}\` after ${elapsed} — smoke specs will run against ${url}`
       : `⚠️ \`${status}\` after ${elapsed} — ${detail}`,
   ])
-
-  if (process.env.GITHUB_OUTPUT) {
-    appendFileSync(process.env.GITHUB_OUTPUT, `preview_url=${url}\npreview_status=${status}\n`)
-  }
 }
 
 async function gh(path) {
-  const res = await fetch(`https://api.github.com${path}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  })
-  if (!res.ok) return null
-  return res.json()
+  try {
+    const res = await fetch(`https://api.github.com${path}`, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    // A timed-out or failed probe is indistinguishable from "nothing there yet",
+    // and the next poll will ask again — so it must not abort the whole run.
+    return null
+  }
 }
 
 // Only accept a URL for the configured project. Two Pages projects deploy per PR
@@ -221,18 +287,25 @@ async function gh(path) {
 //
 // Matched on the HOSTNAME, at a label boundary. A substring test accepts
 // `https://evil-sahajatlas.pages.dev`, and `pages.dev` subdomains are
-// first-come-first-served — so with source 3 below reading PR comments, anyone
-// who can comment could aim the smoke lane at a host they control and collect a
-// green check that verified nothing. That mattered less when a missing preview
-// merely skipped; ci.yml now hard-fails on one, which makes a hijacked URL the
-// more attractive target of the two.
+// first-come-first-served — so a URL scraped from source 4's PR comments could
+// aim the smoke lane at a host somebody else controls and collect a green check
+// that verified nothing. Source 4's Bot-author gate means that is not "anyone
+// who can comment" (`user.type` is GitHub's word, not self-declared) — it takes
+// a bot belonging to some installed GitHub App. `pick()` is what makes it not
+// matter which. That mattered less when a missing preview merely skipped; ci.yml
+// now hard-fails on one, which makes a hijacked URL the more attractive target.
 export function pick(urls, host = project) {
+  // `URL.hostname` is ASCII-lowercased; `host` comes from CF_PROJECT and is not.
+  // Without this an uppercase in that variable matches nothing, discovery goes
+  // home empty, and every same-repo PR turns red for a typo.
+  const wanted = String(host).toLowerCase()
+
   return (
     urls.find((u) => {
       try {
         const { hostname } = new URL(u)
 
-        return hostname === host || hostname.endsWith(`.${host}`)
+        return hostname === wanted || hostname.endsWith(`.${wanted}`)
       } catch {
         return false
       }
@@ -241,22 +314,34 @@ export function pick(urls, host = project) {
 }
 
 /**
- * The URL if we have one, plus the strongest evidence that a Cloudflare deploy
- * exists for this SHA at all. Evidence never widens what reaches `pick()` — it
- * is read off the same Cloudflare-attributable objects the URL sources already
- * walk, in source order, so the check run (the dependable one here) wins over
- * the comment.
+ * The URL if we have one; the strongest evidence that a Cloudflare deploy exists
+ * for this SHA at all; and, separately, whether OUR project's deploy has already
+ * finished and failed. Evidence never widens what reaches `pick()` — it is read
+ * off the same Cloudflare-attributable objects the URL sources already walk.
+ *
+ * `failure` is kept apart from `evidence` because they earn opposite advice: a
+ * deploy still running wants a re-run, a deploy that has already failed wants
+ * somebody to read the Cloudflare log. Collapsing them is the trap — a failed
+ * build DOES post a check run, so counting that as "a deploy exists" would tell
+ * the reader to re-run a job that will fail identically.
+ *
+ * @returns {Promise<{ url: string | null, evidence: string | null, failure: string | null }>}
  */
 async function discover() {
   const urls = []
   const evidence = []
+  /** Evidence from our OWN project's check run, which outranks the sibling's. */
+  let preferred = null
+  let failure = null
 
   // 1. commit statuses
   const statuses = await gh(`/repos/${repo}/commits/${sha}/statuses`)
   if (Array.isArray(statuses)) {
     for (const s of statuses) {
       if (s.target_url) urls.push(...(s.target_url.match(PAGES_RE) || []))
-      if (/cloudflare/i.test(s.context || '')) {
+      // Both the context AND the author: a context string is chosen by whoever
+      // posts the status, so on its own it is a self-declared identity.
+      if (/cloudflare/i.test(s.context || '') && /cloudflare/i.test(s.creator?.login || '')) {
         evidence.push(note(`commit status "${s.context}" (${s.state})`))
       }
     }
@@ -272,7 +357,11 @@ async function discover() {
           if (s.environment_url) urls.push(...(s.environment_url.match(PAGES_RE) || []))
         }
       }
-      if (/cloudflare|pages/i.test(d.environment || '')) {
+      // `cloudflare` only, matching the other three sources. A bare `pages` would
+      // also accept GitHub's own `github-pages` environment, and evidence that
+      // isn't Cloudflare's turns "the deploy never happened" into "just re-run
+      // it" — softening the one message that needs to stay loud.
+      if (/cloudflare/i.test(d.environment || '')) {
         evidence.push(note(`deployment "${d.environment}"`))
       }
     }
@@ -290,7 +379,9 @@ async function discover() {
   //
   // A run for the SIBLING project counts as evidence even though its host is
   // (correctly) refused as a URL: it is the same Cloudflare deploy trigger, and
-  // it lands a median 41s before the app's own.
+  // it lands a median 41s before the app's own. But it must never be the run we
+  // draw a CONCLUSION from — if `-design` succeeded while the app's own build
+  // failed, the sibling's "(success)" is the misleading half of the story.
   const checks = await gh(`/repos/${repo}/commits/${sha}/check-runs?per_page=100`)
   if (Array.isArray(checks?.check_runs)) {
     for (const c of checks.check_runs) {
@@ -298,7 +389,18 @@ async function discover() {
       if (!/cloudflare/i.test(slug) && !/^cloudflare pages/i.test(c.name || '')) continue
       urls.push(...((c.output?.summary || '').match(PAGES_RE) || []))
       if (c.details_url) urls.push(...(c.details_url.match(PAGES_RE) || []))
-      evidence.push(note(`check run "${c.name}" (${c.conclusion || c.status})`))
+
+      const line = note(`check run "${c.name}" (${c.conclusion || c.status})`)
+      if (runProject(c.name) !== projectSlug) {
+        evidence.push(line)
+        continue
+      }
+      preferred = line
+      // Our project's deploy has finished and did not succeed. `neutral` is
+      // Cloudflare's skipped-build conclusion, which is not a failure.
+      if (c.status === 'completed' && c.conclusion && !SUCCESS_CONCLUSIONS.has(c.conclusion)) {
+        failure = line
+      }
     }
   }
 
@@ -317,7 +419,6 @@ async function discover() {
       for (const c of comments) {
         if (c.user?.type !== 'Bot') continue
         urls.push(...((c.body || '').match(PAGES_RE) || []))
-        const shortSha = (sha || '').slice(0, 7)
         if (
           shortSha &&
           /cloudflare/i.test(c.user?.login || '') &&
@@ -329,12 +430,19 @@ async function discover() {
     }
   }
 
-  return { url: pick([...new Set(urls)]), evidence: evidence[0] || null }
+  return {
+    url: pick([...new Set(urls)]),
+    evidence: preferred || evidence[0] || null,
+    failure,
+  }
 }
 
 async function reachable(url) {
   try {
-    const res = await fetch(`${url}/`, { redirect: 'follow' })
+    const res = await fetch(`${url}/`, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
     return res.status >= 200 && res.status < 400
   } catch {
     return false
@@ -376,6 +484,10 @@ async function main() {
 }
 
 // Guarded so the spec can import the pure helpers without running discovery.
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// `realpathSync` because `process.argv[1]` keeps a symlink's path while
+// `import.meta.url` resolves the target — invoked through a link the guard would
+// silently be false, main() would never run, and the step would exit 0 with no
+// outputs, which ci.yml reports as "the deploy did not happen".
+if (realpathSync(process.argv[1] || '') === realpathSync(fileURLToPath(import.meta.url))) {
   main().catch((err) => fail(`Discovery failed: ${err?.message || err}`))
 }

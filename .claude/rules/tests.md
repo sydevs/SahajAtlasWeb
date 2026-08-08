@@ -28,16 +28,33 @@ Two lanes, kept separate so the fast one never touches the network:
   `embed.smoke.test.ts` learned this the hard way. Assert on the body or the
   content type.
 
+### Why a red Smoke check now says which kind of red (issue #132)
+
 The first invariant is about what GREEN means, so it says nothing about whose
-fault red is — and "no preview" is not one thing (issue #132).
+fault red is — and "no preview" is not one thing.
 `scripts/get-cloudflare-preview-url.mjs` therefore emits a second output beside
-`preview_url`: **`preview_status`**, one of `found` / `unreachable` / `pending` /
-`absent` / `error`, which ci.yml branches its message on. **`absent`** — no
-Cloudflare signal of any kind for the SHA — is a defect: *investigate*.
-**`pending` / `unreachable`** mean a deploy demonstrably exists and we stopped
-waiting: *re-run*. Both still fail a same-repo PR. The step summary carries the
-elapsed wait and the last observed state, so a slow deploy is legible without
-opening the raw log. Two findings behind that script, so they aren't re-derived:
+`preview_url`: **`preview_status`**, which ci.yml branches its message on.
+
+| status | what it saw | what it tells the reader |
+| --- | --- | --- |
+| `pending` / `unreachable` | a deploy demonstrably exists; we stopped waiting | **re-run** |
+| `failed` | our project's run finished and did NOT succeed | **read the Cloudflare log** — re-running fails identically |
+| `absent` | no Cloudflare signal of any kind for the SHA | **investigate** — the deploy never happened |
+| `error` | discovery itself broke (missing env, a throw) | read the discovery step |
+
+All of them still fail a same-repo PR, and an **unrecognised** status takes the
+loud branch on purpose. The step summary carries the elapsed wait and the last
+observed state, so a slow deploy is legible without opening the raw log.
+
+**`failed` is the row that has to exist.** A failed Cloudflare build still posts a
+check run, so folding it into "a deploy exists" would tell the reader to re-run a
+job that fails identically — training exactly the habit the ticket set out to
+break. It is also why evidence is read from the run matching `CF_PROJECT`'s own
+slug rather than whichever run GitHub lists first: the `-design` sibling
+succeeding says nothing about the app's build, and its "(success)" would otherwise
+be the only thing the summary showed.
+
+Two findings behind that script, so they aren't re-derived:
 
 - **There is no observable "Cloudflare is building" state.** Across 230 check
   runs on this repo every one was already `completed` when first visible, with
@@ -51,10 +68,21 @@ opening the raw log. Two findings behind that script, so they aren't re-derived:
   healthy commit. Override with `PREVIEW_TIMEOUT_MS`, don't edit the constant.
 - **The discovery *sources* (#122) and `pick()`'s hostname-boundary match are
   load-bearing.** The latter is a security property: `pages.dev` subdomains are
-  first-come-first-served and one source reads PR comments, so a substring match
-  would let anyone who can comment aim the smoke lane at a host they control and
-  collect a green check that verified nothing. Both are pinned by
+  first-come-first-served and source 4 scrapes URLs out of bot comments, so a
+  substring match would let a bot belonging to any installed GitHub App aim the
+  smoke lane at a host somebody else controls and collect a green check that
+  verified nothing. (The Bot-author gate means this is *not* "anyone who can
+  comment" — `user.type` is GitHub's word, not self-declared.) Both are pinned by
   `scripts/get-cloudflare-preview-url.test.ts`.
+
+  **Known gap, deliberately still open:** that URL harvest is not scoped to the
+  head SHA, and Cloudflare's comment also carries a stable *branch alias*
+  (`<branch>.<project>.pages.dev`) that `pick()` accepts. While commit B builds,
+  the alias still resolves to commit A — so the lane can go green having smoke-
+  tested the previous commit. Scoping the harvest is #122's territory and was
+  fenced off as a non-goal by #132; it wants its own ticket, and tightening it
+  needs a check first that the check-run summary carries a per-commit URL, or
+  discovery breaks outright.
 
 The lane covers `embed.js` as well as the standalone page: the embed is what a
 host installs, so a deploy that breaks it while `index.html` stays healthy must
