@@ -183,10 +183,12 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       // Explicit even though it matches React Query's default, because the default is
-      // not the reason. The one mutation this app has is `POST /events/:id/register`,
-      // and an automatic re-send of a registration is a duplicate signup rather than a
-      // recovered one — so a `retry` added to `queries` above must never be assumed to
-      // have covered mutations too.
+      // not the reason. Both mutations this app has are unsafe to repeat:
+      // `POST /events/:id/register`, where an automatic re-send is a duplicate signup
+      // rather than a recovered one, and `POST /contact-admin`, where the retry would
+      // replay a single-use Turnstile token the server has already redeemed (so it would
+      // be refused anyway) — or, worse, send the report twice. A `retry` added to
+      // `queries` above must never be assumed to have covered mutations too.
       retry: 0,
     },
   },

@@ -117,7 +117,9 @@
     "errors": {
       "email": "Introduce una dirección de correo válida.",
       "message": "Escribe al menos %{min} caracteres.",
-      "message_max": "No superes los %{max} caracteres."
+      "message_max": "No superes los %{max} caracteres.",
+      "send_failed": "Tu informe no se ha enviado. Vuelve a intentarlo cuando se actualice la comprobación de seguridad, o escríbenos a %{email}.",
+      "captcha": "Hay que repetir la comprobación de seguridad. Espera a que se actualice y vuelve a enviar."
     }
   },
   "error": {

@@ -137,7 +137,9 @@
     "errors": {
       "email": "Enter a valid email address.",
       "message": "Please write at least %{min} characters.",
-      "message_max": "Please keep it under %{max} characters."
+      "message_max": "Please keep it under %{max} characters.",
+      "send_failed": "Your report wasn't sent. Try again once the security check has refreshed, or email us at %{email}.",
+      "captcha": "The security check needs doing again. Wait for it to refresh, then send once more."
     }
   },
   "country_site": {

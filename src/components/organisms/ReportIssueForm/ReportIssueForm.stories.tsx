@@ -37,13 +37,16 @@ function Panel({ children }: { children: ReactNode }) {
 }
 
 /**
- * ReportIssueForm — the report-issue form rendered inside the Modal atom (issue #79).
- * An optional reply address, the message, and a Cloudflare Turnstile challenge, over
- * the auto-attached context the viewer never types.
+ * ReportIssueForm — the report-issue form rendered inside the Modal atom (issues
+ * #79/#103). An optional reply address, the message, and a Cloudflare Turnstile
+ * challenge, over the auto-attached context the viewer never types.
  *
  * The live sections render a REAL Turnstile widget against Cloudflare's always-passes
  * test site key, so submit becomes enabled once the message is long enough. Submitting
- * alerts the payload that #80 will POST — there is no network call yet.
+ * now performs a real `POST /api/contact-admin`; Ladle carries no API key, so it comes
+ * back refused and you land on the failure state — which is the honest outcome, and the
+ * point of the ticket: the thank-you screen is shown for a delivered message and nothing
+ * else.
  */
 export const Default: Story = () => {
   const [open, setOpen] = useState(false)
@@ -82,7 +85,16 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="After submitting. The modal unmounts its content on close, so reopening always starts on a fresh form with a new challenge."
+        description="A send that failed. The message and address stay put so the retry costs nothing to compose, the alert carries the address that still works, and the captcha has been reset underneath — a Turnstile token is single-use and the endpoint redeems it before it mails, so re-sending the old one would be refused."
+        title="Send failed"
+      >
+        <Panel>
+          <ReportIssueForm initialFailed context={context} onClose={noop} />
+        </Panel>
+      </StorySection>
+
+      <StorySection
+        description="After a DELIVERED report — this screen is derived from the mutation's success and nothing else. The modal unmounts its content on close, so reopening always starts on a fresh form with a new challenge."
         title="Thank you"
       >
         <Panel>

@@ -131,7 +131,7 @@ the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
 express, an agreement with a router/DOM API that a pure test can only assume, or a library
-whose whole job IS the DOM.** Three specs qualify today:
+whose whole job IS the DOM.** Four specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
   already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
@@ -146,13 +146,20 @@ whose whole job IS the DOM.** Three specs qualify today:
   our function decides, never whether the library it is modelling agrees. When a helper
   exists to feed a third-party API, assert the round trip against that API.
 - `src/components/organisms/EventDetails/sanitize.test.ts` — the least optional of the
-  three: DOMPurify sanitizes by parsing into a real document and walking it, so there is
+  four: DOMPurify sanitizes by parsing into a real document and walking it, so there is
   no pure half to extract. It asserts that the CMS-prose allowlist is load-bearing, which
   it silently was not for as long as `USE_PROFILES` sat beside it overriding it (issue
   #101). It also round-trips `lexicalToHtml`'s own output through the sanitizer, because
   the two files have to agree on a tag set and the first draft of the tightened list
   deleted five heading levels without failing anything — a stripped tag keeps its text, so
   the loss reads as prose.
+- `src/components/organisms/ReportIssueForm/ReportIssueForm.submit.test.tsx` — drives a
+  real submit and asserts the thank-you screen appears only for a RESOLVED post (issue
+  #103). It is the third cautionary tale: the SSR sibling spec renders that screen through
+  a story prop (`initialSubmitted`), and the prop short-circuits the derivation — so with
+  that spec alone, restoring the bug it was written for keeps the lane green. **A spec
+  that can only reach a state through the door the story uses is not covering the state,
+  it is covering the door.**
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`

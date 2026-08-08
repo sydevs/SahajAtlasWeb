@@ -13,9 +13,12 @@ API-key client. We talk to it through **`@payloadcms/sdk`** (`PayloadSDK<Config>
 fetch-based client typed against our synced `payload-types.ts`) + **`zod`**. The SDK's
 `payload` dependency is **types-only** — its dist imports only `qs-esm` at runtime — so
 only the SDK + `qs-esm` reach the public bundle (this replaced `axios` + `qs`; see #41).
-`src/types/payload/` holds the synced `payload-types.ts` + endpoint `response-types.ts`
-(run `pnpm types:cms`) — the SDK's compile-time source of truth; keep the zod schemas
-aligned with them.
+`src/types/payload/` holds the synced `payload-types.ts` plus the two endpoint contract
+files (run `pnpm types:cms`) — the SDK's compile-time source of truth; keep the zod schemas
+aligned with them. The contract files are separate because they are separate **upstream**:
+`response-types.ts` comes from the Events collection's endpoints folder, `contact-types.ts`
+from SahajCloud's root `src/endpoints/` (the only root-registered endpoint). Each is its own
+curl in `types:cms`, so a new root endpoint needs a new line rather than appearing by magic.
 
 ## The shared SDK client (`src/config/api/client.ts`)
 
@@ -176,6 +179,18 @@ correct for its one call site.
 - `createRegistration` → `POST /api/events/:id/register` with
   `{ email, name, startingAt?, questions? }`; the confirmation is parsed through
   `RegistrationResponseSchema`.
+- `contactAdmin` → `POST /api/contact-admin` (sydevs/SahajCloud#602), the shared
+  captcha-gated channel behind the report-issue form. The Turnstile token rides in the
+  **body** — the endpoint verifies it server-side — and each `context` value is clamped to
+  that endpoint's own bound, because an over-long one is a 400 for the whole message.
+  **The email is the deliverable**: a failed send is a 502, never a false 200, so a
+  resolved promise is the only thing that means delivered and the form derives its
+  thank-you screen from nothing else (issue #103).
+
+**In both, the response `.parse()` sits OUTSIDE the request's `try`.** A `ZodError`'s
+`.errors` are `{ message, code }` — precisely the shape `asRefusal` reads a refusal body
+out of — so a parse inside the catch is re-cast as a server refusal carrying a zod issue
+code, and the real cause disappears.
 
 ## Consuming data — TanStack Query only
 
@@ -247,7 +262,13 @@ pages we don't, at whatever traffic those pages have, so all four are set explic
   `not-found` / `config` kinds. `retryDelayFor` caps and **jitters** the backoff, so an
   API coming back from an outage isn't met with every client's second attempt in the same
   millisecond. The kind list mirrors `ERROR_POLICY`'s `retry` column — change both.
-  Mutations stay at `retry: 0`: the one mutation is a registration.
+  Mutations stay at `retry: 0`: both are unsafe to repeat — a re-sent registration is a
+  duplicate signup, and a re-sent report replays a single-use Turnstile token the server
+  has already redeemed. The report form additionally sets **`networkMode: 'always'`** on
+  its own mutation: the default *pauses* an offline mutation instead of failing it, which
+  on the one screen that exists because something already broke means a spinner that never
+  resolves — and a paused mutation the client later resumes, delivering a report the
+  viewer already gave up on and re-sent.
 - **Never override `retry` (or any option) per-fetch on a SHARED key.** `prefetchQuery` →
   `fetchQuery` → `query.fetch(opts)` writes the options onto the shared `Query` object,
   and `useSuspenseQuery` reads it back through `fetchOptimistic`, which calls

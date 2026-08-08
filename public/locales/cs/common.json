@@ -117,7 +117,9 @@
     "errors": {
       "email": "Zadejte platnou e-mailovou adresu.",
       "message": "Napište prosím alespoň %{min} znaků.",
-      "message_max": "Zkraťte prosím text pod %{max} znaků."
+      "message_max": "Zkraťte prosím text pod %{max} znaků.",
+      "send_failed": "Vaše hlášení nebylo odesláno. Zkuste to znovu po obnovení bezpečnostní kontroly nebo nám napište na %{email}.",
+      "captcha": "Bezpečnostní kontrolu je třeba provést znovu. Počkejte na její obnovení a odešlete znovu."
     }
   },
   "error": {
