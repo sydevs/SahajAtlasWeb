@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { validateWebUrl } from './url'
+import { shareableUrl, validateWebUrl } from './url'
 
 describe('validateWebUrl', () => {
   it('returns http(s) absolute URLs unchanged', () => {
@@ -14,5 +14,42 @@ describe('validateWebUrl', () => {
     expect(validateWebUrl('')).toBeUndefined()
     expect(validateWebUrl(null)).toBeUndefined()
     expect(validateWebUrl(undefined)).toBeUndefined()
+  })
+})
+
+describe('shareableUrl', () => {
+  const CANONICAL = 'https://wemeditate.example/uk/cambridge/monday-meditation'
+  // What `window.location.href` reads in each of the three modes the widget runs in.
+  const STANDALONE = 'https://sahajatlas.example/united-kingdom/cambridge/101'
+  const EMBEDDED_HASH = 'https://host.example/classes#/!/united-kingdom/cambridge/101'
+  const EMBEDDED_MEMORY = 'https://host.example/blog/post#respond'
+
+  it('prefers the canonical URL in every mode', () => {
+    // Not a fallback order — the event's own public page unfurls and outlives the
+    // session, so it wins even where the address bar would have worked.
+    expect(shareableUrl(CANONICAL, STANDALONE, true)).toBe(CANONICAL)
+    expect(shareableUrl(CANONICAL, EMBEDDED_HASH, true)).toBe(CANONICAL)
+    expect(shareableUrl(CANONICAL, EMBEDDED_MEMORY, false)).toBe(CANONICAL)
+  })
+
+  // The load-bearing no-regression check: both working modes keep handing out the
+  // identifying URL they always have when the event has no canonical.
+  it('falls back to the address bar in the two linkable modes', () => {
+    expect(shareableUrl(null, STANDALONE, true)).toBe(STANDALONE)
+    expect(shareableUrl(null, EMBEDDED_HASH, true)).toBe(EMBEDDED_HASH)
+  })
+
+  it('offers nothing in memory mode when the event has no canonical', () => {
+    // The host page's own anchor identifies their comment form, not the meditation.
+    expect(shareableUrl(null, EMBEDDED_MEMORY, false)).toBeUndefined()
+    expect(shareableUrl(undefined, EMBEDDED_MEMORY, false)).toBeUndefined()
+  })
+
+  it('rejects a non-http(s) candidate on either side', () => {
+    // A `file://` document is linkable in the routing sense and useless as a share
+    // target; a CMS value that slipped the schema must not reach a share intent.
+    expect(shareableUrl(null, 'file:///Users/x/demo.html', true)).toBeUndefined()
+    expect(shareableUrl('javascript:alert(1)', STANDALONE, true)).toBe(STANDALONE)
+    expect(shareableUrl('javascript:alert(1)', EMBEDDED_MEMORY, false)).toBeUndefined()
   })
 })

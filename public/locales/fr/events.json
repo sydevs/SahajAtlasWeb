@@ -22,7 +22,8 @@
     "starting_soon": "Bientôt",
     "tel": "tél: %{phoneNumber}",
     "view_photo": "Voir la photo",
-    "pause_slideshow": "Mettre le diaporama en pause"
+    "pause_slideshow": "Mettre le diaporama en pause",
+    "share_unavailable": "Il n'y a pas encore de lien à partager pour cette méditation."
   },
   "display": {
     "about": "À propos de ce cours",

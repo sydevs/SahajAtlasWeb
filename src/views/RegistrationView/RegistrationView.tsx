@@ -6,6 +6,7 @@ import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegis
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
+import { useShareUrl } from '@/hooks/use-share-url'
 import { eventTimeZone, isOnline } from '@/lib/shape'
 import { Event, REGISTRATION_QUESTION_NAMES, RegistrationQuestionName } from '@/types'
 import {
@@ -51,6 +52,11 @@ export function RegistrationView({
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, blockedMessage, whereLine } = useEventDisplay(event)
+  // One answer for both surfaces the confirmation screen puts a URL on — the calendar
+  // entry and the invite-a-friend block — so they can't word the same event two ways.
+  // `undefined` where there is no honest link (issue #115): both degrade rather than
+  // carry the host page's address.
+  const eventUrl = useShareUrl(event.webUrl)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -95,11 +101,14 @@ export function RegistrationView({
         // one thing `lib/ics.ts` cannot re-derive on its own.
         schedule: { ...event.schedule, upcomingDates: futureDates },
         location: isOnline(event) ? undefined : whereLine,
-        // The SAME fallback the share block uses. `webUrl` is `SafeUrlSchema`
+        // The SAME resolution the share block uses, so the two can't disagree about
+        // what this event's link is. `webUrl` is `SafeUrlSchema`
         // (`.nullish().catch(null)`), so passing it raw would leave the exported
         // event with no link back for exactly the events whose CMS url is
-        // missing or non-http — while the share block still had one.
-        url: event.webUrl ?? window.location.href,
+        // missing or non-http — while the share block still had one. `lib/ics.ts`
+        // takes `url` as nullish and simply omits the `URL:` line, which is the
+        // right outcome when there is no honest link to put in the calendar entry.
+        url: eventUrl,
       }
     : undefined
 
@@ -119,7 +128,7 @@ export function RegistrationView({
             calendar={calendarExport}
             eventId={event.id}
             eventTitle={event.title}
-            eventUrl={event.webUrl ?? window.location.href}
+            eventUrl={eventUrl}
             initialSubmitted={initialSubmitted}
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}

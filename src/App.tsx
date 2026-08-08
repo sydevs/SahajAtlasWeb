@@ -95,6 +95,11 @@ type AppProps = {
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
+  // Is the route on screen in the URL, and therefore shareable? True for both routers
+  // that write one (BrowserRouter standalone, HashRouter embedded); the embedded widget
+  // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
+  // Defaults true — see config/mode.ts.
+  linkable?: boolean
 }
 
 export default function App({
@@ -104,6 +109,7 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
+  linkable = true,
 }: AppProps) {
   // Warm the agnostic map/hierarchy caches (feed + region tree) + current-locale titles
   // the moment we have the API key, in parallel with the client bootstrap the tree
@@ -125,6 +131,7 @@ export default function App({
                 apiKey={apiKey}
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
+                linkable={linkable}
                 standalone={standalone}
               />
             </ResetErrorBoundary>
@@ -164,9 +171,10 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
+  linkable: boolean
 }
 
-function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) {
+function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
@@ -239,7 +247,7 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap }: AppShellProps) 
   }, [location.pathname, fathomEnabled, primaryDomain])
 
   return (
-    <WidgetModeContext.Provider value={{ standalone, hasMap }}>
+    <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it, and the widget's hash URLs
           were never canonical anyway (hence `standalone` existing at all). */}

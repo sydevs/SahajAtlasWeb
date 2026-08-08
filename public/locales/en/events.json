@@ -22,7 +22,8 @@
     "starting_soon": "Starting soon",
     "tel": "tel: %{phoneNumber}",
     "view_photo": "View photo",
-    "pause_slideshow": "Pause slideshow"
+    "pause_slideshow": "Pause slideshow",
+    "share_unavailable": "There is no link to share for this meditation yet."
   },
   "display": {
     "about": "About this class",

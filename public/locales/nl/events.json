@@ -22,7 +22,8 @@
     "starting_soon": "Binnenkort van start",
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Foto bekijken",
-    "pause_slideshow": "Diavoorstelling pauzeren"
+    "pause_slideshow": "Diavoorstelling pauzeren",
+    "share_unavailable": "Er is nog geen link om deze meditatie te delen."
   },
   "display": {
     "about": "Over deze les",

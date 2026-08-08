@@ -22,7 +22,8 @@
     "starting_soon": "Скоро почнеться",
     "tel": "тел: %{phoneNumber}",
     "view_photo": "Переглянути фото",
-    "pause_slideshow": "Призупинити слайдшоу"
+    "pause_slideshow": "Призупинити слайдшоу",
+    "share_unavailable": "Для цієї медитації поки немає посилання, яким можна поділитися."
   },
   "display": {
     "about": "Про це заняття",

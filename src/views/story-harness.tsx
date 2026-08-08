@@ -248,7 +248,9 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
 
   return (
     <QueryClientProvider client={client}>
-      <WidgetModeContext.Provider value={mode ?? { standalone: true, hasMap: false }}>
+      <WidgetModeContext.Provider
+        value={mode ?? { standalone: true, hasMap: false, linkable: true }}
+      >
         <NoopMapControllerProvider>
           {/* A full-view drawer panel: fills the story canvas (the width-xsmall frame,
               which the global decorator renders un-padded for views) as a flex column so

@@ -22,7 +22,8 @@
     "starting_soon": "Começando em breve",
     "tel": "tel: %{phoneNumber}",
     "view_photo": "Ver foto",
-    "pause_slideshow": "Pausar a apresentação"
+    "pause_slideshow": "Pausar a apresentação",
+    "share_unavailable": "Ainda não há um link para compartilhar esta meditação."
   },
   "display": {
     "about": "Sobre esta aula",
