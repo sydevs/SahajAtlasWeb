@@ -65,8 +65,9 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 
 ## Data flow
 
-1. The widget receives `apiKey` (+ optional `locale`, `map`, `basePath`,
-   `primaryColor`, `secondaryColor`) from the host page.
+1. The widget receives `apiKey` (+ optional `locale`, `map`, `analytics`,
+   `geolocation`, `errorReporting`, `basePath`, `primaryColor`,
+   `secondaryColor`) from the host page.
 2. `App` fetches the **client** record (domain, default locale, home region) via
    React Query, configures locale + analytics, and navigates to the home region on
    first load.

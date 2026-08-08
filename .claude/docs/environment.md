@@ -21,7 +21,6 @@ secret that ends up in the bundle.
 | `VITE_MAPBOX_ACCESSTOKEN`   | `.env.local` | Mapbox GL **public** token (`pk.…`) — safe to ship in the bundle |
 | `VITE_SAHAJCLOUD_API_KEY`   | `.env.local` | Published `sahaj-atlas-client` API key the widget uses in dev (passed as the `apiKey` prop; sent as `Authorization: clients API-Key …`) |
 | `VITE_FATHOM_ID`            | `.env.local` | Fathom analytics site id (optional; analytics disabled if unset / on localhost) |
-| `VITE_GOOGLE_PLACES_API_KEY`| `.env.local` | Google Places key (optional, location search) |
 | `SAHAJCLOUD_DOCS_PASSWORD`  | `.env.local` | HTTP basic-auth password for the SahajCloud OpenAPI docs; used **only** by the `pnpm types:openapi` script (never `VITE_`-prefixed — tooling-only, never in the bundle) |
 
 ## Secrets that must NOT reach the client
