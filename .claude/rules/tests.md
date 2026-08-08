@@ -56,16 +56,26 @@ be the only thing the summary showed.
 
 Two findings behind that script, so they aren't re-derived:
 
-- **There is no observable "Cloudflare is building" state.** Across 230 check
-  runs on this repo every one was already `completed` when first visible, with
-  `started_at == completed_at`, and GitHub pre-creates a `queued` check *suite*
-  for every installed app on every push — so Cloudflare's is indistinguishable
-  from the vercel / railway / sentry suites of apps that post nothing at all.
-  Waiting adaptively on an in-progress signal is not available. The deadline is
-  flat, and justified in the script's header against 86 measured builds
-  (p50 99s · p95 373s · max 453s) rather than against a feeling; the 6-minute one
-  it replaced sat *below* the 95th percentile, which is how #124 went red on a
-  healthy commit. Override with `PREVIEW_TIMEOUT_MS`, don't edit the constant.
+- **A "Cloudflare is building" state IS observable — and a retrospective API
+  query will tell you it isn't.** The check run carries `status: in_progress` for
+  the whole build (watch the discovery step's log on any PR). But Cloudflare sets
+  `started_at` when it *completes* the run, so a finished run always reads
+  `started_at == completed_at` — and sampling historical commits, which is what
+  #124's evidence and a 230-run sweep of this repo both did, cannot see the
+  in-progress window at all and concludes it never existed. **#132 was written on
+  that wrong answer, and it survived a full review pass; only the live CI run
+  caught it.** If you are asking "what does this integration publish while it
+  works?", watch a live build — a query over completed objects cannot answer it.
+  (The check *suite* is genuinely useless: GitHub pre-creates one per installed
+  app on every push, so Cloudflare's is indistinguishable from the vercel /
+  railway / sentry suites of apps that post nothing.)
+  The deadline is nonetheless **flat**, and that choice outlived the correction:
+  it is justified in the script's header against 86 measured builds
+  (p50 99s · p95 373s · max 453s) and clears the slowest by ~1.3×, so extending
+  adaptively would only change cases a long-enough deadline already covers. The
+  6-minute deadline it replaced sat *below* the 95th percentile, which is how
+  #124 went red on a healthy commit. Override with `PREVIEW_TIMEOUT_MS` (it is in
+  milliseconds, and capped), don't edit the constant.
 - **The discovery *sources* (#122) and `pick()`'s hostname-boundary match are
   load-bearing.** The latter is a security property: `pages.dev` subdomains are
   first-come-first-served and source 4 scrapes URLs out of bot comments, so a

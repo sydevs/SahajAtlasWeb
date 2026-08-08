@@ -46,23 +46,35 @@
  *
  * ## Why the wait is flat rather than adaptive
  *
- * There is no "Cloudflare is building" state to wait on. Verified over 230
- * Cloudflare check runs on this repo: every one was already `completed` when
- * first observable, with `started_at == completed_at` — the app posts the run
- * only once the deploy has finished. The check SUITE is not a substitute either:
- * GitHub pre-creates one per installed app on every push, so Cloudflare's sits
- * `queued` with zero runs, indistinguishable from the vercel / railway / sentry
- * suites belonging to apps that never post anything at all.
+ * A "Cloudflare is building" state IS observable — the check run exists with
+ * `status: in_progress` for the whole build, and this script logs it every poll.
+ * Read that sentence twice if you are about to reason from the API: it is the
+ * OPPOSITE of what a retrospective query tells you, and #132 was written on the
+ * retrospective answer.
  *
- * Two signals do arrive earlier, and both are used as EVIDENCE (below) rather
- * than as grounds to wait longer:
- *   - the sibling `sahajatlas-design` check run, a median 41s (max 73s) ahead of
- *     the app's — too small a lead to be worth extending for, and `pick()`
- *     rightly refuses its host as a URL;
- *   - the Cloudflare bot's PR comment, which is ONE comment per PR edited in
- *     place per deploy, naming the short SHA it is currently deploying. It turns
- *     up at build start and stays for the whole build, so it establishes that a
- *     deploy exists while saying nothing about how much longer it needs.
+ * The trap: Cloudflare sets `started_at` when it COMPLETES the run, so a finished
+ * run always reads `started_at == completed_at`. Sampling historical commits —
+ * which is what #124's evidence and a 230-run sweep over this repo both did —
+ * therefore cannot see the in-progress window at all, and concludes it never
+ * existed. Only watching a live build shows it. (The check SUITE really is
+ * useless either way: GitHub pre-creates one per installed app on every push, so
+ * Cloudflare's sits `queued` with zero runs, indistinguishable from the vercel /
+ * railway / sentry suites of apps that never post anything.)
+ *
+ * So the deadline COULD be extended adaptively on a live signal. It deliberately
+ * is not, for a reason that survives the correction: the flat budget above is
+ * measured against the full duration distribution and clears the slowest build
+ * ever observed by ~1.3×, so an extension would only change behaviour in cases a
+ * long-enough deadline already covers, at the price of a second timing rule.
+ * Reach for it if the queue ever outgrows the cap — the signal is there.
+ *
+ * What the live state DOES buy is honest classification: `pending` is now backed
+ * by our own project's run saying `in_progress`, not merely by the sibling
+ * `sahajatlas-design` run (a median 41s ahead) or the Cloudflare bot's PR
+ * comment (ONE per PR, edited in place, naming the SHA it is deploying). Both of
+ * those remain evidence; neither is load-bearing on its own any more. It is also
+ * why the `failed` test below insists on `status === 'completed'` — an
+ * in-progress run has a null conclusion and must never be read as a failure.
  *
  * ## "Empty" is not one outcome (issue #132)
  *
