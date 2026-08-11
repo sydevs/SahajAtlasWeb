@@ -88,7 +88,7 @@ an attribute that turns it off:
   persistent identifier and records no form value. `DNT` is honoured in the sense Fathom
   implements — a visitor sending the header is not counted — but the script itself is
   still fetched, so their IP does reach Fathom.
-- **`*.ingest.sentry.io` — crash reporting.** Sent **only when the widget has already
+- **`*.sentry.io` — crash reporting.** Sent **only when the widget has already
   broken**, so a healthy page never contacts it, and only on a build configured with a
   DSN. An event carries the error and its stack from our own code, which of the widget's
   screens failed, and **your page as origin and path only — never its query string or

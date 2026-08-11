@@ -62,6 +62,16 @@ fetched from `https://sahajatlas.com/locales/…`. That matters only for your CS
 string in the widget renders as its raw dotted key name (`events.title`, `nav.search`),
 which looks like a broken translation rather than a blocked request.
 
+That host is **compiled in from `VITE_HOST` at build time**, so it is a property of the
+deployment rather than of the source — a local build carries whatever the checked-in `.env`
+says. To confirm the current value rather than trusting this page, read it out of the
+shipped bundle:
+
+```bash
+curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
+curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
+```
+
 ## Attributes
 
 Nine attributes, all optional except `api-key`. Every value is a string.
@@ -69,7 +79,7 @@ Nine attributes, all optional except `api-key`. Every value is a string.
 | Attribute         | Default                        | What it does                                                                                                                                                                                                                                                    |
 | ----------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `api-key`         | —                              | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen.                                                                                                                                      |
-| `locale`          | the visitor's browser language | Force a UI language, e.g. `fr`. Falls back to the language on your client record, then to the browser's, then to English.                                                                                                                                       |
+| `locale`          | the visitor's browser language | Force a UI language, e.g. `fr`. Full precedence: this attribute → the language on your client record → **`?locale=` on the page URL** → the browser's language → English.                                                                                       |
 | `map`             | `true`                         | `map="false"` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size the element (see [Sizing](#sizing-the-element)).                 |
 | `base-path`       | `/`                            | The route the widget boots at, e.g. `/gb/london` or `/507/register`. Must be a site-relative path; anything else (an absolute URL, `//evil.example`) is refused and the widget boots at the root. A route already in the page's fragment wins over `base-path`. |
 | `primary-color`   | your client record's colour    | Per-embed brand override, a hex colour.                                                                                                                                                                                                                         |
@@ -179,7 +189,7 @@ worker-src  blob:
 child-src   blob:
 style-src   'unsafe-inline'
 font-src    https://sahajatlas.com
-img-src     data: https://sahajatlas.com https://api.mapbox.com https://imagedelivery.net https://cloud.sydevelopers.com https://react-circle-flags.pages.dev
+img-src     data: https://api.mapbox.com https://imagedelivery.net https://cloud.sydevelopers.com https://react-circle-flags.pages.dev
 connect-src https://sahajatlas.com https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://challenges.cloudflare.com https://cdn.usefathom.com https://*.sentry.io
 frame-src   https://challenges.cloudflare.com
 ```
@@ -204,7 +214,6 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 | `img-src`                  | `data:`                                       | The map's pins and cluster bubbles are inline SVG rasterised from a `data:` URI — the widget ships them itself rather than relying on the map style's sprites.                                                                                         | **the map paints with no pins**                                                               |
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than something the bundle pins: today production serves the Cloudflare Images CDN (`imagedelivery.net`) and any relative URL is resolved against the API origin. | images only                                                                                   |
-|                            | the widget's origin                           | the widget's own bundled graphics                                                                                                                                                                                                                      | those graphics only                                                                           |
 |                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer. Sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                  | the flag glyphs only; the lists still render                                                  |
 | `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue.**                                                                                                                                                                                                           | **the widget has no data and shows an error screen**                                          |
 |                            | `sahajatlas.com`                              | the locale JSON, from a different origin than the script                                                                                                                                                                                               | every string renders as its raw dotted key                                                    |
@@ -231,9 +240,21 @@ one host instead, take the exact one from the DSN rather than deriving it. Leavi
 is a supported choice: you get one blocked request and one violation report, not one per
 error. `error-reporting="false"` is the explicit way to say so.
 
-**Only Turnstile, `ipwho.is` and Sentry degrade gracefully.** Everything else in the table
-fails visibly — blank, unstyled, dataless, or a map with no pins — which is what makes a
-missing directive worth ruling out early when something looks wrong.
+**Five entries are load-bearing; the rest cost only the feature in their own row.** If you
+allow nothing else, allow these — each one breaks the widget as a whole:
+
+|                                      |                              |
+| ------------------------------------ | ---------------------------- |
+| `script-src` the widget's origin     | nothing renders              |
+| `style-src 'unsafe-inline'`          | renders completely unstyled  |
+| `connect-src cloud.sydevelopers.com` | no data at all               |
+| `worker-src blob:`                   | the map never renders        |
+| `img-src data:`                      | the map renders with no pins |
+
+Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface,
+missing photography, missing flags, no analytics, no telemetry, a `mailto:` instead of the
+report form. Read the row rather than assuming; over-allowing because a summary sounded
+absolute is its own cost on a page that sends a strict policy.
 
 Two entries are conditional on how the build is configured rather than on anything you
 control: analytics is absent unless the deployed build carries an analytics ID, and Sentry
@@ -248,11 +269,12 @@ map library. Add it only if you see it in a violation report.
 The bundle targets **Baseline Widely Available 2026-01-01**, which is the Vite 8 default
 and is left there deliberately (the map already requires a modern browser):
 
-| Browser       | Minimum |
-| ------------- | ------- |
-| Chrome / Edge | 111     |
-| Firefox       | 114     |
-| Safari        | 16.4    |
+| Browser        | Minimum |
+| -------------- | ------- |
+| Chrome / Edge  | 111     |
+| Firefox        | 114     |
+| Safari (macOS) | 16.4    |
+| Safari (iOS)   | 16.4    |
 
 Older browsers are not transpiled for and will fail on modern syntax rather than
 degrading. There is no polyfill build.
@@ -265,10 +287,17 @@ is no shadow DOM — but every selector in it is confined to the widget's own su
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a
 `.dark` theme class and your own Swiper or Mapbox instances are all left alone.
 
-Two honest exceptions, both transient and neither one styling your content: opening a
-modal panel inside the widget sets `overflow: hidden` on your `<body>` while it is open
-(standard scroll-lock, reverted on close), and the widget's own Mapbox and Swiper
-libraries register a couple of document-global `@font-face` names.
+Two honest exceptions, neither one styling your content:
+
+- Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while
+  it is open — standard scroll-lock, reverted on close.
+- **`@font-face` is the one rule that cannot be scoped**, because it carries no selector.
+  The widget registers three of them (one per character-set subset) for its self-hosted
+  typeface, and they are document-global by nature. They are declared under the family
+  name **`Sahaj Raleway`, deliberately not `Raleway`** — so if your page self-hosts
+  Raleway itself, the widget's faces cannot override yours. That is the whole reason for
+  the odd name. These three are the only `@font-face` rules the widget contributes;
+  Mapbox and Swiper register none.
 
 **The reverse direction is not guaranteed.** Aggressive global CSS on your page — a
 blanket `button { … }` rule, say — can still reach _into_ the widget. A hard boundary
@@ -340,9 +369,9 @@ Three third-party flows leave the browser, and each has an attribute that turns 
 - **`*.sentry.io`** — crash reports, sent only when the widget has already broken and only
   on a build with a DSN. Your page reaches it **as origin and path only, never its query
   string or fragment**, which on your site can carry a reset token or an OAuth
-  `#access_token`. No global error handler is installed, so your own scripts' exceptions
-  are never captured; no breadcrumbs, no session replay. `error-reporting="false"` stops
-  it entirely.
+  `#access_token`. It also carries the visitor's **`navigator.userAgent`**. No global error
+  handler is installed, so your own scripts' exceptions are never captured; no breadcrumbs,
+  no session replay. `error-reporting="false"` stops it entirely.
 
 **`map="false"` removes the Mapbox flows too** — tiles, the geocoder (which sends the
 visitor's typed query and the map centre to Mapbox), and the map-load telemetry — along
@@ -373,25 +402,25 @@ Two consequences:
 
 ## Troubleshooting
 
-| Symptom                                                                 | Likely cause                                                                                                                                                          |
-| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing renders; a 404 for the script**                               | The filename is `embed.js`. `sahaj-atlas.js` and other spellings do not exist.                                                                                        |
-| **"Not set up correctly" / configuration error**                        | The attribute is `api-key`, not `apikey` or `apiKey` — a misspelled attribute is never read. Otherwise the key itself is wrong, revoked, or not yet issued.           |
-| **Nothing renders, no console error, script loaded fine**               | `map="false"` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                 |
-| **Nothing renders and the console says the element is already defined** | The embed script is on the page twice.                                                                                                                                |
-| **A second widget on the page is blank**                                | Only one `<sahaj-atlas>` runs per page, by design; the console says so.                                                                                               |
-| **The widget renders completely unstyled**                              | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                 |
-| **Every label reads like `events.title`**                               | The locale JSON is blocked — add `https://sahajatlas.com` to `connect-src`. It is a different origin from the script even when you load the script from `pages.dev`.  |
-| **Widget loads and styles, but shows an error instead of any events**   | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                              |
-| **The map area is blank or grey**                                       | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                           |
-| **The map renders but has no pins**                                     | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                              |
-| **Country flags are missing, everything else fine**                     | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                             |
-| **The report form shows a `mailto:` link instead of a submit button**   | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                            |
-| **The widget's route never appears in the address bar**                 | The page loaded with its own `#anchor`, so the widget is routing in memory and deliberately not writing to the URL. Free the fragment if the page should be linkable. |
-| **Sharing offers no link**                                              | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                 |
-| **The widget covers the rest of the page**                              | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map="false"` for an in-page embed.                                                      |
-| **The widget looks wrong on your site only**                            | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                |
-| **It broke after working yesterday**                                    | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `embed.js` at your edge requesting chunk names that no longer exist.     |
+| Symptom                                                               | Likely cause                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nothing renders; a 404 for the script**                             | The filename is `embed.js`. `sahaj-atlas.js` and other spellings do not exist.                                                                                                                                                                                                                                  |
+| **"Not set up correctly" / configuration error**                      | The attribute is `api-key`, not `apikey` or `apiKey` — a misspelled attribute is never read. Otherwise the key itself is wrong, revoked, or not yet issued.                                                                                                                                                     |
+| **Nothing renders, no console error, script loaded fine**             | `map="false"` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                                                                                                           |
+| **The console says `<sahaj-atlas>` is already defined**               | The embed script is on the page twice, under **two different URLs** — identical `<script src>` tags are deduped by the module map, so this fires on the `sahajatlas.com` vs `pages.dev` mismatch. The widget renders normally; the second copy is a no-op. Worth tidying, but it is not why anything is broken. |
+| **A second widget on the page is blank**                              | Only one `<sahaj-atlas>` runs per page, by design; the console says so.                                                                                                                                                                                                                                         |
+| **The widget renders completely unstyled**                            | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                                                                                                                                                           |
+| **Every label reads like `events.title`**                             | The locale JSON is blocked — add `https://sahajatlas.com` to `connect-src`. It is a different origin from the script even when you load the script from `pages.dev`.                                                                                                                                            |
+| **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                                                                                                                        |
+| **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                                                                                                                     |
+| **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                                                                                                                        |
+| **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                                                                                                                       |
+| **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                                                                                                                                      |
+| **The widget's route never appears in the address bar**               | The page loaded with its own `#anchor`, so the widget is routing in memory and deliberately not writing to the URL. Free the fragment if the page should be linkable.                                                                                                                                           |
+| **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                           |
+| **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map="false"` for an in-page embed.                                                                                                                                                                                                |
+| **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                                                                                                                                                          |
+| **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                               |
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings
 control, and offered on most error screens) reaches the maintainers with the failure
