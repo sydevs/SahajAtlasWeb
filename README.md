@@ -12,6 +12,39 @@ Mapbox experience with a country → region → area → venue → event hierarc
 The same build also runs standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx`, demoed in `demo.html`.
 
+### Sizing: where the widget goes on your page
+
+**There are two modes, and they want opposite things from your layout.** Picking the wrong
+one is the most common integration mistake, so the widget now warns in the console when it
+spots it.
+
+| | slot it needs | how it sizes |
+| --- | --- | --- |
+| **map mode** (default) | the **whole page** | Ignores your element's size. The map canvas and the panels over it are fixed to the viewport, so the widget covers the window whatever box you give `<sahaj-atlas>`. |
+| **`map="false"`** | **any box you like** | Fills the element. You size it (`style="display:block;height:640px"`, a grid cell, a sidebar); an unsized custom element collapses to zero height. |
+
+So a map-mode embed belongs on a page of its own, or in a full-viewport section:
+
+```html
+<sahaj-atlas api-key="…"></sahaj-atlas>
+```
+
+and anything that has to live *inside* your layout — a sidebar, a column, a tab panel, a
+modal of yours — wants `map="false"`:
+
+```html
+<div style="width: 320px">
+  <sahaj-atlas api-key="…" map="false" style="display:block;height:640px"></sahaj-atlas>
+</div>
+```
+
+**In `map="false"` the widget adapts to your element, not to the browser window.** A 320px
+column on a large desktop screen gets the narrow layout — a bottom sheet with a drag handle
+and swipe-to-dismiss — because the widget measures its own box rather than the viewport.
+Resize the element and it follows. (Touch affordances are the exception and follow the
+*device*: a phone number is a `tel:` link on a touchscreen and a copyable number everywhere
+else, however narrow the column.)
+
 ### Content-Security-Policy for embedding hosts
 
 The widget's **Report an issue** form is protected by a
