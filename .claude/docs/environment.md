@@ -18,6 +18,9 @@ secret that ends up in the bundle.
 | `VITE_HOST`                 | `.env`       | Origin used to load `public/locales/<lng>/<ns>.json` over HTTP |
 | `VITE_TURNSTILE_SITE_KEY`   | `.env`       | Cloudflare Turnstile **site** key for the report-issue form — public by design (the secret half lives in SahajCloud), so it's committed. `.env` holds Cloudflare's always-passes test key `1x00000000000000000000AA` for dev/Ladle/CI; production overrides it in the Cloudflare Pages environment. Unset ⇒ the form degrades to the `mailto:` fallback. **Since #103 this key is load-bearing, not decorative**: the form now delivers a real email through SahajCloud's captcha-gated endpoint, so the test key in production means the captcha in front of a mail sender is a no-op — and a site key that doesn't pair with SahajCloud's `TURNSTILE_SECRET_KEY` makes every report 403 as `captcha_failed`, visible only as a sentence in the viewer's face |
 | `VITE_SENTRY_DSN`           | Cloudflare   | Sentry ingest DSN for automatic error reporting (issue #108). Must be the **modern public-key form** `https://<key>@<host>/<project>` — the legacy `https://<key>:<secret>@…` spelling would put a real secret in the public bundle. Public by design otherwise (a DSN is write-only), but deliberately NOT committed to `.env`: one in the repo means every fork, preview and developer's `pnpm dev` posts into the production project. Set it per-environment in the Cloudflare Pages dashboard, and add that DSN's host to the integrator CSP guidance in `README.md` — note the ingest host is regional (`o…​.ingest.us.sentry.io`) for orgs created since 2024. **Unset ⇒ `reportInternalError` logs to the console and nothing else; the SDK chunk is never fetched.** Hosts can decline it per-embed with `error-reporting="false"` |
+| `SENTRY_AUTH_TOKEN`         | Cloudflare   | **Build-time only, and a real secret** (issue #130). Deliberately not `VITE_`-prefixed, so it cannot reach the bundle; `dist/` is grepped for its value as part of the release checks below. Its presence is what switches source-map upload on: set ⇒ `build.sourcemap: 'hidden'`, `@sentry/vite-plugin` uploads the maps and deletes them; unset ⇒ **no maps are emitted at all** and the build is byte-identical to one from before #130. Scope it to source-map upload only — the plugin is configured never to create, finalize or set commits on a release |
+| `SENTRY_ORG`                | Cloudflare   | Sentry organisation slug. Build-time only. Required **whenever `SENTRY_AUTH_TOKEN` is set** — a half-configured build fails loudly rather than deploying green with every frame still minified |
+| `SENTRY_PROJECT`            | Cloudflare   | Sentry project slug. Build-time only; same requirement as `SENTRY_ORG` |
 | `VITE_MAPBOX_ACCESSTOKEN`   | `.env.local` | Mapbox GL **public** token (`pk.…`) — safe to ship in the bundle |
 | `VITE_SAHAJCLOUD_API_KEY`   | `.env.local` | Published `sahaj-atlas-client` API key the widget uses in dev (passed as the `apiKey` prop; sent as `Authorization: clients API-Key …`) |
 | `VITE_FATHOM_ID`            | `.env.local` | Fathom analytics site id (optional; analytics disabled if unset / on localhost) |
@@ -30,9 +33,53 @@ secret that ends up in the bundle.
   client code or committed. The `security-scan` hook blocks staging files that
   contain `sk.`/secret patterns.
 
+- `SENTRY_AUTH_TOKEN` — see the table above. Build-time only and never
+  `VITE_`-prefixed. Note it is the **only** secret in this repo that is read by a
+  build rather than by a script a developer runs by hand.
+
 (`ACCENT_API_KEY` used to live here for the Accent translation-sync workflows. Those
 were removed in #99 — see CLAUDE.md → Deployment — so the secret is no longer read by
 anything in this repo and can be revoked.)
+
+## Runbook — provisioning Sentry source-map upload (issue #130)
+
+**Merging the code does not turn this on.** The repo half emits, uploads and deletes
+the maps; everything below is a Sentry/Cloudflare dashboard action, and until it is
+done the build behaves exactly as it did before #130 — no maps, no upload, minified
+frames. Nothing here can be done from this repository: Pages build configuration and
+environment variables live in the Cloudflare dashboard (CLAUDE.md → Deployment).
+
+1. **Provision the Sentry project** (if `VITE_SENTRY_DSN` is not already set — it is
+   the precondition for the whole loop, since maps with no events to symbolicate are
+   inert). While there, apply the two settings #108 flagged and #130 does not change:
+   enable **"Prevent Storing of IP Addresses"** and set a short retention.
+2. **Create an auth token scoped to source-map upload only.** An organisation token
+   (`sntrys_…`) is the modern form. It does **not** need release-write scope: the
+   plugin is configured with `create`/`finalize`/`setCommits` all `false`, so it never
+   calls those endpoints.
+3. **Add all three variables to the `sahajatlas` Pages project** —
+   `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`. All three or none: a build
+   with the token and without the other two **fails on purpose**, rather than
+   deploying green with nothing uploaded.
+   - **Production: yes.** That is the build whose frames anyone will ever read.
+   - **Preview: recommended but optional.** Preview deploys are what the smoke lane
+     exercises, and it is where you would verify symbolication end-to-end before
+     trusting it in production. The cost is one artifact bundle per preview build.
+4. **`sahajatlas-design` (the Ladle playground): do NOT add them.** It builds through
+   `.ladle/vite.config.ts`, which does not load the root config, so the plugin cannot
+   run there. Verified: with all three set, `pnpm ladle:build` emits no maps, uploads
+   nothing and its output does not contain the token.
+
+**Verifying it once the variables are set** — the one criterion the repo cannot check
+for itself, because it needs a real DSN *and* a real token:
+
+- Confirm the Pages build log shows the upload step and no `✗ sentry:` line.
+- Confirm the deployed output still carries no maps: the build fails on its own
+  (`pnpm assert:maps`) if any survived, so a successful deploy is already that proof.
+- Force a real error on the deployed preview and check the Sentry issue resolves to an
+  original file and line rather than a hashed chunk. An upload failure is deliberately
+  **non-fatal** — the deploy proceeds without maps — so a green deploy alone does not
+  prove symbolication; the build log or the issue itself does.
 
 ## In the embedded widget
 

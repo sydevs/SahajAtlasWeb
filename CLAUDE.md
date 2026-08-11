@@ -46,7 +46,7 @@ embeddable entry is `src/Widget.tsx` (demo in `demo.html`).
 
 ```bash
 pnpm dev          # Vite dev server (http://localhost:5173)
-pnpm build        # tsc (typecheck) + vite build → dist/
+pnpm build        # tsc (typecheck) + vite build → dist/ + assert:css + assert:maps
 pnpm preview      # serve the production build locally
 pnpm typecheck    # tsc --noEmit (app + tests/scripts via tsconfig.test.json)
 pnpm lint         # eslint . --max-warnings 0 (CI gate — fails on any warning)
@@ -177,6 +177,10 @@ matched by `*.local`). Full list in `.claude/docs/environment.md`. Key vars:
   form (public by design; `.env` ships the always-passes test key, and production must
   override it — the form delivers real email since #103, so this key is what stands in
   front of it)
+- `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` — **build-time only, no `VITE_`
+  prefix** (#130). Their presence is what switches source-map upload on; unset, the
+  build emits no maps at all. Dashboard-only, on the `sahajatlas` project — see the
+  runbook in `.claude/docs/environment.md`
 
 **Never** commit real secrets. `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) and other
 non-`VITE_` secrets must never appear in client code — the bundle is public.
@@ -213,6 +217,26 @@ well as the app. Wanted for the indexing policy (a component playground is no mo
 a search surface than the app is); worth remembering before editing one "for the
 app". Ladle generates its own `index.html`, so the `<meta robots>` in ours is the
 one signal the playground does *not* get — the header covers it there.
+
+**Source maps are uploaded, then deleted — never deployed** (#130). The `/assets/*`
+rule above is exactly why: CORS-open plus a one-year immutable cache means a shipped
+`.map` publishes this repo's source irrevocably, from a page we don't own. So
+`build.sourcemap` and `@sentry/vite-plugin` are BOTH gated on `SENTRY_AUTH_TOKEN` — a
+build that cannot upload does not write maps at all, which is every local build, CI and
+every fork — and `pnpm build` ends in **`pnpm assert:maps`**
+(`scripts/assert-no-sourcemaps.mjs`), the guarantee rather than the intention, in the
+same spirit as `assert:css`. It fails on a surviving `.map` **and** on any
+`sourceMappingURL`, because `sourcemap: 'inline'` would embed every original source in
+the shipped JS while emitting no `.map` file for the first check to find.
+
+Two consequences worth carrying: an upload failure is deliberately **non-fatal** (this
+widget deploys evergreen; a bug fix must not be blocked by a telemetry outage), so a
+green deploy does not by itself prove the maps got there — while `assert:maps` still
+fails the build if the maps are what got left behind. And because the plugin only runs
+on a credentialed build, **`pnpm size` in CI measures a payload ~2.1 KiB smaller than
+production ships** — that is the debug-ID snippet the plugin injects per chunk, and it
+is the one respect in which the gate does not measure the deployed artifact. The
+variables are dashboard-only; the runbook is in `.claude/docs/environment.md`.
 
 CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and asserts all of the above against the preview.
