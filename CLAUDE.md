@@ -229,14 +229,29 @@ same spirit as `assert:css`. It fails on a surviving `.map` **and** on any
 `sourceMappingURL`, because `sourcemap: 'inline'` would embed every original source in
 the shipped JS while emitting no `.map` file for the first check to find.
 
-Two consequences worth carrying: an upload failure is deliberately **non-fatal** (this
-widget deploys evergreen; a bug fix must not be blocked by a telemetry outage), so a
-green deploy does not by itself prove the maps got there — while `assert:maps` still
-fails the build if the maps are what got left behind. And because the plugin only runs
-on a credentialed build, **`pnpm size` in CI measures a payload ~2.1 KiB smaller than
-production ships** — that is the debug-ID snippet the plugin injects per chunk, and it
-is the one respect in which the gate does not measure the deployed artifact. The
-variables are dashboard-only; the runbook is in `.claude/docs/environment.md`.
+Three consequences worth carrying.
+
+**An upload failure is deliberately non-fatal** (this widget deploys evergreen; a bug fix
+must not be blocked by a telemetry outage), so a green deploy does not by itself prove the
+maps got there — while `assert:maps` still fails the build if the maps are what got left
+behind. What passing an `errorHandler` genuinely disarms is the plugin's rethrow on a
+failed *deletion*; a failed *upload* leaves nothing behind either way, because deletion
+runs in `writeBundle`'s `finally`. That deletion path is the one route by which a map could
+reach the output, and the gate is what closes it.
+
+**`pnpm size` in CI measures ~2.1 KiB less than production ships**, because the plugin
+only runs on a credentialed build and CI has no token. That is the debug-ID snippet
+injected per chunk. **It interacts badly with the ratchet rule above**: `BUDGET_KIB` is
+supposed to be lowered whenever the payload shrinks, but lowering it to within ~2.1 KiB of
+the CI number would make the *production* build fail a gate CI cannot reproduce. Leave
+that much headroom deliberately.
+
+**A credentialed build is exercised in CI without a network** — the "Source-map upload
+chain (offline dry run)" step in `ci.yml` builds with a dummy token against a closed port,
+so emission, the non-fatal handler, deletion and the gate are all proven on a runner
+rather than first on a production deploy.
+
+The variables are dashboard-only; the runbook is in `.claude/docs/environment.md`.
 
 CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and asserts all of the above against the preview.

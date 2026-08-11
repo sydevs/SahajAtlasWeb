@@ -18,7 +18,7 @@ secret that ends up in the bundle.
 | `VITE_HOST`                 | `.env`       | Origin used to load `public/locales/<lng>/<ns>.json` over HTTP |
 | `VITE_TURNSTILE_SITE_KEY`   | `.env`       | Cloudflare Turnstile **site** key for the report-issue form — public by design (the secret half lives in SahajCloud), so it's committed. `.env` holds Cloudflare's always-passes test key `1x00000000000000000000AA` for dev/Ladle/CI; production overrides it in the Cloudflare Pages environment. Unset ⇒ the form degrades to the `mailto:` fallback. **Since #103 this key is load-bearing, not decorative**: the form now delivers a real email through SahajCloud's captcha-gated endpoint, so the test key in production means the captcha in front of a mail sender is a no-op — and a site key that doesn't pair with SahajCloud's `TURNSTILE_SECRET_KEY` makes every report 403 as `captcha_failed`, visible only as a sentence in the viewer's face |
 | `VITE_SENTRY_DSN`           | Cloudflare   | Sentry ingest DSN for automatic error reporting (issue #108). Must be the **modern public-key form** `https://<key>@<host>/<project>` — the legacy `https://<key>:<secret>@…` spelling would put a real secret in the public bundle. Public by design otherwise (a DSN is write-only), but deliberately NOT committed to `.env`: one in the repo means every fork, preview and developer's `pnpm dev` posts into the production project. Set it per-environment in the Cloudflare Pages dashboard, and add that DSN's host to the integrator CSP guidance in `README.md` — note the ingest host is regional (`o…​.ingest.us.sentry.io`) for orgs created since 2024. **Unset ⇒ `reportInternalError` logs to the console and nothing else; the SDK chunk is never fetched.** Hosts can decline it per-embed with `error-reporting="false"` |
-| `SENTRY_AUTH_TOKEN`         | Cloudflare   | **Build-time only, and a real secret** (issue #130). Deliberately not `VITE_`-prefixed, so it cannot reach the bundle; `dist/` is grepped for its value as part of the release checks below. Its presence is what switches source-map upload on: set ⇒ `build.sourcemap: 'hidden'`, `@sentry/vite-plugin` uploads the maps and deletes them; unset ⇒ **no maps are emitted at all** and the build is byte-identical to one from before #130. Scope it to source-map upload only — the plugin is configured never to create, finalize or set commits on a release |
+| `SENTRY_AUTH_TOKEN`         | Cloudflare   | **Build-time only, and a real secret** (issue #130). Deliberately not `VITE_`-prefixed, so Vite cannot inline it; **`pnpm assert:maps` additionally greps every emitted file for its value** and fails the build if it appears, so that is a gate rather than a habit. Its presence is what switches source-map upload on: set ⇒ `build.sourcemap: 'hidden'`, `@sentry/vite-plugin` uploads the maps and deletes them; unset ⇒ **no maps are emitted at all** and the build is byte-identical to one from before #130. See step 2 of the runbook for the scopes it needs — the plugin never creates, finalizes or sets commits on a release, but the upload call is still release-scoped |
 | `SENTRY_ORG`                | Cloudflare   | Sentry organisation slug. Build-time only. Required **whenever `SENTRY_AUTH_TOKEN` is set** — a half-configured build fails loudly rather than deploying green with every frame still minified |
 | `SENTRY_PROJECT`            | Cloudflare   | Sentry project slug. Build-time only; same requirement as `SENTRY_ORG` |
 | `VITE_MAPBOX_ACCESSTOKEN`   | `.env.local` | Mapbox GL **public** token (`pk.…`) — safe to ship in the bundle |
@@ -53,10 +53,19 @@ environment variables live in the Cloudflare dashboard (CLAUDE.md → Deployment
    the precondition for the whole loop, since maps with no events to symbolicate are
    inert). While there, apply the two settings #108 flagged and #130 does not change:
    enable **"Prevent Storing of IP Addresses"** and set a short retention.
-2. **Create an auth token scoped to source-map upload only.** An organisation token
-   (`sntrys_…`) is the modern form. It does **not** need release-write scope: the
-   plugin is configured with `create`/`finalize`/`setCommits` all `false`, so it never
-   calls those endpoints.
+2. **Create an auth token for source-map upload.** An organisation token (`sntrys_…`) is
+   the modern form. Grant the scopes Sentry documents for source-map upload —
+   **`project:releases` and `org:read`** — and confirm them against Sentry's current docs
+   when provisioning.
+   **Do not read the plugin's `create`/`finalize`/`setCommits: false` as meaning no
+   release scope is needed.** Those switch off the extra `releases new` / `finalize` /
+   `set-commits` calls, which is why the token needs no more than the above. But the
+   upload command itself is still release-scoped — the observed invocation is
+   `sourcemaps upload -p <project> --release <sha> …`, because the plugin infers a
+   release name from git even with all four release actions off. An under-scoped token
+   403s, `errorHandler` logs it, the deploy goes green, and production ships minified
+   forever — the exact state #130 exists to end, reached through its own runbook. So
+   **check the build log after the first credentialed deploy**; do not assume.
 3. **Add all three variables to the `sahajatlas` Pages project** —
    `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`. All three or none: a build
    with the token and without the other two **fails on purpose**, rather than
