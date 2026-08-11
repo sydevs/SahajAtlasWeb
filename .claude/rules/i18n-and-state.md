@@ -235,8 +235,9 @@ separate — an inner fallback must never re-throw to escalate.
   the nearest one, and without it "Try again" re-throws the cached error.
 - **One table covers the empty states too, not just the failures.** `FallbackKind` spans
   the five classified failures *and* the ways a screen ends up with nothing to act on
-  (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`), because a barren
-  region and a URL that never existed leave a viewer in exactly the same position. They
+  (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`, `share-unavailable`),
+  because a barren region and a URL that never existed leave a viewer in exactly the same
+  position. They
   render the same `FallbackPanel`, so a policy row — not a component — is what differs.
   `not-found` and `empty` are asserted equal but for their sentence; if they ever diverge,
   one has quietly become the worse dead end.
@@ -249,7 +250,11 @@ separate — an inner fallback must never re-throw to escalate.
   status→copy table (full / ended / closed / hidden) and tests it, so copying those four
   into `ERROR_POLICY` would be the hand-agreement the table exists to remove. Everything
   the table itself defines still gets its copy from the table, where the en-parity test
-  can see it.
+  can see it. **It is the ONLY row entitled to `message`** — `share-unavailable` (issue
+  #115) wanted a sentence of its own and got a row, not an override, which is the rule
+  `FallbackValues` states: a caller may vary the values, never the key. That row is
+  `unavailable` minus `onward`, because answering "there's no link to share" with "see
+  events nearby" walks the viewer away from the class they were trying to pass on.
 - **A dead link is not a malfunction.** `color` is the register: `danger` (red,
   `role="alert"`) for a genuine failure, `neutral` (`role="status"`) for a dead end or an
   empty list. Red chrome on a not-found means the two have drifted.

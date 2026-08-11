@@ -81,8 +81,13 @@ export type ViewHarnessProps = {
   /** Populate the isolated query client with the case's mock data. Omit for a case that
    *  renders no view (an error case, which throws before any query is read). */
   seed?: (client: QueryClient) => void
-  /** Widget mode; defaults to the map-less embed (`standalone`, no map). */
-  mode?: WidgetMode
+  /**
+   * Widget mode; defaults to the map-less embed (`standalone`, no map, linkable).
+   * **Partial** so a story overrides only the axis it is about — spelling the whole shape
+   * to vary one field silently pins the others, and `standalone` in particular changes
+   * what `EventSummary` renders.
+   */
+  mode?: Partial<WidgetMode>
   /**
    * The pathname to render at. Needed by anything that reads the URL rather than props —
    * above all the not-found recovery ladder, which walks the ancestry to find somewhere
@@ -248,7 +253,9 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
 
   return (
     <QueryClientProvider client={client}>
-      <WidgetModeContext.Provider value={mode ?? { standalone: true, hasMap: false }}>
+      <WidgetModeContext.Provider
+        value={{ standalone: true, hasMap: false, linkable: true, ...mode }}
+      >
         <NoopMapControllerProvider>
           {/* A full-view drawer panel: fills the story canvas (the width-xsmall frame,
               which the global decorator renders un-padded for views) as a flex column so

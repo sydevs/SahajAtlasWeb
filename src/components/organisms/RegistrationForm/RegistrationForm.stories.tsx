@@ -116,6 +116,28 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
+    <StorySection
+      description="The same confirmation for an event with no link to give out: no canonical page, on a host page whose anchor the widget declined to take, so it routes off-URL and the address bar names the host's article (issue #115). `eventUrl` is absent, so the invite-a-friend block drops entirely rather than offering a share of somebody else's page — and the calendar entry carries no URL line. The add-to-calendar block still renders: the session is what was registered for, with or without a link."
+      title="Confirmation · nothing to link to"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <RegistrationForm
+          initialSubmitted
+          calendar={{
+            id: 6,
+            title: 'Evening Meditation',
+            schedule: weeklySchedule,
+            location: '5 Market St, Prague',
+          }}
+          eventId={6}
+          eventTitle="Evening Meditation"
+          isOnline={false}
+          questions={[]}
+          upcomingDates={upcomingDates}
+        />
+      </div>
+    </StorySection>
+
     {/* The external-registration CTA is EventRegisterBar's, not the form's — see
         the "External" section of the Event Details story, which renders the real
         component rather than a stand-in button. */}

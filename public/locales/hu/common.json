@@ -135,7 +135,8 @@
     "near_city": "Események %{city} közelében",
     "browse_countries": "Összes ország megtekintése",
     "search_label": "Vagy keress egy helyet",
-    "unavailable": "Ehhez a programhoz jelenleg nem lehet csatlakozni."
+    "unavailable": "Ehhez a programhoz jelenleg nem lehet csatlakozni.",
+    "share_unavailable": "Ehhez a meditációhoz még nincs megosztható link."
   },
   "country_site": {
     "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",

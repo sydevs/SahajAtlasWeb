@@ -126,6 +126,22 @@ in host pages, **and** runs standalone in dev. Because of that:
   Build links with `react-router` `<Link>` / `useNavigate`, never hardcode `#!` — and note
   the hash has **two** spellings, `#!/x` (what the widget writes at boot) and `#/!/x` (what
   react-router writes thereafter, having normalised the basename to `/!`).
+- **Ask, don't infer: `linkable` on `WidgetMode`** (`src/config/mode.ts`, issue #115) is
+  how a component finds out whether the route on screen is in the URL — true standalone
+  and under hash routing, false in memory mode. `Widget.tsx` derives it from the single
+  `mountRoute` decision and passes it down; **never re-read `window.location` to answer
+  the same question**, because a second reading is how the two drift.
+  **Never put `window.location.href` in front of a viewer.** For an event, ask
+  `useShareUrl(event.webUrl)` (over the pure `shareableUrl` in `src/lib/url.ts`): the
+  canonical page wins in every mode, the address bar stands in only where `linkable`, and
+  `undefined` means there is honestly no link — the caller then renders no share block
+  rather than the host page's address, which names their article and not the meditation.
+  `ShareContent.url` stays required for that reason; `RegistrationForm.eventUrl` is
+  optional and drops its invite block.
+  One consequence of memory mode is still **unaddressed**: `<Link>` hrefs. They resolve
+  against the host origin, so a middle-click opens a host URL that probably 404s. Fixing
+  it means overriding `createHref` through react-router internals; `linkable` is the flag
+  that fix would consult.
 - **One `<sahaj-atlas>` per page.** A second element is refused in `connectedCallback` and
   never mounts, because the API key (`config/api/auth`) and BrandTheme's theme root are
   page-global singletons a second instance would silently share. A second copy of the embed
