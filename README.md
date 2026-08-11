@@ -5,8 +5,8 @@ component. Host pages drop in `<sahaj-atlas>` with an API key and get a full
 Mapbox experience with a country → region → area → venue → event hierarchy.
 
 ```html
-<script type="module" src="https://sahajatlas.pages.dev/sahaj-atlas.js"></script>
-<sahaj-atlas apikey="…"></sahaj-atlas>
+<script type="module" src="https://sahajatlas.pages.dev/embed.js"></script>
+<sahaj-atlas api-key="…"></sahaj-atlas>
 ```
 
 The same build also runs standalone in dev (`index.html` → `src/main.tsx`); the
