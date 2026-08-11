@@ -1,3 +1,5 @@
+import type { Event } from '@sentry/browser'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { atlasError } from './report'
@@ -287,7 +289,18 @@ describe('what is allowed to travel with an event', () => {
       hint: Record<string, unknown>,
     ) => Record<string, unknown>
 
-    const debugMeta = {
+    // **Typed against the SDK's own `Event`, which is the half that makes this a real
+    // assertion.** A delete-list scrub returns any key you hand it, so a fixture invented
+    // here would pass even if `debug_meta` were misspelled or the SDK had renamed it — the
+    // spec would then be pinning a field nothing produces. Binding the fixture to
+    // `Event['debug_meta']` means a rename or a shape change fails `pnpm typecheck`.
+    //
+    // Driving the real `applyDebugIds`/`applyDebugMeta` would be stronger still, and is
+    // deliberately not done: they are not public API (`@sentry/core`'s `exports` map
+    // offers only `.`, `./server` and `./browser`), so reaching them means a deep import
+    // into `build/esm/utils/`, which is exactly the library-internals coupling
+    // `.claude/rules/tests.md` rules out. This is the strongest form available at the seam.
+    const debugMeta: NonNullable<Event['debug_meta']> = {
       images: [
         {
           type: 'sourcemap',
