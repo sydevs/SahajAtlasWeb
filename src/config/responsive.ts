@@ -107,11 +107,16 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
       return
     }
 
-    // Border-box on both paths: `getBoundingClientRect` measures the border box, so the
-    // observer reads `borderBoxSize` rather than the (content-box) `contentRect` it would
-    // be more idiomatic to reach for. Mixing the two would put the crossing at two
-    // different widths on the seed and on a resize.
-    const seed = element.getBoundingClientRect().width >= WIDE_MIN_PX
+    // `offsetWidth`, NOT `getBoundingClientRect().width`, and the difference is not
+    // pedantry: the rect is the TRANSFORMED box while the observer's `borderBoxSize` is the
+    // untransformed layout box. Under a host that scales an ancestor — page builders and
+    // "responsive preview" panes do — the two disagree, so seeding from the rect would read
+    // one width at mount and a different one on the first unrelated resize, flipping the
+    // whole interaction model for no reason the viewer can see. The layout box is also the
+    // right answer on its own merits: a widget scaled to half size still lays itself out in
+    // its own CSS pixels. `offsetWidth` rounds to an integer, which at this crossing is a
+    // sub-pixel difference.
+    const seed = element.offsetWidth >= WIDE_MIN_PX
 
     setContainerWide(seed)
     // Seeded past the damper too, so the first paint is already correct.
@@ -121,6 +126,10 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
       const entry = entries[0]
 
       if (!entry) return
+      // `borderBoxSize` to match the seed's `offsetWidth`; `contentRect` is the content box
+      // and would move the crossing by whatever padding the element carries. Reading
+      // `borderBoxSize` is spec-correct even though `observe()` uses the default content-box
+      // option — that option chooses when a notification FIRES, not which sizes it reports.
       const width = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width
 
       setContainerWide(width >= WIDE_MIN_PX)

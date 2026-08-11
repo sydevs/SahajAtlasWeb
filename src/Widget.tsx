@@ -204,14 +204,26 @@ function Atlas({
 
     if (!element) return
 
-    const warning = mapSlotWarning({
-      slotWidth: element.parentElement?.getBoundingClientRect().width ?? 0,
-      elementHeight: element.getBoundingClientRect().height,
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-    })
+    // Guarded for the same reason `claimFragment` above is, and it is the sharper case of
+    // the two: these are four reads of a DOM we do not own, made purely to produce a
+    // console line. A host is free to have patched `getBoundingClientRect` — consent
+    // wrappers, anti-fingerprinting extensions and page builders all do — and an
+    // unguarded throw here would reach `RootBoundary` AFTER the tree has mounted, tearing
+    // the whole widget down and replacing it with the static "could not be loaded" rung.
+    // A diagnostic must never break the thing it is diagnosing.
+    try {
+      const warning = mapSlotWarning({
+        slotWidth: element.parentElement?.getBoundingClientRect().width ?? 0,
+        elementHeight: element.getBoundingClientRect().height,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      })
 
-    if (warning) reportIntegrationWarning(SLOT_WARNING_MESSAGE[warning])
+      if (warning) reportIntegrationWarning(SLOT_WARNING_MESSAGE[warning])
+    } catch {
+      // Nothing to do and nothing worth reporting: the host's own error would be the only
+      // payload, and a thrown message is the one field that reaches Sentry unfiltered.
+    }
   }, [hasMap])
 
   const atlas = (

@@ -14,7 +14,7 @@ import {
 } from './Drawer'
 
 import { Button } from '@/components/atoms/Button'
-import { useIsWide, useIsWideViewport } from '@/config/responsive'
+import { WIDE_MIN_PX, useIsWide, useIsWideViewport } from '@/config/responsive'
 
 export default {
   title: 'Atoms',
@@ -179,7 +179,7 @@ function MeasuredPanel({
 export const ContainerWidth: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="Same viewport, two models. The left box is 320px — a WordPress sidebar embed — and gets the sheet; the right box is past the 768px crossing and gets the panel. Drag the right box's corner to cross it live."
+      description={`Same viewport, two models. The left box is 320px — a WordPress sidebar embed — and gets the sheet; the right box is past the ${WIDE_MIN_PX}px crossing and gets the panel. Drag the right box's corner to cross it live.`}
       title="Container-derived direction"
     >
       <div className="flex flex-wrap items-start gap-6">

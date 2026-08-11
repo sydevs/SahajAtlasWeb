@@ -74,9 +74,14 @@ describe('mapSlotWarning — reports', () => {
 })
 
 describe('the thresholds', () => {
-  // Pinned as a ratchet: tightening either one is a decision to warn more strangers, and
+  // Pinned as a ratchet: LOOSENING either one is a decision to warn more strangers, and
   // should be a visible line in a diff rather than a nudged constant.
-  it('are slack enough that a normal page cannot trip them', () => {
+  //
+  // Not "slack enough that no normal page trips them" — 0.6 does fire for a centred
+  // `max-w-3xl` article column on a 1440px viewport. That is a CORRECT warning by this
+  // feature's own definition (map mode would paint over exactly that page), not a false
+  // positive; the slackness is about not warning a full-page embed that merely has margins.
+  it('cannot be loosened without saying so', () => {
     expect(NARROW_SLOT_RATIO).toBeLessThanOrEqual(0.6)
     expect(BOXED_SLOT_RATIO).toBeLessThanOrEqual(0.8)
   })

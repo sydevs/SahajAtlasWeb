@@ -22,7 +22,14 @@ import { WIDE_MIN_PX } from './responsive'
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-const read = (relative: string) => readFileSync(join(SRC, relative), 'utf8')
+// Comments are stripped before every scan below, so these assertions are about CODE rather
+// than prose. Without that, documenting the rule breaks it: the sentence "resize past the
+// 768px crossing" in a story's docblock reddened the lane as a second hardcoded crossing,
+// and a comment naming `useIsWideViewport` would have been read as a call site.
+const stripComments = (source: string) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+const read = (relative: string) => stripComments(readFileSync(join(SRC, relative), 'utf8'))
 
 const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
   .filter((relative) => /\.tsx?$/.test(relative))
@@ -99,7 +106,8 @@ describe('the container-vs-viewport decision table', () => {
     // duplication growing back somewhere the rule file cannot see it.
     //
     // Matched as a WIDTH (`768px`, `min-width: 768`) rather than as the bare number, which
-    // is a perfectly ordinary SVG path coordinate — `atoms/Icons/symbols.tsx` has one.
+    // is a perfectly ordinary SVG path coordinate — `atoms/Icons/symbols.tsx` has one — and
+    // over comment-stripped source, so prose may name the crossing freely.
     const hardcoded = SOURCE_FILES.filter(
       (relative) =>
         relative !== 'config/responsive.ts' &&
