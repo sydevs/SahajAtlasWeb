@@ -21,7 +21,7 @@ import { eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
-import { useIsDesktop } from '@/config/responsive'
+import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
 import { overlayContainer } from '@/lib/overlay'
@@ -236,7 +236,6 @@ function PeekStrip({
 export function DrawerStack() {
   const location = useLocation()
   const navigate = useNavigate()
-  const isDesktop = useIsDesktop()
   const { hasMap, standalone } = useWidgetMode()
   // `t` comes off `useLocale` rather than a second `useTranslation`: the hook already
   // holds one for the default (`common`) namespace and hands it back for exactly this
@@ -244,8 +243,15 @@ export function DrawerStack() {
   // DrawerStack re-renders on every geocoder keystroke.
   const { t, locale } = useLocale()
   const queryClient = useQueryClient()
-  const direction: Direction = isDesktop ? 'left' : 'bottom'
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
+  // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less
+  // layout root below — the box the host sized — and is null in map mode, where the widget
+  // spans the viewport and `useIsWide` falls back to it. So a 320px column embed on a
+  // desktop gets the bottom sheet, its drag handle and its swipe-dismiss, while a full-page
+  // embed behaves exactly as it did. Shared with the subtree via `WidgetWidthContext` at
+  // the foot of this component, so no descendant can disagree with the drawer it is inside.
+  const isWide = useIsWide(container)
+  const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
@@ -549,8 +555,8 @@ export function DrawerStack() {
         dismissible
         modal
         open
-        direction={isDesktop ? 'right' : 'bottom'}
-        handleOnly={isDesktop}
+        direction={isWide ? 'right' : 'bottom'}
+        handleOnly={isWide}
         onOpenChange={(o) => !o && overlayControl.dismiss()}
       >
         <DrawerContent aria-label={t('filters.title')}>
@@ -573,34 +579,36 @@ export function DrawerStack() {
   // fills the host's slot (100%).
   if (!hasMap) {
     return (
-      <DrawerControlContext.Provider value={control}>
-        <div
-          ref={setContainer}
-          className="relative w-full overflow-hidden bg-background"
-          style={{ height: standalone ? '100dvh' : '100%' }}
-        >
-          <Drawer
-            key={direction}
-            open
-            container={container}
-            direction={direction}
-            dismissible={parentPaths.length > 0}
-            // Same as the map drawer: the left panel (≥md) has no handle, so
-            // handle-only drag makes it undraggable — dismiss is the close button only.
-            handleOnly={direction === 'left'}
-            mode="filled"
-            onOpenChange={(o) => !o && control.dismiss()}
+      <WidgetWidthContext.Provider value={isWide}>
+        <DrawerControlContext.Provider value={control}>
+          <div
+            ref={setContainer}
+            className="relative w-full overflow-hidden bg-background"
+            style={{ height: standalone ? '100dvh' : '100%' }}
           >
-            {sheet}
-          </Drawer>
-          {/* Map-less the drawer fills the container and its search header owns the
+            <Drawer
+              key={direction}
+              open
+              container={container}
+              direction={direction}
+              dismissible={parentPaths.length > 0}
+              // Same as the map drawer: the left panel (≥md) has no handle, so
+              // handle-only drag makes it undraggable — dismiss is the close button only.
+              handleOnly={direction === 'left'}
+              mode="filled"
+              onOpenChange={(o) => !o && control.dismiss()}
+            >
+              {sheet}
+            </Drawer>
+            {/* Map-less the drawer fills the container and its search header owns the
               top, so a top-left cog would cover the search field. Keep it on the left
               but at the bottom, clear of the header; side="top" opens the menu upward
               from there. z-50 so it sits above the fill-the-container drawer content
               (z-40, and portaled in last) — otherwise a list row intercepts its clicks. */}
-          <SettingsMenu className="absolute bottom-3 start-3 z-50" side="top" />
-        </div>
-      </DrawerControlContext.Provider>
+            <SettingsMenu className="absolute bottom-3 start-3 z-50" side="top" />
+          </div>
+        </DrawerControlContext.Provider>
+      </WidgetWidthContext.Provider>
     )
   }
 
@@ -639,21 +647,22 @@ export function DrawerStack() {
   )
 
   return (
-    <DrawerControlContext.Provider value={control}>
-      {target &&
-        createPortal(
-          <>
-            {strips}
-            {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
+    <WidgetWidthContext.Provider value={isWide}>
+      <DrawerControlContext.Provider value={control}>
+        {target &&
+          createPortal(
+            <>
+              {strips}
+              {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
                 floating in by 4 at ≥lg) so it never overlaps the panel. Logical
                 (`start-*`) rather than `left-*`: under RTL the drawer flips to
                 the right edge, and the cog has to travel with it. On mobile
                 the sheet is at the bottom, so the top-left corner is clear. */}
-            {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
+              {/* top-3 on mobile/tablet; at ≥lg the drawer floats (lg:inset-y-4), so
                 bump the cog to top-4 to line up with the drawer's top edge. Hidden on
                 the full-width calendar — a focused view with no clean corner for the
                 floating cog; settings stay reachable from every other view. */}
-            {/* The inline-start gap clears the PEEK STRIPS, not just the drawer: the
+              {/* The inline-start gap clears the PEEK STRIPS, not just the drawer: the
                 deepest stack pushes an ancestor ~23px past the panel edge
                 (`PEEK_DESKTOP` × the decay series above), so the cog sits 2rem out
                 — 3rem at ≥lg, where the drawer itself is already inset by 1rem. That
@@ -661,30 +670,31 @@ export function DrawerStack() {
                 render under the cog.
                 Both `22rem` fallbacks below are the drawer-width pair — twin is
                 `DRAWER_W_REM` in `hooks/use-map-controller.tsx`. */}
-            {!wide && (
-              <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
-            )}
-          </>,
-          target,
-        )}
-      <Drawer
-        key={direction}
-        dismissible
-        open
-        activeSnapPoint={direction === 'bottom' ? snap : undefined}
-        direction={direction}
-        // The left panel (≥md) has no handle and no snap points, so restricting drag
-        // to the (absent) handle makes it undraggable — dismiss is the close button
-        // only. The mobile bottom sheet keeps its full-panel snap-drag.
-        handleOnly={direction === 'left'}
-        setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
-        snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
-        wide={wide}
-        onOpenChange={(o) => !o && control.dismiss()}
-      >
-        {sheet}
-      </Drawer>
-      {filterDrawer}
-    </DrawerControlContext.Provider>
+              {!wide && (
+                <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
+              )}
+            </>,
+            target,
+          )}
+        <Drawer
+          key={direction}
+          dismissible
+          open
+          activeSnapPoint={direction === 'bottom' ? snap : undefined}
+          direction={direction}
+          // The left panel (≥md) has no handle and no snap points, so restricting drag
+          // to the (absent) handle makes it undraggable — dismiss is the close button
+          // only. The mobile bottom sheet keeps its full-panel snap-drag.
+          handleOnly={direction === 'left'}
+          setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
+          snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
+          wide={wide}
+          onOpenChange={(o) => !o && control.dismiss()}
+        >
+          {sheet}
+        </Drawer>
+        {filterDrawer}
+      </DrawerControlContext.Provider>
+    </WidgetWidthContext.Provider>
   )
 }

@@ -14,7 +14,7 @@ import {
 } from './Drawer'
 
 import { Button } from '@/components/atoms/Button'
-import { useBreakpoint } from '@/config/responsive'
+import { useIsWideViewport } from '@/config/responsive'
 
 export default {
   title: 'Atoms',
@@ -30,8 +30,10 @@ const SNAP_POINTS = ['96px', '300px', 0.97]
  * drawers as static peek cards behind it (rather than real nested drawers).
  */
 export const Default: Story = () => {
-  const { isMd } = useBreakpoint('md')
-  const direction = isMd ? 'left' : 'bottom'
+  // The story is the whole page, so the viewport IS this drawer's container — unlike the
+  // app, where DrawerStack measures its own box (`useIsWide`). See ContainerWidth below
+  // for the story that exercises the measured path.
+  const direction = useIsWideViewport() ? 'left' : 'bottom'
   const isBottom = direction === 'bottom'
 
   const [open, setOpen] = useState(false)

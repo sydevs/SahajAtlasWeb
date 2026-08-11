@@ -2,7 +2,7 @@ import type { MountRoute } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
 import { HashRouter, MemoryRouter } from 'react-router'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import App, { RootBoundary } from './App'
 import atlasAuth from './config/api/auth'
@@ -11,6 +11,7 @@ import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { atlasError, reportIntegrationWarning, reportInternalError } from './lib/report'
+import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { HASH_BASE, mountRoute } from './lib/shape'
 import { queryClient } from './config/query-client'
@@ -188,6 +189,30 @@ function Atlas({
   // the scoped `dark:` / `rtl:` variants resolve both against one ancestor.
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale, t } = useLocale()
+
+  // Map mode always fills the viewport, whatever slot the host gave us — a REQUIREMENT
+  // rather than an oversight, argued in `lib/embed-slot.ts` (vaul's snap sheets are
+  // computed off the window height, so containing the map is not a `fixed`→`absolute`
+  // swap). Nothing here changes behaviour; it only turns a silent takeover of somebody's
+  // page into a named one, through the same channel as the other two host-integration
+  // mistakes this file reports. Reads the host's own column, not our element: in map mode
+  // ours has no box to measure — everything below the `display: contents` root is fixed.
+  useEffect(() => {
+    if (!hasMap) return
+
+    const element = themeRootRef.current?.parentElement
+
+    if (!element) return
+
+    const warning = mapSlotWarning({
+      slotWidth: element.parentElement?.getBoundingClientRect().width ?? 0,
+      elementHeight: element.getBoundingClientRect().height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    })
+
+    if (warning) reportIntegrationWarning(SLOT_WARNING_MESSAGE[warning])
+  }, [hasMap])
 
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still
