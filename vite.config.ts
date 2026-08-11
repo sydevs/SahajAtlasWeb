@@ -9,7 +9,6 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'path'
 
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
-import emitVersionedEntry from './scripts/emit-versioned-entry.mjs'
 
 /**
  * Keep Finder's `.DS_Store` out of `dist/` (readiness report §1.1 housekeeping).
@@ -64,13 +63,6 @@ export default defineConfig({
     tsconfigPaths(),
     // `widget` is the input key below, whose `entryFileNames` emits `embed.js`.
     flattenEntryImports('widget'),
-    // Copies that same entry to `v<major>/embed.js` so a host can install a path whose
-    // major cannot change under them (issue #94). It belongs to the build OUTPUT contract,
-    // but it cannot live in `rolldownOptions.plugins` below: those run before Vite's
-    // `enforce: 'post'` plugins, so the copy would miss the import flattening the line
-    // above adds — a strictly worse waterfall than `embed.js`, with byte-identical chunks.
-    // The plugin asserts that ordering rather than trusting this comment.
-    emitVersionedEntry('widget'),
     stripDsStore(),
   ],
   // `build.target` is intentionally left at the Vite 8 default (Baseline Widely

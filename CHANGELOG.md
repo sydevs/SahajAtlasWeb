@@ -4,34 +4,27 @@ All notable changes to the Sahaj Atlas widget, in [Keep a Changelog](https://kee
 format. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **This file is written for the sites that embed the widget.** It records what a host can
-observe — the build output and the URLs it publishes, the `<sahaj-atlas>` attributes, the
-origins the widget contacts and the CSP those need, and visible behaviour. Internal
-refactors, CI and documentation are deliberately left out; `git log` has those. How a
-version is cut, and what `embed.js` and `v<major>/embed.js` each promise, is in
-[`docs/releasing.md`](docs/releasing.md).
+observe — the `<sahaj-atlas>` attributes, the origins the widget contacts and the CSP
+those need, and visible behaviour. Internal refactors, CI and documentation are
+deliberately left out; `git log` has those.
+
+**Deployment is evergreen and there is no release process.** `main` deploys to
+`sahajatlas.com`, roughly daily, and every embed serves that build — hosts embed from our
+server rather than consuming a package, so there is nothing for them to upgrade and no
+version for them to pin. `package.json` carries a version so this file has something to
+organise entries under; it is a marker, not a contract.
 
 Entries reference the pull request that landed them.
 
 ## [Unreleased]
 
-`package.json` carries `0.9.0` — the version being prepared, not one that has shipped.
-There is no released version yet: this is the first tracked one, and the entries below
-cover everything a host would notice since the widget was first deployed. Releasing means
-renaming this section, tagging, and deploying — see `docs/releasing.md`.
-
-The **`0.x` line makes no compatibility promise**. Under semver a minor may break anything
-before `1.0.0`, so `v0/embed.js` exists to prove the mechanism, not to protect a host with
-it. Pinning becomes meaningful at `v1/`; until then `embed.js` is the path to install.
+`package.json` carries `0.9.0`. This is the first tracked version, so the entries below
+cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
-- **A versioned embed entry, `v<major>/embed.js`, emitted beside `embed.js`** from the same
-  build, so a host's markup records which major it was integrated against and a breaking
-  change can be announced to the sites it affects. Note what it is not: every channel serves
-  the current build, so the path is a declaration rather than a code freeze — see
-  `docs/releasing.md`. `embed.js` is unchanged. ([#94])
-- **This changelog and a release process** (`docs/releasing.md`), covering the version-bump
-  procedure, the pin-vs-latest tradeoff, rollback, and the cache-skew failure mode. ([#94])
+- **This changelog**, so a host can see what changed under an embed that updates itself.
+  ([#94])
 - **Three privacy opt-out attributes**, all defaulting to enabled so an existing embed is
   unaffected: `analytics="false"` (never load Fathom), `geolocation="false"` (never call the
   `ipwho.is` IP-geolocation service), and `error-reporting="false"` (never send a crash to

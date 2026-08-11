@@ -26,7 +26,7 @@ event hierarchy.
 
 | Concern        | Choice |
 | -------------- | ------ |
-| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js`, which is also copied to `v<major>/embed.js` (`docs/releasing.md`) |
+| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js` |
 | UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
 | Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
 | Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash, *unless* the host page's own anchor already does, in which case it routes in memory and writes nothing (`mountRoute`, `src/lib/shape/hash.ts`) |
@@ -218,33 +218,6 @@ CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and asserts all of the above against the preview.
 
 Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
-
-### Releasing (issue #94)
-
-`package.json` carries a real semver version, and the build emits the widget entry at
-`embed.js` **and** at `v<major>/embed.js` — one per supported major — from one build.
-The copies are made by `scripts/emit-versioned-entry.mjs`, which rebases the entry's
-`./assets/*` specifiers one directory up; it must run **after** `flattenEntryImports`
-and asserts that it did (via that module's own `flattenedImports`, so the two cannot
-disagree). Bumping `package.json` is the only edit needed to move the path.
-
-**Every channel serves the current build**, so the versioned path is a *declaration* of
-the major a host integrated against — not a code freeze, and not a pin to a build.
-Pages serves one deployment at a time, so nothing here can hold an old build; real
-pinning would need npm + a CDN. Don't let the docs drift back into promising more.
-
-The one hazard is a channel that stops being emitted: `_redirects` turns its absence
-into the SPA shell at 200, not a legible 404, so a pinned host's widget vanishes with
-every gate green. That is why `OLDEST_SUPPORTED_MAJOR` is a **floor** that emits every
-major up to the current one, rather than a list someone has to remember to append to —
-forgetting costs ~5.6 KB, never an outage. The smoke lane asserts every channel the
-floor implies.
-
-`CHANGELOG.md` is host-facing (what an embedding site can observe) and
-**`docs/releasing.md`** is the whole contract: what each URL promises, the
-pin-vs-latest tradeoff, rollback, the cache-skew failure mode, and the Cloudflare
-**dashboard-only** follow-ups that merging a PR cannot complete. Host-facing sections
-there move to the integrator guide when #93 lands.
 
 The repo used to carry two **Accent** translation workflows
 (`.github/workflows/{push,sync}-accent.yml`, configured by `accent.json`). They were
