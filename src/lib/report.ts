@@ -318,7 +318,21 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     //  - `release` defaults to `window.SENTRY_RELEASE?.id` — a global belonging to the
     //    HOST. A site running its own Sentry would silently stamp every one of our events
     //    with THEIR release version, so our issues would claim to come from a deploy that
-    //    isn't ours. Pinned to nothing until we have a real build version to put here.
+    //    isn't ours. **It stays pinned to nothing now that source maps upload (#130), not
+    //    despite that** — frames resolve by DEBUG ID, which the bundler plugin injects into
+    //    each chunk and its map, so symbolication needs no release and this hazard stays
+    //    shut. A release string would also be the wrong identity here even if it were free:
+    //    #143 settled that this repo deploys evergreen and its `package.json` version is
+    //    "a marker, not a contract", so many distinct builds share one version while each
+    //    has its own debug IDs. `vite.config.ts` therefore also sets `release.inject: false`
+    //    — the plugin's default would WRITE that same global onto the host page, which is
+    //    this bullet in reverse.
+    //
+    //    Load-bearing consequence for `beforeSend` below: it must keep `debug_meta`.
+    //    `prepareEvent` fills it from the injected debug IDs BEFORE the hook runs, so
+    //    deleting it — or rebuilding the event from a literal allowlist, which the hook's
+    //    docblock describes but does not do — silently un-symbolicates every frame while
+    //    every gate stays green.
     //  - `sendClientReports` defaults to true, which posts a periodic outcome summary to
     //    the ingest endpoint when the page is hidden. It is SDK bookkeeping we have no use
     //    for, and it would turn one crash into a second uninvited request from their page.

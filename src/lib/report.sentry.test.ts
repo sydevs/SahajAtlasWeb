@@ -269,6 +269,38 @@ describe('what is allowed to travel with an event', () => {
     // fixture above precisely so a regression here fails loudly.
     expect((scrubbed.request as { url: string }).url).toBe('https://host.example/classes/london')
   })
+
+  // The one field the scrub must NOT take (#130). `prepareEvent` fills `debug_meta` from
+  // the debug IDs the bundler plugin injected into each chunk, and it does so BEFORE this
+  // hook runs — so dropping it here would leave every production frame pointing into a
+  // minified chunk with the upload, the deletion gate and the whole ticket still green.
+  // The hook survives on being a delete-list; the docblock beside it says "allowlist", and
+  // the day someone makes that literally true is the day this spec has to fail.
+  it('keeps debug_meta, without which the uploaded source maps cannot be matched', async () => {
+    const { reportInternalError } = await freshSeam()
+
+    reportInternalError(atlasError('server', 'boom'), 'ctx')
+    await vi.waitFor(() => expect(sdk.clients).toHaveLength(1))
+
+    const beforeSend = sdk.clients[0]?.beforeSend as (
+      event: Record<string, unknown>,
+      hint: Record<string, unknown>,
+    ) => Record<string, unknown>
+
+    const debugMeta = {
+      images: [
+        {
+          type: 'sourcemap',
+          code_file: 'https://sahajatlas.pages.dev/assets/App-C5ZV2wC2.js',
+          debug_id: '7f3a1c60-9b2e-4d51-8a44-0c1d2e3f4a5b',
+        },
+      ],
+    }
+
+    const scrubbed = beforeSend({ debug_meta: debugMeta }, {})
+
+    expect(scrubbed.debug_meta).toEqual(debugMeta)
+  })
 })
 
 describe('a host whose CSP blocks the ingest origin', () => {
