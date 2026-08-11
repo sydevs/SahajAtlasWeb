@@ -69,18 +69,44 @@ fix) — in an **isolated context** so its file reading doesn't bloat the main t
 ### 3. Security review (conditional — only on risky paths)
 
 This widget ships a **public bundle embedded in untrusted host pages**, so the risky surface is
-client-side: the API-key/auth + data layer, the widget's host-prop trust boundary, untrusted-HTML
-(XSS) sinks, dependencies, and anything touching secrets/env. Run a security review **only if** the
-branch diff touches one of those:
+client-side: the API-key/auth + data layer, the widget's host-prop trust boundary, the guards that
+decide where a data-driven `href` may point, untrusted-HTML (XSS) sinks, the stylesheet we inject
+into somebody else's `<head>`, the host's privacy opt-outs, dependencies, and anything touching
+secrets/env. Run a security review **only if** the branch diff touches one of those:
 
 ```bash
-# path-based: the auth/data layer, widget entry, HTML-rendering sinks, deps, secrets/build config
+# path-based: auth/data layer, widget + app entry + host-fragment routing, href/HTML sinks,
+# the injected stylesheet and its scoping, privacy + reporting seams, deps + patches, secrets/build
 git diff --name-only origin/main...HEAD | grep -E \
-  'src/config/api/|src/Widget\.tsx|src/lib/shape/lexical|src/components/organisms/EventDetails/|src/types/event|package\.json|(^|/)\.env|vite\.config\.ts'
+  'src/config/api/|src/types/event|src/Widget\.tsx|src/App\.tsx|src/lib/shape/hash|src/lib/shape/lexical|src/lib/shape/path|src/lib/shape/href|src/components/atoms/Link/|src/components/organisms/EventDetails/|src/styles/|src/lib/scope|scripts/[^/]*css|postcss\.config\.js|src/config/privacy|src/lib/report|package\.json|pnpm-lock\.yaml|patches/|(^|/)\.env|vite\.config\.ts'
 
 # content-based: any newly-introduced HTML sink, wherever it lands
 git diff origin/main...HEAD -- src | grep -E '^\+' | grep -E 'dangerouslySetInnerHTML|dompurify|DOMPurify|\.innerHTML'
 ```
+
+**Widen that list deliberately, never maximally** — a trigger that fires on everything stops being
+read, at which point it is worth no more than one that never fires. Each entry is somewhere a change
+reaches a host page's visitors, and most are here because something got through: `shape/path` +
+`shape/href` + `atoms/Link/` hold the same-origin/scheme guard (`//evil.com` walked past an
+`href.startsWith('/')` check in #100 — on a branch this grep did **not** match, which is why it was
+widened); `shape/hash` picks HashRouter vs MemoryRouter from the host page's own fragment, an
+untrusted input choosing a branch (#92); `src/styles/` + `lib/scope` + the PostCSS scoping script and
+config keep our injected stylesheet off the host's DOM (#91, #104); `config/privacy` + `lib/report`
+decide what leaves the visitor's browser at all (#95, #108). `pnpm-lock.yaml` and `patches/` are the
+supply-chain pair — the transitive bump that never touches `package.json`, and arbitrary code applied
+to a dependency (which is why `patches/vaul@1.1.2.patch` exists at all).
+
+**The module entries are deliberately unanchored, so a spec travels with its module** — the
+`src/lib/shape/path` entry matches `path.test.ts` as well as `path.ts`. That matters because several
+of these guards are enforced by an assertion rather than by a reader: `href.test.ts` pins the JSX
+anchor inventory to exactly three components (`atoms/Link/`, `atoms/Button/`, `molecules/ActionRow/`)
+and fails if any of them stops calling `isSafeHref`; `path.test.ts` pins `//evil.com` and the
+tab/LF/CR forms. Deleting one of those assertions is precisely the diff worth seeing.
+
+So prefer **adding the assertion over adding the path** — a red unit lane is faster and surer than a
+review. That is why `src/config/i18n-options.ts` is deliberately absent: its one privacy property,
+`caches: []` (it must never write `i18nextLng` onto the host's origin, #95), is asserted in
+`i18n-options.test.ts`.
 
 - **Either matches** → run the security review over the diff. Prefer **dispatching the
   `security-reviewer` Task subagent** (this repo ships one, tuned for the public-bundle threat model)
