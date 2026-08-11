@@ -14,7 +14,7 @@ import {
 import { Spinner } from '@/components/atoms/Spinner'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { eventQuery } from '@/config/api'
-import { useIsDesktop } from '@/config/responsive'
+import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
@@ -52,7 +52,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // `t` off `useLocale` rather than a second `useTranslation` — the hook already holds
   // one for the default (`common`) namespace and returns it to avoid the duplicate.
   const { t, locale } = useLocale()
-  const isDesktop = useIsDesktop()
+  const isWide = useIsWideWidget()
   const { collapsed } = useDrawerControl()
 
   const { data: event } = useSuspenseQuery(eventQuery(id, locale))
@@ -69,8 +69,18 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // The snap-ladder bottom sheet is the one surface where in-flow content can
   // scroll the CTA away — pin Register there; keep it inline everywhere else.
   // Never pin an empty bar (inactive events render no register slot at all).
+  //
+  // Reads the WIDGET's width, not the screen's (issue #107), so it can never disagree with
+  // the drawer it is pinned inside: "is this a bottom sheet" is the actual question, and
+  // DrawerStack answers it from the same measurement.
+  //
+  // **Agreement by construction — not a behaviour change.** This line computes exactly what
+  // it did before #107, and will keep doing so while `hasMap` gates it: map-less the bar
+  // never renders at all, and in map mode there is no container, so the measured signal
+  // returns the viewport's answer. The hook is here so that a future map-less sticky bar
+  // starts out reading the right thing, not because a narrow embed gains one today.
   const { display } = useEventDisplay(event)
-  const stickyRegister = hasMap && !isDesktop && hasRegisterSlot(event, display)
+  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
 
   return (
     <>

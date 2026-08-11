@@ -39,6 +39,29 @@ jobs:
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
 
+      # Exercise the CREDENTIALED source-map path (#130) without a network or a secret.
+      #
+      # Every step above runs the uncredentialed path, because CI has no token — so until
+      # this job existed, the first machine ever to execute map emission, deletion and the
+      # gate together was Cloudflare, on a production deploy. That is the wrong place to
+      # discover a broken option name.
+      #
+      # `SENTRY_URL` points at a closed port, so the upload fails immediately and nothing
+      # leaves the runner. What is being asserted is everything around it: maps ARE emitted
+      # under a token, `errorHandler` keeps a failed upload non-fatal, deletion still runs
+      # in `writeBundle`'s `finally`, and `assert:maps` (which `pnpm build` ends in) proves
+      # `dist/` is clean afterwards. A regression in any of those turns this red.
+      #
+      # The token value is a literal, not a secret: this must keep working on forked PRs,
+      # where secrets are unavailable and where a leak would matter most.
+      - name: Source-map upload chain (offline dry run)
+        env:
+          SENTRY_AUTH_TOKEN: ci-dry-run-not-a-secret
+          SENTRY_ORG: ci-dry-run
+          SENTRY_PROJECT: ci-dry-run
+          SENTRY_URL: http://127.0.0.1:1/
+        run: pnpm build
+
   # Dependency-vulnerability gate.
   #
   # THE TRADEOFF, since this is the decision reviewers will want justified:

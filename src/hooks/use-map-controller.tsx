@@ -6,7 +6,7 @@ import { bboxPolygon } from '@turf/bbox-polygon'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
-import { useBreakpoint } from '@/config/responsive'
+import { useIsWideViewport } from '@/config/responsive'
 import { eventFrameZoom } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
 
@@ -123,17 +123,27 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
-  const { isMd } = useBreakpoint('md')
+  // The VIEWPORT, deliberately, while everything else moved to the widget's own width
+  // (issue #107) — and the two agree by construction rather than by luck. This provider
+  // only ever runs where a map exists, and a map exists only in map mode, where the widget
+  // spans the viewport: the canvas is `position: fixed; inset: 0` and the drawer occluding
+  // it is fixed too. There is no container here to measure that would answer differently.
+  //
+  // It is also structurally out of reach of the measured signal: `WidgetWidthContext` is
+  // provided by DrawerStack, which this provider RENDERS. Reading the same named threshold
+  // (`WIDE_MIN_PX`, via `useIsWideViewport`) is what keeps the padding on the same crossing
+  // as the panel it is padding around.
+  const isWide = useIsWideViewport()
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
     setPadding({
-      left: MAP_MARGIN + (isMd ? LEFT_DRAWER_PX : 0),
+      left: MAP_MARGIN + (isWide ? LEFT_DRAWER_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
-      bottom: MAP_MARGIN + (isMd ? 0 : MOBILE_PEEK_PX),
+      bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),
     })
-  }, [isMd, setPadding])
+  }, [isWide, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({

@@ -13,6 +13,12 @@ dist-ssr
 build
 *.local
 
+# @sentry/vite-plugin reads this file at build time and Object.assign's it over process.env
+# (#130). It is where Sentry's own wizard and docs put SENTRY_AUTH_TOKEN, and it does NOT
+# match `*.local` above — so without this line the default filename for a real secret is
+# tracked in a public repo.
+.env.sentry-build-plugin
+
 # SahajCloud OpenAPI contract — pulled on demand via `pnpm types:openapi` (large, changes often)
 src/types/payload/openapi.json
 

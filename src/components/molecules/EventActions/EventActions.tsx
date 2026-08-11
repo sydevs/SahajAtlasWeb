@@ -5,7 +5,7 @@ import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { CallIcon, DirectionsIcon, ShareIcon, WebsiteIcon } from '@/components/atoms/Icons'
-import { useIsDesktop } from '@/config/responsive'
+import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
@@ -88,7 +88,12 @@ export type EventActionsProps = {
 export function EventActions({ event, basePath }: EventActionsProps) {
   const { t } = useTranslation('events')
   const navigate = useAtlasNavigate()
-  const isDesktop = useIsDesktop()
+  // The one responsive decision in the app that is about the DEVICE rather than the
+  // space (issue #107). Whether a `tel:` link reaches anything is a property of the
+  // hardware: narrowing a desktop window — or embedding this widget in a 320px column
+  // on one — has never given it a dialer, and a phone held sideways can be wider than
+  // any breakpoint we would pick. So this asks the pointer, not the width.
+  const canDial = useCoarsePointer()
   const { display } = useEventDisplay(event)
 
   const mapsUrl = directionsUrl(event.address)
@@ -125,8 +130,8 @@ export function EventActions({ event, basePath }: EventActionsProps) {
         if (!event.contactPhone) return []
         const label = t('actions.contact')
 
-        // Touch devices dial; desktop shows the number with a copy affordance.
-        if (!isDesktop) {
+        // Touch devices dial; everything else shows the number with a copy affordance.
+        if (canDial) {
           return [
             <ActionCircle
               key="contact"

@@ -157,7 +157,7 @@ Mapbox token and a SahajCloud API key. See
 
 ```bash
 pnpm dev          # Vite dev server
-pnpm build        # typecheck + production build → dist/
+pnpm build        # typecheck + production build → dist/ (+ the two output assertions)
 pnpm preview      # serve the production build
 pnpm typecheck    # tsc --noEmit (app + tests/scripts)
 pnpm lint         # eslint, fails on any warning (CI gate)
@@ -189,3 +189,20 @@ asserted through `renderToStaticMarkup` rather than jsdom. See
 Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app) and
 `sahajatlas-design` (the Ladle playground). See the deployment section of
 [`CLAUDE.md`](CLAUDE.md).
+
+### Source maps (build-time only)
+
+Three **build-time** variables — `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` —
+control whether a build uploads its source maps to Sentry. They carry no `VITE_` prefix,
+so they cannot reach the bundle; the token is a real secret and lives in the Cloudflare
+Pages dashboard, never in the repo.
+
+**Maps are uploaded and then deleted — they are never deployed.** `/assets/*` is served
+CORS-open with a one-year immutable cache, so a shipped `.map` would publish this repo's
+source irrevocably. `pnpm build` therefore ends in `pnpm assert:maps`, which fails the
+build if any map, or any `sourceMappingURL` reference, survives into the output.
+
+With the variables unset — every local build, CI, and every forked PR — **no maps are
+emitted at all** and the output is byte-identical to a build from before this existed.
+The full runbook, including which Pages project gets the variables and which deliberately
+does not, is in [`.claude/docs/environment.md`](.claude/docs/environment.md).

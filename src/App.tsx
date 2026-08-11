@@ -264,7 +264,20 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable }: AppSh
       {hasMap ? (
         <MapProvider>
           {/* Inline fixed/inset so the map always fills the viewport behind the
-              drawers — independent of Tailwind viewport-unit utility generation. */}
+              drawers — independent of Tailwind viewport-unit utility generation.
+
+              **This is why map mode requires a FULL-PAGE slot, and issue #107 settled
+              that as a documented requirement rather than containing it.** The canvas
+              covers the viewport whatever size the host made `<sahaj-atlas>`, and the
+              drawers over it are `fixed` too. Containing the lot is not a `fixed` →
+              `absolute` swap: vaul computes a snap-point sheet's translate from the
+              WINDOW height (see the `bottom` variant in `atoms/Drawer/Drawer.tsx`), so a
+              contained sheet is pushed off-screen by the library's own arithmetic, and
+              `--sy-sheet-top` — which pins the sticky Register bar — is a viewport-
+              relative measurement for the same reason. `map="false"` is the mode that
+              stays inside its box, and it is container-relative throughout (#107).
+              A host that gets this wrong now hears about it: `Widget.tsx` warns at mount
+              via `lib/embed-slot.ts`, rather than silently painting over their page. */}
           <div style={{ position: 'fixed', inset: 0 }}>
             <Mapbox />
           </div>

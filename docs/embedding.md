@@ -139,6 +139,21 @@ Any way of giving it a height works — a CSS class, a grid or flex track, an as
 box. `display:block` (or `flex`/`grid`) matters as much as the height: a custom element
 defaults to `display: inline`.
 
+**In `map="false"` the widget adapts to your element, not to the browser window** (issue
+#107). A 320px column on a large desktop screen gets the narrow layout — a bottom sheet
+with a drag handle and swipe-to-dismiss — because the widget measures its own box. Resize
+the element and it follows. Before this, layout keyed off the viewport, so a sidebar embed
+on a wide screen was handed the desktop interaction model and had no drag handle to grab.
+
+Touch affordances are the deliberate exception and follow the **device**, not the box: a
+phone number is a `tel:` link on a touchscreen and a copyable number everywhere else,
+however narrow the column. Whether a dial link reaches a dialer is hardware.
+
+Map mode has no such adaptation, and that is a requirement rather than an oversight — the
+drawers compute their travel from the window, so a map-mode widget confined to a small box
+is broken by that arithmetic rather than merely cramped. **The widget now warns in the
+console** when it detects that placement instead of leaving you to discover it.
+
 ## The URL, and your page's fragment
 
 The widget routes off the URL fragment under the basename `!`, so a location inside it

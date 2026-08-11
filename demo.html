@@ -22,6 +22,15 @@
     <!--
       Full map (default). Add map="false" to render content-only (no map canvas).
 
+      MAP MODE NEEDS A FULL-PAGE SLOT, and that is a requirement rather than a bug
+      (issue #107): the canvas is `position: fixed; inset: 0` and the panels over it are
+      fixed too, so the widget covers the viewport whatever box this element is given —
+      which is why the element below is deliberately left unsized. Put a map-mode embed
+      in a narrow column or give it its own height and it paints over the rest of the
+      page; the widget now says so in the console rather than leaving you to find out.
+      For an embed that stays inside your layout, use map="false" (see below), which is
+      container-relative throughout and adapts to the element's own width.
+
       PUT A WORKING KEY IN api-key BEFORE LOADING THIS PAGE. The literal that used to
       sit here was dead — SahajCloud answers 403 to it, exactly as it does to no key at
       all — so the harness looked broken in a way that had nothing to do with the code
