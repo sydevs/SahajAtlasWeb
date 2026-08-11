@@ -1,19 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <!-- <script src="https://sahajatlas.pages.dev/embed.js" type="module"></script> -->
+    <!-- <script src="https://sahajatlas.com/embed.js" type="module"></script> -->
     <script src="http://localhost:4173/embed.js" type="module"></script>
     <!--
-      If your page sends a Content-Security-Policy, the "Report an issue" form needs
-      Cloudflare Turnstile allowed (it's fetched lazily, only when a viewer opens
-      the form):
-        script-src https://challenges.cloudflare.com
-        frame-src  https://challenges.cloudflare.com
-      Blocked, the form falls back to a mailto: link — nothing else is affected.
-      See the README.
+      Host-facing integration reference: docs/embedding.md — the snippet, every
+      attribute, sizing, the URL/#anchor behaviour, the full Content-Security-Policy
+      contract and a troubleshooting table. Keep this file's comments consistent
+      with it rather than restating it; the guide is the one that gets read by the
+      sites that embed us.
     -->
   </head>
   <body>
@@ -21,8 +19,17 @@
       <h1>Sahaj Atlas Widget</h1>
       <p>This is a test</p>
     </header>
-    <!-- Full map (default). Add map="false" to render content-only (no map canvas). -->
-    <sahaj-atlas api-key="1cf076ab-9497-4696-95a3-cfd71334bbbc" locale="fr"></sahaj-atlas>
+    <!--
+      Full map (default). Add map="false" to render content-only (no map canvas).
+
+      PUT A WORKING KEY IN api-key BEFORE LOADING THIS PAGE. The literal that used to
+      sit here was dead — SahajCloud answers 403 to it, exactly as it does to no key at
+      all — so the harness looked broken in a way that had nothing to do with the code
+      under test. Use the same key `pnpm dev` uses: VITE_SAHAJCLOUD_API_KEY in
+      .env.local (see .claude/docs/environment.md). It is a published, read-only key,
+      but it is not committed, which is why this is a placeholder rather than a value.
+    -->
+    <sahaj-atlas api-key="REPLACE_WITH_VITE_SAHAJCLOUD_API_KEY" locale="fr"></sahaj-atlas>
 
     <!--
       A host anchor, for the foreign-hash check (issue #92). Load this page at

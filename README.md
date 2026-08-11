@@ -5,102 +5,37 @@ component. Host pages drop in `<sahaj-atlas>` with an API key and get a full
 Mapbox experience with a country → region → area → venue → event hierarchy.
 
 ```html
-<script type="module" src="https://sahajatlas.pages.dev/embed.js"></script>
+<script type="module" src="https://sahajatlas.com/embed.js"></script>
 <sahaj-atlas api-key="…"></sahaj-atlas>
 ```
+
+The script is **`embed.js`** and the attribute is **`api-key`** — the element observes no
+other spelling of either.
 
 The same build also runs standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx`, demoed in `demo.html`.
 
-### Content-Security-Policy for embedding hosts
+### Embedding in a host site
 
-The widget's **Report an issue** form is protected by a
-[Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) captcha, which
-loads a script from Cloudflare into your page — lazily, only when a viewer actually
-opens the form, so a visitor who never reports anything never fetches it. If your page
-sends a CSP, allow:
+**[`docs/embedding.md`](docs/embedding.md) is the integrator guide** — the complete,
+host-facing reference, and the place to send anyone installing the widget. It covers the
+snippet and which origin to load it from, all nine `<sahaj-atlas>` attributes, sizing in
+both map and map-less modes, the URL shape and what happens on a page that already uses
+its own `#anchor`, the full Content-Security-Policy contract with the failure mode for
+each directive, the browser floor, what the widget does (and does not do) to your page,
+and a troubleshooting table.
 
-```
-script-src  <the origin you load the widget from> https://challenges.cloudflare.com https://cdn.usefathom.com
-frame-src   https://challenges.cloudflare.com
-img-src     https://react-circle-flags.pages.dev
-font-src    <the origin you load the widget from>
-style-src   'unsafe-inline'
-connect-src https://ipwho.is https://cdn.usefathom.com https://*.sentry.io
-```
+Three things from it are worth knowing before you read any further:
 
-**One line per directive, deliberately: CSP ignores every repeat of a directive name
-after the first**, so splitting `script-src` across two lines would silently drop the
-second — and you would be left believing you had allowed something you hadn't.
-
-The widget's own origin, first in that `script-src`, is the source that must be right.
-The widget is code-split: the `<script>` tag fetches a small entry, which pulls the rest
-of the bundle as further script requests from that same origin, and the calendar,
-registration and share panels are fetched only when a viewer first opens them. A policy
-that allows the `<script>` tag but not those subresource fetches gives you a widget that
-looks fine and then fails on one of those three presses, which is a miserable thing to
-diagnose. (`'strict-dynamic'`, or a plain origin allow-list, covers all of it.)
-
-The two `usefathom.com` sources are needed only if analytics is enabled (see below); the
-list above is what the widget *adds* to a policy — it is not a complete policy, and it
-does not yet cover the map's own origins.
-
-Without the Turnstile sources the widget degrades gracefully rather than breaking: the
-form detects the blocked challenge and offers a `mailto:` address instead of a submit
-button. Everything else — the map, search, event pages, registration — is unaffected.
-
-`img-src` covers the country flags (`react-circle-flags` serves them as SVGs from its
-own CDN) on the country list and on the country-website offer a search shows when a
-country lists no classes. Blocking it costs only the flag glyphs; the lists and the
-offer still render, and the requests carry `referrer-policy: no-referrer`, so your
-page's URL is never sent there.
-
-The three `connect-src` hosts, and the two `usefathom.com` sources, cover the
-third-party data flows described under
-[Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
-below; every one of them can be switched off, and blocking any of them in your CSP costs
-only the feature it serves.
-
-`https://*.sentry.io` is the crash reporter. It is contacted **only after the widget has
-already failed**, never during normal use, and only on a build configured with a DSN — so
-on a healthy page there is no such request to block.
-
-The wildcard is deliberately that wide. A CSP host wildcard matches a **suffix only**, and
-Sentry organisations created since 2024 get a *regional* ingest host
-(`o123.ingest.us.sentry.io`, `…de.sentry.io`) which `*.ingest.sentry.io` does **not**
-match — a policy written that way would look correct and silently block everything. If you
-prefer to name one host, take the exact one from the DSN rather than deriving it.
-
-Leaving it out of your policy is a supported choice: the widget notices the refusal, stops
-trying for the rest of the page's life, and behaves exactly as it would with reporting
-switched off. You get one blocked request and one CSP-violation entry, not one per error.
-If you would rather it never attempt the request at all, `error-reporting="false"` is the
-explicit way to say so.
-
-`style-src 'unsafe-inline'` is the one hard ask: the widget has no stylesheet to link — it
-registers its CSS by appending `<style>` elements, which carry no nonce. Without it the
-widget renders completely unstyled rather than degrading.
-
-`font-src` is the widget's own origin — the same one the `<script>` above comes from.
-The widget **self-hosts its typeface**: it makes no request to `fonts.googleapis.com`
-or `fonts.gstatic.com`, so neither needs to be in your policy and no visitor IP is
-disclosed to a third party for a font. Blocking it costs only the typeface — text falls
-back to your system sans and everything keeps working.
-
-### The widget will not restyle your page
-
-Its stylesheet is injected into your document (there is no shadow DOM), but every
-selector in it is confined to the widget's own subtree and every animation name is
-namespaced, enforced by a build-time check. A page's headings, links, lists, forms,
-`.container`, a `.dark` theme class and its own Swiper or Mapbox instances are all
-left alone.
-
-Two honest exceptions, both transient and neither one styling your content: opening a
-modal panel inside the widget sets `overflow: hidden` on your `<body>` for as long as it
-is open (standard scroll-lock, reverted on close), and the widget's own Mapbox/Swiper
-libraries register a couple of document-global `@font-face` names of their own. The
-reverse direction is not guaranteed either: aggressive global CSS on your page can still
-reach *into* the widget — see the note in `demo.html`.
+- **Your CSP needs `style-src 'unsafe-inline'`.** The widget has no stylesheet to link; it
+  appends `<style>` elements, which carry no nonce. Without it the widget renders
+  completely unstyled rather than degrading. The guide has the rest of the contract —
+  including `worker-src blob:` and the SahajCloud and locale-JSON origins, all three of
+  which are load-bearing and none of which are obvious.
+- **One `<sahaj-atlas>` per page.** A second element is refused at connection and never
+  mounts; a second copy of the script is a no-op. Both say so in the console.
+- **Three attributes switch off the third-party flows** described below —
+  `analytics="false"`, `geolocation="false"`, `error-reporting="false"`.
 
 ### Privacy, storage and third-party requests
 
@@ -112,12 +47,12 @@ request it makes to somebody other than you and SahajCloud, and every key it sto
 inside a `try`/`catch` so a sandboxed iframe or a privacy mode that refuses storage
 degrades the setting rather than breaking the widget, and two written by Mapbox GL:
 
-| Key | Store | Holds | Lifetime |
-| --- | --- | --- | --- |
-| `theme` | `localStorage` | the viewer's light/dark/auto choice | until cleared |
+| Key                                     | Store            | Holds                                                 | Lifetime            |
+| --------------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
+| `theme`                                 | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
 | `sahajAtlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
-| `mapbox.eventData:<token>` | `localStorage` | Mapbox GL's own telemetry bookkeeping | until cleared |
-| `mapbox.eventData.uuid:<token>` | `localStorage` | a persistent anonymous id Mapbox generates | until cleared |
+| `mapbox.eventData:<token>`              | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
+| `mapbox.eventData.uuid:<token>`         | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
 
 Two caveats worth knowing about that table. The `theme` key is **not namespaced**: if
 your page stores its own `theme` preference under that name, the widget will read and
@@ -175,12 +110,18 @@ an attribute that turns it off:
   **`map="false"`**, which drops the whole Mapbox subtree — the widget then renders as
   lists and event pages with no map at all.
 - **`react-circle-flags.pages.dev`** serves the country flag SVGs (`referrer-policy:
-  no-referrer`), and **`challenges.cloudflare.com`** loads the Turnstile captcha, but
-  only if a visitor opens the report-issue form. Both are described in the CSP section
-  above; neither carries an identifier.
+no-referrer`), and **`challenges.cloudflare.com`** loads the Turnstile captcha, but
+  only if a visitor opens the report-issue form. Both are in the CSP contract in
+  [`docs/embedding.md`](docs/embedding.md#content-security-policy); neither carries an
+  identifier.
 
 ```html
-<sahaj-atlas api-key="…" analytics="false" geolocation="false" error-reporting="false"></sahaj-atlas>
+<sahaj-atlas
+  api-key="…"
+  analytics="false"
+  geolocation="false"
+  error-reporting="false"
+></sahaj-atlas>
 ```
 
 Two things a visitor can send us on purpose, both on submit and never in the background:
@@ -234,6 +175,9 @@ asserted through `renderToStaticMarkup` rather than jsdom. See
 
 ## Documentation
 
+- [`docs/embedding.md`](docs/embedding.md) — **integrator guide**: the host-facing
+  reference (snippet, attributes, CSP, sizing, troubleshooting)
+- [`CHANGELOG.md`](CHANGELOG.md) — what changes under an embed, written for host sites
 - [`CLAUDE.md`](CLAUDE.md) — developer guide: layout, conventions, PR workflow
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
