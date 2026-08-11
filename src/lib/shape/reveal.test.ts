@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_REVEAL,
   FOREIGN_NEARBY_KM,
+  MAX_NEARBY_REVEAL,
   MAX_REVEAL,
   NEARBY_KM,
   PAGE_SIZE,
@@ -38,6 +39,41 @@ const reveal = (
     hasSearchCenter: true,
     ...options,
   })
+
+type RevealState = [TestEvent[], { shown: number; showAll: boolean }]
+
+/**
+ * The cross-product both property tests below sweep: result-set shape × `showAll` ×
+ * count. ONE matrix rather than one each, because both properties are universal — a
+ * shape added for either is worth checking against the other, and the two lists had
+ * already drifted apart by a count. The shapes are the segment mixes around the two
+ * ceilings, including the #129 case (a nearby segment past the ceiling with distant
+ * events behind it).
+ */
+const everyReachableState = (): RevealState[] => {
+  const sets = [
+    near(30),
+    [...near(30), ...far(30)],
+    far(30),
+    [...near(1), ...far(400)],
+    near(MAX_REVEAL + 100),
+    far(MAX_REVEAL + 100),
+    [...near(MAX_REVEAL + 10), ...far(50)],
+    [...near(MAX_REVEAL + 100), ...far(MAX_REVEAL + 100)],
+    [...near(MAX_NEARBY_REVEAL), ...far(MAX_REVEAL)],
+  ]
+  const states: RevealState[] = []
+
+  for (const events of sets) {
+    for (const showAll of [false, true]) {
+      for (const shown of [DEFAULT_REVEAL, 40, MAX_NEARBY_REVEAL, MAX_REVEAL, 999999]) {
+        states.push([events, { shown, showAll }])
+      }
+    }
+  }
+
+  return states
+}
 
 describe('revealKey', () => {
   // Shaped like a real `eventsQuery` key: ['events', lat, lng, filtersKey, locale].
@@ -239,9 +275,10 @@ describe('revealRows', () => {
   })
 
   it('stops at the ceiling rather than offering a press the clamp would undo', () => {
-    // A result set past MAX_REVEAL: the rows stop there, and so does the control —
-    // `next` would be clamped straight back on read, so the button would sit there
-    // doing nothing.
+    // A result set past MAX_REVEAL, all of it nearby: with no distant segment there is
+    // nothing to reserve for, so the list keeps the full ceiling. The rows stop there,
+    // and so does the control — `next` would be clamped straight back on read, so the
+    // button would sit there doing nothing.
     const result = reveal(near(MAX_REVEAL + 100), { shown: MAX_REVEAL })
 
     expect(result.rows).toHaveLength(MAX_REVEAL)
@@ -264,26 +301,68 @@ describe('revealRows', () => {
     expect(result.more).toBeNull()
   })
 
-  it('strands the distant segment when the nearby one alone fills the ceiling', () => {
-    // NOT a desirable behaviour — an assertion of a known sharp edge, so it is pinned
-    // rather than rediscovered. When the nearby segment on its own reaches the ceiling,
-    // the control goes away and the distant events behind it become unreachable for that
-    // search: `rows` and the clamp are on the COMBINED count, so no press could add a
-    // distant row without dropping a nearby one, and offering one would be the no-op the
-    // rest of this file is careful to avoid.
-    //
-    // It predates issue #98 — but that issue lowered MAX_REVEAL from 1,000 to 400, which
-    // moves this from "needs 1,000 nearby matches" to "needs 400", and the nearby segment
-    // AUTO-pages on scroll, so it is reachable with no press at all. Fixing it properly
-    // means a per-segment budget, which is a design change, not a constant.
-    const result = reveal([...near(MAX_REVEAL + 10), ...far(50)], { shown: MAX_REVEAL })
+  it('keeps the distant segment reachable when the nearby one fills its own ceiling', () => {
+    // The case issue #98 pinned as a known sharp edge and #129 fixed — the whole reason
+    // the budget is per-segment. Why, in the `MAX_NEARBY_REVEAL` docblock.
+    const events = [...near(MAX_REVEAL + 10), ...far(50)]
+    const result = reveal(events, { shown: MAX_REVEAL })
+
+    // Nearby paging stops at the reserve, not at the ceiling — with budget still unspent,
+    // so the crossing below has somewhere to put its rows.
+    expect(result.rows).toHaveLength(MAX_NEARBY_REVEAL)
+    expect(result.more).toBe('farther')
+    expect(result.next).toEqual({ shown: MAX_NEARBY_REVEAL + PAGE_SIZE, showAll: true })
+    // The count still spans every match, reachable or not — unchanged by the reserve.
+    expect(result.total).toBe(MAX_REVEAL + 60)
+
+    // And the press DELIVERS: a page of distant rows appended below the nearby ones,
+    // rather than a re-slice of the same segment. Fed the `next` just asserted, so this
+    // is literally the press the control offers rather than a hand-copy of it.
+    const after = reveal(events, result.next!)
+
+    // By the fixture's tag, not by re-deriving the distance rule the module owns.
+    expect(after.rows).toHaveLength(MAX_NEARBY_REVEAL + PAGE_SIZE)
+    expect(after.rows.slice(0, MAX_NEARBY_REVEAL).every((event) => event.id.startsWith('n'))).toBe(
+      true,
+    )
+    expect(after.rows.slice(MAX_NEARBY_REVEAL).every((event) => event.id.startsWith('f'))).toBe(
+      true,
+    )
+  })
+
+  it('spends the reserve on distant rows, then stops at the ceiling', () => {
+    // Paging on past the crossing: the distant segment draws on what the nearby ceiling
+    // left, and the list ends at `MAX_REVEAL` — the bound the DOM budget is about.
+    const result = reveal([...near(MAX_REVEAL + 10), ...far(500)], {
+      shown: 999999,
+      showAll: true,
+    })
 
     expect(result.rows).toHaveLength(MAX_REVEAL)
+    expect(result.rows.filter((event) => event.distance === 10)).toHaveLength(MAX_NEARBY_REVEAL)
     expect(result.more).toBeNull()
     expect(result.next).toBeNull()
-    // The live region still reports the true total, so the count never lies — it is the
-    // only place the unreachable remainder is acknowledged.
-    expect(result.total).toBe(MAX_REVEAL + 60)
+  })
+
+  it('gives the distant segment the whole budget when there is no nearby one', () => {
+    // The reserve caps the NEARBY segment; it does not portion out the ceiling. An
+    // all-distant result set still pages to `MAX_REVEAL`.
+    const result = reveal(far(MAX_REVEAL + 100), { shown: 999999, showAll: true })
+
+    expect(result.rows).toHaveLength(MAX_REVEAL)
+  })
+
+  it('never renders more rows than the ceiling, whatever the segment mix', () => {
+    // The DOM bound as a property of the function, not just of the constant: the reserve
+    // splits the budget between segments and must never let their sum exceed it.
+    const states = everyReachableState()
+
+    // A sweep that swept nothing passes every assertion in the loop below.
+    expect(states.length).toBeGreaterThan(0)
+
+    for (const state of states) {
+      expect(reveal(...state).rows.length).toBeLessThanOrEqual(MAX_REVEAL)
+    }
   })
 
   it('still offers the distant segment when a huge count only filled the nearby one', () => {
@@ -298,27 +377,30 @@ describe('revealRows', () => {
   })
 
   it('never offers a press that would reveal nothing', () => {
-    // Every reachable state: whatever the button offers, the count it writes has to be
-    // strictly greater than what is on screen, or pressing it is a no-op.
-    const sets = [near(30), [...near(30), ...far(30)], far(30), [...near(1), ...far(400)]]
+    // Whatever the button offers, the count it writes has to be strictly greater than
+    // what is on screen, or pressing it is a no-op.
+    let offered = 0
 
-    for (const events of sets) {
-      for (const showAll of [false, true]) {
-        for (const shown of [DEFAULT_REVEAL, 40, MAX_REVEAL, 999999]) {
-          const result = reveal(events, { shown, showAll })
+    for (const state of everyReachableState()) {
+      const result = reveal(...state)
 
-          if (result.next) expect(result.next.shown).toBeGreaterThan(result.rows.length)
-        }
-      }
+      if (!result.next) continue
+      offered += 1
+      expect(result.next.shown).toBeGreaterThan(result.rows.length)
     }
+
+    // The assertion above is inside a conditional inside a loop: without this, a sweep
+    // that never reached a state WITH a press on offer would pass having checked nothing.
+    expect(offered).toBeGreaterThan(0)
   })
 })
 
-// A ratchet on the CONSTANT, not on `revealRows` — hence its own block. Every ceiling
-// test above spells the bound as `MAX_REVEAL`, so all of them pass just as happily at a
-// million; nothing else in the suite would notice the DOM bound being given back.
-describe('MAX_REVEAL', () => {
-  it('stays inside the DOM budget it was chosen against', () => {
+// A ratchet on the CONSTANTS, not on `revealRows` — hence its own block. Every ceiling
+// test above spells the bound as `MAX_REVEAL` / `MAX_NEARBY_REVEAL`, so all of them pass
+// just as happily at a million; nothing else in the suite would notice the DOM bound
+// being given back, or the reserve between the two segments being closed up.
+describe('MAX_REVEAL and MAX_NEARBY_REVEAL', () => {
+  it('is the whole-list bound the two segments divide, inside its DOM budget', () => {
     // ~22 nodes per card, measured in the running widget (331 rows rendered 7,331 nodes),
     // so 400 rows is ~8,800. An AVERAGE over real cards — chips and a distance line come
     // and go — so treat it as a sizing estimate, not a per-row invariant.
@@ -330,18 +412,35 @@ describe('MAX_REVEAL', () => {
     const NODES_PER_ROW = 22
     const NODE_BUDGET = 10_000
 
+    // Over `MAX_REVEAL` alone: the reserve DIVIDES this budget, it does not add to it.
     expect(MAX_REVEAL * NODES_PER_ROW).toBeLessThanOrEqual(NODE_BUDGET)
   })
 
-  it('is a whole number of pages, so the last press lands exactly on it', () => {
+  it('are whole numbers of pages, so the last press lands exactly on them', () => {
     // Otherwise the final press is clamped to a stub that reveals fewer rows than the
-    // button implied.
+    // button implied — at the crossing as well as at the end of the list.
     expect(MAX_REVEAL % PAGE_SIZE).toBe(0)
+    expect(MAX_NEARBY_REVEAL % PAGE_SIZE).toBe(0)
   })
 
-  it('stays far past any plausible reading depth', () => {
+  it('leave the nearby segment STRICTLY below the ceiling', () => {
+    // Strictness is what gives the crossing press room to reveal into; an equal pair
+    // silently reinstates #129. Why, in the `MAX_NEARBY_REVEAL` docblock.
+    expect(MAX_NEARBY_REVEAL).toBeLessThan(MAX_REVEAL)
+  })
+
+  it('reserve enough for the distant segment to be worth reaching', () => {
+    // Subsumes the strict check above at today's numbers, and both are kept on purpose:
+    // this one is a product floor (a one-row reserve is correct but makes "Show distant
+    // events" reveal a single card), the one above is the correctness ratchet that has to
+    // survive someone deciding the floor is negotiable.
+    expect(MAX_REVEAL - MAX_NEARBY_REVEAL).toBeGreaterThanOrEqual(PAGE_SIZE * 2)
+  })
+
+  it('stay far past any plausible reading depth', () => {
     // The other direction: a ceiling of a page or two would be a truncated product
-    // wearing a bound's clothes.
-    expect(MAX_REVEAL).toBeGreaterThanOrEqual(PAGE_SIZE * 8)
+    // wearing a bound's clothes. Asserted on the NEARBY cap because that is now the
+    // binding one for the ordinary search — `MAX_REVEAL` clears it by the reserve.
+    expect(MAX_NEARBY_REVEAL).toBeGreaterThanOrEqual(PAGE_SIZE * 8)
   })
 })
