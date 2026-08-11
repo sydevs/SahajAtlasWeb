@@ -152,6 +152,95 @@ in host pages, **and** runs standalone in dev. Because of that:
 - Provider stack lives in `src/providers.tsx` (React Query + Helmet + theme).
   Add new context providers there, not scattered across the tree.
 
+## Responsive: which signal answers which question (issue #107)
+
+The widget is embedded in layouts we don't own, so **"how big is the screen" and "how big
+are we" are different questions**, and most of the app wants the second. Every responsive
+decision names one of three signals (`src/config/responsive.ts`):
+
+- **container** — `useIsWide(element)` in `DrawerStack`, which owns the measurement, and
+  `useIsWideWidget()` for descendants reading it back off `WidgetWidthContext`.
+- **viewport** — `useIsWideViewport()`. Only where the screen genuinely is the question.
+- **input** — `useCoarsePointer()`. For affordances that depend on the device.
+
+**Reaching for the wrong one fails silently**, which is why `src/config/responsive.test.ts`
+asserts the viewport call sites as a closed list, the way `href.test.ts` pins the app's three
+JSX anchors. A fourth turns the unit lane red rather than shipping a narrow embed that
+quietly behaves like a desktop.
+
+| Behaviour | Signal | Why |
+| --- | --- | --- |
+| Drawer direction — left panel vs bottom sheet (`DrawerStack`) | **container** | A fit question: does a 22rem side panel leave usable space beside it? |
+| Drag handle · swipe-dismiss · `handleOnly` · the snap ladder | **container** (follows direction) | The handle exists *iff* the sheet is a bottom sheet. One signal is what stops a handle-less panel being draggable, or a sheet losing its handle. |
+| Filter-overlay direction (right vs bottom) | **container** | Same panel-vs-sheet question, same answer. |
+| Sticky Register bar (`EventView`) | **container** | It exists because a snap sheet can scroll the CTA out of sight. That is a property of the sheet, so it must agree with whatever picked the sheet. |
+| Contact — `tel:` vs number + copy popover (`EventActions`) | **input** | Whether `tel:` reaches a dialer is hardware. Narrowing a desktop window has never given it one, and a phone in landscape can be wider than any crossing we'd pick. **The one place the ticket's "narrow ⇒ mobile" reading is wrong**, and the reason the table exists. |
+| Map camera padding (`use-map-controller`) | **viewport** | A map only exists in map mode, and in map mode the widget spans the viewport — there is no container that could answer differently. It is also structurally out of reach of the measured signal, since it renders `DrawerStack`. |
+| Anchored-panel geometry — `lg:inset-y-4`, `lg:rounded-2xl`, `max-w-[calc(100vw-2rem)]` (Drawer atom, PeekStrip) | **viewport (Tailwind)** | Only reachable in map mode: map-less is `mode="filled"`, whose `!important` overrides cancel every one of them. Viewport == container wherever they apply. |
+| SettingsMenu cog offset — `md:start-[calc(var(--sy-drawer-w,22rem)+2rem)]` | **viewport (Tailwind)** | Map mode only (the map-less cog is `absolute` in the container). Same reason. |
+| Modal box sizing (`100dvh`/`100vw`) | **viewport** | A modal is deliberately viewport-centred; it is not a citizen of the widget's slot. |
+| `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | **viewport (Tailwind) — accepted residue** | The only two variants that fire *wrongly* in a narrow map-less embed. Both cosmetic (12px of top padding; a 28→36px icon), and both in files #107 did not own. Fix them if you are in there anyway. |
+| Reduced motion, colour scheme | **preference** | Not a size question at all — see the three motion seams above. |
+
+Two properties of the mechanism are load-bearing:
+
+- **The container signal is a strict generalization, not a behaviour change.** In map mode
+  there is nothing to measure — the theme root is `display: contents`, the canvas is
+  `position: fixed; inset: 0`, every drawer is `fixed` — so `useIsWide` falls through to the
+  viewport and returns precisely what the old `useIsDesktop` did. Only map-less embeds, which
+  *have* a box, see a different answer.
+- **The first measurement is not damped; every later one is.** The seed runs in a layout
+  effect, so the correct model is on screen from the first frame. Damping it too would paint
+  a frame of the viewport's answer and then remount the drawer — the exact thrash the delay
+  exists to prevent, fired on every mount instead of only on a resize.
+
+### Map mode requires a full-page slot — decided, not deferred
+
+`map="false"` is the mode that stays inside its box, and it is container-relative
+throughout. **Map mode is not, and that is a requirement rather than a bug.** Containing it
+is not a `fixed` → `absolute` swap:
+
+- vaul computes a snap-point sheet's translate from the **window** height (the `bottom`
+  variant in `Drawer.tsx` says so), so a contained sheet is pushed off-screen by the
+  library's own arithmetic;
+- `--sy-sheet-top`, which pins the sticky Register bar and centres the fallback bodies, is a
+  viewport-relative `getBoundingClientRect().top`;
+- the whole drawer layer, the peek strips and the cog are `position: fixed`.
+
+A host that gets it wrong now **hears about it**: `Widget.tsx` warns at mount through
+`lib/embed-slot.ts` (a narrow host column, or an explicit height on the element), instead of
+silently painting over their page. The thresholds there are deliberately slack — a false
+positive lands in a stranger's console.
+
+### Why there is no `@tailwindcss/container-queries`
+
+It was evaluated and rejected, for one reason: **there is no CSS-side case for it to serve.**
+Every layout-critical Tailwind variant in the app is either in the map-mode anchored path,
+where viewport == container, or cancelled outright by `filled` map-less. That second half is
+measured, not assumed — at a 1440px viewport (so every `lg:` variant is live) a `filled`
+drawer computes to `position: absolute`, `max-width: none`, `border-radius: 0`, and fills its
+box to the pixel, so `fixed`, `w-[22rem]`, `max-w-[calc(100vw-2rem)]`, `lg:inset-y-4` and
+`lg:rounded-2xl` all have no effect in the only mode that *has* a container. The real cases
+were behavioural, and a ResizeObserver covers those.
+
+**A caution against a plausible-sounding reason that is FALSE.** It is widely repeated that
+`container-type: inline-size` makes an element a containing block for `position: fixed`
+descendants — which would matter enormously here, since the map canvas, every drawer, the
+peek strips and the cog are all fixed. It was written into this rule on that belief and then
+measured, in Chrome 151:
+
+| host style | fixed child resolves against |
+| --- | --- |
+| `container-type: inline-size` | the **viewport** (1440×900) — no re-parenting |
+| `container-type: size` | the **viewport** (1440×900) — no re-parenting |
+| `contain: layout` | the **host** (400×200) |
+| `transform: translateZ(0)` | the **host** (400×200) |
+
+So `container-type` is *not* the hazard; `contain` and `transform` are. If a genuine CSS-side
+case ever appears, adopting the plugin is not blocked by this — but keep `contain: layout`
+and any transform off every ancestor of the fixed layer, and re-measure rather than trusting
+either this table or the folklore it corrects.
+
 ## Structure
 
 - Components are grouped by atomic tier — `src/components/{atoms,molecules,organisms}/`

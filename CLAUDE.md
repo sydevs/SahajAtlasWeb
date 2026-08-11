@@ -149,6 +149,15 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   (`navigate(-1)`, restoring the prior camera) when in-widget history exists and
   only climb to the structural parent for a fresh deep link (depth 0) — never
   popping the host page's history. See `.claude/rules/i18n-and-state.md`.
+- **Responsive**: the widget adapts to **its own box**, not the browser window
+  (`src/config/responsive.ts`, issue #107). `useIsWide`/`useIsWideWidget` measure the
+  container (a ResizeObserver owned by `DrawerStack`, shared via `WidgetWidthContext`);
+  `useIsWideViewport` is for the map camera only; `useCoarsePointer` for touch
+  affordances. In map mode there is nothing to measure — the widget spans the viewport,
+  which is a **documented requirement** of that mode — so the container signal returns
+  the viewport's answer there. The per-behaviour decision table, the map-mode argument
+  and why there is no container-query plugin are in `.claude/rules/components.md`;
+  `src/config/responsive.test.ts` asserts the viewport call sites as a closed list.
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`;
   never inline layer paint/layout in JSX. Camera control goes through the
   `MapController` seam (`src/hooks/use-map-controller.tsx`) — a no-op when
