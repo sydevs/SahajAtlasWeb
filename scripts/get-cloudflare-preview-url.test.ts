@@ -1,16 +1,33 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  PROVENANCE,
   STATUS,
+  deploymentAlias,
   explain,
   formatElapsed,
   note,
   pick,
+  pickPreview,
+  provenanceOf,
   timeoutFrom,
   timeoutStatus,
+  waitingLine,
 } from './get-cloudflare-preview-url.mjs'
 
 const HOST = 'sahajatlas.pages.dev'
+
+// PR #135, verbatim, because it is the case the ranking exists for. The head was
+// 56c6b0d and deployed to a73c3b0c; the Cloudflare comment for this project was
+// last edited naming 9326e3b and still linked THAT commit's deploy, 6b78e192.
+const DEPLOY = `https://a73c3b0c.${HOST}`
+const BRANCH = `https://fix-report-form-delivery.${HOST}`
+const STALE = `https://6b78e192.${HOST}`
+const DEPLOY_ID = 'a73c3b0c'
+
+/** @see provenanceOf — `scope` is where a URL was read, not what it looks like. */
+const from = (scope: 'commit' | 'pr' | 'none', ...urls: string[]) =>
+  urls.map((url) => ({ url, scope }))
 
 describe('pick', () => {
   it('accepts the project host and its deployment subdomains', () => {
@@ -49,6 +66,181 @@ describe('pick', () => {
   it('skips unparseable candidates rather than throwing', () => {
     expect(pick(['not a url', `https://${HOST}`], HOST)).toBe(`https://${HOST}`)
     expect(pick([], HOST)).toBeNull()
+  })
+})
+
+describe('deploymentAlias', () => {
+  // The chain that makes selection a fact: GitHub returned this check run for the
+  // head SHA, the run points at a deployment UUID, and Cloudflare's per-deployment
+  // alias is that UUID's first 8 characters. Nothing here is a shape heuristic.
+  it('reduces a dashboard link to the alias its deployment serves', () => {
+    expect(
+      deploymentAlias(
+        'https://dash.cloudflare.com/?to=/c66c53a/pages/view/sahajatlas/a73c3b0c-df19-4049-ac2b-bcf72bcc83b0',
+      ),
+    ).toBe(DEPLOY_ID)
+  })
+
+  it('is null when there is no deployment to read', () => {
+    expect(deploymentAlias('https://dash.cloudflare.com/?to=/pages/view/sahajatlas')).toBeNull()
+    expect(deploymentAlias(undefined)).toBeNull()
+  })
+
+  // The docblock says "ending in", so the LAST uuid is the deployment. An earlier
+  // uuid-shaped path segment winning would name a host that exists nowhere.
+  it('reads the last uuid, not the first', () => {
+    expect(
+      deploymentAlias(
+        'https://dash.cloudflare.com/11111111-2222-3333-4444-555555555555/pages/view/sahajatlas/a73c3b0c-df19-4049-ac2b-bcf72bcc83b0',
+      ),
+    ).toBe(DEPLOY_ID)
+  })
+})
+
+describe('waitingLine', () => {
+  // A refused URL and live evidence are not alternatives — a poll can have a
+  // sibling run building AND a stale comment, and showing only the refusal drops
+  // the "a deploy exists" half that separates slow from absent.
+  it('reports the refusal and the evidence together', () => {
+    const line = waitingLine(
+      {
+        url: null,
+        refused: `https://6b78e192.${HOST}`,
+        evidence: 'check run "…-design" (success)',
+      },
+      '56c6b0d',
+      HOST,
+    )
+
+    expect(line).toContain('6b78e192')
+    expect(line).toContain('56c6b0d')
+    expect(line).toContain('-design')
+  })
+
+  it('says only that nothing turned up when nothing did', () => {
+    const line = waitingLine({ url: null, refused: null, evidence: null }, '56c6b0d', HOST)
+
+    expect(line).toContain('No sahajatlas.pages.dev preview URL yet')
+    expect(line).not.toContain('ignoring')
+  })
+})
+
+describe('provenanceOf', () => {
+  it('ranks the deployment our check run names above everything', () => {
+    expect(provenanceOf({ url: DEPLOY, scope: 'commit' }, DEPLOY_ID)).toBe(PROVENANCE.deployment)
+    // Even reached by the weakest source: the id is Cloudflare's own answer to
+    // "which host is this commit", so where we read it changes nothing.
+    expect(provenanceOf({ url: DEPLOY, scope: 'none' }, DEPLOY_ID)).toBe(PROVENANCE.deployment)
+  })
+
+  it('separates a deploy alias from a branch alias within one per-SHA source', () => {
+    expect(provenanceOf({ url: DEPLOY, scope: 'commit' })).toBe(PROVENANCE.attested)
+    expect(provenanceOf({ url: BRANCH, scope: 'commit' })).toBe(PROVENANCE.alias)
+  })
+
+  // The defect this ticket is about. A comment naming a different commit is worth
+  // nothing no matter how convincing the URL in it looks — 6b78e192 is perfectly
+  // deploy-shaped, and it is another commit's build.
+  it('refuses anything from a comment that names a different commit', () => {
+    expect(provenanceOf({ url: STALE, scope: 'none' })).toBe(PROVENANCE.loose)
+    expect(provenanceOf({ url: BRANCH, scope: 'none' })).toBe(PROVENANCE.loose)
+  })
+
+  // The bare project host is PRODUCTION. It clears `pick()` and is not
+  // deploy-shaped, so it would otherwise sit on the floor beside a branch alias
+  // — but this script only runs for a PR head, so production is never right.
+  it('refuses the bare project host, which is production rather than a preview', () => {
+    expect(provenanceOf({ url: `https://${HOST}`, scope: 'commit' })).toBe(PROVENANCE.loose)
+    expect(pickPreview(from('commit', `https://${HOST}`), { host: HOST })).toBeNull()
+  })
+
+  it('ranks a comment BELOW the check run even when its URL is deploy-shaped', () => {
+    // The comment is edited in place per deploy, and we cannot see
+    // retrospectively whether Cloudflare blanks its URL cells mid-build — so a
+    // body naming the head might still show the previous deploy's link. The
+    // check run therefore has to WIN that race rather than tie it. Asserted as
+    // an ordering, not a constant, so renaming a tier can't quietly invert it.
+    expect(provenanceOf({ url: DEPLOY, scope: 'pr' })).toBe(PROVENANCE.claimed)
+    expect(PROVENANCE.claimed).toBeLessThan(PROVENANCE.attested)
+
+    // The race that matters: two deploy aliases, one from each source.
+    const fromCheckRun = `https://9260ebb2.${HOST}`
+
+    expect(
+      pickPreview([...from('pr', DEPLOY), ...from('commit', fromCheckRun)], { host: HOST }),
+    ).toBe(fromCheckRun)
+  })
+
+  it('still prefers a comment DEPLOY alias over a bare branch alias', () => {
+    // `claimed` sits above `alias`, not below it: a deploy alias names one
+    // immutable build and the comment vouches for the head commit, whereas a
+    // branch alias is pinned to nothing at all. This is the path that runs if
+    // Cloudflare ever drops the per-deploy URL from the check-run summary.
+    expect(pickPreview([...from('commit', BRANCH), ...from('pr', DEPLOY)], { host: HOST })).toBe(
+      DEPLOY,
+    )
+  })
+})
+
+describe('pickPreview', () => {
+  // The acceptance criterion, stated as a test: both URLs are in the same
+  // check-run summary and only one of them is pinned to this commit.
+  it('does not take the branch alias when the head commit has a deploy alias', () => {
+    expect(pickPreview(from('commit', BRANCH, DEPLOY), { host: HOST, deployment: DEPLOY_ID })).toBe(
+      DEPLOY,
+    )
+    // Order must not decide it — the old code returned whichever came first.
+    expect(pickPreview(from('commit', DEPLOY, BRANCH), { host: HOST, deployment: DEPLOY_ID })).toBe(
+      DEPLOY,
+    )
+  })
+
+  it('still prefers a deploy alias before the deployment id is known', () => {
+    // The in-build window: the run exists but carries no deployment yet.
+    expect(pickPreview(from('commit', BRANCH, DEPLOY), { host: HOST })).toBe(DEPLOY)
+  })
+
+  it('returns nothing when the only offer is a comment about another commit', () => {
+    // PR #135 reproduced. The old `pick()` answered `found` here, and the smoke
+    // lane would have gone green having tested 9326e3b's build.
+    expect(pickPreview(from('none', STALE, BRANCH), { host: HOST })).toBeNull()
+  })
+
+  it('keeps the branch alias as a floor, so a format change degrades rather than reddens', () => {
+    // If Cloudflare ever stops printing the per-deploy URL, discovery should get
+    // worse, not stop: #99 hard-fails a same-repo PR on an empty result.
+    expect(pickPreview(from('commit', BRANCH), { host: HOST })).toBe(BRANCH)
+    // A comment that DOES name the head is the weakest usable source. Note this
+    // deliberately isn't STALE — that constant is another commit's deploy, and
+    // reusing it here would read as "we accept another commit's build".
+    expect(pickPreview(from('pr', BRANCH), { host: HOST })).toBe(BRANCH)
+  })
+
+  // The tie-break the ticket exists to remove, one level down: inside a single
+  // comment, both URLs are `pr`-scope, so if deploy-shape were only read for
+  // per-SHA sources then whichever Cloudflare happened to print first would win.
+  it('does not let a single comment markdown order decide between its two URLs', () => {
+    expect(pickPreview(from('pr', BRANCH, DEPLOY), { host: HOST })).toBe(DEPLOY)
+    expect(pickPreview(from('pr', DEPLOY, BRANCH), { host: HOST })).toBe(DEPLOY)
+  })
+
+  it('follows the configured host when refusing production, not a module-level copy', () => {
+    // provenanceOf derives the production label from the host it is GIVEN, so a
+    // different CF_PROJECT refuses its own bare host rather than this one.
+    const design = 'sahajatlas-design.pages.dev'
+
+    expect(pickPreview(from('commit', `https://${design}`), { host: design })).toBeNull()
+  })
+
+  it('leaves the host gate exactly where it was', () => {
+    // Ranking chooses among URLs `pick()` accepts; it must never reach past it.
+    // A lookalike is refused at the strongest tier as firmly as at the weakest.
+    const evil = 'https://evil-sahajatlas.pages.dev'
+
+    expect(pickPreview(from('commit', evil), { host: HOST })).toBeNull()
+    expect(
+      pickPreview(from('commit', evil), { host: HOST, deployment: 'evil-sahajatlas' }),
+    ).toBeNull()
   })
 })
 
@@ -124,6 +316,18 @@ describe('explain', () => {
     const message = explain(STATUS.absent, { lastUrl: null, evidence: null })
 
     expect(message).toContain('no Cloudflare signal')
+    expect(message).not.toContain('re-run')
+  })
+
+  // Without this the `absent` sentence ("no check run, no deployment, no bot
+  // comment") is contradicted by the poll line printed seconds earlier naming the
+  // URL we declined — and the summary is the line a reader actually sees.
+  it('names a refused URL rather than denying it existed', () => {
+    const message = explain(STATUS.absent, { lastUrl: null, evidence: null, refused: STALE })
+
+    expect(message).toContain(STALE)
+    expect(message).toContain('names a different commit')
+    // Still the loud branch: another commit's URL is not evidence THIS one built.
     expect(message).not.toContain('re-run')
   })
 

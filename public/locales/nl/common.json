@@ -135,7 +135,8 @@
     "near_city": "Evenementen in de buurt van %{city} bekijken",
     "browse_countries": "Alle landen bekijken",
     "search_label": "Of zoek een plaats",
-    "unavailable": "Je kunt op dit moment niet deelnemen aan dit programma."
+    "unavailable": "Je kunt op dit moment niet deelnemen aan dit programma.",
+    "share_unavailable": "Er is nog geen link om deze meditatie te delen."
   },
   "country_site": {
     "title": "Er zijn nog geen lessen vermeld in %{country}.",

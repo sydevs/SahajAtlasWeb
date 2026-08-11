@@ -135,7 +135,8 @@
     "near_city": "Ver eventos perto de %{city}",
     "browse_countries": "Ver todos os países",
     "search_label": "Ou busque um lugar",
-    "unavailable": "Não é possível participar deste programa no momento."
+    "unavailable": "Não é possível participar deste programa no momento.",
+    "share_unavailable": "Ainda não há um link para compartilhar esta meditação."
   },
   "country_site": {
     "title": "Ainda não há aulas cadastradas em %{country}.",

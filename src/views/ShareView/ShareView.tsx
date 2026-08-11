@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventSummary } from '@/components/molecules'
+import { EventSummary, FallbackPanel } from '@/components/molecules'
 // Leaf path, not the barrel: ShareContent owns react-share, and the barrel is imported by
 // eager views — so a re-export there is enough to keep it in the eager graph even though
 // this view is lazy (issue #96). Same reason EventDetails reaches EventActions this way.
 import { ShareContent } from '@/components/molecules/ShareContent'
 import { useMapController } from '@/hooks/use-map-controller'
+import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
@@ -22,6 +23,9 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   const country = useViewerCountry()
 
   const { data: event } = useEventFromPath(eventPath)
+  // The event's canonical page, else this session's address if the route is in it — and
+  // nothing at all on a host page the widget routes off-URL on (issue #115).
+  const url = useShareUrl(event.webUrl)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 
@@ -33,16 +37,28 @@ export function ShareView({ eventPath }: { eventPath: string }) {
       </DrawerHeader>
       <DrawerBody className="p-4">
         <EventSummary event={event} />
-        {/* Match the summary card's width so the share block lines up with it. A null
-            webUrl (an unpublished/gated event has no canonical link) falls back to the
-            current deep link, so the copy field and native share never carry an empty
-            URL — which the OS share sheet would resolve to the host page, not the event. */}
+        {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">
-          <ShareContent
-            country={country}
-            label={event.title}
-            url={event.webUrl ?? window.location.href}
-          />
+          {url ? (
+            <ShareContent country={country} label={event.title} url={url} />
+          ) : (
+            /* No canonical page AND no route in the URL — the copy field, the native
+               sheet and every react-share target all need a URL, and the only string
+               within reach is the HOST page's, which names their article and not this
+               meditation. So this screen says so instead of handing out a link that goes
+               somewhere else (issue #115). `align="start"` to match the identical panel on
+               the sibling register route, which shares this recovery rather than growing a
+               second copy of it. */
+            <FallbackPanel
+              align="start"
+              contact={
+                event.contactPhone
+                  ? { phone: event.contactPhone, name: event.contactName }
+                  : undefined
+              }
+              kind="share-unavailable"
+            />
+          )}
         </div>
       </DrawerBody>
     </>

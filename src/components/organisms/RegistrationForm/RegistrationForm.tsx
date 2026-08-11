@@ -51,7 +51,16 @@ export type RegistrationFormProps = {
   questions: RegistrationQuestionName[]
   isOnline: boolean
   eventTitle: string
-  eventUrl: string
+  /**
+   * The event's link, for the confirmation screen's invite-a-friend block. **Optional**,
+   * and the block is dropped without it (issue #115): an event with no canonical page,
+   * viewed on a host page the widget routes off-URL on, has no URL that identifies it —
+   * and the only string in reach is the host page's own address, which would send the
+   * friend to somebody's article. `ShareContent` keeps its `url` REQUIRED for the same
+   * reason: a share block is a URL plus ways to send it, so there is no such thing as one
+   * without a URL. The caller that has no link renders no block.
+   */
+  eventUrl?: string
   /**
    * Export primitives for the confirmation screen's add-to-calendar block
    * (issue #105). Optional, and deliberately NOT an `Event`: the form stays
@@ -184,8 +193,14 @@ export function RegistrationForm({
             </>
           )}
 
-          <div className="mt-2 font-semibold">{t('registration.invite_friend')}</div>
-          <ShareContent country={country} label={eventTitle} url={eventUrl} />
+          {/* Heading and block together, or neither: "Invite a friend" over nothing to
+              press is a worse confirmation screen than one that simply doesn't offer it. */}
+          {eventUrl && (
+            <>
+              <div className="mt-2 font-semibold">{t('registration.invite_friend')}</div>
+              <ShareContent country={country} label={eventTitle} url={eventUrl} />
+            </>
+          )}
         </div>
       ) : (
         <>

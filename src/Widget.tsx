@@ -154,6 +154,13 @@ function Atlas({
   // through the widget; and in-widget link hrefs resolve against the host origin rather
   // than the fragment, so a middle-click opens a host URL that probably 404s.
   //
+  // The FIRST of those is now something the tree can ask about rather than something it
+  // finds out by handing a viewer the wrong link: this branch is the sole source of the
+  // `linkable` mode axis (`config/mode.ts`, issue #115), which is why it is passed down
+  // from here instead of re-read off `window.location` where it's wanted. The share block
+  // and the calendar export offer no URL rather than the host page's when it's false. The
+  // other two remain.
+  //
   // Re-entrancy: `useLocale` can suspend on a cold i18n boot, which makes React discard
   // and retry this render — recreating the ref and re-running `claimFragment`. That is
   // safe, and not by accident: the retry reads the hash the first pass just wrote, so
@@ -164,6 +171,10 @@ function Atlas({
     mount.current = claimFragment(mountRoute(window.location.hash, basePath))
   }
 
+  // One name for the one decision: it picks the router below AND is the `linkable` mode
+  // axis handed to the tree. Deriving both from the same const is what stops a later
+  // reader from answering "is our route in the URL?" a second, divergent way.
+  const linkable = mount.current.router === 'hash'
   const hasMap = attributeEnabled(map)
 
   // The widget scopes its theme to this wrapper so it never mutates the host
@@ -202,6 +213,7 @@ function Atlas({
         brand={{ primary: primaryColor, secondary: secondaryColor }}
         defaultLocale={locale}
         hasMap={hasMap}
+        linkable={linkable}
         themeRootRef={themeRootRef}
       />
     </div>
@@ -209,7 +221,7 @@ function Atlas({
 
   // Never switches after the first render — `mount` is a ref — so this branch can't
   // remount the tree mid-session.
-  return mount.current.router === 'hash' ? (
+  return linkable ? (
     <HashRouter basename={HASH_BASE}>{atlas}</HashRouter>
   ) : (
     <MemoryRouter initialEntries={[mount.current.path]}>{atlas}</MemoryRouter>

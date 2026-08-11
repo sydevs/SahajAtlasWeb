@@ -113,7 +113,7 @@ src/
   config/
     api/              # PayloadSDK client + zod-parsed fetchers (client.ts, fetch.ts, mutate.ts, auth.ts) + query factories (index.ts)
     store.ts          # zustand stores (view / camera-history / calendar-position / results-reveal / report-modal / registration-draft; filters live in the URL)
-    mode.ts           # WidgetMode context (standalone + hasMap)
+    mode.ts           # WidgetMode context (standalone + hasMap + linkable)
     i18n.ts           # i18next init
     responsive.ts, query-client.ts, i18n-options.ts, preview.ts, theme/
   hooks/              # use-locale, use-mapbox, use-map-controller, use-theme, use-reduced-motion

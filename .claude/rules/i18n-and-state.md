@@ -128,10 +128,14 @@ Six stores, each the single source of truth for its slice:
   the opposite of its own premise: rendering a card costs, owning one does not, so
   windowing — which re-renders cards on every scroll — was judged a likely regression and
   the ticket's sanctioned fallback, a lower ceiling, was taken instead. **Reach for the
-  per-card render cost, not the row count, if this list ever needs to get faster.** The
-  numbers, and the sharp edge the lower ceiling brings with it (a nearby segment that
-  fills the ceiling on its own strands the distant segment behind it), live in one place:
-  the `MAX_REVEAL` docblock.
+  per-card render cost, not the row count, if this list ever needs to get faster.**
+  **That ceiling is PER-SEGMENT, because one budget across two segments deletes a segment
+  rather than trimming a list** (issue #129): `MAX_NEARBY_REVEAL` caps the nearby segment
+  while a distant one exists, which is what keeps the crossing reachable, and it must stay
+  **strictly** below `MAX_REVEAL` — that gap is the whole fix, not a spare. `MAX_REVEAL`
+  still bounds `rows.length` whichever segments show. The numbers, the bug it closes and
+  the strictness argument live in one place: the two docblocks in `reveal.ts`, ratcheted
+  over both constants by `reveal.test.ts`.
   **The boundary is two numbers, not one**: `NEARBY_KM` (300), and
   `FOREIGN_NEARBY_KM` (half that) for an event whose `address.country` differs from the
   searched `?cc` — distance alone ranks Belgian classes over French ones for someone
@@ -231,8 +235,9 @@ separate — an inner fallback must never re-throw to escalate.
   the nearest one, and without it "Try again" re-throws the cached error.
 - **One table covers the empty states too, not just the failures.** `FallbackKind` spans
   the five classified failures *and* the ways a screen ends up with nothing to act on
-  (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`), because a barren
-  region and a URL that never existed leave a viewer in exactly the same position. They
+  (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`, `share-unavailable`),
+  because a barren region and a URL that never existed leave a viewer in exactly the same
+  position. They
   render the same `FallbackPanel`, so a policy row — not a component — is what differs.
   `not-found` and `empty` are asserted equal but for their sentence; if they ever diverge,
   one has quietly become the worse dead end.
@@ -245,7 +250,11 @@ separate — an inner fallback must never re-throw to escalate.
   status→copy table (full / ended / closed / hidden) and tests it, so copying those four
   into `ERROR_POLICY` would be the hand-agreement the table exists to remove. Everything
   the table itself defines still gets its copy from the table, where the en-parity test
-  can see it.
+  can see it. **It is the ONLY row entitled to `message`** — `share-unavailable` (issue
+  #115) wanted a sentence of its own and got a row, not an override, which is the rule
+  `FallbackValues` states: a caller may vary the values, never the key. That row is
+  `unavailable` minus `onward`, because answering "there's no link to share" with "see
+  events nearby" walks the viewer away from the class they were trying to pass on.
 - **A dead link is not a malfunction.** `color` is the register: `danger` (red,
   `role="alert"`) for a genuine failure, `neutral` (`role="status"`) for a dead end or an
   empty list. Red chrome on a not-found means the two have drifted.
