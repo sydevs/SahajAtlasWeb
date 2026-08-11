@@ -25,18 +25,31 @@
  *      catches the reverse mistake, a plain `sourcemap: true`, whose comment would survive
  *      the deletion as a signpost to a 404.
  *
- * Run via `pnpm build`, so CI and both Cloudflare Pages builds gate on it. It is also the
- * reason an upload failure is allowed to be non-fatal: the plugin's `errorHandler` lets a
- * deploy proceed without maps, and this is what still stops it proceeding WITH them.
+ * **It runs on BOTH deploy targets, and it has to be pointed at each of them.** This repo
+ * ships two Cloudflare Pages projects: `sahajatlas` builds `pnpm build` → `dist/`, and
+ * `sahajatlas-design` builds `pnpm ladle:build` → `build/`. `pnpm ladle:build` never runs
+ * `pnpm build`, and Ladle builds through `.ladle/vite.config.ts` — which does not load
+ * this repo's root config, so neither `build.sourcemap` nor the plugin exists there. The
+ * playground therefore cannot emit a map *today*; it is wired up anyway because Ladle
+ * stories import the app's real `src/` tree, so anyone who adds `build: { sourcemap: true }`
+ * to debug a story would publish that tree under the same `_headers` (`public/` is copied
+ * into both outputs) with no gate anywhere in the pipeline. Hence the directory argument.
+ *
+ * It is also the reason an upload failure is allowed to be non-fatal — but for a narrower
+ * reason than it looks. Deletion runs in `writeBundle`'s `finally` whether the upload threw
+ * or not, so a failed UPLOAD leaves nothing behind. What passing `errorHandler` genuinely
+ * disarms is the plugin's own rethrow on a failed DELETION, and that is the single path by
+ * which a map could reach the output. This gate is what closes it.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
-// Resolved against this module, not the cwd — matching the other scripts here — so the
-// gate can't pass or fail on where it happened to be invoked from.
-const DIST = fileURLToPath(new URL('../dist', import.meta.url))
+// The output directory to check, relative to this module (not the cwd — matching the other
+// scripts here — so the gate can't pass or fail on where it happened to be invoked from).
+// Defaults to the app's `dist/`; `pnpm ladle:build` passes `../build`.
+const OUT_DIR = fileURLToPath(new URL(process.argv[2] ?? '../dist', import.meta.url))
 
 // Only the files a browser is served. `.map` is matched by NAME rather than read, and
 // everything else here is text we scan for an inline map.
@@ -51,9 +64,10 @@ export const SCANNED_EXTENSIONS = ['.js', '.mjs', '.cjs', '.css', '.html']
  *
  * @param {string[]} names Paths relative to the output directory.
  * @param {(name: string) => string | undefined} read Contents, or `undefined` if unreadable.
+ * @param {string} [secret] A value that must not appear in the output (the Sentry auth token).
  * @returns {{ failures: string[], scanned: number }}
  */
-export function auditOutput(names, read) {
+export function auditOutput(names, read, secret) {
   const failures = []
   const maps = names.filter((name) => name.endsWith('.map'))
 
@@ -84,9 +98,25 @@ export function auditOutput(names, read) {
     if (source.includes('sourceMappingURL')) {
       failures.push(
         `${name} references a source map (\`sourceMappingURL\`).\n` +
-          "  `build.sourcemap` must stay `'hidden'` or `false` — never `true` or `inline`.\n" +
-          '  An INLINE map embeds every original source file in the shipped JS, where no\n' +
-          '  .map-file check can see it.',
+          "  Usually this means `build.sourcemap` is no longer `'hidden'` or `false`: an\n" +
+          '  INLINE map embeds every original source file in the shipped JS, where no\n' +
+          '  .map-file check can see it.\n' +
+          '  It can also be a dependency that merely embeds the literal string (it is\n' +
+          '  ordinary content in stack-trace and source-map libraries). Confirm which by\n' +
+          '  reading the match; if it is a dependency, exempt that file by name here\n' +
+          '  rather than weakening the check for everything.',
+      )
+    }
+
+    // Belt-and-braces on the one secret this build reads. Vite cannot inline a variable
+    // without a `VITE_` prefix, so this should be unreachable — but "should be" is what
+    // this whole file exists to replace, and a leaked auth token is worse than a leaked
+    // map. Costs nothing on an uncredentialed build, where there is no secret to look for.
+    if (secret && source.includes(secret)) {
+      failures.push(
+        `${name} contains the value of SENTRY_AUTH_TOKEN.\n` +
+          '  A build-time secret has reached the public bundle. Revoke that token before\n' +
+          '  doing anything else, then find what put it there.',
       )
     }
   }
@@ -108,21 +138,22 @@ function fail(message) {
 // Importing this module for its exports (the spec) must not run the gate against a `dist/`
 // that may not exist.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  if (!existsSync(DIST)) {
-    fail(`no ${DIST}/ — run \`vite build\` first`)
+  if (!existsSync(OUT_DIR)) {
+    fail(`no ${OUT_DIR}/ — run the build first`)
   }
 
   const { failures, scanned } = auditOutput(
-    readdirSync(DIST, { recursive: true, encoding: 'utf8' }),
+    readdirSync(OUT_DIR, { recursive: true, encoding: 'utf8' }),
     (name) => {
       // `readdirSync({ recursive: true })` lists directories too, and a directory named
       // `foo.js` would throw EISDIR here rather than failing the check it belongs to.
       try {
-        return readFileSync(join(DIST, name), 'utf8')
+        return readFileSync(join(OUT_DIR, name), 'utf8')
       } catch {
         return undefined
       }
     },
+    process.env.SENTRY_AUTH_TOKEN,
   )
 
   if (failures.length > 0) fail(failures.join('\n\n  '))

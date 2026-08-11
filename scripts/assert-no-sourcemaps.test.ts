@@ -64,6 +64,25 @@ describe('auditOutput', () => {
     expect(failures).toEqual([expect.stringContaining('found no scannable output')])
   })
 
+  // Vite cannot inline a variable without a `VITE_` prefix, so this should be unreachable
+  // — which is exactly the kind of "should be" this gate exists to stop trusting.
+  it('rejects the build-time auth token appearing in the output', () => {
+    const { failures } = auditOutput(
+      ['embed.js'],
+      () => `${CLEAN_CHUNK}//sntrys_leaked_value`,
+      'sntrys_leaked_value',
+    )
+
+    expect(failures).toEqual([expect.stringContaining('SENTRY_AUTH_TOKEN')])
+  })
+
+  it('looks for no secret when the build is uncredentialed', () => {
+    // The uncredentialed path passes `undefined`; an empty-string token (how a declared-
+    // but-blank Cloudflare variable arrives) must not match every file either.
+    expect(auditOutput(['embed.js'], () => CLEAN_CHUNK, undefined).failures).toEqual([])
+    expect(auditOutput(['embed.js'], () => CLEAN_CHUNK, '').failures).toEqual([])
+  })
+
   it('scans every extension the build actually emits', () => {
     // `.js` and `.html` are what this build writes today; the rest are covered so a
     // future emit shape does not slip past unread.

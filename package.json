@@ -21,7 +21,7 @@
     "size": "node scripts/check-bundle-size.mjs",
     "audit:check": "node scripts/check-audit.mjs",
     "ladle": "ladle serve",
-    "ladle:build": "ladle build",
+    "ladle:build": "ladle build && pnpm assert:maps ../build",
     "preview": "vite preview",
     "i18n:add": "node scripts/add-locale-key.mjs",
     "types:cms": "mkdir -p src/types/payload && curl -fsSL -o src/types/payload/payload-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/payload-types.ts && curl -fsSL -o src/types/payload/response-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/collections/Events/endpoints/responseTypes.ts && curl -fsSL -o src/types/payload/contact-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/endpoints/responseTypes.ts && node scripts/strip-payload-augmentation.mjs",
