@@ -318,7 +318,21 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     //  - `release` defaults to `window.SENTRY_RELEASE?.id` — a global belonging to the
     //    HOST. A site running its own Sentry would silently stamp every one of our events
     //    with THEIR release version, so our issues would claim to come from a deploy that
-    //    isn't ours. Pinned to nothing until we have a real build version to put here.
+    //    isn't ours. **It stays pinned to nothing now that source maps upload (#130), not
+    //    despite that** — frames resolve by DEBUG ID, which the bundler plugin injects into
+    //    each chunk and its map, so symbolication needs no release and this hazard stays
+    //    shut. A release string would also be the wrong identity here even if it were free:
+    //    #143 settled that this repo deploys evergreen and its `package.json` version is
+    //    "a marker, not a contract", so many distinct builds share one version while each
+    //    has its own debug IDs. `vite.config.ts` therefore also sets `release.inject: false`
+    //    — the plugin's default would WRITE that same global onto the host page, which is
+    //    this bullet in reverse.
+    //
+    //    Load-bearing consequence for `beforeSend` below: it must keep `debug_meta`.
+    //    `prepareEvent` fills it from the injected debug IDs BEFORE the hook runs, so
+    //    deleting it — or converting that delete-list into a true allowlist without
+    //    carrying the field across — silently un-symbolicates every frame while every
+    //    gate stays green. See the note on the hook itself.
     //  - `sendClientReports` defaults to true, which posts a periodic outcome summary to
     //    the ingest endpoint when the page is hidden. It is SDK bookkeeping we have no use
     //    for, and it would turn one crash into a second uninvited request from their page.
@@ -348,18 +362,34 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     // `location.href` — the one string `hostPageUrl` exists to avoid.
     integrations: [dedupeIntegration(), linkedErrorsIntegration()],
     beforeSend: (event, hint) => {
-      // **An allowlist, not a blocklist** — because the scope we capture on is not as
-      // private as `new Scope()` makes it look. `getCombinedScopeData` always merges
-      // `getGlobalScope()`, and the global carrier is keyed by SDK *version string*: a
-      // host page running this same `@sentry/browser` version shares that carrier with
-      // us. Their `setTag`/`setExtra`/`setContext` would ride out on OUR events, and ours
-      // on theirs — the cross-tenant contamination #95 found between two Fathom trackers,
-      // one layer down. So the event is rebuilt from what we know we put on it rather
-      // than trimmed of what we happened to think of.
+      // **Scrub the carriers a HOST could have written to.** The scope we capture on is
+      // not as private as `new Scope()` makes it look: `getCombinedScopeData` always
+      // merges `getGlobalScope()`, and the global carrier is keyed by SDK *version
+      // string*, so a host page running this same `@sentry/browser` version shares it
+      // with us. Their `setTag`/`setExtra`/`setContext` would ride out on OUR events, and
+      // ours on theirs — the cross-tenant contamination #95 found between two Fathom
+      // trackers, one layer down.
       //
       // Dropping `extra` closes a second hole on its own: a thrown plain object is
       // serialized into it wholesale, so anything a caller threw instead of an `Error`
       // would leave the page in full.
+      //
+      // **This is a DELETE-LIST, and calling it an allowlist (as this comment did until
+      // #130) is the kind of false claim that outlives the person who wrote it.** `tags`
+      // and `request` below really are rebuilt from scratch; everything else is removed by
+      // name, so any field neither we nor this list anticipated travels. A true allowlist
+      // is the stronger form and remains the right eventual shape — deliberately not
+      // attempted here, because #130 is a build-plumbing ticket and enumerating the fields
+      // an event legitimately needs (`event_id`, `timestamp`, `platform`, `sdk`,
+      // `exception`, `level`, `environment`, `debug_meta`, …) is a change to the seam that
+      // deserves its own ticket and its own review rather than a drive-by.
+      //
+      // **What that means today: `debug_meta` survives because nothing deletes it, and
+      // source-map symbolication depends on exactly that.** `prepareEvent` fills it from
+      // the debug IDs the bundler injected, BEFORE this hook runs. So whoever does convert
+      // this to a real allowlist must carry `debug_meta` across, or every production frame
+      // silently stops resolving with every gate still green. `report.sentry.test.ts` fails
+      // if it stops surviving; that spec is the guard, not this paragraph.
       event.tags = {
         'atlas.kind': event.tags?.['atlas.kind'],
         'atlas.context': event.tags?.['atlas.context'],

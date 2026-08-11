@@ -1,3 +1,5 @@
+import type { Event } from '@sentry/browser'
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { atlasError } from './report'
@@ -268,6 +270,49 @@ describe('what is allowed to travel with an event', () => {
     // carry a reset token and their fragment an OAuth `#access_token`; both are in the
     // fixture above precisely so a regression here fails loudly.
     expect((scrubbed.request as { url: string }).url).toBe('https://host.example/classes/london')
+  })
+
+  // The one field the scrub must NOT take (#130). `prepareEvent` fills `debug_meta` from
+  // the debug IDs the bundler plugin injected into each chunk, and it does so BEFORE this
+  // hook runs — so dropping it here would leave every production frame pointing into a
+  // minified chunk with the upload, the deletion gate and the whole ticket still green.
+  // The hook survives on being a delete-list; the docblock beside it says "allowlist", and
+  // the day someone makes that literally true is the day this spec has to fail.
+  it('keeps debug_meta, without which the uploaded source maps cannot be matched', async () => {
+    const { reportInternalError } = await freshSeam()
+
+    reportInternalError(atlasError('server', 'boom'), 'ctx')
+    await vi.waitFor(() => expect(sdk.clients).toHaveLength(1))
+
+    const beforeSend = sdk.clients[0]?.beforeSend as (
+      event: Record<string, unknown>,
+      hint: Record<string, unknown>,
+    ) => Record<string, unknown>
+
+    // **Typed against the SDK's own `Event`, which is the half that makes this a real
+    // assertion.** A delete-list scrub returns any key you hand it, so a fixture invented
+    // here would pass even if `debug_meta` were misspelled or the SDK had renamed it — the
+    // spec would then be pinning a field nothing produces. Binding the fixture to
+    // `Event['debug_meta']` means a rename or a shape change fails `pnpm typecheck`.
+    //
+    // Driving the real `applyDebugIds`/`applyDebugMeta` would be stronger still, and is
+    // deliberately not done: they are not public API (`@sentry/core`'s `exports` map
+    // offers only `.`, `./server` and `./browser`), so reaching them means a deep import
+    // into `build/esm/utils/`, which is exactly the library-internals coupling
+    // `.claude/rules/tests.md` rules out. This is the strongest form available at the seam.
+    const debugMeta: NonNullable<Event['debug_meta']> = {
+      images: [
+        {
+          type: 'sourcemap',
+          code_file: 'https://sahajatlas.pages.dev/assets/App-C5ZV2wC2.js',
+          debug_id: '7f3a1c60-9b2e-4d51-8a44-0c1d2e3f4a5b',
+        },
+      ],
+    }
+
+    const scrubbed = beforeSend({ debug_meta: debugMeta }, {})
+
+    expect(scrubbed.debug_meta).toEqual(debugMeta)
   })
 })
 
