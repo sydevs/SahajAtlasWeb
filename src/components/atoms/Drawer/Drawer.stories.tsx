@@ -148,7 +148,17 @@ function MeasuredPanel({
         className="relative h-64 overflow-hidden rounded-lg border border-divider"
         style={{ maxWidth: '100%', resize: resizable ? 'horizontal' : 'none', width }}
       >
-        <Drawer container={box} direction={isWide ? 'left' : 'bottom'} mode="filled" open={true}>
+        {/* Keyed on the direction exactly as DrawerStack keys its own drawer: vaul's
+            `direction` is not hot-swappable, so the crossing has to REMOUNT the root. Without
+            this the story would demonstrate something the app deliberately never does, and
+            could strand a stale direction's transform after a resize. */}
+        <Drawer
+          key={isWide ? 'left' : 'bottom'}
+          container={box}
+          direction={isWide ? 'left' : 'bottom'}
+          mode="filled"
+          open={true}
+        >
           {/* `filled` hides the handle by default (there is nothing to drag a filled panel
               to), so it is forced here to stand in for the affordance the real bottom sheet
               carries — the visible half of what the direction decides. */}

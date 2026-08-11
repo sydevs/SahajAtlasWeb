@@ -24,11 +24,10 @@ describe('mapSlotWarning — stays quiet', () => {
     expect(mapSlotWarning(FULL_PAGE)).toBeNull()
   })
 
-  // The element itself measures 0 in a correct map-mode embed: it is an unstyled inline
-  // custom element whose content is all `position: fixed`. Zero must read as "no height
-  // was asked for", never as a box of height zero.
-  it('for an element with no height of its own', () => {
-    expect(mapSlotWarning({ ...FULL_PAGE, elementHeight: 0 })).toBeNull()
+  // A host that DID size the element, but to the full page — `height: 100vh` on the embed is
+  // a perfectly good map-mode integration and must not be scolded for being explicit.
+  it.each([900, 880, 1200])('for an element %ipx tall on a 900px viewport', (elementHeight) => {
+    expect(mapSlotWarning({ ...FULL_PAGE, elementHeight })).toBeNull()
   })
 
   // A centred layout, body margins, a scrollbar, a padded article column — all normal, none

@@ -85,11 +85,13 @@ export function useCoarsePointer(): boolean {
  * viewport stands in; that is the same answer, because in map mode the widget spans the
  * viewport.
  *
- * **The first measurement is not damped, every later one is.** The seed runs in a layout
+ * **Measuring a new element is not damped; a change of width is.** The seed runs in a layout
  * effect, so it lands before the browser paints and the correct model is on screen from
  * the first frame. Damping it instead would paint one frame of the viewport's answer and
  * then remount the drawer into the container's — which is precisely the remount `SETTLE_MS`
- * exists to prevent, fired on every mount rather than only on a resize.
+ * exists to prevent, fired on every mount rather than only on a resize. That applies to
+ * every change of `element` IDENTITY and not just the first, by the same argument;
+ * `DrawerStack`'s node is stable for the session, so in practice it is the first.
  */
 export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boolean {
   const viewportWide = useIsWideViewport()
@@ -130,6 +132,9 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
       // and would move the crossing by whatever padding the element carries. Reading
       // `borderBoxSize` is spec-correct even though `observe()` uses the default content-box
       // option — that option chooses when a notification FIRES, not which sizes it reports.
+      // The `contentRect` fallback is for an engine too old to report `borderBoxSize` and
+      // does reintroduce that mismatch; it is accepted because the observed node carries no
+      // padding or border, so the two coincide there.
       const width = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width
 
       setContainerWide(width >= WIDE_MIN_PX)
@@ -168,9 +173,12 @@ export const WidgetWidthContext = createContext<boolean | null>(null)
 /** Read the widget's own width class. See `WidgetWidthContext` for the no-provider case. */
 export function useIsWideWidget(): boolean {
   const provided = useContext(WidgetWidthContext)
-  // Called unconditionally (hook order), and it is the fallback rather than dead work: with
-  // no provider above, this IS the answer.
-  const fallback = useIsWide(null)
+  // The raw viewport rather than `useIsWide(null)`, which would be the same answer through
+  // two effects and a timer. Damping exists to stop the drawer REMOUNTING on a width that
+  // hasn't settled, and nothing reading this outside a provider remounts on it — so the
+  // fallback path has nothing to damp, and paying for it on every consumer buys nothing.
+  // Called unconditionally (hook order); with no provider above, this IS the answer.
+  const fallback = useIsWideViewport()
 
   return provided ?? fallback
 }

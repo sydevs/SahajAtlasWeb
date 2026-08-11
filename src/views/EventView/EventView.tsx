@@ -70,10 +70,15 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // scroll the CTA away — pin Register there; keep it inline everywhere else.
   // Never pin an empty bar (inactive events render no register slot at all).
   //
-  // Reads the WIDGET's width, not the screen's (issue #107): "is this a bottom sheet"
-  // is the actual question, and DrawerStack answers it from the same measurement, so
-  // the bar can never be pinned in a panel that has no snap ladder — or missing from a
-  // sheet that does, which is what a narrow column embed on a desktop used to get.
+  // Reads the WIDGET's width, not the screen's (issue #107), so it can never disagree with
+  // the drawer it is pinned inside: "is this a bottom sheet" is the actual question, and
+  // DrawerStack answers it from the same measurement.
+  //
+  // **Agreement by construction — not a behaviour change.** This line computes exactly what
+  // it did before #107, and will keep doing so while `hasMap` gates it: map-less the bar
+  // never renders at all, and in map mode there is no container, so the measured signal
+  // returns the viewport's answer. The hook is here so that a future map-less sticky bar
+  // starts out reading the right thing, not because a narrow embed gains one today.
   const { display } = useEventDisplay(event)
   const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
 

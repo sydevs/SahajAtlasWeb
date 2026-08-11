@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
@@ -32,6 +32,9 @@ const stripComments = (source: string) =>
 const read = (relative: string) => stripComments(readFileSync(join(SRC, relative), 'utf8'))
 
 const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
+  // Normalised to `/` so the lists below read the same on every platform — `readdirSync`
+  // yields the OS separator, and every path in this file is written POSIX-style.
+  .map((relative) => relative.split(sep).join('/'))
   .filter((relative) => /\.tsx?$/.test(relative))
   .filter((relative) => !relative.endsWith('.test.ts') && !relative.endsWith('.test.tsx'))
 
@@ -49,9 +52,13 @@ const VIEWPORT_CALLERS: Record<string, string> = {
 }
 
 /**
- * The behavioural call sites that moved to the measured signal. Listed by name because the
- * point of #107 is these three specifically: they are the ones a narrow column embed on a
- * desktop viewport got wrong.
+ * The call sites that read the measured signal.
+ *
+ * **Only the first changes behaviour today**, and the distinction is worth keeping straight:
+ * `DrawerStack`'s direction is the fix — a narrow map-less embed becomes a bottom sheet.
+ * `EventView`'s sticky bar is gated on `hasMap`, and map mode has no container to measure,
+ * so that line computes exactly what it did before. It reads the measured signal so it
+ * cannot disagree with the drawer it pins inside, not because it gained a new answer.
  */
 const CONTAINER_CALLERS = ['views/DrawerStack/DrawerStack.tsx', 'views/EventView/EventView.tsx']
 
@@ -74,9 +81,20 @@ describe('the container-vs-viewport decision table', () => {
     expect(callers.sort()).toEqual(Object.keys(VIEWPORT_CALLERS).sort())
   })
 
-  it('routes the three behavioural decisions through the measured signal', () => {
+  // The media-query ENGINE, not just our wrapper around it. Without this the closed list
+  // above is bypassed by the cheapest possible route — `useMediaQuery({ query: '(min-width:
+  // 48rem)' })` names neither `useIsWideViewport` nor `768px` and would sail through both.
+  it('keeps react-responsive behind the two hooks that own it', () => {
+    const importers = SOURCE_FILES.filter((relative) => /'react-responsive'/.test(read(relative)))
+
+    expect(importers.sort()).toEqual(['config/responsive.ts', 'hooks/use-reduced-motion.ts'])
+  })
+
+  it('routes the behavioural decisions through the measured signal', () => {
+    // Call-shaped, like the `REMOVED` check below: `toMatch` on file text would be satisfied
+    // by a mention, and comment-stripping alone still leaves string literals.
     for (const relative of CONTAINER_CALLERS) {
-      expect(read(relative)).toMatch(/\buseIsWide(Widget)?\b/)
+      expect(read(relative)).toMatch(/\buseIsWide(Widget)?\s*\(/)
     }
 
     // Contact is the third, and it is neither: `tel:` depends on the device, not on how

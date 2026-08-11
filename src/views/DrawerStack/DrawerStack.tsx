@@ -515,8 +515,21 @@ export function DrawerStack() {
     [location, navigate],
   )
 
+  // Whether the sheet advertises its drag affordance (issue #107). The atom's default is
+  // `direction === 'bottom' && mode !== 'filled'`, which was right while `filled` (map-less)
+  // could only ever be the wide left panel — "nothing to drag". Container-awareness makes a
+  // narrow map-less embed a `filled` BOTTOM sheet that IS drag-dismissible, and that default
+  // would leave it dismissible with nothing on screen to say so: an invisible affordance.
+  //
+  // Keyed on dismissibility rather than on the mode, so it can't claim one that isn't there:
+  // the map-less ROOT view sets `dismissible={false}` (no parent to climb to) and correctly
+  // keeps no handle. Map mode is always dismissible, so it resolves to the atom's old answer.
+  const sheetDismissible = hasMap || parentPaths.length > 0
   const sheet = (
-    <DrawerContent aria-label={t('free_meditation_classes')}>
+    <DrawerContent
+      aria-label={t('free_meditation_classes')}
+      handle={direction === 'bottom' && sheetDismissible}
+    >
       <AnimatePresence mode="popLayout">
         <motion.div
           key={top?.path ?? '/'}
