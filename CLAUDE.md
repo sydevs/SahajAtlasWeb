@@ -42,6 +42,14 @@ event hierarchy.
 The app is also runnable standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx` (demo in `demo.html`).
 
+**The host-facing contract is written down in `docs/embedding.md`** (the integrator
+guide) and `CHANGELOG.md` — attributes, the CSP a host must send, sizing, the URL shape,
+privacy. Anything a host can *observe* changing means updating both, in the same PR that
+changes it: they are the only documentation an embedding site ever reads, and the README's
+snippet spent months telling hosts to load a filename the build has never emitted (#93).
+An origin added to a fetch, an attribute added to `Widget.tsx`, a new `<style>` injection
+or a change to what the map requests all land in that guide's CSP table.
+
 ## Essential commands
 
 ```bash

@@ -149,6 +149,12 @@ in host pages, **and** runs standalone in dev. Because of that:
   `reportIntegrationWarning` (`src/lib/report.ts`).
 - Don't assume control of `<head>`, global CSS, or the full viewport — the host
   page owns those. Scope styles to the widget's own DOM.
+- **What a host can observe is documented in `docs/embedding.md`** — the attribute table,
+  the CSP contract, sizing, the URL shape, the style-tag ids. It is the only doc an
+  embedding site reads, so a change here that a host could notice is not finished until
+  that guide (and `CHANGELOG.md`) says so. The CSP table is the easiest one to break
+  silently: a new origin, a new `<style>` injection, or a worker means a host's policy has
+  to grow, and they find out by their page going blank rather than by our build failing.
 - Provider stack lives in `src/providers.tsx` (React Query + Helmet + theme).
   Add new context providers there, not scattered across the tree.
 
