@@ -76,7 +76,7 @@ import { annotate, report } from './_ci-output.mjs'
 // look at the widget waits for.
 const BUDGET_KIB = {
   standalone: 395,
-  loader: 3.4,
+  loader: 3.8,
   embed: 395,
 }
 
@@ -90,6 +90,26 @@ const BUDGET_KIB = {
 // graph shrinks, the total collapses, and an over-budget check alone would
 // report a comfortable pass on a payload it never measured.
 const SLACK_RATIO = 0.15
+
+// A FLOOR under the slack allowance, in KiB, without which the ratchet rule and the
+// leave-headroom-for-Sentry rule are mathematically unsatisfiable on a small graph.
+//
+// CLAUDE.md records that a credentialed build ships more than CI measures, because
+// `@sentry/vite-plugin` injects a debug-ID snippet per chunk and CI has no token. Measured
+// on this build: +2.1 KiB on `standalone` and `embed`, and **+0.5 KiB on `loader`**. The
+// absolute cost is small; the RATIO is not, because it scales with chunk count rather than
+// bytes — 0.5 KiB is 17% of the 3.0 KiB loader graph, where it is 0.6% of the embed's.
+//
+// So for a graph this small the two rules collide head-on. A budget high enough to clear the
+// credentialed build (> 3.5) leaves spare that a flat 15% then calls "far under budget", and
+// the only numbers satisfying both sit in a window ~0.03 KiB wide. That is not a budget, it
+// is a knife edge, and the next person to touch the loader would have hit it.
+//
+// The floor resolves it without weakening anything: on the big graphs 15% is far larger and
+// still governs, so their ratchet behaviour is unchanged. It only ever applies where the
+// percentage would be tighter than the known, unavoidable delta between what CI can measure
+// and what production ships.
+const SLACK_FLOOR_KIB = 1
 
 const DIST = resolve(import.meta.dirname, '..', 'dist')
 const KIB = 1024
@@ -299,15 +319,17 @@ function main() {
   }
 
   const over = graphs.filter((g) => g.spare < 0)
-  const under = graphs.filter((g) => g.spare > g.budget * SLACK_RATIO)
+  const slackFor = (g) => Math.max(g.budget * SLACK_RATIO, SLACK_FLOOR_KIB)
+  const under = graphs.filter((g) => g.spare > slackFor(g))
   const name = (list) => list.map((g) => `${g.name} ${g.kib.toFixed(1)} KiB`).join('; ')
 
   if (under.length) {
     lines.push(
       '',
       `> 📉 ${under.map((g) => `\`${g.name}\``).join(' and ')} now ` +
-        `${under.length === 1 ? 'runs' : 'run'} more than ${SLACK_RATIO * 100}% under ` +
-        'budget. Lower `BUDGET_KIB` to lock the win in.',
+        `${under.length === 1 ? 'runs' : 'run'} further under budget than ` +
+        `${SLACK_RATIO * 100}% (or ${SLACK_FLOOR_KIB} KiB, whichever is larger). ` +
+        'Lower `BUDGET_KIB` to lock the win in.',
     )
   }
 
