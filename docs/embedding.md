@@ -1,8 +1,8 @@
 # Embedding Sahaj Atlas
 
-Everything a host site needs to put `<sahaj-atlas>` on a page: the snippet, the
-attributes, the Content-Security-Policy contract, sizing, what the widget does to your
-page, what leaves your visitor's browser, and what to check when it doesn't work.
+Everything a host site needs to put the atlas on a page: the snippet, the parameters, the
+Content-Security-Policy contract, sizing, what the widget does to your page, what leaves your
+visitor's browser, and what to check when it doesn't work.
 
 This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer guide and
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
@@ -11,7 +11,7 @@ This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer 
 
 - [Quick start](#quick-start)
 - [Where to load it from](#where-to-load-it-from)
-- [Attributes](#attributes)
+- [Parameters](#parameters)
 - [Sizing the element](#sizing-the-element)
 - [The URL, and your page's fragment](#the-url-and-your-pages-fragment)
 - [Content-Security-Policy](#content-security-policy)
@@ -24,26 +24,49 @@ This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer 
 ## Quick start
 
 ```html
-<script type="module" src="https://sahajatlas.com/embed.js"></script>
-<sahaj-atlas api-key="…"></sahaj-atlas>
+<script type="module" src="https://sahajatlas.com/auto.js?key=…"></script>
 ```
 
-Two things about that snippet are easy to get wrong, and both fail in ways that don't
-name themselves:
+That is the whole snippet. **There is no element to add and no attribute to misspell** — the
+script creates the widget where you put the tag, and every setting rides on the script URL's
+query string.
 
-- **The file is `embed.js`.** That is the filename the build emits for the widget entry
-  (`vite.config.ts`, the `widget` input's `entryFileNames`). Any other name is a 404 and
-  nothing renders at all.
-- **The attribute is `api-key`, not `apikey`.** The element's properties are declared in
-  camelCase and dash-cased on the way out, so `apiKey` is observed as `api-key` — and
-  _only_ as `api-key`. A misspelled attribute is not an error; it is simply never read,
-  so the widget mounts with no key and shows its "not set up correctly" screen. The same
-  rule gives you `base-path`, `primary-color`, `secondary-color` and `error-reporting`.
+Three things about it:
 
-`type="module"` is required — the bundle is an ES module and uses `import` internally.
+- **The file is `auto.js`.** It is a ~3 KiB loader, not the widget. It works out what your page
+  supports, then fetches the widget itself only when the embed is about to come into view — so a
+  widget further down your page costs your visitors almost nothing until they scroll to it.
+- **Put it where the widget should appear**, in the body. The element is inserted immediately
+  before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
+- **Don't add `async` or `defer`.** The loader reads its own script tag to find both its settings
+  and its position, and those attributes make the browser hide it.
+
+`type="module"` is the normal form. If your platform will not let you set it — Wix's Custom
+Element, some page builders — use [`embed.classic.js`](#platforms-that-cant-load-a-module)
+instead, with the same query string.
 
 Ask the Sahaj Atlas maintainers for an API key. It is a **public, published** key: it
 ships in your page's HTML, it is scoped to read-only atlas data, and it is not a secret.
+
+### If you previously used `<sahaj-atlas>` and attributes
+
+The element and all nine attributes are gone. Everything moved onto the script URL, and the
+reason is worth knowing, because it is about your platform rather than our taste: WordPress
+strips `<script>` (and unknown attributes) from saved content for anyone below Administrator —
+and for **every** Site Administrator on multisite — while Wix supplies a bare script URL and its
+own attribute panel. One mechanism on the URL works identically on all of them, and the only
+thing a sanitizer can now destroy is the whole snippet, which is a failure you can see.
+
+```html
+<!-- before -->
+<script type="module" src="https://sahajatlas.com/embed.js"></script>
+<sahaj-atlas api-key="…" map="false" locale="fr"></sahaj-atlas>
+
+<!-- now -->
+<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false&locale=fr"></script>
+```
+
+Note `api-key` became **`key`**. Every other name is unchanged.
 
 ## Where to load it from
 
@@ -56,7 +79,7 @@ Two hosts serve the identical bundle:
 
 **The origin you load the script from is not the only origin the widget contacts, and
 one of them is fixed regardless of your choice.** The bundle has the locale-JSON host
-compiled into it: whichever host you fetch `embed.js` from, the widget's UI strings are
+compiled into it: whichever host you fetch `auto.js` from, the widget's UI strings are
 fetched from `https://sahajatlas.com/locales/…`. That matters only for your CSP, where
 `connect-src` has to name it — see the table below. If those requests are blocked, every
 string in the widget renders as its raw dotted key name (`events.title`, `nav.search`),
@@ -67,49 +90,92 @@ deployment rather than of the source — a local build carries whatever the chec
 says. To confirm the current value rather than trusting this page, read it out of the
 shipped bundle:
 
+Three files sit at that origin's root, and only the first is one you reference:
+
+| File               | What it is                                                          |
+| ------------------ | ------------------------------------------------------------------- |
+| `auto.js`          | the loader — the one you install                                    |
+| `embed.js`         | the widget itself, fetched by the loader on demand                  |
+| `embed.classic.js` | the non-module bridge, for platforms that can't set `type="module"` |
+
+To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
+
 ```bash
 curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
 curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
 ```
 
-## Attributes
+## Parameters
 
-Nine attributes, all optional except `api-key`. Every value is a string.
+Twelve parameters on the script URL, all optional except `key`. Standard query-string rules
+apply, so percent-encode anything with a space or an `&` in it (`name=Meditate%20Now`).
 
-| Attribute         | Default                        | What it does                                                                                                                                                                                                                                                    |
-| ----------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `api-key`         | —                              | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen.                                                                                                                                      |
-| `locale`          | the visitor's browser language | Force a UI language, e.g. `fr`. Full precedence: this attribute → the language on your client record → **`?locale=` on the page URL** → the browser's language → English.                                                                                       |
-| `map`             | `true`                         | `map="false"` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size the element (see [Sizing](#sizing-the-element)).                 |
-| `base-path`       | `/`                            | The route the widget boots at, e.g. `/gb/london` or `/507/register`. Must be a site-relative path; anything else (an absolute URL, `//evil.example`) is refused and the widget boots at the root. A route already in the page's fragment wins over `base-path`. |
-| `primary-color`   | your client record's colour    | Per-embed brand override, a hex colour.                                                                                                                                                                                                                         |
-| `secondary-color` | your client record's colour    | As above.                                                                                                                                                                                                                                                       |
-| `analytics`       | `true`                         | `analytics="false"` never loads Fathom.                                                                                                                                                                                                                         |
-| `geolocation`     | `true`                         | `geolocation="false"` never calls the IP-geolocation service.                                                                                                                                                                                                   |
-| `error-reporting` | `true`                         | `error-reporting="false"` never sends a crash report.                                                                                                                                                                                                           |
+| Parameter         | Default                        | What it does                                                                                                                                                                                                                                |
+| ----------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`             | —                              | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen, and the loader logs an error naming the problem.                                                                 |
+| `locale`          | the visitor's browser language | Force a UI language, e.g. `fr`. Full precedence: this parameter → the language on your client record → **`?locale=` on the page URL** → the browser's language → English.                                                                   |
+| `map`             | `true`                         | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size the embed (see [Sizing](#sizing-the-element)). |
+| `routing`         | `query`                        | Where the widget's route lives. `path` needs `mount` as well, and needs your server to serve the same page for everything under that prefix.                                                                                                |
+| `mount`           | —                              | **`routing=path` only.** The path prefix the widget is served under, e.g. `/map`. Must be a site-relative path; anything else is refused and the widget falls back to query routing with a console warning.                                 |
+| `base-path`       | `/`                            | The route the widget opens at, e.g. `/gb/london`. Must be site-relative. ⚠ Being retired — under query routing your own page URL carries `?atlas=/gb/london`, which does the same job.                                                     |
+| `name`            | your client record's name      | Per-embed display name, used where the widget names itself.                                                                                                                                                                                 |
+| `primary-color`   | your client record's colour    | Per-embed brand override, a hex colour. Percent-encode the `#` as `%23`.                                                                                                                                                                    |
+| `secondary-color` | your client record's colour    | As above.                                                                                                                                                                                                                                   |
+| `analytics`       | `true`                         | `analytics=false` never loads Fathom.                                                                                                                                                                                                       |
+| `geolocation`     | `true`                         | `geolocation=false` never calls the IP-geolocation service.                                                                                                                                                                                 |
+| `error-reporting` | `true`                         | `error-reporting=false` never sends a crash report.                                                                                                                                                                                         |
+| `compact`         | `auto`                         | Whether the widget may fall back to a compact card in a slot too small for the full interface. `always` / `never` force it either way.                                                                                                      |
 
-**The three privacy attributes and `map` share one spelling rule: only the exact strings
-`"false"` and `"0"` switch something off.** Anything else — the attribute absent, empty,
-`"true"`, `"no"`, `"FALSE"` — leaves the feature **on**. This is deliberate, so that a
-typo can never silently disable a flow you are relying on; but it also means
-`geolocation="no"` does not do what it looks like it does. The three privacy flags are
-described under [Privacy](#privacy-storage-and-third-party-requests).
+**The three privacy parameters and `map` share one spelling rule: only the exact values
+`false` and `0` switch something off.** Anything else — the parameter absent, empty, `true`,
+`no`, `FALSE` — leaves the feature **on**. This is deliberate, so that a typo can never silently
+disable a flow you are relying on; but it also means `geolocation=no` does not do what it looks
+like it does. The three privacy flags are described under
+[Privacy](#privacy-storage-and-third-party-requests).
+
+`compact` has three values rather than two, so it cannot follow that rule exactly — but it keeps
+the important half: **an unrecognised value falls back to `auto`**, never to the setting that
+would lock your embed into the small card. `true`/`1` and `false`/`0` are accepted as synonyms for
+`always`/`never`.
 
 ```html
-<sahaj-atlas
-  api-key="…"
-  locale="fr"
-  analytics="false"
-  geolocation="false"
-  error-reporting="false"
-></sahaj-atlas>
+<script
+  type="module"
+  src="https://sahajatlas.com/auto.js?key=…&locale=fr&analytics=false&geolocation=false&error-reporting=false"
+></script>
 ```
 
-**One `<sahaj-atlas>` per page.** A second element on the same page is refused at
-connection time and never mounts, with a note in the console. The API key and the theme
-root are page-global, so a second instance would silently run on the first one's key and
-steal its theme. Loading the embed script twice is likewise a no-op with a console note,
-not an exception in your page.
+**One widget per page.** A second element is refused at connection time and never mounts, with a
+note in the console. The API key and the theme root are page-global, so a second instance would
+silently run on the first one's key and steal its theme. Loading the script twice is likewise a
+no-op with a console note, not an exception in your page.
+
+### Platforms that can't load a module
+
+Some platforms give you a script URL and control the tag themselves, so you cannot add
+`type="module"`. Wix's Custom Element is the common case.
+
+Point them at **`embed.classic.js`** with the same query string:
+
+```
+https://sahajatlas.com/embed.classic.js?key=…
+```
+
+It is a few lines of plain JavaScript that loads the module loader for you, and everything after
+that is identical. Where the platform also asks for a **tag name**, it is `sahaj-atlas` — the
+loader will use the element that platform creates rather than making its own.
+
+### What the loader reports back
+
+On each load the widget notes a few things about the page it is on — whether it is top-level or
+inside a frame, whether the URL can be written, and whether a query parameter survives your
+router — and sends them to us **only when they have changed since last time**. In the steady state
+that is zero requests.
+
+It sends the page's **origin and path only**. Your query string and fragment are never included,
+for the same reason they are stripped from crash reports: they can carry a reset token or an email
+address. This is what tells us which of your pages can serve as the canonical atlas page for your
+region, instead of us having to ask you and then keep the answer up to date by hand.
 
 ## Sizing the element
 
@@ -117,29 +183,32 @@ The two modes want opposite things from you, and neither is obvious from the mar
 
 **With the map (default), the widget takes the viewport.** The map canvas is rendered
 `position: fixed; inset: 0`, so it fills the browser window and the drawers sit over it,
-regardless of the size of the `<sahaj-atlas>` element itself. In practice this mode wants
+regardless of the size of the element the loader inserted. In practice this mode wants
 a **full-page slot**: a dedicated page or a template with no surrounding content it could
 cover. Putting it halfway down an article does not scale it into that space — it covers
 the article.
 
-**With `map="false"`, you size it.** The widget fills its container (`height: 100%`), and
+**With `map=false`, you size it.** The widget fills its container (`height: 100%`), and
 an unsized custom element is an inline box of zero height, so it collapses and appears not
 to render:
 
+The loader inserts the element for you, so size it with a rule rather than an inline style:
+
 ```html
-<sahaj-atlas
-  style="display:block;height:640px"
-  api-key="…"
-  map="false"
-  base-path="/507/register"
-></sahaj-atlas>
+<style>
+  sahaj-atlas {
+    display: block;
+    height: 640px;
+  }
+</style>
+<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false"></script>
 ```
 
 Any way of giving it a height works — a CSS class, a grid or flex track, an aspect-ratio
 box. `display:block` (or `flex`/`grid`) matters as much as the height: a custom element
 defaults to `display: inline`.
 
-**In `map="false"` the widget adapts to your element, not to the browser window** (issue
+**In `map=false` the widget adapts to your element, not to the browser window** (issue
 #107). A 320px column on a large desktop screen gets the narrow layout — a bottom sheet
 with a drag handle and swipe-to-dismiss — because the widget measures its own box. Resize
 the element and it follows. Before this, layout keyed off the viewport, so a sidebar embed
@@ -222,7 +291,7 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 | `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin, and the calendar, registration and share panels only when a viewer first opens them.                                                                  | nothing renders — or worse, it renders and then dies on one of those three presses            |
 |                            | `api.mapbox.com`                              | Mapbox GL's right-to-left text plugin, loaded on demand from inside the map's worker the first time RTL text is encountered. Workers inherit the document's policy, so this lands on `script-src` rather than `worker-src`.                            | Arabic, Hebrew and Persian labels on the map render in the wrong order                        |
 |                            | `challenges.cloudflare.com`                   | Turnstile, loaded lazily when a viewer opens the report-issue form                                                                                                                                                                                     | **degrades**: the form offers a `mailto:` address instead of a submit button                  |
-|                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID and with `analytics="false"` unset                                                                                                                                                                     | analytics only                                                                                |
+|                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID and with `analytics=false` unset                                                                                                                                                                     | analytics only                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                          | **the map fails**; the rest of the widget is unaffected                                       |
 | `style-src`                | `'unsafe-inline'`                             | **The hard ask.** The widget has no stylesheet to link — it appends `<style>` elements at runtime, which carry no nonce.                                                                                                                               | the widget renders completely **unstyled**; it does not degrade                               |
 | `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request is made to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy and no visitor IP reaches a third party for a font.                                                            | text falls back to your system sans; everything works                                         |
@@ -253,7 +322,7 @@ suffix only, and Sentry organisations created since 2024 get a _regional_ ingest
 match — a policy written that way looks correct and silently blocks everything. To name
 one host instead, take the exact one from the DSN rather than deriving it. Leaving it out
 is a supported choice: you get one blocked request and one violation report, not one per
-error. `error-reporting="false"` is the explicit way to say so.
+error. `error-reporting=false` is the explicit way to say so.
 
 **Five entries are load-bearing; the rest cost only the feature in their own row.** If you
 allow nothing else, allow these — each one breaks the widget as a whole:
@@ -364,21 +433,21 @@ widget, and two written by Mapbox GL:
 
 The `theme` key is **not namespaced**: if your page stores its own `theme` preference
 under that name, the widget will read and overwrite it. The two `mapbox.*` keys appear
-only when the map renders, so `map="false"` removes them.
+only when the map renders, so `map=false` removes them.
 
 The language picker persists **nothing** — i18next's detector would cache `i18nextLng` on
 your origin by default and that write is switched off.
 
-Three third-party flows leave the browser, and each has an attribute that turns it off:
+Three third-party flows leave the browser, and each has a parameter that turns it off:
 
 - **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer
   "classes near you" before the visitor types and show an online class's start time in
   their own place. No referrer, no key, no cookies, five-second timeout, silent on
   failure, and skipped entirely when neither feature could show. **An IP is personal data
-  in the EU** — if your privacy notice can't cover it, set `geolocation="false"`.
+  in the EU** — if your privacy notice can't cover it, set `geolocation=false`.
 - **`cdn.usefathom.com`** — cookieless, aggregate pageview counting, loaded only when the
   bundle was built with an analytics ID, your client record names a real primary domain,
-  and you have not set `analytics="false"`. Auto-tracking is off, so it reports the
+  and you have not set `analytics=false`. Auto-tracking is off, so it reports the
   widget's own route under that domain — **your page's real URL and query string are never
   sent**.
 - **`*.sentry.io`** — crash reports, sent only when the widget has already broken and only
@@ -386,9 +455,9 @@ Three third-party flows leave the browser, and each has an attribute that turns 
   string or fragment**, which on your site can carry a reset token or an OAuth
   `#access_token`. It also carries the visitor's **`navigator.userAgent`**. No global error
   handler is installed, so your own scripts' exceptions are never captured; no breadcrumbs,
-  no session replay. `error-reporting="false"` stops it entirely.
+  no session replay. `error-reporting=false` stops it entirely.
 
-**`map="false"` removes the Mapbox flows too** — tiles, the geocoder (which sends the
+**`map=false` removes the Mapbox flows too** — tiles, the geocoder (which sends the
 visitor's typed query and the map centre to Mapbox), and the map-load telemetry — along
 with the two `mapbox.*` storage keys. That is the only switch for them; they are Mapbox's
 own behaviour, not ours.
@@ -400,14 +469,14 @@ fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the b
 
 ## Updates and caching
 
-**The embed is evergreen and there is no version to pin.** `embed.js` is served unhashed
+**The embed is evergreen and there is no version to pin.** `auto.js` is served unhashed
 from our origin and updated in place, roughly daily; every host serves the current build.
 [`CHANGELOG.md`](../CHANGELOG.md) is written for embedding sites and records what you can
-observe — attributes, origins, CSP, visible behaviour.
+observe — parameters, origins, CSP, visible behaviour.
 
 Two consequences:
 
-- **Don't cache `embed.js` aggressively at your edge.** It imports content-hashed chunks
+- **Don't cache `auto.js` or `embed.js` aggressively at your edge.** They import content-hashed chunks
   by name. A stale copy held by a proxy or service worker will ask for chunk filenames the
   CDN no longer serves, and those 404s kill the widget with no fallback. Let it revalidate.
   The hashed chunks underneath it are immutable and safe to cache hard.
@@ -419,9 +488,9 @@ Two consequences:
 
 | Symptom                                                               | Likely cause                                                                                                                                                                                                                                                                                                    |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing renders; a 404 for the script**                             | The filename is `embed.js`. `sahaj-atlas.js` and other spellings do not exist.                                                                                                                                                                                                                                  |
-| **"Not set up correctly" / configuration error**                      | The attribute is `api-key`, not `apikey` or `apiKey` — a misspelled attribute is never read. Otherwise the key itself is wrong, revoked, or not yet issued.                                                                                                                                                     |
-| **Nothing renders, no console error, script loaded fine**             | `map="false"` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                                                                                                           |
+| **Nothing renders; a 404 for the script**                             | The filename is `auto.js` (or `embed.classic.js`). `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                                                                                                            |
+| **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` — it was renamed when configuration moved onto the script URL. The loader logs an error naming it. Otherwise the key itself is wrong, revoked, or not yet issued.                                                                                                         |
+| **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                                                                                                           |
 | **The console says `<sahaj-atlas>` is already defined**               | The embed script is on the page twice, under **two different URLs** — identical `<script src>` tags are deduped by the module map, so this fires on the `sahajatlas.com` vs `pages.dev` mismatch. The widget renders normally; the second copy is a no-op. Worth tidying, but it is not why anything is broken. |
 | **A second widget on the page is blank**                              | Only one `<sahaj-atlas>` runs per page, by design; the console says so.                                                                                                                                                                                                                                         |
 | **The widget renders completely unstyled**                            | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                                                                                                                                                           |
@@ -433,9 +502,12 @@ Two consequences:
 | **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                                                                                                                                      |
 | **The widget's route never appears in the address bar**               | The page loaded with its own `#anchor`, so the widget is routing in memory and deliberately not writing to the URL. Free the fragment if the page should be linkable.                                                                                                                                           |
 | **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                           |
-| **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map="false"` for an in-page embed.                                                                                                                                                                                                |
+| **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                                                                                                                                |
 | **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                                                                                                                                                          |
-| **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                               |
+| **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                  |
+| **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                                                                                                           |
+| **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, the platform needs the `embed.classic.js` route or a plugin.                                                                                                                               |
+| **The widget only appears when you scroll to it**                     | Intended. The loader defers fetching the widget until the embed is near the viewport, so a widget below the fold costs your visitors nothing until they reach it.                                                                                                                                               |
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings
 control, and offered on most error screens) reaches the maintainers with the failure

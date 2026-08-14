@@ -11,6 +11,7 @@ import process from 'node:process'
 import { resolve } from 'path'
 
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
+import { emitClassicShim } from './scripts/emit-classic-shim.mjs'
 
 /**
  * Does this command upload source maps to Sentry? (#130)
@@ -195,8 +196,13 @@ export default defineConfig(({ command }) => ({
     }),
     react(),
     tsconfigPaths(),
-    // `widget` is the input key below, whose `entryFileNames` emits `embed.js`.
-    flattenEntryImports('widget'),
+    // `loader` is the input key below, whose `entryFileNames` emits `auto.js` — the one script a
+    // host installs, and now the entry whose eager graph is worth flattening. `widget`
+    // (`embed.js`) is no longer fetched by the host directly: the loader imports it dynamically
+    // once the element is near the viewport, so its graph is discovered from that import rather
+    // than from a `<script>` the browser parses up front.
+    flattenEntryImports('loader'),
+    emitClassicShim(),
     stripDsStore(),
     // Position in this array is NOT what orders this one: `sentryVitePlugin` returns
     // `enforce: 'pre'`, so Vite hoists it ahead of every plugin above regardless. What
@@ -221,10 +227,19 @@ export default defineConfig(({ command }) => ({
     rolldownOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
+        // The one script a host installs. `embed.js` is no longer loaded directly by anyone —
+        // the loader imports it dynamically — but it stays an explicit entry so it keeps a
+        // stable, unhashed filename: `pnpm size` measures it as its own graph, and the smoke
+        // lane fetches it by name.
+        loader: './src/loader/index.ts',
         widget: './src/Widget.tsx',
       },
       output: {
+        // Both unhashed at the dist root. `auto.js` because it is the URL hosts hardcode;
+        // `embed.js` because it is what `auto.js` imports by name.
         entryFileNames: (assetInfo) => {
+          if (assetInfo.name === 'loader') return 'auto.js'
+
           return assetInfo.name === 'widget' ? 'embed.js' : 'assets/[name]-[hash].js'
         },
       },

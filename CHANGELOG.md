@@ -4,7 +4,7 @@ All notable changes to the Sahaj Atlas widget, in [Keep a Changelog](https://kee
 format. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **This file is written for the sites that embed the widget.** It records what a host can
-observe — the `<sahaj-atlas>` attributes, the origins the widget contacts and the CSP
+observe — the snippet and its parameters, the origins the widget contacts and the CSP
 those need, and visible behaviour. Internal refactors, CI and documentation are
 deliberately left out; `git log` has those.
 
@@ -20,6 +20,61 @@ Entries reference the pull request that landed them.
 
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
+
+### Changed
+
+- **The snippet is now a single script tag, and configuration moved onto its URL.** ([#149])
+
+  ```html
+  <!-- before -->
+  <script type="module" src="https://sahajatlas.com/embed.js"></script>
+  <sahaj-atlas api-key="…" map="false" locale="fr"></sahaj-atlas>
+
+  <!-- now -->
+  <script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false&locale=fr"></script>
+  ```
+
+  **There is no element to add and no attribute to set.** `<sahaj-atlas>` and all nine
+  attributes are gone; the script inserts the element where you put the tag, and every setting
+  is a query parameter. `api-key` became **`key`**; every other name is unchanged, and the
+  `false`/`0` rule for the boolean parameters is unchanged.
+
+  Why, since it is your platform rather than our preference that forces it: WordPress strips
+  `<script>` and unknown attributes from saved content for anyone below Administrator — and for
+  **every** Site Administrator on multisite — while Wix gives you a bare script URL plus its own
+  attribute panel. One mechanism on the URL behaves identically everywhere, and the only thing a
+  sanitizer can now destroy is the whole snippet, which is a visible failure rather than a widget
+  that mounts with half its settings missing.
+
+  Two new parameters come with it: `routing` (`query` by default, `path` opt-in, with `mount`)
+  and `compact`.
+
+- **The file you load is `auto.js`, a ~3 KiB loader — not the widget.** ([#149]) It works out
+  what your page supports and fetches the widget only when the embed is near the viewport. An
+  embed below the fold now costs your visitors **3 KiB instead of 372 KiB** until they scroll to
+  it, which is a direct improvement to your page's Core Web Vitals.
+
+  `embed.js` still exists at the same origin but is no longer a file you reference — it is what
+  `auto.js` fetches. **Pointing a snippet at `embed.js` will no longer work**, because it no
+  longer reads any configuration of its own.
+
+  Put the snippet in the body, without `async` or `defer`: the loader reads its own tag to find
+  both its settings and its position.
+
+- **New: `embed.classic.js`, for platforms that cannot set `type="module"`.** ([#149]) Same query
+  string, a few lines of plain JavaScript that load the module loader for you. This is the route
+  for Wix's Custom Element and similar page builders.
+
+- **The widget now reports what it observed about your page** — top-level or framed, whether the
+  URL can be written, whether a query parameter survives your router — and only when that has
+  changed since last time, so the steady state is no requests at all. It sends your page's
+  **origin and path only**; the query string and fragment are never included, the same rule crash
+  reports already follow. It is what lets us tell which of your pages can act as the canonical
+  atlas page for your region without asking you to keep that answer up to date by hand. ([#149])
+
+- **An element removed and immediately re-added — what page builders like Elementor do when they
+  rearrange a layout — no longer throws away the cached data.** Teardown now waits a moment for
+  the element to come back. ([#149])
 
 ### Added
 
@@ -106,7 +161,7 @@ cover everything a host would notice since the widget was first deployed.
 
 - **The widget no longer writes `i18nextLng` to the host origin's storage.** Language
   detection reads the query string and the browser's own setting, and caches nothing. The
-  widget still writes a `theme` key to `localStorage` — deliberately noted as *not*
+  widget still writes a `theme` key to `localStorage` — deliberately noted as _not_
   namespaced, so it can collide with a host's own `theme` key — plus a dismissal flag in
   `sessionStorage` and, when the map renders, two `mapbox.*` keys. ([#120])
 - **CMS-authored event descriptions are genuinely allow-listed.** A misconfigured sanitizer
@@ -122,6 +177,7 @@ cover everything a host would notice since the widget was first deployed.
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
 [#94]: https://github.com/sydevs/SahajAtlasWeb/issues/94
 [#111]: https://github.com/sydevs/SahajAtlasWeb/pull/111
 [#112]: https://github.com/sydevs/SahajAtlasWeb/pull/112

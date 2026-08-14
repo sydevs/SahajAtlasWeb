@@ -5,10 +5,13 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // Smoke test: does the deploy serve the thing a HOST installs?
 //
 // The other two specs fetch the standalone page (`index.html`), which is the dev
-// and demo surface. The product is `embed.js` — the `<sahaj-atlas>` custom
-// element — and nothing exercised it until this file: a build or deploy that
-// emitted a broken embed while keeping the standalone page healthy would have
-// shipped past a green Smoke check (issue #99).
+// and demo surface. The product is the embed — and since #149 the file a host
+// installs is `auto.js`, the loader, which fetches `embed.js` on demand. So the
+// crawl below starts at the loader rather than the widget: starting at `embed.js`
+// would still prove the widget deployed, while missing the one file every host
+// actually references. A build or deploy that emitted a broken embed while keeping
+// the standalone page healthy would otherwise ship past a green Smoke check
+// (issue #99).
 //
 // Fetch-level only, deliberately: this lane is fetch-based by design
 // (`.claude/rules/tests.md`), and booting the widget in a real browser belongs
@@ -29,7 +32,7 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 let embed: Promise<{ status: number; body: string }> | undefined
 
 function fetchEmbed() {
-  embed ??= fetchPreview('/embed.js')
+  embed ??= fetchPreview('/auto.js')
     .then(async (res) => {
       if (res.status !== 200) embed = undefined
 
@@ -44,33 +47,62 @@ function fetchEmbed() {
 }
 
 describe('embed bundle', () => {
-  test.skipIf(skipWithoutPreview)('serves embed.js with the widget registration', async () => {
+  test.skipIf(skipWithoutPreview)('serves auto.js as a loader, not as the widget', async () => {
     const { status, body } = await fetchEmbed()
 
     expect(status).toBe(200)
     expect(body.length).toBeGreaterThan(0)
 
-    // The registration itself: src/Widget.tsx ends in
-    // `customElements.define('sahaj-atlas', …)`. Both survive minification, and
-    // together they say the file is our widget rather than an SPA-fallback HTML
-    // page served with a 200 — the failure mode a bare status check misses.
-    expect(body).toContain('customElements.define')
+    // Two markers, and together they say the file is our loader rather than an
+    // SPA-fallback HTML page served with a 200 — the failure mode a bare status check
+    // misses, and the one `embed.smoke.test.ts` learned the hard way.
     expect(body).toContain('sahaj-atlas')
+    expect(body).toContain('embed.js')
+
+    // The seam the whole split rests on, asserted on the deployed artifact rather than
+    // only in the build: the widget must be reached through a DYNAMIC import. If someone
+    // makes it static, the loader stops being a loader — every host silently goes back to
+    // paying the full payload on every page view, and nothing else here would notice.
+    expect(body).toMatch(/import\(/)
+
+    // A loader that is not small is not a loader. Generous enough not to fail on a
+    // minifier change, tight enough that the widget graph could not hide inside it.
+    expect(body.length).toBeLessThan(20_000)
   })
 
-  test.skipIf(skipWithoutPreview)('serves every chunk embed.js references', async () => {
+  test.skipIf(skipWithoutPreview)('serves the classic shim, which bridges to auto.js', async () => {
+    const res = await fetchPreview('/embed.classic.js')
+    const type = res.headers.get('content-type') ?? ''
+    const body = await res.text()
+
+    // Content type, not status: `_redirects` answers 200 `text/html` for any path, so a
+    // missing shim would pass a status check while serving the SPA shell.
+    expect(res.status).toBe(200)
+    expect(type).toMatch(/javascript|ecmascript/i)
+
+    // It exists for platforms that cannot set `type="module"` — Wix's Custom Element
+    // above all — so the one thing it must do is inject a module script pointing at the
+    // loader, carrying its own query string across.
+    expect(body).toContain('auto.js')
+    expect(body).toContain('embed.classic.js')
+    expect(body).toContain('module')
+  })
+
+  test.skipIf(skipWithoutPreview)('serves every chunk the loader can reach', async () => {
     const { body } = await fetchEmbed()
 
-    // `embed.js` is unhashed and mutable while the chunks it names are hashed,
-    // so a host (or proxy) holding a stale embed.js can ask for names the deploy
-    // no longer contains, and the widget simply never appears. This catches the
-    // deploy-side half of that skew: an embed.js published without its chunks.
+    // `auto.js` and `embed.js` are unhashed and mutable while the chunks they name are
+    // hashed, so a host (or proxy) holding a stale copy can ask for names the deploy no
+    // longer contains, and the widget simply never appears. This catches the deploy-side
+    // half of that skew: a loader published without the graph behind it.
     //
     // Every relative `.js` literal, not just the static-import shape: a lazy
     // chunk going missing is the same broken deploy, one interaction later.
     //
-    // TRANSITIVE, not one level. `embed.js` names only its own imports, and the views
-    // behind a lazy seam are reached from a chunk it names rather than from the entry —
+    // TRANSITIVE, not one level — and now more load-bearing than ever, because the whole
+    // widget sits behind ONE dynamic import from the loader. A one-level crawl from
+    // `auto.js` would reach `embed.js` and stop, missing every chunk the widget needs.
+    // The views behind a lazy seam are reached from a chunk it names rather than the entry —
     // so a one-level crawl stopped covering the calendar, registration and share chunks
     // the moment those moved behind `React.lazy` (issue #96). Following each body means
     // the set is the whole deploy the widget can ever ask for, however deep the seam.
@@ -90,8 +122,8 @@ describe('embed bundle', () => {
     // content type is what distinguishes a real chunk from the fallback HTML.
     const broken: string[] = []
     const seen = new Set<string>()
-    const queue = ['/embed.js']
-    const bodies = new Map<string, string>([['/embed.js', body]])
+    const queue = ['/auto.js']
+    const bodies = new Map<string, string>([['/auto.js', body]])
 
     while (queue.length) {
       const path = queue.pop() as string

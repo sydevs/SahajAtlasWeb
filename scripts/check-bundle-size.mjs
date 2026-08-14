@@ -42,7 +42,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
 import { annotate, report } from './_ci-output.mjs'
@@ -67,8 +67,16 @@ import { annotate, report } from './_ci-output.mjs'
 // re-accumulates the slack it just won. `SLACK_RATIO` below enforces that rather
 // than trusting this comment to be read.
 // ---------------------------------------------------------------------------
+// `loader` is the one a host actually pays on every page view (#149). It is budgeted an order of
+// magnitude tighter than the other two on purpose: its entire justification is that a host who
+// embeds the widget below the fold pays almost nothing until somebody scrolls to it, and a loader
+// that quietly grew to 30 KiB would still pass a lax budget while having given that away. The
+// `embed` graph is now fetched only on reveal, so it is a deferred cost rather than an eager one
+// — but it is still budgeted, because "deferred" is not "free" and it is what a visitor who does
+// look at the widget waits for.
 const BUDGET_KIB = {
   standalone: 395,
+  loader: 3.4,
   embed: 395,
 }
 
@@ -175,6 +183,7 @@ function measure(name, files) {
 function main() {
   const indexHtml = join(DIST, 'index.html')
   const embedJs = join(DIST, 'embed.js')
+  const autoJs = join(DIST, 'auto.js')
 
   // Name the paths: if the build is fine and one of these was renamed (the embed
   // filename is `entryFileNames` in vite.config.ts), the message has to point at
@@ -209,6 +218,23 @@ function main() {
 
   const loaded = importClosure(declared[0])
   const embedGraph = importClosure(embedJs)
+  const loaderGraph = importClosure(autoJs)
+
+  // The seam the whole loader split rests on: `embed.js` must be reachable from `auto.js` only
+  // through a DYNAMIC import, never a static one. Rolldown would happily hoist it into the
+  // loader's graph if someone replaced the `import(…)` with a top-level import, and the result
+  // would look fine — the widget would still work — while every host silently went back to
+  // paying the full payload on every page view. The budget above would catch it, but only as a
+  // number; this names the mistake.
+  if (loaderGraph.some((file) => basename(file) === 'embed.js')) {
+    annotate(
+      'error',
+      "auto.js statically imports embed.js — the widget is back in the loader's eager graph, " +
+        'so every host pays the full payload up front again. The import in src/loader/index.ts ' +
+        'must stay a dynamic `import()`.',
+    )
+    process.exit(1)
+  }
 
   // The walkers are regexes over minified output, so their silent failure mode
   // is finding NOTHING and scoring a payload of one small entry file — an
@@ -231,6 +257,7 @@ function main() {
 
   const graphs = [
     measure('standalone', [...new Set([...declared, ...loaded])]),
+    measure('loader', loaderGraph),
     measure('embed', embedGraph),
   ]
 
