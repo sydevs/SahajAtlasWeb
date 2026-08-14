@@ -96,14 +96,17 @@ cover everything a host would notice since the widget was first deployed.
   widget and discarding its own settings. One widget per page remains a real constraint: two would
   both write the same `?atlas=` parameter and fight over it. ([#149])
 
+- **Both root files now revalidate instead of going stale.** ([#148]) `auto.js` and
+  `embed.js` are served with `Cache-Control: public, max-age=0,
+must-revalidate`, pinned rather than left to the CDN default. The production domain had been
+  serving a four-hour freshness window on files that import content-hashed chunks by name — the
+  stale-loader failure the guide warns about — while the `pages.dev` host every check ran against
+  served `max-age=0`. Nothing for you to change; if you cache these at your own edge, don't.
+
 ### Added
 
 - **This changelog**, so a host can see what changed under an embed that updates itself.
   ([#94])
-- **Three privacy opt-out attributes**, all defaulting to enabled so an existing embed is
-  unaffected: `analytics="false"` (never load Fathom), `geolocation="false"` (never call the
-  `ipwho.is` IP-geolocation service), and `error-reporting="false"` (never send a crash to
-  Sentry). ([#120], [#123])
 - **Opt-in crash reporting via Sentry**, behind the build-time `VITE_SENTRY_DSN`. With no
   DSN configured nothing is fetched or sent. The SDK is lazy-loaded, the host page's URL
   query and fragment are stripped from reports, the scope is isolated from any Sentry the
@@ -197,6 +200,7 @@ cover everything a host would notice since the widget was first deployed.
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
 [#94]: https://github.com/sydevs/SahajAtlasWeb/issues/94
 [#111]: https://github.com/sydevs/SahajAtlasWeb/pull/111

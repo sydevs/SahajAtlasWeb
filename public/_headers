@@ -15,6 +15,32 @@
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=31536000, immutable
 
+# The two unhashed entry files at the dist root (#148). Everything above is
+# content-hashed and so may be cached forever; these carry stable names precisely so hosts
+# can hardcode them, which means the CDN must revalidate instead.
+#
+# **This rule is a fix, not a formality.** The file's previous version left `embed.js`
+# outside `/assets/*` and said it "must stay revalidated" — but nothing enforced it, so the
+# platform default applied, and the default differs per host: `sahajatlas.com` served
+# `max-age=14400` while `*.pages.dev` served `max-age=0`. Four hours of freshness on the one
+# unhashed file that imports content-hashed chunks is exactly the failure `docs/embedding.md`
+# warns hosts about — a stale loader asking for chunk names the deploy no longer has, which
+# kills the widget with no fallback — and it was invisible on the host every check runs
+# against.
+#
+# `max-age=0, must-revalidate` rather than `no-store`: a conditional request that answers 304
+# is cheap, and it keeps the browser cache useful while making staleness impossible. CORS is
+# pinned for the same reason as the two rules around it — a `type="module"` script is fetched
+# in CORS mode, so a rendering requirement should not rest on a platform default.
+/auto.js
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=0, must-revalidate
+
+/embed.js
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=0, must-revalidate
+
+
 # The locale JSON is fetched cross-origin from every host page (src/config/i18n.ts builds
 # the URL from VITE_HOST), and it needs CORS for the same reason the font does — with a
 # worse failure: a blocked font degrades to the system sans, blocked locales render every
@@ -26,13 +52,14 @@
 # written down once, in public/robots.txt; what follows is only why this half exists.
 #
 # A HEADER reaches what a <meta> cannot. index.html's tag covers every ROUTE (`_redirects`
-# rewrites unknown paths to that shell), but embed.js, the hashed assets and the locale
-# JSON are each a fetchable URL with no document to carry a tag. This covers all of them.
+# rewrites unknown paths to that shell), but the three root entry files, the hashed assets
+# and the locale JSON are each a fetchable URL with no document to carry a tag. This covers
+# all of them.
 #
-# `/*` does not disturb the two rules above: Cloudflare Pages applies EVERY matching rule
+# `/*` does not disturb the rules above: Cloudflare Pages applies EVERY matching rule
 # ("an incoming request which matches multiple rules' URL patterns will inherit all rules'
 # headers"), so /assets/* keeps its CORS + immutable cache and additionally gets this.
-# Ordered last for reading only: these three rules set disjoint header NAMES, and order
+# Ordered last for reading only: these rules set disjoint header NAMES, and order
 # would start to matter the moment two rules set the same one (Pages joins repeated
 # values with a comma). The smoke lane pins the CORS half against exactly that.
 #
