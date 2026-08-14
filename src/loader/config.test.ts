@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseConfig } from './config'
+import { parseConfig, resolveRoute } from './config'
 
-const at = (query: string) => parseConfig(`https://atlas.example/auto.js${query}`)
+const at = (query: string, pageSearch = '') =>
+  parseConfig(`https://atlas.example/auto.js${query}`, pageSearch)
 
 describe('parseConfig', () => {
   it('reads every documented parameter off the script URL', () => {
     const config = at(
-      '?key=abc123&map=false&locale=fr&routing=path&mount=/map&name=Meditate%20Now' +
-        '&primary-color=%23112233&secondary-color=%23445566' +
-        '&analytics=false&geolocation=false&error-reporting=false&compact=always&base-path=/gb/london',
+      '?key=abc123&map=false&locale=fr&routing=path&compact=always&atlas=/gb/london',
     )
 
     expect(config).toEqual({
@@ -17,32 +16,17 @@ describe('parseConfig', () => {
       map: false,
       locale: 'fr',
       routing: 'path',
-      mount: '/map',
-      name: 'Meditate Now',
-      primaryColor: '#112233',
-      secondaryColor: '#445566',
-      analytics: false,
-      geolocation: false,
-      errorReporting: false,
       compact: 'always',
-      basePath: '/gb/london',
+      route: '/gb/london',
     })
   })
 
   it('defaults every optional parameter to the permissive answer', () => {
     const config = at('?key=abc123')
 
-    expect(config).toMatchObject({
-      map: true,
-      routing: 'query',
-      analytics: true,
-      geolocation: true,
-      errorReporting: true,
-      compact: 'auto',
-    })
+    expect(config).toMatchObject({ map: true, routing: 'query', compact: 'auto' })
     expect(config.locale).toBeUndefined()
-    expect(config.mount).toBeUndefined()
-    expect(config.basePath).toBeUndefined()
+    expect(config.route).toBeUndefined()
   })
 
   it('reports a missing key as null rather than an empty string', () => {
@@ -50,23 +34,48 @@ describe('parseConfig', () => {
     expect(at('?key=').key).toBeNull()
   })
 
+  // The settings that were REMOVED rather than renamed (#149). Identity and branding belong to
+  // the client record, and there are no privacy opt-outs. A stray value must be ignored, not
+  // quietly honoured — otherwise the "configured in the CMS" rule has an undocumented bypass.
+  it.each([
+    'analytics=false',
+    'geolocation=false',
+    'error-reporting=false',
+    'name=Somebody%20Else',
+    'primary-color=%23ff0000',
+    'secondary-color=%2300ff00',
+    'mount=/map',
+    'base-path=/gb/london',
+  ])('ignores the removed parameter %s', (param) => {
+    const config = at(`?key=abc123&${param}`)
+
+    expect(config).toEqual({
+      key: 'abc123',
+      map: true,
+      locale: undefined,
+      routing: 'query',
+      compact: 'auto',
+      route: undefined,
+    })
+  })
+
   // The rule that exists so a typo can never silently switch off a flow the host relies on.
   describe('boolean parameters', () => {
     it.each(['false', '0'])('treats %s as off', (value) => {
-      expect(at(`?analytics=${value}`).analytics).toBe(false)
+      expect(at(`?map=${value}`).map).toBe(false)
     })
 
-    // Each of these READS like it disables something and must not. `geolocation=no` in
-    // particular is the one an integrator writes by accident, and `docs/embedding.md` says so.
+    // Each of these READS like it disables something and must not. `map=no` in particular is the
+    // one an integrator writes by accident, and `docs/embedding.md` says so.
     it.each(['no', 'off', 'FALSE', 'False', 'nope', '', 'true', '1'])(
       'leaves the feature on for %s',
       (value) => {
-        expect(at(`?geolocation=${value}`).geolocation).toBe(true)
+        expect(at(`?map=${value}`).map).toBe(true)
       },
     )
 
     it('leaves the feature on when the parameter is absent entirely', () => {
-      expect(at('?key=x').errorReporting).toBe(true)
+      expect(at('?key=x').map).toBe(true)
     })
   })
 
@@ -110,30 +119,6 @@ describe('parseConfig', () => {
     )
   })
 
-  // `mount` and `base-path` are host-supplied and reach a route, so they get the same guard
-  // `webPath` does. These are the cases `safePath` exists for; the pin spec asserts the
-  // loader's copy agrees with the widget's.
-  describe('path parameters are guarded', () => {
-    it.each([
-      ['//evil.example', 'protocol-relative'],
-      ['/\\evil.example', 'leading backslash, which browsers normalise to a slash'],
-      ['/\t/evil.example', 'TAB, which the URL parser strips before parsing'],
-      ['/\n/evil.example', 'LF'],
-      ['/\r/evil.example', 'CR'],
-      ['https://evil.example', 'absolute'],
-      ['javascript:alert(1)', 'a scheme'],
-      ['relative/path', 'not site-relative'],
-    ])('refuses %s (%s)', (value) => {
-      expect(at(`?mount=${encodeURIComponent(value)}`).mount).toBeUndefined()
-      expect(at(`?base-path=${encodeURIComponent(value)}`).basePath).toBeUndefined()
-    })
-
-    it('accepts an ordinary site-relative path', () => {
-      expect(at('?mount=/map').mount).toBe('/map')
-      expect(at('?base-path=/gb/london/507').basePath).toBe('/gb/london/507')
-    })
-  })
-
   // This runs before anything is on screen, in a page we do not own. A throw here would take
   // the host's own scripts down with it, so a URL we cannot parse yields defaults.
   describe('a script src it cannot parse', () => {
@@ -149,5 +134,65 @@ describe('parseConfig', () => {
   it('ignores the path and only reads the query, so any filename works', () => {
     expect(parseConfig('https://atlas.example/v2/auto.js?key=k').key).toBe('k')
     expect(parseConfig('/auto.js?key=k').key).toBe('k')
+  })
+})
+
+describe('resolveRoute', () => {
+  // The precedence is the whole point: the page's own `?atlas=` is a visitor who deep-linked,
+  // navigated or followed a shared link, so sending them to the embed's default instead would
+  // discard where they actually asked to be.
+  it('prefers the route already on the page', () => {
+    expect(resolveRoute('/gb/london', '?atlas=/nl/amsterdam')).toBe('/nl/amsterdam')
+  })
+
+  it('falls back to the embed default when the page names no route', () => {
+    expect(resolveRoute('/gb/london', '')).toBe('/gb/london')
+    expect(resolveRoute('/gb/london', '?utm_source=x')).toBe('/gb/london')
+  })
+
+  it('is undefined when neither names one', () => {
+    expect(resolveRoute(null, '')).toBeUndefined()
+    expect(resolveRoute(null, '?other=1')).toBeUndefined()
+  })
+
+  it("preserves the host's other parameters in its reading of the page", () => {
+    expect(resolveRoute(null, '?p=123&atlas=/fr/paris&utm=x')).toBe('/fr/paris')
+  })
+
+  // A route is a route wherever it came from. The page's copy is the MORE likely of the two to be
+  // adversarial — it rides on a link somebody clicked — so it is guarded just as hard.
+  describe('both sources are guarded', () => {
+    const hostile = [
+      '//evil.example',
+      '/\\evil.example',
+      '/\t/evil.example',
+      '/\n/evil.example',
+      '/\r/evil.example',
+      'https://evil.example',
+      'javascript:alert(1)',
+      'relative/path',
+    ]
+
+    it.each(hostile)('refuses %j from the page', (value) => {
+      expect(resolveRoute(null, `?atlas=${encodeURIComponent(value)}`)).toBeUndefined()
+    })
+
+    it.each(hostile)('refuses %j from the script', (value) => {
+      expect(resolveRoute(value, '')).toBeUndefined()
+    })
+
+    // A hostile value on the page must not win, but it must not poison the fallback either:
+    // the embed's own safe default is still the right answer.
+    it('falls through to a safe embed default when the page value is refused', () => {
+      expect(resolveRoute('/gb/london', '?atlas=//evil.example')).toBe('/gb/london')
+    })
+  })
+
+  it('survives a malformed query string rather than throwing', () => {
+    expect(() => resolveRoute('/gb/london', '?%')).not.toThrow()
+  })
+
+  it('is wired into parseConfig, so the page wins there too', () => {
+    expect(at('?key=k&atlas=/gb/london', '?atlas=/nl/amsterdam').route).toBe('/nl/amsterdam')
   })
 })

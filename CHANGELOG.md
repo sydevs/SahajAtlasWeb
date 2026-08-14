@@ -46,8 +46,27 @@ cover everything a host would notice since the widget was first deployed.
   sanitizer can now destroy is the whole snippet, which is a visible failure rather than a widget
   that mounts with half its settings missing.
 
-  Two new parameters come with it: `routing` (`query` by default, `path` opt-in, with `mount`)
-  and `compact`.
+  **The parameter list is deliberately shorter than the attribute list was.** Six in total:
+  `key`, `locale`, `map`, `routing`, `atlas` and `compact`.
+
+  - `base-path` became **`atlas`**, and it is now a _default_ rather than an override: a route
+    already on your page's own URL always wins, because that is a visitor who deep-linked or
+    followed a shared link.
+  - **`analytics`, `geolocation` and `error-reporting` are gone.** Each flow is designed so that
+    it does not need an opt-out — analytics is cookieless and aggregate, crash reports carry no
+    cookies or session replay and reduce your page to origin and path, and the location lookup is
+    a keyless city lookup whose answer is discarded. If one is still a problem for your privacy
+    notice, it becomes a setting on your client record rather than something a page editor can
+    flip.
+  - **`name`, `primary-color` and `secondary-color` are gone.** Your display name and palette are
+    the same on every page you embed on, so they live on your client record — making them
+    per-embed only created the opportunity for two of your pages to disagree.
+  - **`mount` is gone.** The path prefix for `routing=path` comes from your client record, which
+    is the same value your canonical URLs are composed from — a second copy on a script tag could
+    disagree with it, and a canonical that names a URL not restoring the view is the exact failure
+    canonicals exist to prevent.
+
+  A leftover value for any removed parameter is ignored rather than misread.
 
 - **The file you load is `auto.js`, a ~3 KiB loader — not the widget.** ([#149]) It works out
   what your page supports and fetches the widget only when the embed is near the viewport. An
@@ -75,6 +94,11 @@ cover everything a host would notice since the widget was first deployed.
 - **An element removed and immediately re-added — what page builders like Elementor do when they
   rearrange a layout — no longer throws away the cached data.** Teardown now waits a moment for
   the element to come back. ([#149])
+
+- **A second copy of the snippet now says so.** The loader marks the element it takes charge of,
+  so a duplicate renders nothing and logs a console warning instead of silently adopting the first
+  widget and discarding its own settings. One widget per page remains a real constraint: two would
+  both write the same `?atlas=` parameter and fight over it. ([#149])
 
 ### Added
 

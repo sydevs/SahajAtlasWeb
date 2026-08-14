@@ -20,7 +20,7 @@ demoed in `demo.html`.
 
 **[`docs/embedding.md`](docs/embedding.md) is the integrator guide** — the complete,
 host-facing reference, and the place to send anyone installing the widget. It covers the
-snippet and which origin to load it from, all twelve script-URL parameters, sizing in
+snippet and which origin to load it from, all six script-URL parameters, sizing in
 both map and map-less modes, the URL shape and what happens on a page that already uses
 its own `#anchor`, the full Content-Security-Policy contract with the failure mode for
 each directive, the browser floor, what the widget does (and does not do) to your page,
@@ -36,7 +36,7 @@ Three things from it are worth knowing before you read any further:
 - **One `<sahaj-atlas>` per page.** A second element is refused at connection and never
   mounts; a second copy of the script is a no-op. Both say so in the console.
 - **Three attributes switch off the third-party flows** described below —
-  `analytics=false`, `geolocation=false`, `error-reporting=false`.
+  described below, and none of them has a script-URL opt-out.
 
 ### Privacy, storage and third-party requests
 
@@ -76,13 +76,13 @@ an attribute that turns it off:
   disclosed), no API key, no cookies, and no identifier of ours; it times out after five
   seconds and every failure is silent. It is skipped entirely when neither feature could
   show — the suggestion already dismissed, a search already active, an in-person event.
-  An IP is personal data in the EU, so if your privacy notice cannot cover this, set
-  **`geolocation=false`** and it is never called; you lose the nearby suggestion and
-  the localized online-event times, nothing else.
+  An IP is personal data in the EU; it is used to pick a city and then discarded, never
+  stored and never sent anywhere else. What the lookup buys is the nearby suggestion and
+  the localized online-event times, and nothing else depends on it.
 - **`https://cdn.usefathom.com` — Fathom analytics.** Cookieless, aggregate pageview
   counting for the atlas's own pages, loaded into your page only when all three hold: the
   bundle was built with an analytics ID, your client record names a real (non-localhost)
-  primary domain, and you have not set **`analytics=false`**. Its auto-tracking is
+  primary domain. Its auto-tracking is
   switched off, so it reports the widget's own route under that primary domain — **your
   page's real URL and query string are never sent** — alongside the coarse, cookieless
   referrer and device breakdown Fathom collects for any pageview. It sets no cookie or
@@ -100,7 +100,7 @@ an attribute that turns it off:
   clicks or network requests, and reads no form value, cookie or storage key. There is no
   session replay. As with any request, your visitor's IP reaches Sentry in transit. Two
   failures are deliberately never reported at all: a visitor who is simply offline, and a
-  dead link. Set **`error-reporting=false`** and nothing is ever sent; you lose only our
+  dead link. With no DSN configured nothing is fetched or sent; what you lose is our
   ability to find out that the widget is broken on your site before somebody emails us a
   screenshot.
 - **`api.mapbox.com` and `events.mapbox.com` — the map.** Unavoidable if you render one:
@@ -116,12 +116,9 @@ no-referrer`), and **`challenges.cloudflare.com`** loads the Turnstile captcha, 
   [`docs/embedding.md`](docs/embedding.md#content-security-policy); neither carries an
   identifier.
 
-```html
-<script
-  type="module"
-  src="https://sahajatlas.com/auto.js?key=…&analytics=false&geolocation=false&error-reporting=false"
-></script>
-```
+None of these has a script-URL opt-out (#149). Each is designed so that it does not need one, and
+a host with a compliance requirement we have not anticipated gets a setting on their client record
+— not a parameter any page editor can flip.
 
 Two things a visitor can send us on purpose, both on submit and never in the background:
 a **class registration** (their name, email and any organiser questions) and a **report

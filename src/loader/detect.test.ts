@@ -9,7 +9,6 @@ const ideal: DetectionSignals = {
   topLevel: true,
   urlWritable: true,
   paramPersisted: true,
-  mountMatches: true,
 }
 
 describe('fingerprint', () => {
@@ -44,16 +43,11 @@ describe('fingerprint', () => {
       expect(fingerprint({ ...ideal, paramPersisted: false }, 'query').canonicalViable).toBe(false)
     })
 
+    // Path routing never uses the param, and the thing it DOES need — the host's server serving
+    // the widget's routes under a prefix — is not observable from the client, so this reports
+    // what the page can support rather than claiming to have verified more.
     it('does not ask path routing about the param, which it never uses', () => {
       expect(fingerprint({ ...ideal, paramPersisted: false }, 'path').canonicalViable).toBe(true)
-    })
-
-    it('asks path routing whether we are actually under the mount prefix', () => {
-      expect(fingerprint({ ...ideal, mountMatches: false }, 'path').canonicalViable).toBe(false)
-    })
-
-    it('does not ask query routing about the mount prefix, which it never uses', () => {
-      expect(fingerprint({ ...ideal, mountMatches: false }, 'query').canonicalViable).toBe(true)
     })
   })
 })
@@ -76,7 +70,6 @@ describe('fingerprintChanged', () => {
     ['topLevel', { topLevel: false }],
     ['urlWritable', { urlWritable: false }],
     ['paramPersisted', { paramPersisted: false }],
-    ['mountMatches', { mountMatches: false }],
     ['canonicalViable', { canonicalViable: false }],
   ])('reports a change when %s differs', (_field, diff) => {
     expect(fingerprintChanged(current, { ...current, ...diff })).toBe(true)

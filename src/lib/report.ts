@@ -1,7 +1,5 @@
 import type { Report } from '@/types/report'
 
-import privacy from '@/config/privacy'
-
 /**
  * Narrow an unknown thrown value to a displayable message.
  *
@@ -218,19 +216,18 @@ const MAX_EVENTS_PER_PAGE = 10
 let sent = 0
 
 /**
- * The DSN, if reporting is live at all — two gates, both read per call rather than once
- * at module load.
+ * The DSN, if reporting is live at all — read per call rather than once at module load.
  *
  * An absent `VITE_SENTRY_DSN` is the default posture and the important one: the `import()`
  * below is then never reached, so the SDK is never fetched and the behaviour is exactly
- * the console-only one this seam had before. `privacy.errorReporting` is the host's veto
- * (`error-reporting="false"`), read live so a host that changes the attribute mid-session
- * is honoured from the next failure rather than the next reload.
+ * the console-only one this seam had before. The host veto that used to sit beside it is
+ * gone (#149) — reports carry no cookies, no breadcrumbs, no session replay, and the host
+ * page reaches Sentry as origin and path only.
  */
 function reportingDsn(): string | null {
   const dsn = import.meta.env.VITE_SENTRY_DSN
 
-  return typeof dsn === 'string' && dsn && privacy.errorReporting ? dsn : null
+  return typeof dsn === 'string' && dsn ? dsn : null
 }
 
 /**
@@ -534,7 +531,7 @@ export function reportInternalError(error: unknown, context: string): void {
  *  - **They fire before the host has been asked.** The duplicate-script warning runs at
  *    module load, from the `customElements.define` guard, and the duplicate-element one
  *    from `connectedCallback` — both potentially before `<sahaj-atlas>`'s attributes have
- *    been read into `config/privacy`. A beacon here could therefore leave a page whose
+ *    been read. A beacon here could therefore leave a page whose
  *    owner had set `error-reporting="false"`, which is the one thing #95's posture says we
  *    do not do. An opt-out you can outrun is not an opt-out.
  *  - **It is a misconfiguration, not a crash, and it recurs per pageview.** A doubled

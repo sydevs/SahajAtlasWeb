@@ -1,7 +1,7 @@
 /**
  * The configuration the loader handed us, and what it observed about the host page (#149).
  *
- * A mutable module singleton, mirroring `config/api/auth.ts`, `config/privacy.ts` and
+ * A mutable module singleton, mirroring `config/api/auth.ts` and
  * `config/preview.ts` — page-global boot state, read where it is needed rather than threaded
  * through component signatures. It is not a `WidgetMode` axis for the same reason live preview
  * is not one: this is *boot session-state*, decided once before React exists, not a runtime mode
@@ -29,9 +29,6 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
   key: null,
   map: true,
   routing: 'query',
-  analytics: true,
-  geolocation: true,
-  errorReporting: true,
   compact: 'auto',
 }
 

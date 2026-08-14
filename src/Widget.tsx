@@ -10,7 +10,6 @@ import { useEffect, useRef } from 'react'
 import App, { RootBoundary } from './App'
 import atlasAuth from './config/api/auth'
 import embed from './config/embed'
-import privacy from './config/privacy'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
@@ -108,13 +107,6 @@ function Atlas() {
     atlasAuth.apiKey = config.key
   }
 
-  // Derived purely from the config and idempotent, so a discarded render (see the `useLocale`
-  // note below) writes the same values again. Read non-reactively by the analytics block in
-  // App.tsx and by `useIpLocation`, both of which run after this.
-  privacy.analytics = config.analytics
-  privacy.ipLookup = config.geolocation
-  privacy.errorReporting = config.errorReporting
-
   // NB: the initial locale is applied by App's AppShell effect (from `defaultLocale` below),
   // which runs once on mount and again only if the host changes it. Don't call
   // i18n.changeLanguage here in the render body — it re-fired on every render and clobbered a
@@ -123,7 +115,7 @@ function Atlas() {
   // Who owns the URL fragment, and where the widget boots — decided ONCE, on the first render.
   // Guarded to it because the root hash (`#!/`) recurs whenever the visitor navigates back home
   // and Widget re-renders reactively (locale changes): re-deciding would teleport them back to
-  // `base-path`.
+  // the embed's default route.
   //
   // `hash` is the normal case. `memory` is the host-anchor case (issue #92): a page arriving at
   // `#respond` used to render a BLANK widget, because react-router reads that as a location
@@ -148,7 +140,7 @@ function Atlas() {
   const mount = useRef<MountRoute>()
 
   if (!mount.current) {
-    mount.current = claimFragment(mountRoute(window.location.hash, config.basePath))
+    mount.current = claimFragment(mountRoute(window.location.hash, config.route))
   }
 
   // One name for the one decision: it picks the router below AND is the `linkable` mode axis
@@ -223,7 +215,6 @@ function Atlas() {
     >
       <App
         apiKey={config.key ?? ''}
-        brand={{ primary: config.primaryColor, secondary: config.secondaryColor }}
         defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}

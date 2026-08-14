@@ -108,25 +108,6 @@ function probeParamPersisted(): boolean {
   }
 }
 
-/** Is the document we are on actually under the configured path prefix? */
-function probeMountMatches(mount: string | undefined): boolean {
-  if (!mount) return false
-
-  try {
-    const path = window.location.pathname
-
-    // A `/` boundary, so `/mapper` does not read as being under `/map`. Case-insensitive to
-    // agree with react-router's own `stripBasename`, which is — so that our guard and the
-    // router cannot disagree about whether a location is inside the prefix.
-    const prefix = mount.toLowerCase()
-    const current = path.toLowerCase()
-
-    return current === prefix || current.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`)
-  } catch {
-    return false
-  }
-}
-
 function detect(config: LoaderConfig): EmbedFingerprint {
   const signals: DetectionSignals = {
     // A cross-origin parent makes `window.top` throw on access rather than return a foreign
@@ -140,27 +121,63 @@ function detect(config: LoaderConfig): EmbedFingerprint {
     })(),
     urlWritable: probeUrlWritable(),
     paramPersisted: probeParamPersisted(),
-    mountMatches: probeMountMatches(config.mount),
   }
 
   return fingerprint(signals, config.routing)
 }
 
 /**
- * The element to render into: the host's, if a platform made one, otherwise ours.
+ * Marks the element a loader has taken responsibility for.
  *
- * Both cases are real and neither is a fallback for the other. The documented install is a bare
- * `<script>`, so normally there is no element and the loader inserts one where the script sits.
- * But **Wix creates the element itself** — its Custom Element takes a tag name and a script URL —
- * so on that platform one already exists and creating a second would mean two widgets, of which
- * `Widget.tsx`'s one-per-page rule would refuse the second.
+ * Needed because two loaders on one page cannot see each other any other way: loaded from two
+ * different URLs they are two module instances with two sets of module state, and the browser's
+ * module map only dedupes identical `src`s. The DOM is the one thing they share.
+ */
+const CLAIMED_ATTR = 'data-sy-atlas-loaded'
+
+/**
+ * The element to render into: the host's, if a platform made one, otherwise ours — or `null` if
+ * somebody else already has one.
+ *
+ * Three cases, all real. The documented install is a bare `<script>`, so normally there is no
+ * element and the loader inserts one where the script sits. **Wix creates the element itself** —
+ * its Custom Element takes a tag name and a script URL — so there one already exists, and making
+ * a second would mean two widgets of which `Widget.tsx`'s one-per-page rule would refuse the
+ * second anyway.
+ *
+ * The third case is why the claim marker exists. Adopting *any* pre-existing element is right for
+ * Wix and wrong for a page carrying the snippet twice: the second loader would silently adopt the
+ * first one's widget, its configuration would be discarded, and the page would look like it had
+ * one working embed rather than one embed and one mistake. Adopting an unclaimed element and
+ * refusing a claimed one distinguishes the two.
+ *
+ * ⚠ **This is a refusal, not a limitation we could lift here.** Two widgets on a page is blocked
+ * by the URL, not by this: both would mount routers writing the same `?atlas=` parameter and
+ * fight over it every time either navigated. Whatever makes multiple embeds possible has to
+ * answer that first — which is the routing work, not the loader.
  */
 function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   const existing = document.querySelector(ELEMENT_NAME)
 
-  if (existing instanceof HTMLElement) return existing
+  if (existing instanceof HTMLElement) {
+    if (existing.hasAttribute(CLAIMED_ATTR)) {
+      warn(
+        `the embed script is on this page more than once. Only one <${ELEMENT_NAME}> runs per ` +
+          'page, so this copy will not render and its settings are ignored — remove the extra ' +
+          'script tag.',
+      )
+
+      return null
+    }
+
+    existing.setAttribute(CLAIMED_ATTR, '')
+
+    return existing
+  }
 
   const element = document.createElement(ELEMENT_NAME)
+
+  element.setAttribute(CLAIMED_ATTR, '')
   const parent = script?.parentNode
 
   // `<head>` is never where the widget goes, and it is reachable two ways: a host who put the
@@ -218,18 +235,10 @@ function whenVisible(element: HTMLElement, run: () => void): void {
  * `document.currentScript`, which it must capture before the dynamic import loses it.
  */
 export function start(script: HTMLScriptElement | null): void {
-  const config = parseConfig(script?.getAttribute('src'))
+  const config = parseConfig(script?.getAttribute('src'), window.location.search)
 
   if (!config.key) {
     error('no `key` parameter on the embed script URL — the widget cannot load any data.')
-  }
-
-  if (config.routing === 'path' && !config.mount) {
-    warn(
-      'routing=path needs a `mount` parameter naming the path prefix the widget is served ' +
-        'under (e.g. mount=/map). Falling back to query routing.',
-    )
-    config.routing = 'query'
   }
 
   const element = resolveElement(script)

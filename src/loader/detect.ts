@@ -23,8 +23,6 @@ export type DetectionSignals = {
   urlWritable: boolean
   /** A written query param survived the host router. Only meaningful under query routing. */
   paramPersisted: boolean
-  /** Path routing only: the current pathname actually sits under the configured `mount`. */
-  mountMatches: boolean
 }
 
 /** How the widget renders: in the host's own document, or inside a frame. */
@@ -49,22 +47,29 @@ export type EmbedFingerprint = DetectionSignals & {
  *
  * The routing modes fail differently, so they are asked different questions. Query routing needs
  * the param to survive the host's router — measured, not assumed, because a host SPA that rewrites
- * the URL on boot would silently swallow it. Path routing needs no param, but does need the host's
- * server to be serving the widget's routes under `mount`; the closest thing to that a client-side
- * check can see is whether the pathname we were loaded on is under the prefix at all.
+ * the URL on boot would silently swallow it.
+ *
+ * **Path routing is not fully answerable from here, and says so rather than guessing.** What it
+ * actually needs is the host's server serving the widget's routes under a prefix, which is a
+ * server fact no client-side probe can see: a page that renders is exactly what a correct setup
+ * and a soft-404 both look like. So the client half is reported, and the deciding half is the
+ * client record — the same field SahajCloud composes the canonical from, which is what stops the
+ * two disagreeing.
  */
 export function fingerprint(signals: DetectionSignals, routing: RoutingMode): EmbedFingerprint {
   const mode: EmbedMode = signals.topLevel ? 'component' : 'iframe'
-  const routeSurvives = routing === 'path' ? signals.mountMatches : signals.paramPersisted
 
   return {
     ...signals,
     mode,
     routing,
-    // All three must hold. `topLevel` because a frame's URL is not the indexable one;
-    // `urlWritable` because a route we cannot write is a route nobody can link to; and the
-    // per-mode check because a URL that does not restore the view is worse than no canonical.
-    canonicalViable: signals.topLevel && signals.urlWritable && routeSurvives,
+    // `topLevel` because a frame's URL is not the indexable one, and `urlWritable` because a route
+    // we cannot write is a route nobody can link to. Under query routing the param surviving the
+    // host's router is the third requirement; under path routing that question does not apply and
+    // the remaining one is answered server-side, so this reports what the page can support rather
+    // than claiming more than it measured.
+    canonicalViable:
+      signals.topLevel && signals.urlWritable && (routing === 'path' || signals.paramPersisted),
   }
 }
 
@@ -90,7 +95,6 @@ export function fingerprintChanged(
     next.topLevel !== previous.topLevel ||
     next.urlWritable !== previous.urlWritable ||
     next.paramPersisted !== previous.paramPersisted ||
-    next.mountMatches !== previous.mountMatches ||
     next.canonicalViable !== previous.canonicalViable
   )
 }

@@ -5,10 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { fingerprint } from './detect'
 import { buildReport, mountKey } from './report'
 
-const observed = fingerprint(
-  { topLevel: true, urlWritable: true, paramPersisted: true, mountMatches: false },
-  'query',
-)
+const observed = fingerprint({ topLevel: true, urlWritable: true, paramPersisted: true }, 'query')
 
 describe('mountKey', () => {
   it('reduces a URL to origin + pathname', () => {
@@ -73,7 +70,7 @@ describe('buildReport', () => {
 
   it('reports the measured signals rather than an idealised set', () => {
     const framed = fingerprint(
-      { topLevel: false, urlWritable: false, paramPersisted: false, mountMatches: false },
+      { topLevel: false, urlWritable: false, paramPersisted: false },
       'query',
     ) satisfies { topLevel: boolean } & DetectionSignals
 

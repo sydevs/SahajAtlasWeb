@@ -58,10 +58,11 @@
 
     <!--
       Embedded event/registration form: the same loader in map=false mode, booted
-      directly on an event (or `<event-path>/register`) route via base-path. The
+      directly on an event (or `<event-path>/register`) route via the `atlas`
+      parameter. The
       event/register headers are self-sufficient (title, when, where, Free) — no map or
-      list chrome exists in this mode. A route the visitor already navigated to wins
-      over base-path. The HOST sizes the element (the map-less widget fills its slot);
+      list chrome exists in this mode. A route already on the page's own URL wins over
+      the embed's default. The HOST sizes the element (the map-less widget fills its slot);
       an unsized custom element collapses to zero height, and since the loader inserts
       the element for you, size it with a rule rather than an inline style.
 
@@ -72,7 +73,7 @@
           }
         </style>
         <script
-          src="http://localhost:4173/auto.js?key=…&map=false&base-path=/507/register"
+          src="http://localhost:4173/auto.js?key=…&map=false&atlas=/507/register"
           type="module"
         ></script>
 
