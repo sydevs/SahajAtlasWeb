@@ -126,9 +126,12 @@ in host pages, **and** runs standalone in dev. Because of that:
   **`memory` is a degradation, not a mode anyone asks for**, taken only where the document refuses
   `replaceState` (a sandboxed iframe, `file://`). `routing=path` is accepted, warns, and falls back
   to query until its prefix arrives from the client record.
-  ⚠ Two traps the history exists to avoid: `Router` returns `null` on a basename miss (#92's blank
-  widget), and it defaults `location.key` to a constant — a history that doesn't mint one per entry
-  collapses every `rememberCamera(location.key)` snapshot into one bucket with every test green.
+  ⚠ **The trap the history exists to avoid**: `Router` defaults `location.key` to a constant, so a
+  history that doesn't mint one per entry collapses every `rememberCamera(location.key)` snapshot
+  into a single bucket — back-navigation restores the wrong viewport, and nothing else in the app
+  reads `key`, so every other test stays green. `routing.router.test.tsx` asserts distinct keys.
+  (The basename-miss failure of #92 is **not** reachable here: query routing passes no `basename`,
+  so `stripBasename` is never called. It becomes live again if `path` mode ever ships.)
 - **Ask, don't infer.** Two questions, two answers, and neither is `window.location`:
   **"can this route be handed to somebody?"** is `useHrefFor()` (`src/config/routing.tsx`), which
   returns `undefined` in memory mode. **"is the route on screen in the URL?"** is `linkable` on

@@ -180,9 +180,15 @@ export function createQueryHistory({
       listener = fn
 
       const onPop = () => {
+        // One read of our state, not two: `currentState()` MINTS a key when the entry has none —
+        // a host-created entry, or one predating the widget — so calling it twice would mint two
+        // and use only the first. Harmless today, and exactly the kind of thing that stops being
+        // harmless when someone starts trusting `idx`.
+        const state = currentState()
+
         action = 'POP' as NavigationType
-        location = readLocation()
-        index = currentState().idx
+        location = toLocation(routeFromParam(win.location.search) ?? initialPath, state)
+        index = state.idx
         fn({ action, location })
       }
 
