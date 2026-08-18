@@ -1,11 +1,6 @@
-import type { DetectionSignals } from './detect'
-
 import { describe, expect, it } from 'vitest'
 
-import { fingerprint } from './detect'
-import { buildReport, mountParts } from './report'
-
-const observed = fingerprint({ topLevel: true, urlWritable: true, paramPersisted: true }, 'query')
+import { mountParts } from './mount'
 
 describe('mountParts', () => {
   it('splits a URL into the origin and path the endpoint takes separately', () => {
@@ -124,40 +119,6 @@ describe('mountParts', () => {
 
       expect(parts?.pathname.startsWith('/')).toBe(true)
       expect(parts?.origin).toMatch(/^https?:\/\/[^/?#]+$/)
-    })
-  })
-})
-
-describe('buildReport', () => {
-  it('carries the fingerprint alongside the split mount', () => {
-    const report = buildReport(observed, 'https://host.example/classes?q=1')
-
-    expect(report).toEqual({
-      ...observed,
-      origin: 'https://host.example',
-      pathname: '/classes',
-    })
-  })
-
-  // `mount` was one field until #153; the endpoint takes the halves and rebuilds it, so sending
-  // the joined string is a 400 on every report.
-  it('sends no joined `mount` field', () => {
-    expect(buildReport(observed, 'https://host.example/x')).not.toHaveProperty('mount')
-  })
-
-  it('is undefined when the page has no reportable mount', () => {
-    expect(buildReport(observed, 'not a url')).toBeUndefined()
-  })
-
-  it('reports the measured signals rather than an idealised set', () => {
-    const framed = fingerprint(
-      { topLevel: false, urlWritable: false, paramPersisted: false },
-      'query',
-    ) satisfies { topLevel: boolean } & DetectionSignals
-
-    expect(buildReport(framed, 'https://host.example/x')).toMatchObject({
-      mode: 'iframe',
-      canonicalViable: false,
     })
   })
 })

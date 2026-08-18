@@ -1,6 +1,5 @@
 import type { EmbedFingerprint } from './loader/detect'
 import type { LoaderConfig } from './loader/config'
-import type { EmbedReport } from './loader/report'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
@@ -323,20 +322,17 @@ class SahajAtlasElement extends AtlasElementBase {
  * document, so the loader's element needs no handing over and a second parameter would only
  * invite someone to think this renders into it.
  *
- * Nothing is sent from here. The report is parked on the boot singleton for `announceEmbed` to
- * send once the widget has actually rendered — this function can be called on a page whose element
- * never mounts.
+ * **Nothing is sent from here, and nothing about the host's URL arrives here either.** Defining an
+ * element is not a mount: this can be called on a page whose element never renders, so a report
+ * filed at this point would attest to a widget that may never exist. The observation is parked on
+ * the boot singleton, and `AppShell` joins it to the page's mount and sends it once the widget has
+ * genuinely rendered — which is also why the third parameter this used to take, a pre-composed
+ * report, is gone. It carried a URL captured on loader idle, which is neither this moment nor the
+ * one that matters.
  */
-export function boot(
-  config: LoaderConfig,
-  observed: EmbedFingerprint | null = null,
-  report?: EmbedReport,
-): void {
+export function boot(config: LoaderConfig, observed: EmbedFingerprint | null = null): void {
   embed.config = config
   embed.observed = observed
-  // Stashed rather than sent: defining an element is not a mount, and a report filed here would
-  // attest to a widget that has not rendered and might never. The mount effect in `Atlas` sends it.
-  embed.report = report ?? null
 
   // Guarded: `customElements.define` throws NotSupportedError on a name that is already
   // registered, and two copies of the embed script on one page is a plausible mistake. The second

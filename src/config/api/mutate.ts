@@ -1,6 +1,7 @@
 import type { ContactAdminErrorCode, ContactAdminRequest } from '@/types/payload/contact-types'
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
-import type { EmbedReport } from '@/loader/report'
+import type { EmbedFingerprint } from '@/loader/detect'
+import type { MountParts } from '@/lib/mount'
 import type { ReportPayload } from '@/lib/report'
 import type { Registration } from '@/types'
 
@@ -206,6 +207,20 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
   return ContactResponseSchema.parse(response)
 }
 
+/**
+ * `POST /api/clients/report` body — the loader's observation, flattened onto the mount it
+ * describes (#153).
+ *
+ * **This is the one place the two halves are joined, and it is deliberately a transport type.**
+ * They used to be joined in `src/loader/`, as an `EmbedReport` that was carried on the boot
+ * singleton beside the `EmbedFingerprint` it already contained — two overlapping copies of one
+ * observation, and the object was then handed to `requestJson` verbatim, so the wire shape was
+ * whatever the domain type happened to be. Naming the body here makes the flattening explicit at
+ * the call site, keeps the observation free of anything about the request, and means adding a
+ * field to `EmbedFingerprint` no longer silently sends it.
+ */
+export type EmbedReportBody = EmbedFingerprint & MountParts
+
 // Confirmation returned by `POST /api/clients/report` (EmbedReportResponse). `ok` is the whole
 // receipt, exactly as for `contactAdmin`: the endpoint also returns the `mount` key it filed under
 // and `stored: false` when it suppressed an unchanged report within the hour, but nothing here
@@ -233,8 +248,8 @@ export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
  * and `429` (the mount cap) included. There is nothing here for a caller to recover, so the
  * failure is a console diagnostic at the one call site — never an exception in the host's page.
  */
-const reportEmbed = async (report: EmbedReport): Promise<EmbedReportResponse> => {
-  const response = await requestJson({ method: 'POST', path: '/clients/report', json: report })
+const reportEmbed = async (body: EmbedReportBody): Promise<EmbedReportResponse> => {
+  const response = await requestJson({ method: 'POST', path: '/clients/report', json: body })
 
   return EmbedReportResponseSchema.parse(response)
 }

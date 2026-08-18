@@ -1,12 +1,21 @@
 /**
- * Telling SahajCloud what this embed looks like from the inside (#149, #153).
+ * Which page this embed is mounted on, reduced to what may leave it (#149, #153).
  *
- * The payload builder is pure and lives here so the node lane can assert the one property that
- * matters most, below. The send itself belongs to the widget rather than the loader
- * (`Widget.tsx`): it needs the API key and the shared SDK client, and it must not happen until
- * the widget has genuinely mounted — a report filed from script load attests to nothing.
+ * **This is the only module that reads the host's URL**, and it answers one question: what is the
+ * mount, in the two fields `POST /api/clients/report` stores it under. Everything else the widget
+ * reports — how it is framed, whether it can write the URL, whether a parameter survives — is a
+ * probe rather than a URL, and lives in `loader/detect.ts`.
+ *
+ * **It sits in `lib/` rather than `loader/`, and the move is the point.** It used to live beside
+ * the loader's probes and compose an `EmbedReport` there, on idle, which meant the URL was captured
+ * some time before the widget mounted and then carried on the boot singleton as a second copy of an
+ * observation the singleton already held. Only the send site needs a mount, the send site runs in
+ * the widget, and it can read the URL for itself at the moment it reports — so the loader is out of
+ * this entirely and the duplicate is gone. The one type that joins a mount to an observation is now
+ * the request body (`config/api/mutate.ts`), where a wire shape belongs.
+ *
+ * Pure and DOM-free, so the node lane can assert the property that matters most, below.
  */
-import type { EmbedFingerprint } from './detect'
 
 /** A mount, split the way `POST /api/clients/report` takes it. */
 export type MountParts = {
@@ -15,8 +24,6 @@ export type MountParts = {
   /** Rooted path, carrying at most a WordPress `?p=<digits>`. Never a fragment. */
   pathname: string
 }
-
-export type EmbedReport = EmbedFingerprint & MountParts
 
 /**
  * The one query string a reported path may carry: a WordPress default permalink.
@@ -93,12 +100,14 @@ export function mountParts(href: string | null | undefined): MountParts | undefi
   }
 }
 
-/** The report body, or `undefined` when the page has no reportable mount. */
-export function buildReport(
-  fingerprint: EmbedFingerprint,
-  href: string | null | undefined,
-): EmbedReport | undefined {
-  const parts = mountParts(href)
-
-  return parts ? { ...fingerprint, ...parts } : undefined
+/**
+ * The mount of the page the widget is on right now.
+ *
+ * A one-line convenience over {@link mountParts}, and the reason it exists is *when* rather than
+ * what: the caller is the send site, so the URL is read at the moment the report is filed rather
+ * than captured earlier and carried. A host router that rewrote the URL between the loader's probes
+ * and the widget's mount is therefore reported as it finally stands.
+ */
+export function currentMount(): MountParts | undefined {
+  return mountParts(window.location.href)
 }

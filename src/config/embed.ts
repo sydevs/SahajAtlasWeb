@@ -19,7 +19,6 @@
  */
 import type { LoaderConfig } from '@/loader/config'
 import type { EmbedFingerprint } from '@/loader/detect'
-import type { EmbedReport } from '@/loader/report'
 
 /**
  * The default the widget renders under when nothing booted it — the standalone dev entry, and
@@ -35,23 +34,22 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
 
 type EmbedBoot = {
   config: LoaderConfig
-  /** What the loader measured about this page, or `null` outside a loader-driven boot. */
-  observed: EmbedFingerprint | null
   /**
-   * The same observation addressed to SahajCloud, or `null` when there is no mount to report — a
-   * page whose URL would not parse, and every surface the loader never booted.
+   * What the loader measured about this page, or `null` outside a loader-driven boot.
    *
-   * It waits here rather than being sent by `boot()` because the send must not happen until the
-   * widget has genuinely mounted (#153): a report filed the moment the bundle arrives attests to
-   * nothing, and the marker it is paired with would be worse than nothing.
+   * **One observation, not two.** This used to sit beside a `report` field holding the same
+   * booleans joined to the page's URL — a second copy of itself, captured on loader idle and
+   * carried until the widget mounted, which nothing kept in agreement with this one and which
+   * still named the first page after a host SPA navigated away. The mount is now read at the send
+   * site (`lib/mount.ts`) and joined to this there, so what a report *is* — an observation plus the
+   * page it describes — is stated once, as the request body it becomes.
    */
-  report: EmbedReport | null
+  observed: EmbedFingerprint | null
 }
 
 const embed: EmbedBoot = {
   config: DEFAULT_EMBED_CONFIG,
   observed: null,
-  report: null,
 }
 
 export default embed

@@ -12,7 +12,7 @@
  * on this load. It never waits on the server's copy: a round trip before render would add
  * latency to every embed, and a stale stored value would produce a visibly broken widget. What
  * gets stored is evidence for a human deciding which mount is canonical — see
- * `src/loader/report.ts`.
+ * `src/lib/mount.ts`, joined to the mount at the send site.
  */
 import type { RoutingMode } from './config'
 

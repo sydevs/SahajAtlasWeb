@@ -6,7 +6,6 @@ import { announceEmbed, releaseAnnouncement, resetReportedForTest } from './embe
 import { READY_ATTR } from './readiness'
 
 import { fingerprint } from '@/loader/detect'
-import { buildReport } from '@/loader/report'
 
 // The same boundary mock as `config/api/mutate.test.ts`: the SDK is stubbed so the real
 // `reportEmbed` runs against a controlled Response, and i18n is stubbed so importing the client
@@ -40,7 +39,8 @@ const observed: EmbedFingerprint = fingerprint(
   'query',
 )
 
-const report = buildReport(observed, 'https://sahajayoga.nl/lessons?utm_source=x') ?? null
+/** The page the widget is pretending to be mounted on. Read at SEND time, not fixed up front. */
+const HOST_PAGE = 'https://sahajayoga.nl/lessons?utm_source=x'
 
 /** The smallest `documentElement` the marker touches — the node lane has no DOM. */
 function stubDocument() {
@@ -56,10 +56,23 @@ function stubDocument() {
   return attributes
 }
 
+/**
+ * The host page's URL.
+ *
+ * A stub rather than a fixture is the whole point of this file since the composition moved: the
+ * mount is no longer handed in, it is read from here at the moment of sending — so a case can
+ * change the page between calls and see the difference.
+ */
+function stubLocation(href: string) {
+  vi.stubGlobal('location', new URL(href))
+  vi.stubGlobal('window', { location: new URL(href) })
+}
+
 beforeEach(() => {
   sdk.request.mockReset()
   // Both are module state, so every case starts from a page that has not announced.
   stubDocument()
+  stubLocation(HOST_PAGE)
   releaseAnnouncement()
   resetReportedForTest()
   // Node has no `requestIdleCallback`, so without this every case would sit out the real
@@ -85,7 +98,7 @@ describe('announceEmbed', () => {
       jsonResponse({ ok: true, mount: 'https://sahajayoga.nl/lessons', stored: true }),
     )
 
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed })
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
     expect(sdk.request.mock.calls[0][0]).toMatchObject({
@@ -101,7 +114,7 @@ describe('announceEmbed', () => {
     stubDocument()
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed })
 
     expect(sdk.request.mock.calls[0][0].json).toMatchObject({
       origin: 'https://sahajayoga.nl',
@@ -120,7 +133,7 @@ describe('announceEmbed', () => {
     stubDocument()
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: false }))
 
-    await expect(announceEmbed({ routing: 'query', observed, report })).resolves.toBeUndefined()
+    await expect(announceEmbed({ routing: 'query', observed })).resolves.toBeUndefined()
   })
 
   /**
@@ -140,7 +153,7 @@ describe('announceEmbed', () => {
 
     sdk.request.mockRejectedValue(new FakeSDKError([{ message }], status))
 
-    await expect(announceEmbed({ routing: 'query', observed, report })).resolves.toBeUndefined()
+    await expect(announceEmbed({ routing: 'query', observed })).resolves.toBeUndefined()
     expect(warn).toHaveBeenCalledOnce()
     // Names the mount, so the line points at a record rather than at a request.
     expect(String(warn.mock.calls[0])).toContain('https://sahajayoga.nl/lessons')
@@ -152,12 +165,12 @@ describe('announceEmbed', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     sdk.request.mockRejectedValue(new FakeSDKError([{ message: 'nope' }], 403))
 
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed })
 
     expect(attributes.has(READY_ATTR)).toBe(true)
   })
 
-  it('publishes the routing it was handed, not the one the report carries', async () => {
+  it('publishes the routing it was handed, not the one the observation carries', async () => {
     const attributes = stubDocument()
 
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
@@ -169,14 +182,28 @@ describe('announceEmbed', () => {
       'path',
     )
 
-    await announceEmbed({
-      routing: 'query',
-      observed: requested,
-      report: buildReport(requested, 'https://site.com/') ?? null,
-    })
+    await announceEmbed({ routing: 'query', observed: requested })
 
     expect(JSON.parse(attributes.get(READY_ATTR) ?? '')).toMatchObject({ routing: 'query' })
     expect(sdk.request.mock.calls[0][0].json).toMatchObject({ routing: 'path' })
+  })
+
+  /**
+   * The property the composition move exists for.
+   *
+   * The mount used to be built by the loader on idle and carried on the boot singleton, so it
+   * named whatever page the widget first loaded on — and kept naming it after a host SPA had
+   * navigated somewhere else. Reading it at the send site means the report describes the page the
+   * widget is actually on when it files.
+   */
+  it('reports the page it is on when it sends, not the one it loaded on', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    stubLocation('https://sahajayoga.nl/other-page')
+
+    await announceEmbed({ routing: 'query', observed })
+
+    expect(sdk.request.mock.calls[0][0].json).toMatchObject({ pathname: '/other-page' })
   })
 
   /**
@@ -186,18 +213,24 @@ describe('announceEmbed', () => {
   it('publishes nothing and sends nothing when no loader observed the page', async () => {
     const attributes = stubDocument()
 
-    await announceEmbed({ routing: 'query', observed: null, report: null })
+    await announceEmbed({ routing: 'query', observed: null })
 
     expect(attributes.size).toBe(0)
     expect(sdk.request).not.toHaveBeenCalled()
   })
 
-  // A page whose URL would not parse has no mount to file, but the widget did still boot — so the
-  // attestation stands on its own.
-  it('publishes the marker even when there is no mount to report', async () => {
+  /**
+   * The asymmetry the optional mount buys, and the trap in merging these two at all: a page with
+   * no mount the endpoint would store — a `blob:` document, an over-long path — still has a widget
+   * that booted. Losing the attestation along with the report would take verification away from a
+   * page that works.
+   */
+  it('publishes the marker even when the page has no reportable mount', async () => {
     const attributes = stubDocument()
 
-    await announceEmbed({ routing: 'query', observed, report: null })
+    stubLocation('blob:https://sahajayoga.nl/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d')
+
+    await announceEmbed({ routing: 'query', observed })
 
     expect(attributes.has(READY_ATTR)).toBe(true)
     expect(sdk.request).not.toHaveBeenCalled()
@@ -212,9 +245,9 @@ describe('announceEmbed', () => {
   it('reports once, however many times it is called', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
-    await announceEmbed({ routing: 'query', observed, report })
-    await announceEmbed({ routing: 'query', observed, report })
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed })
+    await announceEmbed({ routing: 'query', observed })
+    await announceEmbed({ routing: 'query', observed })
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
   })
@@ -224,34 +257,34 @@ describe('announceEmbed', () => {
   it('is not spent by a surface with nothing to report', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
-    await announceEmbed({ routing: 'query', observed: null, report: null })
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed: null })
+    await announceEmbed({ routing: 'query', observed })
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 
   /**
-   * The asymmetry between the two halves, and the reason for it.
+   * The asymmetry between the two halves, and the reason it survives the composition move.
    *
-   * `auto.js` does not run again on a host SPA's client-side navigation, so `embed.report` still
-   * names the URL the widget FIRST mounted on. A second element connecting after a teardown would
-   * therefore re-file the old mount — answering "which page is canonical?" with the wrong page and
-   * keeping its `lastSeen` warm. The marker has no such problem: it is a fresh statement about the
-   * widget that is on screen now, and a re-mounted widget must publish one or a verification that
-   * would have passed finds no attestation.
+   * The marker is a fresh statement about the widget on screen now, so a re-mounted widget must
+   * publish one or a verification that would have passed finds no attestation. The report is
+   * bounded instead — one per page load — and that is now a volume decision rather than a
+   * correctness one: a re-send would name the page the widget is on, since the mount is read at
+   * send time, but a host SPA carrying the widget across routes would file a mount per route
+   * against a client's 50-mount cap.
    */
-  it('re-publishes the marker after a release but does not re-file the stale mount', async () => {
+  it('re-publishes the marker after a release but does not re-file the report', async () => {
     const attributes = stubDocument()
 
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed })
     releaseAnnouncement()
 
     // The marker cannot outlive the widget it vouches for.
     expect(attributes.has(READY_ATTR)).toBe(false)
 
-    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed })
 
     expect(attributes.has(READY_ATTR)).toBe(true)
     expect(sdk.request).toHaveBeenCalledTimes(1)
@@ -269,7 +302,7 @@ describe('announceEmbed', () => {
     })
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
-    await expect(announceEmbed({ routing: 'query', observed, report })).resolves.toBeUndefined()
+    await expect(announceEmbed({ routing: 'query', observed })).resolves.toBeUndefined()
     expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 
@@ -280,7 +313,7 @@ describe('announceEmbed', () => {
     vi.stubGlobal('requestIdleCallback', () => undefined)
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
-    await expect(announceEmbed({ routing: 'query', observed, report })).resolves.toBeUndefined()
+    await expect(announceEmbed({ routing: 'query', observed })).resolves.toBeUndefined()
     expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 })

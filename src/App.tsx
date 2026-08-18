@@ -237,7 +237,7 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
    * boundary took down.
    */
   useEffect(() => {
-    void announceEmbed({ routing, observed: embed.observed, report: embed.report })
+    void announceEmbed({ routing, observed: embed.observed })
   }, [routing])
 
   useEffect(() => {

@@ -19,8 +19,8 @@
  */
 import type { RoutingMode } from '@/loader/config'
 import type { EmbedFingerprint } from '@/loader/detect'
-import type { EmbedReport } from '@/loader/report'
 
+import { currentMount } from './mount'
 import { clearReadiness, publishReadiness } from './readiness'
 import { errorMessage, reportIntegrationWarning } from './report'
 
@@ -34,11 +34,14 @@ import api from '@/config/api'
  * precisely the regression no gate would see.
  *
  * **`releaseAnnouncement` deliberately does NOT reset it**, which is the difference between this
- * and the marker. The report describes the page the loader measured, and `auto.js` does not run
- * again on a host SPA's client-side navigation — so `embed.report` still names the URL the widget
- * first mounted on. A second element connecting later would therefore re-file the *old* mount,
- * answering "which page is canonical?" with the wrong page and keeping its `lastSeen` warm. One
- * report per page load, and a route the widget was carried to is simply not reported.
+ * and the marker. One report per page load: a widget re-mounted after a teardown has nothing new
+ * to tell the server, and the endpoint would suppress the repeat for an hour anyway.
+ *
+ * ⚠ Lifting this is now *safe* but still a decision, not a tidy-up. The mount is read fresh at
+ * every send (`currentMount`), so a re-mount would file the page it is actually on rather than —
+ * as it did when the report was composed by the loader and carried — the page the widget first
+ * loaded on. What lifting it would change is volume: a host SPA carrying the widget across routes
+ * would file a mount per route, and the client's 50-mount cap is the thing that runs out.
  */
 let reported = false
 
@@ -104,14 +107,12 @@ export async function announceEmbed(args: {
   routing: RoutingMode
   /** What the loader probed, or `null` on a surface it never booted. */
   observed: EmbedFingerprint | null
-  /** The same observation addressed to SahajCloud, or `null` when there is no mount to report. */
-  report: EmbedReport | null
 }): Promise<void> {
-  const { routing, observed, report } = args
+  const { routing, observed } = args
 
   // No loader means nothing was probed: the standalone dev entry and every Ladle story mount the
   // widget directly. A marker asserting an embed nobody measured is exactly the theatre it exists
-  // to prevent, so those surfaces publish none — and have no mount to report either.
+  // to prevent, so those surfaces publish none — and have nothing to report either.
   if (!observed) return
 
   // Published on EVERY mount, unlike the report below. It is one idempotent `setAttribute`, and an
@@ -120,7 +121,16 @@ export async function announceEmbed(args: {
   // passed reports a page with no attestation on it.
   publishReadiness({ routing, topLevel: observed.topLevel, urlWritable: observed.urlWritable })
 
-  if (!report || reported) return
+  if (reported) return
+
+  // **Read here, not carried.** The observation and the page it describes are joined at the moment
+  // of sending: the probes are the loader's and cannot be redone, but the URL can be read now, and
+  // now is when it is true. `undefined` means this page has no mount the endpoint would store — a
+  // `blob:` document, an over-long path — which costs the report and NOT the marker above, since a
+  // widget on an unreportable URL is still a widget that booted.
+  const mount = currentMount()
+
+  if (!mount) return
 
   reported = true
 
@@ -129,16 +139,13 @@ export async function announceEmbed(args: {
   // we do not own — a host's bug report for a diagnostic of ours.
   try {
     await whenIdle()
-    await api.reportEmbed(report)
+    // The flattening IS the wire shape, named by `EmbedReportBody` rather than left to be whatever
+    // a domain type happens to hold — see that type for what the implicit version cost.
+    await api.reportEmbed({ ...observed, ...mount })
   } catch (error) {
-    // The mount is rebuilt from the two fields that were sent rather than imported from
-    // `loader/report.ts`, because a single *value* import from `src/loader/` makes that module
-    // reachable from both build entries and rolldown hoists it into a chunk `auto.js` then has to
-    // fetch on every host page view — the exact regression `src/loader/literals.ts` predicts, and
-    // one `pnpm size` did not catch until this branch taught it to (scripts/check-bundle-size.mjs).
     reportIntegrationWarning(
       `could not record this embed with SahajCloud — ${errorMessage(error) ?? 'the request failed'}` +
-        ` (mount: ${report.origin}${report.pathname}). The widget itself is unaffected; this` +
+        ` (mount: ${mount.origin}${mount.pathname}). The widget itself is unaffected; this` +
         ' record only feeds the canonical-URL picker in the Atlas admin.',
     )
   }

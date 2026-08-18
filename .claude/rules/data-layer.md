@@ -199,6 +199,15 @@ correct for its one call site.
   harmless CMS rename into a "could not record this embed" warning on every host's console —
   a worse failure than the drift it would be detecting. That is a narrower rule than the
   parse-everything one above, and the difference is whether anything *renders* the answer.
+  **Its REQUEST type, `EmbedReportBody`, is declared here rather than in the loader**, and that is
+  the general rule this endpoint learned the hard way: a payload is the observation joined to the
+  thing it describes, and the join belongs at the transport. It used to be an `EmbedReport` type in
+  `src/loader/`, composed on loader idle and carried on the boot singleton beside the
+  `EmbedFingerprint` it already contained — two overlapping copies of one observation, with a URL
+  captured well before the widget mounted, handed to `requestJson` verbatim so that the wire shape
+  was whatever the domain type happened to be. Now `lib/mount.ts` reads the mount at send time and
+  `announceEmbed` spreads the two together, so adding a field to the fingerprint cannot silently
+  start sending it.
 
 **In all three, the response `.parse()` sits OUTSIDE the request's `try`.** A `ZodError`'s
 `.errors` are `{ message, code }` — precisely the shape `asRefusal` reads a refusal body
