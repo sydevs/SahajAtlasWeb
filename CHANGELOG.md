@@ -141,7 +141,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   It exists so the CMS can load your page and confirm for itself that the embed works
   before treating it as your region's canonical page — what the widget claims about itself
   is not evidence. It is written after render, never on script load, and nothing on your
-  page needs to read it. ([#156])
+  page needs to read it. ([#159])
 - **The embed report is now actually sent**, to `POST /api/clients/report` on the API
   origin your CSP already allows — no policy change needed. Three things a host can
   observe. It reports on **every** load rather than only when something changed, so "last
@@ -151,7 +151,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   because discarding it reported every post on a default-permalink site as the same page.
   Anything else in the query is still dropped, `?p=123&utm_source=…` included. And a
   refusal — your domain missing from the service's allowed-domains list, or the 50-mount
-  cap — is a console message, never an error in your page. ([#156])
+  cap — is a console message, never an error in your page. ([#159])
 - **This changelog**, so a host can see what changed under an embed that updates itself.
   ([#94])
 - **Opt-in crash reporting via Sentry**, behind the build-time `VITE_SENTRY_DSN`. With no
@@ -247,7 +247,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
-[#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156
+[#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
 [#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
