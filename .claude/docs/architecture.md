@@ -14,7 +14,7 @@ open drawers are a pure function of the pathname, with the map (or, when
 Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
                  │  (@r2wc/react-to-web-component, src/Widget.tsx)
                  ▼
-              <App>  (HashRouter, basename "!")
+              <App>  (AtlasRouter — ?atlas= query routing)
                  │
    ┌─────────────┼────────────────────────────────────────────┐
    │ Providers   │  hasMap? <Mapbox> (fixed, full viewport)   │
@@ -38,7 +38,8 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 
 - **`src/Widget.tsx`** — defines `customElements.define('sahaj-atlas', …)`, sets
   the API key and derives the `map` flag, ensures `window.location.hash`, and mounts
-  `<App>` inside a `HashRouter` (basename `!`). This is the embeddable build. It
+  `<App>` inside `AtlasRouter`, which routes off the `?atlas=` query parameter on the
+host's own URL (`src/router.tsx`, `src/lib/atlas-history.ts`). This is the embeddable build. It
   deliberately does **not** apply the locale — that happens in App's shell effect, so
   the render body never calls `i18n.changeLanguage`.
 - **`src/main.tsx`** — standalone dev entry (`index.html`, `BrowserRouter`); `?map=0`
@@ -98,7 +99,8 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
   carries no `wrangler`/`_routes.json`. SPA deep-link fallback for the standalone
   `BrowserRouter` build comes from `public/_redirects` (`/* /index.html 200`),
   which Vite copies into `dist/`. (Cloudflare ignores `vercel.json`, so it was
-  removed.) The widget build uses `HashRouter` and needs no fallback.
+  removed.) The widget build routes off a query parameter on the host's page and needs no
+fallback of ours.
 - **Translations**: there is no sync pipeline. Locale JSON under `public/locales/`
   is hand-maintained (`pnpm i18n:add`) — the two **Accent** translation-sync
   workflows were removed in #99 (see `CLAUDE.md` → Deployment).

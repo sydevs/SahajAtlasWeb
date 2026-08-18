@@ -127,7 +127,7 @@ describe('Link — site-relative hrefs', () => {
     // What this case deliberately does NOT bless is the resulting markup. No caller pairs
     // `isExternal` with a site-relative href today (every one passes an absolute URL), and
     // the pairing is questionable on its own terms — it renders a plain
-    // `<a href="/gb" target="_blank">`, which under the embedded HashRouter resolves
+    // `<a href="/gb" target="_blank">`, which resolves
     // against the HOST page, exactly what `OnwardLink` warns about. Making that route
     // internally is a behaviour change and belongs in its own ticket.
     const html = render(

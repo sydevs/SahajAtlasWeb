@@ -16,7 +16,7 @@ You are in **review mode**. The user wants deep analysis, not fast iteration.
 
 ## Categories to consider on every review
 
-- **Correctness** — does the code handle empty/missing API data, all locales, the embedded-widget vs standalone contexts, and the HashRouter base path?
+- **Correctness** — does the code handle empty/missing API data, all locales, the embedded-widget vs standalone contexts, and the `?atlas=` query route?
 - **Security** — the bundle is **public**: any `sk.` token / API secret leaked into client code is an exposure. Check XSS via `dompurify` usage, untrusted CMS/HTML, and that only `VITE_`-prefixed (non-secret) env vars are referenced. Cross-reference the `security-reviewer` subagent's focus areas.
 - **Performance** — map re-renders (use `useShallow` selectors), large bundle deps loaded eagerly, React Query cache keys, unnecessary geojson re-fetches.
 - **Accessibility** — semantic HTML, ARIA, alt text, keyboard handlers paired with click handlers (jsx-a11y).

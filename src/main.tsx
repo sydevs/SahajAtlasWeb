@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 
+import { RoutingContext } from './config/routing'
 import App from './App.tsx'
 import atlasAuth from './config/api/auth'
 import { capturePreview } from './config/preview'
@@ -27,8 +28,15 @@ capturePreview()
 // Restore the persisted (or default) theme before first paint to avoid a flash.
 initTheme()
 
+// The standalone build's route IS the pathname, so its resolver is the trivial one — but it has
+// to be PROVIDED, because `useShareUrl` reads the absence of a resolver as "this route is not in a
+// URL". Without it every share screen here would offer no link.
+const hrefFor = (route: string) => new URL(route, window.location.origin).toString()
+
 ReactDOM.createRoot(document.getElementById('syatlas')!).render(
-  <BrowserRouter>
-    <App standalone apiKey={atlasAuth.apiKey} hasMap={hasMap} />
-  </BrowserRouter>,
+  <RoutingContext.Provider value={hrefFor}>
+    <BrowserRouter>
+      <App standalone apiKey={atlasAuth.apiKey} hasMap={hasMap} />
+    </BrowserRouter>
+  </RoutingContext.Provider>,
 )

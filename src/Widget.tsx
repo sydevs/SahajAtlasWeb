@@ -1,23 +1,23 @@
 import type { EmbedFingerprint } from './loader/detect'
 import type { LoaderConfig } from './loader/config'
 import type { EmbedReport } from './loader/report'
-import type { MountRoute } from './lib/shape'
+import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
-import { HashRouter, MemoryRouter } from 'react-router'
 import { useEffect, useRef } from 'react'
 
 import App, { RootBoundary } from './App'
+import AtlasRouter from './router'
 import atlasAuth from './config/api/auth'
 import embed from './config/embed'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
-import { atlasError, reportIntegrationWarning, reportInternalError } from './lib/report'
+import { reportIntegrationWarning } from './lib/report'
 import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
-import { HASH_BASE, mountRoute } from './lib/shape'
+import { mountDecision } from './lib/shape'
 import { queryClient } from './config/query-client'
 
 // Implementation of the embeddable widget's custom element.
@@ -27,61 +27,6 @@ import { queryClient } from './config/query-client'
 // until the element is near the viewport, and only then imports this module and calls `boot`.
 // A host therefore pays ~3 KiB up front instead of the whole widget, and nothing here runs on a
 // page whose embed is never scrolled to. Demo in: demo.html
-
-/**
- * Act on the mount decision (`mountRoute`, `lib/shape/hash.ts`): take the URL fragment when it's
- * free, and degrade if the host won't let us.
- *
- * The write is a **`replaceState`**, never a `window.location.hash = …` assignment. An assignment
- * pushes a host history entry, so the visitor's first Back press would appear to do nothing — the
- * same host-history pollution `dismissAction` is careful to avoid on every dismissal.
- * `history.state` is passed through so whatever the host put there survives.
- */
-function claimFragment(route: MountRoute): MountRoute {
-  if (!route.write) return route
-
-  try {
-    // Absolutised against the CURRENT location, not handed over as the bare `#!…` reference it
-    // is. A relative argument to `replaceState` resolves against the document BASE url, so on a
-    // host page carrying `<base href="/blog/">` a bare fragment would rewrite the visitor's path
-    // and drop their query string; a cross-origin `<base>` would throw instead, permanently
-    // downgrading that site to the memory branch below. react-router's own hash history
-    // special-cases `<base>` for the same reason.
-    const url = new URL(window.location.href)
-
-    url.hash = route.write
-    window.history.replaceState(window.history.state, '', url)
-
-    return route
-  } catch (error) {
-    // A sandboxed iframe (or a `file://` document) can refuse a same-document replaceState.
-    // Mounting a HashRouter over a fragment we failed to claim renders nothing at all, so
-    // degrade to the off-URL routing the host-anchor case uses.
-    //
-    // **The engine's own error is deliberately not what gets reported** (issue #108). A refused
-    // `replaceState` throws a DOMException whose message embeds the URL it refused — the host's
-    // query string and fragment included — and a thrown message is the one field that reaches
-    // Sentry unfiltered. Sending it would walk the host's reset token straight past
-    // `hostPageUrl`, which exists to strip exactly that. So we report a sentence we built. The
-    // exception's NAME is the diagnostic half (`SecurityError` means sandboxed) and carries no
-    // URL; it is read behind a guard because a hostile getter must not take the mount path down
-    // with it.
-    let name = 'unknown'
-
-    try {
-      name = String((error as { name?: unknown })?.name ?? 'unknown')
-    } catch {
-      // Keep the default — a label is not worth a throw here.
-    }
-
-    reportInternalError(
-      atlasError('unknown', `refused replaceState claiming the URL fragment (${name})`),
-      'widget: could not claim the URL fragment',
-    )
-
-    return { router: 'memory', path: route.path }
-  }
-}
 
 /**
  * The custom element's React root. Nothing renders above this, which is why the outermost
@@ -112,41 +57,47 @@ function Atlas() {
   // i18n.changeLanguage here in the render body — it re-fired on every render and clobbered a
   // language the user picked from the settings menu.
 
-  // Who owns the URL fragment, and where the widget boots — decided ONCE, on the first render.
-  // Guarded to it because the root hash (`#!/`) recurs whenever the visitor navigates back home
-  // and Widget re-renders reactively (locale changes): re-deciding would teleport them back to
-  // the embed's default route.
+  // Where the widget boots, and whether its route reaches the URL — decided ONCE, on the first
+  // render. Guarded to a ref because the widget re-renders reactively (a locale change), and
+  // re-deciding would teleport the visitor back to the embed's default route.
   //
-  // `hash` is the normal case. `memory` is the host-anchor case (issue #92): a page arriving at
-  // `#respond` used to render a BLANK widget, because react-router reads that as a location
-  // outside the `!` basename. The widget now routes off-URL there instead of overwriting an
-  // anchor that is not its to take.
+  // `query` is the normal case: the route lives in `?atlas=` on the host's own URL, which is a
+  // real, indexable, shareable link on their domain. `memory` is a degradation, taken only where
+  // the URL cannot be written at all — a sandboxed iframe, a `file://` document — which the loader
+  // has already probed. There is no third case: the widget no longer reads or writes the fragment,
+  // so a host's `#respond` anchor is simply none of its business (the whole of #92 goes with it).
   //
-  // The memory branch costs three real things, all of them better than a blank widget but none of
-  // them free: the widget's route isn't in the URL, so it can't be deep-linked or shared from that
-  // page; browser Back leaves the host page instead of stepping back through the widget; and
-  // in-widget link hrefs resolve against the host origin rather than the fragment, so a
-  // middle-click opens a host URL that probably 404s.
-  //
-  // The FIRST of those is something the tree can ask about rather than something it finds out by
-  // handing a viewer the wrong link: this branch is the sole source of the `linkable` mode axis
-  // (`config/mode.ts`, issue #115), which is why it is passed down from here instead of re-read
-  // off `window.location` where it's wanted.
+  // Memory mode still costs the two things it always did, and `linkable` is how the tree asks
+  // rather than finding out by handing a viewer a wrong link (#115): the route is not in the URL,
+  // and Back leaves the host page. The third cost — in-widget hrefs resolving against the host
+  // origin — is fixed everywhere else by `createHref`.
   //
   // Re-entrancy: `useLocale` can suspend on a cold i18n boot, which makes React discard and retry
-  // this render — recreating the ref and re-running `claimFragment`. That is safe, and not by
-  // accident: the retry reads the hash the first pass just wrote, so `mountRoute` returns it as a
-  // route and asks for no second write.
-  const mount = useRef<MountRoute>()
+  // this render. Safe, because this is a pure read of the URL plus the config — it writes nothing.
+  const mount = useRef<MountDecision>()
 
   if (!mount.current) {
-    mount.current = claimFragment(mountRoute(window.location.hash, config.route))
+    mount.current = mountDecision({
+      routing: config.routing,
+      search: window.location.search,
+      route: config.route,
+      urlWritable: embed.observed?.urlWritable,
+    })
   }
+
+  // Reported once, from the render that decided it. `routing=path` is accepted and not yet
+  // honoured, and saying so is the difference between a host discovering their server config is
+  // unused and believing it works.
+  const warning = mount.current.warning
+
+  useEffect(() => {
+    if (warning) reportIntegrationWarning(warning)
+  }, [warning])
 
   // One name for the one decision: it picks the router below AND is the `linkable` mode axis
   // handed to the tree. Deriving both from the same const is what stops a later reader from
   // answering "is our route in the URL?" a second, divergent way.
-  const linkable = mount.current.router === 'hash'
+  const linkable = mount.current.mode === 'query'
   const hasMap = config.map
 
   // The widget scopes its theme to this wrapper so it never mutates the host page's <html>. Set
@@ -174,8 +125,8 @@ function Atlas() {
 
     if (!element) return
 
-    // Guarded for the same reason `claimFragment` above is, and it is the sharper case of the
-    // two: these are four reads of a DOM we do not own, made purely to produce a console line. A
+    // Guarded because these are four reads of a DOM we do not own, made purely to produce a
+    // console line. A
     // host is free to have patched `getBoundingClientRect` — consent wrappers, anti-fingerprinting
     // extensions and page builders all do — and an unguarded throw here would reach `RootBoundary`
     // AFTER the tree has mounted, tearing the whole widget down and replacing it with the static
@@ -223,12 +174,12 @@ function Atlas() {
     </div>
   )
 
-  // Never switches after the first render — `mount` is a ref — so this branch can't remount the
-  // tree mid-session.
-  return linkable ? (
-    <HashRouter basename={HASH_BASE}>{atlas}</HashRouter>
-  ) : (
-    <MemoryRouter initialEntries={[mount.current.path]}>{atlas}</MemoryRouter>
+  // Never switches after the first render — `mount` is a ref — so this can't remount the tree
+  // mid-session.
+  return (
+    <AtlasRouter mode={mount.current.mode} path={mount.current.path}>
+      {atlas}
+    </AtlasRouter>
   )
 }
 

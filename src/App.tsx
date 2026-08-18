@@ -95,7 +95,7 @@ type AppProps = {
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
   // Is the route on screen in the URL, and therefore shareable? True for both routers
-  // that write one (BrowserRouter standalone, HashRouter embedded); the embedded widget
+  // that write one (BrowserRouter standalone, the query router embedded); the embedded widget
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
   // Defaults true — see config/mode.ts.
   linkable?: boolean

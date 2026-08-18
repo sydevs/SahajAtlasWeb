@@ -446,7 +446,7 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
  * banner's own tint and its own line, not the weight of a filled button competing with a
  * retry that isn't there.
  *
- * An anchor, never a `<Button href>`: the widget runs under HashRouter inside someone
+ * An anchor, never a `<Button href>`: the widget runs under its own router inside someone
  * else's page, where a plain `<a href="/gb">` would navigate the HOST document away. The
  * `Link` atom routes internally and stamps the depth + camera the drawer stack's
  * back-navigation depends on.

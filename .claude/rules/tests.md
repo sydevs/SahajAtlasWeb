@@ -170,13 +170,15 @@ whose whole job IS the DOM.** Four specs qualify today:
   SearchView/CalendarView reset on the query string while the drawer boundary keys on the
   pathname, and a boundary that never resets turns a transient failure into a permanent
   dead end.
-- `src/lib/shape/hash.router.test.tsx` — mounts a real `HashRouter` to prove `mountRoute`
-  and react-router agree about which fragments are the widget's (issue #92). This one is
-  the cautionary tale for the rule below: `hash.test.ts` covered the classifier
-  exhaustively and still missed that **react-router writes `#/!/gb/london`, not
-  `#!/gb/london`** — it normalises the basename `!` to `/!`. A pure spec can only pin what
-  our function decides, never whether the library it is modelling agrees. When a helper
-  exists to feed a third-party API, assert the round trip against that API.
+- `src/lib/shape/routing.router.test.tsx` — mounts the real `Router` over our own `History` to
+  prove they agree (#154). This one is the cautionary tale for the rule below, inherited from the
+  `hash.router.test.tsx` it replaces: the pure spec covered the mount decision exhaustively and
+  still missed that **react-router wrote `#/!/gb/london`, not `#!/gb/london`** — it normalised the
+  basename. A pure spec can only pin what our function decides, never whether the library it is
+  modelling agrees. A custom `History` is a far larger foreign contract than a basename was:
+  `Router` calls `navigator.createHref` for every `<Link>` and defaults `location.key` to a
+  constant unless we mint one, and each of those is only assertable by driving the real router.
+  When a helper exists to feed a third-party API, assert the round trip against that API.
 - `src/components/organisms/EventDetails/sanitize.test.ts` — the least optional of the
   four: DOMPurify sanitizes by parsing into a real document and walking it, so there is
   no pure half to extract. It asserts that the CMS-prose allowlist is load-bearing, which

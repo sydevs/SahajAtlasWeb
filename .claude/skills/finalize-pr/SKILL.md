@@ -78,7 +78,7 @@ secrets/env. Run a security review **only if** the branch diff touches one of th
 # path-based: auth/data layer, widget + app entry + host-fragment routing, href/HTML sinks,
 # the injected stylesheet and its scoping, privacy + reporting seams, deps + patches, secrets/build
 git diff --name-only origin/main...HEAD | grep -E \
-  'src/config/api/|src/types/event|src/Widget\.tsx|src/App\.tsx|src/lib/shape/hash|src/lib/shape/lexical|src/lib/shape/path|src/lib/shape/href|src/components/atoms/Link/|src/components/organisms/EventDetails/|src/styles/|src/lib/scope|scripts/[^/]*css|postcss\.config\.js|src/config/privacy|src/lib/report|package\.json|pnpm-lock\.yaml|patches/|(^|/)\.env|vite\.config\.ts'
+  'src/config/api/|src/types/event|src/Widget\.tsx|src/App\.tsx|src/lib/shape/routing|src/lib/atlas-history|src/router\.tsx|src/loader/|src/lib/shape/lexical|src/lib/shape/path|src/lib/shape/href|src/components/atoms/Link/|src/components/organisms/EventDetails/|src/styles/|src/lib/scope|scripts/[^/]*css|postcss\.config\.js|src/config/attributes|src/lib/report|package\.json|pnpm-lock\.yaml|patches/|(^|/)\.env|vite\.config\.ts'
 
 # content-based: any newly-introduced HTML sink, wherever it lands
 git diff origin/main...HEAD -- src | grep -E '^\+' | grep -E 'dangerouslySetInnerHTML|dompurify|DOMPurify|\.innerHTML'
@@ -89,9 +89,9 @@ read, at which point it is worth no more than one that never fires. Each entry i
 reaches a host page's visitors, and most are here because something got through: `shape/path` +
 `shape/href` + `atoms/Link/` hold the same-origin/scheme guard (`//evil.com` walked past an
 `href.startsWith('/')` check in #100 — on a branch this grep did **not** match, which is why it was
-widened); `shape/hash` picks HashRouter vs MemoryRouter from the host page's own fragment, an
+widened); `shape/routing` picks the query router vs memory from whether the host's URL is writable, an
 untrusted input choosing a branch (#92); `src/styles/` + `lib/scope` + the PostCSS scoping script and
-config keep our injected stylesheet off the host's DOM (#91, #104); `config/privacy` + `lib/report`
+config keep our injected stylesheet off the host's DOM (#91, #104); `lib/report`
 decide what leaves the visitor's browser at all (#95, #108). `pnpm-lock.yaml` and `patches/` are the
 supply-chain pair — the transitive bump that never touches `package.json`, and arbitrary code applied
 to a dependency (which is why `patches/vaul@1.1.2.patch` exists at all).

@@ -13,7 +13,7 @@ This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer 
 - [Where to load it from](#where-to-load-it-from)
 - [Parameters](#parameters)
 - [Sizing the element](#sizing-the-element)
-- [The URL, and your page's fragment](#the-url-and-your-pages-fragment)
+- [The URL](#the-url)
 - [Content-Security-Policy](#content-security-policy)
 - [Browser support](#browser-support)
 - [What the widget does to your page](#what-the-widget-does-to-your-page)
@@ -238,50 +238,48 @@ drawers compute their travel from the window, so a map-mode widget confined to a
 is broken by that arithmetic rather than merely cramped. **The widget now warns in the
 console** when it detects that placement instead of leaving you to discover it.
 
-## The URL, and your page's fragment
+## The URL
 
-> **This section describes the build shipping today, and it is going to change.** The widget is
-> moving to query-string routing — the `?atlas=` parameter the `atlas` setting above already names
-> — which removes the fragment from the picture entirely, along with every consequence described
-> here. Nothing below is speculative or deprecated _yet_: it is what the current build does, and
-> this page will be rewritten in the release that changes it.
+**The widget's route lives in a query parameter on your own page's URL:**
 
-The widget routes off the URL fragment under the basename `!`, so a location inside it
-looks like `#!/gb/london`. Two spellings are in play and **both are accepted on the way
-in**:
+```
+https://your-site.example/classes?atlas=/gb/london
+```
 
-| Spelling        | When you see it                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------- |
-| `#/!/gb/london` | after any in-widget navigation — **the form your visitors will overwhelmingly see and copy** |
-| `#!/gb/london`  | what the widget writes at boot, and the spelling the `atlas` setting produces                |
+That is the URL your visitors see, copy and share, and — the point of the whole thing — the URL a
+search engine can index. Every event and every city is a distinct URL on **your** domain.
 
-The router normalises the basename `!` to `/!` the moment the visitor clicks anything, so
-the boot spelling is real but transient. Link to either; don't hand-build them from the
-widget's internals.
+Three consequences worth stating plainly:
 
-**Mounting does not add a history entry.** The boot-time fragment write is a
-`replaceState`, absolutised against the current location so that a `<base href>` on your
-page can't redirect it. Your visitor's first Back press behaves normally.
+- **Your other query parameters survive.** We set and read exactly one, `atlas`, and leave the rest
+  alone. WordPress's `/?p=123` permalinks keep working.
+- **Your page's `#anchor` is none of our business.** The widget never reads or writes the fragment.
+  A page that loads at `#respond` scrolls where you expect, anything of yours reading
+  `location.hash` still works, and the widget routes normally alongside it. (Before this, the widget
+  routed off the fragment and had to guess whether it or you owned it.)
+- **In-widget links are real links.** Middle-click, "copy link address" and open-in-new-tab all give
+  somebody a working URL on your site, because every href the widget renders is absolute and on your
+  origin.
 
-### If your page already uses the fragment
+**Mounting does not add a history entry, and does not touch your URL at all.** The widget only
+writes the parameter once a visitor navigates inside it. If you want an embed to open somewhere
+specific, use the [`atlas` parameter](#atlas-and-how-the-route-is-chosen) — it is the default the
+widget starts at when your page's URL names no route.
 
-Pages carrying their own anchor — `#respond`, `#comment-123`, a tab deep-link — are
-routine, and the fragment is yours first. **When the widget finds a fragment that isn't
-its own, it leaves the URL completely alone and routes in memory instead.** Your on-load
-scroll still happens and anything of yours reading `location.hash` later still works.
+### If the parameter name collides
 
-The widget renders and behaves normally in that mode, with three consequences worth
-stating plainly:
+`atlas` is not a WordPress reserved query var and does not collide with anything we know of. If it
+collides with something on your site, tell the maintainers — the name is a single constant, not
+something each embed sets, so the fix is on our side.
 
-- **Its route is not in the address bar, so deep links out of the widget are not
-  shareable from the URL bar on that page.** Where the widget offers a share link it
-  offers the canonical atlas page instead, and where there honestly is no link it offers
-  none rather than handing somebody your article's URL.
-- Browser Back leaves your page rather than stepping back through the widget.
-- In-widget link hrefs resolve against your origin, so a middle-click opens a URL on your
-  site that probably 404s. A normal left-click is unaffected.
+### When the route is not in the URL
 
-If a page is meant to be a linkable atlas page, keep its fragment free.
+In a sandboxed iframe, or a `file://` document, the browser refuses to let us write the URL at all.
+The widget detects that at load and routes **in memory** instead: it works normally, but its route
+is not in the address bar, so it cannot be deep-linked from that page, and browser Back leaves your
+page rather than stepping back through the widget. Where the widget would offer a share link it
+offers the event's canonical page instead, and where there honestly is no link it offers none rather
+than handing somebody your page's URL.
 
 ## Content-Security-Policy
 
@@ -526,7 +524,7 @@ unhashed and mutable, and they import content-hashed chunks by name.
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                               |
 | **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                              |
-| **The widget's route never appears in the address bar**               | The page loaded with its own `#anchor`, so the widget is routing in memory and deliberately not writing to the URL. Free the fragment if the page should be linkable.                                   |
+| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — a sandboxed iframe, or `file://`. The widget detects that and routes in memory; add `allow-same-origin` to the sandbox if you control it.                 |
 | **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                            |
 | **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                   |
 | **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                          |

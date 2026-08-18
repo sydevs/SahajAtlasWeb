@@ -133,7 +133,7 @@ fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the b
 - [Mapbox GL](https://docs.mapbox.com/mapbox-gl-js/) via `react-map-gl`, with `@turf/*` for geometry
 - [TanStack Query](https://tanstack.com/query) + [zod](https://zod.dev) over
   [`@payloadcms/sdk`](https://payloadcms.com) against SahajCloud
-- [vaul](https://vaul.emilkowal.ski) for the drawer stack, `react-router` (HashRouter) for routing
+- [vaul](https://vaul.emilkowal.ski) for the drawer stack, `react-router` over a hand-written query-param history for routing
 - [i18next](https://www.i18next.com) with locale JSON served from `public/locales/`
 
 ## Getting started

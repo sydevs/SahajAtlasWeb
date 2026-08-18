@@ -116,32 +116,33 @@ Fewer custom components means less maintenance and a consistent look.
 This app ships as the `<sahaj-atlas>` custom element (`src/Widget.tsx`) embedded
 in host pages, **and** runs standalone in dev. Because of that:
 
-- Routing uses **HashRouter** with basename `!` — but only when the fragment is the
-  widget's to take. `mountRoute` (`src/lib/shape/hash.ts`) decides that once at mount, and
-  on a host URL already carrying an anchor (`#respond`, `#comment-123` — routine on
-  WordPress) the widget mounts a **MemoryRouter** instead and never writes to the URL at
-  all. It used to render blank there. Consequences worth knowing: on such a page the
-  widget's route isn't linkable, Back leaves the host page, and `<Link>` hrefs resolve
-  against the host origin (issue #92).
-  Build links with `react-router` `<Link>` / `useNavigate`, never hardcode `#!` — and note
-  the hash has **two** spellings, `#!/x` (what the widget writes at boot) and `#/!/x` (what
-  react-router writes thereafter, having normalised the basename to `/!`).
-- **Ask, don't infer: `linkable` on `WidgetMode`** (`src/config/mode.ts`, issue #115) is
-  how a component finds out whether the route on screen is in the URL — true standalone
-  and under hash routing, false in memory mode. `Widget.tsx` derives it from the single
-  `mountRoute` decision and passes it down; **never re-read `window.location` to answer
-  the same question**, because a second reading is how the two drift.
+- **Routing is a query parameter on the host's URL** — `?atlas=/gb/london` (#154). `AtlasRouter`
+  (`src/router.tsx`) over a hand-written `History` (`src/lib/atlas-history.ts`); the mount decision
+  is `mountDecision` (`src/lib/shape/routing.ts`), made once at mount. Build links with
+  `react-router` `<Link>` / `useNavigate` and never hand-build the parameter — `hrefFor` owns its
+  encoding, including the `/` and `,` it restores so a shared link stays readable.
+  **The widget has no opinion about the host's `#anchor`.** It never reads or writes the fragment,
+  so the whole three-way ours/free/foreign decision of #92 is gone.
+  **`memory` is a degradation, not a mode anyone asks for**, taken only where the document refuses
+  `replaceState` (a sandboxed iframe, `file://`). `routing=path` is accepted, warns, and falls back
+  to query until its prefix arrives from the client record.
+  ⚠ Two traps the history exists to avoid: `Router` returns `null` on a basename miss (#92's blank
+  widget), and it defaults `location.key` to a constant — a history that doesn't mint one per entry
+  collapses every `rememberCamera(location.key)` snapshot into one bucket with every test green.
+- **Ask, don't infer.** Two questions, two answers, and neither is `window.location`:
+  **"can this route be handed to somebody?"** is `useHrefFor()` (`src/config/routing.tsx`), which
+  returns `undefined` in memory mode. **"is the route on screen in the URL?"** is `linkable` on
+  `WidgetMode` (`src/config/mode.ts`), derived once from `mountDecision`.
   **Never put `window.location.href` in front of a viewer.** For an event, ask
-  `useShareUrl(event.webUrl)` (over the pure `shareableUrl` in `src/lib/url.ts`): the
-  canonical page wins in every mode, the address bar stands in only where `linkable`, and
-  `undefined` means there is honestly no link — the caller then renders no share block
-  rather than the host page's address, which names their article and not the meditation.
-  `ShareContent.url` stays required for that reason; `RegistrationForm.eventUrl` is
-  optional and drops its invite block.
-  One consequence of memory mode is still **unaddressed**: `<Link>` hrefs. They resolve
-  against the host origin, so a middle-click opens a host URL that probably 404s. Fixing
-  it means overriding `createHref` through react-router internals; `linkable` is the flag
-  that fix would consult.
+  `useShareUrl(event.webUrl, event.path)` (over the pure `shareableUrl` in `src/lib/url.ts`): the
+  canonical page wins in every mode, the event's OWN widget URL stands in otherwise, and
+  `undefined` means there is honestly no link — the caller then renders no share block rather than
+  the host page's address, which names their article and not the meditation. Resolving the event's
+  route rather than the address bar is what stopped a share of the share drawer (#115 finding 3).
+  `ShareContent.url` stays required for that reason; `RegistrationForm.eventUrl` is optional and
+  drops its invite block.
+  The `<Link>`-href consequence #92 recorded is **fixed** wherever the route is in a URL, because
+  `createHref` returns an absolute host-origin URL. It survives only in memory mode.
 - **One `<sahaj-atlas>` per page.** A second element is refused in `connectedCallback` and
   never mounts, because the API key (`config/api/auth`) and BrandTheme's theme root are
   page-global singletons a second instance would silently share. A second copy of the embed

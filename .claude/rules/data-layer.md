@@ -114,7 +114,8 @@ being "simplified":
   and CR before parsing**, so these are read as `//evil.com`. A check that only looked at
   the character after the leading slash would pass all of them.
 
-All are inert under the embedded HashRouter and live in the standalone build, where
+All are live in every mode since #154 — the widget's hrefs are absolute host-origin URLs now —
+and in the standalone build, where
 react-router renders the string as the anchor's `href` — a plain click is intercepted,
 but middle-click, ctrl-click and "copy link address" hand the browser the off-origin URL.
 `src/lib/shape/path.test.ts` pins each case.
