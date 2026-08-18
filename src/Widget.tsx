@@ -14,7 +14,7 @@ import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
-import { announceEmbed, releaseAnnouncement } from './lib/embed-announce'
+import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
 import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
@@ -112,32 +112,18 @@ function Atlas() {
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale, t } = useLocale()
 
-  // Attest that the widget booted, and tell SahajCloud what it found (#153).
+  // The URL shape the router ACTUALLY uses, handed down for the readiness marker to attest (#153)
+  // — not `config.routing`, which is the shape somebody asked for and which `routing=path` gets
+  // without it being honoured. `mountDecision` owns that difference and is where a real path mode
+  // will land; a marker carrying a request rather than a finding is worth nothing to the verifier
+  // reading it.
   //
-  // **This waits for a mount, and that is the entire point of the marker.** The verifier loads a
-  // host page through Cloudflare Browser Rendering and treats `data-sahaj-atlas-ready` as evidence
-  // the embed works, so publishing it on script load — or from `boot()`, before React has committed
-  // anything — would attest to a page whose widget may never have rendered. Hence an effect, which
-  // runs after the commit, plus the theme-root ref: `AtlasRouter` can render `null`, and a ref set
-  // at commit time is the cheapest proof that DOM of ours actually exists.
-  //
-  // The routing attested is `mount.current.routing`, the shape the router ACTUALLY uses — not
-  // `config.routing`, which is the shape somebody asked for. `mountDecision` owns that difference
-  // and is where a real path mode will land; a marker carrying a request rather than a finding is
-  // worth nothing to the verifier reading it.
-  //
-  // Everything else — announce-once, the release, the never-throw — belongs to `announceEmbed`,
-  // which unlike this file has a spec that can hold it.
+  // **The attesting itself deliberately does NOT happen here**, even though this is where the
+  // decision is made: `AppShell` publishes it, below the app error boundary, because a boundary
+  // catches in the commit's layout phase and this component's effect would run after it — so a
+  // widget that threw on its first render would have a marker published over its own error screen,
+  // with nothing left to take it down. See the effect in `App.tsx`.
   const attested = mount.current.routing
-
-  useEffect(() => {
-    if (!themeRootRef.current) return
-
-    void announceEmbed({ routing: attested, observed: embed.observed, report: embed.report })
-
-    // No cleanup pairing with this effect: a marker torn down per re-render would flap. It is
-    // released with page-global ownership instead — see `releaseOwnership`.
-  }, [attested])
 
   // Map mode always fills the viewport, whatever slot the host gave us — a REQUIREMENT rather
   // than an oversight, argued in `lib/embed-slot.ts` (vaul's snap sheets are computed off the
@@ -197,6 +183,7 @@ function Atlas() {
         defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}
+        routing={attested}
         themeRootRef={themeRootRef}
       />
     </div>

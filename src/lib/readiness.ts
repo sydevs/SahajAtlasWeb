@@ -3,8 +3,17 @@
  *
  * SahajCloud only builds a canonical URL from an embed it verified *itself*: it loads the host
  * page through Cloudflare Browser Rendering and looks for what this module writes. Reports
- * nominate a mount; the render decides. That is what stops a forged report reshaping a live
- * canonical URL, so this attribute is the whole evidentiary basis of the feature.
+ * nominate a mount; the render decides.
+ *
+ * **Be precise about what that buys, because the obvious reading is too strong.** This attribute
+ * detects a *broken* embed, not a *forged* one. It carries no nonce and no signature, a host can
+ * hand-write it into static HTML, and every field it holds comes from an API the host page can
+ * patch (`window.self === window.top`, `history.replaceState`) — so any page that can run our
+ * script can also fake our script's output, and no client-side mechanism can change that. The
+ * trust boundary is `allowedDomains`, server-side, and a client lying about its own domain is
+ * self-harm. What the marker genuinely adds is the case that actually happens: an embed that is
+ * installed and *does not work*, which a report alone would never reveal because the report is
+ * sent by the same widget whose health is in question.
  *
  * **Why a DOM attribute and not a `postMessage`.** The Browser Rendering REST API renders a page
  * and hands back DOM; there is no message channel to listen on, and a listener injected into the

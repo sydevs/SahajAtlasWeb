@@ -70,21 +70,18 @@ export function fingerprint(signals: DetectionSignals, routing: RoutingMode): Em
     ...signals,
     mode,
     routing,
-    // `topLevel` because a frame's URL is not the indexable one, and `urlWritable` because a route
-    // we cannot write is a route nobody can link to. Under query routing the param surviving the
-    // host's router is the third requirement; under path routing that question does not apply and
-    // the remaining one is answered server-side, so this reports what the page can support rather
-    // than claiming more than it measured.
+    // `topLevel` because a frame's URL is not the indexable one, `urlWritable` because a route we
+    // cannot write is a route nobody can link to, and `paramPersisted` because a `?atlas=` the
+    // host's router eats is a canonical that restores the wrong view.
     //
-    // ⚠ **`routing` here is the shape that was REQUESTED, and `path` is currently accepted without
-    // being honoured** (`mountDecision`, `lib/shape/routing.ts`) — so a `routing=path` embed
-    // short-circuits the `paramPersisted` requirement while in fact query-routing, and can call a
-    // mount viable whose `?atlas=` its host router demonstrably eats. Harmless today only because
-    // `embedReportSchema` does not model this field and strips it, and because the marker attests
-    // the effective routing instead. Whoever wires path routing up owns this line too — it is the
-    // second place that assumes the request was granted.
-
-    canonicalViable:
-      signals.topLevel && signals.urlWritable && (routing === 'path' || signals.paramPersisted),
+    // **All three are MEASUREMENTS, and that is the point.** This used to exempt `routing === 'path'`
+    // from the third — reasoning that path routing never uses the param, and that the deciding half
+    // is a server fact no client probe can see. But `routing` comes off the host's own script URL
+    // (`?routing=path`) while `mountDecision` hard-codes the effective shape to `query`, so the
+    // exemption let any host turn the one judgement in this payload on for a mount that is in fact
+    // query-routing with a parameter their router demonstrably eats — and nothing server-side could
+    // contradict it, since the endpoint stores no `canonicalViable` to cross-check. Restore the
+    // exemption in the same commit that teaches `mountDecision` to honour path routing, not before.
+    canonicalViable: signals.topLevel && signals.urlWritable && signals.paramPersisted,
   }
 }

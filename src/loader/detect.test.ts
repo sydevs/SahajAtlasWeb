@@ -38,16 +38,24 @@ describe('fingerprint', () => {
       expect(fingerprint({ ...ideal, urlWritable: false }, 'query').canonicalViable).toBe(false)
     })
 
-    // The two routing modes fail differently, so they are asked different questions.
-    it('asks query routing whether the param survived the host router', () => {
+    it('is false when the written param did not survive the host router', () => {
       expect(fingerprint({ ...ideal, paramPersisted: false }, 'query').canonicalViable).toBe(false)
     })
 
-    // Path routing never uses the param, and the thing it DOES need — the host's server serving
-    // the widget's routes under a prefix — is not observable from the client, so this reports
-    // what the page can support rather than claiming to have verified more.
-    it('does not ask path routing about the param, which it never uses', () => {
-      expect(fingerprint({ ...ideal, paramPersisted: false }, 'path').canonicalViable).toBe(true)
+    /**
+     * `routing` arrives on the host's own script URL, so exempting `path` from the
+     * `paramPersisted` requirement made the one judgement in this payload settable by the page
+     * being judged — and for a mount that query-routes anyway, since `mountDecision` does not
+     * honour `path`. Nothing server-side could contradict it either: the endpoint stores no
+     * `canonicalViable`. Every input to this field is now something the widget measured.
+     */
+    it('cannot be turned on by asking for a routing mode', () => {
+      const eaten = { ...ideal, paramPersisted: false }
+
+      expect(fingerprint(eaten, 'path').canonicalViable).toBe(false)
+      expect(fingerprint(eaten, 'path').canonicalViable).toBe(
+        fingerprint(eaten, 'query').canonicalViable,
+      )
     })
   })
 })

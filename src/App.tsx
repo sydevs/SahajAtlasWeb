@@ -1,4 +1,5 @@
 import type { PaletteRoles } from '@/config/theme/palette'
+import type { RoutingMode } from '@/loader/config'
 
 import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -16,6 +17,8 @@ import { BrandTheme } from './config/theme/BrandTheme'
 import { safePath } from '@/lib/shape'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
+import { announceEmbed } from '@/lib/embed-announce'
+import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
@@ -107,6 +110,11 @@ type AppProps = {
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
   // Defaults true — see config/mode.ts.
   linkable?: boolean
+  // The URL shape the router actually uses, from `mountDecision` — what the readiness marker
+  // attests (#153), as opposed to the `routing` parameter a host asked for. Only the embedded
+  // entry has a real answer; the standalone build publishes no marker at all (nothing observed
+  // it), so its default is never read.
+  routing?: RoutingMode
 }
 
 export default function App({
@@ -117,6 +125,7 @@ export default function App({
   standalone = false,
   hasMap = true,
   linkable = true,
+  routing = 'query',
 }: AppProps) {
   // Warm the agnostic map/hierarchy caches (feed + region tree) + current-locale titles
   // the moment we have the API key, in parallel with the client bootstrap the tree
@@ -146,6 +155,7 @@ export default function App({
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
                 linkable={linkable}
+                routing={routing}
                 standalone={standalone}
               />
             </ResetErrorBoundary>
@@ -186,9 +196,10 @@ type AppShellProps = {
   standalone: boolean
   hasMap: boolean
   linkable: boolean
+  routing: RoutingMode
 }
 
-function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable }: AppShellProps) {
+function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
@@ -209,6 +220,25 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable }: AppSh
     didInit.current = true
     if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
   }, [homePath, location.pathname, navigate])
+
+  /**
+   * Attest that the widget booted, and tell SahajCloud what it found (#153).
+   *
+   * **It lives HERE, below the app error boundary, and that placement is the whole guarantee.**
+   * The obvious home is the widget's own root — but `componentDidCatch` runs in the commit's
+   * layout phase and a parent's `useEffect` in the passive phase *after* it, so a synchronous
+   * first-render failure (a loader URL with no `key` throws four lines up) would let the boundary
+   * clear a marker that had not been published yet, and the root's effect would then publish one
+   * over the "could not be loaded" screen, permanently. Reached from here, three things are true
+   * at once and none of them by luck: the marker cannot precede a successful boot, because
+   * `useSuspenseQuery` above has resolved the client record — the widget demonstrably reached the
+   * API; it is never published over the loading state, because this component does not exist
+   * during it; and pressing "Try again" remounts this component, which re-publishes a marker the
+   * boundary took down.
+   */
+  useEffect(() => {
+    void announceEmbed({ routing, observed: embed.observed, report: embed.report })
+  }, [routing])
 
   useEffect(() => {
     if (defaultLocale || client.locale) {
