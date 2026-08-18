@@ -1,11 +1,12 @@
 import type { EmbedFingerprint } from './loader/detect'
-import type { LoaderConfig } from './loader/config'
+import type { LoaderConfig, RoutingMode } from './loader/config'
 import type { EmbedReport } from './loader/report'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
 import { useEffect, useRef } from 'react'
 
+import api from './config/api'
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
 import atlasAuth from './config/api/auth'
@@ -14,7 +15,9 @@ import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
-import { reportIntegrationWarning } from './lib/report'
+import { clearReadiness, publishReadiness } from './lib/readiness'
+import { errorMessage, reportIntegrationWarning } from './lib/report'
+import { mountKey } from './loader/report'
 import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { mountDecision } from './lib/shape'
@@ -27,6 +30,57 @@ import { queryClient } from './config/query-client'
 // until the element is near the viewport, and only then imports this module and calls `boot`.
 // A host therefore pays ~3 KiB up front instead of the whole widget, and nothing here runs on a
 // page whose embed is never scrolled to. Demo in: demo.html
+
+/** Whether this page's mount has already attested and reported. Released with ownership. */
+let announced = false
+
+/**
+ * Attest that the widget booted, and tell SahajCloud what it found (#153).
+ *
+ * **Both halves wait for a real mount, and that is the entire point of the marker.** The verifier
+ * loads a host page through Cloudflare Browser Rendering and treats `data-sahaj-atlas-ready` as
+ * evidence the embed works, so publishing it on script load — or from `boot()`, before React has
+ * committed anything — would attest to a page whose widget may never have rendered. The one caller
+ * is a mount effect, and the theme root is checked as well: a ref set at commit time is the
+ * cheapest proof that DOM of ours actually exists.
+ *
+ * **The report goes on every mount, not only when something changed** (#149 gated it on differing
+ * from `/clients/me`). That gate made `lastSeen` useless as a liveness signal — a healthy,
+ * unchanged embed would report once, ever, and the admin panel would show "last seen 8 months ago"
+ * for a working site. The server already collapses an unchanged report into no write at all for an
+ * hour, so the ceiling is one write per mount per hour, and dropping the gate also takes a round
+ * trip off the load path.
+ *
+ * **Nothing here is allowed to fail loudly.** It runs inside a page we do not own, purely to
+ * produce a record: a 403 (an origin outside the client's allowlist, or no allowlist configured at
+ * all) and a 429 (the 50-mount cap) both describe a configuration somebody has to fix, so they are
+ * worth saying out loud — through the console, which is where every other host-integration mistake
+ * this file reports already goes.
+ */
+function announceMount(routing: RoutingMode, mounted: boolean): void {
+  if (announced || !mounted) return
+
+  const { observed, report } = embed
+
+  // No loader means nothing was probed: the standalone dev entry and every Ladle story mount this
+  // component directly. A marker asserting an embed nobody measured is exactly the theatre the
+  // marker exists to prevent, so those surfaces publish none.
+  if (!observed) return
+
+  announced = true
+
+  publishReadiness({ routing, topLevel: observed.topLevel, urlWritable: observed.urlWritable })
+
+  if (!report) return
+
+  void api.reportEmbed(report).catch((error: unknown) => {
+    reportIntegrationWarning(
+      `could not record this embed with SahajCloud — ${errorMessage(error)} ` +
+        `(mount: ${mountKey(report)}). The widget is unaffected; this only feeds the ` +
+        'canonical-URL picker in the Atlas admin.',
+    )
+  })
+}
 
 /**
  * The custom element's React root. Nothing renders above this, which is why the outermost
@@ -110,6 +164,26 @@ function Atlas() {
   // against one ancestor.
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale, t } = useLocale()
+
+  // Attest + report, once the widget is genuinely on the page. `announceMount` explains why both
+  // wait for a mount rather than riding along with `boot()`.
+  //
+  // The routing published is the shape the router ACTUALLY uses, read off the decision above
+  // rather than off `config.routing` — which is the shape somebody *asked* for, and `routing=path`
+  // is currently accepted without being honoured (the warning two dozen lines up says so). A
+  // marker is the verifier's evidence, so it must not carry a request as a finding. Memory is a
+  // degradation of the query shape rather than a third shape — `urlWritable: false` is what says
+  // the route never reached the URL — and when a real path mode arrives this maps it through
+  // untouched.
+  const routerMode = mount.current.mode
+  const attested: RoutingMode = routerMode === 'memory' ? 'query' : routerMode
+
+  useEffect(() => {
+    announceMount(attested, Boolean(themeRootRef.current))
+
+    // Not a cleanup that pairs with the effect: a marker torn down on every re-render would flap.
+    // This releases with page-global ownership instead — see `releaseOwnership`.
+  }, [attested])
 
   // Map mode always fills the viewport, whatever slot the host gave us — a REQUIREMENT rather
   // than an oversight, argued in `lib/embed-slot.ts` (vaul's snap sheets are computed off the
@@ -247,6 +321,13 @@ function releaseOwnership() {
   owner = null
   atlasAuth.apiKey = null
   queryClient.clear()
+
+  // The marker is page-global state like the rest of this, and it is an attestation: a host SPA
+  // that unmounted the widget on a route change would otherwise leave one standing over a page
+  // with no embed on it. `announced` goes with it, so the element that replaces this one attests
+  // and reports for itself rather than inheriting a claim made on another key's behalf.
+  announced = false
+  clearReadiness()
 }
 
 class SahajAtlasElement extends AtlasElementBase {
@@ -302,6 +383,10 @@ class SahajAtlasElement extends AtlasElementBase {
  * It deliberately takes no element: defining the tag upgrades whatever is already in the
  * document, so the loader's element needs no handing over and a second parameter would only
  * invite someone to think this renders into it.
+ *
+ * Nothing is sent from here. The report is parked on the boot singleton for `announceMount` to
+ * send once the widget has actually rendered — this function can be called on a page whose element
+ * never mounts.
  */
 export function boot(
   config: LoaderConfig,
@@ -310,6 +395,9 @@ export function boot(
 ): void {
   embed.config = config
   embed.observed = observed
+  // Stashed rather than sent: defining an element is not a mount, and a report filed here would
+  // attest to a widget that has not rendered and might never. `announceMount` sends it.
+  embed.report = report ?? null
 
   // Guarded: `customElements.define` throws NotSupportedError on a name that is already
   // registered, and two copies of the embed script on one page is a plausible mistake. The second
@@ -321,9 +409,4 @@ export function boot(
   } else {
     customElements.define(ELEMENT_NAME, SahajAtlasElement)
   }
-
-  // The endpoint is a separate SahajCloud ticket. Until it exists the observation is still worth
-  // making — it drives the console diagnostics and, later, the canonical decision — so the send
-  // is the only part that waits.
-  void report
 }

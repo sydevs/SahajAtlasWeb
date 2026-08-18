@@ -1,5 +1,6 @@
 import type { ContactAdminErrorCode, ContactAdminRequest } from '@/types/payload/contact-types'
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
+import type { EmbedReport } from '@/loader/report'
 import type { ReportPayload } from '@/lib/report'
 import type { Registration } from '@/types'
 
@@ -205,7 +206,44 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
   return ContactResponseSchema.parse(response)
 }
 
+// Confirmation returned by `POST /api/clients/report` (EmbedReportResponse). `mount` is the
+// `origin + pathname` key the server filed this report under — it rebuilds it from the two fields
+// it was sent, so reading it back is how a diagnostic can name the record rather than the request.
+// `stored: false` is a success: the server already held this observation and suppressed the write.
+const EmbedReportResponseSchema = z.object({
+  ok: z.literal(true),
+  mount: z.string(),
+  stored: z.boolean(),
+})
+
+export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
+
+/**
+ * Tell SahajCloud what this embed looks like from the inside — `POST /api/clients/report`
+ * (sydevs/SahajCloud#633, issue #153).
+ *
+ * Called once per mount from `Widget.tsx`, never from a component and never through React Query:
+ * it is not data anything renders, it takes no part in a cache, and a retry would be a second
+ * write of a record the server already collapses by the hour.
+ *
+ * **Every field of the report goes over the wire, including `canonicalViable`, which the endpoint
+ * does not model** — its Zod schema strips unknown keys. That is deliberate rather than sloppy:
+ * the payload is the observation entire, and the two halves that could carry anything of the
+ * host's are `origin` and `pathname`, already reduced by `mountParts` before they reach here. The
+ * rest are booleans this build computed about itself.
+ *
+ * Throws on any non-2xx, `403` (an origin outside the client's allowlist, or no allowlist at all)
+ * and `429` (the mount cap) included. There is nothing here for a caller to recover, so the
+ * failure is a console diagnostic at the one call site — never an exception in the host's page.
+ */
+const reportEmbed = async (report: EmbedReport): Promise<EmbedReportResponse> => {
+  const response = await requestJson({ method: 'POST', path: '/clients/report', json: report })
+
+  return EmbedReportResponseSchema.parse(response)
+}
+
 export default {
   createRegistration,
   contactAdmin,
+  reportEmbed,
 }
