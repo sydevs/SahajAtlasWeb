@@ -23,6 +23,37 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The widget's route is now a query parameter on your own page's URL, not a fragment.** ([#154])
+
+  ```
+  before   your-site.example/classes#!/gb/london
+  now      your-site.example/classes?atlas=/gb/london
+  ```
+
+  **This is why the rest of the SEO work is possible.** No search engine has ever treated a
+  fragment as a distinct URL — the `#!` scheme was deprecated in 2015 and dropped in 2018 — so
+  every event on every embed used to be the same URL to a crawler. A query string is a distinct,
+  indexable URL, and it needs no server configuration from you.
+
+  Four things change for you, all of them improvements:
+
+  - **Your page's `#anchor` is no longer our business.** The widget never reads or writes the
+    fragment. A page loading at `#respond` scrolls where you expect and the widget routes normally
+    beside it — where before it had to guess which of you owned the fragment, and routed off-URL
+    when it guessed you did.
+  - **In-widget links are real links.** Middle-click, "copy link address" and open-in-new-tab now
+    give somebody a working URL on your site. Previously they produced a URL on your origin that
+    usually 404'd.
+  - **Share links name the event, not the screen.** Sharing from the share or registration drawer
+    used to hand over the drawer's own URL; it now resolves the event's own route.
+  - **Your other query parameters are preserved.** We set and read exactly one, `atlas`.
+
+  **Old `#!/…` links are not translated.** A visitor arriving on one gets the embed's default
+  route. There is no migration shim, deliberately.
+
+  `routing=path` is accepted but not yet available — it warns in the console and uses query routing
+  instead. Its prefix comes from your client record, which is not wired up yet.
+
 - **The snippet is now a single script tag, and configuration moved onto its URL.** ([#149])
 
   ```html
@@ -201,6 +232,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
+[#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
 [#94]: https://github.com/sydevs/SahajAtlasWeb/issues/94
 [#111]: https://github.com/sydevs/SahajAtlasWeb/pull/111

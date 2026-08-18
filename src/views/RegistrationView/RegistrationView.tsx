@@ -56,7 +56,7 @@ export function RegistrationView({
   // entry and the invite-a-friend block — so they can't word the same event two ways.
   // `undefined` where there is no honest link (issue #115): both degrade rather than
   // carry the host page's address.
-  const eventUrl = useShareUrl(event.webUrl)
+  const eventUrl = useShareUrl(event.webUrl, event.path)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 

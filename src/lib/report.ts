@@ -1,5 +1,9 @@
 import type { Report } from '@/types/report'
 
+// Imported from the module rather than the `shape` barrel: the barrel would pull every codec in
+// it into this file's graph, and this one is in the eager payload.
+import { routeFromParam } from './shape/routing'
+
 /**
  * Narrow an unknown thrown value to a displayable message.
  *
@@ -307,7 +311,7 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
     // now from one place. `exception.value` is otherwise uncapped — v10's
     // `applyClientOptions` truncates only `if (maxValueLength)`, and there is no default —
     // and a thrown message is not always ours: engines build their own, sometimes out of
-    // the very URL we are careful never to send (see `claimFragment` in `Widget.tsx`).
+    // the very URL we are careful never to send.
     maxValueLength: MAX_ERROR_LENGTH,
     // Both of these override a default that reaches OUT of the widget, which is the one
     // class of default a thing embedded in someone else's page cannot accept:
@@ -390,6 +394,7 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
       event.tags = {
         'atlas.kind': event.tags?.['atlas.kind'],
         'atlas.context': event.tags?.['atlas.context'],
+        'atlas.route': event.tags?.['atlas.route'],
       }
       delete event.user
       delete event.extra
@@ -402,11 +407,11 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
       // password-reset token, an OAuth `#access_token` or an email address. One policy,
       // two paths out (see the docblock on `hostPageUrl` below).
       //
-      // NOTE this genuinely costs us something here that it does not cost the human
-      // report. That docblock says nothing diagnostic is lost because the in-widget route
-      // travels separately as `path` — true there, false here: under HashRouter the
-      // widget's route IS the fragment. `atlas.context` names the boundary, which is the
-      // cheap part of what we gave up; carrying the route as its own tag is a follow-up.
+      // The in-widget route used to be lost here, because it lived in the fragment and this
+      // strips the fragment. Since #154 it lives in the QUERY, which this strips too — so the
+      // loss became total rather than incidental, and the follow-up this comment used to
+      // promise is now `atlas.route` below. It is ours, not the host's, which is the whole
+      // reason it may be sent when their query may not.
       event.request = { url: hostPageUrl() }
 
       // Attachments are appended AFTER this hook, so nothing above can remove one. Only
@@ -430,7 +435,29 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
 
     event.setTag('atlas.kind', kind)
     event.setTag('atlas.context', context)
+    event.setTag('atlas.route', widgetRoute())
     event.captureException(error)
+  }
+}
+
+/**
+ * The widget's own route, for a crash report — or `undefined` when there isn't one.
+ *
+ * **This is the one part of the URL that is ours to send.** `hostPageUrl` reduces the page to
+ * origin + path precisely because a host's query can carry a reset token or an email address; the
+ * widget's route rides in that same query, so it is stripped with everything else. Reading it back
+ * out by name restores the diagnostic without restoring the leak: `?atlas=/nl/amsterdam/1204` is a
+ * route we generated, and nothing else in the query is touched.
+ *
+ * Guarded and route-shaped-or-nothing, because this runs while something is already broken:
+ * `routeFromParam` refuses anything that is not a site-relative path, so a hostile value somebody
+ * put on the link cannot ride out on our telemetry either.
+ */
+function widgetRoute(): string | undefined {
+  try {
+    return routeFromParam(window.location.search)
+  } catch {
+    return undefined
   }
 }
 

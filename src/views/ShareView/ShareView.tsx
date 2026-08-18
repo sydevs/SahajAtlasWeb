@@ -25,7 +25,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   const { data: event } = useEventFromPath(eventPath)
   // The event's canonical page, else this session's address if the route is in it — and
   // nothing at all on a host page the widget routes off-URL on (issue #115).
-  const url = useShareUrl(event.webUrl)
+  const url = useShareUrl(event.webUrl, event.path)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
 

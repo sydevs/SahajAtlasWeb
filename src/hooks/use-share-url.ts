@@ -1,29 +1,25 @@
-import { useWidgetMode } from '@/config/mode'
+import { useHrefFor } from '@/config/routing'
 import { shareableUrl } from '@/lib/url'
 
 /**
- * The URL to put in front of a human for the event being viewed — its canonical page when
- * it has one, the current address when that identifies the route, and `undefined` when
- * neither is true (issue #115).
+ * The URL to put in front of a human for the event being viewed — its canonical page when it has
+ * one, its own widget URL when the route is in a URL at all, and `undefined` when neither is true
+ * (issues #115, #154).
  *
- * The decision itself is `shareableUrl` (`lib/url.ts`), pure and covered in the node lane.
- * This hook exists only to feed it the two things a pure function can't reach: the
- * `linkable` mode axis and `window.location.href`. Consumers take the answer and decide
- * what to render without one — deliberately, because "no link" is not a share block with
- * an empty field, it is a different screen.
+ * The decision itself is `shareableUrl` (`lib/url.ts`), pure and covered in the node lane. This
+ * hook exists only to feed it the one thing a pure function cannot reach: the route resolver, which
+ * is `undefined` in memory mode and is therefore also the answer to "is our route in a URL". That
+ * replaces the older reading of the `linkable` axis plus `window.location.href` — one source
+ * instead of two, which is what stops them drifting.
  *
- * Read during render, like the `window.location.href` reads it replaces. The value can go
- * stale within a session (an in-widget navigation doesn't re-render every consumer), which
- * is harmless here: both call sites re-render on the event they're keyed to, and the
- * canonical — the answer in the overwhelming majority of cases — doesn't depend on the
- * address bar at all.
+ * Consumers take the answer and decide what to render without one — deliberately, because "no
+ * link" is not a share block with an empty field, it is a different screen.
  */
-export function useShareUrl(canonical: string | null | undefined): string | undefined {
-  const { linkable } = useWidgetMode()
+export function useShareUrl(
+  canonical: string | null | undefined,
+  route?: string,
+): string | undefined {
+  const hrefFor = useHrefFor()
 
-  return shareableUrl(
-    canonical,
-    typeof window === 'undefined' ? undefined : window.location.href,
-    linkable,
-  )
+  return shareableUrl(canonical, route && hrefFor ? hrefFor(route) : undefined)
 }

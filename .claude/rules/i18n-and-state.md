@@ -176,7 +176,7 @@ of truth, so all are linkable/shareable:
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
   in `src/lib/shape/path.ts`) — of the ROUTER's location, to be exact, which on a host page
   whose anchor the widget declined to take is a MemoryRouter's rather than the address
-  bar's (`mountRoute`, `src/lib/shape/hash.ts`; issue #92). Nothing below the router can
+  bar's (`mountDecision`, `src/lib/shape/routing.ts`). Nothing below the router can
   tell, which is the point. Dismissal is history-aware: `dismissAction`
   (`src/lib/shape/navigation.ts`) maps X / swipe / Esc to a chronological
   `navigate(-1)` when the in-widget `atlasDepth(location)` > 0 (restoring the prior

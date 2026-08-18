@@ -22,9 +22,9 @@ categories — and point at specific lines.
 - **Data**: `@payloadcms/sdk` → the SahajCloud REST API, responses validated with
   zod (`src/types/`).
 - **Render**: React, Radix UI, Mapbox GL. `dompurify` is available for sanitizing HTML.
-- **Embedding**: `@r2wc/react-to-web-component`. Routing is **HashRouter or
+- **Embedding**: `@r2wc/react-to-web-component`. Routing is **a `?atlas=` query parameter on the host's URL, or
   MemoryRouter**, chosen at mount from the host page's own fragment
-  (`claimFragment(mountRoute(...))`, `src/Widget.tsx` + `src/lib/shape/hash.ts`,
+  (`mountDecision(...)`, `src/Widget.tsx` + `src/lib/shape/routing.ts`,
   issue #92) — an untrusted input picking a branch, so audit both.
 
 ## Focus areas
@@ -54,7 +54,7 @@ Score each finding **Critical / High / Medium / Low**. Be specific —
 - The widget receives **nine** props from an untrusted host page (`WidgetProps`,
   `src/Widget.tsx`): `apiKey`, `locale`, `basePath`, `map`, the three privacy
   flags `analytics` / `geolocation` / `errorReporting` (which gate third-party
-  data flows — see `src/config/privacy.ts`), and `primaryColor` /
+  data flows — the opt-outs were removed in #149, so these are unconditional), and `primaryColor` /
   `secondaryColor`, host-supplied hex fed into the runtime palette. Validate and
   normalize them; don't `eval`, build selectors, or navigate on unsanitized host
   input.

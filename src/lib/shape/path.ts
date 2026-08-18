@@ -45,7 +45,8 @@ export const childRoute = (parentPath: string, child: string | number): string =
  * `/\evil.com` is rejected alongside `//evil.com`: browsers normalise a leading
  * backslash to a slash, so the standalone BrowserRouter build would render
  * `<a href="/\evil.com">` and Chrome would resolve it to `https://evil.com` on a
- * middle-click or "copy link address". Inert under the embedded HashRouter, but the
+ * middle-click or "copy link address". Live in every mode since #154 — the widget's hrefs are
+ * absolute host-origin URLs now, so a raw `webPath` reaching one is a real off-origin link. The
  * guard is one character and this string can reach an href.
  *
  * TAB, LF and CR are rejected in that same position for the same reason, and it is not

@@ -24,27 +24,27 @@ event hierarchy.
 
 ## Project overview
 
-| Concern        | Choice |
-| -------------- | ------ |
-| Build tool     | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js` |
-| UI             | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants** |
-| Map            | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers |
-| Routing        | `react-router` v7, **HashRouter** (basename `!`) — the widget owns the URL hash, *unless* the host page's own anchor already does, in which case it routes in memory and writes nothing (`mountRoute`, `src/lib/shape/hash.ts`) |
-| Data           | **TanStack Query** + **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-validated responses |
-| State          | **zustand** (`src/config/store.ts`) + URL query (search filters) |
-| i18n           | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json` |
-| Forms          | `react-hook-form` + `zod` (`@hookform/resolvers`) |
-| Calendar       | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) — the full-width CalendarView's month/week/list grid; its header is our own (driven via the `calendar-controls` plugin, SX's built-in header hidden) |
-| Misc           | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets) |
-| Embedding      | `@r2wc/react-to-web-component` (`src/Widget.tsx`), CSS injected by JS for shadow-free embedding |
-| Deploy         | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects`, headers via `public/_headers`, indexing policy in `public/robots.txt` |
+| Concern    | Choice                                                                                                                                                                                                                                                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build tool | Vite 8 (`vite.config.ts`), `type: module`; two entries — `index.html` (app) + `src/Widget.tsx` → `embed.js`                                                                                                                                                                                                                             |
+| UI         | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 + **tailwind-variants**                                                                                                                                                                                                                                             |
+| Map        | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers                                                                                                                                                                                                                                                      |
+| Routing    | `react-router` v7 over a hand-written history — the widget's route is the **`?atlas=` query parameter on the host's own page URL** (`src/router.tsx`, `src/lib/shape/routing.ts`). Indexable, shareable, and it never touches the host's `#anchor`. Degrades to in-memory routing only where the document refuses `replaceState` (#154) |
+| Data       | **TanStack Query** + **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-validated responses                                                                                                                                                                                                                               |
+| State      | **zustand** (`src/config/store.ts`) + URL query (search filters)                                                                                                                                                                                                                                                                        |
+| i18n       | `i18next` + `react-i18next`, HTTP backend loads `public/locales/<lng>/<ns>.json`                                                                                                                                                                                                                                                        |
+| Forms      | `react-hook-form` + `zod` (`@hookform/resolvers`)                                                                                                                                                                                                                                                                                       |
+| Calendar   | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) — the full-width CalendarView's month/week/list grid; its header is our own (driven via the `calendar-controls` plugin, SX's built-in header hidden)                                                                                                                                  |
+| Misc       | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets)                                                                                                                                                                                  |
+| Embedding  | `@r2wc/react-to-web-component` (`src/Widget.tsx`), CSS injected by JS for shadow-free embedding                                                                                                                                                                                                                                         |
+| Deploy     | **Cloudflare Pages** — `sahajatlas` (app) + `sahajatlas-design` (Ladle); SPA fallback via `public/_redirects`, headers via `public/_headers`, indexing policy in `public/robots.txt`                                                                                                                                                    |
 
 The app is also runnable standalone in dev (`index.html` → `src/main.tsx`); the
 embeddable entry is `src/Widget.tsx` (demo in `demo.html`).
 
 **The host-facing contract is written down in `docs/embedding.md`** (the integrator
 guide) and `CHANGELOG.md` — attributes, the CSP a host must send, sizing, the URL shape,
-privacy. Anything a host can *observe* changing means updating both, in the same PR that
+privacy. Anything a host can _observe_ changing means updating both, in the same PR that
 changes it: they are the only documentation an embedding site ever reads, and the README's
 snippet spent months telling hosts to load a filename the build has never emitted (#93).
 An origin added to a fetch, an attribute added to `Widget.tsx`, a new `<style>` injection
@@ -217,8 +217,8 @@ the repo (there's no `wrangler`/`_routes.json`). Three repo-level deploy files l
 in `public/`, and **Pages reads all three out of the build output**:
 
 - **`_redirects`** (`/* /index.html 200`) — the app's standalone `BrowserRouter`
-  build's SPA deep-link fallback. (The embeddable widget uses `HashRouter`, so it
-  doesn't depend on it; the standalone build does.)
+  build's SPA deep-link fallback. (The embeddable widget routes off a query parameter on
+  the host's own page, so it doesn't depend on it; the standalone build does.)
 - **`_headers`** — CORS on `/assets/*` + `/locales/*` (issue #91: a font is always
   fetched in CORS mode, and blocked locale JSON renders every string as its raw
   key), plus `X-Robots-Tag: noindex` on `/*` (issue #106). Pages applies **every**
@@ -233,7 +233,7 @@ in `public/`, and **Pages reads all three out of the build output**:
 well as the app. Wanted for the indexing policy (a component playground is no more
 a search surface than the app is); worth remembering before editing one "for the
 app". Ladle generates its own `index.html`, so the `<meta robots>` in ours is the
-one signal the playground does *not* get — the header covers it there.
+one signal the playground does _not_ get — the header covers it there.
 
 **Source maps are uploaded, then deleted — never deployed** (#130). The `/assets/*`
 rule above is exactly why: CORS-open plus a one-year immutable cache means a shipped
@@ -252,7 +252,7 @@ Three consequences worth carrying.
 must not be blocked by a telemetry outage), so a green deploy does not by itself prove the
 maps got there — while `assert:maps` still fails the build if the maps are what got left
 behind. What passing an `errorHandler` genuinely disarms is the plugin's rethrow on a
-failed *deletion*; a failed *upload* leaves nothing behind either way, because deletion
+failed _deletion_; a failed _upload_ leaves nothing behind either way, because deletion
 runs in `writeBundle`'s `finally`. That deletion path is the one route by which a map could
 reach the output, and the gate is what closes it.
 
@@ -260,7 +260,7 @@ reach the output, and the gate is what closes it.
 only runs on a credentialed build and CI has no token. That is the debug-ID snippet
 injected per chunk. **It interacts badly with the ratchet rule above**: `BUDGET_KIB` is
 supposed to be lowered whenever the payload shrinks, but lowering it to within ~2.1 KiB of
-the CI number would make the *production* build fail a gate CI cannot reproduce. Leave
+the CI number would make the _production_ build fail a gate CI cannot reproduce. Leave
 that much headroom deliberately.
 
 **A credentialed build is exercised in CI without a network** — the "Source-map upload
@@ -311,7 +311,7 @@ both stacked on `feat/calendar-view`). Two consequences worth knowing up front:
   `git merge origin/main` replays your pre-squash history against the squash and
   conflicts spuriously — on the one occasion this happened it produced 20+ conflicts
   including `pnpm-lock.yaml` and add/add conflicts on files neither side had touched
-  meaningfully. Before starting, size the *real* overlap so you know what you're in
+  meaningfully. Before starting, size the _real_ overlap so you know what you're in
   for; it's usually a handful of files:
 
   ```bash

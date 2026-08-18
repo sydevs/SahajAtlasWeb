@@ -30,7 +30,7 @@ vi.mock('react-i18next', () => ({
 //
 // Nothing here needs a Router because this rung is EXTERNAL — the `Link` atom renders a
 // plain <a> for it. An in-widget rung takes the react-router branch instead, which is the
-// whole point of the atom (a bare <a href="/gb"> under HashRouter would navigate the host
+// whole point of the atom (a bare <a href="/gb"> would navigate the host
 // page away), and is covered in the browser rather than here.
 describe('OnwardLink — the country-site rung', () => {
   const html = renderToStaticMarkup(
