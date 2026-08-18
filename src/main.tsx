@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router'
 import App from './App.tsx'
 import atlasAuth from './config/api/auth'
 import { capturePreview } from './config/preview'
-import { attributeEnabled } from './config/privacy'
+import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 
 const searchParams = new URLSearchParams(window.location.search)

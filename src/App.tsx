@@ -20,7 +20,6 @@ import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
-import privacy from '@/config/privacy'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). A side-effect import beside the
@@ -216,10 +215,7 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable }: AppSh
     [client.allowedDomains],
   )
   const fathomEnabled =
-    privacy.analytics &&
-    !!import.meta.env.VITE_FATHOM_ID &&
-    !!primaryDomain &&
-    !primaryDomain.includes('localhost')
+    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
   const lastTracked = useRef('')
   // Whether the tracker on this page is OURS. `Fathom.load` returns early if
   // `window.fathom` already exists, so on a host that runs its own Fathom we would

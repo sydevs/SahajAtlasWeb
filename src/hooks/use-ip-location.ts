@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 
-import privacy from '@/config/privacy'
 import { IpLocationSchema, type IpLocation } from '@/types'
 
 // A free, keyless IP-geolocation lookup. Deliberately a bare `fetch`, NOT the
@@ -39,15 +38,17 @@ export async function fetchIpLocation(): Promise<IpLocation | null> {
 // location or `null` (loading, disabled, or failed) — a `null` result means the
 // nearby suggestion simply doesn't render.
 //
-// The host's `geolocation="false"` overrides every caller (issue #95): an IP is personal
-// data, the visitor is on THEIR page, and the lookup is a convenience — the suggestion
-// and the localized online-event time — never a prerequisite for anything. Callers stay
-// unaware; they already handle `null`.
+// There is no host opt-out (#149). The lookup is a convenience — the nearby suggestion and
+// the localized online-event time — never a prerequisite, and `enabled` already lets each
+// caller decline it. Note for anyone revisiting this: an IP is personal data in the EU and
+// the visitor is on the HOST's page, so if a host ever needs to refuse this flow, the answer
+// is a client-record setting rather than a script parameter — the embed URL is not where
+// somebody else's compliance posture should live.
 export function useIpLocation(enabled = true): IpLocation | null {
   const { data } = useQuery({
     queryKey: ['ip-location'],
     queryFn: fetchIpLocation,
-    enabled: enabled && privacy.ipLookup,
+    enabled,
     staleTime: Infinity,
     gcTime: Infinity,
   })

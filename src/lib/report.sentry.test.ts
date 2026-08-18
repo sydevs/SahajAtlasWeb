@@ -78,14 +78,13 @@ vi.mock('@sentry/browser', () => {
   }
 })
 
-/** A fresh `report.ts` (and the `privacy` singleton it reads) per case. */
+/** A fresh `report.ts` per case. */
 async function freshSeam() {
   vi.resetModules()
 
-  const [{ reportInternalError, reportIntegrationWarning }, { default: privacy }] =
-    await Promise.all([import('./report'), import('@/config/privacy')])
+  const { reportInternalError, reportIntegrationWarning } = await import('./report')
 
-  return { reportInternalError, reportIntegrationWarning, privacy }
+  return { reportInternalError, reportIntegrationWarning }
 }
 
 const logged = vi.fn()
@@ -127,20 +126,19 @@ describe('the DSN gate', () => {
     expect(sdk.captured).toHaveLength(0)
   })
 
-  it('honours the host opt-out, live, per failure', async () => {
-    const { reportInternalError, privacy } = await freshSeam()
+  // The host opt-out this used to cover is gone (#149): there is no `error-reporting`
+  // parameter any more, so the DSN is the only gate and the case above already pins it.
+  // What is worth keeping is that the gate is read PER FAILURE rather than once at module
+  // load — that is what would let a future veto take effect without a reload, and it is a
+  // property of `reportingDsn()` that nothing else asserts.
+  it('reads the gate per failure rather than caching it at module load', async () => {
+    const { reportInternalError } = await freshSeam()
 
-    privacy.errorReporting = false
     reportInternalError(atlasError('server', 'upstream fell over'), 'ctx')
-    await vi.waitFor(() => expect(logged).toHaveBeenCalledOnce())
-
-    expect(sdk.captured).toHaveLength(0)
-
-    // Flipping it back is honoured without a reload — unlike the Fathom script, nothing
-    // has been injected that we cannot take back.
-    privacy.errorReporting = true
-    reportInternalError(atlasError('server', 'again'), 'ctx')
     await vi.waitFor(() => expect(sdk.captured).toHaveLength(1))
+
+    reportInternalError(atlasError('server', 'again'), 'ctx')
+    await vi.waitFor(() => expect(sdk.captured).toHaveLength(2))
   })
 })
 
@@ -389,7 +387,7 @@ describe('reportIntegrationWarning', () => {
     const { reportIntegrationWarning } = await freshSeam()
 
     // A 20-line documented decision deserves one assertion: both call sites run from the
-    // custom-element lifecycle, potentially before `<sahaj-atlas>`'s privacy attributes
+    // custom-element lifecycle, potentially before the loader's configuration
     // have been read, so a beacon here could outrun `error-reporting="false"`.
     reportIntegrationWarning('the embed script is on this page twice.')
     await vi.waitFor(() => expect(warned).toHaveBeenCalledOnce())
