@@ -85,6 +85,15 @@ unnoticed (issue #99), and each is built so that passing means something:
   fails when a graph is far **under** budget too, since that is both a ratchet
   (lower `BUDGET_KIB` in the commit that won the space) and the signature of the
   import walker half-breaking.
+  It also asserts the **loader and embed graphs share no chunk** (bundler runtime
+  helpers excepted). The budget alone cannot see that failure, because its cost is
+  not bytes: one *value* import across the `src/loader/` seam makes a module
+  reachable from both entries, rolldown factors it into a chunk **both** entries
+  statically import, and every host then fetches it on the loader's critical path
+  whether or not the widget ever renders. `src/loader/literals.ts` states that rule
+  and #153 broke it anyway with a one-line string join — prose was the only thing
+  enforcing it. The fix is never to import across the seam: duplicate the value into
+  `literals.ts` and pin the copies in `literals.test.ts`.
 - **`pnpm audit:check`** (`scripts/check-audit.mjs`) fails on a high/critical
   advisory that isn't pinned in `scripts/audit-baseline.json` — green today, red
   on a new one. Waiving one is a reviewable line naming the owning ticket. The

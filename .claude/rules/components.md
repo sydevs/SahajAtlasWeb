@@ -153,6 +153,20 @@ in host pages, **and** runs standalone in dev. Because of that:
   `reportIntegrationWarning` (`src/lib/report.ts`).
 - Don't assume control of `<head>`, global CSS, or the full viewport — the host
   page owns those. Scope styles to the widget's own DOM.
+- **The one thing the widget writes onto the host's own `<html>` is the readiness marker**
+  (`data-sahaj-atlas-ready`, `src/lib/readiness.ts`, issue #153), and it is an exception
+  argued rather than assumed: SahajCloud verifies an embed by loading the host page through
+  Cloudflare Browser Rendering and reading the DOM back, so the evidence has to be findable
+  from the top of the document — our scoped wrapper is not somewhere a verifier can be asked
+  to look. Two properties make it honest, and both are load-bearing. It is published **only
+  after React commits** (a mount effect in `Widget.tsx`, guarded on the theme-root ref), because
+  a marker written on script load attests to a page whose widget may never have rendered and
+  makes verification theatre. And it is **removed with page-global ownership**
+  (`releaseAnnouncement`), so it cannot outlive the widget it vouches for on a host SPA that
+  unmounted it. It attests the routing the router *actually* uses — `MountDecision.routing`,
+  not the `routing` parameter somebody configured, which is accepted without being honoured.
+  A `postMessage` was rejected: the Browser Rendering API returns DOM with no message channel,
+  and an injected listener races the widget's boot, which fails **healthy** sites.
 - **What a host can observe is documented in `docs/embedding.md`** — the attribute table,
   the CSP contract, sizing, the URL shape, the style-tag ids. It is the only doc an
   embedding site reads, so a change here that a host could notice is not finished until

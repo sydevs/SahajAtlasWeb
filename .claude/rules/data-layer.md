@@ -188,7 +188,19 @@ correct for its one call site.
   resolved promise is the only thing that means delivered and the form derives its
   thank-you screen from nothing else (issue #103).
 
-**In both, the response `.parse()` sits OUTSIDE the request's `try`.** A `ZodError`'s
+- `reportEmbed` → `POST /api/clients/report` (sydevs/SahajCloud#633, issue #153) — the one
+  mutation no viewer asked for: what the widget observed about the host page it is mounted
+  on. Sent once per page from `lib/embed-announce.ts`, never from a component and never
+  through React Query — it renders nothing, caches nothing, and a retry would be a second
+  write of a record the server already collapses by the hour.
+  **Its response schema is deliberately only `{ ok: true }`.** The endpoint also returns the
+  `mount` key it filed under and `stored: false` when it suppressed an unchanged report, and
+  neither is pinned, because nothing reads them: a schema demanding a field we ignore turns a
+  harmless CMS rename into a "could not record this embed" warning on every host's console —
+  a worse failure than the drift it would be detecting. That is a narrower rule than the
+  parse-everything one above, and the difference is whether anything *renders* the answer.
+
+**In all three, the response `.parse()` sits OUTSIDE the request's `try`.** A `ZodError`'s
 `.errors` are `{ message, code }` — precisely the shape `asRefusal` reads a refusal body
 out of — so a parse inside the catch is re-cast as a server refusal carrying a zod issue
 code, and the real cause disappears.
