@@ -41,9 +41,7 @@ Three things about it:
 - **Don't add `async` or `defer`.** The loader reads its own script tag to find both its settings
   and its position, and those attributes make the browser hide it.
 
-`type="module"` is the normal form. If your platform will not let you set it — Wix's Custom
-Element, some page builders — use [`embed.classic.js`](#platforms-that-cant-load-a-module)
-instead, with the same query string.
+`type="module"` is required — the loader is an ES module.
 
 Ask the Sahaj Atlas maintainers for an API key. It is a **public, published** key: it
 ships in your page's HTML, it is scoped to read-only atlas data, and it is not a secret.
@@ -96,13 +94,12 @@ deployment rather than of the source — a local build carries whatever the chec
 says. To confirm the current value rather than trusting this page, read it out of the
 shipped bundle:
 
-Three files sit at that origin's root, and only the first is one you reference:
+Two files sit at that origin's root, and only the first is one you reference:
 
-| File               | What it is                                                          |
-| ------------------ | ------------------------------------------------------------------- |
-| `auto.js`          | the loader — the one you install                                    |
-| `embed.js`         | the widget itself, fetched by the loader on demand                  |
-| `embed.classic.js` | the non-module bridge, for platforms that can't set `type="module"` |
+| File       | What it is                                         |
+| ---------- | -------------------------------------------------- |
+| `auto.js`  | the loader — the one you install                   |
+| `embed.js` | the widget itself, fetched by the loader on demand |
 
 To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
 
@@ -182,21 +179,6 @@ snippet renders nothing and says so in the console rather than silently adopting
 widget and discarding its own settings. This is a real constraint rather than an oversight: two
 widgets would both write the same `?atlas=` parameter and fight over it every time either one
 navigated.
-
-### Platforms that can't load a module
-
-Some platforms give you a script URL and control the tag themselves, so you cannot add
-`type="module"`. Wix's Custom Element is the common case.
-
-Point them at **`embed.classic.js`** with the same query string:
-
-```
-https://sahajatlas.com/embed.classic.js?key=…
-```
-
-It is a few lines of plain JavaScript that loads the module loader for you, and everything after
-that is identical. Where the platform also asks for a **tag name**, it is `sahaj-atlas` — the
-loader will use the element that platform creates rather than making its own.
 
 ### What the loader reports back
 
@@ -529,7 +511,7 @@ Two consequences:
 
 | Symptom                                                               | Likely cause                                                                                                                                                                                            |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing renders; a 404 for the script**                             | The filename is `auto.js` (or `embed.classic.js`). `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                    |
+| **Nothing renders; a 404 for the script**                             | The filename is `auto.js`. `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                            |
 | **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` — it was renamed when configuration moved onto the script URL. The loader logs an error naming it. Otherwise the key itself is wrong, revoked, or not yet issued. |
 | **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                     |
 | **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                              |
@@ -547,7 +529,7 @@ Two consequences:
 | **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                                                  |
 | **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                          |
 | **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                   |
-| **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, the platform needs the `embed.classic.js` route or a plugin.                       |
+| **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way; talk to the maintainers.            |
 | **The widget only appears when you scroll to it**                     | Intended. The loader defers fetching the widget until the embed is near the viewport, so a widget below the fold costs your visitors nothing until they reach it.                                       |
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings

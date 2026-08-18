@@ -230,11 +230,6 @@ export default defineConfig(({ command }) => ({
         // stable, unhashed filename: `pnpm size` measures it as its own graph, and the smoke
         // lane fetches it by name.
         loader: './src/loader/index.ts',
-        // The classic-script bridge. An ordinary entry, not a hand-written asset: it has no
-        // imports and no exports, so there is no module syntax for the build's output format to
-        // change, and being a real entry means it is typechecked, linted and minified like
-        // everything else.
-        loaderClassic: './src/loader/classic.ts',
         widget: './src/Widget.tsx',
       },
       output: {
@@ -242,7 +237,6 @@ export default defineConfig(({ command }) => ({
         // `embed.js` because it is what `auto.js` imports by name.
         entryFileNames: (assetInfo) => {
           if (assetInfo.name === 'loader') return 'auto.js'
-          if (assetInfo.name === 'loaderClassic') return 'embed.classic.js'
 
           return assetInfo.name === 'widget' ? 'embed.js' : 'assets/[name]-[hash].js'
         },

@@ -275,30 +275,6 @@ function main() {
     }
   }
 
-  // The classic bridge must stay executable as a NON-module script, which means it must contain
-  // no module syntax at all. It has no imports or exports in source, so today it compiles to
-  // itself — but that is a property of the source, not a guarantee of the build, and it would be
-  // undone silently: adding one import to `src/loader/classic.ts` emits an `import` statement,
-  // which is a *syntax error* in a classic script. The widget would then fail to load on exactly
-  // the platforms that have no other route to it (Wix's Custom Element above all), and every other
-  // check here would stay green.
-  const classicJs = join(DIST, 'embed.classic.js')
-
-  if (existsSync(classicJs)) {
-    const classic = readFileSync(classicJs, 'utf8')
-    const moduleSyntax = /\bimport\s*[({"'`]|\bexport\s*[{*]|\bexport\s+(default|const|function|class)\b/
-
-    if (moduleSyntax.test(classic)) {
-      annotate(
-        'error',
-        'embed.classic.js contains module syntax. It is loaded as a CLASSIC script by hosts that ' +
-          'cannot set type="module", where `import`/`export` is a syntax error — so the widget ' +
-          'would not load at all there. Keep src/loader/classic.ts free of imports and exports.',
-      )
-      process.exit(1)
-    }
-  }
-
   const graphs = [
     measure('standalone', [...new Set([...declared, ...loaded])]),
     measure('loader', loaderGraph),

@@ -70,24 +70,6 @@ describe('embed bundle', () => {
     expect(body.length).toBeLessThan(20_000)
   })
 
-  test.skipIf(skipWithoutPreview)('serves the classic shim, which bridges to auto.js', async () => {
-    const res = await fetchPreview('/embed.classic.js')
-    const type = res.headers.get('content-type') ?? ''
-    const body = await res.text()
-
-    // Content type, not status: `_redirects` answers 200 `text/html` for any path, so a
-    // missing shim would pass a status check while serving the SPA shell.
-    expect(res.status).toBe(200)
-    expect(type).toMatch(/javascript|ecmascript/i)
-
-    // It exists for platforms that cannot set `type="module"` — Wix's Custom Element
-    // above all — so the one thing it must do is inject a module script pointing at the
-    // loader, carrying its own query string across.
-    expect(body).toContain('auto.js')
-    expect(body).toContain('embed.classic.js')
-    expect(body).toContain('module')
-  })
-
   test.skipIf(skipWithoutPreview)('serves every chunk the loader can reach', async () => {
     const { body } = await fetchEmbed()
 

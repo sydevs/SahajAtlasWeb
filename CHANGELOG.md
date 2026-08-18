@@ -80,10 +80,6 @@ cover everything a host would notice since the widget was first deployed.
   Put the snippet in the body, without `async` or `defer`: the loader reads its own tag to find
   both its settings and its position.
 
-- **New: `embed.classic.js`, for platforms that cannot set `type="module"`.** ([#149]) Same query
-  string, a few lines of plain JavaScript that load the module loader for you. This is the route
-  for Wix's Custom Element and similar page builders.
-
 - **The widget now reports what it observed about your page** — top-level or framed, whether the
   URL can be written, whether a query parameter survives your router — and only when that has
   changed since last time, so the steady state is no requests at all. It sends your page's
