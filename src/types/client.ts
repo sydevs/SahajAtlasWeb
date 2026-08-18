@@ -5,6 +5,12 @@ import { RegionRefSchema } from './region-ref'
 // `GET /api/clients/me` — the widget's own SahajCloud service document, used to
 // bootstrap its locale, theme colors, and home region. `region` resolves to a
 // RegionRef at depth=1; `allowedDomains` is a newline-separated list.
+//
+// `legacyConfig` is gone (#153). SahajCloud removed the field rather than promoting
+// it: a hand-maintained `routing_type`/`embed_type` beside what the widget now
+// *observes* is a second, contradictory source for the same facts, and the legacy
+// values are wrong in the field — `sahajayoga.at` is recorded as `script` while
+// serving an iframe. That is the whole argument for `src/loader/detect.ts`.
 export const ClientSchema = z.object({
   id: z.number(),
   name: z.string().nullish(),
@@ -15,13 +21,5 @@ export const ClientSchema = z.object({
   allowedDomains: z.string().nullish(),
   clientId: z.string().nullish(),
   region: z.union([RegionRefSchema, z.number(), z.null()]).optional(),
-  legacyConfig: z
-    .object({
-      routing_type: z.string().nullish(),
-      embed_type: z.string().nullish(),
-      default_view: z.string().nullish(),
-    })
-    .passthrough()
-    .nullish(),
 })
 export type Client = z.infer<typeof ClientSchema>

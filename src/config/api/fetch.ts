@@ -626,7 +626,6 @@ const getClient = async () => {
         allowedDomains: true,
         clientId: true,
         region: true,
-        legacyConfig: true,
       },
       populate: { regions: { slug: true, name: true, level: true, webPath: true, webUrl: true } },
     },
