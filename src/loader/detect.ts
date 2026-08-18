@@ -75,6 +75,15 @@ export function fingerprint(signals: DetectionSignals, routing: RoutingMode): Em
     // host's router is the third requirement; under path routing that question does not apply and
     // the remaining one is answered server-side, so this reports what the page can support rather
     // than claiming more than it measured.
+    //
+    // ⚠ **`routing` here is the shape that was REQUESTED, and `path` is currently accepted without
+    // being honoured** (`mountDecision`, `lib/shape/routing.ts`) — so a `routing=path` embed
+    // short-circuits the `paramPersisted` requirement while in fact query-routing, and can call a
+    // mount viable whose `?atlas=` its host router demonstrably eats. Harmless today only because
+    // `embedReportSchema` does not model this field and strips it, and because the marker attests
+    // the effective routing instead. Whoever wires path routing up owns this line too — it is the
+    // second place that assumes the request was granted.
+
     canonicalViable:
       signals.topLevel && signals.urlWritable && (routing === 'path' || signals.paramPersisted),
   }

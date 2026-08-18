@@ -526,9 +526,11 @@ fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the b
 
 One thing the widget itself sends in the background, about your page rather than your visitor:
 the **embed report** described under [what the loader reports back](#what-the-loader-reports-back)
-— your origin and path, and four booleans about how the widget is mounted. It carries nothing
-about the visitor: no IP beyond the one any HTTPS request has, no user agent, no identifier, and
-none of your query string bar a WordPress `?p=<number>`.
+— your origin and path, and four booleans about how the widget is mounted. Its *body* carries
+nothing about the visitor: no identifier, no location, and none of your query string bar a
+WordPress `?p=<number>`. Like any request a browser makes it still carries the visitor's IP and
+`User-Agent` as headers, which no client-side code can suppress — the distinction worth drawing is
+against the crash reports above, which put the user agent in the payload deliberately.
 
 ## Updates and caching
 

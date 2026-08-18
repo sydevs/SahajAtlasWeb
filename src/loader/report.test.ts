@@ -90,6 +90,42 @@ describe('mountParts', () => {
   it('refuses an opaque origin', () => {
     expect(mountParts('null')).toBeUndefined()
   })
+
+  /**
+   * The endpoint refuses these, and a refusal is a 400 on **every load** of that page — the widget
+   * rendering fine while the console blames the host's configuration. So the client refuses first
+   * and reports nothing, which is a gap in a record rather than a request that can never succeed.
+   * Kept in step with `embedReportSchema` in SahajCloud's `embedMetadata.ts`.
+   */
+  describe('what the endpoint would refuse', () => {
+    // `new URL('blob:https://site.com/uuid').pathname` is the whole inner URL, with no leading
+    // slash — so this one fails the server's `pathname` refine rather than looking obviously wrong.
+    it.each([
+      ['a blob document', 'blob:https://site.com/uuid'],
+      ['a file:// document', 'file:///Users/someone/page.html'],
+      ['a data: document', 'data:text/html,<p>hi</p>'],
+    ])('refuses %s', (_case, href) => {
+      expect(mountParts(href)).toBeUndefined()
+    })
+
+    it('refuses a path longer than the column takes', () => {
+      expect(mountParts(`https://site.com/${'a'.repeat(512)}`)).toBeUndefined()
+      expect(mountParts(`https://site.com/${'a'.repeat(400)}`)).toBeDefined()
+    })
+
+    // Whatever it returns must satisfy the server's two structural rules, for any input.
+    it.each([
+      'https://site.com',
+      'https://site.com/',
+      'http://site.com:8080/a/b?p=9',
+      'https://site.com/x?q=1#f',
+    ])('yields a rooted path and a bare origin for %s', (href) => {
+      const parts = mountParts(href)
+
+      expect(parts?.pathname.startsWith('/')).toBe(true)
+      expect(parts?.origin).toMatch(/^https?:\/\/[^/?#]+$/)
+    })
+  })
 })
 
 describe('buildReport', () => {

@@ -2,7 +2,7 @@ import type { EmbedFingerprint } from '@/loader/detect'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { announceEmbed, releaseAnnouncement } from './embed-announce'
+import { announceEmbed, releaseAnnouncement, resetReportedForTest } from './embed-announce'
 import { READY_ATTR } from './readiness'
 
 import { fingerprint } from '@/loader/detect'
@@ -58,9 +58,18 @@ function stubDocument() {
 
 beforeEach(() => {
   sdk.request.mockReset()
-  // The once-flag is module state, so every case starts from a page that has not announced.
+  // Both are module state, so every case starts from a page that has not announced.
   stubDocument()
   releaseAnnouncement()
+  resetReportedForTest()
+  // Node has no `requestIdleCallback`, so without this every case would sit out the real
+  // `IDLE_DEADLINE_MS` timer and put seconds on a lane the edit-loop hook runs on every save.
+  // The two cases that care about the wait stub it themselves.
+  vi.stubGlobal('requestIdleCallback', (callback: () => void) => {
+    callback()
+
+    return 0
+  })
 })
 
 afterEach(() => {
@@ -195,12 +204,12 @@ describe('announceEmbed', () => {
   })
 
   /**
-   * One marker and one POST per page. The widget's mount effect can run again — a locale change
-   * re-renders `Atlas`, and a page builder moving the element remounts it outright — and a
-   * duplicate send is a regression nothing else would catch, which is why the flag lives in this
-   * module rather than in `Widget.tsx`, where no spec could reach it.
+   * One POST per page load. The mount effect can run again — a locale change re-renders `Atlas`,
+   * and a page builder moving the element remounts it outright — and a duplicate send is a
+   * regression nothing else would catch, which is why the flag lives in this module rather than in
+   * `Widget.tsx`, where no spec could reach it.
    */
-  it('announces once, however many times it is called', async () => {
+  it('reports once, however many times it is called', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
     await announceEmbed({ routing: 'query', observed, report })
@@ -210,9 +219,9 @@ describe('announceEmbed', () => {
     expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 
-  // A surface that announced nothing has not announced: the flag must not be spent by a Ladle
-  // story or the dev entry, or the first real mount after one would stay silent.
-  it('is not spent by a surface with nothing to announce', async () => {
+  // The flag must not be spent by a Ladle story or the dev entry, or the first real mount after
+  // one would stay silent.
+  it('is not spent by a surface with nothing to report', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
 
     await announceEmbed({ routing: 'query', observed: null, report: null })
@@ -221,7 +230,17 @@ describe('announceEmbed', () => {
     expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 
-  it('lets the next element announce for itself once ownership is released', async () => {
+  /**
+   * The asymmetry between the two halves, and the reason for it.
+   *
+   * `auto.js` does not run again on a host SPA's client-side navigation, so `embed.report` still
+   * names the URL the widget FIRST mounted on. A second element connecting after a teardown would
+   * therefore re-file the old mount — answering "which page is canonical?" with the wrong page and
+   * keeping its `lastSeen` warm. The marker has no such problem: it is a fresh statement about the
+   * widget that is on screen now, and a re-mounted widget must publish one or a verification that
+   * would have passed finds no attestation.
+   */
+  it('re-publishes the marker after a release but does not re-file the stale mount', async () => {
     const attributes = stubDocument()
 
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
@@ -234,7 +253,34 @@ describe('announceEmbed', () => {
 
     await announceEmbed({ routing: 'query', observed, report })
 
-    expect(sdk.request).toHaveBeenCalledTimes(2)
     expect(attributes.has(READY_ATTR)).toBe(true)
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * `void announceEmbed(...)` is how the widget calls this, so anything that rejects is an
+   * unhandled rejection in a page we do not own. The wait is the easiest half to leave outside the
+   * try, and a host that patched `requestIdleCallback` — consent managers and perf shims do — is
+   * what would find it.
+   */
+  it('survives a host that patched requestIdleCallback into a thrower', async () => {
+    vi.stubGlobal('requestIdleCallback', () => {
+      throw new Error('patched by a consent manager')
+    })
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    await expect(announceEmbed({ routing: 'query', observed, report })).resolves.toBeUndefined()
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+  })
+
+  // The quieter variant: a shim that accepts the callback and never calls it. Without a deadline
+  // running on both paths the promise would hang forever, the flag is already spent, and the
+  // report would simply never be sent.
+  it('still reports when a patched requestIdleCallback never calls back', async () => {
+    vi.stubGlobal('requestIdleCallback', () => undefined)
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    await expect(announceEmbed({ routing: 'query', observed, report })).resolves.toBeUndefined()
+    expect(sdk.request).toHaveBeenCalledTimes(1)
   })
 })

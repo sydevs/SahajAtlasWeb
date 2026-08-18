@@ -336,7 +336,7 @@ class SahajAtlasElement extends AtlasElementBase {
  * document, so the loader's element needs no handing over and a second parameter would only
  * invite someone to think this renders into it.
  *
- * Nothing is sent from here. The report is parked on the boot singleton for `announceMount` to
+ * Nothing is sent from here. The report is parked on the boot singleton for `announceEmbed` to
  * send once the widget has actually rendered — this function can be called on a page whose element
  * never mounts.
  */
@@ -348,7 +348,7 @@ export function boot(
   embed.config = config
   embed.observed = observed
   // Stashed rather than sent: defining an element is not a mount, and a report filed here would
-  // attest to a widget that has not rendered and might never. `announceMount` sends it.
+  // attest to a widget that has not rendered and might never. The mount effect in `Atlas` sends it.
   embed.report = report ?? null
 
   // Guarded: `customElements.define` throws NotSupportedError on a name that is already

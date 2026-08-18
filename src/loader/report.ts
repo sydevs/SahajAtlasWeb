@@ -29,6 +29,23 @@ export type EmbedReport = EmbedFingerprint & MountParts
 const WORDPRESS_PERMALINK_RE = /^\?p=\d+$/
 
 /**
+ * The rest of what the endpoint will accept, kept in step with `embedReportSchema` for the same
+ * reason as the regex above: a payload the server refuses is a **400 on every single load** of that
+ * page, with the widget rendering perfectly and a console warning blaming the host's configuration.
+ *
+ * `isBareOrigin` requires `http:`/`https:`, and `pathname` must start with `/`. Both matter for one
+ * real document type: a `blob:` URL. `new URL('blob:https://site.com/uuid')` reports an origin of
+ * `https://site.com` and a **pathname of `https://site.com/uuid`** — no leading slash — so a widget
+ * in a blob document would otherwise report a shape that cannot be stored. The lengths are the
+ * schema's `.max()`. In every case the answer is `undefined`, which the caller already treats as
+ * "nothing to report": not reporting a page is a gap in a record, while reporting it wrongly is a
+ * request per page view that can never succeed.
+ */
+const REPORTABLE_PROTOCOL = /^https?:$/
+const MAX_ORIGIN = 255
+const MAX_PATHNAME = 512
+
+/**
  * Reduce the page's URL to the mount, discarding everything we have no business sending.
  *
  * **The host's query string and fragment never leave the page.** This is the third time this repo
@@ -62,10 +79,15 @@ export function mountParts(href: string | null | undefined): MountParts | undefi
     // that nothing else can survive, and it cannot be defeated by a URL shape we did not
     // anticipate. An opaque origin serialises to "null", which is not a mount worth recording.
     if (url.origin === 'null' || !url.origin) return undefined
+    if (!REPORTABLE_PROTOCOL.test(url.protocol)) return undefined
 
     const permalink = WORDPRESS_PERMALINK_RE.test(url.search) ? url.search : ''
+    const pathname = `${url.pathname}${permalink}`
 
-    return { origin: url.origin, pathname: `${url.pathname}${permalink}` }
+    if (!pathname.startsWith('/')) return undefined
+    if (url.origin.length > MAX_ORIGIN || pathname.length > MAX_PATHNAME) return undefined
+
+    return { origin: url.origin, pathname }
   } catch {
     return undefined
   }

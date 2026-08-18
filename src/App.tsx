@@ -15,6 +15,7 @@ import { BrandTheme } from './config/theme/BrandTheme'
 
 import { safePath } from '@/lib/shape'
 import { atlasError, reportInternalError } from '@/lib/report'
+import { clearReadiness } from '@/lib/readiness'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { DrawerStack } from '@/views'
@@ -74,7 +75,14 @@ export function RootBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       FallbackComponent={RootFallback}
-      onError={(error) => reportInternalError(error, 'widget root')}
+      onError={(error) => {
+        reportInternalError(error, 'widget root')
+        // The readiness marker attests a WORKING embed, and this rung means there isn't one
+        // (#153). Left up, SahajCloud's verifier would load this page, find the attestation
+        // beside a static "could not be loaded" panel, and adopt it as a region's canonical URL.
+        // A no-op when nothing published — the standalone entry and every Ladle story.
+        clearReadiness()
+      }}
     >
       {children}
     </ErrorBoundary>
@@ -124,8 +132,15 @@ export default function App({
         <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
           <Suspense fallback={<LoadingFallback />}>
             {/* `context` names this one in a report: everything below is a drawer failing
-                to load, this is the widget failing to boot. */}
-            <ResetErrorBoundary FallbackComponent={ErrorFallback} context="app">
+                to load, this is the widget failing to boot. Which is also why it, and the root
+                boundary above, are the only two that take the readiness marker down (#153):
+                a drawer that failed is a widget that still works, and over-clearing costs a
+                verification failure against SahajCloud's three-strike budget. */}
+            <ResetErrorBoundary
+              FallbackComponent={ErrorFallback}
+              context="app"
+              onError={clearReadiness}
+            >
               <AppShell
                 apiKey={apiKey}
                 defaultLocale={defaultLocale}

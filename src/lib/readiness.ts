@@ -75,9 +75,14 @@ export function publishReadiness(marker: Omit<ReadinessMarker, 'v'>): void {
 /**
  * Take the marker down again.
  *
+ * Two ways to attest to nothing, and this closes both of the ones that arrive *after* publishing.
  * A host SPA that unmounts the widget on a route change would otherwise leave an attestation
- * standing over a page that no longer has an embed on it — the same "attests to nothing" failure
- * as writing it too early, arrived at from the other end.
+ * standing over a page with no embed on it. And a widget that boots and then **fails** — a host
+ * CSP missing the API origin, a rejected key — renders the "could not be loaded" rung with the
+ * marker still up, which is the false verification this whole mechanism exists to prevent: the
+ * verifier would adopt that page as a region's canonical URL on the strength of a React commit.
+ * So the two boundaries that replace the entire widget with an error screen call this
+ * (`App.tsx`), and the marker means "mounted, and not currently broken".
  */
 export function clearReadiness(): void {
   try {
