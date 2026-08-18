@@ -11,7 +11,6 @@ import process from 'node:process'
 import { resolve } from 'path'
 
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
-import { emitClassicShim } from './scripts/emit-classic-shim.mjs'
 
 /**
  * Does this command upload source maps to Sentry? (#130)
@@ -202,7 +201,6 @@ export default defineConfig(({ command }) => ({
     // once the element is near the viewport, so its graph is discovered from that import rather
     // than from a `<script>` the browser parses up front.
     flattenEntryImports('loader'),
-    emitClassicShim(),
     stripDsStore(),
     // Position in this array is NOT what orders this one: `sentryVitePlugin` returns
     // `enforce: 'pre'`, so Vite hoists it ahead of every plugin above regardless. What
@@ -232,6 +230,11 @@ export default defineConfig(({ command }) => ({
         // stable, unhashed filename: `pnpm size` measures it as its own graph, and the smoke
         // lane fetches it by name.
         loader: './src/loader/index.ts',
+        // The classic-script bridge. An ordinary entry, not a hand-written asset: it has no
+        // imports and no exports, so there is no module syntax for the build's output format to
+        // change, and being a real entry means it is typechecked, linted and minified like
+        // everything else.
+        loaderClassic: './src/loader/classic.ts',
         widget: './src/Widget.tsx',
       },
       output: {
@@ -239,6 +242,7 @@ export default defineConfig(({ command }) => ({
         // `embed.js` because it is what `auto.js` imports by name.
         entryFileNames: (assetInfo) => {
           if (assetInfo.name === 'loader') return 'auto.js'
+          if (assetInfo.name === 'loaderClassic') return 'embed.classic.js'
 
           return assetInfo.name === 'widget' ? 'embed.js' : 'assets/[name]-[hash].js'
         },
