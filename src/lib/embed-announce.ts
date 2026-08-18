@@ -21,14 +21,42 @@ import type { RoutingMode } from '@/loader/config'
 import type { EmbedFingerprint } from '@/loader/detect'
 import type { EmbedReport } from '@/loader/report'
 
-import { publishReadiness } from './readiness'
+import { clearReadiness, publishReadiness } from './readiness'
 import { errorMessage, reportIntegrationWarning } from './report'
 
 import api from '@/config/api'
-import { mountKey } from '@/loader/report'
 
 /**
- * Publish the marker and send the report.
+ * Whether this page's mount has already attested and reported.
+ *
+ * It lives here rather than in `Widget.tsx` because "one marker and one POST per page" is a
+ * wiring guarantee like the `.catch` below, and `Widget.tsx` has no spec that could hold it —
+ * a duplicate send is precisely the regression no gate would see.
+ */
+let announced = false
+
+/**
+ * Wait for the host's page to be idle.
+ *
+ * The report has no deadline — by the docblock below it feeds an admin picker — while the widget's
+ * own `clients/me`, `geojson` and `regions` reads are what the visitor is waiting for, and all four
+ * go to the same origin from the same mount. So the POST yields to them rather than competing, the
+ * same call the loader already makes before it runs detection at all (`src/loader/index.ts`).
+ *
+ * Falls back to a macrotask where `requestIdleCallback` is missing — Safari below 17, and the node
+ * lane — so awaiting this always settles.
+ */
+const whenIdle = (): Promise<void> =>
+  new Promise((resolve) => {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(() => resolve(), { timeout: 2000 })
+    } else {
+      setTimeout(resolve, 0)
+    }
+  })
+
+/**
+ * Publish the marker and send the report — **once per page**, on the first call that means it.
  *
  * **Resolves whatever happens.** This runs in a page we do not own, purely to produce a record for
  * an admin panel, so there is no failure here worth surfacing to a viewer — and an unhandled
@@ -41,10 +69,10 @@ import { mountKey } from '@/loader/report'
  * affects what the visitor sees, and the message says so, because a console error on somebody's
  * site that does not say "your widget is fine" will be read as "your widget is broken".
  *
- * The report is sent on **every** mount rather than only when the fingerprint changed. That gate
- * (#149) made `lastSeen` useless as a liveness signal: an unchanged, healthy embed would report
- * once, ever. The server suppresses an unchanged report for an hour, so the real cost is at most
- * one write per mount per hour.
+ * The report is sent on **every** page load rather than only when the fingerprint changed. That
+ * gate (#149) made `lastSeen` useless as a liveness signal: an unchanged, healthy embed would
+ * report once, ever. The server suppresses an unchanged report for an hour, so the real cost is at
+ * most one write per mount per hour.
  */
 export async function announceEmbed(args: {
   /** The URL shape the router actually uses — not the one that was configured. */
@@ -58,20 +86,42 @@ export async function announceEmbed(args: {
 
   // No loader means nothing was probed: the standalone dev entry and every Ladle story mount the
   // widget directly. A marker asserting an embed nobody measured is exactly the theatre it exists
-  // to prevent, so those surfaces publish none — and have no mount to report either.
-  if (!observed) return
+  // to prevent, so those surfaces publish none — and have no mount to report either. Deliberately
+  // ahead of the once-flag: a surface that announced nothing has not announced.
+  if (announced || !observed) return
+
+  announced = true
 
   publishReadiness({ routing, topLevel: observed.topLevel, urlWritable: observed.urlWritable })
 
   if (!report) return
 
+  await whenIdle()
+
   try {
     await api.reportEmbed(report)
   } catch (error) {
+    // The mount is rebuilt from the two fields that were sent rather than imported from
+    // `loader/report.ts`, because a single *value* import from `src/loader/` makes that module
+    // reachable from both build entries and rolldown hoists it into a chunk `auto.js` then has to
+    // fetch on every host page view — the exact regression `src/loader/literals.ts` predicts, and
+    // one `pnpm size` did not catch until this branch taught it to (scripts/check-bundle-size.mjs).
     reportIntegrationWarning(
       `could not record this embed with SahajCloud — ${errorMessage(error) ?? 'the request failed'}` +
-        ` (mount: ${mountKey(report)}). The widget itself is unaffected; this record only feeds` +
-        ' the canonical-URL picker in the Atlas admin.',
+        ` (mount: ${report.origin}${report.pathname}). The widget itself is unaffected; this` +
+        ' record only feeds the canonical-URL picker in the Atlas admin.',
     )
   }
+}
+
+/**
+ * Forget that this page announced, and take the marker down.
+ *
+ * Paired with `Widget.tsx`'s `releaseOwnership`, so the element that replaces this one attests and
+ * reports for itself rather than inheriting a claim made on another key's behalf — and so a marker
+ * cannot outlive the widget it vouches for on a host SPA that unmounted it.
+ */
+export function releaseAnnouncement(): void {
+  announced = false
+  clearReadiness()
 }

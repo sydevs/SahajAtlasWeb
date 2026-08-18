@@ -48,6 +48,11 @@ const WORDPRESS_PERMALINK_RE = /^\?p=\d+$/
  *
  * Returns `undefined` for a URL that will not parse, which the caller treats as "nothing to
  * report" — a report is a diagnostic, and no diagnostic is worth a throw in someone else's page.
+ *
+ * ⚠ **Not the same function as `hostPageUrl()` (`src/lib/report.ts`), and they must not be merged**
+ * even though both reduce a URL to origin + path in a `try`. That one builds the context on an
+ * issue report a human reads and forwards; giving it this carve-out would put a host's `?p=` into
+ * an email, and giving this one its stricter rule would re-break every WordPress mount.
  */
 export function mountParts(href: string | null | undefined): MountParts | undefined {
   try {
@@ -64,17 +69,6 @@ export function mountParts(href: string | null | undefined): MountParts | undefi
   } catch {
     return undefined
   }
-}
-
-/**
- * The key one mount is stored under, server-side.
- *
- * Takes the parts rather than a URL, mirroring SahajCloud's own `mountKey(origin, pathname)` — the
- * server rebuilds this string from the two fields it was sent, so composing it the same way is
- * what lets a console diagnostic name the mount the server is talking about.
- */
-export function mountKey({ origin, pathname }: MountParts): string {
-  return `${origin}${pathname}`
 }
 
 /** The report body, or `undefined` when the page has no reportable mount. */

@@ -1,5 +1,5 @@
 import type { EmbedFingerprint } from './loader/detect'
-import type { LoaderConfig, RoutingMode } from './loader/config'
+import type { LoaderConfig } from './loader/config'
 import type { EmbedReport } from './loader/report'
 import type { MountDecision } from './lib/shape'
 
@@ -14,8 +14,7 @@ import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
-import { announceEmbed } from './lib/embed-announce'
-import { clearReadiness } from './lib/readiness'
+import { announceEmbed, releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
 import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
@@ -29,28 +28,6 @@ import { queryClient } from './config/query-client'
 // until the element is near the viewport, and only then imports this module and calls `boot`.
 // A host therefore pays ~3 KiB up front instead of the whole widget, and nothing here runs on a
 // page whose embed is never scrolled to. Demo in: demo.html
-
-/** Whether this page's mount has already attested and reported. Released with ownership. */
-let announced = false
-
-/**
- * Attest that the widget booted, and tell SahajCloud what it found (#153).
- *
- * This function is only the *when* — `lib/embed-announce.ts` is the what, and says why it is a
- * module of its own. **Both halves wait for a real mount, and that is the entire point of the
- * marker.** The verifier loads a host page through Cloudflare Browser Rendering and treats
- * `data-sahaj-atlas-ready` as evidence the embed works, so publishing it on script load — or from
- * `boot()`, before React has committed anything — would attest to a page whose widget may never
- * have rendered. So the caller is a mount effect, and the theme root is checked as well: a ref set
- * at commit time is the cheapest proof that DOM of ours actually exists.
- */
-function announceMount(routing: RoutingMode, mounted: boolean): void {
-  if (announced || !mounted || !embed.observed) return
-
-  announced = true
-
-  void announceEmbed({ routing, observed: embed.observed, report: embed.report })
-}
 
 /**
  * The custom element's React root. Nothing renders above this, which is why the outermost
@@ -135,24 +112,31 @@ function Atlas() {
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale, t } = useLocale()
 
-  // Attest + report, once the widget is genuinely on the page. `announceMount` explains why both
-  // wait for a mount rather than riding along with `boot()`.
+  // Attest that the widget booted, and tell SahajCloud what it found (#153).
   //
-  // The routing published is the shape the router ACTUALLY uses, read off the decision above
-  // rather than off `config.routing` — which is the shape somebody *asked* for, and `routing=path`
-  // is currently accepted without being honoured (the warning two dozen lines up says so). A
-  // marker is the verifier's evidence, so it must not carry a request as a finding. Memory is a
-  // degradation of the query shape rather than a third shape — `urlWritable: false` is what says
-  // the route never reached the URL — and when a real path mode arrives this maps it through
-  // untouched.
-  const routerMode = mount.current.mode
-  const attested: RoutingMode = routerMode === 'memory' ? 'query' : routerMode
+  // **This waits for a mount, and that is the entire point of the marker.** The verifier loads a
+  // host page through Cloudflare Browser Rendering and treats `data-sahaj-atlas-ready` as evidence
+  // the embed works, so publishing it on script load — or from `boot()`, before React has committed
+  // anything — would attest to a page whose widget may never have rendered. Hence an effect, which
+  // runs after the commit, plus the theme-root ref: `AtlasRouter` can render `null`, and a ref set
+  // at commit time is the cheapest proof that DOM of ours actually exists.
+  //
+  // The routing attested is `mount.current.routing`, the shape the router ACTUALLY uses — not
+  // `config.routing`, which is the shape somebody asked for. `mountDecision` owns that difference
+  // and is where a real path mode will land; a marker carrying a request rather than a finding is
+  // worth nothing to the verifier reading it.
+  //
+  // Everything else — announce-once, the release, the never-throw — belongs to `announceEmbed`,
+  // which unlike this file has a spec that can hold it.
+  const attested = mount.current.routing
 
   useEffect(() => {
-    announceMount(attested, Boolean(themeRootRef.current))
+    if (!themeRootRef.current) return
 
-    // Not a cleanup that pairs with the effect: a marker torn down on every re-render would flap.
-    // This releases with page-global ownership instead — see `releaseOwnership`.
+    void announceEmbed({ routing: attested, observed: embed.observed, report: embed.report })
+
+    // No cleanup pairing with this effect: a marker torn down per re-render would flap. It is
+    // released with page-global ownership instead — see `releaseOwnership`.
   }, [attested])
 
   // Map mode always fills the viewport, whatever slot the host gave us — a REQUIREMENT rather
@@ -292,12 +276,10 @@ function releaseOwnership() {
   atlasAuth.apiKey = null
   queryClient.clear()
 
-  // The marker is page-global state like the rest of this, and it is an attestation: a host SPA
-  // that unmounted the widget on a route change would otherwise leave one standing over a page
-  // with no embed on it. `announced` goes with it, so the element that replaces this one attests
-  // and reports for itself rather than inheriting a claim made on another key's behalf.
-  announced = false
-  clearReadiness()
+  // The attestation is page-global state like the rest of this: a host SPA that unmounted the
+  // widget would otherwise leave a marker standing over a page with no embed on it. One call, like
+  // its two neighbours — the flag and the marker are `announceEmbed`'s to release, not ours to poke.
+  releaseAnnouncement()
 }
 
 class SahajAtlasElement extends AtlasElementBase {

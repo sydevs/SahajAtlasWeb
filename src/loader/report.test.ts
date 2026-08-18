@@ -3,7 +3,7 @@ import type { DetectionSignals } from './detect'
 import { describe, expect, it } from 'vitest'
 
 import { fingerprint } from './detect'
-import { buildReport, mountKey, mountParts } from './report'
+import { buildReport, mountParts } from './report'
 
 const observed = fingerprint({ topLevel: true, urlWritable: true, paramPersisted: true }, 'query')
 
@@ -39,14 +39,6 @@ describe('mountParts', () => {
     ['https://host.example/page?q=meditation+near+me', '/page'],
   ])('strips the query and fragment from %s', (href, pathname) => {
     expect(mountParts(href)?.pathname).toBe(pathname)
-  })
-
-  it('never yields a path containing a fragment or a foreign parameter', () => {
-    const parts = mountParts('https://host.example/a/b?secret=1#tok')
-
-    expect(parts?.pathname).not.toContain('#')
-    expect(parts?.pathname).not.toContain('secret')
-    expect(parts?.pathname).not.toContain('tok')
   })
 
   /**
@@ -97,16 +89,6 @@ describe('mountParts', () => {
   // anybody could point a canonical at.
   it('refuses an opaque origin', () => {
     expect(mountParts('null')).toBeUndefined()
-  })
-})
-
-describe('mountKey', () => {
-  // The server rebuilds the storage key from the two fields it was sent, so composing it the same
-  // way is what lets a console diagnostic name the mount the server is talking about.
-  it('rejoins the parts the way the server stores them', () => {
-    expect(mountKey({ origin: 'https://site.com', pathname: '/?p=123' })).toBe(
-      'https://site.com/?p=123',
-    )
   })
 })
 

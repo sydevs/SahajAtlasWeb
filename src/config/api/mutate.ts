@@ -206,15 +206,13 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
   return ContactResponseSchema.parse(response)
 }
 
-// Confirmation returned by `POST /api/clients/report` (EmbedReportResponse). `mount` is the
-// `origin + pathname` key the server filed this report under — it rebuilds it from the two fields
-// it was sent, so reading it back is how a diagnostic can name the record rather than the request.
-// `stored: false` is a success: the server already held this observation and suppressed the write.
-const EmbedReportResponseSchema = z.object({
-  ok: z.literal(true),
-  mount: z.string(),
-  stored: z.boolean(),
-})
+// Confirmation returned by `POST /api/clients/report` (EmbedReportResponse). `ok` is the whole
+// receipt, exactly as for `contactAdmin`: the endpoint also returns the `mount` key it filed under
+// and `stored: false` when it suppressed an unchanged report within the hour, but nothing here
+// consumes either — so they are deliberately NOT in the schema. Pinning a field we never read
+// would turn a harmless rename on the CMS side into a "could not record this embed" warning on
+// every host's console, which is a worse failure than the drift it would be detecting.
+const EmbedReportResponseSchema = z.object({ ok: z.literal(true) })
 
 export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
 
@@ -222,15 +220,14 @@ export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
  * Tell SahajCloud what this embed looks like from the inside — `POST /api/clients/report`
  * (sydevs/SahajCloud#633, issue #153).
  *
- * Called once per mount from `Widget.tsx`, never from a component and never through React Query:
- * it is not data anything renders, it takes no part in a cache, and a retry would be a second
- * write of a record the server already collapses by the hour.
+ * Called once per page from `lib/embed-announce.ts`, never from a component and never through
+ * React Query: it is not data anything renders, it takes no part in a cache, and a retry would be
+ * a second write of a record the server already collapses by the hour.
  *
- * **Every field of the report goes over the wire, including `canonicalViable`, which the endpoint
- * does not model** — its Zod schema strips unknown keys. That is deliberate rather than sloppy:
- * the payload is the observation entire, and the two halves that could carry anything of the
- * host's are `origin` and `pathname`, already reduced by `mountParts` before they reach here. The
- * rest are booleans this build computed about itself.
+ * The report goes over the wire whole, `canonicalViable` included — the endpoint's Zod schema
+ * strips what it does not model. The only two fields that could carry anything of the host's are
+ * `origin` and `pathname`, already reduced by `mountParts` before they reach here; the rest are
+ * booleans this build computed about itself.
  *
  * Throws on any non-2xx, `403` (an origin outside the client's allowlist, or no allowlist at all)
  * and `429` (the mount cap) included. There is nothing here for a caller to recover, so the

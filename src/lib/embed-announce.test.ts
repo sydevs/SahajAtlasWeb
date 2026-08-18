@@ -2,7 +2,7 @@ import type { EmbedFingerprint } from '@/loader/detect'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { announceEmbed } from './embed-announce'
+import { announceEmbed, releaseAnnouncement } from './embed-announce'
 import { READY_ATTR } from './readiness'
 
 import { fingerprint } from '@/loader/detect'
@@ -58,6 +58,9 @@ function stubDocument() {
 
 beforeEach(() => {
   sdk.request.mockReset()
+  // The once-flag is module state, so every case starts from a page that has not announced.
+  stubDocument()
+  releaseAnnouncement()
 })
 
 afterEach(() => {
@@ -189,5 +192,49 @@ describe('announceEmbed', () => {
 
     expect(attributes.has(READY_ATTR)).toBe(true)
     expect(sdk.request).not.toHaveBeenCalled()
+  })
+
+  /**
+   * One marker and one POST per page. The widget's mount effect can run again — a locale change
+   * re-renders `Atlas`, and a page builder moving the element remounts it outright — and a
+   * duplicate send is a regression nothing else would catch, which is why the flag lives in this
+   * module rather than in `Widget.tsx`, where no spec could reach it.
+   */
+  it('announces once, however many times it is called', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed, report })
+    await announceEmbed({ routing: 'query', observed, report })
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+  })
+
+  // A surface that announced nothing has not announced: the flag must not be spent by a Ladle
+  // story or the dev entry, or the first real mount after one would stay silent.
+  it('is not spent by a surface with nothing to announce', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    await announceEmbed({ routing: 'query', observed: null, report: null })
+    await announceEmbed({ routing: 'query', observed, report })
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+  })
+
+  it('lets the next element announce for itself once ownership is released', async () => {
+    const attributes = stubDocument()
+
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    await announceEmbed({ routing: 'query', observed, report })
+    releaseAnnouncement()
+
+    // The marker cannot outlive the widget it vouches for.
+    expect(attributes.has(READY_ATTR)).toBe(false)
+
+    await announceEmbed({ routing: 'query', observed, report })
+
+    expect(sdk.request).toHaveBeenCalledTimes(2)
+    expect(attributes.has(READY_ATTR)).toBe(true)
   })
 })
