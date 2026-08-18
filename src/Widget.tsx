@@ -6,7 +6,6 @@ import type { MountDecision } from './lib/shape'
 import r2wc from '@r2wc/react-to-web-component'
 import { useEffect, useRef } from 'react'
 
-import api from './config/api'
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
 import atlasAuth from './config/api/auth'
@@ -15,9 +14,9 @@ import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
-import { clearReadiness, publishReadiness } from './lib/readiness'
-import { errorMessage, reportIntegrationWarning } from './lib/report'
-import { mountKey } from './loader/report'
+import { announceEmbed } from './lib/embed-announce'
+import { clearReadiness } from './lib/readiness'
+import { reportIntegrationWarning } from './lib/report'
 import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { mountDecision } from './lib/shape'
@@ -37,49 +36,20 @@ let announced = false
 /**
  * Attest that the widget booted, and tell SahajCloud what it found (#153).
  *
- * **Both halves wait for a real mount, and that is the entire point of the marker.** The verifier
- * loads a host page through Cloudflare Browser Rendering and treats `data-sahaj-atlas-ready` as
- * evidence the embed works, so publishing it on script load — or from `boot()`, before React has
- * committed anything — would attest to a page whose widget may never have rendered. The one caller
- * is a mount effect, and the theme root is checked as well: a ref set at commit time is the
- * cheapest proof that DOM of ours actually exists.
- *
- * **The report goes on every mount, not only when something changed** (#149 gated it on differing
- * from `/clients/me`). That gate made `lastSeen` useless as a liveness signal — a healthy,
- * unchanged embed would report once, ever, and the admin panel would show "last seen 8 months ago"
- * for a working site. The server already collapses an unchanged report into no write at all for an
- * hour, so the ceiling is one write per mount per hour, and dropping the gate also takes a round
- * trip off the load path.
- *
- * **Nothing here is allowed to fail loudly.** It runs inside a page we do not own, purely to
- * produce a record: a 403 (an origin outside the client's allowlist, or no allowlist configured at
- * all) and a 429 (the 50-mount cap) both describe a configuration somebody has to fix, so they are
- * worth saying out loud — through the console, which is where every other host-integration mistake
- * this file reports already goes.
+ * This function is only the *when* — `lib/embed-announce.ts` is the what, and says why it is a
+ * module of its own. **Both halves wait for a real mount, and that is the entire point of the
+ * marker.** The verifier loads a host page through Cloudflare Browser Rendering and treats
+ * `data-sahaj-atlas-ready` as evidence the embed works, so publishing it on script load — or from
+ * `boot()`, before React has committed anything — would attest to a page whose widget may never
+ * have rendered. So the caller is a mount effect, and the theme root is checked as well: a ref set
+ * at commit time is the cheapest proof that DOM of ours actually exists.
  */
 function announceMount(routing: RoutingMode, mounted: boolean): void {
-  if (announced || !mounted) return
-
-  const { observed, report } = embed
-
-  // No loader means nothing was probed: the standalone dev entry and every Ladle story mount this
-  // component directly. A marker asserting an embed nobody measured is exactly the theatre the
-  // marker exists to prevent, so those surfaces publish none.
-  if (!observed) return
+  if (announced || !mounted || !embed.observed) return
 
   announced = true
 
-  publishReadiness({ routing, topLevel: observed.topLevel, urlWritable: observed.urlWritable })
-
-  if (!report) return
-
-  void api.reportEmbed(report).catch((error: unknown) => {
-    reportIntegrationWarning(
-      `could not record this embed with SahajCloud — ${errorMessage(error)} ` +
-        `(mount: ${mountKey(report)}). The widget is unaffected; this only feeds the ` +
-        'canonical-URL picker in the Atlas admin.',
-    )
-  })
+  void announceEmbed({ routing, observed: embed.observed, report: embed.report })
 }
 
 /**

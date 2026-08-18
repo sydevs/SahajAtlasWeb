@@ -202,3 +202,51 @@ describe('contactAdmin', () => {
     await expect(mutate.contactAdmin(report)).rejects.not.toBeInstanceOf(ContactRefusedError)
   })
 })
+
+describe('reportEmbed', () => {
+  const embedReport = {
+    origin: 'https://sahajayoga.nl',
+    pathname: '/lessons',
+    mode: 'inline',
+    routing: 'query',
+    topLevel: true,
+    urlWritable: true,
+    paramPersisted: true,
+    canonicalViable: true,
+  } as const
+
+  it('posts the observation and parses the confirmation', async () => {
+    sdk.request.mockResolvedValue(
+      jsonResponse({ ok: true, mount: 'https://sahajayoga.nl/lessons', stored: true }),
+    )
+
+    await expect(mutate.reportEmbed(embedReport)).resolves.toEqual({
+      ok: true,
+      mount: 'https://sahajayoga.nl/lessons',
+      stored: true,
+    })
+    expect(sdk.request).toHaveBeenCalledWith({
+      method: 'POST',
+      path: '/clients/report',
+      json: embedReport,
+    })
+  })
+
+  // The endpoint's schema strips it; we send it anyway, because the payload is the observation
+  // entire and `canonicalViable` is the widget's own summary of the three fields beside it.
+  it('sends the whole observation, including the field the endpoint does not model', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    await mutate.reportEmbed(embedReport)
+
+    expect(sdk.request.mock.calls[0][0].json).toHaveProperty('canonicalViable')
+  })
+
+  // Same rule as every other mutation here: the parse sits outside the request's try, so a shape
+  // change surfaces as a ZodError rather than being re-cast as something the server said.
+  it('rejects a confirmation that is not the contract', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x' }))
+
+    await expect(mutate.reportEmbed(embedReport)).rejects.toBeInstanceOf(z.ZodError)
+  })
+})
