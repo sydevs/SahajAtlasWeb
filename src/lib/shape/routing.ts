@@ -44,6 +44,17 @@ export type MountDecision = {
   mode: RouterMode
   /** The route to boot at. */
   path: string
+  /**
+   * The URL shape actually in effect — what an observer of this page would *find*, as opposed to
+   * the `routing` parameter, which is what somebody asked for (#153).
+   *
+   * The two differ, and this is the only place that knows it: `routing=path` is accepted here and
+   * not honoured, so a widget configured for it query-routes anyway. The readiness marker attests
+   * this value, and a marker carrying a request rather than a finding is worth nothing to the
+   * verifier reading it. Memory is a degradation of the query shape rather than a third shape —
+   * the route is not in the URL at all, which the marker says through `urlWritable` instead.
+   */
+  routing: 'query' | 'path'
   /** Set when the requested mode could not be honoured, for the caller to report. */
   warning?: string
 }
@@ -117,9 +128,15 @@ export function mountDecision(input: {
   // link, and the embed's default is only ever an answer to "nobody asked for anything".
   const path = routeFromParam(search) ?? route ?? '/'
 
-  if (urlWritable === false) return { mode: 'memory', path, warning }
+  // Constant while `path` is accepted-but-not-honoured, and deliberately stated here rather than
+  // at the two places that consume it. The warning above and this field are the same fact said
+  // twice — one to the host, one to the verifier — so when path routing does arrive, it arrives
+  // in this function and both follow.
+  const effective = 'query' as const
 
-  return { mode: 'query', path, warning }
+  if (urlWritable === false) return { mode: 'memory', path, routing: effective, warning }
+
+  return { mode: 'query', path, routing: effective, warning }
 }
 
 /**

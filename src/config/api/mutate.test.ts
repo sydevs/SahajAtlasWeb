@@ -202,3 +202,47 @@ describe('contactAdmin', () => {
     await expect(mutate.contactAdmin(report)).rejects.not.toBeInstanceOf(ContactRefusedError)
   })
 })
+
+describe('reportEmbed', () => {
+  const embedReport = {
+    origin: 'https://sahajayoga.nl',
+    pathname: '/lessons',
+    mode: 'inline',
+    routing: 'query',
+    topLevel: true,
+    urlWritable: true,
+    paramPersisted: true,
+    canonicalViable: true,
+  } as const
+
+  it('posts the observation and parses the confirmation', async () => {
+    sdk.request.mockResolvedValue(
+      jsonResponse({ ok: true, mount: 'https://sahajayoga.nl/lessons', stored: true }),
+    )
+
+    await expect(mutate.reportEmbed(embedReport)).resolves.toMatchObject({ ok: true })
+    expect(sdk.request).toHaveBeenCalledWith({
+      method: 'POST',
+      path: '/clients/report',
+      json: embedReport,
+    })
+  })
+
+  /**
+   * `ok` is the whole receipt. The endpoint also returns `mount` and `stored`, and neither is in
+   * the schema on purpose — nothing consumes them, so pinning them would turn a harmless rename
+   * on the CMS side into a console warning on every host page. What must still fail is a response
+   * that does not say the report was accepted.
+   */
+  it('accepts the receipt while ignoring the fields nothing reads', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'renamed-away' }))
+
+    await expect(mutate.reportEmbed(embedReport)).resolves.toMatchObject({ ok: true })
+  })
+
+  it('rejects a response that does not confirm the write', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: false }))
+
+    await expect(mutate.reportEmbed(embedReport)).rejects.toBeInstanceOf(z.ZodError)
+  })
+})

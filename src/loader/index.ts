@@ -32,7 +32,6 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { buildReport } from './report'
 import { ELEMENT_NAME, safeLoaderPath } from './literals'
 
 /** Console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
@@ -252,17 +251,18 @@ export function start(script: HTMLScriptElement | null): void {
       // Detection runs on idle rather than here: `paramPersisted` is only meaningful once the
       // host's own router has had a turn, and a host SPA that rewrites the URL during boot would
       // otherwise be measured mid-flight.
-      const report = () => {
-        const observed = detect(config)
-        const payload = buildReport(observed, window.location.href)
-
-        boot(config, observed, payload)
-      }
+      //
+      // **What is handed over is the observation and nothing else.** The loader used to compose a
+      // report here too — the observation joined to the page's URL — which meant capturing the URL
+      // at this moment and carrying it, on the boot singleton, until the widget mounted and sent
+      // it. The mount is now read by the send site itself (`lib/mount.ts`), so the loader has no
+      // business with the host's URL at all and there is one observation rather than two copies.
+      const observe = () => boot(config, detect(config))
 
       if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(report, { timeout: 2000 })
+        requestIdleCallback(observe, { timeout: 2000 })
       } else {
-        setTimeout(report, 0)
+        setTimeout(observe, 0)
       }
     })
   })

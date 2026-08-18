@@ -256,6 +256,37 @@ function main() {
     process.exit(1)
   }
 
+  // The same seam, one size down — and the half that actually got through (#153). A single VALUE
+  // import from `src/` into the loader (or out of it) makes that module reachable from both
+  // entries, so rolldown factors it into a chunk BOTH `auto.js` and `embed.js` statically import.
+  // The check above cannot see it, because the chunk is not `embed.js`, and the budget cannot
+  // either, because a shared helper is a couple of hundred bytes. What the host pays is not the
+  // bytes but an extra request on the loader's critical path, on every page view, forever.
+  //
+  // This is the mechanism `src/loader/literals.ts` exists to prevent, and until now its whole
+  // enforcement was that docblock. The fix is never to import across the seam: duplicate the value
+  // into `literals.ts` and pin the copies in `src/loader/literals.test.ts`.
+  //
+  // Rolldown's own runtime helpers are exempt — they are emitted into every entry by the bundler
+  // itself and are not ours to deduplicate. If rolldown renames them this will fire on them, which
+  // reads as a false positive but is a real signal that the exemption needs its new names.
+  const BUNDLER_HELPER = /^(preload-helper|rolldown-runtime)-/
+  const shared = loaderGraph.filter(
+    (file) => embedGraph.includes(file) && !BUNDLER_HELPER.test(basename(file)),
+  )
+
+  if (shared.length) {
+    annotate(
+      'error',
+      `auto.js and embed.js share ${shared.length} chunk(s) — ${shared.map((f) => basename(f)).join(', ')}. ` +
+        'A value import across the loader/widget seam puts a chunk in both graphs, so every host ' +
+        'fetches it up front whether or not the widget ever renders. Duplicate the value into ' +
+        'src/loader/literals.ts and pin it in literals.test.ts instead — or, if rolldown has ' +
+        'renamed its runtime helpers, add the new name to BUNDLER_HELPER here.',
+    )
+    process.exit(1)
+  }
+
   // The walkers are regexes over minified output, so their silent failure mode
   // is finding NOTHING and scoring a payload of one small entry file — an
   // under-budget pass that means the opposite of what it says. A real graph is

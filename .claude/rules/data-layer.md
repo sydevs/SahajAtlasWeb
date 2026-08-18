@@ -188,7 +188,28 @@ correct for its one call site.
   resolved promise is the only thing that means delivered and the form derives its
   thank-you screen from nothing else (issue #103).
 
-**In both, the response `.parse()` sits OUTSIDE the request's `try`.** A `ZodError`'s
+- `reportEmbed` → `POST /api/clients/report` (sydevs/SahajCloud#633, issue #153) — the one
+  mutation no viewer asked for: what the widget observed about the host page it is mounted
+  on. Sent once per page from `lib/embed-announce.ts`, never from a component and never
+  through React Query — it renders nothing, caches nothing, and a retry would be a second
+  write of a record the server already collapses by the hour.
+  **Its response schema is deliberately only `{ ok: true }`.** The endpoint also returns the
+  `mount` key it filed under and `stored: false` when it suppressed an unchanged report, and
+  neither is pinned, because nothing reads them: a schema demanding a field we ignore turns a
+  harmless CMS rename into a "could not record this embed" warning on every host's console —
+  a worse failure than the drift it would be detecting. That is a narrower rule than the
+  parse-everything one above, and the difference is whether anything *renders* the answer.
+  **Its REQUEST type, `EmbedReportBody`, is declared here rather than in the loader**, and that is
+  the general rule this endpoint learned the hard way: a payload is the observation joined to the
+  thing it describes, and the join belongs at the transport. It used to be an `EmbedReport` type in
+  `src/loader/`, composed on loader idle and carried on the boot singleton beside the
+  `EmbedFingerprint` it already contained — two overlapping copies of one observation, with a URL
+  captured well before the widget mounted, handed to `requestJson` verbatim so that the wire shape
+  was whatever the domain type happened to be. Now `lib/mount.ts` reads the mount at send time and
+  `announceEmbed` spreads the two together, so adding a field to the fingerprint cannot silently
+  start sending it.
+
+**In all three, the response `.parse()` sits OUTSIDE the request's `try`.** A `ZodError`'s
 `.errors` are `{ message, code }` — precisely the shape `asRefusal` reads a refusal body
 out of — so a parse inside the catch is re-cast as a server refusal carrying a zod issue
 code, and the real cause disappears.

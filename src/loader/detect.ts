@@ -12,7 +12,7 @@
  * on this load. It never waits on the server's copy: a round trip before render would add
  * latency to every embed, and a stale stored value would produce a visibly broken widget. What
  * gets stored is evidence for a human deciding which mount is canonical — see
- * `src/loader/report.ts`.
+ * `src/lib/mount.ts`, joined to the mount at the send site.
  */
 import type { RoutingMode } from './config'
 
@@ -25,8 +25,15 @@ export type DetectionSignals = {
   paramPersisted: boolean
 }
 
-/** How the widget renders: in the host's own document, or inside a frame. */
-export type EmbedMode = 'component' | 'iframe'
+/**
+ * How the widget renders: in the host's own document, or inside a frame.
+ *
+ * **`inline` rather than the `component` this shipped as** (#153). The name is SahajCloud's —
+ * `EMBED_MODES` in its `embedMetadata.ts`, published at `/api/docs` and validating both the report
+ * body and the stored column — so the two spellings are not equal candidates: ours is the one that
+ * can change without a deployed contract moving under it.
+ */
+export type EmbedMode = 'inline' | 'iframe'
 
 export type EmbedFingerprint = DetectionSignals & {
   mode: EmbedMode
@@ -57,44 +64,24 @@ export type EmbedFingerprint = DetectionSignals & {
  * two disagreeing.
  */
 export function fingerprint(signals: DetectionSignals, routing: RoutingMode): EmbedFingerprint {
-  const mode: EmbedMode = signals.topLevel ? 'component' : 'iframe'
+  const mode: EmbedMode = signals.topLevel ? 'inline' : 'iframe'
 
   return {
     ...signals,
     mode,
     routing,
-    // `topLevel` because a frame's URL is not the indexable one, and `urlWritable` because a route
-    // we cannot write is a route nobody can link to. Under query routing the param surviving the
-    // host's router is the third requirement; under path routing that question does not apply and
-    // the remaining one is answered server-side, so this reports what the page can support rather
-    // than claiming more than it measured.
-    canonicalViable:
-      signals.topLevel && signals.urlWritable && (routing === 'path' || signals.paramPersisted),
+    // `topLevel` because a frame's URL is not the indexable one, `urlWritable` because a route we
+    // cannot write is a route nobody can link to, and `paramPersisted` because a `?atlas=` the
+    // host's router eats is a canonical that restores the wrong view.
+    //
+    // **All three are MEASUREMENTS, and that is the point.** This used to exempt `routing === 'path'`
+    // from the third — reasoning that path routing never uses the param, and that the deciding half
+    // is a server fact no client probe can see. But `routing` comes off the host's own script URL
+    // (`?routing=path`) while `mountDecision` hard-codes the effective shape to `query`, so the
+    // exemption let any host turn the one judgement in this payload on for a mount that is in fact
+    // query-routing with a parameter their router demonstrably eats — and nothing server-side could
+    // contradict it, since the endpoint stores no `canonicalViable` to cross-check. Restore the
+    // exemption in the same commit that teaches `mountDecision` to honour path routing, not before.
+    canonicalViable: signals.topLevel && signals.urlWritable && signals.paramPersisted,
   }
-}
-
-/**
- * Has anything changed since the server last heard from us?
- *
- * The loader reports only on a difference, so the steady state is zero writes and a client
- * redesigning their site self-corrects on the next visit — no cron, no revalidation schedule, and
- * no write path exercised on every page view of every embed.
- *
- * Compares only the observed fields. `lastSeen` is deliberately excluded: including it would make
- * every load a difference, which is precisely the write storm this check exists to prevent.
- */
-export function fingerprintChanged(
-  next: EmbedFingerprint,
-  previous: Partial<EmbedFingerprint> | null | undefined,
-): boolean {
-  if (!previous) return true
-
-  return (
-    next.mode !== previous.mode ||
-    next.routing !== previous.routing ||
-    next.topLevel !== previous.topLevel ||
-    next.urlWritable !== previous.urlWritable ||
-    next.paramPersisted !== previous.paramPersisted ||
-    next.canonicalViable !== previous.canonicalViable
-  )
 }

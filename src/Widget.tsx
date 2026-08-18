@@ -1,6 +1,5 @@
 import type { EmbedFingerprint } from './loader/detect'
 import type { LoaderConfig } from './loader/config'
-import type { EmbedReport } from './loader/report'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
@@ -14,6 +13,7 @@ import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
+import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
 import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
@@ -111,6 +111,19 @@ function Atlas() {
   const themeRootRef = useRef<HTMLDivElement>(null)
   const { locale: activeLocale, t } = useLocale()
 
+  // The URL shape the router ACTUALLY uses, handed down for the readiness marker to attest (#153)
+  // — not `config.routing`, which is the shape somebody asked for and which `routing=path` gets
+  // without it being honoured. `mountDecision` owns that difference and is where a real path mode
+  // will land; a marker carrying a request rather than a finding is worth nothing to the verifier
+  // reading it.
+  //
+  // **The attesting itself deliberately does NOT happen here**, even though this is where the
+  // decision is made: `AppShell` publishes it, below the app error boundary, because a boundary
+  // catches in the commit's layout phase and this component's effect would run after it — so a
+  // widget that threw on its first render would have a marker published over its own error screen,
+  // with nothing left to take it down. See the effect in `App.tsx`.
+  const attested = mount.current.routing
+
   // Map mode always fills the viewport, whatever slot the host gave us — a REQUIREMENT rather
   // than an oversight, argued in `lib/embed-slot.ts` (vaul's snap sheets are computed off the
   // window height, so containing the map is not a `fixed`→`absolute` swap). Nothing here changes
@@ -169,6 +182,7 @@ function Atlas() {
         defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}
+        routing={attested}
         themeRootRef={themeRootRef}
       />
     </div>
@@ -247,6 +261,11 @@ function releaseOwnership() {
   owner = null
   atlasAuth.apiKey = null
   queryClient.clear()
+
+  // The attestation is page-global state like the rest of this: a host SPA that unmounted the
+  // widget would otherwise leave a marker standing over a page with no embed on it. One call, like
+  // its two neighbours — the flag and the marker are `announceEmbed`'s to release, not ours to poke.
+  releaseAnnouncement()
 }
 
 class SahajAtlasElement extends AtlasElementBase {
@@ -302,12 +321,16 @@ class SahajAtlasElement extends AtlasElementBase {
  * It deliberately takes no element: defining the tag upgrades whatever is already in the
  * document, so the loader's element needs no handing over and a second parameter would only
  * invite someone to think this renders into it.
+ *
+ * **Nothing is sent from here, and nothing about the host's URL arrives here either.** Defining an
+ * element is not a mount: this can be called on a page whose element never renders, so a report
+ * filed at this point would attest to a widget that may never exist. The observation is parked on
+ * the boot singleton, and `AppShell` joins it to the page's mount and sends it once the widget has
+ * genuinely rendered — which is also why the third parameter this used to take, a pre-composed
+ * report, is gone. It carried a URL captured on loader idle, which is neither this moment nor the
+ * one that matters.
  */
-export function boot(
-  config: LoaderConfig,
-  observed: EmbedFingerprint | null = null,
-  report?: EmbedReport,
-): void {
+export function boot(config: LoaderConfig, observed: EmbedFingerprint | null = null): void {
   embed.config = config
   embed.observed = observed
 
@@ -321,9 +344,4 @@ export function boot(
   } else {
     customElements.define(ELEMENT_NAME, SahajAtlasElement)
   }
-
-  // The endpoint is a separate SahajCloud ticket. Until it exists the observation is still worth
-  // making — it drives the console diagnostics and, later, the canonical decision — so the send
-  // is the only part that waits.
-  void report
 }

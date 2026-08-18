@@ -1,5 +1,7 @@
 import type { ContactAdminErrorCode, ContactAdminRequest } from '@/types/payload/contact-types'
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
+import type { EmbedFingerprint } from '@/loader/detect'
+import type { MountParts } from '@/lib/mount'
 import type { ReportPayload } from '@/lib/report'
 import type { Registration } from '@/types'
 
@@ -205,7 +207,55 @@ const contactAdmin = async (payload: ReportPayload): Promise<ContactResponse> =>
   return ContactResponseSchema.parse(response)
 }
 
+/**
+ * `POST /api/clients/report` body — the loader's observation, flattened onto the mount it
+ * describes (#153).
+ *
+ * **This is the one place the two halves are joined, and it is deliberately a transport type.**
+ * They used to be joined in `src/loader/`, as an `EmbedReport` that was carried on the boot
+ * singleton beside the `EmbedFingerprint` it already contained — two overlapping copies of one
+ * observation, and the object was then handed to `requestJson` verbatim, so the wire shape was
+ * whatever the domain type happened to be. Naming the body here makes the flattening explicit at
+ * the call site, keeps the observation free of anything about the request, and means adding a
+ * field to `EmbedFingerprint` no longer silently sends it.
+ */
+export type EmbedReportBody = EmbedFingerprint & MountParts
+
+// Confirmation returned by `POST /api/clients/report` (EmbedReportResponse). `ok` is the whole
+// receipt, exactly as for `contactAdmin`: the endpoint also returns the `mount` key it filed under
+// and `stored: false` when it suppressed an unchanged report within the hour, but nothing here
+// consumes either — so they are deliberately NOT in the schema. Pinning a field we never read
+// would turn a harmless rename on the CMS side into a "could not record this embed" warning on
+// every host's console, which is a worse failure than the drift it would be detecting.
+const EmbedReportResponseSchema = z.object({ ok: z.literal(true) })
+
+export type EmbedReportResponse = z.infer<typeof EmbedReportResponseSchema>
+
+/**
+ * Tell SahajCloud what this embed looks like from the inside — `POST /api/clients/report`
+ * (sydevs/SahajCloud#633, issue #153).
+ *
+ * Called once per page from `lib/embed-announce.ts`, never from a component and never through
+ * React Query: it is not data anything renders, it takes no part in a cache, and a retry would be
+ * a second write of a record the server already collapses by the hour.
+ *
+ * The report goes over the wire whole, `canonicalViable` included — the endpoint's Zod schema
+ * strips what it does not model. The only two fields that could carry anything of the host's are
+ * `origin` and `pathname`, already reduced by `mountParts` before they reach here; the rest are
+ * booleans this build computed about itself.
+ *
+ * Throws on any non-2xx, `403` (an origin outside the client's allowlist, or no allowlist at all)
+ * and `429` (the mount cap) included. There is nothing here for a caller to recover, so the
+ * failure is a console diagnostic at the one call site — never an exception in the host's page.
+ */
+const reportEmbed = async (body: EmbedReportBody): Promise<EmbedReportResponse> => {
+  const response = await requestJson({ method: 'POST', path: '/clients/report', json: body })
+
+  return EmbedReportResponseSchema.parse(response)
+}
+
 export default {
   createRegistration,
   contactAdmin,
+  reportEmbed,
 }

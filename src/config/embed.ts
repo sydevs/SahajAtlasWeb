@@ -34,7 +34,16 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
 
 type EmbedBoot = {
   config: LoaderConfig
-  /** What the loader measured about this page, or `null` outside a loader-driven boot. */
+  /**
+   * What the loader measured about this page, or `null` outside a loader-driven boot.
+   *
+   * **One observation, not two.** This used to sit beside a `report` field holding the same
+   * booleans joined to the page's URL — a second copy of itself, captured on loader idle and
+   * carried until the widget mounted, which nothing kept in agreement with this one and which
+   * still named the first page after a host SPA navigated away. The mount is now read at the send
+   * site (`lib/mount.ts`) and joined to this there, so what a report *is* — an observation plus the
+   * page it describes — is stated once, as the request body it becomes.
+   */
   observed: EmbedFingerprint | null
 }
 
