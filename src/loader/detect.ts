@@ -25,8 +25,15 @@ export type DetectionSignals = {
   paramPersisted: boolean
 }
 
-/** How the widget renders: in the host's own document, or inside a frame. */
-export type EmbedMode = 'component' | 'iframe'
+/**
+ * How the widget renders: in the host's own document, or inside a frame.
+ *
+ * **`inline` rather than the `component` this shipped as** (#153). The name is SahajCloud's —
+ * `EMBED_MODES` in its `embedMetadata.ts`, published at `/api/docs` and validating both the report
+ * body and the stored column — so the two spellings are not equal candidates: ours is the one that
+ * can change without a deployed contract moving under it.
+ */
+export type EmbedMode = 'inline' | 'iframe'
 
 export type EmbedFingerprint = DetectionSignals & {
   mode: EmbedMode
@@ -57,7 +64,7 @@ export type EmbedFingerprint = DetectionSignals & {
  * two disagreeing.
  */
 export function fingerprint(signals: DetectionSignals, routing: RoutingMode): EmbedFingerprint {
-  const mode: EmbedMode = signals.topLevel ? 'component' : 'iframe'
+  const mode: EmbedMode = signals.topLevel ? 'inline' : 'iframe'
 
   return {
     ...signals,
@@ -71,30 +78,4 @@ export function fingerprint(signals: DetectionSignals, routing: RoutingMode): Em
     canonicalViable:
       signals.topLevel && signals.urlWritable && (routing === 'path' || signals.paramPersisted),
   }
-}
-
-/**
- * Has anything changed since the server last heard from us?
- *
- * The loader reports only on a difference, so the steady state is zero writes and a client
- * redesigning their site self-corrects on the next visit — no cron, no revalidation schedule, and
- * no write path exercised on every page view of every embed.
- *
- * Compares only the observed fields. `lastSeen` is deliberately excluded: including it would make
- * every load a difference, which is precisely the write storm this check exists to prevent.
- */
-export function fingerprintChanged(
-  next: EmbedFingerprint,
-  previous: Partial<EmbedFingerprint> | null | undefined,
-): boolean {
-  if (!previous) return true
-
-  return (
-    next.mode !== previous.mode ||
-    next.routing !== previous.routing ||
-    next.topLevel !== previous.topLevel ||
-    next.urlWritable !== previous.urlWritable ||
-    next.paramPersisted !== previous.paramPersisted ||
-    next.canonicalViable !== previous.canonicalViable
-  )
 }
