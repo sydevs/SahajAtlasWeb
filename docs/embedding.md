@@ -499,6 +499,10 @@ observe — parameters, origins, CSP, visible behaviour.
 
 Two consequences:
 
+**We serve both root files with `Cache-Control: public, max-age=0, must-revalidate`**, so a
+browser always asks before reusing one. That is deliberate and it is the contract: the files are
+unhashed and mutable, and they import content-hashed chunks by name.
+
 - **Don't cache `auto.js` or `embed.js` aggressively at your edge.** They import content-hashed chunks
   by name. A stale copy held by a proxy or service worker will ask for chunk filenames the
   CDN no longer serves, and those 404s kill the widget with no fallback. Let it revalidate.
