@@ -184,13 +184,45 @@ navigated.
 
 On each load the widget notes a few things about the page it is on — whether it is top-level or
 inside a frame, whether the URL can be written, and whether a query parameter survives your
-router — and sends them to us **only when they have changed since last time**. In the steady state
-that is zero requests.
+router — and sends them to `POST /api/clients/report` once the widget has actually rendered.
 
-It sends the page's **origin and path only**. Your query string and fragment are never included,
-for the same reason they are stripped from crash reports: they can carry a reset token or an email
-address. This is what tells us which of your pages can serve as the canonical atlas page for your
-region, instead of us having to ask you and then keep the answer up to date by hand.
+It sends the page's **origin and path only**, as two separate fields. Your query string and
+fragment are never included, for the same reason they are stripped from crash reports: they can
+carry a reset token or an email address. This is what tells us which of your pages can serve as the
+canonical atlas page for your region, instead of us having to ask you and then keep the answer up
+to date by hand.
+
+**One query parameter is the exception: `?p=<number>`.** WordPress sites on default permalinks
+address every page that way, so discarding it would report every post on the site as the same page
+and leave you unable to nominate one. A post id is not something your visitor typed. Anything else
+in the query is still dropped, including `?p=123&utm_source=…` — a permalink with anything
+appended is discarded whole rather than trimmed.
+
+It reports on **every load**, not only when something changed. That is what makes "last seen" mean
+anything: an embed that reported once and then went quiet is indistinguishable from one that was
+removed. Repeat reports of an unchanged page are collapsed server-side into at most one write an
+hour, so this is one small request per page view, and nothing your visitor sees depends on it.
+
+Two things can refuse it, and both are configuration rather than a fault in your page — they are
+reported to the browser console and the widget carries on working:
+
+| Console message mentions | What it means |
+| --- | --- |
+| the origin is not allowed | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
+| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting |
+
+### The readiness marker
+
+Once the widget has genuinely mounted, it sets one attribute on your page's `<html>` element:
+
+```html
+<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'>
+```
+
+It is written **after** the widget renders, never on script load, and removed again if the widget
+is unmounted. It exists so that our CMS can load your page and confirm for itself that the embed
+works before treating it as your region's canonical page — a claim the widget makes about itself is
+not evidence. Nothing on your page needs to read it, and nothing of yours is described by it.
 
 ## Sizing the element
 
@@ -318,7 +350,7 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than something the bundle pins: today production serves the Cloudflare Images CDN (`imagedelivery.net`) and any relative URL is resolved against the API origin. | images only                                                                                   |
 |                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer. Sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                  | the flag glyphs only; the lists still render                                                  |
-| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue.**                                                                                                                                                                                                           | **the widget has no data and shows an error screen**                                          |
+| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                         | **the widget has no data and shows an error screen**                                          |
 |                            | `sahajatlas.com`                              | the locale JSON, from a different origin than the script                                                                                                                                                                                               | every string renders as its raw dotted key                                                    |
 |                            | `api.mapbox.com`                              | tile/style requests and the place-search geocoder                                                                                                                                                                                                      | the map and search fail                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |
@@ -390,10 +422,14 @@ is no shadow DOM — but every selector in it is confined to the widget's own su
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a
 `.dark` theme class and your own Swiper or Mapbox instances are all left alone.
 
-Two honest exceptions, neither one styling your content:
+Three honest exceptions, none of them styling your content:
 
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while
   it is open — standard scroll-lock, reverted on close.
+- It sets one attribute, `data-sahaj-atlas-ready`, on your `<html>` element once it has
+  mounted, and removes it again if it unmounts. See
+  [the readiness marker](#the-readiness-marker) for what it is for. No styling, no classes,
+  and nothing else of yours is touched.
 - **`@font-face` is the one rule that cannot be scoped**, because it carries no selector.
   The widget registers three of them (one per character-set subset) for its self-hosted
   typeface, and they are document-global by nature. They are declared under the family
@@ -487,6 +523,12 @@ Two things a visitor can send us on purpose, both on submit and never in the bac
 **class registration** (their name, email and any organiser questions) and a **report
 about an issue** (their message, and the page they were on with its query string and
 fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the browser.
+
+One thing the widget itself sends in the background, about your page rather than your visitor:
+the **embed report** described under [what the loader reports back](#what-the-loader-reports-back)
+— your origin and path, and four booleans about how the widget is mounted. It carries nothing
+about the visitor: no IP beyond the one any HTTPS request has, no user agent, no identifier, and
+none of your query string bar a WordPress `?p=<number>`.
 
 ## Updates and caching
 

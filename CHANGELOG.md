@@ -111,12 +111,11 @@ cover everything a host would notice since the widget was first deployed.
   Put the snippet in the body, without `async` or `defer`: the loader reads its own tag to find
   both its settings and its position.
 
-- **The widget now reports what it observed about your page** — top-level or framed, whether the
-  URL can be written, whether a query parameter survives your router — and only when that has
-  changed since last time, so the steady state is no requests at all. It sends your page's
-  **origin and path only**; the query string and fragment are never included, the same rule crash
-  reports already follow. It is what lets us tell which of your pages can act as the canonical
-  atlas page for your region without asking you to keep that answer up to date by hand. ([#149])
+- **The widget now observes what kind of embed your page has** — top-level or framed, whether the
+  URL can be written, whether a query parameter survives your router. It is what lets us tell
+  which of your pages can act as the canonical atlas page for your region without asking you to
+  keep that answer up to date by hand. ([#149]) Nothing left your page for this until the
+  receiving endpoint existed; see the embed report under **Added** for what is sent, and when.
 
 - **An element removed and immediately re-added — what page builders like Elementor do when they
   rearrange a layout — no longer throws away the cached data.** Teardown now waits a moment for
@@ -136,6 +135,23 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 
 ### Added
 
+- **A readiness marker on your `<html>` element**, set once the widget has actually
+  mounted and removed again if it unmounts:
+  `data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'`.
+  It exists so the CMS can load your page and confirm for itself that the embed works
+  before treating it as your region's canonical page — what the widget claims about itself
+  is not evidence. It is written after render, never on script load, and nothing on your
+  page needs to read it. ([#156])
+- **The embed report is now actually sent**, to `POST /api/clients/report` on the API
+  origin your CSP already allows — no policy change needed. Three things a host can
+  observe. It reports on **every** load rather than only when something changed, so "last
+  seen" distinguishes a live embed from a removed one; repeat reports of an unchanged page
+  collapse server-side into at most one write an hour. It still sends your **origin and
+  path only**, with one exception: a WordPress **`?p=<number>`** permalink is preserved,
+  because discarding it reported every post on a default-permalink site as the same page.
+  Anything else in the query is still dropped, `?p=123&utm_source=…` included. And a
+  refusal — your domain missing from the service's allowed-domains list, or the 50-mount
+  cap — is a console message, never an error in your page. ([#156])
 - **This changelog**, so a host can see what changed under an embed that updates itself.
   ([#94])
 - **Opt-in crash reporting via Sentry**, behind the build-time `VITE_SENTRY_DSN`. With no
@@ -231,6 +247,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
 [#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
