@@ -1,8 +1,11 @@
 import { Event as EventSchema } from 'schema-dts'
+import { useQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import atlasAuth from '@/config/api/auth'
+import { clientQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { isOnline, lexicalToText, resolveEventDisplay } from '@/lib/shape'
 import { Event } from '@/types'
@@ -13,6 +16,10 @@ export type EventMetadataProps = {
 
 export function EventMetadata({ event }: EventMetadataProps) {
   const { locale } = useLocale()
+  // Cache-only: this renders inside the tree that already fetched the client, so the record is
+  // there. Reading it with `enabled: false` keeps a metadata block from ever becoming a fetch —
+  // the same contract `DrawerChrome` uses for the event-titles sliver.
+  const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
   const { t } = useTranslation('common')
 
   const online = isOnline(event)
@@ -47,12 +54,18 @@ export function EventMetadata({ event }: EventMetadataProps) {
       availability: `https://schema.org/${display.full ? 'SoldOut' : 'InStock'}`,
       validFrom: startDate,
     },
-    organizer: {
-      '@type': 'Organization',
-      name: 'We Meditate',
-      url: 'https://wemeditate.com',
-      logo: 'https://wemeditate.com/logo.svg',
-    },
+  }
+
+  // **Omitted entirely when the client record does not name one (#156).** It used to hardcode We
+  // Meditate on every event in the world, which was wrong twice over: it named the wrong
+  // organisation for anyone else's classes, and it put our brand in structured data a tenant
+  // publishes under their own domain. An absent optional property is better structured data than a
+  // confidently false one — and `schema.org/Event` does not require `organizer`.
+  //
+  // No URL and no logo: the client record carries neither today, and inventing one from
+  // `allowedDomains` would be a guess published as a fact.
+  if (client?.name) {
+    schema.organizer = { '@type': 'Organization', name: client.name }
   }
 
   if (online) {

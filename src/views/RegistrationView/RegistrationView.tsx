@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventSummary, FallbackPanel } from '@/components/molecules'
+import { EventFacts, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -122,7 +122,12 @@ export function RegistrationView({
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
-        <EventSummary event={event} />
+        <EventFacts
+          className="mx-auto mb-4 w-full max-w-md"
+          event={event}
+          title={event.title}
+          variant="card"
+        />
         {open && !external ? (
           <RegistrationForm
             calendar={calendarExport}

@@ -40,7 +40,7 @@
     "first_session": "Erster Termin: %{date}",
     "hosted_from": "Gastgeber aus %{city}",
     "next_session": "Nächster Termin: %{date}",
-    "on_sahaj_atlas": "auf Sahaj Atlas",
+    "view_full_details": "Alle Details ansehen",
     "online": "Online",
     "online_joining_note": "Den Meeting-Link erhalten Sie per E-Mail",
     "registration_closed": "Anmeldung geschlossen",

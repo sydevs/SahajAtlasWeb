@@ -33,6 +33,69 @@
 @import '@radix-ui/colors/red.css';
 @import '@radix-ui/colors/red-dark.css';
 
+/* ── The defensive reset: keep the HOST's CSS out of the widget (#156) ──────────────────
+   The PostCSS scoping pass (#91) stops OUR rules escaping into their page. This is the other
+   direction, which nothing covered and which has broken embeds in the field: a host's global
+   `button { … }` or `a { color: … !important }` reaches straight into our subtree.
+
+   Four things about this rule are load-bearing, and three of them are counter-intuitive.
+
+   1. **It is UNLAYERED, and must stay so.** The obvious version — put our sheet in `@layer` —
+      makes the problem WORSE: unlayered author styles outrank every author layer, so layering
+      hands the host's rules an automatic win over ours.
+   2. **`:where()` gives it zero specificity**, so it can never outrank anything of ours: a
+      Tailwind utility is (0,1,0) and a Preflight element rule is (0,0,1), both above (0,0,0). It
+      only takes effect where nothing of ours speaks — which is exactly the set a host can leak
+      into. It also has to come BEFORE our sheet, so equal-specificity ties go to us.
+   3. **`all` deliberately excludes custom properties**, so `--primary-*` and the whole brand
+      palette survive it untouched. That is a property of the `all` shorthand, not an accident.
+   4. **It is hand-written against `.sy-atlas`**, which `scripts/postcss-scope-widget.mjs` passes
+      through unmodified — so `pnpm assert:css` keeps working with no change to the pass.
+
+   ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further. The
+   measured table in `.claude/rules/components.md` shows both re-parent `position: fixed`
+   descendants to the host element — which would break the map canvas, every drawer, the peek
+   strips and the settings cog. `container-type` does not; `contain` and `transform` do.
+
+   **What this does NOT stop, measured rather than assumed: a host rule carrying `!important`.**
+   An important author declaration beats a non-important one whatever its specificity, so
+   `div { font-family: … !important }` on the host page still reaches our copy. The only defence
+   would be `all: revert !important`, which would equally beat every rule of OURS and leave the
+   widget unstyled — strictly worse than the problem. A real boundary against `!important` needs
+   shadow DOM, which is why that evaluation is a ticket rather than a maybe. Verified in a browser
+   both ways: without `!important` the host's `button`, `a`, `div`, `letter-spacing` and
+   `line-height` rules are fully blocked; with it they are not.
+
+   **Cost, measured:** a forced style recalc over 3,200 nodes inside the scope took ~2× one
+   outside it (41ms vs 20ms across five recalcs, Chrome 151). Full recalcs are rare — a theme
+   toggle, not a scroll — and the results list is bounded by `MAX_REVEAL`, so this is priced and
+   accepted rather than unknown. Re-measure if that ceiling ever rises. */
+:where(.sy-atlas),
+:where(.sy-atlas) :where(*) {
+  all: revert;
+}
+
+/* The second half, and it is not optional: `all: revert` rolls each element back to the UA
+   default, but INHERITED properties still cross the boundary from the host element the scope root
+   sits inside, so a host's `font-family`, `color` or `letter-spacing` still reaches every line of
+   our copy. Restating them is what makes the widget the root of its own world.
+
+   ⚠ **Unlayered, and it has to be** — this is the `@layer` trap above, aimed at ourselves. Written
+   inside `@layer base` (where it started) it lost to the unlayered reset directly above it, and
+   the widget rendered in the host's font with the host's letter-spacing. Verified in a browser;
+   the symptom is subtle enough to ship unnoticed.
+
+   Specificity (0,1,0) rather than `:where()`, so it beats the reset but still loses to every
+   Tailwind utility — a component that sets its own `text-*` or `font-*` keeps winning. */
+.sy-atlas {
+  color: hsl(var(--foreground));
+  font-family: var(--sy-font-sans, 'Atlas Raleway', ui-sans-serif, system-ui, sans-serif);
+  letter-spacing: normal;
+  text-align: start;
+  text-transform: none;
+  word-spacing: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -170,6 +233,10 @@
      line-height into every line of our copy. Restate the intended value; the widget
      is the root of its own world. (`body { margin: 0 }` collapses the same way and is
      harmless: the wrapper is `display: contents` and has no box to give a margin to.) */
+  /* `line-height` restated because Preflight sets it on `html` and then `inherit` on `body`, and
+     inside the widget both of those ARE the theme root — so the second lands on the same element
+     as the first and inherits the HOST's value. The rest of the inherited baseline is NOT here;
+     it sits unlayered beside the reset, for the reason given there. */
   .sy-atlas {
     line-height: 1.5;
   }

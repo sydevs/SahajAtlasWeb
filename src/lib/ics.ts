@@ -317,10 +317,16 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Sahaj Atlas//Events//EN',
+    // Identifies the software that produced the file, so it is deliberately NOT the tenant's
+    // name — a per-client PRODID would be a claim about who generated the calendar, which is
+    // not the same question as whose classes it lists.
+    'PRODID:-//SY Developers//Atlas//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
+    // ⚠ NOT tenant-named and NOT to be changed. This is the calendar's dedupe key: a client
+    // that re-exports an event must update the entry they already have, and a changed UID makes
+    // it a second one instead. The domain is an opaque namespace here, not a link.
     `UID:event-${input.id}@atlas.sydevelopers.com`,
     `DTSTAMP:${utcStamp(DateTime.fromJSDate(options.now ?? new Date()))}`,
     `SUMMARY:${escapeText(input.title)}`,

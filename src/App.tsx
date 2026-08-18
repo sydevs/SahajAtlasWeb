@@ -58,7 +58,7 @@ const PreviewController = lazy(() =>
 function RootFallback() {
   return (
     <div role="alert" style={{ padding: '1.5rem', fontSize: '0.875rem', textAlign: 'center' }}>
-      Sahaj Atlas could not be loaded. Please reload the page.
+      This content could not be loaded. Please reload the page.
     </div>
   )
 }

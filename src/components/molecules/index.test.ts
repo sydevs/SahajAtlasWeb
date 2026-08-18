@@ -41,7 +41,7 @@ describe('molecules barrel', () => {
   // nothing, every assertion above would pass for the wrong reason.
   it('still exports the molecules the eager views do use', () => {
     expect(Object.keys(molecules)).toEqual(
-      expect.arrayContaining(['FallbackPanel', 'EventSummary', 'ListToolbar']),
+      expect.arrayContaining(['FallbackPanel', 'EventFacts', 'ListToolbar']),
     )
   })
 })

@@ -48,12 +48,12 @@ request it makes to somebody other than you and SahajCloud, and every key it sto
 inside a `try`/`catch` so a sandboxed iframe or a privacy mode that refuses storage
 degrades the setting rather than breaking the widget, and two written by Mapbox GL:
 
-| Key                                     | Store            | Holds                                                 | Lifetime            |
-| --------------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
-| `theme`                                 | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
-| `sahajAtlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
-| `mapbox.eventData:<token>`              | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
-| `mapbox.eventData.uuid:<token>`         | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
+| Key                                | Store            | Holds                                                 | Lifetime            |
+| ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
+| `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
+| `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
+| `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
+| `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
 
 Two caveats worth knowing about that table. The `theme` key is **not namespaced**: if
 your page stores its own `theme` preference under that name, the widget will read and

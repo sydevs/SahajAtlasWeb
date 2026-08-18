@@ -23,6 +23,38 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The widget no longer names itself anywhere a visitor can see.** ([#156]) The accessible name of
+  the embed's landmark, the "on Sahaj Atlas" link on the share and registration cards, the
+  app-level error title, the calendar file's `PRODID` and the typeface's family name are all
+  neutral now, across all ten locales. The atlas reads as your events feature, not as a product
+  inside your page.
+
+  The event-details card on the share and registration drawers **no longer carries an outbound
+  link** to the event's own atlas page. It was never correct — and once canonical URLs point at the
+  owning site it would have become a link from your page back to your page.
+
+- **Your CSS can no longer reach into the widget** — with one documented exception. ([#156]) A
+  global `button { … }`, `a { color: … }`, `letter-spacing` or `font-family` on your page used to
+  restyle the widget's insides; it now stops at the boundary. **A rule carrying `!important` still
+  gets through**, because outranking it would mean using `!important` ourselves and beating our own
+  styles too — see the note in the integrator guide.
+
+- **You can set the widget's typeface** to one your page already loads, with the `--sy-font-sans`
+  custom property. No extra request, no CSP change; unset, it uses the self-hosted face as before.
+
+### Fixed
+
+- **The `theme` storage key is namespaced.** ([#156]) It was the bare string `theme`, so a page
+  storing its own light/dark preference under that name had it read and overwritten by the widget —
+  a collision the integrator guide has admitted for months. It is now `atlas.theme`, and the old key
+  is read once (never written) so nobody loses a choice they already made.
+  `sahajAtlas.geolocationPromptDismissed` becomes `atlas.geolocationPromptDismissed` at the same time.
+
+- **Structured data no longer credits the wrong organisation.** ([#156]) The `schema.org/Event`
+  JSON-LD hardcoded "We Meditate" as the organizer of every event in the world. It now takes the
+  name from your client record, and **omits the field entirely** when there isn't one — an absent
+  optional property being better structured data than a confidently false one.
+
 - **The widget's route is now a query parameter on your own page's URL, not a fragment.** ([#154])
 
   ```
@@ -232,6 +264,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
+[#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156
 [#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
 [#94]: https://github.com/sydevs/SahajAtlasWeb/issues/94
