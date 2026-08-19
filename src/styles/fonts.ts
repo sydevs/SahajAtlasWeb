@@ -47,7 +47,7 @@ import latin from '@fontsource-variable/raleway/files/raleway-latin-wght-normal.
  * dropped. NORMAL ONLY: italic would double the download for the one `<em>` a CMS
  * author can put in an event description, so those render as synthetic oblique.
  *
- * The family is 'Sahaj Raleway', not 'Raleway', because @font-face is document-global
+ * The family is 'Atlas Raleway', not 'Raleway', because @font-face is document-global
  * and ours is registered last: the plain name would override the face on a host page
  * that self-hosts Raleway itself. `fontFamily.sans` in tailwind.config.js matches.
  * Unicode ranges are Google's own subset definitions, copied from the package's
@@ -60,7 +60,7 @@ import latin from '@fontsource-variable/raleway/files/raleway-latin-wght-normal.
  * we don't control and so can't inherit ours. A renamed family that one of those misses
  * fails silently: the text just falls back to the system sans.
  */
-export const FONT_FAMILY = 'Sahaj Raleway'
+export const FONT_FAMILY = 'Atlas Raleway'
 
 const SUBSETS = [
   {

@@ -317,11 +317,27 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Sahaj Atlas//Events//EN',
+    // Identifies the software that produced the file, so it is deliberately NOT the tenant's
+    // name — a per-client PRODID would be a claim about who generated the calendar, which is
+    // not the same question as whose classes it lists.
+    'PRODID:-//SY Developers//Atlas//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:event-${input.id}@atlas.sydevelopers.com`,
+    // The calendar's dedupe key, namespaced to the CMS the id comes from.
+    //
+    // ⚠ **It must stay tenant-INDEPENDENT, and that is a stronger rule than it looks.** The same
+    // class can be exported from several client embeds — a visitor might reach it from the
+    // national site and again from a city one — and those have to land in a calendar as ONE entry.
+    // Deriving any part of this from the client would turn each embed into a separate event in
+    // somebody's calendar for the same class.
+    //
+    // The host part is an opaque namespace, not a link, so it is pinned to `cloud.sydevelopers.com`
+    // — where the id actually comes from — rather than to whichever origin happens to be serving
+    // the widget. That origin is being consolidated (#148) and the canonical is moving to
+    // per-owner domains (#156 programme), and neither should be able to change an identifier whose
+    // whole job is to stay the same.
+    `UID:event-${input.id}@cloud.sydevelopers.com`,
     `DTSTAMP:${utcStamp(DateTime.fromJSDate(options.now ?? new Date()))}`,
     `SUMMARY:${escapeText(input.title)}`,
     `DTSTART;TZID=${zone}:${localStamp(start)}`,

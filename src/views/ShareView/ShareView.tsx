@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventSummary, FallbackPanel } from '@/components/molecules'
+import { EventFacts, FallbackPanel } from '@/components/molecules'
 // Leaf path, not the barrel: ShareContent owns react-share, and the barrel is imported by
 // eager views — so a re-export there is enough to keep it in the eager graph even though
 // this view is lazy (issue #96). Same reason EventDetails reaches EventActions this way.
@@ -36,7 +36,12 @@ export function ShareView({ eventPath }: { eventPath: string }) {
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
-        <EventSummary event={event} />
+        <EventFacts
+          className="mx-auto mb-4 w-full max-w-md"
+          event={event}
+          title={event.title}
+          variant="card"
+        />
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="mx-auto w-full max-w-md">
           {url ? (

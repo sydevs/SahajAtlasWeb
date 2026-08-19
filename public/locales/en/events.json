@@ -40,7 +40,7 @@
     "first_session": "First session: %{date}",
     "hosted_from": "Hosted from %{city}",
     "next_session": "Next session: %{date}",
-    "on_sahaj_atlas": "on Sahaj Atlas",
+    "view_full_details": "See full details",
     "online": "Online",
     "online_joining_note": "Meeting link will be sent to you by email",
     "registration_closed": "Registration closed",

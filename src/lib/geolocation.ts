@@ -8,7 +8,7 @@ import { distanceKm } from './geo'
 
 // One session-scoped flag: dismissing the suggestion (× or clicking through) hides
 // it for the rest of the browser session; it reappears on a fresh visit.
-export const GEOLOCATION_DISMISS_KEY = 'sahajAtlas.geolocationPromptDismissed'
+export const GEOLOCATION_DISMISS_KEY = 'atlas.geolocationPromptDismissed'
 
 // Only suggest when a located class is within this radius (km) of the guess — a
 // tight "genuinely near" bound so the prompt never leads to an empty search.

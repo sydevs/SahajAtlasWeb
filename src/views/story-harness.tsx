@@ -83,9 +83,9 @@ export type ViewHarnessProps = {
   seed?: (client: QueryClient) => void
   /**
    * Widget mode; defaults to the map-less embed (`standalone`, no map, linkable).
-   * **Partial** so a story overrides only the axis it is about — spelling the whole shape
-   * to vary one field silently pins the others, and `standalone` in particular changes
-   * what `EventSummary` renders.
+   * **Partial** so a story overrides only the axis it is about — spelling the whole shape to
+   * vary one field silently pins the others, which is how a story once flipped `standalone`
+   * by accident and changed what the screen it previewed actually rendered.
    */
   mode?: Partial<WidgetMode>
   /**

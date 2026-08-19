@@ -22,7 +22,7 @@ describe('fontFaceCss', () => {
   it('claims our own family, never plain Raleway', () => {
     // @font-face is document-global and ours is registered last, so declaring the plain
     // name would override the face on a host page that self-hosts Raleway itself.
-    expect(FONT_FAMILY).toBe('Sahaj Raleway')
+    expect(FONT_FAMILY).toBe('Atlas Raleway')
     expect(css.match(/font-family:'([^']+)'/g)).toEqual(
       Array(3).fill(`font-family:'${FONT_FAMILY}'`),
     )

@@ -234,7 +234,13 @@ describe('buildEventIcs', () => {
     )
 
     expect(ics).toContain('BEGIN:VCALENDAR')
-    expect(ics).toContain('UID:event-42@atlas.sydevelopers.com')
+    expect(ics).toContain('UID:event-42@cloud.sydevelopers.com')
+
+    // The rule the UID exists to satisfy, asserted rather than only described: the same event
+    // exported from two different client embeds must produce the SAME identifier, or a visitor who
+    // reaches one class from the national site and again from a city one gets two calendar
+    // entries for it. Nothing tenant-derived may enter this string.
+    expect(ics).not.toMatch(/UID:[^\r\n]*(sahajatlas|sahajayoga|wemeditate)/i)
     expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260701T193000')
     expect(ics).toContain('DTEND;TZID=Europe/Prague:20260701T204500')
     expect(ics).toContain('RRULE:FREQ=WEEKLY;BYDAY=WE')

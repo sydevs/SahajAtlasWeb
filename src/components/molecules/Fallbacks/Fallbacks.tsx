@@ -997,7 +997,6 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
           description={message}
           role={policy.color === 'danger' ? 'alert' : 'status'}
           textAlign="left"
-          title="Sahaj Atlas"
         />
         {/* The modal host is mounted outside this boundary (App.tsx), so the report CTA
             still works while this fallback is what's on screen. */}

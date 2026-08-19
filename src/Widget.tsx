@@ -170,6 +170,11 @@ function Atlas() {
        somebody else's page. */
     <div
       ref={themeRootRef}
+      // Deliberately NOT tenant-named (#156). The name lives on the client record and arrives
+      // below this element, inside App's Suspense — so a named landmark would have to change its
+      // accessible name after load, which is a worse thing to do to a screen-reader user than
+      // omitting a name that is redundant on the tenant's own site anyway. It must never resolve
+      // empty: WebKit drops the role entirely when it does.
       aria-label={t('widget.label')}
       className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`}
       dir={i18n.dir(activeLocale)}

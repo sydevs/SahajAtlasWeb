@@ -3,8 +3,21 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 
+/**
+ * ⚠ The key is namespaced, and that is a **bug fix** rather than branding (#156).
+ *
+ * It used to be the bare string `theme`, written into the HOST page's `localStorage` — so a site
+ * that stores its own light/dark preference under that name had it read and silently overwritten
+ * by an embedded widget. `docs/embedding.md` has admitted this in a table for months.
+ *
+ * `LEGACY_THEME_KEY` is read once when the namespaced key is absent, so nobody loses the setting
+ * they already chose. It is never written, so the old key stops being touched from the first load
+ * after this ships and a host's own value is left alone from then on.
+ */
+const LEGACY_THEME_KEY = 'theme'
+
 const ThemeProps = {
-  key: 'theme',
+  key: 'atlas.theme',
   light: 'light',
   dark: 'dark',
   auto: 'auto',
@@ -133,13 +146,21 @@ export const stopSystemWatch = () => watchSystem(false)
 // without `allow-same-origin`) and some privacy modes, which matters since this
 // ships as an embeddable widget. Wrap reads/writes so the theme class still updates;
 // the choice just isn't persisted.
+const isPreference = (value: string | null): value is ThemePreference =>
+  value === ThemeProps.dark || value === ThemeProps.light || value === ThemeProps.auto
+
 const readStoredPreference = (): ThemePreference | null => {
   try {
     const stored = localStorage.getItem(ThemeProps.key)
 
-    return stored === ThemeProps.dark || stored === ThemeProps.light || stored === ThemeProps.auto
-      ? stored
-      : null
+    if (isPreference(stored)) return stored
+
+    // One-time migration off the un-namespaced key. Read, never written — so from the first load
+    // after this ships we stop touching a key that was never ours, while a viewer who had already
+    // chosen a theme keeps it. A host's own unrelated `theme` value simply fails `isPreference`.
+    const legacy = localStorage.getItem(LEGACY_THEME_KEY)
+
+    return isPreference(legacy) ? legacy : null
   } catch {
     return null
   }

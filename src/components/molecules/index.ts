@@ -50,12 +50,11 @@ export type { ActionRowProps, ActionCircleProps } from './ActionRow'
 
 // EventFacts — the shared calendar/location fact block for an event (builds and
 // renders the when/where lines), used by the panel, the list card, and the
-// share/registration summaries. `EventSummary` is its boxed, titled variant (the
-// event-details card on the share + registration drawers).
+// share/registration drawers. Its `card` variant is the boxed, titled treatment those
+// two drawers use; there is no separate wrapper for it, deliberately — the one that
+// existed only added an outbound backlink that was never correct behaviour (#156).
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
-export { EventSummary } from './EventFacts'
-export type { EventSummaryProps } from './EventFacts'
 
 // The event's triage chips (type · language(s) · Today), shared by the list card
 // and the event header so the two never drift. `compact` trims the list card.

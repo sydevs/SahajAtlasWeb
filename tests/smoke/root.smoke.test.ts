@@ -16,8 +16,14 @@ describe('root page', () => {
 
     const html = await res.text()
 
-    // The standalone build mounts into <div id="syatlas"> (see index.html).
+    // The standalone build mounts into <div id="syatlas"> and puts the scope class on <html>
+    // (see index.html). Two structural markers, deliberately NOT the page title: this spec used
+    // to pin `<title>Sahaj Atlas`, which made a de-branding change (#156) fail a check that was
+    // only ever trying to prove "this is our shell rather than an error page". A brand string is
+    // the wrong anchor for that, and the worst kind — one that breaks precisely when the product
+    // is doing what it set out to do.
     expect(html).toContain('id="syatlas"')
-    expect(html).toMatch(/<title>[^<]*Sahaj Atlas/i)
+    expect(html).toContain('sy-atlas')
+    expect(html).toMatch(/<title>[^<]+<\/title>/i)
   })
 })

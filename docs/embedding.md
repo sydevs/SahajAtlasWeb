@@ -433,15 +433,20 @@ Three honest exceptions, none of them styling your content:
 - **`@font-face` is the one rule that cannot be scoped**, because it carries no selector.
   The widget registers three of them (one per character-set subset) for its self-hosted
   typeface, and they are document-global by nature. They are declared under the family
-  name **`Sahaj Raleway`, deliberately not `Raleway`** — so if your page self-hosts
+  name **`Atlas Raleway`, deliberately not `Raleway`** — so if your page self-hosts
   Raleway itself, the widget's faces cannot override yours. That is the whole reason for
   the odd name. These three are the only `@font-face` rules the widget contributes;
   Mapbox and Swiper register none.
 
-**The reverse direction is not guaranteed.** Aggressive global CSS on your page — a
-blanket `button { … }` rule, say — can still reach _into_ the widget. A hard boundary
-would need shadow DOM, which conflicts with the widget's portal and drawer architecture.
-If the widget looks wrong on your site and right on ours, suspect your global CSS first.
+**The reverse direction is now defended, with one documented exception.** The widget resets its
+own subtree before applying its styles, so aggressive global CSS on your page — a blanket
+`button { … }`, an `a { color: … }`, a global `letter-spacing` — no longer reaches into it.
+
+**The exception is `!important`.** A rule like `div { font-family: … !important }` on your page
+still wins, because an important declaration beats a non-important one whatever its specificity,
+and the only way for us to outrank it would be to use `!important` ourselves — which would beat our
+own styles too and leave the widget unstyled. If the widget looks wrong on your site and right on
+ours, look for `!important` in your global CSS first.
 
 ### The style-tag ids
 
@@ -479,16 +484,17 @@ contain.
 inside a `try`/`catch` so a sandboxed iframe degrades the setting rather than breaking the
 widget, and two written by Mapbox GL:
 
-| Key                                     | Store            | Holds                                                 | Lifetime            |
-| --------------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
-| `theme`                                 | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
-| `sahajAtlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
-| `mapbox.eventData:<token>`              | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
-| `mapbox.eventData.uuid:<token>`         | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
+| Key                                | Store            | Holds                                                 | Lifetime            |
+| ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
+| `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
+| `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
+| `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
+| `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
 
-The `theme` key is **not namespaced**: if your page stores its own `theme` preference
-under that name, the widget will read and overwrite it. The two `mapbox.*` keys appear
-only when the map renders, so `map=false` removes them.
+**The `theme` key used to be un-namespaced** — the bare string `theme` — so a page storing its own
+light/dark preference under that name had it read and overwritten. That is fixed: our key is now
+`atlas.theme`, and the old one is read once (never written) so nobody loses a choice they already
+made. The two `mapbox.*` keys appear only when the map renders, so `map=false` removes them.
 
 The language picker persists **nothing** — i18next's detector would cache `i18nextLng` on
 your origin by default and that write is switched off.
