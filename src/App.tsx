@@ -306,9 +306,9 @@ function AppShell({
     Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
   }, [location.pathname, fathomEnabled, primaryDomain])
 
-  // Built as an ELEMENT, not rendered here: in the compact form it is handed to the surface
-  // and React never renders it until that opens. `interface` is a reserved word.
-  const interface_ = <FullInterface hasMap={hasMap} />
+  // Built as an ELEMENT, not rendered here: in the compact form it is handed to the surface,
+  // and React never renders it until that opens — which is what keeps mapbox-gl unfetched.
+  const interfaceElement = <FullInterface hasMap={hasMap} />
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
@@ -326,9 +326,9 @@ function AppShell({
         </Suspense>
       )}
       {form === 'compact' ? (
-        <CompactShell>{interface_}</CompactShell>
+        <CompactShell>{interfaceElement}</CompactShell>
       ) : (
-        <NoExpansionProvider>{interface_}</NoExpansionProvider>
+        <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}
     </WidgetModeContext.Provider>
   )
@@ -375,7 +375,9 @@ function CompactForm({ children }: { children: ReactNode }) {
         // The same name the widget's own landmark carries, for the same reason: a dialog
         // whose accessible name resolves empty is announced as an unlabelled group.
         title={t('widget.label')}
-        onOpenChange={(open) => !open && collapse()}
+        onOpenChange={(next) => {
+          if (!next) collapse()
+        }}
       >
         {children}
       </ExpandedSurface>

@@ -156,7 +156,9 @@ function Atlas() {
   // Reported from an effect rather than from the decision above, exactly like the routing
   // warning: a discarded render must not put a line in a stranger's console twice.
   useEffect(() => {
-    slotWarnings.forEach(reportIntegrationWarning)
+    // Wrapped, not point-free: `forEach` passes an index and the array too, and this one
+    // takes a single string today.
+    slotWarnings.forEach((warning) => reportIntegrationWarning(warning))
   }, [slotWarnings])
 
   const atlas = (
@@ -246,9 +248,12 @@ type SlotDecision = { form: EmbedForm; warnings: string[] }
 /**
  * Walk up from the element looking for an ancestor that would confine our overlay.
  *
- * Only worth asking in the compact form, which is the only one that expands. Reads at most a
- * few dozen computed styles once at mount, and returns the FIRST offender: naming one thing to
- * change is more useful than a list, and the outermost one is usually the page shell.
+ * Only worth asking in the compact form, which is the only one that expands — a few dozen
+ * `getComputedStyle` reads, once, on a path a host rarely takes.
+ *
+ * Walks OUTWARD and stops at the first offender, so the one it names is the innermost: the
+ * element closest to the embed is the one whose owner is most likely to be the person reading
+ * the console, and naming one thing to change beats handing somebody a list.
  */
 function confiningAncestor(element: Element): string | null {
   for (let node = element.parentElement; node; node = node.parentElement) {
