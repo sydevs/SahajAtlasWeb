@@ -7,6 +7,7 @@ import {
   MIN_EXPANSION_GAIN,
   NARROW_SLOT_RATIO,
   SLOT_WARNING_MESSAGE,
+  containingBlockProperty,
   embedForm,
   mapSlotWarning,
   resolveEmbedForm,
@@ -240,4 +241,49 @@ describe('the compact thresholds', () => {
     expect(MIN_EXPANSION_GAIN).toBeLessThan(1)
     expect(MIN_EXPANSION_GAIN).toBeGreaterThan(0.5)
   })
+})
+
+// ── Can the overlay cover the viewport? (issue #161) ──────────────────────────
+//
+// Measured in Chrome for this change and consistent with the table in
+// `.claude/rules/components.md`: `transform`, `contain: layout` and `filter` all re-parent a
+// fixed child onto the host box; `container-type` does not, however often it is claimed to.
+
+const NEUTRAL = {
+  transform: 'none',
+  perspective: 'none',
+  filter: 'none',
+  backdropFilter: 'none',
+  contain: 'none',
+  willChange: 'auto',
+} as const
+
+describe('containingBlockProperty', () => {
+  it('finds nothing on a plain ancestor', () => {
+    expect(containingBlockProperty(NEUTRAL)).toBeNull()
+  })
+
+  it.each([
+    ['transform', { transform: 'matrix(1, 0, 0, 1, 0, 0)' }],
+    ['perspective', { perspective: '800px' }],
+    ['filter', { filter: 'blur(0px)' }],
+    ['backdrop-filter', { backdropFilter: 'blur(2px)' }],
+    ['contain', { contain: 'layout' }],
+    ['contain', { contain: 'layout paint' }],
+    ['contain', { contain: 'strict' }],
+    ['contain', { contain: 'content' }],
+    // A host optimising a scroll animation trips this without ever writing a transform.
+    ['will-change', { willChange: 'transform' }],
+  ])('names %s', (property, style) => {
+    expect(containingBlockProperty({ ...NEUTRAL, ...style })).toBe(property)
+  })
+
+  // The folklore correction, pinned so nobody "fixes" the omission: a container query does
+  // NOT re-parent a fixed child, and neither does painting containment on its own.
+  it.each([{ contain: 'size' }, { contain: 'inline-size' }, { willChange: 'opacity' }])(
+    'leaves %p alone',
+    (style) => {
+      expect(containingBlockProperty({ ...NEUTRAL, ...style })).toBeNull()
+    },
+  )
 })

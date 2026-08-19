@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { motion } from 'framer-motion'
 
@@ -68,10 +68,50 @@ export function ExpandedSurface({
   // layout phase and the resulting re-render is flushed before paint, so there is no frame in
   // which the two disagree. Stable identity, or every render would release and re-adopt.
   const [node, setNode] = useState<HTMLDivElement | null>(null)
+  // The same node as `node`, in a ref: the focus handlers below are read at event time, and
+  // the closure Radix captured at mount still sees the state as null.
+  const surfaceRef = useRef<HTMLDivElement | null>(null)
   const adopt = useCallback((element: HTMLDivElement | null) => {
+    surfaceRef.current = element
     setExpandedSurface(element)
     setNode(element)
   }, [])
+
+  // Who to give focus back to on collapse.
+  //
+  // **Radix's own restore targets `Dialog.Trigger`, and there is deliberately no trigger
+  // here**: expansion is requested through the seam (`useExpansion`), from a control that
+  // may be anywhere — the card's button today, a row press, a frame message later. With no
+  // trigger Radix prevents the default restore and focuses nothing, so a keyboard viewer who
+  // collapses the widget is dropped on `<body>` — back at the top of the HOST's page, not on
+  // the control they pressed. Verified in a browser; this is the same record-and-restore
+  // `useReportModal` keeps beside its store, for the same reason.
+  //
+  // Tracked while CLOSED rather than read at open time, because by the time an effect here
+  // could run, Radix has already moved focus into the dialog — child effects run before the
+  // parent's.
+  const opener = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (open) return
+
+    const remember = () => {
+      const active = document.activeElement as HTMLElement | null
+
+      // Never remember something inside ourselves. React runs this effect's cleanup and the
+      // dialog's own focus move in the same commit, and the order is the library's to choose
+      // — measured, the surface's mount focus lands here first, and remembering it means
+      // restoring focus to a node that is gone by the time anyone asks.
+      if (active && surfaceRef.current?.contains(active)) return
+
+      opener.current = active
+    }
+
+    remember()
+    document.addEventListener('focusin', remember)
+
+    return () => document.removeEventListener('focusin', remember)
+  }, [open])
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -80,7 +120,27 @@ export function ExpandedSurface({
       <Dialog.Portal container={widgetOverlayContainer()}>
         <Dialog.Overlay className={overlay} />
         {/* Radix warns unless the missing description is opted out of by name. */}
-        <Dialog.Content asChild aria-describedby={undefined}>
+        <Dialog.Content
+          asChild
+          aria-describedby={undefined}
+          // Give focus back to the control that asked for the expansion. `preventDefault`
+          // first: Radix composes its own handler after this one and skips it only when the
+          // default is prevented. Guarded on `isConnected` — the opener may have been
+          // re-rendered away while the widget was expanded.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            if (opener.current?.isConnected) opener.current.focus()
+          }}
+          // Focus the surface itself, not the first control inside it. Radix's default sends
+          // focus to the first tabbable, which here is whatever chrome the interface happens
+          // to render first — the settings cog — announced with no word about what just
+          // opened. Focusing the container announces the dialog and its name, and Tab then
+          // walks the interface from the top.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            surfaceRef.current?.focus()
+          }}
+        >
           <motion.div
             ref={adopt}
             animate={{ opacity: 1 }}

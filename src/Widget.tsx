@@ -18,6 +18,8 @@ import { reportIntegrationWarning } from './lib/report'
 import {
   type EmbedForm,
   SLOT_WARNING_MESSAGE,
+  containingBlockMessage,
+  containingBlockProperty,
   mapSlotWarning,
   resolveEmbedForm,
 } from './lib/embed-slot'
@@ -149,13 +151,13 @@ function Atlas() {
   }
 
   const form = slot.current.form
-  const slotWarning = slot.current.warning
+  const slotWarnings = slot.current.warnings
 
   // Reported from an effect rather than from the decision above, exactly like the routing
   // warning: a discarded render must not put a line in a stranger's console twice.
   useEffect(() => {
-    if (slotWarning) reportIntegrationWarning(slotWarning)
-  }, [slotWarning])
+    slotWarnings.forEach(reportIntegrationWarning)
+  }, [slotWarnings])
 
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still carrying the theme class +
@@ -238,8 +240,25 @@ const AtlasElementBase = r2wc(Widget) as unknown as new () => AtlasElement
 // counted actually lives: the element, not a React render pass.
 let owner: AtlasElement | null = null
 
-/** What the slot measurement decided, and the one sentence it earned. */
-type SlotDecision = { form: EmbedForm; warning: string | null }
+/** What the slot measurement decided, and the sentences it earned. */
+type SlotDecision = { form: EmbedForm; warnings: string[] }
+
+/**
+ * Walk up from the element looking for an ancestor that would confine our overlay.
+ *
+ * Only worth asking in the compact form, which is the only one that expands. Reads at most a
+ * few dozen computed styles once at mount, and returns the FIRST offender: naming one thing to
+ * change is more useful than a list, and the outermost one is usually the page shell.
+ */
+function confiningAncestor(element: Element): string | null {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const property = containingBlockProperty(getComputedStyle(node))
+
+    if (property) return property
+  }
+
+  return null
+}
 
 /**
  * Measure the host's slot and decide what to render in it (issues #107, #161).
@@ -263,7 +282,7 @@ type SlotDecision = { form: EmbedForm; warning: string | null }
  * break the thing it is diagnosing, and a measurement must never break what it measures.
  */
 function decideSlot(compact: CompactMode, hasMap: boolean): SlotDecision {
-  if (!owner) return { form: 'full', warning: null }
+  if (!owner) return { form: 'full', warnings: [] }
 
   try {
     const box = owner.getBoundingClientRect()
@@ -277,16 +296,28 @@ function decideSlot(compact: CompactMode, hasMap: boolean): SlotDecision {
       viewportHeight: window.innerHeight,
     }
     const { form, warning } = resolveEmbedForm(compact, metrics)
+    const warnings = warning ? [warning] : []
 
-    if (warning || form === 'compact' || !hasMap) return { form, warning }
+    if (form === 'compact') {
+      // Only the compact form has an overlay to confine, and only it is worth the walk.
+      const property = confiningAncestor(owner)
 
-    const slotWarning = mapSlotWarning(metrics)
+      if (property) warnings.push(containingBlockMessage(property))
 
-    return { form, warning: slotWarning && SLOT_WARNING_MESSAGE[slotWarning] }
+      return { form, warnings }
+    }
+
+    // Where the widget renders compact, the takeover this used to warn about no longer
+    // happens — so the map-slot warning only speaks for a full-size interface.
+    const slotWarning = hasMap && !warning ? mapSlotWarning(metrics) : null
+
+    if (slotWarning) warnings.push(SLOT_WARNING_MESSAGE[slotWarning])
+
+    return { form, warnings }
   } catch {
     // Nothing to do and nothing worth reporting: the host's own error would be the only
     // payload, and a thrown message is the one field that reaches Sentry unfiltered.
-    return { form: 'full', warning: null }
+    return { form: 'full', warnings: [] }
   }
 }
 

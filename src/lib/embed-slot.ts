@@ -218,3 +218,58 @@ export function resolveEmbedForm(
     warning: fits === 'compact' ? compactEnteredMessage(measured) : null,
   }
 }
+
+// ===== CAN THE OVERLAY COVER THE VIEWPORT? (issue #161) ===== //
+
+/**
+ * The computed declarations that decide whether a `position: fixed` descendant is still
+ * positioned against the viewport.
+ *
+ * Only the properties actually read — a caller hands over a `CSSStyleDeclaration` and this
+ * takes the shape it needs, so the walk stays in the widget entry and the rule stays testable
+ * with no DOM.
+ */
+export type ContainingBlockStyle = Pick<
+  CSSStyleDeclaration,
+  'transform' | 'perspective' | 'filter' | 'backdropFilter' | 'contain' | 'willChange'
+>
+
+/** `contain` values that establish a containing block, per the spec's own list. */
+const CONTAINING = ['layout', 'paint', 'strict', 'content']
+
+/**
+ * Which property on this element, if any, would confine a `fixed` descendant to it.
+ *
+ * **The expanded surface is `position: fixed; inset: 0`, and that is only "the viewport" while
+ * no ancestor has stolen the containing block.** A host with `transform`, `filter` or
+ * `contain: layout` anywhere above the embed gets an overlay confined to that ancestor's box —
+ * which, for a compact embed, is very often the small slot the card was degrading out of. It
+ * is silent, and it looks like our bug.
+ *
+ * `container-type` is deliberately absent, and that absence is measured rather than assumed:
+ * `.claude/rules/components.md` records the table, and it was re-measured in Chrome for this
+ * change — `inline-size` and `size` both leave a fixed child on the viewport, while
+ * `transform`, `contain: layout` and `filter` all re-parent it.
+ */
+export function containingBlockProperty(style: ContainingBlockStyle): string | null {
+  if (style.transform && style.transform !== 'none') return 'transform'
+  if (style.perspective && style.perspective !== 'none') return 'perspective'
+  if (style.filter && style.filter !== 'none') return 'filter'
+  if (style.backdropFilter && style.backdropFilter !== 'none') return 'backdrop-filter'
+  if (CONTAINING.some((value) => style.contain?.includes(value))) return 'contain'
+  // `will-change` promotes a property to its own layer AHEAD of it being set, with the same
+  // containing-block consequence — so a host optimising a scroll animation trips this without
+  // ever writing a transform.
+  if (
+    ['transform', 'perspective', 'filter', 'contain'].some((v) => style.willChange?.includes(v))
+  ) {
+    return 'will-change'
+  }
+
+  return null
+}
+
+export const containingBlockMessage = (property: string): string =>
+  `an ancestor of this embed sets \`${property}\`, which makes it the containing block for ` +
+  'fixed-position elements — so the expanded view will be confined to that element instead of ' +
+  'covering the page. Move the embed outside it, or drop that property.'

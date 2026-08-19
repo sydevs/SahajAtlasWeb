@@ -61,3 +61,5 @@ export const Default: Story = () => {
     </StoryWrapper>
   )
 }
+
+Default.storyName = 'Expanded Surface'

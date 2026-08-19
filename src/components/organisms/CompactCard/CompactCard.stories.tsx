@@ -76,6 +76,7 @@ export const Default: Story<{ slot: SlotKey; rows: number }> = ({ slot, rows }) 
   )
 }
 
+Default.storyName = 'Compact Card'
 Default.args = { slot: 'Sidebar — 300×420', rows: 3 }
 Default.argTypes = {
   slot: { control: { type: 'select' }, options: Object.keys(SLOTS) },
