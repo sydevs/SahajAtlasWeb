@@ -37,6 +37,9 @@ export type { DrawerProps, DrawerContentProps, DrawerDirection } from './Drawer'
 export { Dropdown } from './Dropdown'
 export type { DropdownProps } from './Dropdown'
 
+export { ExpandedSurface } from './ExpandedSurface'
+export type { ExpandedSurfaceProps } from './ExpandedSurface'
+
 export { Input } from './Input'
 export type { InputProps } from './Input'
 
