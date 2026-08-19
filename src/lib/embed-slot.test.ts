@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   BOXED_SLOT_RATIO,
@@ -9,6 +9,8 @@ import {
   SLOT_WARNING_MESSAGE,
   containingBlockProperty,
   embedForm,
+  slotDecision,
+  surfaceCoversPage,
   mapSlotWarning,
   resolveEmbedForm,
 } from './embed-slot'
@@ -206,7 +208,7 @@ describe('resolveEmbedForm — what the host hears', () => {
   it('names the measured size and the threshold when it enters compact', () => {
     const { warning } = resolveEmbedForm('auto', CRAMPED)
 
-    expect(warning).toContain('300×320px')
+    expect(warning).toContain('300px wide × 320px tall')
     expect(warning).toContain(`${COMPACT_MAX_WIDTH_PX}×${COMPACT_MAX_HEIGHT_PX}px`)
   })
 
@@ -214,8 +216,20 @@ describe('resolveEmbedForm — what the host hears', () => {
   it('says so when `never` declines a slot that does not fit', () => {
     const { warning } = resolveEmbedForm('never', CRAMPED)
 
-    expect(warning).toContain('300×320px')
+    expect(warning).toContain('300px wide × 320px tall')
     expect(warning).toContain('compact=never')
+  })
+
+  // The headline case for this whole feature: a bare element in a narrow sidebar has no
+  // height at all when we measure, and "0px tall" is both unactionable and points at the
+  // opposite of the fix in map mode.
+  it('names only the axis it could measure', () => {
+    const bare = { ...CRAMPED, slotWidth: 300, elementWidth: 0, elementHeight: 0 }
+    const { warning } = resolveEmbedForm('auto', bare)
+
+    expect(warning).toContain('300px wide')
+    // Not "300px wide × 0px tall" — the height was never measured, so it is not reported.
+    expect(warning).not.toContain('tall')
   })
 
   it('stays quiet in a slot that fits, whichever way the host set it', () => {
@@ -286,4 +300,104 @@ describe('containingBlockProperty', () => {
       expect(containingBlockProperty({ ...NEUTRAL, ...style })).toBeNull()
     },
   )
+})
+
+// ── The composition (issue #161) ──────────────────────────────────────────────
+//
+// **The parts above were each exhaustively specced and the wiring was still wrong.** The first
+// version of this suppressed the map-mode takeover warning whenever `resolveEmbedForm` had
+// already said something — which is exactly the `compact=never` case where the takeover is
+// still real, and where the docblock promises the warning survives. Under `auto` the mistake
+// was invisible. This is the block that makes the join assertable, per the `timeoutStatus`
+// lesson in `.claude/rules/tests.md`.
+
+/** A map-mode embed in a sidebar: the interface does not fit AND the map would take the page. */
+const SIDEBAR = {
+  slotWidth: 300,
+  elementWidth: 0,
+  elementHeight: 0,
+  viewportWidth: 1440,
+  viewportHeight: 900,
+}
+
+describe('slotDecision', () => {
+  it('renders compact and says what it measured, under `auto`', () => {
+    const { form, warnings } = slotDecision('auto', true, SIDEBAR)
+
+    expect(form).toBe('compact')
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain('300px wide')
+  })
+
+  // The regression this block exists for. `compact=never` keeps the full interface in a slot
+  // that cannot hold it — and in MAP mode that interface covers the host's whole page, so the
+  // takeover warning is the one that actually matters here. Suppressing it because the decline
+  // message already fired left the host with the wrong sentence.
+  it('still warns about the map-mode takeover when `never` keeps the interface', () => {
+    const { form, warnings } = slotDecision('never', true, SIDEBAR)
+
+    expect(form).toBe('full')
+    expect(warnings.some((w) => w.includes('compact=never'))).toBe(true)
+    expect(warnings.some((w) => w.includes('map="false"'))).toBe(true)
+  })
+
+  // …and map-LESS has no takeover to warn about, so the decline stands alone.
+  it('says only the one thing when a map-less embed declines', () => {
+    expect(slotDecision('never', false, SIDEBAR).warnings).toHaveLength(1)
+  })
+
+  // Where the widget renders compact, the takeover the map warning describes does not happen.
+  it('drops the map-mode warning once the form is compact', () => {
+    const { warnings } = slotDecision('auto', true, SIDEBAR)
+
+    expect(warnings.some((w) => w.includes('map="false"'))).toBe(false)
+  })
+
+  it('walks for a confining ancestor only in the compact form', () => {
+    const confining = vi.fn(() => 'transform')
+
+    slotDecision('never', true, SIDEBAR, confining)
+    expect(confining).not.toHaveBeenCalled()
+
+    const { warnings } = slotDecision('auto', true, SIDEBAR, confining)
+
+    expect(confining).toHaveBeenCalledOnce()
+    expect(warnings.some((w) => w.includes('transform'))).toBe(true)
+  })
+
+  it('is silent for a full-page map embed', () => {
+    expect(slotDecision('auto', true, FULL_PAGE)).toEqual({ form: 'full', warnings: [] })
+  })
+})
+
+// ── Will the overlay actually cover the page? (issue #161) ────────────────────
+//
+// A modal that covers nothing is worse than no modal: it locks the host's scroll, hides their
+// page from assistive technology, and puts the only exit somewhere the visitor cannot reach.
+
+describe('surfaceCoversPage', () => {
+  it('accepts a surface that fills the viewport', () => {
+    expect(surfaceCoversPage({ width: 1440, height: 900 }, 1440, 900)).toBe(true)
+  })
+
+  // Slack for a scrollbar, a host `zoom`, sub-pixel rounding — none of those are a broken
+  // overlay, and none of them come close to half the viewport.
+  it('accepts the near-misses that are not failures', () => {
+    expect(surfaceCoversPage({ width: 1425, height: 900 }, 1440, 900)).toBe(true)
+    expect(surfaceCoversPage({ width: 1440, height: 880 }, 1440, 900)).toBe(true)
+  })
+
+  it.each([
+    ['confined to the embed slot', { width: 300, height: 420 }],
+    ['hidden outright', { width: 0, height: 0 }],
+    ['short on one axis only', { width: 1440, height: 200 }],
+  ])('rejects a surface %s', (_case, box) => {
+    expect(surfaceCoversPage(box, 1440, 900)).toBe(false)
+  })
+
+  // Unmeasurable is not evidence of a problem: never tear a surface down on suspicion.
+  it('accepts anything it cannot measure', () => {
+    expect(surfaceCoversPage({ width: 300, height: 420 }, 0, 0)).toBe(true)
+    expect(surfaceCoversPage({ width: 300, height: 420 }, Number.NaN, Number.NaN)).toBe(true)
+  })
 })

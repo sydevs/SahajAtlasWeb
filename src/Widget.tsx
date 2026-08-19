@@ -15,14 +15,7 @@ import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
-import {
-  type EmbedForm,
-  SLOT_WARNING_MESSAGE,
-  containingBlockMessage,
-  containingBlockProperty,
-  mapSlotWarning,
-  resolveEmbedForm,
-} from './lib/embed-slot'
+import { type SlotDecision, containingBlockProperty, slotDecision } from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { mountDecision } from './lib/shape'
 import { queryClient } from './config/query-client'
@@ -242,9 +235,6 @@ const AtlasElementBase = r2wc(Widget) as unknown as new () => AtlasElement
 // counted actually lives: the element, not a React render pass.
 let owner: AtlasElement | null = null
 
-/** What the slot measurement decided, and the sentences it earned. */
-type SlotDecision = { form: EmbedForm; warnings: string[] }
-
 /**
  * Walk up from the element looking for an ancestor that would confine our overlay.
  *
@@ -291,34 +281,23 @@ function decideSlot(compact: CompactMode, hasMap: boolean): SlotDecision {
 
   try {
     const box = owner.getBoundingClientRect()
-    const metrics = {
-      // The host's own column, and the fallback when our element has no box of its own: in
-      // map mode everything below the `display: contents` root is fixed, so it measures 0.
-      slotWidth: owner.parentElement?.getBoundingClientRect().width ?? 0,
-      elementWidth: box.width,
-      elementHeight: box.height,
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-    }
-    const { form, warning } = resolveEmbedForm(compact, metrics)
-    const warnings = warning ? [warning] : []
 
-    if (form === 'compact') {
-      // Only the compact form has an overlay to confine, and only it is worth the walk.
-      const property = confiningAncestor(owner)
-
-      if (property) warnings.push(containingBlockMessage(property))
-
-      return { form, warnings }
-    }
-
-    // Where the widget renders compact, the takeover this used to warn about no longer
-    // happens — so the map-slot warning only speaks for a full-size interface.
-    const slotWarning = hasMap && !warning ? mapSlotWarning(metrics) : null
-
-    if (slotWarning) warnings.push(SLOT_WARNING_MESSAGE[slotWarning])
-
-    return { form, warnings }
+    return slotDecision(
+      compact,
+      hasMap,
+      {
+        // The host's own column, and the fallback when our element has no box of its own: in
+        // map mode everything below the `display: contents` root is fixed, so it measures 0.
+        slotWidth: owner.parentElement?.getBoundingClientRect().width ?? 0,
+        elementWidth: box.width,
+        elementHeight: box.height,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      },
+      // Lazy: `slotDecision` only calls this when the form turns out to be compact, so a
+      // full-size embed never pays for the walk.
+      () => confiningAncestor(owner as Element),
+    )
   } catch {
     // Nothing to do and nothing worth reporting: the host's own error would be the only
     // payload, and a thrown message is the one field that reaches Sentry unfiltered.
