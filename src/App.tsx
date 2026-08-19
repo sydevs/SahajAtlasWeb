@@ -27,6 +27,7 @@ import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hoo
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
+import { useReportModal } from '@/config/store'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). A side-effect import beside the
@@ -376,7 +377,16 @@ function CompactForm({ children }: { children: ReactNode }) {
         // whose accessible name resolves empty is announced as an unlabelled group.
         title={t('widget.label')}
         onOpenChange={(next) => {
-          if (!next) collapse()
+          if (next) return
+
+          // `ReportIssueModal` is mounted OUTSIDE this branch (it has to outlive the app
+          // boundary so the error fallbacks can reach it) but portals through
+          // `overlayContainer()`, which is this surface while it is open. Collapsing with the
+          // modal up would leave it rendering into a detached node with its own scroll lock
+          // still on the host page. Closing it first is one line; moving the modal would cost
+          // the placement its own docblock argues for.
+          useReportModal.getState().closeReport()
+          collapse()
         }}
       >
         {children}

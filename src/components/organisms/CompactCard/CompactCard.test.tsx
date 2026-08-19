@@ -43,10 +43,10 @@ const render = (events = mockEventSlimList) =>
   )
 
 describe('CompactCard', () => {
-  it('names the content with a heading', () => {
-    expect(render()).toContain(
-      `<h2 class="shrink-0 text-sm font-semibold">${copy('free_meditation_classes')}</h2>`,
-    )
+  // One key for the phrase, shared with the widget landmark's accessible name — two keys
+  // differing only in casing would drift across ten locales.
+  it('names the content with the same key the widget landmark uses', () => {
+    expect(render()).toContain(`>${copy('widget.label')}</h2>`)
   })
 
   // The whole point of the control, and the easiest thing in the app to reword into a

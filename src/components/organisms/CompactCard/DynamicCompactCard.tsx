@@ -9,9 +9,11 @@ import api, { eventTitlesQuery } from '@/config/api'
 import { toSlim } from '@/config/api/fetch'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { compactRows } from '@/lib/compact'
+import { readGeolocationDismissed } from '@/lib/geolocation'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
+import { reportInternalError } from '@/lib/report'
 
 /**
  * The compact card's data, and deliberately **no request of its own** (issue #161).
@@ -30,7 +32,10 @@ import { useLocale } from '@/hooks/use-locale'
 export function DynamicCompactCard() {
   const { locale } = useLocale()
   const { expand } = useExpansion()
-  const ipLocation = useIpLocation()
+  // Gated, like every other call site. A visitor who dismissed the nearby prompt has answered
+  // this question, and `docs/embedding.md` promises the lookup is skipped when no feature that
+  // needs it could show — an ungated call here would quietly make that sentence false.
+  const ipLocation = useIpLocation(!readGeolocationDismissed())
 
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
@@ -45,16 +50,30 @@ export function DynamicCompactCard() {
     () => (ipLocation ? [ipLocation.longitude, ipLocation.latitude] : undefined),
     [ipLocation],
   )
-  const events = useMemo(
-    () =>
-      compactRows(geojson, from).map((feature) =>
+  const events = useMemo(() => {
+    // Both reads are non-suspense and land independently, so the feed can arrive before the
+    // titles do. Rendering then would give every row `title: ''` — cards with no accessible
+    // name — so the preview waits for the pair rather than flashing nameless rows.
+    if (!geojson || !titles) return []
+
+    try {
+      return compactRows(geojson, from).map((feature) =>
         // `toSlim` rather than a second shaping here: the route derivation guards a
         // CMS-authored `webPath` before it reaches an href, and one definition of that is
         // the point of exporting it.
-        toSlim(feature, titles?.get(feature.properties.id), from),
-      ),
-    [geojson, titles, from],
-  )
+        toSlim(feature, titles.get(feature.properties.id), from),
+      )
+    } catch (error) {
+      // `toSlim` parses through zod, and this is the ONE place it runs in a render body
+      // rather than inside a query fn — so a schema drift that React Query would have routed
+      // to a retryable error state throws straight past this component and replaces the whole
+      // compact embed with an error panel in a 300px box. No rows is the state this card
+      // already handles, and it keeps the way into the full interface on screen.
+      reportInternalError(error, 'compact card rows')
+
+      return []
+    }
+  }, [geojson, titles, from])
 
   return <CompactCard events={events} onOpen={expand} />
 }

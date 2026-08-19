@@ -1,8 +1,7 @@
 import type { GeoFeature, Geojson } from '@/types'
 import type { Position } from 'geojson'
 
-import { distanceKm } from './geo'
-
+import { distanceKm } from '@/lib/geo'
 import { byDistance, byNextOccurrence, nextOccurrence } from '@/lib/shape'
 
 // Which classes a compact card puts in front of somebody (issue #161), derived from the

@@ -45,15 +45,19 @@ export function CompactCard({ events, onOpen }: CompactCardProps) {
 
   return (
     <div className="flex h-full w-full flex-col gap-2 overflow-hidden bg-background p-3 text-foreground">
-      <h2 className="shrink-0 text-sm font-semibold">{t('free_meditation_classes')}</h2>
+      {/* The same key the widget's landmark uses, deliberately: two keys for one phrase,
+          differing only in casing, is a drift waiting to happen across ten locales. */}
+      <h2 className="shrink-0 text-sm font-semibold">{t('widget.label')}</h2>
       {events.length > 0 && (
         // Not a control, so it needs no keyboard handler of its own: everything focusable
         // inside is an anchor, and this only rides along with the click those anchors
         // already handle — including the one Enter produces.
-        // Scrolls rather than clips. The card is sized by the host, so how many of the rows
-        // fit is theirs to decide, not ours — and a row cut in half by `overflow-hidden`
-        // reads as a broken card, where a scrollbar reads as more to see.
-        <div className="min-h-0 flex-1 overflow-y-auto" onClickCapture={openRow}>
+        // Scrolls rather than clips: the card is sized by the host, so how many rows fit is
+        // theirs to decide, and a row cut in half reads as a broken card where a scrollbar
+        // reads as more to see. The scrolling itself belongs to the `List` atom, which is
+        // already `overflow-y-auto` — this only gives it a height to scroll within, so there
+        // is one owner of the behaviour rather than two.
+        <div className="flex min-h-0 flex-1 flex-col" onClickCapture={openRow}>
           <EventsList events={events} />
         </div>
       )}

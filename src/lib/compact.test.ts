@@ -60,13 +60,21 @@ describe('compactRows — with no idea where the viewer is', () => {
   })
 
   // The feed comes out of the React Query cache and is shared with the map and every list.
-  it('never reorders the cached feed in place', () => {
-    const features = [feature(1, { days: 9 }), feature(2, { days: 1 })]
+  // BOTH branches, because the located one is the one that sorts a derived array and so is
+  // the easier of the two in which to reintroduce an in-place sort.
+  it.each([undefined, [0, 51.5] as [number, number]])(
+    'never reorders the cached feed in place (from: %p)',
+    (from) => {
+      const features = [
+        feature(1, { days: 9, coordinates: [5, 51.5] }),
+        feature(2, { days: 1, coordinates: [1, 51.5] }),
+      ]
 
-    compactRows(feed(features), undefined)
+      compactRows(feed(features), from)
 
-    expect(ids(features)).toEqual([1, 2])
-  })
+      expect(ids(features)).toEqual([1, 2])
+    },
+  )
 
   it('copes with a feed that has not arrived', () => {
     expect(compactRows(undefined, undefined)).toEqual([])
