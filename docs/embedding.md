@@ -277,10 +277,12 @@ and shows a **compact card** instead: a couple of upcoming classes and one butto
 the whole interface in a full-screen overlay. Your visitor still gets everything; it just does
 not try to live in a 300-pixel box.
 
-The floors are **360px wide and 420px tall**, measured on the element itself — or, when the
-element has no box of its own, on the column it sits in. A slot that is essentially the whole
-screen is never called too small, because there would be nothing bigger to expand into: a
-full-width embed on a phone keeps the normal interface.
+The floors are **360px wide and 420px tall**. The width is measured on the element itself, or
+on the column it sits in when the element has no box of its own; the height is only ever read
+from the element, so **an element you have given no height is never called too short** — only
+too narrow. A slot that is essentially the whole screen is never called too small either,
+because there would be nothing bigger to expand into: a full-width embed on a phone keeps the
+normal interface.
 
 | `compact`        | What happens                                                                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -299,8 +301,15 @@ Four things worth knowing:
 - **The overlay locks your page's scroll while it is open**, and restores it on close. It is a
   modal dialog, so while it is open the rest of your page is also marked `aria-hidden` — a
   screen reader reads the widget rather than the page underneath it — and that is undone on
-  close too. Escape reaches the widget's own drawers first, so the × in the corner is the
-  control that closes the overlay; focus returns to the button that opened it.
+  close too. **Escape works**, and it steps outward: it dismisses whatever the widget has open
+  first, and closes the overlay once there is nothing left inside. The × in the corner always
+  closes it too, and focus returns to the button that opened it. If the overlay ever finds
+  itself unable to cover the page, it closes itself rather than leaving a visitor stuck on a
+  page they cannot scroll.
+- **A deep link opens the card, not the route.** `?atlas=/gb/london` on a page whose embed is
+  compact still shows the card first; the route is waiting behind the button and the overlay
+  opens straight onto it. That is deliberate — a full-screen overlay appearing on page load,
+  over your content, with nobody having asked for it, is worse than one press.
 - ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
   make that element the containing block for fixed-position content, so the overlay is confined
   to it instead of covering the page — and the same already applies to the map, which is fixed
@@ -541,9 +550,11 @@ designed so that it does not need one, and if a flow is still a problem for your
 talk to the maintainers rather than editing the snippet:
 
 - **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer
-  "classes near you" before the visitor types and show an online class's start time in
-  their own place. No referrer, no key, no cookies, five-second timeout, silent on
-  failure, and skipped entirely when neither feature could show. **An IP is personal data
+  "classes near you" before the visitor types, show an online class's start time in their
+  own place, and rank the classes on the compact card by distance rather than by date. No
+  referrer, no key, no cookies, five-second timeout, silent on failure, and skipped entirely
+  when none of those could show — including for the rest of a session in which the visitor
+  dismissed the "classes near you" prompt. **An IP is personal data
   in the EU**, and it is not stored — the answer is used to pick a city and then discarded.
 - **`cdn.usefathom.com`** — cookieless, aggregate pageview counting, loaded only when the
   bundle was built with an analytics ID and your client record names a real primary

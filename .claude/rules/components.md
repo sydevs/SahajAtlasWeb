@@ -278,14 +278,27 @@ Four properties, each the reason something is where it is:
   `canExpand: false`, and a framed provider lands with E1/E2 of the white-label programme.
   Nothing branches on whether expansion is possible.
 
-**Two things about the surface were found in a browser and could not have been found any other
-way.** Escape never reaches it: the drawer stack inside is vaul, which is Radix Dialog
-underneath, so its dismissable layer is the topmost one and Radix delivers the key there —
-Escape dismisses the drawer the viewer is looking at, which is right, and makes the collapse
-control the only way out of the surface rather than a convenience. And Radix's focus restore
-targets a `Dialog.Trigger` that deliberately does not exist here (expansion is requested
-through the seam), so the surface records the opener itself — skipping anything inside its own
-subtree, because the dialog's mount focus fires while that listener is still attached.
+**Three things about the surface were found in a browser and could not have been found any
+other way.**
+
+Escape never reaches the surface's own dialog: the drawer stack inside is vaul, which is Radix
+Dialog underneath, so its dismissable layer is the topmost one and Radix delivers the key
+there. Dismissing the drawer the viewer is looking at is right; doing *nothing* once the stack
+has nowhere left to go is not, because it leaves the collapse control as the only exit — and a
+host can hide, confine or scroll that away, which locks a visitor onto a page they cannot
+scroll or click. **The ladder is therefore finished in `DrawerStack`'s `onEscapeKeyDown`**,
+which calls `useExpansion().collapse()` when the stack can neither dismiss nor collapse
+further. `collapse()` is a no-op with no surface, so nothing else changes.
+
+Radix's focus restore targets a `Dialog.Trigger` that deliberately does not exist here
+(expansion is requested through the seam), so the surface records the opener itself — **scoped
+to the widget root, not `document`**, because Safari and Firefox on macOS do not focus a
+`<button>` on click, and a document-wide recorder would have collapse steal focus to whatever
+the HOST had focused earlier. It also skips anything inside its own subtree, since the dialog's
+mount focus fires while that listener is still attached.
+
+And the surface **watches its own box while open** (`surfaceCoversPage`), closing itself with a
+warning rather than trapping anyone when it turns out not to cover the page.
 
 ⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain` or a `will-change`
 naming one of them confines the surface to that element** — the measured table below, re-run

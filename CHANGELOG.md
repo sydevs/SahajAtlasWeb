@@ -36,7 +36,9 @@ cover everything a host would notice since the widget was first deployed.
   size measured and the size needed, and so does `compact=never` in a slot that does not fit.
   And the overlay **locks your page's scroll while it is open**, restoring it on close — the
   same exception the widget already documents for its modals — and, being a modal dialog, marks
-  the rest of your page `aria-hidden` for as long as it covers it.
+  the rest of your page `aria-hidden` for as long as it covers it. Escape steps outward through
+  the widget and then closes the overlay, and if the overlay is ever prevented from covering the
+  page it closes itself rather than trapping a visitor on a page they cannot scroll or click.
 
   ⚠ The overlay is `position: fixed`, so an ancestor of your embed carrying `transform`,
   `filter` or `contain` confines it to that element instead of covering the page. That was
