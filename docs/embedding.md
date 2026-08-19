@@ -121,7 +121,7 @@ to `atlas=/gb/london`; both work).
 | `map`     | `true`                         | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)). |
 | `routing` | `query`                        | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                             |
 | `atlas`   | —                              | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                    |
-| `compact` | `auto`                         | Whether the widget may fall back to a compact card in a slot too small for the full interface. `always` / `never` force it either way.                                                                                               |
+| `compact` | `auto`                         | Whether the widget may fall back to a compact card in a slot too small for the full interface. `always` / `never` force it either way. See [Sizing](#when-the-slot-is-too-small).                                                    |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — the parameter absent, empty, `true`, `no`, `FALSE` — leaves it **on**. This is
@@ -206,17 +206,17 @@ hour, so this is one small request per page view, and nothing your visitor sees 
 Two things can refuse it, and both are configuration rather than a fault in your page — they are
 reported to the browser console and the widget carries on working:
 
-| Console message mentions | What it means |
-| --- | --- |
-| the origin is not allowed | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
-| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting |
+| Console message mentions     | What it means                                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
+| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting                                                                               |
 
 ### The readiness marker
 
 Once the widget has genuinely mounted, it sets one attribute on your page's `<html>` element:
 
 ```html
-<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'>
+<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'></html>
 ```
 
 It is written **after** the widget renders, never on script load, and removed again if the widget
@@ -267,8 +267,43 @@ however narrow the column. Whether a dial link reaches a dialer is hardware.
 
 Map mode has no such adaptation, and that is a requirement rather than an oversight — the
 drawers compute their travel from the window, so a map-mode widget confined to a small box
-is broken by that arithmetic rather than merely cramped. **The widget now warns in the
+is broken by that arithmetic rather than merely cramped. **The widget warns in the
 console** when it detects that placement instead of leaving you to discover it.
+
+### When the slot is too small
+
+Below a certain size there is no layout that works, so the widget stops trying to fit one in
+and shows a **compact card** instead: a couple of upcoming classes and one button, which opens
+the whole interface in a full-screen overlay. Your visitor still gets everything; it just does
+not try to live in a 300-pixel box.
+
+The floors are **360px wide and 420px tall**, measured on the element itself — or, when the
+element has no box of its own, on the column it sits in. A slot that is essentially the whole
+screen is never called too small, because there would be nothing bigger to expand into: a
+full-width embed on a phone keeps the normal interface.
+
+| `compact`        | What happens                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `auto` (default) | Measured. Below either floor, the compact card; otherwise the full interface.                                          |
+| `always`         | Always the compact card, whatever the slot measures.                                                                   |
+| `never`          | Always the full interface. In a slot that does not fit it will be cramped, and the widget says so in the console once. |
+
+Four things worth knowing:
+
+- **It is decided once, when the widget mounts.** Resizing your page afterwards does not switch
+  between the two, because switching would remount the widget and throw away where the visitor
+  had navigated to. If your layout can be either size, pick the one you want with `always` or
+  `never`.
+- **Entering the compact card logs a console warning** naming the size measured and the size
+  needed, so a slot you did not mean to make small is findable rather than mysterious.
+- **The overlay locks your page's scroll while it is open**, and restores it on close. It is a
+  modal dialog: Escape reaches the widget's own drawers first, and the × in the corner always
+  closes it. Focus returns to the button that opened it.
+- ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
+  make that element the containing block for fixed-position content, so the overlay is confined
+  to it instead of covering the page — and the same already applies to the map, which is fixed
+  too. The widget warns in the console when it finds one. (`container-type` is fine; it does not
+  have this effect, however often it is said to.)
 
 ## The URL
 
@@ -350,7 +385,7 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than something the bundle pins: today production serves the Cloudflare Images CDN (`imagedelivery.net`) and any relative URL is resolved against the API origin. | images only                                                                                   |
 |                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer. Sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                  | the flag glyphs only; the lists still render                                                  |
-| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                         | **the widget has no data and shows an error screen**                                          |
+| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                        | **the widget has no data and shows an error screen**                                          |
 |                            | `sahajatlas.com`                              | the locale JSON, from a different origin than the script                                                                                                                                                                                               | every string renders as its raw dotted key                                                    |
 |                            | `api.mapbox.com`                              | tile/style requests and the place-search geocoder                                                                                                                                                                                                      | the map and search fail                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |
@@ -532,7 +567,7 @@ fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the b
 
 One thing the widget itself sends in the background, about your page rather than your visitor:
 the **embed report** described under [what the loader reports back](#what-the-loader-reports-back)
-— your origin and path, and four booleans about how the widget is mounted. Its *body* carries
+— your origin and path, and four booleans about how the widget is mounted. Its _body_ carries
 nothing about the visitor: no identifier, no location, and none of your query string bar a
 WordPress `?p=<number>`. Like any request a browser makes it still carries the visitor's IP and
 `User-Agent` as headers, which no client-side code can suppress — the distinction worth drawing is

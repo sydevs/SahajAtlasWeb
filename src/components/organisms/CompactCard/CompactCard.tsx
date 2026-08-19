@@ -50,7 +50,10 @@ export function CompactCard({ events, onOpen }: CompactCardProps) {
         // Not a control, so it needs no keyboard handler of its own: everything focusable
         // inside is an anchor, and this only rides along with the click those anchors
         // already handle — including the one Enter produces.
-        <div className="min-h-0 flex-1 overflow-hidden" onClickCapture={openRow}>
+        // Scrolls rather than clips. The card is sized by the host, so how many of the rows
+        // fit is theirs to decide, not ours — and a row cut in half by `overflow-hidden`
+        // reads as a broken card, where a scrollbar reads as more to see.
+        <div className="min-h-0 flex-1 overflow-y-auto" onClickCapture={openRow}>
           <EventsList events={events} />
         </div>
       )}

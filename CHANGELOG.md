@@ -21,6 +21,27 @@ Entries reference the pull request that landed them.
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
 
+### Added
+
+- **A slot too small for the interface now gets a compact card instead of a cramped one.**
+  ([#161]) Below 360×420px the widget shows a heading, a couple of upcoming classes and one
+  button — "Find a class near you" — which opens the whole interface in a full-screen overlay
+  and closes back to where you were. This is what the `compact` parameter has always
+  described: `auto` measures, `always` and `never` force it either way, and an unrecognised
+  value still falls back to `auto`.
+
+  Three things a host can observe. The measurement happens **once, at mount**, so resizing your
+  page does not switch between the two forms — remounting the widget would discard wherever the
+  visitor had navigated to. Entering the compact card **logs one console warning** naming the
+  size measured and the size needed, and so does `compact=never` in a slot that does not fit.
+  And the overlay **locks your page's scroll while it is open**, restoring it on close — the
+  same exception the widget already documents for its modals.
+
+  ⚠ The overlay is `position: fixed`, so an ancestor of your embed carrying `transform`,
+  `filter` or `contain` confines it to that element instead of covering the page. That was
+  already true of the map; it is now true of a map-less embed too, and the widget warns in the
+  console when it finds one. See [Sizing the element] in the integrator guide.
+
 ### Changed
 
 - **The widget no longer names itself anywhere a visitor can see.** ([#156]) The accessible name of
@@ -282,6 +303,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
 [#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156
+[#161]: https://github.com/sydevs/SahajAtlasWeb/pull/161
 [#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
 [#94]: https://github.com/sydevs/SahajAtlasWeb/issues/94
@@ -300,3 +322,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#135]: https://github.com/sydevs/SahajAtlasWeb/pull/135
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
+[Sizing the element]: docs/embedding.md#sizing-the-element
