@@ -35,10 +35,10 @@ vi.mock('@/hooks/use-prefetch-event', () => ({
 vi.mock('@/components/molecules/EventFacts', () => ({ EventFacts: () => null }))
 vi.mock('@/components/molecules/EventChips', () => ({ EventChips: () => null }))
 
-const render = (events = mockEventSlimList) =>
+const render = (events = mockEventSlimList, fill = true) =>
   renderToStaticMarkup(
     <MemoryRouter>
-      <CompactCard events={events} onOpen={() => {}} />
+      <CompactCard events={events} fill={fill} onOpen={() => {}} />
     </MemoryRouter>,
   )
 
@@ -70,12 +70,27 @@ describe('CompactCard', () => {
     expect(html).toContain(mockEventSlimList[1]!.title)
   })
 
-  // An empty feed is a legitimate state — a card with no rows is still a way in, and must
-  // not render an empty list container around nothing.
+  // An empty feed — or a box with room for the button alone — is a legitimate state. The
+  // button is the card's irreducible content and must never be traded for a preview row.
   it('is still a way in with nothing to preview', () => {
     const html = render([])
 
     expect(html).toContain(copy('compact.open'))
     expect(html).not.toContain('<ul')
+  })
+
+  // A host who gave the element no height gets a card sized to its own content: `h-full`
+  // there resolves against nothing and the embed would collapse to invisible.
+  it('takes its content height when the host gave no box', () => {
+    expect(render([], false)).not.toContain('h-full')
+    expect(render([], true)).toContain('h-full')
+  })
+
+  // Both axes, in whatever box the host did give.
+  it('centres its content', () => {
+    const html = render()
+
+    expect(html).toContain('items-center')
+    expect(html).toContain('justify-center')
   })
 })

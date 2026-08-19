@@ -7,6 +7,10 @@ import {
   MIN_EXPANSION_GAIN,
   NARROW_SLOT_RATIO,
   SLOT_WARNING_MESSAGE,
+  COMPACT_CHROME_PX,
+  COMPACT_MAX_ROWS,
+  COMPACT_ROW_PX,
+  compactFit,
   containingBlockProperty,
   embedForm,
   slotDecision,
@@ -366,7 +370,10 @@ describe('slotDecision', () => {
   })
 
   it('is silent for a full-page map embed', () => {
-    expect(slotDecision('auto', true, FULL_PAGE)).toEqual({ form: 'full', warnings: [] })
+    const decision = slotDecision('auto', true, FULL_PAGE)
+
+    expect(decision.form).toBe('full')
+    expect(decision.warnings).toEqual([])
   })
 })
 
@@ -399,5 +406,59 @@ describe('surfaceCoversPage', () => {
   it('accepts anything it cannot measure', () => {
     expect(surfaceCoversPage({ width: 300, height: 420 }, 0, 0)).toBe(true)
     expect(surfaceCoversPage({ width: 300, height: 420 }, Number.NaN, Number.NaN)).toBe(true)
+  })
+})
+
+// ── How much of the card fits? (issue #161) ───────────────────────────────────
+//
+// The third question, and the one that decides what the visitor actually sees. The button is
+// irreducible — a box that cannot hold a single row still gets it — so every case below is
+// really asking "what survives above the button".
+
+describe('compactFit', () => {
+  // The common way a bare `<sahaj-atlas>` lands in a column: no height at all. `h-full` would
+  // resolve against nothing and the embed would collapse to invisible, so the card takes its
+  // content height instead — and content height means every row it has.
+  it.each([0, -1, Number.NaN])('sizes to content when the height is %p', (height) => {
+    expect(compactFit(height)).toEqual({ fill: false, rows: COMPACT_MAX_ROWS })
+  })
+
+  // A box too short for one row still gets the button. This is the case the whole "irreducible
+  // content" rule exists for.
+  it.each([1, 100, 200])('gives a %ipx box the button alone', (height) => {
+    expect(compactFit(height)).toEqual({ fill: true, rows: 0 })
+  })
+
+  it('fills a box it was given, and grows the preview with it', () => {
+    expect(compactFit(250).rows).toBe(1)
+    expect(compactFit(320).rows).toBe(2)
+    expect(compactFit(419).rows).toBe(3)
+    expect(compactFit(419).fill).toBe(true)
+  })
+
+  // Above the compact threshold this function is not consulted at all, but it must not invent
+  // a fourth row if it ever is.
+  it('never exceeds the row ceiling', () => {
+    expect(compactFit(5000).rows).toBe(COMPACT_MAX_ROWS)
+  })
+
+  // A ratchet on the direction that matters: the estimates are deliberately the TALL end of
+  // what the chrome and a row cost, because being wrong that way drops a row, and being wrong
+  // the other way pushes the button out of the box.
+  it('rounds against showing a row it cannot fit', () => {
+    // One row's worth of space, minus a pixel, is zero rows — never one that overflows.
+    expect(compactFit(COMPACT_CHROME_PX + COMPACT_ROW_PX - 1).rows).toBe(0)
+    expect(compactFit(COMPACT_CHROME_PX + COMPACT_ROW_PX).rows).toBe(1)
+  })
+})
+
+describe('slotDecision — the fit rides along', () => {
+  // One DOM read at mount answers all three questions, so nothing can drift between them.
+  it('derives the fit from the same metrics as the form', () => {
+    expect(slotDecision('auto', false, { ...SIDEBAR, elementHeight: 300 }).fit).toEqual({
+      fill: true,
+      rows: 1,
+    })
+    expect(slotDecision('auto', true, SIDEBAR).fit.fill).toBe(false)
   })
 })

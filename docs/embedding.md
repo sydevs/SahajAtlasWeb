@@ -273,14 +273,21 @@ console** when it detects that placement instead of leaving you to discover it.
 ### When the slot is too small
 
 Below a certain size there is no layout that works, so the widget stops trying to fit one in
-and shows a **compact card** instead: a couple of upcoming classes and one button, which opens
-the whole interface in a full-screen overlay. Your visitor still gets everything; it just does
-not try to live in a 300-pixel box.
+and shows a **compact card** instead: a button that opens the whole interface in a full-screen
+overlay, with a couple of upcoming classes above it when there is room. Your visitor still gets
+everything; it just does not try to live in a 300-pixel box.
+
+**The card takes only the room it needs.** The button is the part that always renders; the
+preview classes appear only when your box has spare height above it, and the content is centred
+both ways inside whatever box you gave. If you gave the element **no height at all**, the card
+sizes to its own content rather than collapsing — so a bare `<sahaj-atlas>` in a narrow column
+renders as a card in your page's flow instead of appearing not to render. A card showing no
+preview rows also makes **no data requests at all**, including the IP lookup.
 
 The floors are **360px wide and 420px tall**. The width is measured on the element itself, or
 on the column it sits in when the element has no box of its own; the height is only ever read
 from the element, so **an element you have given no height is never called too short** — only
-too narrow. A slot that is essentially the whole screen is never called too small either,
+too narrow, and it then sizes to the card's own content as above. A slot that is essentially the whole screen is never called too small either,
 because there would be nothing bigger to expand into: a full-width embed on a phone keeps the
 normal interface.
 

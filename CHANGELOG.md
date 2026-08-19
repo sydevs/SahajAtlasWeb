@@ -24,9 +24,16 @@ cover everything a host would notice since the widget was first deployed.
 ### Added
 
 - **A slot too small for the interface now gets a compact card instead of a cramped one.**
-  ([#161]) Below 360×420px the widget shows a heading, a couple of upcoming classes and one
-  button — "Find a class near you" — which opens the whole interface in a full-screen overlay
-  and closes back to where you were. This is what the `compact` parameter has always
+  ([#161]) Below 360×420px the widget shows one button — "Find a class near you" — which opens
+  the whole interface in a full-screen overlay and closes back to where you were, with a couple
+  of upcoming classes above it when your box has room for them.
+
+  **The card takes only the room it needs.** The button always renders; the preview classes
+  appear only when there is spare height above it, and the content is centred both ways in
+  whatever box you gave. An element with **no height of its own** sizes to the card's content
+  instead of collapsing, so a bare `<sahaj-atlas>` in a column renders in your page's flow
+  rather than appearing not to render at all. A card with no preview rows makes no data
+  requests, the IP lookup included. This is what the `compact` parameter has always
   described: `auto` measures, `always` and `never` force it either way, and an unrecognised
   value still falls back to `auto`.
 

@@ -336,10 +336,82 @@ export const SURFACE_CONFINED_MESSAGE =
   'way out. It has been closed instead. Check for an ancestor with transform / filter / ' +
   'contain, or one that is hidden while the widget is open.'
 
+// ===== HOW MUCH OF THE CARD FITS? ===== //
+
+/**
+ * What the compact card can afford to draw in this slot.
+ *
+ * **A third question, and it is genuinely distinct from the other two.** `mapSlotWarning` asks
+ * *"did somebody intend a box here?"*; `embedForm` asks *"does the interface fit?"*; this asks
+ * *"does anything beyond the button fit?"*. The first two decide whether to warn and what to
+ * render — this one decides how much of what we render survives contact with the host's box.
+ *
+ * The button is the card's irreducible content: it is the whole point of the compact form, so
+ * it is never traded away for a preview row. Everything above it is optional and appears only
+ * when the box has room to spare.
+ */
+export type CompactFit = {
+  /**
+   * Does the host's box have a height to fill?
+   *
+   * `false` means the element carries no height of its own — the common case for a bare
+   * `<sahaj-atlas>` dropped into a narrow column — and the card must then take its CONTENT
+   * height rather than `h-full`, which would resolve against nothing. The theme root is
+   * `display: contents`, so the card's own div is the layout box in the host's flow; sizing
+   * to content needs no cooperation from the element or the loader.
+   */
+  fill: boolean
+  /** How many preview rows fit above the button. Zero means the button alone. */
+  rows: number
+}
+
+/**
+ * The card's irreducible height in px: its padding, its heading, and the button.
+ *
+ * A deliberate over-estimate of the real ~90px. Being wrong in this direction drops a row that
+ * would have fitted; being wrong the other way pushes the button out of a box the host sized,
+ * and the button is the one thing that must always be reachable.
+ */
+export const COMPACT_CHROME_PX = 112
+
+/**
+ * A preview row's height in px.
+ *
+ * `EventListItem` is not a fixed height — a title can wrap to two lines and an online class
+ * carries an extra line — so this is the tall end of what one costs rather than the average.
+ * Same bias as above: fewer rows, never a clipped button.
+ */
+export const COMPACT_ROW_PX = 96
+
+/**
+ * The most rows the card will ever show, however tall the box.
+ *
+ * The compact form exists because the slot is under 360×420; a box that could hold more than
+ * three preview rows would not have been called too small in the first place.
+ */
+export const COMPACT_MAX_ROWS = 3
+
+/**
+ * What a surface with no measured box renders: content height, and every row it has.
+ *
+ * The standalone build and every Ladle story land here — neither is a host slot, and neither
+ * should be trimmed as though it were one.
+ */
+export const DEFAULT_COMPACT_FIT: CompactFit = { fill: false, rows: COMPACT_MAX_ROWS }
+
+export function compactFit(elementHeight: number): CompactFit {
+  // No measurable height — including NaN — is the content-height case, not a zero-row box.
+  if (!(elementHeight > 0)) return DEFAULT_COMPACT_FIT
+
+  const spare = Math.floor((elementHeight - COMPACT_CHROME_PX) / COMPACT_ROW_PX)
+
+  return { fill: true, rows: Math.max(0, Math.min(spare, COMPACT_MAX_ROWS)) }
+}
+
 // ===== THE WHOLE DECISION, IN ONE TESTABLE PLACE ===== //
 
 /** What the slot measurement decided, and the sentences it earned. */
-export type SlotDecision = { form: EmbedForm; warnings: string[] }
+export type SlotDecision = { form: EmbedForm; fit: CompactFit; warnings: string[] }
 
 /**
  * Fold every slot question into one answer: which form to render, and what to tell the host.
@@ -365,6 +437,9 @@ export function slotDecision(
 ): SlotDecision {
   const { form, warning } = resolveEmbedForm(compact, metrics)
   const warnings = warning ? [warning] : []
+  // Derived from the same measurement, not a second one: one DOM read at mount answers all
+  // three questions, and nothing can drift between them.
+  const fit = compactFit(metrics.elementHeight)
 
   if (form === 'compact') {
     // Only the compact form has an overlay to confine, so only it pays for the walk.
@@ -372,7 +447,7 @@ export function slotDecision(
 
     if (property) warnings.push(containingBlockMessage(property))
 
-    return { form, warnings }
+    return { form, fit, warnings }
   }
 
   // The map-slot warning speaks for a full-size interface only — where the widget renders
@@ -384,5 +459,5 @@ export function slotDecision(
 
   if (slotWarning) warnings.push(SLOT_WARNING_MESSAGE[slotWarning])
 
-  return { form, warnings }
+  return { form, fit, warnings }
 }

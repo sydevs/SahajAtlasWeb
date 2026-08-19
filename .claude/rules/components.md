@@ -255,6 +255,14 @@ loader's config surface and documented to hosts with nothing reading it.
 
 Four properties, each the reason something is where it is:
 
+- **There are THREE questions here, not one, and each has its own predicate in
+  `embed-slot.ts`.** `mapSlotWarning` asks "did somebody intend a box here?"; `embedForm` asks
+  "does the interface fit?"; `compactFit` asks "does anything beyond the button fit?". All
+  three are answered from ONE measurement taken at mount, so nothing can drift between them.
+  The button is the card's irreducible content — a box too short for a single preview row still
+  gets it — and an element with no height of its own makes the card size to its CONTENT rather
+  than to an `h-full` that resolves against nothing and collapses the embed to invisible.
+  A card with no rows makes no data requests at all, the IP lookup included.
 - **The thresholds differ in KIND from `mapSlotWarning`'s**, and the docblock argues it. That
   one asks "did somebody intend a box here?" — relative, slack, a false positive costs one line
   in a stranger's console. This one asks "does the interface fit?" — absolute pixels, and a

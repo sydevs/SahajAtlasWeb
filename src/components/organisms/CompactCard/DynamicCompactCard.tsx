@@ -1,4 +1,5 @@
 import type { Position } from 'geojson'
+import type { CompactFit } from '@/lib/embed-slot'
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -26,23 +27,35 @@ import { reportInternalError } from '@/lib/report'
  *
  * The IP lookup is the one thing it asks the network for, and it is the same once-per-session,
  * keyless lookup the full interface already makes from its root view (`GeolocationSuggestion`)
- * — no new origin, no new exposure, and `docs/embedding.md` already lists it. Without it the
- * rows fall back to the soonest classes rather than pretending to know where anybody is.
+ * — no new origin, and gated the same way, plus a gate of its own: a card with no room for
+ * rows never fires it at all. Without it the rows fall back to the soonest classes rather than
+ * pretending to know where anybody is.
  */
-export function DynamicCompactCard() {
+export type DynamicCompactCardProps = {
+  /** What the host's box can hold — see `compactFit` (`lib/embed-slot.ts`). */
+  fit: CompactFit
+}
+
+export function DynamicCompactCard({ fit }: DynamicCompactCardProps) {
   const { locale } = useLocale()
   const { expand } = useExpansion()
+  // **Nothing is read for a card that shows no rows.** A box with room for the button alone
+  // has nothing to put the feed or the location into, so a button-only card is worth exactly
+  // zero requests — including the third-party IP lookup, which is the one this file could
+  // most easily have made on every page view of a sidebar embed nobody scrolls to.
+  const wantsRows = fit.rows > 0
   // Gated, like every other call site. A visitor who dismissed the nearby prompt has answered
   // this question, and `docs/embedding.md` promises the lookup is skipped when no feature that
   // needs it could show — an ungated call here would quietly make that sentence false.
-  const ipLocation = useIpLocation(!readGeolocationDismissed())
+  const ipLocation = useIpLocation(wantsRows && !readGeolocationDismissed())
 
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
+    enabled: wantsRows,
   })
-  const { data: titles } = useQuery(eventTitlesQuery(locale))
+  const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: wantsRows })
 
   // Memoized so the array below has a stable identity: the lookup's own result is one cached
   // object for the session, so this changes exactly when the guess does.
@@ -54,10 +67,10 @@ export function DynamicCompactCard() {
     // Both reads are non-suspense and land independently, so the feed can arrive before the
     // titles do. Rendering then would give every row `title: ''` — cards with no accessible
     // name — so the preview waits for the pair rather than flashing nameless rows.
-    if (!geojson || !titles) return []
+    if (!wantsRows || !geojson || !titles) return []
 
     try {
-      return compactRows(geojson, from).map((feature) =>
+      return compactRows(geojson, from, fit.rows).map((feature) =>
         // `toSlim` rather than a second shaping here: the route derivation guards a
         // CMS-authored `webPath` before it reaches an href, and one definition of that is
         // the point of exporting it.
@@ -73,7 +86,7 @@ export function DynamicCompactCard() {
 
       return []
     }
-  }, [geojson, titles, from])
+  }, [wantsRows, fit.rows, geojson, titles, from])
 
-  return <CompactCard events={events} onOpen={expand} />
+  return <CompactCard events={events} fill={fit.fill} onOpen={expand} />
 }

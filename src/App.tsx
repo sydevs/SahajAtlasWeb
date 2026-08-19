@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
-import type { EmbedForm } from '@/lib/embed-slot'
+import type { CompactFit, EmbedForm } from '@/lib/embed-slot'
 
 import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -20,6 +20,7 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
+import { DEFAULT_COMPACT_FIT } from '@/lib/embed-slot'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { DynamicCompactCard, Mapbox, ReportIssueModal } from '@/components/organisms'
 import { ExpandedSurface } from '@/components/atoms'
@@ -114,6 +115,9 @@ type AppProps = {
   // `full` is the default and the only answer the standalone build ever gives: it owns its
   // page, so there is nothing to degrade to and nowhere bigger to expand into.
   form?: EmbedForm
+  // How much of the compact card the host's box can hold — the same mount measurement `form`
+  // came from, so the two cannot disagree. Only read in the compact form.
+  compactFit?: CompactFit
   // Is the route on screen in the URL, and therefore shareable? True for both routers
   // that write one (BrowserRouter standalone, the query router embedded); the embedded widget
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
@@ -134,6 +138,7 @@ export default function App({
   standalone = false,
   hasMap = true,
   form = 'full',
+  compactFit = DEFAULT_COMPACT_FIT,
   linkable = true,
   routing = 'query',
 }: AppProps) {
@@ -162,6 +167,7 @@ export default function App({
             >
               <AppShell
                 apiKey={apiKey}
+                compactFit={compactFit}
                 defaultLocale={defaultLocale}
                 form={form}
                 hasMap={hasMap}
@@ -207,6 +213,7 @@ type AppShellProps = {
   standalone: boolean
   hasMap: boolean
   form: EmbedForm
+  compactFit: CompactFit
   linkable: boolean
   routing: RoutingMode
 }
@@ -217,6 +224,7 @@ function AppShell({
   standalone,
   hasMap,
   form,
+  compactFit,
   linkable,
   routing,
 }: AppShellProps) {
@@ -327,7 +335,7 @@ function AppShell({
         </Suspense>
       )}
       {form === 'compact' ? (
-        <CompactShell>{interfaceElement}</CompactShell>
+        <CompactShell fit={compactFit}>{interfaceElement}</CompactShell>
       ) : (
         <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}
@@ -355,21 +363,21 @@ function AppShell({
  * React never renders until the surface opens — which is what makes the paragraph above true
  * rather than aspirational.
  */
-function CompactShell({ children }: { children: ReactNode }) {
+function CompactShell({ fit, children }: { fit: CompactFit; children: ReactNode }) {
   return (
     <LocalExpansionProvider>
-      <CompactForm>{children}</CompactForm>
+      <CompactForm fit={fit}>{children}</CompactForm>
     </LocalExpansionProvider>
   )
 }
 
-function CompactForm({ children }: { children: ReactNode }) {
+function CompactForm({ fit, children }: { fit: CompactFit; children: ReactNode }) {
   const { t } = useLocale()
   const { expanded, collapse } = useExpansion()
 
   return (
     <>
-      <DynamicCompactCard />
+      <DynamicCompactCard fit={fit} />
       <ExpandedSurface
         collapseLabel={t('close')}
         open={expanded}

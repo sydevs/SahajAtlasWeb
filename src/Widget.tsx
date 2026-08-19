@@ -15,7 +15,12 @@ import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
-import { type SlotDecision, containingBlockProperty, slotDecision } from './lib/embed-slot'
+import {
+  type SlotDecision,
+  compactFit,
+  containingBlockProperty,
+  slotDecision,
+} from './lib/embed-slot'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { mountDecision } from './lib/shape'
 import { queryClient } from './config/query-client'
@@ -144,6 +149,7 @@ function Atlas() {
   }
 
   const form = slot.current.form
+  const fit = slot.current.fit
   const slotWarnings = slot.current.warnings
 
   // Reported from an effect rather than from the decision above, exactly like the routing
@@ -179,6 +185,7 @@ function Atlas() {
     >
       <App
         apiKey={config.key ?? ''}
+        compactFit={fit}
         defaultLocale={config.locale}
         form={form}
         hasMap={hasMap}
@@ -277,7 +284,7 @@ function confiningAncestor(element: Element): string | null {
  * break the thing it is diagnosing, and a measurement must never break what it measures.
  */
 function decideSlot(compact: CompactMode, hasMap: boolean): SlotDecision {
-  if (!owner) return { form: 'full', warnings: [] }
+  if (!owner) return { form: 'full', fit: compactFit(0), warnings: [] }
 
   try {
     const box = owner.getBoundingClientRect()
@@ -301,7 +308,7 @@ function decideSlot(compact: CompactMode, hasMap: boolean): SlotDecision {
   } catch {
     // Nothing to do and nothing worth reporting: the host's own error would be the only
     // payload, and a thrown message is the one field that reaches Sentry unfiltered.
-    return { form: 'full', warnings: [] }
+    return { form: 'full', fit: compactFit(0), warnings: [] }
   }
 }
 
