@@ -20,10 +20,18 @@ import { setExpandedSurface, widgetOverlayContainer } from '@/lib/overlay'
  * header — a panel with chrome, centred in the viewport. This is the whole viewport with no
  * chrome at all, because what goes inside it is an interface that draws its own.
  *
- * Radix supplies everything a hand-rolled `fixed inset-0` div would have to reinvent: the
- * focus trap, focus restore to the control that opened it, Esc, `aria-modal`, and — through
- * `Dialog.Overlay`, which is where `react-remove-scroll` actually lives — the host page's
- * scroll lock, which `docs/embedding.md` documents as an honest exception.
+ * Radix supplies most of what a hand-rolled `fixed inset-0` div would have to reinvent: the
+ * focus trap, `aria-modal`, and — through `Dialog.Overlay`, which is where
+ * `react-remove-scroll` actually lives — the host page's scroll lock, which
+ * `docs/embedding.md` documents as an honest exception. Focus restore is ours (see `opener`
+ * below), and so, in practice, is the way out.
+ *
+ * **Escape does not reach this dialog, and that is correct rather than broken.** The drawer
+ * stack inside it is vaul, which is Radix Dialog underneath, so its dismissable layer sits
+ * ABOVE this one and Radix delivers the key to the topmost layer only — Escape dismisses the
+ * drawer the viewer is actually looking at, which is what they mean by it. Verified in a
+ * browser, including at the stack's root where nothing is left to dismiss and the key does
+ * nothing at all. That is exactly why the collapse control below is not optional.
  *
  * **Every portal in the app is redirected inside it while it is open** (`setExpandedSurface`).
  * That is not tidiness: a modal dialog traps focus in its own content and hides everything
@@ -141,6 +149,11 @@ export function ExpandedSurface({
             surfaceRef.current?.focus()
           }}
         >
+          {/* Entry only, and the exit is instant on purpose: animating the way out needs
+              `forceMount`, which keeps the expanded interface — the Mapbox canvas included —
+              mounted while collapsed, and not mounting it is the entire point of the compact
+              form. framer rather than CSS so `MotionConfig` covers it, which is what keeps
+              reduced motion to three seams instead of four (`.claude/rules/components.md`). */}
           <motion.div
             ref={adopt}
             animate={{ opacity: 1 }}
@@ -150,14 +163,11 @@ export function ExpandedSurface({
             transition={{ duration: 0.15 }}
           >
             <Dialog.Title className="sr-only">{title}</Dialog.Title>
-            {/* Entry only, and the exit is instant on purpose: animating the way out needs
-                `forceMount`, which keeps the expanded interface — the Mapbox canvas included —
-                mounted while collapsed, and not mounting it is the entire point of the compact
-                form. framer rather than CSS so `MotionConfig` covers it, which is what keeps
-                reduced motion to three seams instead of four (`.claude/rules/components.md`). */}
+            {/* Held back until the ref above has published this node, so the first drawer
+                portals inside the dialog rather than beside it. */}
             {node && children}
-            {/* The only chrome, and it has to exist: the interface inside covers the viewport,
-                so Esc is the sole other way out and a touch visitor has no Esc. `absolute`
+            {/* The only chrome, and it is the ONLY way out — see the Escape note above.
+                `absolute`
                 inside a `fixed inset-0` parent is viewport-positioned; `end-3` is logical, so
                 it follows `dir`. The map's own control column is nudged clear of it in
                 `globals.css`, keyed on the attribute above. */}
