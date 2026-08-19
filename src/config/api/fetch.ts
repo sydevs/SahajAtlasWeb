@@ -313,7 +313,16 @@ const indexedFeed = (regions: RegionNode[], geojson: Geojson) => {
 // (from the per-locale titles map — `''` if a title is somehow missing, so a data
 // gap can't fail the parse). The feed carries the canonical `webPath`; fall back to
 // a flat `/id` only if it's ever absent.
-const toSlim = (feature: GeoFeature, title: string | undefined, from?: Position): EventSlim =>
+//
+// Exported for the compact card (issue #161), which derives its two or three rows from the
+// same cached feed without going through a fetcher — the same reason `shapeEventDoc` is
+// exported for live preview. The `webPath` guard is why: a CMS-authored path reaching an href
+// must pass `safePath` in exactly one place, not once per caller.
+export const toSlim = (
+  feature: GeoFeature,
+  title: string | undefined,
+  from?: Position,
+): EventSlim =>
   EventSlimSchema.parse({
     ...feature.properties,
     title: title ?? '',
