@@ -1,5 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
+import type { EmbedForm } from '@/lib/embed-slot'
 
 import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -20,7 +21,9 @@ import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
-import { Mapbox, ReportIssueModal } from '@/components/organisms'
+import { DynamicCompactCard, Mapbox, ReportIssueModal } from '@/components/organisms'
+import { ExpandedSurface } from '@/components/atoms'
+import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
@@ -105,6 +108,11 @@ type AppProps = {
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
+  // Whether this slot can hold the interface at all, decided once at mount by
+  // `resolveEmbedForm` (`lib/embed-slot.ts`) and passed down from the widget entry (#161).
+  // `full` is the default and the only answer the standalone build ever gives: it owns its
+  // page, so there is nothing to degrade to and nowhere bigger to expand into.
+  form?: EmbedForm
   // Is the route on screen in the URL, and therefore shareable? True for both routers
   // that write one (BrowserRouter standalone, the query router embedded); the embedded widget
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
@@ -124,6 +132,7 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
+  form = 'full',
   linkable = true,
   routing = 'query',
 }: AppProps) {
@@ -153,6 +162,7 @@ export default function App({
               <AppShell
                 apiKey={apiKey}
                 defaultLocale={defaultLocale}
+                form={form}
                 hasMap={hasMap}
                 linkable={linkable}
                 routing={routing}
@@ -195,11 +205,20 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
+  form: EmbedForm
   linkable: boolean
   routing: RoutingMode
 }
 
-function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing }: AppShellProps) {
+function AppShell({
+  apiKey,
+  defaultLocale,
+  standalone,
+  hasMap,
+  form,
+  linkable,
+  routing,
+}: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
@@ -287,6 +306,10 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
     Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
   }, [location.pathname, fathomEnabled, primaryDomain])
 
+  // Built as an ELEMENT, not rendered here: in the compact form it is handed to the surface
+  // and React never renders it until that opens. `interface` is a reserved word.
+  const interface_ = <FullInterface hasMap={hasMap} />
+
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
@@ -302,9 +325,71 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
           <PreviewController />
         </Suspense>
       )}
-      {hasMap ? (
-        <MapProvider>
-          {/* Inline fixed/inset so the map always fills the viewport behind the
+      {form === 'compact' ? (
+        <CompactShell>{interface_}</CompactShell>
+      ) : (
+        <NoExpansionProvider>{interface_}</NoExpansionProvider>
+      )}
+    </WidgetModeContext.Provider>
+  )
+}
+
+// ===== THE COMPACT FORM ===== //
+
+/**
+ * The widget in a slot too small for it: a card, and a way out of the card (issue #161).
+ *
+ * **It sits here rather than deeper, and above `MapProvider`, for one measurable reason** —
+ * `AppShell` is the only component above the map subtree, so this is the only place from which
+ * the whole of it can be left unmounted. mapbox-gl is the app's single largest second hop and
+ * `react-map-gl` only imports it when a map actually mounts, so a compact embed never fetches
+ * it at all. That saving is **invisible to `pnpm size` by design**: the gate budgets the eager
+ * graph, and mapbox-gl is a dynamic import that was never in it.
+ *
+ * `DrawerStack`'s own `useIsWide(container)` is untouched by any of this. Wide-vs-narrow and
+ * compact-vs-full are different questions asked of the same box: the first picks a side panel
+ * or a bottom sheet, the second asks whether either would fit.
+ *
+ * The interface is passed as `children` rather than constructed here, so it is an element that
+ * React never renders until the surface opens — which is what makes the paragraph above true
+ * rather than aspirational.
+ */
+function CompactShell({ children }: { children: ReactNode }) {
+  return (
+    <LocalExpansionProvider>
+      <CompactForm>{children}</CompactForm>
+    </LocalExpansionProvider>
+  )
+}
+
+function CompactForm({ children }: { children: ReactNode }) {
+  const { t } = useLocale()
+  const { expanded, collapse } = useExpansion()
+
+  return (
+    <>
+      <DynamicCompactCard />
+      <ExpandedSurface
+        collapseLabel={t('close')}
+        open={expanded}
+        // The same name the widget's own landmark carries, for the same reason: a dialog
+        // whose accessible name resolves empty is announced as an unlabelled group.
+        title={t('widget.label')}
+        onOpenChange={(open) => !open && collapse()}
+      >
+        {children}
+      </ExpandedSurface>
+    </>
+  )
+}
+
+// ===== THE FULL INTERFACE ===== //
+
+/** The map (or not) and the drawer stack over it — everything below the form decision. */
+function FullInterface({ hasMap }: { hasMap: boolean }) {
+  return hasMap ? (
+    <MapProvider>
+      {/* Inline fixed/inset so the map always fills the viewport behind the
               drawers — independent of Tailwind viewport-unit utility generation.
 
               **This is why map mode requires a FULL-PAGE slot, and issue #107 settled
@@ -319,18 +404,16 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
               stays inside its box, and it is container-relative throughout (#107).
               A host that gets this wrong now hears about it: `Widget.tsx` warns at mount
               via `lib/embed-slot.ts`, rather than silently painting over their page. */}
-          <div style={{ position: 'fixed', inset: 0 }}>
-            <Mapbox />
-          </div>
-          <RealMapControllerProvider>
-            <DrawerStack />
-          </RealMapControllerProvider>
-        </MapProvider>
-      ) : (
-        <NoopMapControllerProvider>
-          <DrawerStack />
-        </NoopMapControllerProvider>
-      )}
-    </WidgetModeContext.Provider>
+      <div style={{ position: 'fixed', inset: 0 }}>
+        <Mapbox />
+      </div>
+      <RealMapControllerProvider>
+        <DrawerStack />
+      </RealMapControllerProvider>
+    </MapProvider>
+  ) : (
+    <NoopMapControllerProvider>
+      <DrawerStack />
+    </NoopMapControllerProvider>
   )
 }
