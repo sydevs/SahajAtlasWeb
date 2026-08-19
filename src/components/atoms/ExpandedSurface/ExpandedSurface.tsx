@@ -4,7 +4,9 @@ import { motion } from 'framer-motion'
 
 import { Button } from '@/components/atoms/Button'
 import { CloseIcon } from '@/components/atoms/Icons'
+import { SURFACE_CONFINED_MESSAGE, surfaceCoversPage } from '@/lib/embed-slot'
 import { setExpandedSurface, widgetOverlayContainer } from '@/lib/overlay'
+import { reportIntegrationWarning } from '@/lib/report'
 
 /**
  * **Expansion is not a new layout — it is map mode's layout made explicit and reversible.**
@@ -26,12 +28,17 @@ import { setExpandedSurface, widgetOverlayContainer } from '@/lib/overlay'
  * `docs/embedding.md` documents as an honest exception. Focus restore is ours (see `opener`
  * below), and so, in practice, is the way out.
  *
- * **Escape does not reach this dialog, and that is correct rather than broken.** The drawer
- * stack inside it is vaul, which is Radix Dialog underneath, so its dismissable layer sits
- * ABOVE this one and Radix delivers the key to the topmost layer only — Escape dismisses the
- * drawer the viewer is actually looking at, which is what they mean by it. Verified in a
- * browser, including at the stack's root where nothing is left to dismiss and the key does
- * nothing at all. That is exactly why the collapse control below is not optional.
+ * **Escape never reaches this dialog, and the way out is built elsewhere.** The drawer stack
+ * inside it is vaul, which is Radix Dialog underneath, so its dismissable layer sits ABOVE
+ * this one and Radix delivers the key to the topmost layer alone — verified in a browser.
+ * Escape dismissing the drawer the viewer is looking at is right; Escape doing NOTHING once
+ * the stack has nowhere left to go is not, because the collapse control is then the only exit
+ * and a host can hide it. So `DrawerStack` finishes the ladder by calling
+ * `useExpansion().collapse()` from its own `onEscapeKeyDown` — see the comment there.
+ *
+ * The same reasoning is why this surface watches its own box: everything it does to the host
+ * page (scroll lock, `aria-hidden`, a single exit) is safe only while it genuinely covers the
+ * viewport, and it closes itself rather than trapping a visitor when it does not.
  *
  * **Every portal in the app is redirected inside it while it is open** (`setExpandedSurface`).
  * That is not tidiness: a modal dialog traps focus in its own content and hides everything
@@ -88,37 +95,79 @@ export function ExpandedSurface({
   // Who to give focus back to on collapse.
   //
   // **Radix's own restore targets `Dialog.Trigger`, and there is deliberately no trigger
-  // here**: expansion is requested through the seam (`useExpansion`), from a control that
-  // may be anywhere — the card's button today, a row press, a frame message later. With no
-  // trigger Radix prevents the default restore and focuses nothing, so a keyboard viewer who
-  // collapses the widget is dropped on `<body>` — back at the top of the HOST's page, not on
-  // the control they pressed. Verified in a browser; this is the same record-and-restore
-  // `useReportModal` keeps beside its store, for the same reason.
+  // here**: expansion is requested through the seam (`useExpansion`), from a control that may
+  // be anywhere — the card's button today, a row press, a frame message later. With no trigger
+  // Radix prevents the default restore and focuses nothing, so a keyboard viewer who collapses
+  // the widget is dropped on `<body>` — back at the top of the HOST's page, not on the control
+  // they pressed. Verified in a browser; the same record-and-restore `useReportModal` keeps
+  // beside its store, for the same reason.
   //
   // Tracked while CLOSED rather than read at open time, because by the time an effect here
   // could run, Radix has already moved focus into the dialog — child effects run before the
   // parent's.
+  //
+  // **Both the listening and the restoring are confined to the widget's own root, and that is
+  // a correctness fix rather than hygiene.** Safari and Firefox on macOS do not focus a
+  // `<button>` on click, so pressing the card's button fires no `focusin` at all — listening
+  // on `document` would leave this pointing at whatever the HOST had focused earlier (a search
+  // box, a newsletter field, a login input), and collapsing would then focus it, scrolling
+  // their page there and raising the keyboard on a phone. Scoped, the worst case is that we
+  // restore nothing, which is exactly Radix's own default. It also means the widget installs
+  // no permanent listener on a document it does not own, and cannot pin a removed host subtree
+  // in memory.
   const opener = useRef<HTMLElement | null>(null)
 
+  // Refuse to trap somebody on a page we have made unusable.
+  //
+  // This surface locks the host's scroll, hides the rest of their page from assistive
+  // technology and makes its collapse control the only way out. All three are fine while it
+  // genuinely covers the viewport — and none of them are if the host has confined it to the
+  // embed's own slot or hidden that slot while it is open. Watching the box rather than
+  // measuring once is what covers the second case, which no mount-time check can see.
   useEffect(() => {
-    if (open) return
+    const node = surfaceRef.current
+
+    if (!open || !node || typeof ResizeObserver === 'undefined') return
+
+    const check = () => {
+      if (surfaceCoversPage(node.getBoundingClientRect(), window.innerWidth, window.innerHeight)) {
+        return
+      }
+
+      reportIntegrationWarning(SURFACE_CONFINED_MESSAGE)
+      onOpenChange(false)
+    }
+
+    const observer = new ResizeObserver(check)
+
+    observer.observe(node)
+
+    return () => observer.disconnect()
+    // `node` comes off the ref, so this re-runs when the surface mounts (the adopt callback
+    // re-renders) rather than on a stale null.
+  }, [open, node, onOpenChange])
+
+  useEffect(() => {
+    const root = widgetOverlayContainer()
+
+    if (open || !root) return
 
     const remember = () => {
       const active = document.activeElement as HTMLElement | null
 
-      // Never remember something inside ourselves. React runs this effect's cleanup and the
-      // dialog's own focus move in the same commit, and the order is the library's to choose
-      // — measured, the surface's mount focus lands here first, and remembering it means
-      // restoring focus to a node that is gone by the time anyone asks.
-      if (active && surfaceRef.current?.contains(active)) return
+      // Only ever something of ours, and never something inside the surface itself: the
+      // surface is a descendant of this root, and the dialog's own mount focus can land here
+      // before React has run this effect's cleanup — remembering it would mean restoring
+      // focus to a node that is gone by the time anyone asks.
+      if (!active || !root.contains(active) || surfaceRef.current?.contains(active)) return
 
       opener.current = active
     }
 
     remember()
-    document.addEventListener('focusin', remember)
+    root.addEventListener('focusin', remember)
 
-    return () => document.removeEventListener('focusin', remember)
+    return () => root.removeEventListener('focusin', remember)
   }, [open])
 
   return (
@@ -133,11 +182,17 @@ export function ExpandedSurface({
           aria-describedby={undefined}
           // Give focus back to the control that asked for the expansion. `preventDefault`
           // first: Radix composes its own handler after this one and skips it only when the
-          // default is prevented. Guarded on `isConnected` — the opener may have been
-          // re-rendered away while the widget was expanded.
+          // default is prevented. Re-checked against the widget root rather than trusted —
+          // `isConnected` alone would still be true for a host element, and the recorder is
+          // not the only thing that could have written here.
           onCloseAutoFocus={(event) => {
             event.preventDefault()
-            if (opener.current?.isConnected) opener.current.focus()
+
+            const root = widgetOverlayContainer()
+
+            if (opener.current?.isConnected && root?.contains(opener.current)) {
+              opener.current.focus()
+            }
           }}
           // Focus the surface itself, not the first control inside it. Radix's default sends
           // focus to the first tabbable, which here is whatever chrome the interface happens
@@ -166,8 +221,8 @@ export function ExpandedSurface({
             {/* Held back until the ref above has published this node, so the first drawer
                 portals inside the dialog rather than beside it. */}
             {node && children}
-            {/* The only chrome, and it is the ONLY way out — see the Escape note above.
-                `absolute`
+            {/* The only chrome. Not the only way out any more — Escape reaches us through
+                `DrawerStack` — but the one a pointer can use. `absolute`
                 inside a `fixed inset-0` parent is viewport-positioned; `end-3` is logical, so
                 it follows `dir`. The map's own control column is nudged clear of it in
                 `globals.css`, keyed on the attribute above. */}

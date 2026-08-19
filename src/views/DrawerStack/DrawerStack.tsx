@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
@@ -242,6 +243,9 @@ export function DrawerStack() {
   // reason — a second call would double this component's i18next subscription, and
   // DrawerStack re-renders on every geocoder keystroke.
   const { t, locale } = useLocale()
+  // Read unconditionally, like every other seam consumer: with no surface above us this is
+  // the no-op provider and the Escape ladder below simply ends where it always did.
+  const { collapse } = useExpansion()
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less
@@ -529,6 +533,29 @@ export function DrawerStack() {
     <DrawerContent
       aria-label={t('free_meditation_classes')}
       handle={direction === 'bottom' && sheetDismissible}
+      /**
+       * The last rung of the Escape ladder, and the only place it can be built.
+       *
+       * A drawer is always the TOPMOST dismissable layer — vaul is a Radix dialog underneath
+       * — and Radix delivers Escape to the topmost layer alone. So nothing containing the
+       * widget can ever see the key, and inside a compact embed the thing containing it is
+       * the expanded surface, whose collapse control is otherwise the only way out. If the
+       * host has hidden, confined or scrolled that control away, a visitor with no Escape is
+       * locked out of the page until they reload (issue #161).
+       *
+       * The ladder is innermost-first: the stack dismisses while it has somewhere to go, the
+       * sheet collapses to its peek while it can, and only then does the key belong outward.
+       * `collapse()` is a no-op with no surface above us — the seam's whole point — so a
+       * normal embed reaches this line and nothing changes: at that point vaul's own
+       * dismissal was already a no-op too (`dismissAction` returns 'collapse', and the sheet
+       * is either already collapsed or has no snap points to collapse to).
+       */
+      onEscapeKeyDown={(event) => {
+        if (control.canDismiss || (control.canCollapse && !control.collapsed)) return
+
+        event.preventDefault()
+        collapse()
+      }}
     >
       <AnimatePresence mode="popLayout">
         <motion.div

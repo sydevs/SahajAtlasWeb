@@ -164,20 +164,37 @@ export function embedForm(metrics: SlotMetrics): EmbedForm {
   return 'full'
 }
 
-/** What we measured, in the host's own vocabulary — the numbers they can go and change. */
-const describeSlot = ({ slotWidth, elementWidth, elementHeight }: SlotMetrics): string =>
-  `${Math.round(elementWidth > 0 ? elementWidth : slotWidth)}×${Math.round(elementHeight)}px`
+/**
+ * What we measured, in the host's own vocabulary — the numbers they can go and change.
+ *
+ * **Only the axes that were actually measured.** The height has no column to fall back on, and
+ * at the moment this runs `<sahaj-atlas>` is still empty — so an element the host has not sized
+ * is `display: inline` with no in-flow content and measures 0 tall. That is the headline case
+ * for this whole feature (a bare element dropped into a narrow sidebar), and reporting it as
+ * "300×0px" both names a number the host cannot act on and points at the opposite of the fix:
+ * in map mode an explicit element height is the thing `SLOT_WARNING_MESSAGE.boxed` tells them
+ * NOT to set.
+ */
+const describeSlot = ({ slotWidth, elementWidth, elementHeight }: SlotMetrics): string => {
+  const width = elementWidth > 0 ? elementWidth : slotWidth
+  const parts: string[] = []
+
+  if (width > 0) parts.push(`${Math.round(width)}px wide`)
+  if (elementHeight > 0) parts.push(`${Math.round(elementHeight)}px tall`)
+
+  return parts.join(' × ') || 'nothing measurable'
+}
 
 /** Kept beside the predicate, like `SLOT_WARNING_MESSAGE`, so the numbers cannot drift. */
 const threshold = () => `${COMPACT_MAX_WIDTH_PX}×${COMPACT_MAX_HEIGHT_PX}px`
 
 export const compactEnteredMessage = (measured: string): string =>
-  `this embed's slot measured ${measured}, below the ${threshold()} the full interface needs — ` +
+  `this embed's slot measured ${measured}, under the ${threshold()} the full interface needs — ` +
   'showing a compact card that expands instead. Give the element more room, or set ' +
   'compact=never on the script URL to keep the full interface at this size.'
 
 export const compactDeclinedMessage = (measured: string): string =>
-  `this embed's slot measured ${measured}, below the ${threshold()} the full interface needs, ` +
+  `this embed's slot measured ${measured}, under the ${threshold()} the full interface needs, ` +
   'but compact=never is set — so the interface will be cramped. Give the element more room, or ' +
   'drop compact=never to let it fall back to a card that expands.'
 
@@ -273,3 +290,99 @@ export const containingBlockMessage = (property: string): string =>
   `an ancestor of this embed sets \`${property}\`, which makes it the containing block for ` +
   'fixed-position elements — so the expanded view will be confined to that element instead of ' +
   'covering the page. Move the embed outside it, or drop that property.'
+
+/**
+ * The share of the viewport the expanded surface must actually cover to be trusted.
+ *
+ * Slack on purpose: a scrollbar, a host `zoom`, a sub-pixel rounding — none of those mean the
+ * overlay is broken. Half the viewport is nowhere near any of them, and comfortably below the
+ * cases that ARE broken (a confining ancestor is the embed's own slot, and a hidden one is 0).
+ */
+export const SURFACE_MIN_COVERAGE = 0.5
+
+/**
+ * Is this surface actually covering the page it claims to?
+ *
+ * **A modal that covers nothing is worse than no modal at all.** The expanded surface locks the
+ * host's scroll, marks the rest of the page `aria-hidden` and makes its collapse control the
+ * only way out — so if the host has confined it to the embed's own slot (a `transform` ancestor)
+ * or hidden the slot outright (a tab panel, an accordion, an off-canvas menu), the visitor is
+ * left on a page they cannot scroll, read or click, with the one exit off-screen. That is the
+ * widget breaking somebody else's page, and it needs no attacker to happen.
+ *
+ * `containingBlockProperty` warns about one cause of this at mount; this catches the state
+ * itself, whatever caused it and whenever it starts — including a host that hides the slot
+ * while the surface is already open.
+ */
+export function surfaceCoversPage(
+  box: { width: number; height: number },
+  viewportWidth: number,
+  viewportHeight: number,
+): boolean {
+  // Unmeasurable means "no evidence of a problem", the same bias every other predicate here
+  // takes: a surface that cannot be measured must not be torn down on suspicion.
+  if (!(viewportWidth > 0) || !(viewportHeight > 0)) return true
+  if (!(box.width > 0) || !(box.height > 0)) return false
+
+  return (
+    box.width >= viewportWidth * SURFACE_MIN_COVERAGE &&
+    box.height >= viewportHeight * SURFACE_MIN_COVERAGE
+  )
+}
+
+export const SURFACE_CONFINED_MESSAGE =
+  'the expanded view could not cover the page — it is confined to, or hidden by, something ' +
+  'above this embed, which would leave a visitor unable to scroll or click your page with no ' +
+  'way out. It has been closed instead. Check for an ancestor with transform / filter / ' +
+  'contain, or one that is hidden while the widget is open.'
+
+// ===== THE WHOLE DECISION, IN ONE TESTABLE PLACE ===== //
+
+/** What the slot measurement decided, and the sentences it earned. */
+export type SlotDecision = { form: EmbedForm; warnings: string[] }
+
+/**
+ * Fold every slot question into one answer: which form to render, and what to tell the host.
+ *
+ * **This exists as a pure function because the composition is where the bug was.**
+ * `embedForm`, `resolveEmbedForm`, `mapSlotWarning` and `containingBlockProperty` were each
+ * exhaustively specced, and the code joining them still suppressed the map-mode takeover
+ * warning in exactly the case the docblock above promises it survives — `compact=never` in a
+ * slot that does not fit, which is the one case where the widget really does paint over the
+ * host's page. Under `auto` the mistake was invisible, because there the form is compact and
+ * the takeover genuinely does not happen. That is the `timeoutStatus` defect
+ * `.claude/rules/tests.md` records: the fault was in the wiring, which no test of the parts
+ * could see. So the wiring is a function now, and `embed-slot.test.ts` covers it.
+ *
+ * `confining` is passed in rather than walked here: the walk is a DOM read and this module is
+ * pure. The caller (`Widget.tsx`) does it, and only when the form turns out to be compact.
+ */
+export function slotDecision(
+  compact: CompactMode,
+  hasMap: boolean,
+  metrics: SlotMetrics,
+  confining: (() => string | null) | null = null,
+): SlotDecision {
+  const { form, warning } = resolveEmbedForm(compact, metrics)
+  const warnings = warning ? [warning] : []
+
+  if (form === 'compact') {
+    // Only the compact form has an overlay to confine, so only it pays for the walk.
+    const property = confining?.()
+
+    if (property) warnings.push(containingBlockMessage(property))
+
+    return { form, warnings }
+  }
+
+  // The map-slot warning speaks for a full-size interface only — where the widget renders
+  // compact, the takeover it warns about no longer happens. It is NOT suppressed merely
+  // because `compact=never` already said something: that is precisely the case where the
+  // takeover is still real, and "the interface will be cramped" would be the wrong sentence
+  // for a widget about to cover the whole page.
+  const slotWarning = hasMap ? mapSlotWarning(metrics) : null
+
+  if (slotWarning) warnings.push(SLOT_WARNING_MESSAGE[slotWarning])
+
+  return { form, warnings }
+}

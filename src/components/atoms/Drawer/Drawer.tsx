@@ -233,6 +233,16 @@ export type DrawerContentProps = {
   className?: string
   /** Show the drag handle. Defaults to true for bottom sheets (never when filled). */
   handle?: boolean
+  /**
+   * Escape, before vaul acts on it.
+   *
+   * Forwarded to the underlying Radix dialog, which delivers the key to the TOPMOST
+   * dismissable layer only — a drawer is always that layer, so nothing outside it can see
+   * Escape while it is open. `preventDefault()` stops vaul dismissing and hands the key to
+   * this handler instead, which is the only way anything containing the drawer can ever
+   * receive it (issue #161).
+   */
+  onEscapeKeyDown?: (event: KeyboardEvent) => void
 }
 
 /** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
@@ -241,6 +251,7 @@ export function DrawerContent({
   children,
   className,
   handle,
+  onEscapeKeyDown,
 }: DrawerContentProps) {
   const { slots, direction, mode, container } = useDrawerSlots()
 
@@ -250,7 +261,11 @@ export function DrawerContent({
 
   return (
     <Vaul.Portal container={target ?? undefined}>
-      <Vaul.Content aria-describedby={undefined} className={slots.content({ className })}>
+      <Vaul.Content
+        aria-describedby={undefined}
+        className={slots.content({ className })}
+        onEscapeKeyDown={onEscapeKeyDown}
+      >
         {/* Single Radix title, sr-only — the visible header (if any) is a separate
             child, so we never render two <Dialog.Title>s. */}
         <Vaul.Title className="sr-only">{ariaLabel}</Vaul.Title>
