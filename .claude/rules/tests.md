@@ -163,7 +163,7 @@ the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
 express, an agreement with a router/DOM API that a pure test can only assume, or a library
-whose whole job IS the DOM.** Four specs qualify today:
+whose whole job IS the DOM.** Five specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
   already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
@@ -194,6 +194,12 @@ whose whole job IS the DOM.** Four specs qualify today:
   that spec alone, restoring the bug it was written for keeps the lane green. **A spec
   that can only reach a state through the door the story uses is not covering the state,
   it is covering the door.**
+- `src/lib/overlay.test.ts` — the portal target, and the one piece of module state it carries
+  (#161). Every branch is a question about a real document: which element is the theme root,
+  whether the expanded surface is still connected to it, and what `document.body` is, so a pure
+  spec could only re-assert the branch structure it was reading off the source. The
+  `isConnected` case is the one worth having — a detached target swallows every portal in the
+  app in silence, and releasing it is somebody else's effect cleanup.
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`

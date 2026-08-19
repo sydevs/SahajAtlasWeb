@@ -297,8 +297,10 @@ Four things worth knowing:
 - **Entering the compact card logs a console warning** naming the size measured and the size
   needed, so a slot you did not mean to make small is findable rather than mysterious.
 - **The overlay locks your page's scroll while it is open**, and restores it on close. It is a
-  modal dialog: Escape reaches the widget's own drawers first, and the × in the corner always
-  closes it. Focus returns to the button that opened it.
+  modal dialog, so while it is open the rest of your page is also marked `aria-hidden` — a
+  screen reader reads the widget rather than the page underneath it — and that is undone on
+  close too. Escape reaches the widget's own drawers first, so the × in the corner is the
+  control that closes the overlay; focus returns to the button that opened it.
 - ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
   make that element the containing block for fixed-position content, so the overlay is confined
   to it instead of covering the page — and the same already applies to the map, which is fixed

@@ -121,9 +121,9 @@ src/
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
   providers.tsx       # React Query + Helmet (Radix is headless; BrandTheme mounts in App)
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
-    atoms/            # Primitives: Drawer/, Modal/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
+    atoms/            # Primitives: Drawer/, Modal/, ExpandedSurface/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
     molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, ActionRow/, EventMetadata/, ImageCarousel/, ShareContent/, FormField/, Fallbacks/
-    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
+    organisms/        # Data-connected: EventsList/, CompactCard/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
   views/              # URL-driven drawer views (replace pages/): DrawerStack + Countries (the base)/Search/Calendar/Region/Online/Event/Registration/Filter/Share
@@ -133,7 +133,7 @@ src/
     mode.ts           # WidgetMode context (standalone + hasMap + linkable)
     i18n.ts           # i18next init
     responsive.ts, query-client.ts, i18n-options.ts, preview.ts, theme/
-  hooks/              # use-locale, use-mapbox, use-map-controller, use-theme, use-reduced-motion
+  hooks/              # use-locale, use-mapbox, use-map-controller, use-expansion, use-theme, use-reduced-motion
   lib/                # Pure domain helpers — no React, no i18n. shape/ holds the URL +
                       # entity codecs (filters, sort, path, country, hierarchy); geo.ts + camera.ts
                       # the maths; share/platforms.ts + country-sites.ts the static
@@ -166,6 +166,12 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   (`navigate(-1)`, restoring the prior camera) when in-widget history exists and
   only climb to the structural parent for a fresh deep link (depth 0) — never
   popping the host page's history. See `.claude/rules/i18n-and-state.md`.
+- **Form**: below 360×420px there is no layout left to adapt to, so `AppShell` renders the
+  **compact card** in place of the interface and expands into a viewport-covering surface
+  (`embedForm` in `src/lib/embed-slot.ts`, the `useExpansion` seam, issue #161). That is what
+  the `compact` parameter has meant since #149. Decided ONCE at mount, above `MapProvider` so
+  mapbox-gl is never fetched — a saving `pnpm size` cannot see, by design. See
+  `.claude/rules/components.md`.
 - **Responsive**: the widget adapts to **its own box**, not the browser window
   (`src/config/responsive.ts`, issue #107). `useIsWide`/`useIsWideWidget` measure the
   container (a ResizeObserver owned by `DrawerStack`, shared via `WidgetWidthContext`);

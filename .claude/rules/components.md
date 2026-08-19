@@ -95,6 +95,14 @@ Fewer custom components means less maintenance and a consistent look.
 - **An overlay that portals to `document.body` will render unstyled.** Everything must
   portal to `overlayContainer()` (`src/lib/overlay.ts`), which targets the theme root —
   that is inside the scope; `document.body` is not.
+  **While a compact embed is expanded, that call returns the expanded surface instead**
+  (issue #161), and the redirect is not tidiness: the surface is a MODAL Radix Dialog, so it
+  traps focus in its own content and hides its siblings from assistive technology — a drawer
+  portaled beside it would be unreachable by keyboard. The surface is the one caller that must
+  NOT see the override (a portal cannot render into its own subtree), so it reads
+  `widgetOverlayContainer()`. It is a module singleton for the same reason the theme root is:
+  `overlayContainer()` is called from render bodies inside third-party portals (vaul, Floating
+  UI) that no context of ours reaches.
 - **Host-authored rich text is sanitized by an allowlist, and the allowlist has to be
   load-bearing.** `sanitizeDescription` (`organisms/EventDetails/sanitize.ts`) is the only
   DOMPurify call in the repo. Two ways it has already been silently inert: an option that
@@ -204,6 +212,7 @@ quietly behaves like a desktop.
 | SettingsMenu cog offset — `md:start-[calc(var(--sy-drawer-w,22rem)+2rem)]` | **viewport (Tailwind)** | Map mode only (the map-less cog is `absolute` in the container). Same reason. |
 | Modal box sizing (`100dvh`/`100vw`) | **viewport** | A modal is deliberately viewport-centred; it is not a citizen of the widget's slot. |
 | `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | **viewport (Tailwind) — accepted residue** | The only two variants that fire *wrongly* in a narrow map-less embed. Both cosmetic (12px of top padding; a 28→36px icon), and both in files #107 did not own. Fix them if you are in there anyway. |
+| Compact card vs the full interface (`AppShell`) | **the slot, measured ONCE at mount** | Not one of the three signals, and deliberately not reactive — see below. |
 | Reduced motion, colour scheme | **preference** | Not a size question at all — see the three motion seams above. |
 
 Two properties of the mechanism are load-bearing:
@@ -235,6 +244,54 @@ A host that gets it wrong now **hears about it**: `Widget.tsx` warns at mount th
 `lib/embed-slot.ts` (a narrow host column, or an explicit height on the element), instead of
 silently painting over their page. The thresholds there are deliberately slack — a false
 positive lands in a stranger's console.
+
+### A slot too small for any layout: the compact form (issue #161)
+
+#107 made the widget adapt to its box. Below a floor there is no layout left to adapt to, so
+the widget stops trying: `embedForm` (`src/lib/embed-slot.ts`) picks a **compact card** — a
+heading, up to three rows and one task-named button — which expands into a viewport-covering
+surface. That is what the `compact` parameter has meant since #149, when it was added to the
+loader's config surface and documented to hosts with nothing reading it.
+
+Four properties, each the reason something is where it is:
+
+- **The thresholds differ in KIND from `mapSlotWarning`'s**, and the docblock argues it. That
+  one asks "did somebody intend a box here?" — relative, slack, a false positive costs one line
+  in a stranger's console. This one asks "does the interface fit?" — absolute pixels, and a
+  false positive changes what renders. `MIN_EXPANSION_GAIN` is what stops absolute floors
+  calling every phone too small: **a compact card is only worth offering when the overlay would
+  be bigger than the slot**, and when the slot IS the screen there is nothing to expand into.
+- **`AppShell` owns the decision, above `MapProvider`, and nothing else can.** It is the only
+  component above the map subtree, so it is the only place from which the whole of it can be
+  left unmounted — which is what keeps mapbox-gl unfetched. The interface is passed to the
+  surface as `children`, so React never renders it until the surface opens. That saving is
+  **invisible to `pnpm size` by design**: the gate budgets the eager graph, and mapbox-gl is a
+  dynamic import that was never in it.
+- **The measurement happens once, on the first render**, in `Widget.tsx`, off the element
+  itself (reachable there without a ref, because one runs per page). Not on resize: switching
+  form remounts the widget and discards the in-widget history and the drawer stack, so a host
+  page animating a sidebar would throw a visitor's session away mid-read. `DrawerStack`'s own
+  `useIsWide(container)` is untouched — wide-vs-narrow and compact-vs-full are different
+  questions asked of the same box.
+- **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape as
+  `MapController`: `LocalExpansionProvider` renders in-page, `NoExpansionProvider` answers
+  `canExpand: false`, and a framed provider lands with E1/E2 of the white-label programme.
+  Nothing branches on whether expansion is possible.
+
+**Two things about the surface were found in a browser and could not have been found any other
+way.** Escape never reaches it: the drawer stack inside is vaul, which is Radix Dialog
+underneath, so its dismissable layer is the topmost one and Radix delivers the key there —
+Escape dismisses the drawer the viewer is looking at, which is right, and makes the collapse
+control the only way out of the surface rather than a convenience. And Radix's focus restore
+targets a `Dialog.Trigger` that deliberately does not exist here (expansion is requested
+through the seam), so the surface records the opener itself — skipping anything inside its own
+subtree, because the dialog's mount focus fires while that listener is still attached.
+
+⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain` or a `will-change`
+naming one of them confines the surface to that element** — the measured table below, re-run
+for this change. `containingBlockProperty` walks for one at mount and warns, because a `fixed`
+overlay silently trapped in a 300px box looks like our bug. `container-type` is **not** on that
+list, however often it is claimed to be.
 
 ### Why there is no `@tailwindcss/container-queries`
 
