@@ -145,9 +145,11 @@ function Atlas() {
     // AFTER the tree has mounted, tearing the whole widget down and replacing it with the static
     // "could not be loaded" rung. A diagnostic must never break the thing it is diagnosing.
     try {
+      const box = element.getBoundingClientRect()
       const warning = mapSlotWarning({
         slotWidth: element.parentElement?.getBoundingClientRect().width ?? 0,
-        elementHeight: element.getBoundingClientRect().height,
+        elementWidth: box.width,
+        elementHeight: box.height,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
       })
