@@ -1,29 +1,17 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { ReactNode } from 'react'
 
+import { StorySection, StoryWrapper } from '../../ladle'
+
 import { CompactCard } from './CompactCard'
 
 import { ExpandedSurface } from '@/components/atoms/ExpandedSurface'
 import { LocalExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 
-/**
- * The widget in a slot too small for the interface (issue #161) — a heading and one control
- * that opens the whole thing somewhere it fits.
- *
- * Each story puts the card in a box of a real, measured size, because how it sits in a host's
- * slot is the thing worth looking at.
- *
- * **The buttons work.** Every `overlay` story below is wired through the real `useExpansion`
- * seam and a real `ExpandedSurface`, so pressing one opens the surface exactly as it does in
- * the app — Esc steps out, the × collapses, focus returns to the button. An earlier version of
- * these stories passed `onOpen: () => {}` and the buttons did nothing, which made the one
- * interaction worth reviewing the one thing a reviewer could not see.
- */
-export default {
-  title: 'Organisms / CompactCard',
-} satisfies StoryDefault
+export default { title: 'Organisms' } satisfies StoryDefault
 
-const Slot = ({
+/** A host slot, so each variation is seen in the kind of box it is sized against. */
+function Slot({
   width,
   height,
   children,
@@ -31,17 +19,19 @@ const Slot = ({
   width: number
   height?: number
   children: ReactNode
-}) => (
-  <div
-    className="border border-dashed border-divider"
-    style={{ width, height, display: height ? 'block' : undefined }}
-  >
-    {children}
-  </div>
-)
+}) {
+  return (
+    <div
+      className="border border-dashed border-divider"
+      style={{ width, height, display: height ? 'block' : undefined }}
+    >
+      {children}
+    </div>
+  )
+}
 
-/** The card + the surface it opens, composed exactly as `AppShell` composes them. */
-function Expandable({ fill }: { fill: boolean }) {
+/** The card wired to a real surface, so the `overlay` action does what it does in the app. */
+function Live({ fill }: { fill: boolean }) {
   const { expanded, expand, collapse } = useExpansion()
 
   return (
@@ -65,40 +55,71 @@ function Expandable({ fill }: { fill: boolean }) {
   )
 }
 
-const InSlot = ({ width, height }: { width: number; height?: number }) => (
-  <LocalExpansionProvider>
-    <Slot height={height} width={width}>
-      <Expandable fill={height !== undefined} />
-    </Slot>
-  </LocalExpansionProvider>
+/**
+ * CompactCard — what the widget shows in a slot too small for the interface (issue #161).
+ *
+ * The card takes exactly two props, and the sections below are those two props rather than a
+ * tour of the places it appears: **`action`** (where the button goes) and **`fill`** (whether
+ * the host gave the element a height). Which of them applies in a given embed is decided by
+ * `decideSlot` (`lib/slot-decision.ts`), which is measurement rather than configuration and so
+ * is specced in the node lane, not previewed here.
+ *
+ * The `overlay` sections are wired to a real `ExpandedSurface` through the real `useExpansion`
+ * seam, so the buttons work: press one and the surface opens, Escape steps out, the × collapses
+ * and focus returns to the button.
+ */
+export const Default: Story = () => (
+  <StoryWrapper>
+    <StorySection
+      description="`action.kind: 'overlay'` — the widget can grow where it is, so the button opens the interface in place. Press it."
+      title="Opens in place"
+    >
+      <LocalExpansionProvider>
+        <Slot height={480} width={300}>
+          <Live fill />
+        </Slot>
+      </LocalExpansionProvider>
+    </StorySection>
+
+    <StorySection
+      description="`action.kind: 'link'` — inside a frame there is nowhere bigger to grow, so the control is an anchor to a page that fits, opened in a new tab. An anchor rather than a button so middle-click and 'open in new tab' work too."
+      title="Leaves for somewhere that fits"
+    >
+      <Slot height={480} width={300}>
+        <CompactCard fill action={{ kind: 'link', href: 'https://wemeditate.com/map' }} />
+      </Slot>
+    </StorySection>
+
+    <StorySection
+      description="`fill: true` fills a box the host sized; `fill: false` takes only the height the content needs. The second is what an element with no height of its own gets — `h-full` would resolve against nothing and the card would collapse, so the host would see an embed that did not render."
+      title="fill"
+    >
+      <div className="flex flex-wrap items-start gap-6">
+        <LocalExpansionProvider>
+          <Slot height={320} width={280}>
+            <Live fill />
+          </Slot>
+        </LocalExpansionProvider>
+        <LocalExpansionProvider>
+          <Slot width={280}>
+            <Live fill={false} />
+          </Slot>
+        </LocalExpansionProvider>
+      </div>
+    </StorySection>
+
+    <StorySection
+      inContext
+      description="The content is capped at max-w-xs and centred, so a short wide slot reads as a card rather than one button stretched across a thousand pixels."
+      title="A short, wide slot"
+    >
+      <LocalExpansionProvider>
+        <Slot height={220} width={900}>
+          <Live fill />
+        </Slot>
+      </LocalExpansionProvider>
+    </StorySection>
+  </StoryWrapper>
 )
 
-/** The live reference shape: `sahajayoga.nl` embeds at a hard-coded 400×600. */
-export const ReferenceSlot: Story = () => <InSlot height={600} width={400} />
-
-/** A narrow sidebar, which is what the floors are set to catch. */
-export const NarrowColumn: Story = () => <InSlot height={480} width={300} />
-
-/**
- * A host who gave the element no height at all.
- *
- * `fill` is false here, and that is the point: `h-full` would resolve against nothing, the card
- * would collapse, and the host would see an embed that "did not render".
- */
-export const NoHeightGiven: Story = () => <InSlot width={300} />
-
-/** Short and wide, where an uncapped button would read as a broken layout rather than a card. */
-export const ShortAndWide: Story = () => <InSlot height={300} width={900} />
-
-/**
- * A framed embed, which cannot expand in place — an overlay would cover the same undersized
- * frame — so the control is an anchor to a page that fits, opened in a new tab.
- *
- * This is the one story whose button leaves rather than opens, and that difference is the
- * feature: `href` rather than `onClick` means middle-click and "open in new tab" work too.
- */
-export const FramedFallback: Story = () => (
-  <Slot height={600} width={400}>
-    <CompactCard fill action={{ kind: 'link', href: 'https://wemeditate.com/map' }} />
-  </Slot>
-)
+Default.storyName = 'Compact Card'
