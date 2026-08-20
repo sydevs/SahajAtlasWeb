@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
 
 import { Mapbox } from '@/components/organisms/Mapbox'
@@ -24,7 +26,27 @@ import { DrawerStack } from '@/views'
  * which carries no such edge.
  */
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
-function FullInterface({ hasMap }: { hasMap: boolean }) {
+function FullInterface({ hasMap, homePath }: { hasMap: boolean; homePath?: string }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const didInit = useRef(false)
+
+  // The configured home region opens as a RegionView over CountriesView on first load; Back
+  // returns to the global list. Runs once — re-visiting `/` shows the list, not a redirect loop.
+  //
+  // ⚠ **It lives here rather than in `AppShell`, and that placement is the point.** This
+  // component renders only when the interface is actually on screen — always in the full form,
+  // and only once the dialog opens in the compact one. In `AppShell` it fired while a collapsed
+  // card was the only thing rendered, and `navigate` pushes `?atlas=/nl` onto the HOST's URL. A
+  // visitor who then reloaded, bookmarked or shared that address got a full-screen dialog over
+  // the host's page on load, having never asked for one — auto-open triggered by our own
+  // bookkeeping rather than by a link anybody followed.
+  useEffect(() => {
+    if (didInit.current) return
+    didInit.current = true
+    if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
+  }, [homePath, location.pathname, navigate])
+
   return hasMap ? (
     <MapProvider>
       {/* Inline fixed/inset so the map always fills the viewport behind the

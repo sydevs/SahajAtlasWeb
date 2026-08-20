@@ -3,7 +3,7 @@ import type { RoutingMode } from '@/loader/config'
 import type { CompactState } from '@/lib/slot-decision'
 
 import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useLocation } from 'react-router'
 import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -232,23 +232,14 @@ function AppShell({
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
-  const navigate = useNavigate()
   const location = useLocation()
   const { locale } = useLocale()
 
-  // The configured home region opens as a RegionView over CountriesView on first load;
-  // Back returns to the global list. Runs once — re-visiting `/` shows the list,
-  // not a redirect loop.
+  // The configured home region. The redirect that consumes it lives in `FullInterface`, which
+  // renders only once the interface is on screen — see the note there.
   const homePath =
     (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
     undefined
-  const didInit = useRef(false)
-
-  useEffect(() => {
-    if (didInit.current) return
-    didInit.current = true
-    if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
-  }, [homePath, location.pathname, navigate])
 
   /**
    * Attest that the widget booted, and tell SahajCloud what it found (#153).
@@ -323,7 +314,7 @@ function AppShell({
   // with a loading panel instead of showing one where the interface is about to appear.
   const interfaceElement = (
     <Suspense fallback={<LoadingFallback />}>
-      <FullInterface hasMap={hasMap} />
+      <FullInterface hasMap={hasMap} homePath={homePath} />
     </Suspense>
   )
 
