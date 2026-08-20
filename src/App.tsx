@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
-import type { CompactFit, EmbedForm } from '@/lib/embed-slot'
+import type { CompactState } from '@/lib/compact-state'
 
 import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -20,9 +20,8 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
-import { DEFAULT_COMPACT_FIT } from '@/lib/embed-slot'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
-import { DynamicCompactCard, Mapbox, ReportIssueModal } from '@/components/organisms'
+import { CompactCard, Mapbox, ReportIssueModal } from '@/components/organisms'
 import { ExpandedSurface } from '@/components/atoms'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { DrawerStack } from '@/views'
@@ -111,13 +110,17 @@ type AppProps = {
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
   // Whether this slot can hold the interface at all, decided once at mount by
-  // `resolveEmbedForm` (`lib/embed-slot.ts`) and passed down from the widget entry (#161).
   // `full` is the default and the only answer the standalone build ever gives: it owns its
   // page, so there is nothing to degrade to and nowhere bigger to expand into.
-  form?: EmbedForm
-  // How much of the compact card the host's box can hold — the same mount measurement `form`
-  // came from, so the two cannot disagree. Only read in the compact form.
-  compactFit?: CompactFit
+  /**
+   * Render the compact card instead of the interface, and everything that decision carried
+   * with it — decided once at mount by the entry that can measure the slot (#161).
+   *
+   * `null`/absent is the full interface, and is the only answer the standalone build gives
+   * when it is not framed. One nullable object rather than a flag plus its satellites, so a
+   * caller cannot pass a fill or an auto-open that nothing reads.
+   */
+  compact?: CompactState | null
   // Is the route on screen in the URL, and therefore shareable? True for both routers
   // that write one (BrowserRouter standalone, the query router embedded); the embedded widget
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
@@ -137,8 +140,7 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
-  form = 'full',
-  compactFit = DEFAULT_COMPACT_FIT,
+  compact = null,
   linkable = true,
   routing = 'query',
 }: AppProps) {
@@ -167,9 +169,8 @@ export default function App({
             >
               <AppShell
                 apiKey={apiKey}
-                compactFit={compactFit}
                 defaultLocale={defaultLocale}
-                form={form}
+                compact={compact}
                 hasMap={hasMap}
                 linkable={linkable}
                 routing={routing}
@@ -212,8 +213,7 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
-  form: EmbedForm
-  compactFit: CompactFit
+  compact: CompactState | null
   linkable: boolean
   routing: RoutingMode
 }
@@ -223,8 +223,7 @@ function AppShell({
   defaultLocale,
   standalone,
   hasMap,
-  form,
-  compactFit,
+  compact,
   linkable,
   routing,
 }: AppShellProps) {
@@ -334,8 +333,8 @@ function AppShell({
           <PreviewController />
         </Suspense>
       )}
-      {form === 'compact' ? (
-        <CompactShell fit={compactFit}>{interfaceElement}</CompactShell>
+      {compact ? (
+        <CompactShell compact={compact}>{interfaceElement}</CompactShell>
       ) : (
         <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}
@@ -363,21 +362,32 @@ function AppShell({
  * React never renders until the surface opens — which is what makes the paragraph above true
  * rather than aspirational.
  */
-function CompactShell({ fit, children }: { fit: CompactFit; children: ReactNode }) {
+function CompactShell({ compact, children }: { compact: CompactState; children: ReactNode }) {
+  // A `link` card has no surface to open, so it needs no provider state and no dialog: the
+  // button is an anchor. Rendering the card alone here is what keeps `NoExpansionProvider`'s
+  // no-op `collapse()` the honest answer for the Escape ladder in `DrawerStack`.
+  if (compact.action.kind === 'link') {
+    return (
+      <NoExpansionProvider>
+        <CompactCard action={compact.action} fill={compact.fill} />
+      </NoExpansionProvider>
+    )
+  }
+
   return (
-    <LocalExpansionProvider>
-      <CompactForm fit={fit}>{children}</CompactForm>
+    <LocalExpansionProvider autoOpen={compact.autoOpen}>
+      <CompactForm fill={compact.fill}>{children}</CompactForm>
     </LocalExpansionProvider>
   )
 }
 
-function CompactForm({ fit, children }: { fit: CompactFit; children: ReactNode }) {
+function CompactForm({ fill, children }: { fill: boolean; children: ReactNode }) {
   const { t } = useLocale()
-  const { expanded, collapse } = useExpansion()
+  const { expanded, expand, collapse } = useExpansion()
 
   return (
     <>
-      <DynamicCompactCard fit={fit} />
+      <CompactCard action={{ kind: 'overlay', onOpen: expand }} fill={fill} />
       <ExpandedSurface
         collapseLabel={t('close')}
         open={expanded}

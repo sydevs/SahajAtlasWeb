@@ -52,13 +52,43 @@ export function NoExpansionProvider({ children }: { children: ReactNode }) {
  * form is that mapbox-gl is never fetched. A provider that rendered the expanded content
  * itself would have to receive it as a prop and would still not be able to promise that.
  *
- * A third provider — the framed one, which posts the request to a parent document that owns
- * the viewport — lands with E1/E2 of the white-label programme. Nothing here needs to change
- * for it: `canExpand` is already the question a consumer asks, and `expand()` is already
- * allowed to be asynchronous from the caller's point of view.
+ * **There is deliberately no framed provider.** A frame cannot expand — `position: fixed`
+ * resolves against the frame, so an overlay would cover the same undersized box the card is
+ * already in. A framed embed too small for the interface gets an anchor to somewhere that fits
+ * instead (`lib/fallback-url.ts`), which needs no provider at all: `CompactShell` renders the
+ * card under `NoExpansionProvider`, and the Escape ladder in `DrawerStack` correctly finds
+ * nothing above it to collapse.
+ *
+ * `autoOpen` starts expanded, for a visitor who arrived on a route rather than a host who
+ * configured one. ⚠ It is a **seed, not a prop that tracks** — remounting the element must not
+ * reopen a surface the visitor closed, so it is read once by `useState`'s initialiser and the
+ * module flag below makes that true even across a remount within one document.
  */
-export function LocalExpansionProvider({ children }: { children: ReactNode }) {
-  const [expanded, setExpanded] = useState(false)
+
+/**
+ * Has a surface already auto-opened in this document?
+ *
+ * Module scope, so a host SPA that unmounts and remounts the element cannot re-open what
+ * somebody closed. Deliberately NOT reset on unmount: within one document, once is the promise.
+ * A reload is a new document and a new module, and restoring the route there is correct —
+ * `?atlas=` surviving a reload means the visitor is still on that route.
+ */
+let autoOpened = false
+
+export function LocalExpansionProvider({
+  autoOpen = false,
+  children,
+}: {
+  autoOpen?: boolean
+  children: ReactNode
+}) {
+  const [expanded, setExpanded] = useState(() => {
+    if (!autoOpen || autoOpened) return false
+
+    autoOpened = true
+
+    return true
+  })
   const value = useMemo<Expansion>(
     () => ({
       canExpand: true,

@@ -55,6 +55,16 @@ export type MountDecision = {
    * the route is not in the URL at all, which the marker says through `urlWritable` instead.
    */
   routing: 'query' | 'path'
+  /**
+   * Did `path` come from the PAGE's `?atlas=`, rather than the embed's configured default?
+   *
+   * Two very different facts that `path` alone cannot distinguish once resolved. A page route is
+   * a visitor who deep-linked or followed a shared link; a script route is the host saying
+   * "start here when nobody asked". Only the first earns the compact card opening itself on
+   * mount — otherwise every host who configures a default view would get a full-screen overlay
+   * over their content on every page load.
+   */
+  fromPage: boolean
   /** Set when the requested mode could not be honoured, for the caller to report. */
   warning?: string
 }
@@ -126,7 +136,14 @@ export function mountDecision(input: {
 
   // A route already in the page's URL always wins: that visitor deep-linked or followed a shared
   // link, and the embed's default is only ever an answer to "nobody asked for anything".
-  const path = routeFromParam(search) ?? route ?? '/'
+  //
+  // Read the page route into its own binding rather than inlining it: whether there WAS one is a
+  // fact the tree needs (`fromPage`), and it is unrecoverable from `path` afterwards. Note this
+  // cannot be derived by comparing against `route` — the loader's `resolveRoute` has already
+  // folded the page route into it.
+  const pageRoute = routeFromParam(search)
+  const path = pageRoute ?? route ?? '/'
+  const fromPage = pageRoute !== undefined
 
   // Constant while `path` is accepted-but-not-honoured, and deliberately stated here rather than
   // at the two places that consume it. The warning above and this field are the same fact said
@@ -134,9 +151,11 @@ export function mountDecision(input: {
   // in this function and both follow.
   const effective = 'query' as const
 
-  if (urlWritable === false) return { mode: 'memory', path, routing: effective, warning }
+  if (urlWritable === false) {
+    return { mode: 'memory', path, routing: effective, fromPage, warning }
+  }
 
-  return { mode: 'query', path, routing: effective, warning }
+  return { mode: 'query', path, routing: effective, fromPage, warning }
 }
 
 /**

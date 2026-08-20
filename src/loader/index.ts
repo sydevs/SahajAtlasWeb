@@ -32,7 +32,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME, safeLoaderPath } from './literals'
+import { ELEMENT_NAME, loaderUrlWritable, safeLoaderPath } from './literals'
 
 /** Console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -56,24 +56,6 @@ const error = (message: string) => {
     console.error(`${LOG_PREFIX} ${message}`)
   } catch {
     // As above.
-  }
-}
-
-/**
- * Can we write the URL at all?
- *
- * A genuine no-op — `replaceState` to the href we are already on — so it cannot disturb the host
- * or add a history entry. It throws in a sandboxed iframe (opaque origin) and on `file://`, which
- * are exactly the cases where the widget must not later try to route through the URL. The host's
- * own `history.state` is passed straight back, so nothing they put there is lost.
- */
-function probeUrlWritable(): boolean {
-  try {
-    window.history.replaceState(window.history.state, '', window.location.href)
-
-    return true
-  } catch {
-    return false
   }
 }
 
@@ -118,7 +100,7 @@ function detect(config: LoaderConfig): EmbedFingerprint {
         return false
       }
     })(),
-    urlWritable: probeUrlWritable(),
+    urlWritable: loaderUrlWritable(window.history, window.location.href),
     paramPersisted: probeParamPersisted(),
   }
 
@@ -244,7 +226,13 @@ export function start(script: HTMLScriptElement | null): void {
 
   if (!element) return
 
-  whenVisible(element, () => {
+  // A route on the PAGE's URL is a visitor who followed a link, and the route is why they
+  // clicked — so waiting for them to scroll to the embed is wrong on its own terms, before
+  // auto-open enters into it. It also removes the hazard that gate would otherwise create: a
+  // lazily-mounted widget can mount MID-SCROLL, where auto-opening would slam a modal over the
+  // page and lock its scroll. Eager-loading the deep link removes the situation rather than
+  // detecting it. A route from the SCRIPT url is the host's default view and stays lazy.
+  const mount = () => {
     // Resolves to `src/Widget.tsx`, which is its own build entry — so this is the seam that keeps
     // the widget out of the loader's graph, and `pnpm size` asserts the two closures are disjoint.
     void import('../Widget').then(({ boot }) => {
@@ -265,7 +253,13 @@ export function start(script: HTMLScriptElement | null): void {
         setTimeout(observe, 0)
       }
     })
-  })
+  }
+
+  if (config.routeFromPage) {
+    mount()
+  } else {
+    whenVisible(element, mount)
+  }
 }
 
 // Captured at module top level, because `document.currentScript` is only valid while the script

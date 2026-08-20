@@ -1,99 +1,74 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { useState } from 'react'
-
-import { StorySection, StoryWrapper } from '../../ladle'
-
 import { CompactCard } from './CompactCard'
 
-import { ExpandedSurface } from '@/components/atoms/ExpandedSurface'
-import { compactFit } from '@/lib/embed-slot'
-import { mockEventSlimList } from '@/mocks/events'
-
+/**
+ * The widget in a slot too small for the interface (issue #161) — a heading and one control
+ * that opens the whole thing somewhere it fits.
+ *
+ * Each story wraps the card in a box of a real, measured size, because the thing worth looking
+ * at is how it sits in a host's slot rather than the card in isolation.
+ */
 export default {
-  title: 'Organisms',
+  title: 'Organisms / CompactCard',
 } satisfies StoryDefault
 
-// The three shapes a host's slot comes in, plus the live reference. Each one is here because
-// it renders differently, not for coverage's sake — `compactFit` decides the row budget from
-// the height alone, so the height is what varies.
-const SLOTS = {
-  'No height — sizes to its content': { width: 300, height: null },
-  'Button only — 300×200': { width: 300, height: 200 },
-  'Room for rows — 300×420': { width: 300, height: 420 },
-  'Short and wide — 900×220': { width: 900, height: 220 },
-  'Reference — 400×600 (sahajayoga.nl)': { width: 400, height: 600 },
-} as const
+const Slot = ({
+  width,
+  height,
+  children,
+}: {
+  width: number
+  height?: number
+  children: React.ReactNode
+}) => (
+  <div
+    className="border border-dashed border-divider"
+    style={{ width, height, display: height ? 'block' : undefined }}
+  >
+    {children}
+  </div>
+)
 
-type SlotKey = keyof typeof SLOTS
+/** The live reference shape: `sahajayoga.nl` embeds at a hard-coded 400×600. */
+export const ReferenceSlot: Story = () => (
+  <Slot height={600} width={400}>
+    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill />
+  </Slot>
+)
+
+/** A narrow sidebar, which is what the floors are set to catch. */
+export const NarrowColumn: Story = () => (
+  <Slot height={480} width={300}>
+    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill />
+  </Slot>
+)
 
 /**
- * CompactCard — what the widget shows in a slot too small for the interface (issue #161).
+ * A host who gave the element no height at all.
  *
- * **The button is the irreducible content.** Everything above it is what the box had room for:
- * `compactFit` reads the host's measured height once at mount and hands down a row budget, so
- * a 200px slot gets the button alone and a 420px one gets rows above it. A slot with NO height
- * makes the card size to its own content rather than collapsing on an `h-full` that resolves
- * against nothing.
- *
- * Content is centred on both axes in whatever box the host gave, and capped at `max-w-xs` so a
- * short-but-wide slot reads as a card rather than a full-bleed button.
- *
- * Pressing it expands into the real `ExpandedSurface` — the whole mechanism is here; only the
- * interface inside it is stubbed. The control is named for the TASK, never the product, which
- * is both the accessible name and the de-branding ratchet (#158).
+ * `fill` is false here, and that is the whole point: `h-full` would resolve against nothing,
+ * the card would collapse, and the host would see an embed that "did not render".
  */
-export const Default: Story<{ slot: SlotKey; rows: number }> = ({ slot, rows }) => {
-  const [open, setOpen] = useState(false)
-  const { width, height } = SLOTS[slot]
-  const fit = compactFit(height ?? 0)
-  // The story's own control caps the pool; `fit.rows` is what the slot would actually allow,
-  // so the smaller of the two is what the app would render here.
-  const shown = Math.min(rows, fit.rows)
+export const NoHeightGiven: Story = () => (
+  <Slot width={300}>
+    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill={false} />
+  </Slot>
+)
 
-  return (
-    <StoryWrapper>
-      <StorySection
-        description="The bordered box is the host's slot at its real pixel size. With no height it hugs the card; with one, the content centres inside it."
-        title="In a host's slot"
-      >
-        <p className="text-xs text-gray-11">
-          {height === null ? 'no height set' : `${height}px tall`} → fill: {String(fit.fill)}, room
-          for {fit.rows} row{fit.rows === 1 ? '' : 's'}
-        </p>
-        <div
-          className="overflow-hidden rounded-lg border border-divider"
-          style={{ width, height: height ?? undefined, maxWidth: '100%' }}
-        >
-          <CompactCard
-            events={mockEventSlimList.slice(0, shown)}
-            fill={fit.fill}
-            onOpen={() => setOpen(true)}
-          />
-        </div>
+/**
+ * A framed embed, which cannot expand in place — the overlay would cover the same undersized
+ * frame — so the control is an anchor to a page that fits.
+ */
+export const FramedFallback: Story = () => (
+  <Slot height={600} width={400}>
+    <CompactCard action={{ kind: 'link', href: 'https://wemeditate.com/map' }} fill />
+  </Slot>
+)
 
-        <ExpandedSurface
-          collapseLabel="Close"
-          open={open}
-          title="Free meditation classes"
-          onOpenChange={setOpen}
-        >
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
-            <p className="text-lg font-semibold">The full interface goes here.</p>
-            <p className="max-w-sm text-sm text-gray-11">
-              In the app this is the map and the drawer stack — both `position: fixed`, which is why
-              the surface is `inset: 0` rather than contained.
-            </p>
-          </div>
-        </ExpandedSurface>
-      </StorySection>
-    </StoryWrapper>
-  )
-}
-
-Default.storyName = 'Compact Card'
-Default.args = { slot: 'Room for rows — 300×420', rows: 3 }
-Default.argTypes = {
-  slot: { control: { type: 'select' }, options: Object.keys(SLOTS) },
-  rows: { control: { type: 'range', min: 0, max: 3, step: 1 } },
-}
+/** Short and wide, where an uncapped button would read as a broken layout rather than a card. */
+export const ShortAndWide: Story = () => (
+  <Slot height={300} width={900}>
+    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill />
+  </Slot>
+)

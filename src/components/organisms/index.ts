@@ -9,7 +9,7 @@ export type { MapSearchProps } from './Mapbox'
 // The compact form's card (issue #161) — only the data-connected container is public,
 // like EventsList below. AppShell renders it in place of the whole interface when the
 // host's slot is too small for one, so it must not pull the map subtree with it.
-export { DynamicCompactCard } from './CompactCard'
+export { CompactCard } from './CompactCard'
 
 // Only the data-connected container is public: the presentational `EventsList`
 // is consumed solely by `DynamicEventsList` and its own story, so per

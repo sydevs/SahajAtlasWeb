@@ -1,5 +1,5 @@
 import type { EmbedFingerprint } from './loader/detect'
-import type { CompactMode, LoaderConfig } from './loader/config'
+import type { LoaderConfig } from './loader/config'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
@@ -15,12 +15,7 @@ import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
-import {
-  type SlotDecision,
-  compactFit,
-  containingBlockProperty,
-  slotDecision,
-} from './lib/embed-slot'
+import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { mountDecision } from './lib/shape'
 import { queryClient } from './config/query-client'
@@ -137,28 +132,27 @@ function Atlas() {
   // query cache survives but the router's in-widget history, the drawer stack and any half-
   // filled registration do not. A host page animating a sidebar or a phone rotating would
   // otherwise throw a visitor's session away mid-read, which is a far worse failure than a
-  // widget that keeps the form its initial layout implied. `docs/embedding.md` says so, and
-  // `compact=always` / `compact=never` are the escape hatches for a host who disagrees.
+  // widget that keeps the layout its initial size implied. `docs/embedding.md` says so.
+  // There is deliberately no override parameter: `compact` was one, and a documented knob for
+  // a measurement we can simply get right is a permanent edge case in exchange for a
+  // misconfiguration we would rather fix.
   //
   // Re-entrancy: `useLocale` below can suspend on a cold i18n boot and make React discard this
   // render. Safe — the ref makes it once-only, and the measurement writes nothing.
   const slot = useRef<SlotDecision>()
 
   if (!slot.current) {
-    slot.current = decideSlot(config.compact, hasMap)
+    slot.current = decideSlot({ element: owner, hasMap, fromPage: mount.current.fromPage })
   }
 
-  const form = slot.current.form
-  const fit = slot.current.fit
-  const slotWarnings = slot.current.warnings
+  const compact = slot.current.compact
+  const slotWarning = slot.current.warning
 
   // Reported from an effect rather than from the decision above, exactly like the routing
   // warning: a discarded render must not put a line in a stranger's console twice.
   useEffect(() => {
-    // Wrapped, not point-free: `forEach` passes an index and the array too, and this one
-    // takes a single string today.
-    slotWarnings.forEach((warning) => reportIntegrationWarning(warning))
-  }, [slotWarnings])
+    if (slotWarning) reportIntegrationWarning(slotWarning)
+  }, [slotWarning])
 
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still carrying the theme class +
@@ -185,9 +179,8 @@ function Atlas() {
     >
       <App
         apiKey={config.key ?? ''}
-        compactFit={fit}
         defaultLocale={config.locale}
-        form={form}
+        compact={compact}
         hasMap={hasMap}
         linkable={linkable}
         routing={attested}
@@ -241,76 +234,6 @@ const AtlasElementBase = r2wc(Widget) as unknown as new () => AtlasElement
 // theme root, in silence. Exactly one runs, and the rule is enforced where the thing being
 // counted actually lives: the element, not a React render pass.
 let owner: AtlasElement | null = null
-
-/**
- * Walk up from the element looking for an ancestor that would confine our overlay.
- *
- * Only worth asking in the compact form, which is the only one that expands — a few dozen
- * `getComputedStyle` reads, once, on a path a host rarely takes.
- *
- * Walks OUTWARD and stops at the first offender, so the one it names is the innermost: the
- * element closest to the embed is the one whose owner is most likely to be the person reading
- * the console, and naming one thing to change beats handing somebody a list.
- */
-function confiningAncestor(element: Element): string | null {
-  for (let node = element.parentElement; node; node = node.parentElement) {
-    const property = containingBlockProperty(getComputedStyle(node))
-
-    if (property) return property
-  }
-
-  return null
-}
-
-/**
- * Measure the host's slot and decide what to render in it (issues #107, #161).
- *
- * **One measurement, one warning.** The two questions share a pass because they share the
- * numbers: `resolveEmbedForm` asks whether the interface fits, and `mapSlotWarning` asks
- * whether a map-mode embed is about to paint over somebody's page. Where the first answers
- * "compact" the second has nothing left to warn about — that takeover is exactly what no
- * longer happens — so it only speaks when the interface is going in at full size anyway.
- *
- * Reads `owner` rather than a ref, because it runs during the first render and the theme
- * root does not exist yet. Sound because the element is a page singleton, enforced below:
- * `connectedCallback` sets `owner` before it mounts the React root, so by the time anything
- * renders it is the element being rendered into. `null` outside a loader boot (the standalone
- * entry, every Ladle story), where the answer is `full` and there is nothing to warn about.
- *
- * Guarded, like the read it replaces: these are reads of a DOM we do not own, and a host is
- * free to have patched `getBoundingClientRect` — consent wrappers, anti-fingerprinting
- * extensions and page builders all do. An unguarded throw here happens *during render*, so
- * `RootBoundary` would replace the whole widget with its static rung. A diagnostic must never
- * break the thing it is diagnosing, and a measurement must never break what it measures.
- */
-function decideSlot(compact: CompactMode, hasMap: boolean): SlotDecision {
-  if (!owner) return { form: 'full', fit: compactFit(0), warnings: [] }
-
-  try {
-    const box = owner.getBoundingClientRect()
-
-    return slotDecision(
-      compact,
-      hasMap,
-      {
-        // The host's own column, and the fallback when our element has no box of its own: in
-        // map mode everything below the `display: contents` root is fixed, so it measures 0.
-        slotWidth: owner.parentElement?.getBoundingClientRect().width ?? 0,
-        elementWidth: box.width,
-        elementHeight: box.height,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-      },
-      // Lazy: `slotDecision` only calls this when the form turns out to be compact, so a
-      // full-size embed never pays for the walk.
-      () => confiningAncestor(owner as Element),
-    )
-  } catch {
-    // Nothing to do and nothing worth reporting: the host's own error would be the only
-    // payload, and a thrown message is the one field that reaches Sentry unfiltered.
-    return { form: 'full', fit: compactFit(0), warnings: [] }
-  }
-}
 
 /**
  * How long a removed element has to come back before its page-global state is released.

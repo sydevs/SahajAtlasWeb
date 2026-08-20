@@ -1,92 +1,75 @@
-import type { MouseEvent } from 'react'
-import type { EventSlim } from '@/types'
-
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
-import { EventsList } from '@/components/organisms/EventsList/EventsList'
 
 /**
- * What the widget shows in a slot too small for the interface (issue #161): a heading, a
- * couple of classes, and one control that opens the whole thing.
+ * What the widget shows in a slot too small for the interface (issue #161): a heading and one
+ * control that opens the whole thing somewhere it fits.
+ *
+ * **The button is the card.** An earlier draft previewed two or three upcoming classes above
+ * it, sized by a `compactFit` predicate that estimated a row's height in pixels. That estimate
+ * was wrong the moment a title wrapped, a locale ran long, or a visitor had a larger default
+ * font — and the rows cost a feed read, a titles read and a third-party IP lookup on every page
+ * view of a sidebar embed nobody scrolls to. Without them **the compact card makes no data
+ * requests at all**, which is the honest shape for a control whose whole job is to lead
+ * somewhere else.
  *
  * **The button is named for the task, not the product** — "Find a class near you", never the
- * widget's own name. That is the accessible name a screen-reader user hears, and it is also
- * the de-branding ratchet (#158): the atlas has to read as the host's own events feature, and
- * the one control on this card is the easiest place in the app to forget that.
+ * widget's own name. That is the accessible name a screen-reader user hears, and it is also the
+ * de-branding ratchet (#158): the atlas has to read as the host's own events feature, and the
+ * one control on this card is the easiest place in the app to forget that. The same copy serves
+ * both destinations, so there is no second key to keep in agreement across ten locales.
  *
- * **The button is the card's irreducible content.** Everything above it — the heading, the
- * preview rows — is what the host's box had room for, decided once at mount by `compactFit`
- * (`lib/embed-slot.ts`). A box too short for a single row still gets the button, centred; it
- * is never traded away for a preview.
- *
- * Presentational: the rows arrive as props, so a story can render it without the query client
- * or the IP lookup, and the node lane can assert its markup. Its container is
- * `DynamicCompactCard`.
+ * Presentational — the action arrives as a prop, so a story renders it with no providers and
+ * the node lane can assert its markup.
  */
 export type CompactCardProps = {
-  /** The classes to preview. Empty is fine — the button is the card. */
-  events: EventSlim[]
   /**
-   * Does the host's box have a height to fill?
+   * What the button does. `overlay` expands in place; `link` leaves for a page that fits.
    *
-   * `false` — a bare `<sahaj-atlas>` with no height, which is the common way one lands in a
-   * narrow column — means the card takes its CONTENT height. `h-full` there resolves against
-   * nothing, so the card would collapse and the host would see an embed that "did not render".
-   * The theme root above is `display: contents`, so this div is the layout box in the host's
-   * own flow and content-height sizing needs nothing from the element or the loader.
+   * A union rather than two optional props, so "neither" and "both" are unrepresentable — this
+   * card exists *because* there is somewhere bigger to go, and a card with no way out is the
+   * one state it must never render.
+   */
+  action: { kind: 'overlay'; onOpen: () => void } | { kind: 'link'; href: string }
+  /**
+   * Fill the host's box, rather than taking only the height the content needs.
+   *
+   * True only when the host gave the element a height. `h-full` against a host who gave none
+   * resolves to nothing, so the card would collapse and they would see an embed that "did not
+   * render" — the theme root above is `display: contents`, so this div is the layout box in
+   * their own flow.
    */
   fill: boolean
-  /** Open the full interface. */
-  onOpen: () => void
 }
 
-export function CompactCard({ events, fill, onOpen }: CompactCardProps) {
+export function CompactCard({ action, fill }: CompactCardProps) {
   const { t } = useTranslation('common')
 
-  // A row is a real route, and in the compact form there is nothing to render it: the drawer
-  // stack only exists inside the expanded surface. So a row press has to expand FIRST and let
-  // the navigation land inside — captured before react-router's own handler so both are one
-  // React update and the surface opens already on the event's route.
-  //
-  // Plain left clicks only. A modified click is the browser being asked for a new tab, and
-  // covering this page with an overlay is not what that asked for.
-  const openRow = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-    if (!(event.target instanceof Element) || !event.target.closest('a')) return
-
-    onOpen()
-  }
-
   return (
-    // Centred on both axes, in whatever box the host gave. With a height that is a real
-    // centring; without one the column is content-height and only the horizontal half does
-    // anything — which is why `justify-center` costs nothing in the `fill: false` case rather
-    // than needing a branch of its own.
     <div
-      className={`flex w-full flex-col items-center justify-center gap-2 overflow-hidden bg-background p-3 text-foreground ${
-        fill ? 'h-full' : ''
-      }`}
+      className={`flex w-full flex-col items-center justify-center gap-2 overflow-hidden bg-background p-3 text-foreground${fill ? ' h-full' : ''}`}
     >
-      {/* `max-w-xs` because a short-but-wide slot is a compact slot too: a full-bleed button
-          across 1000px reads as a broken layout, where a centred column reads as a card. */}
-      <div className="flex min-h-0 w-full max-w-xs flex-1 flex-col justify-center gap-2">
+      {/* Capped rather than full-bleed: a button stretched across a 1000px-wide short slot
+          reads as a broken layout rather than a card. */}
+      <div className="flex w-full max-w-xs flex-col gap-2">
         {/* The same key the widget's landmark uses, deliberately: two keys for one phrase,
             differing only in casing, is a drift waiting to happen across ten locales. */}
-        <h2 className="shrink-0 text-center text-sm font-semibold">{t('widget.label')}</h2>
-        {events.length > 0 && (
-          // Scrolls rather than clips: the row budget is an estimate off the host's box, so a
-          // row that turns out taller than estimated stays reachable instead of being cut in
-          // half. The scrolling itself belongs to the `List` atom, which is already
-          // `overflow-y-auto` — this only gives it a height to scroll within, so there is one
-          // owner of the behaviour rather than two.
-          <div className="flex min-h-0 flex-1 flex-col" onClickCapture={openRow}>
-            <EventsList events={events} />
-          </div>
+        <h2 className="text-sm font-semibold">{t('widget.label')}</h2>
+        {/* Two JSX branches, not a conditional `href`: `ButtonProps` is a discriminated union,
+            so a maybe-undefined href does not narrow into the anchor arm. The anchor form is
+            also why this is the `Button` atom rather than a hand-rolled <a> — `href.test.ts`
+            pins the app's JSX-anchor inventory to three components, and Button is one of them,
+            so its `isSafeHref` gate is inherited rather than reimplemented. */}
+        {action.kind === 'link' ? (
+          <Button color="primary" href={action.href} target="_blank">
+            {t('compact.open')}
+          </Button>
+        ) : (
+          <Button color="primary" onClick={action.onOpen}>
+            {t('compact.open')}
+          </Button>
         )}
-        <Button className="w-full shrink-0" color="primary" onClick={onOpen}>
-          {t('compact.open')}
-        </Button>
       </div>
     </div>
   )

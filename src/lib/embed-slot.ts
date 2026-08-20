@@ -1,111 +1,43 @@
-import type { CompactMode } from '@/loader/config'
-
 /**
- * Is this map-mode embed in a slot that map mode can actually work in? (issue #107)
+ * Does the interface fit the space this host gave us, and if not, where does the button go?
+ * (issue #161)
  *
- * **Map mode requires a full-page slot, and that is a deliberate requirement rather than a
- * bug we have not got to.** The canvas is `position: fixed; inset: 0` and every drawer is
- * fixed too, so the widget paints over the whole viewport no matter how small the host made
- * `<sahaj-atlas>`. Containing it is not a matter of swapping `fixed` for `absolute`: vaul
- * computes a snap-point sheet's translate from the WINDOW height (see the `bottom` variant
- * in `components/atoms/Drawer/Drawer.tsx`), so a contained sheet is pushed off-screen by the
- * library's own arithmetic. Hosts that need the widget inside a box use `map="false"`, which
- * is container-relative throughout and is what the responsive work of #107 measures.
+ * **One question, asked once at mount.** An earlier draft of this file asked three —
+ * "did somebody intend a box here?", "does the interface fit?", "does anything beyond the
+ * button fit?" — across 463 lines and ten constants. Three predicates over one measurement is
+ * three places the answers can disagree, and they did: the map-mode takeover warning was
+ * suppressed in exactly the case where the takeover was real. What survives is the question
+ * that was underneath all three.
  *
- * The requirement being real does not make it discoverable, though, and silently painting
- * over somebody's page is the worst way for them to find out. So this is the predicate
- * behind a console warning at mount: it does not change any behaviour, it just means the
- * integrator gets a sentence naming the problem instead of a mystery.
- *
- * Both thresholds are deliberately slack, because a false positive lands in a stranger's
- * console. We are not asking "is this exactly the viewport" — a host page with margins, a
- * centred layout or a scrollbar is fine — but "did somebody clearly intend a box here".
+ * The question needs two boxes, not one. "Too small" is meaningless on its own — a 360px slot
+ * is cramped inside a 1440px page and is simply *the screen* on a phone. So we compare the
+ * space we have against the space the button would take the visitor to, and if there is no
+ * bigger space, there is nothing to offer and we render the interface as-is.
  */
 
-/** Below this share of the viewport width, the host has put us in a column. */
-export const NARROW_SLOT_RATIO = 0.6
-
-/** Below this share of the viewport height, an explicit element height is a box. */
-export const BOXED_SLOT_RATIO = 0.8
-
-export type SlotMetrics = {
-  /**
-   * The width of the element's PARENT — the host's column. The element itself is useless
-   * to measure: an unstyled custom element is `display: inline`, and in map mode it has no
-   * in-flow content at all (the theme root is `display: contents`, everything below it is
-   * fixed), so it measures 0 wide whether the embed is correct or not.
-   */
-  slotWidth: number
-  /**
-   * The element's OWN resolved width in px, or 0 when it has none. Only `embedForm` reads it,
-   * and it reads it in preference to `slotWidth`: a map-less embed is a real box the host sized,
-   * and the column it sits in may be far wider. It is 0 for the map-mode case above, which is
-   * why the column is still the fallback rather than the other way round.
-   */
-  elementWidth: number
-  /**
-   * The element's own resolved height in px, or 0 when it has none. Nonzero means the host
-   * wrote a height onto `<sahaj-atlas>` — the `display:block; height:640px` shape `demo.html`
-   * documents for map-less embeds — which in map mode is an intent the widget cannot honour.
-   */
-  elementHeight: number
-  viewportWidth: number
-  viewportHeight: number
-}
-
-export type SlotWarning = 'narrow' | 'boxed'
-
 /**
- * Which way this slot is wrong, or `null` for a slot map mode can live in.
+ * How much bigger the destination must be before it is worth offering.
  *
- * `narrow` is checked first because it is the more actionable of the two: a sidebar embed is
- * wrong about the mode it wants, whereas a height alone may just be a leftover from a
- * map-less snippet the host copied. Zero/NaN metrics return `null` — a widget that mounts
- * before layout, or in a hidden tab, must not be reported as misconfigured.
+ * One ratio, one meaning. It replaced three (`NARROW_SLOT_RATIO` 0.6, `BOXED_SLOT_RATIO` 0.8,
+ * `MIN_EXPANSION_GAIN` 0.9), and 0.8 is not a midpoint — it is the value that keeps every case
+ * the old constants got right and fixes the two they got wrong:
+ *
+ * | case | 0.6 | 0.8 | 0.9 |
+ * | --- | --- | --- | --- |
+ * | map, 768px article column / 1440 viewport | compact | compact | compact |
+ * | map, 1000px content column / 1440 | full | **compact** | compact |
+ * | map, host wrote `height:640px` / 900 | full | **compact** | compact |
+ * | map-less, 327px element on a 375 phone (page padding) | full | **full** | compact |
+ *
+ * 0.6 loses the old `boxed` signal, which is the case this change most wants to convert into a
+ * card. 0.9 keeps a live false positive: a normally padded phone layout degrades a map-less
+ * embed that is working perfectly well. 0.8 is exactly the old `BOXED_SLOT_RATIO`, so that
+ * boundary is preserved to the pixel.
+ *
+ * ⚠ Ratchet in BOTH directions (`embed-slot.test.ts`). Raising it degrades more embeds;
+ * lowering it re-silences the map-mode takeover.
  */
-export function mapSlotWarning(metrics: SlotMetrics): SlotWarning | null {
-  const { slotWidth, elementHeight, viewportWidth, viewportHeight } = metrics
-
-  if (!(viewportWidth > 0) || !(viewportHeight > 0)) return null
-
-  if (slotWidth > 0 && slotWidth < viewportWidth * NARROW_SLOT_RATIO) return 'narrow'
-  if (elementHeight > 0 && elementHeight < viewportHeight * BOXED_SLOT_RATIO) return 'boxed'
-
-  return null
-}
-
-/** The sentence each case earns. Kept beside the predicate so the two cannot drift. */
-export const SLOT_WARNING_MESSAGE: Record<SlotWarning, string> = {
-  narrow:
-    'this embed sits in a narrow column, but map mode always fills the whole viewport — ' +
-    'it will paint over the rest of the page. Use map="false" for an embed that stays in its slot.',
-  boxed:
-    'this element has its own height, but map mode ignores it and always fills the whole ' +
-    'viewport. Use map="false" for an embed that stays in its slot.',
-}
-
-// ===== DOES THE INTERFACE FIT? (issue #161) ===== //
-
-/**
- * Which form the widget takes in this slot: the whole interface, or a compact card that
- * expands into it.
- *
- * **This asks a different KIND of question from `mapSlotWarning` above, and the thresholds
- * differ because of it.** That one asks *"did somebody clearly intend a box here?"* — a
- * relative question about intent, with deliberately slack ratios, because the worst a false
- * positive can do is put one line in a stranger's console. This one asks *"does the interface
- * fit?"*, which is a question about the interface rather than about the host, so it is answered
- * in **absolute pixels** — a list with a header and a search field needs the same room on
- * everybody's page. And a false positive here is not a console line: it **changes what
- * renders**, so the floors are set where the interface genuinely stops working rather than
- * where it starts feeling tight.
- *
- * The two are not redundant. A narrow map-mode slot warned and then painted over the page
- * anyway; it can now render compact instead, and the warning survives only where the host has
- * explicitly declined that (`compact=never`), because at that point a sentence is all that is
- * left to offer them.
- */
-export type EmbedForm = 'full' | 'compact'
+export const SLOT_GAIN = 0.8
 
 /**
  * Below this width the interface stops fitting: the drawer's header alone carries a geocoder,
@@ -114,182 +46,135 @@ export type EmbedForm = 'full' | 'compact'
  * Tuned against the live reference case — `sahajayoga.nl` embeds at a hard-coded 400×600 — so
  * that slot keeps the full interface and only genuinely smaller ones degrade.
  */
-export const COMPACT_MAX_WIDTH_PX = 360
+export const MIN_INTERFACE_WIDTH_PX = 360
 
 /**
  * Below this height the interface stops fitting: a bottom sheet needs its peek, its header and
  * enough body for more than one list row to be visible at once.
  */
-export const COMPACT_MAX_HEIGHT_PX = 420
+export const MIN_INTERFACE_HEIGHT_PX = 420
+
+export type Box = { width: number; height: number }
 
 /**
- * The share of the viewport above which a slot IS the viewport, and expanding buys nothing.
+ * Where the button takes the visitor, or that there is nowhere to take them.
  *
- * **This is not a third threshold; it is what stops the floors above mistaking a phone for a
- * cramped slot.** A 320px phone is below `COMPACT_MAX_WIDTH_PX` on its whole screen, and the
- * full interface is perfectly usable there — it is the layout that mode was designed on. The
- * general statement covers both: a compact card is only worth offering when the overlay it
- * expands into would be **meaningfully bigger than the slot**. When the slot already is the
- * screen, there is no bigger form to expand into, so degrading would take the interface away
- * and offer nothing back.
+ * `link` carries no href: *whether* there is a destination is a geometry question and belongs
+ * here, but *what* that destination is depends on the client record and is resolved in the
+ * tree (`lib/fallback-url.ts`). Keeping the URL out means this module stays pure and the
+ * fallback can later come from SahajCloud without touching the predicate.
  */
-export const MIN_EXPANSION_GAIN = 0.9
+export type Destination = { kind: 'overlay' } | { kind: 'link' } | { kind: 'none' }
 
-/** One axis: measured, below the floor, and small enough that expanding would gain something. */
-const tooSmall = (measured: number, floor: number, viewport: number): boolean =>
-  measured > 0 && measured < floor && measured < viewport * MIN_EXPANSION_GAIN
+/** Why the widget went compact — each reason earns a different sentence in the host's console. */
+export type CompactReason = 'floors' | 'map'
+
+export type EmbedLayout = 'full' | 'compact'
 
 /**
- * Does the full interface fit in this slot?
+ * Is `bigger` meaningfully bigger than `box`, on either axis?
  *
- * Zero/NaN metrics mean "not measurable", and every one of them resolves to `full` — the same
- * bias `mapSlotWarning` takes with its `null`. A widget that mounts before layout, or in a
- * hidden tab, must not degrade itself on a measurement it does not have.
- *
- * The element's own box wins over the host's column when it has one, because a map-less embed
- * is a box the host sized deliberately; in map mode the element has no box at all (the theme
- * root is `display: contents` and everything below it is fixed), which is why the column is
- * there to fall back to.
+ * **OR, not AND, and only over measured axes.** In map mode the height axis is *always*
+ * unmeasured — `decideSlot` runs in the first render body, when `<sahaj-atlas>` is still empty,
+ * so an unstyled custom element is `display: inline` with no in-flow content and no height. A
+ * predicate that required both axes would therefore never fire in map mode, which is the mode
+ * this whole change exists to serve. An unmeasured axis contributes nothing; a comparison with
+ * no measured axis at all is false, so "bias to the full interface" falls out by construction
+ * rather than needing a guard.
  */
-export function embedForm(metrics: SlotMetrics): EmbedForm {
-  const { slotWidth, elementWidth, elementHeight, viewportWidth, viewportHeight } = metrics
+function meaningfullyBigger(box: Box, bigger: Box): boolean {
+  const wider = box.width > 0 && bigger.width > 0 && box.width < bigger.width * SLOT_GAIN
+  const taller = box.height > 0 && bigger.height > 0 && box.height < bigger.height * SLOT_GAIN
 
-  if (!(viewportWidth > 0) || !(viewportHeight > 0)) return 'full'
+  return wider || taller
+}
 
-  const width = elementWidth > 0 ? elementWidth : slotWidth
-
-  if (tooSmall(width, COMPACT_MAX_WIDTH_PX, viewportWidth)) return 'compact'
-  if (tooSmall(elementHeight, COMPACT_MAX_HEIGHT_PX, viewportHeight)) return 'compact'
-
-  return 'full'
+/** Is either measured axis below the floor the interface needs? */
+function belowFloors(box: Box): boolean {
+  return (
+    (box.width > 0 && box.width < MIN_INTERFACE_WIDTH_PX) ||
+    (box.height > 0 && box.height < MIN_INTERFACE_HEIGHT_PX)
+  )
 }
 
 /**
- * What we measured, in the host's own vocabulary — the numbers they can go and change.
+ * Where would the button go?
  *
- * **Only the axes that were actually measured.** The height has no column to fall back on, and
- * at the moment this runs `<sahaj-atlas>` is still empty — so an element the host has not sized
- * is `display: inline` with no in-flow content and measures 0 tall. That is the headline case
- * for this whole feature (a bare element dropped into a narrow sidebar), and reporting it as
- * "300×0px" both names a number the host cannot act on and points at the opposite of the fix:
- * in map mode an explicit element height is the thing `SLOT_WARNING_MESSAGE.boxed` tells them
- * NOT to set.
+ * **Resolved before the layout, because it is what makes the layout question answerable.**
+ * Offering a card is only ever worth it when the button leads somewhere bigger, so "is there
+ * anywhere bigger?" has to be settled first.
+ *
+ * ⚠ **"Am I framed?" is deliberately NOT the discriminator**, though it looks like the obvious
+ * one. The question is whether the *local viewport* is bigger than the slot; framing decides
+ * only the fallback for when it is not. Two cases make the difference concrete:
+ *
+ * - A **web component inside a generously sized iframe** — page builders, CMS previews and
+ *   "content frame" templates all produce these. A framed-⇒-link rule would send that visitor
+ *   off-site while a 1200×800 overlay sat available.
+ * - A **framed map embed at 400×600**. Inside a frame, `position: fixed` resolves against the
+ *   frame and `window.innerHeight` IS the frame's height — so every argument behind "map mode
+ *   needs a full-page slot" is already satisfied. The frame is a viewport, just a small one.
+ *   A framed-⇒-link rule would degrade an embed that works.
+ *
+ * Standalone top-level then needs no special case at all: its slot IS its viewport, so no
+ * overlay is possible, and it is not framed, so `none` falls out and it is never compact.
+ *
+ * @param screen `min(window.outer*, screen.avail*)` — see the caller. Only read when framed.
  */
-const describeSlot = ({ slotWidth, elementWidth, elementHeight }: SlotMetrics): string => {
-  const width = elementWidth > 0 ? elementWidth : slotWidth
-  const parts: string[] = []
+export function resolveDestination(
+  slot: Box,
+  viewport: Box,
+  screen: Box,
+  framed: boolean,
+): Destination {
+  if (meaningfullyBigger(slot, viewport)) return { kind: 'overlay' }
+  if (framed && meaningfullyBigger(viewport, screen)) return { kind: 'link' }
 
-  if (width > 0) parts.push(`${Math.round(width)}px wide`)
-  if (elementHeight > 0) parts.push(`${Math.round(elementHeight)}px tall`)
-
-  return parts.join(' × ') || 'nothing measurable'
+  return { kind: 'none' }
 }
 
-/** Kept beside the predicate, like `SLOT_WARNING_MESSAGE`, so the numbers cannot drift. */
-const threshold = () => `${COMPACT_MAX_WIDTH_PX}×${COMPACT_MAX_HEIGHT_PX}px`
-
-export const compactEnteredMessage = (measured: string): string =>
-  `this embed's slot measured ${measured}, under the ${threshold()} the full interface needs — ` +
-  'showing a compact card that expands instead. Give the element more room, or set ' +
-  'compact=never on the script URL to keep the full interface at this size.'
-
-export const compactDeclinedMessage = (measured: string): string =>
-  `this embed's slot measured ${measured}, under the ${threshold()} the full interface needs, ` +
-  'but compact=never is set — so the interface will be cramped. Give the element more room, or ' +
-  'drop compact=never to let it fall back to a card that expands.'
-
 /**
- * The form this embed renders in, and the sentence its host has earned.
+ * Which layout this slot gets, and why.
  *
- * `always` / `never` are the host's word and are honoured without argument; `auto` measures.
- * An unrecognised `compact=` value never reaches here as itself — `compactMode`
- * (`src/loader/config.ts`) resolves it to `auto` at parse time, so a typo gets adaptive
- * behaviour rather than a widget locked into either form.
- *
- * **Both warnings exist because the host cannot see what we measured.** Entering compact
- * automatically is a visible change to a page they built, so it says what it measured and what
- * it wanted (#149's diagnostic contract). Declining it with `compact=never` in a slot that does
- * not fit is the host's decision to make, so nothing changes — but they still hear it once,
- * because "the widget looks broken in my sidebar" and "I turned the fallback off" are the same
- * fact and only one of them is on their screen.
+ * The reason is not decoration — the two compact cases earn genuinely different advice. A slot
+ * under the floors wants more room; a map embed that does not own its viewport wants
+ * `map="false"` or a full-page slot, and telling that host to "give the element more room"
+ * would point them at the opposite of the fix.
  */
-export function resolveEmbedForm(
-  mode: CompactMode,
-  metrics: SlotMetrics,
-): { form: EmbedForm; warning: string | null } {
-  const fits = embedForm(metrics)
+export function embedLayout(input: { hasMap: boolean; slot: Box; destination: Destination }): {
+  layout: EmbedLayout
+  reason?: CompactReason
+} {
+  const { hasMap, slot, destination } = input
 
-  if (mode === 'always') return { form: 'compact', warning: null }
+  // Nowhere bigger to go. Degrading here would take the interface away and offer nothing back.
+  if (destination.kind === 'none') return { layout: 'full' }
 
-  const measured = describeSlot(metrics)
+  // Map mode requires owning the viewport — a documented requirement rather than a bug (see
+  // `.claude/rules/components.md`). An overlay destination means precisely that it does not,
+  // so the card is the honest answer where the old code warned and then painted over the page.
+  if (hasMap && destination.kind === 'overlay') return { layout: 'compact', reason: 'map' }
 
-  if (mode === 'never') {
-    return {
-      form: 'full',
-      warning: fits === 'compact' ? compactDeclinedMessage(measured) : null,
-    }
-  }
+  // A map-less embed is container-relative throughout (#107) and is perfectly happy in a box,
+  // so it needs the absolute floor as well as somewhere to go.
+  if (belowFloors(slot)) return { layout: 'compact', reason: 'floors' }
 
-  return {
-    form: fits,
-    warning: fits === 'compact' ? compactEnteredMessage(measured) : null,
-  }
+  return { layout: 'full' }
 }
 
-// ===== CAN THE OVERLAY COVER THE VIEWPORT? (issue #161) ===== //
-
-/**
- * The computed declarations that decide whether a `position: fixed` descendant is still
- * positioned against the viewport.
- *
- * Only the properties actually read — a caller hands over a `CSSStyleDeclaration` and this
- * takes the shape it needs, so the walk stays in the widget entry and the rule stays testable
- * with no DOM.
- */
-export type ContainingBlockStyle = Pick<
-  CSSStyleDeclaration,
-  'transform' | 'perspective' | 'filter' | 'backdropFilter' | 'contain' | 'willChange'
->
-
-/** `contain` values that establish a containing block, per the spec's own list. */
-const CONTAINING = ['layout', 'paint', 'strict', 'content']
-
-/**
- * Which property on this element, if any, would confine a `fixed` descendant to it.
- *
- * **The expanded surface is `position: fixed; inset: 0`, and that is only "the viewport" while
- * no ancestor has stolen the containing block.** A host with `transform`, `filter` or
- * `contain: layout` anywhere above the embed gets an overlay confined to that ancestor's box —
- * which, for a compact embed, is very often the small slot the card was degrading out of. It
- * is silent, and it looks like our bug.
- *
- * `container-type` is deliberately absent, and that absence is measured rather than assumed:
- * `.claude/rules/components.md` records the table, and it was re-measured in Chrome for this
- * change — `inline-size` and `size` both leave a fixed child on the viewport, while
- * `transform`, `contain: layout` and `filter` all re-parent it.
- */
-export function containingBlockProperty(style: ContainingBlockStyle): string | null {
-  if (style.transform && style.transform !== 'none') return 'transform'
-  if (style.perspective && style.perspective !== 'none') return 'perspective'
-  if (style.filter && style.filter !== 'none') return 'filter'
-  if (style.backdropFilter && style.backdropFilter !== 'none') return 'backdrop-filter'
-  if (CONTAINING.some((value) => style.contain?.includes(value))) return 'contain'
-  // `will-change` promotes a property to its own layer AHEAD of it being set, with the same
-  // containing-block consequence — so a host optimising a scroll animation trips this without
-  // ever writing a transform.
-  if (
-    ['transform', 'perspective', 'filter', 'contain'].some((v) => style.willChange?.includes(v))
-  ) {
-    return 'will-change'
-  }
-
-  return null
+/** The sentence each reason earns. Kept beside the predicate so the numbers cannot drift. */
+export const COMPACT_MESSAGE: Record<CompactReason, string> = {
+  floors:
+    `this embed's slot is under the ${MIN_INTERFACE_WIDTH_PX}×${MIN_INTERFACE_HEIGHT_PX}px the ` +
+    'full interface needs, so it is showing a compact card that opens the whole thing instead. ' +
+    'Give the element more room to keep the full interface.',
+  map:
+    'this map embed does not have the page to itself, and map mode always fills the whole ' +
+    'viewport — so it is showing a compact card that opens the map instead of painting over ' +
+    'your page. Give it a full-page slot, or use map=false for an embed that stays in its box.',
 }
 
-export const containingBlockMessage = (property: string): string =>
-  `an ancestor of this embed sets \`${property}\`, which makes it the containing block for ` +
-  'fixed-position elements — so the expanded view will be confined to that element instead of ' +
-  'covering the page. Move the embed outside it, or drop that property.'
+// ===== CAN THE OVERLAY COVER THE VIEWPORT? ===== //
 
 /**
  * The share of the viewport the expanded surface must actually cover to be trusted.
@@ -305,17 +190,19 @@ export const SURFACE_MIN_COVERAGE = 0.5
  *
  * **A modal that covers nothing is worse than no modal at all.** The expanded surface locks the
  * host's scroll, marks the rest of the page `aria-hidden` and makes its collapse control the
- * only way out — so if the host has confined it to the embed's own slot (a `transform` ancestor)
- * or hidden the slot outright (a tab panel, an accordion, an off-canvas menu), the visitor is
- * left on a page they cannot scroll, read or click, with the one exit off-screen. That is the
- * widget breaking somebody else's page, and it needs no attacker to happen.
+ * only way out — so if the host has confined it to the embed's own slot (a `transform`
+ * ancestor) or hidden the slot outright (a tab panel, an accordion, an off-canvas menu), the
+ * visitor is left on a page they cannot scroll, read or click, with the one exit off-screen.
+ * That is the widget breaking somebody else's page, and it needs no attacker to happen.
  *
- * `containingBlockProperty` warns about one cause of this at mount; this catches the state
- * itself, whatever caused it and whenever it starts — including a host that hides the slot
- * while the surface is already open.
+ * **This is now the only guard against that**, and deliberately so. A `containingBlockProperty`
+ * predicate used to walk the ancestors at mount naming `transform` / `filter` / `contain`; it
+ * cost ~80 lines plus a `getComputedStyle` walk to say at mount what the message below already
+ * says at the first press, and it could only ever catch causes it enumerated. Watching the box
+ * catches the state itself, whatever caused it and whenever it starts.
  */
 export function surfaceCoversPage(
-  box: { width: number; height: number },
+  box: Box,
   viewportWidth: number,
   viewportHeight: number,
 ): boolean {
@@ -335,129 +222,3 @@ export const SURFACE_CONFINED_MESSAGE =
   'above this embed, which would leave a visitor unable to scroll or click your page with no ' +
   'way out. It has been closed instead. Check for an ancestor with transform / filter / ' +
   'contain, or one that is hidden while the widget is open.'
-
-// ===== HOW MUCH OF THE CARD FITS? ===== //
-
-/**
- * What the compact card can afford to draw in this slot.
- *
- * **A third question, and it is genuinely distinct from the other two.** `mapSlotWarning` asks
- * *"did somebody intend a box here?"*; `embedForm` asks *"does the interface fit?"*; this asks
- * *"does anything beyond the button fit?"*. The first two decide whether to warn and what to
- * render — this one decides how much of what we render survives contact with the host's box.
- *
- * The button is the card's irreducible content: it is the whole point of the compact form, so
- * it is never traded away for a preview row. Everything above it is optional and appears only
- * when the box has room to spare.
- */
-export type CompactFit = {
-  /**
-   * Does the host's box have a height to fill?
-   *
-   * `false` means the element carries no height of its own — the common case for a bare
-   * `<sahaj-atlas>` dropped into a narrow column — and the card must then take its CONTENT
-   * height rather than `h-full`, which would resolve against nothing. The theme root is
-   * `display: contents`, so the card's own div is the layout box in the host's flow; sizing
-   * to content needs no cooperation from the element or the loader.
-   */
-  fill: boolean
-  /** How many preview rows fit above the button. Zero means the button alone. */
-  rows: number
-}
-
-/**
- * The card's irreducible height in px: its padding, its heading, and the button.
- *
- * A deliberate over-estimate of the real ~90px. Being wrong in this direction drops a row that
- * would have fitted; being wrong the other way pushes the button out of a box the host sized,
- * and the button is the one thing that must always be reachable.
- */
-export const COMPACT_CHROME_PX = 112
-
-/**
- * A preview row's height in px.
- *
- * `EventListItem` is not a fixed height — a title can wrap to two lines and an online class
- * carries an extra line — so this is the tall end of what one costs rather than the average.
- * Same bias as above: fewer rows, never a clipped button.
- */
-export const COMPACT_ROW_PX = 96
-
-/**
- * The most rows the card will ever show, however tall the box.
- *
- * The compact form exists because the slot is under 360×420; a box that could hold more than
- * three preview rows would not have been called too small in the first place.
- */
-export const COMPACT_MAX_ROWS = 3
-
-/**
- * What a surface with no measured box renders: content height, and every row it has.
- *
- * The standalone build and every Ladle story land here — neither is a host slot, and neither
- * should be trimmed as though it were one.
- */
-export const DEFAULT_COMPACT_FIT: CompactFit = { fill: false, rows: COMPACT_MAX_ROWS }
-
-export function compactFit(elementHeight: number): CompactFit {
-  // No measurable height — including NaN — is the content-height case, not a zero-row box.
-  if (!(elementHeight > 0)) return DEFAULT_COMPACT_FIT
-
-  const spare = Math.floor((elementHeight - COMPACT_CHROME_PX) / COMPACT_ROW_PX)
-
-  return { fill: true, rows: Math.max(0, Math.min(spare, COMPACT_MAX_ROWS)) }
-}
-
-// ===== THE WHOLE DECISION, IN ONE TESTABLE PLACE ===== //
-
-/** What the slot measurement decided, and the sentences it earned. */
-export type SlotDecision = { form: EmbedForm; fit: CompactFit; warnings: string[] }
-
-/**
- * Fold every slot question into one answer: which form to render, and what to tell the host.
- *
- * **This exists as a pure function because the composition is where the bug was.**
- * `embedForm`, `resolveEmbedForm`, `mapSlotWarning` and `containingBlockProperty` were each
- * exhaustively specced, and the code joining them still suppressed the map-mode takeover
- * warning in exactly the case the docblock above promises it survives — `compact=never` in a
- * slot that does not fit, which is the one case where the widget really does paint over the
- * host's page. Under `auto` the mistake was invisible, because there the form is compact and
- * the takeover genuinely does not happen. That is the `timeoutStatus` defect
- * `.claude/rules/tests.md` records: the fault was in the wiring, which no test of the parts
- * could see. So the wiring is a function now, and `embed-slot.test.ts` covers it.
- *
- * `confining` is passed in rather than walked here: the walk is a DOM read and this module is
- * pure. The caller (`Widget.tsx`) does it, and only when the form turns out to be compact.
- */
-export function slotDecision(
-  compact: CompactMode,
-  hasMap: boolean,
-  metrics: SlotMetrics,
-  confining: (() => string | null) | null = null,
-): SlotDecision {
-  const { form, warning } = resolveEmbedForm(compact, metrics)
-  const warnings = warning ? [warning] : []
-  // Derived from the same measurement, not a second one: one DOM read at mount answers all
-  // three questions, and nothing can drift between them.
-  const fit = compactFit(metrics.elementHeight)
-
-  if (form === 'compact') {
-    // Only the compact form has an overlay to confine, so only it pays for the walk.
-    const property = confining?.()
-
-    if (property) warnings.push(containingBlockMessage(property))
-
-    return { form, fit, warnings }
-  }
-
-  // The map-slot warning speaks for a full-size interface only — where the widget renders
-  // compact, the takeover it warns about no longer happens. It is NOT suppressed merely
-  // because `compact=never` already said something: that is precisely the case where the
-  // takeover is still real, and "the interface will be cramped" would be the wrong sentence
-  // for a widget about to cover the whole page.
-  const slotWarning = hasMap ? mapSlotWarning(metrics) : null
-
-  if (slotWarning) warnings.push(SLOT_WARNING_MESSAGE[slotWarning])
-
-  return { form, fit, warnings }
-}

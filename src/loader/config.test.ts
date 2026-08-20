@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest'
 
 import { parseConfig, resolveRoute } from './config'
 
+/** `resolveRoute` returns the route AND its provenance; most cases only assert the route. */
+const routeOf = (scriptValue: string | null, pageSearch: string | null | undefined) =>
+  resolveRoute(scriptValue, pageSearch).route
+
 const at = (query: string, pageSearch = '') =>
   parseConfig(`https://atlas.example/auto.js${query}`, pageSearch)
 
 describe('parseConfig', () => {
   it('reads every documented parameter off the script URL', () => {
     const config = at(
-      '?key=abc123&map=false&locale=fr&routing=path&compact=always&atlas=/gb/london',
+      '?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london',
     )
 
     expect(config).toEqual({
@@ -16,15 +20,15 @@ describe('parseConfig', () => {
       map: false,
       locale: 'fr',
       routing: 'path',
-      compact: 'always',
       route: '/gb/london',
+      routeFromPage: false,
     })
   })
 
   it('defaults every optional parameter to the permissive answer', () => {
     const config = at('?key=abc123')
 
-    expect(config).toMatchObject({ map: true, routing: 'query', compact: 'auto' })
+    expect(config).toMatchObject({ map: true, routing: 'query', routeFromPage: false })
     expect(config.locale).toBeUndefined()
     expect(config.route).toBeUndefined()
   })
@@ -54,8 +58,8 @@ describe('parseConfig', () => {
       map: true,
       locale: undefined,
       routing: 'query',
-      compact: 'auto',
       route: undefined,
+      routeFromPage: false,
     })
   })
 
@@ -79,30 +83,34 @@ describe('parseConfig', () => {
     })
   })
 
-  describe('compact, which is three-valued and so cannot use the boolean reader', () => {
-    it.each([
-      ['always', 'always'],
-      ['never', 'never'],
-      ['auto', 'auto'],
-    ])('reads %s', (value, expected) => {
-      expect(at(`?compact=${value}`).compact).toBe(expected)
+  describe('routeFromPage — which URL the route came from', () => {
+    // The two mean opposite things and `route` alone cannot tell them apart once resolved. A
+    // page route is a visitor who followed a link, so the widget mounts eagerly and opens onto
+    // it; a script route is the host's default view, so it stays lazy and opens nothing.
+    it('is true for a route on the page URL', () => {
+      const config = parseConfig('https://atlas.example/auto.js?key=k', '?atlas=/gb/london')
+
+      expect(config).toMatchObject({ route: '/gb/london', routeFromPage: true })
     })
 
-    // Accepted so a host reasoning by analogy from the documented false/0 rule gets the
-    // sensible answer rather than silence.
-    it.each([
-      ['1', 'always'],
-      ['true', 'always'],
-      ['0', 'never'],
-      ['false', 'never'],
-    ])('accepts the boolean spelling %s', (value, expected) => {
-      expect(at(`?compact=${value}`).compact).toBe(expected)
+    it('is false for a route configured on the script URL', () => {
+      const config = parseConfig('https://atlas.example/auto.js?key=k&atlas=/nl', '')
+
+      expect(config).toMatchObject({ route: '/nl', routeFromPage: false })
     })
 
-    // The protective bias: an unrecognised value resolves to the ADAPTIVE default, never to
-    // the destructive one. A typo must not lock a host into a small card forever.
-    it.each(['allways', 'sometimes', 'AUTO', ''])('falls back to auto for %s', (value) => {
-      expect(at(`?compact=${value}`).compact).toBe('auto')
+    it('is false for a page route the path guard rejected', () => {
+      // `?atlas=//evil.example` must not count as a deep link: it would mount eagerly and
+      // auto-open on a route we refused to honour.
+      const config = parseConfig('https://atlas.example/auto.js?key=k', '?atlas=//evil.example')
+
+      expect(config).toMatchObject({ route: undefined, routeFromPage: false })
+    })
+
+    it('lets the page route beat the script route, and still calls it a page route', () => {
+      const config = parseConfig('https://atlas.example/auto.js?key=k&atlas=/nl', '?atlas=/gb')
+
+      expect(config).toMatchObject({ route: '/gb', routeFromPage: true })
     })
   })
 
@@ -127,7 +135,7 @@ describe('parseConfig', () => {
 
       expect(config.key).toBeNull()
       expect(config.map).toBe(true)
-      expect(config.compact).toBe('auto')
+      expect(config.routeFromPage).toBe(false)
     })
   })
 
@@ -142,21 +150,21 @@ describe('resolveRoute', () => {
   // navigated or followed a shared link, so sending them to the embed's default instead would
   // discard where they actually asked to be.
   it('prefers the route already on the page', () => {
-    expect(resolveRoute('/gb/london', '?atlas=/nl/amsterdam')).toBe('/nl/amsterdam')
+    expect(routeOf('/gb/london', '?atlas=/nl/amsterdam')).toBe('/nl/amsterdam')
   })
 
   it('falls back to the embed default when the page names no route', () => {
-    expect(resolveRoute('/gb/london', '')).toBe('/gb/london')
-    expect(resolveRoute('/gb/london', '?utm_source=x')).toBe('/gb/london')
+    expect(routeOf('/gb/london', '')).toBe('/gb/london')
+    expect(routeOf('/gb/london', '?utm_source=x')).toBe('/gb/london')
   })
 
   it('is undefined when neither names one', () => {
-    expect(resolveRoute(null, '')).toBeUndefined()
-    expect(resolveRoute(null, '?other=1')).toBeUndefined()
+    expect(routeOf(null, '')).toBeUndefined()
+    expect(routeOf(null, '?other=1')).toBeUndefined()
   })
 
   it("preserves the host's other parameters in its reading of the page", () => {
-    expect(resolveRoute(null, '?p=123&atlas=/fr/paris&utm=x')).toBe('/fr/paris')
+    expect(routeOf(null, '?p=123&atlas=/fr/paris&utm=x')).toBe('/fr/paris')
   })
 
   // A route is a route wherever it came from. The page's copy is the MORE likely of the two to be
@@ -174,17 +182,17 @@ describe('resolveRoute', () => {
     ]
 
     it.each(hostile)('refuses %j from the page', (value) => {
-      expect(resolveRoute(null, `?atlas=${encodeURIComponent(value)}`)).toBeUndefined()
+      expect(routeOf(null, `?atlas=${encodeURIComponent(value)}`)).toBeUndefined()
     })
 
     it.each(hostile)('refuses %j from the script', (value) => {
-      expect(resolveRoute(value, '')).toBeUndefined()
+      expect(routeOf(value, '')).toBeUndefined()
     })
 
     // A hostile value on the page must not win, but it must not poison the fallback either:
     // the embed's own safe default is still the right answer.
     it('falls through to a safe embed default when the page value is refused', () => {
-      expect(resolveRoute('/gb/london', '?atlas=//evil.example')).toBe('/gb/london')
+      expect(routeOf('/gb/london', '?atlas=//evil.example')).toBe('/gb/london')
     })
   })
 

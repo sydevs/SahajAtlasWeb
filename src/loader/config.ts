@@ -40,7 +40,6 @@
 import { safeLoaderPath } from './literals'
 
 export type RoutingMode = 'query' | 'path'
-export type CompactMode = 'auto' | 'always' | 'never'
 
 /** The query parameter the widget's route rides on, and the name of the boot-route setting. */
 export const ROUTE_PARAM = 'atlas'
@@ -54,8 +53,6 @@ export type LoaderConfig = {
   locale?: string
   /** Where the widget's route lives. */
   routing: RoutingMode
-  /** Whether to degrade to the compact card in a slot too small for the full interface. */
-  compact: CompactMode
   /**
    * The route to open at when the page's own URL does not already name one.
    *
@@ -64,6 +61,16 @@ export type LoaderConfig = {
    * else would discard where they asked to be.
    */
   route?: string
+  /**
+   * Did that route come from the PAGE's `?atlas=`, rather than the script URL's?
+   *
+   * The two mean opposite things and `route` above cannot tell them apart once resolved. A page
+   * route is a visitor who followed a link, so the widget mounts **eagerly** and opens straight
+   * onto it; a script route is the host's default view, so it stays lazy and opens nothing. Same
+   * boolean feeds `MountDecision.fromPage`, so the eager decision and the auto-open decision
+   * cannot disagree.
+   */
+  routeFromPage: boolean
 }
 
 /**
@@ -77,22 +84,6 @@ export type LoaderConfig = {
  * looks like it does, and `docs/embedding.md` says so.
  */
 const enabled = (value: string | null): boolean => value !== 'false' && value !== '0'
-
-/**
- * A three-valued parameter, with the same protective bias as `enabled`.
- *
- * `compact` cannot use `enabled` — it has three states — but it keeps the principle that matters:
- * **an unrecognised value resolves to the adaptive default, never to the destructive one.** A
- * host who typos `compact=allways` gets automatic behaviour, not a widget permanently locked into
- * a small card. The boolean spellings are accepted as synonyms so that a host reasoning by
- * analogy from the documented `false`/`0` rule gets the sensible answer instead of silence.
- */
-const compactMode = (value: string | null): CompactMode => {
-  if (value === 'always' || value === '1' || value === 'true') return 'always'
-  if (value === 'never' || value === '0' || value === 'false') return 'never'
-
-  return 'auto'
-}
 
 /**
  * `path` only when asked for by name; anything else is the default that needs no host config.
@@ -126,16 +117,23 @@ const text = (value: string | null): string | undefined => value || undefined
 export function resolveRoute(
   scriptValue: string | null,
   pageSearch: string | null | undefined,
-): string | undefined {
-  let fromPage: string | null = null
+): { route?: string; fromPage: boolean } {
+  let raw: string | null = null
 
   try {
-    fromPage = new URLSearchParams(pageSearch ?? '').get(ROUTE_PARAM)
+    raw = new URLSearchParams(pageSearch ?? '').get(ROUTE_PARAM)
   } catch {
-    fromPage = null
+    raw = null
   }
 
-  return safeLoaderPath(fromPage) ?? safeLoaderPath(scriptValue)
+  const fromPage = safeLoaderPath(raw)
+
+  // `fromPage` is the GUARDED value, not the raw presence of the parameter. A hostile
+  // `?atlas=//evil.example` that `safeLoaderPath` rejected must not count as a deep link — it
+  // would mount eagerly and auto-open on a route we refused to honour.
+  if (fromPage) return { route: fromPage, fromPage: true }
+
+  return { route: safeLoaderPath(scriptValue), fromPage: false }
 }
 
 /**
@@ -158,12 +156,14 @@ export function parseConfig(
     params = new URLSearchParams()
   }
 
+  const resolved = resolveRoute(params.get(ROUTE_PARAM), pageSearch)
+  const route = { route: resolved.route, routeFromPage: resolved.fromPage }
+
   return {
     key: params.get('key') || null,
     map: enabled(params.get('map')),
     locale: text(params.get('locale')),
     routing: routingMode(params.get('routing')),
-    compact: compactMode(params.get('compact')),
-    route: resolveRoute(params.get(ROUTE_PARAM), pageSearch),
+    ...route,
   }
 }

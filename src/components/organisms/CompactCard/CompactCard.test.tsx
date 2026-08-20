@@ -1,12 +1,9 @@
 import { readFileSync } from 'node:fs'
 
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CompactCard } from './CompactCard'
-
-import { mockEventSlimList } from '@/mocks/events'
 
 // Node-only SSR assertions (`.claude/rules/tests.md`). What matters about this card is what a
 // visitor reads off it: the one control has to name the TASK rather than the product, both
@@ -25,72 +22,60 @@ const copy = (key: string): string =>
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => copy(key) ?? key }),
 }))
-vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ locale: 'en' }) }))
-vi.mock('@/hooks/use-map-controller', () => ({
-  useMapController: () => ({ highlightEvent: () => {} }),
-}))
-vi.mock('@/hooks/use-prefetch-event', () => ({
-  useHoverPrefetch: () => ({ enter: () => {}, leave: () => {} }),
-}))
-vi.mock('@/components/molecules/EventFacts', () => ({ EventFacts: () => null }))
-vi.mock('@/components/molecules/EventChips', () => ({ EventChips: () => null }))
 
-const render = (events = mockEventSlimList, fill = true) =>
-  renderToStaticMarkup(
-    <MemoryRouter>
-      <CompactCard events={events} fill={fill} onOpen={() => {}} />
-    </MemoryRouter>,
-  )
+const overlay = { kind: 'overlay', onOpen: () => {} } as const
+const link = { kind: 'link', href: 'https://wemeditate.com/map' } as const
 
 describe('CompactCard', () => {
-  // One key for the phrase, shared with the widget landmark's accessible name — two keys
-  // differing only in casing would drift across ten locales.
-  it('names the content with the same key the widget landmark uses', () => {
-    expect(render()).toContain(`>${copy('widget.label')}</h2>`)
-  })
-
-  // The whole point of the control, and the easiest thing in the app to reword into a
-  // product name by accident.
-  it('names its one control for the task, not the product', () => {
-    const html = render()
+  it('names the task, not the product', () => {
+    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
 
     expect(html).toContain(copy('compact.open'))
-    expect(html).toMatch(/find a class near you/i)
+    expect(copy('compact.open')).toMatch(/find a class/i)
   })
 
-  // The #158 ratchet, asserted where the copy is rather than only over the file.
-  it('carries no brand name a visitor could read', () => {
-    expect(render()).not.toMatch(/sahaj\s*atlas|we\s?meditate/i)
+  it('carries no brand string', () => {
+    // The #158 ratchet, at the one control most likely to forget it.
+    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
+
+    expect(html).not.toMatch(/sahaj\s*atlas|we ?meditate/i)
   })
 
-  it('previews the classes it was given', () => {
-    const html = render(mockEventSlimList.slice(0, 2))
+  it('renders a real button for the in-page overlay', () => {
+    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
 
-    expect(html).toContain(mockEventSlimList[0]!.title)
-    expect(html).toContain(mockEventSlimList[1]!.title)
+    expect(html).toContain('<button')
+    expect(html).not.toContain('<a ')
   })
 
-  // An empty feed — or a box with room for the button alone — is a legitimate state. The
-  // button is the card's irreducible content and must never be traded for a preview row.
-  it('is still a way in with nothing to preview', () => {
-    const html = render([])
+  it('renders an anchor to the fallback for a framed embed', () => {
+    // An anchor rather than a button that calls `window.open`: middle-click, "open in new tab"
+    // and a visible target all come free, and it inherits the `Button` atom's `isSafeHref`
+    // gate rather than adding a fourth JSX anchor to the inventory `href.test.ts` pins.
+    const html = renderToStaticMarkup(<CompactCard action={link} fill />)
 
-    expect(html).toContain(copy('compact.open'))
+    expect(html).toContain('href="https://wemeditate.com/map"')
+    expect(html).toContain('target="_blank"')
+    expect(html).toContain('rel="noopener noreferrer"')
+  })
+
+  it('previews no events, and so reads nothing', () => {
+    // The card is the button. Rows cost a feed read, a titles read and a third-party IP lookup
+    // on every page view of a sidebar embed nobody scrolls to, and were sized by a per-row
+    // pixel estimate that a wrapped title or a larger default font made wrong. Asserted as
+    // ABSENCE so a row cannot creep back without turning this red.
+    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
+
     expect(html).not.toContain('<ul')
+    expect(html).not.toContain('<li')
   })
 
-  // A host who gave the element no height gets a card sized to its own content: `h-full`
-  // there resolves against nothing and the embed would collapse to invisible.
-  it('takes its content height when the host gave no box', () => {
-    expect(render([], false)).not.toContain('h-full')
-    expect(render([], true)).toContain('h-full')
-  })
-
-  // Both axes, in whatever box the host did give.
-  it('centres its content', () => {
-    const html = render()
-
-    expect(html).toContain('items-center')
-    expect(html).toContain('justify-center')
+  it('fills a box the host sized, and takes content height when they gave none', () => {
+    // `h-full` against a host who gave no height resolves to nothing, so the card would
+    // collapse and read as an embed that did not render.
+    expect(renderToStaticMarkup(<CompactCard action={overlay} fill />)).toContain('h-full')
+    expect(renderToStaticMarkup(<CompactCard action={overlay} fill={false} />)).not.toContain(
+      'h-full',
+    )
   })
 })
