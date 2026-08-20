@@ -39,7 +39,7 @@ export type CompactState = {
 }
 
 /** Build the state from a resolved destination, or `null` when the interface fits. */
-export function compactState(input: {
+function compactState(input: {
   destination: Destination
   href: string
   fromPage: boolean

@@ -353,5 +353,3 @@ function AppShell({
     </WidgetModeContext.Provider>
   )
 }
-
-// ===== THE COMPACT FORM ===== //

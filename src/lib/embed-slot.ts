@@ -69,7 +69,7 @@ export type Destination = { kind: 'overlay' } | { kind: 'link' } | { kind: 'none
 /** Why the widget went compact — each reason earns a different sentence in the host's console. */
 export type CompactReason = 'floors' | 'map'
 
-export type EmbedLayout = 'full' | 'compact'
+type EmbedLayout = 'full' | 'compact'
 
 /**
  * Is `bigger` meaningfully bigger than `box`, on either axis?

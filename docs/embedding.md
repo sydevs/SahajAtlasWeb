@@ -283,8 +283,8 @@ and shows a **compact card** instead: a heading and one button that opens the wh
 somewhere it fits. Your visitor still gets everything; it just does not try to live in a
 300-pixel box.
 
-**The card is the button.** It takes only the room it needs, centred both ways inside whatever
-box you gave. If you gave the element **no height at all**, it sizes to its own content rather
+**The card is the button.** It takes only the room it needs, centred across whatever box you
+gave and sitting at the top of it. If you gave the element **no height at all**, it sizes to its own content rather
 than collapsing — so a bare `<sahaj-atlas>` in a narrow column renders as a card in your page's
 flow instead of appearing not to render. It renders **no events and makes no location lookup** — a control whose whole
 job is to lead somewhere else has nothing to show, and it does not read the event feed or the

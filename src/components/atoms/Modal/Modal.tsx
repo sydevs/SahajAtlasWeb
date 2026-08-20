@@ -17,9 +17,15 @@ import { overlayContainer } from '@/lib/overlay'
 //
 // Sits above the drawer (z-40) at z-50, so it overlays the stack rather than being
 // swallowed by it.
+//
+// The height reads `--sy-frame-h`, not `dvh`: inside `CompactEmbedView`'s dialog this modal is
+// `contain: layout`-contained, so `100dvh` is the viewport rather than the box it is clipped to
+// and the modal could reach the dialog's edge exactly. The token is `100dvh` everywhere else, so
+// this is the same number it always was outside a dialog. Width is left alone — `max-w-md` caps
+// it well below `100vw-2rem` on any viewport where the difference could show.
 const overlay = 'fixed inset-0 z-50 bg-black/50'
 const content =
-  'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-2xl outline-none'
+  'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(var(--sy-frame-h,100dvh)-2rem)] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-2xl outline-none'
 const header = 'flex shrink-0 items-start gap-2 px-4 pb-2 pt-4'
 
 export type ModalProps = {

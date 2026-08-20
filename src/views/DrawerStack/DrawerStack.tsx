@@ -734,14 +734,14 @@ export function DrawerStack() {
           open
           activeSnapPoint={direction === 'bottom' ? snap : undefined}
           container={target}
-          // The box vaul measures snap points against — the expanded dialog, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is the
-          // `display: contents` theme root and measures 0×0. See the note in `Drawer.tsx`.
-          handleOnly={direction === 'left'}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting drag
           // to the (absent) handle makes it undraggable — dismiss is the close button
           // only. The mobile bottom sheet keeps its full-panel snap-drag.
+          handleOnly={direction === 'left'}
+          // The box vaul measures snap points against — the expanded dialog, or the window.
+          // Deliberately NOT `target`: that is the portal target, which embedded is the
+          // `display: contents` theme root and measures 0×0. See the note in `Drawer.tsx`.
           measureAgainst={expandedDialog()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
           snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}

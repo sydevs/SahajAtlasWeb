@@ -27,7 +27,7 @@ cover everything a host would notice since the widget was first deployed.
   ([#161]) The widget shows one button — "Find a class near you" — that opens the whole
   interface somewhere it fits, and closes back to where you were.
 
-  **The card is the button.** It takes only the room it needs, centred both ways in whatever box
+  **The card is the button.** It takes only the room it needs, centred across whatever box
   you gave; an element with **no height of its own** sizes to the card's content instead of
   collapsing, so a bare `<sahaj-atlas>` in a column renders in your page's flow rather than
   appearing not to render. It renders **no events and makes no location lookup**. It is not silent, though — the widget
@@ -55,8 +55,7 @@ cover everything a host would notice since the widget was first deployed.
   that margin closes it** — along with Escape and the × in the corner. It **locks your page's
   scroll while it is open**, restoring it on close,
   and marks the rest of your page `aria-hidden` while it covers it; Escape steps outward through
-  the widget and then closes it, and if it is ever prevented from covering the page it closes
-  itself rather than trapping a visitor. And **a deep link now opens the route**: `?atlas=` on
+  the widget and then closes it. And **a deep link now opens the route**: `?atlas=` on
   your page's URL makes the widget load immediately rather than waiting to be scrolled to, and
   opens straight onto that route. The `atlas` parameter on the _script_ URL is your default view
   and does not do this.

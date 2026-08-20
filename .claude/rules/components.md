@@ -382,11 +382,18 @@ computes 768px, not 800, and its peek is exactly the 80px snap.
 naming one of them confines the surface to that element** — the measured table below, re-run for
 this change. `container-type` is **not** on that list, however often it is claimed to be.
 
-There used to be a `containingBlockProperty` predicate walking the ancestors at mount to name the
-offending property. It was **deleted**: ~80 lines plus a `getComputedStyle` walk to say at mount
-what `SURFACE_CONFINED_MESSAGE` already says at the first press, and it could only ever catch
-causes it enumerated. Watching the box catches the _state_ — including a host that hides the slot
-while the surface is open, which no mount-time check can see.
+**Nothing detects this at runtime any more, and that is the settled answer rather than an
+omission.** There used to be a `containingBlockProperty` predicate walking the ancestors at mount
+to name the offending property, and before that a `ResizeObserver` (`surfaceCoversPage`) closing
+the dialog when it stopped covering the page. Both are **deleted**, and neither is coming back:
+the predicate was ~80 lines and a `getComputedStyle` walk that could only ever catch causes it
+enumerated, and the observer existed because a full-bleed dialog whose × a host could hide left a
+visitor trapped. The margin retired both — clicking outside and Escape are two exits Radix
+maintains for free, so a confined dialog is a cosmetic problem rather than a trap.
+
+⚠ Do not read the paragraph above as describing a guard that fires. It describes a consequence a
+host may see and we do not report. If you find yourself citing `SURFACE_CONFINED_MESSAGE` or
+`surfaceCoversPage`, neither exists — `grep` before relying on either.
 
 ### Why there is no `@tailwindcss/container-queries`
 
