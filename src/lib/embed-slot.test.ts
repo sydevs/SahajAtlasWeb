@@ -5,10 +5,8 @@ import {
   MIN_INTERFACE_HEIGHT_PX,
   MIN_INTERFACE_WIDTH_PX,
   SLOT_GAIN,
-  SURFACE_MIN_COVERAGE,
   embedLayout,
   resolveDestination,
-  surfaceCoversPage,
 } from './embed-slot'
 
 const box = (width: number, height: number) => ({ width, height })
@@ -149,33 +147,5 @@ describe('the constants, ratcheted', () => {
     // room" would point them away from the fix.
     expect(COMPACT_MESSAGE.map).toContain('map=false')
     expect(COMPACT_MESSAGE.floors).not.toContain('map=false')
-  })
-})
-
-describe('surfaceCoversPage', () => {
-  it('accepts a surface that covers the viewport', () => {
-    expect(surfaceCoversPage(box(1440, 900), 1440, 900)).toBe(true)
-  })
-
-  it('tolerates a scrollbar and sub-pixel rounding', () => {
-    expect(surfaceCoversPage(box(1425, 900), 1440, 900)).toBe(true)
-  })
-
-  it('refuses a surface confined to the embed slot', () => {
-    expect(surfaceCoversPage(box(300, 400), 1440, 900)).toBe(false)
-  })
-
-  it('refuses a hidden surface', () => {
-    expect(surfaceCoversPage(box(0, 0), 1440, 900)).toBe(false)
-  })
-
-  it('assumes the best when the viewport cannot be measured', () => {
-    // No evidence of a problem is not evidence of a problem: a surface we cannot measure must
-    // not be torn down on suspicion.
-    expect(surfaceCoversPage(box(300, 400), 0, 0)).toBe(true)
-  })
-
-  it('keeps its coverage floor slack', () => {
-    expect(SURFACE_MIN_COVERAGE).toBeLessThanOrEqual(0.5)
   })
 })

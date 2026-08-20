@@ -152,6 +152,7 @@ in host pages, **and** runs standalone in dev. Because of that:
   reads `key`, so every other test stays green. `routing.router.test.tsx` asserts distinct keys.
   (The basename-miss failure of #92 is **not** reachable here: query routing passes no `basename`,
   so `stripBasename` is never called. It becomes live again if `path` mode ever ships.)
+
 - **Ask, don't infer.** Two questions, two answers, and neither is `window.location`:
   **"can this route be handed to somebody?"** is `useHrefFor()` (`src/config/routing.tsx`), which
   returns `undefined` in memory mode. **"is the route on screen in the URL?"** is `linkable` on
@@ -309,6 +310,15 @@ opens the interface somewhere it fits.
   `MapController`. There is deliberately **no framed provider**: a frame cannot expand, so a
   framed embed gets an anchor (`lib/fallback-url.ts`) rendered through the `Button` atom's href
   form — not a new JSX anchor, because `href.test.ts` pins that inventory to three components.
+- **What it expands into is the `Dialog` atom, which keeps a margin.** A full-bleed `inset: 0`
+  layer reads as a navigation — the host's page simply gone — so the dialog insets and the page
+  shows through, and clicking that margin closes it. ⚠ **`contain: layout` on the dialog content
+  is what makes the margin possible**: everything inside is `position: fixed`, and a fixed
+  descendant resolves against the viewport unless an ancestor establishes a containing block, so
+  without it the map and every drawer escape the margin and paint to the screen edge. Measured
+  in Chrome 151 — a `fixed; inset: 0` child of a `fixed; inset: 16px` parent lands at 0,0
+  plain and at 16,16 under `contain: layout`. That is the same property this rule forbids on the
+  SCOPE ROOT, for the same mechanism pointed the other way; do not move it up the tree.
 - **A deep link loads eagerly and opens; a configured default does not.** The distinction is
   whether the **page** URL carried `?atlas=`, surfaced as `routeFromPage` in the loader and
   `MountDecision.fromPage` in the widget — one signal feeding both, so they cannot disagree.

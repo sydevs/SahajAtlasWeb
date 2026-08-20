@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { overlayContainer, setExpandedSurface } from './overlay'
+import { overlayContainer, setDialog } from './overlay'
 
 import { setThemeRoot } from '@/hooks/use-theme'
 
@@ -13,7 +13,7 @@ import { setThemeRoot } from '@/hooks/use-theme'
  * pure spec could only re-assert the branch structure it was reading off the source.
  */
 afterEach(() => {
-  setExpandedSurface(null)
+  setDialog(null)
   setThemeRoot(null)
   document.body.innerHTML = ''
 })
@@ -33,7 +33,7 @@ describe('overlayContainer', () => {
   })
 })
 
-describe('the expanded surface', () => {
+describe('the expanded dialog', () => {
   // The reason this override exists: a modal dialog traps focus in its own content, so
   // anything portaled beside it is unreachable. Every portal has to land inside.
   it('wins over the theme root while it is open', () => {
@@ -43,7 +43,7 @@ describe('the expanded surface', () => {
     document.body.append(wrapper)
     wrapper.append(surface)
     setThemeRoot(wrapper)
-    setExpandedSurface(surface)
+    setDialog(surface)
 
     expect(overlayContainer()).toBe(surface)
   })
@@ -53,8 +53,8 @@ describe('the expanded surface', () => {
 
     document.body.append(wrapper)
     setThemeRoot(wrapper)
-    setExpandedSurface(document.createElement('div'))
-    setExpandedSurface(null)
+    setDialog(document.createElement('div'))
+    setDialog(null)
 
     expect(overlayContainer()).toBe(wrapper)
   })
@@ -69,7 +69,7 @@ describe('the expanded surface', () => {
     document.body.append(wrapper)
     wrapper.append(surface)
     setThemeRoot(wrapper)
-    setExpandedSurface(surface)
+    setDialog(surface)
     surface.remove()
 
     expect(overlayContainer()).toBe(wrapper)

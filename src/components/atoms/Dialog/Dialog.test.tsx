@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { ExpandedSurface } from './ExpandedSurface'
+import { Dialog } from './Dialog'
 
 import { setThemeRoot } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
@@ -11,7 +11,7 @@ import { overlayContainer } from '@/lib/overlay'
 /**
  * The one claim in this atom that no pure test can reach (issue #161).
  *
- * `ExpandedSurface` holds its own node in STATE and gates its children on it, so that every
+ * `Dialog` holds its own node in STATE and gates its children on it, so that every
  * portal in the app — read through `overlayContainer()` in render bodies all over the tree,
  * including inside vaul's and Floating UI's own portals — lands INSIDE the dialog rather than
  * beside it. Beside it means outside a modal focus trap, which means unreachable by keyboard.
@@ -52,14 +52,14 @@ function Probe({ seen }: { seen: { container?: HTMLElement } }) {
   return null
 }
 
-describe('ExpandedSurface — where its children portal to', () => {
+describe('Dialog — where its children portal to', () => {
   it('publishes itself before its children first render', () => {
     const seen: { container?: HTMLElement } = {}
 
     render(
-      <ExpandedSurface open collapseLabel="Close" title="Atlas" onOpenChange={() => {}}>
+      <Dialog open closeLabel="Close" title="Atlas" onOpenChange={() => {}}>
         <Probe seen={seen} />
-      </ExpandedSurface>,
+      </Dialog>,
     )
 
     const surface = document.querySelector('[data-sy-expanded]')
@@ -74,9 +74,9 @@ describe('ExpandedSurface — where its children portal to', () => {
     const seen: { container?: HTMLElement } = {}
 
     render(
-      <ExpandedSurface collapseLabel="Close" open={false} title="Atlas" onOpenChange={() => {}}>
+      <Dialog closeLabel="Close" open={false} title="Atlas" onOpenChange={() => {}}>
         <Probe seen={seen} />
-      </ExpandedSurface>,
+      </Dialog>,
     )
 
     // Closed, Radix renders no portal at all — so the children never mount and nothing has

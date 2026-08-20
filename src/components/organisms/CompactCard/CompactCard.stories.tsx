@@ -5,7 +5,7 @@ import { StorySection, StoryWrapper } from '../../ladle'
 
 import { CompactCard } from './CompactCard'
 
-import { ExpandedSurface } from '@/components/atoms/ExpandedSurface'
+import { Dialog } from '@/components/atoms/Dialog'
 import { LocalExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 
 export default { title: 'Organisms' } satisfies StoryDefault
@@ -37,8 +37,8 @@ function Live({ fill }: { fill: boolean }) {
   return (
     <>
       <CompactCard action={{ kind: 'overlay', onOpen: expand }} fill={fill} />
-      <ExpandedSurface
-        collapseLabel="Close"
+      <Dialog
+        closeLabel="Close"
         open={expanded}
         title="Free meditation classes"
         onOpenChange={(next) => !next && collapse()}
@@ -50,7 +50,7 @@ function Live({ fill }: { fill: boolean }) {
             surface opens — that is what keeps mapbox-gl unfetched behind a compact embed.
           </p>
         </div>
-      </ExpandedSurface>
+      </Dialog>
     </>
   )
 }
@@ -64,7 +64,7 @@ function Live({ fill }: { fill: boolean }) {
  * `decideSlot` (`lib/slot-decision.ts`), which is measurement rather than configuration and so
  * is specced in the node lane, not previewed here.
  *
- * The `overlay` sections are wired to a real `ExpandedSurface` through the real `useExpansion`
+ * The `overlay` sections are wired to a real `Dialog` through the real `useExpansion`
  * seam, so the buttons work: press one and the surface opens, Escape steps out, the × collapses
  * and focus returns to the button.
  */

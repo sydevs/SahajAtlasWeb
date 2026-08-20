@@ -22,7 +22,7 @@ import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { CompactCard, Mapbox, ReportIssueModal } from '@/components/organisms'
-import { ExpandedSurface } from '@/components/atoms'
+import { Dialog } from '@/components/atoms'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { DrawerStack } from '@/views'
 import { WidgetModeContext } from '@/config/mode'
@@ -388,8 +388,8 @@ function CompactForm({ fill, children }: { fill: boolean; children: ReactNode })
   return (
     <>
       <CompactCard action={{ kind: 'overlay', onOpen: expand }} fill={fill} />
-      <ExpandedSurface
-        collapseLabel={t('close')}
+      <Dialog
+        closeLabel={t('close')}
         open={expanded}
         // The same name the widget's own landmark carries, for the same reason: a dialog
         // whose accessible name resolves empty is announced as an unlabelled group.
@@ -408,7 +408,7 @@ function CompactForm({ fill, children }: { fill: boolean; children: ReactNode })
         }}
       >
         {children}
-      </ExpandedSurface>
+      </Dialog>
     </>
   )
 }

@@ -28,14 +28,14 @@ import { getThemeRoot } from '@/hooks/use-theme'
 let expandedSurface: HTMLElement | null = null
 
 /**
- * Adopt (or release, with `null`) the expanded surface as the portal target.
+ * Adopt (or release, with `null`) the expanded dialog as the portal target.
  *
  * **Called during the layout phase, before the surface's children render**, which is the
  * whole timing constraint: `overlayContainer()` is read in a render body, so a target
  * published in a passive effect would arrive one commit too late and the first drawer would
  * portal itself outside the dialog it is supposed to live in.
  */
-export function setExpandedSurface(element: HTMLElement | null): void {
+export function setDialog(element: HTMLElement | null): void {
   expandedSurface = element
 }
 

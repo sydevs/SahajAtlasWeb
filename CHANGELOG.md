@@ -49,7 +49,9 @@ cover everything a host would notice since the widget was first deployed.
   Four things a host can observe. The measurement happens **once, at mount**, so resizing your
   page does not switch between the two — remounting would discard wherever the visitor had
   navigated to. Entering the card **logs one console warning** naming what was measured and what
-  to change. The overlay **locks your page's scroll while it is open**, restoring it on close,
+  to change. The overlay **keeps a margin, so your page stays visible behind it, and clicking
+  that margin closes it** — along with Escape and the × in the corner. It **locks your page's
+  scroll while it is open**, restoring it on close,
   and marks the rest of your page `aria-hidden` while it covers it; Escape steps outward through
   the widget and then closes it, and if it is ever prevented from covering the page it closes
   itself rather than trapping a visitor. And **a deep link now opens the route**: `?atlas=` on
@@ -59,8 +61,8 @@ cover everything a host would notice since the widget was first deployed.
 
   ⚠ The overlay is `position: fixed`, so an ancestor of your embed carrying `transform`,
   `filter` or `contain` confines it to that element instead of covering the page. That was
-  already true of the map. The overlay detects it and closes itself rather than trapping anyone.
-  See [Sizing the element] in the integrator guide.
+  already true of the map. Clicking outside it or pressing Escape still closes it, so a
+  confined overlay is a cosmetic problem rather than a trap. See [Sizing the element].
 
 - **The widget documents the browser permissions it needs.** ([#161]) `geolocation`,
   `clipboard-write` and `web-share`, which a cross-origin iframe denies by default and a

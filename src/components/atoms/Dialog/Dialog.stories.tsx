@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 import { StorySection, StoryWrapper } from '../../ladle'
 
-import { ExpandedSurface } from './ExpandedSurface'
+import { Dialog } from './Dialog'
 
 import { Button } from '@/components/atoms/Button'
 
@@ -13,7 +13,7 @@ export default {
 } satisfies StoryDefault
 
 /**
- * ExpandedSurface — the viewport-covering layer a compact embed grows into (issue #161).
+ * Dialog — the viewport-covering layer a compact embed grows into (issue #161).
  *
  * Expansion is not a new layout: it is map mode's layout made explicit and reversible. The
  * surface is `fixed; inset: 0` with no chrome beyond its collapse control, which is exactly
@@ -43,8 +43,8 @@ export const Default: Story = () => {
           </Button>
         </div>
 
-        <ExpandedSurface
-          collapseLabel="Close"
+        <Dialog
+          closeLabel="Close"
           open={open}
           title="Free meditation classes"
           onOpenChange={setOpen}
@@ -56,7 +56,7 @@ export const Default: Story = () => {
               surface is the only reason that is now a state with an exit rather than an accident.
             </p>
           </div>
-        </ExpandedSurface>
+        </Dialog>
       </StorySection>
     </StoryWrapper>
   )

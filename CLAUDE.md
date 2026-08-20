@@ -129,7 +129,7 @@ src/
   main.tsx            # Standalone dev entry (BrowserRouter; ?map=0 for content-only)
   providers.tsx       # React Query + Helmet (Radix is headless; BrandTheme mounts in App)
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
-    atoms/            # Primitives: Drawer/, Modal/, ExpandedSurface/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
+    atoms/            # Primitives: Drawer/, Modal/, Dialog/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
     molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, ActionRow/, EventMetadata/, ImageCarousel/, ShareContent/, FormField/, Fallbacks/
     organisms/        # Data-connected: EventsList/, CompactCard/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts

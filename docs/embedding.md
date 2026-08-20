@@ -322,11 +322,11 @@ Three things worth knowing:
 - **The overlay locks your page's scroll while it is open**, and restores it on close. It is a
   modal dialog, so while it is open the rest of your page is also marked `aria-hidden` — a
   screen reader reads the widget rather than the page underneath it — and that is undone on
-  close too. **Escape works**, and it steps outward: it dismisses whatever the widget has open
-  first, and closes the overlay once there is nothing left inside. The × in the corner always
-  closes it too, and focus returns to the button that opened it. If the overlay ever finds
-  itself unable to cover the page, it closes itself rather than leaving a visitor stuck on a
-  page they cannot scroll.
+  close too. **It keeps a margin**, so your page stays visible behind it and it reads as a layer
+  over your site rather than a departure from it. There are three ways out and you do not have
+  to find the right one: **clicking outside** it, **Escape** (which steps outward — dismissing
+  whatever the widget has open first, then closing), and the **×** in the corner. Focus returns
+  to the button that opened it.
 - **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
   URL is a visitor who followed a link, so the widget mounts immediately rather than waiting to
   be scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
