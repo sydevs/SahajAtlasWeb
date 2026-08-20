@@ -114,6 +114,20 @@ export type ViewHarnessProps = {
    * rendering a broken canvas.
    */
   map?: boolean
+  /**
+   * What the harness sizes itself against: the viewport (default) or its container.
+   *
+   * ⚠ **`screen` is wrong inside anything that is not the viewport**, and the compact embed's
+   * dialog is exactly that: it keeps a margin, so `h-screen` renders 32px taller than the box
+   * clipping it and the bottom of the scroll area — scrollbar included — is cut off. It still
+   * scrolls; it reads as though it does not, which is worse.
+   *
+   * This is the container-vs-viewport tension the dialog's margin introduces, in the one place
+   * we own the arithmetic. Note vaul has the same exposure and we do NOT own that one: it
+   * computes a snap-point sheet's travel from `window.innerHeight`, so a real bottom sheet
+   * inside the dialog is off by the same margin.
+   */
+  height?: 'screen' | 'container'
   children: ReactNode
 }
 
@@ -247,7 +261,15 @@ export function ViewStory({ example, state = NO_ERROR, children, ...harness }: V
   )
 }
 
-export function ViewHarness({ seedKey, seed, mode, path, map, children }: ViewHarnessProps) {
+export function ViewHarness({
+  seedKey,
+  seed,
+  mode,
+  path,
+  map,
+  height = 'screen',
+  children,
+}: ViewHarnessProps) {
   // A token-less environment gets the map-less arm: a canvas that cannot load tiles previews
   // nothing and fills the console with Mapbox errors.
   const withMap = Boolean(map && import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
@@ -309,7 +331,9 @@ export function ViewHarness({ seedKey, seed, mode, path, map, children }: ViewHa
                   'relative z-10 flex flex-col overflow-hidden bg-background text-foreground',
                   withMap
                     ? 'absolute inset-y-0 start-0 w-[22rem] max-w-full shadow-2xl'
-                    : 'h-screen',
+                    : height === 'container'
+                      ? 'h-full'
+                      : 'h-screen',
                 )}
               >
                 <Suspense fallback={<DrawerLoading />}>

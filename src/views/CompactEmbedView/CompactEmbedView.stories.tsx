@@ -114,7 +114,12 @@ export const Default: Story<{ view: InterfaceKey; inContext: boolean; map: boole
 
   const embed = (
     <CompactEmbedView compact={compact}>
-      <ViewHarness map={map} seed={seedFor(view, locale)} seedKey={`${view}·${map}`}>
+      <ViewHarness
+        height="container"
+        map={map}
+        seed={seedFor(view, locale)}
+        seedKey={`${view}·${map}`}
+      >
         <Interface view={view} />
       </ViewHarness>
     </CompactEmbedView>
