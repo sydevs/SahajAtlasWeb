@@ -45,7 +45,7 @@ const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
 const VIEWPORT_CALLERS: Record<string, string> = {
   'config/responsive.ts':
     'defines the hooks, and is the fallback inside `useIsWide` for the case where there is nothing to measure',
-  'hooks/use-map-controller.tsx':
+  'hooks/use-map-controller-real.tsx':
     'map camera padding. A map only exists in map mode, and in map mode the widget spans the viewport',
   'components/atoms/Drawer/Drawer.stories.tsx':
     'a Ladle story is the whole page, so the viewport genuinely is its container',

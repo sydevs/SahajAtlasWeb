@@ -8,7 +8,6 @@ import { Helmet } from 'react-helmet-async'
 import * as Fathom from 'fathom-client'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
-import { MapProvider } from 'react-map-gl'
 
 import { useLocale } from './hooks/use-locale'
 import Providers from './providers'
@@ -21,13 +20,16 @@ import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
-import { Mapbox, ReportIssueModal } from '@/components/organisms'
+// ⚠ The component's own path, NOT the `@/components/organisms` barrel. The barrel re-exports
+// `Mapbox`, so importing ANYTHING through it pulls `react-map-gl` — whose `exports-mapbox.js`
+// fires `import('mapbox-gl')` at module scope — straight back into the eager graph. Splitting
+// `FullInterface` behind `lazy` was not enough on its own: measured in a browser, the compact
+// embed still fetched all 485 KiB gz through this one barrel import.
+import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
-import { DrawerStack } from '@/views'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
-import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). A side-effect import beside the
 // stylesheet because that is what it is — the part of our CSS that a `url()` in an
@@ -38,6 +40,10 @@ import i18n from '@/config/i18n'
 
 // Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
 // the controller land in their own chunk — zero cost to normal standalone/embedded use.
+// Lazy on purpose — see the module's own docblock. This is the boundary that keeps
+// `react-map-gl` (and therefore mapbox-gl) out of a compact embed's payload.
+const FullInterface = lazy(() => import('@/views/FullInterface'))
+
 const PreviewController = lazy(() =>
   import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
 )
@@ -312,7 +318,14 @@ function AppShell({
 
   // Built as an ELEMENT, not rendered here: in the compact form it is handed to the surface,
   // and React never renders it until that opens — which is what keeps mapbox-gl unfetched.
-  const interfaceElement = <FullInterface hasMap={hasMap} />
+  // Its own Suspense, so the boundary travels WITH the element: in the compact form this
+  // renders inside the dialog, and suspending to `AppShell`'s boundary would replace the card
+  // with a loading panel instead of showing one where the interface is about to appear.
+  const interfaceElement = (
+    <Suspense fallback={<LoadingFallback />}>
+      <FullInterface hasMap={hasMap} />
+    </Suspense>
+  )
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
@@ -339,37 +352,3 @@ function AppShell({
 }
 
 // ===== THE COMPACT FORM ===== //
-
-/** The map (or not) and the drawer stack over it — everything below the form decision. */
-function FullInterface({ hasMap }: { hasMap: boolean }) {
-  return hasMap ? (
-    <MapProvider>
-      {/* Inline fixed/inset so the map always fills the viewport behind the
-              drawers — independent of Tailwind viewport-unit utility generation.
-
-              **This is why map mode requires a FULL-PAGE slot, and issue #107 settled
-              that as a documented requirement rather than containing it.** The canvas
-              covers the viewport whatever size the host made `<sahaj-atlas>`, and the
-              drawers over it are `fixed` too. Containing the lot is not a `fixed` →
-              `absolute` swap: vaul computes a snap-point sheet's translate from the
-              WINDOW height (see the `bottom` variant in `atoms/Drawer/Drawer.tsx`), so a
-              contained sheet is pushed off-screen by the library's own arithmetic, and
-              `--sy-sheet-top` — which pins the sticky Register bar — is a viewport-
-              relative measurement for the same reason. `map="false"` is the mode that
-              stays inside its box, and it is container-relative throughout (#107).
-              A host that gets this wrong now gets the compact card instead of a takeover:
-              `lib/slot-decision.ts` measures at mount and `AppShell` renders `CompactEmbedView`,
-              whose button opens the map full-screen. */}
-      <div style={{ position: 'fixed', inset: 0 }}>
-        <Mapbox />
-      </div>
-      <RealMapControllerProvider>
-        <DrawerStack />
-      </RealMapControllerProvider>
-    </MapProvider>
-  ) : (
-    <NoopMapControllerProvider>
-      <DrawerStack />
-    </NoopMapControllerProvider>
-  )
-}

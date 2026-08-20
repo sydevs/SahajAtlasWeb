@@ -27,10 +27,13 @@
  *      so a check that only read `index.html` would never see the embed's cost
  *      at all — and the embed is the actual product.
  *
- * Dynamic `import()` targets (mapbox-gl, EventDetails, the lightbox, the admin
- * PreviewController) are deliberately excluded: they are a second hop, not the
- * first-load cost. Note that the map renders at mount today, so real
- * first-meaningful-paint is closer to `standalone + mapbox-gl`. Budgeting the
+ * Dynamic `import()` targets are excluded — but read that carefully, because it hid a real
+ * regression for the length of one PR. A dynamic import is only a second hop when the module
+ * HOLDING it is itself lazy. `react-map-gl` runs `const mapLib = import('mapbox-gl')` at module
+ * scope, so while anything in the eager graph imported it — including one re-export through the
+ * `organisms` barrel — 485 KiB gz was fetched concurrently with the payload and this gate
+ * reported a comfortable number. If you are adding a heavy dependency, check what its module
+ * BODY does, not just how the app imports it.
  * eager graph alone keeps this check honest about what it claims to measure.
  *
  * ## About the numbers
