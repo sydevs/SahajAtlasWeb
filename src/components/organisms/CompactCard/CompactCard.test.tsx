@@ -73,9 +73,19 @@ describe('CompactCard', () => {
   it('fills a box the host sized, and takes content height when they gave none', () => {
     // `h-full` against a host who gave no height resolves to nothing, so the card would
     // collapse and read as an embed that did not render.
-    expect(renderToStaticMarkup(<CompactCard fill action={overlay} />)).toContain('h-full')
-    expect(renderToStaticMarkup(<CompactCard action={overlay} fill={false} />)).not.toContain(
-      'h-full',
-    )
+    //
+    // ⚠ Asserted as a SEPARATE class token, never with `toContain`. The first version of this
+    // card joined the list with a template literal; prettier-plugin-tailwindcss re-sorted the
+    // static half and ate the leading space, so it shipped as `text-foregroundh-full` — a class
+    // present in the DOM, matching no rule, with lint, typecheck and this lane green. A
+    // substring assertion passes on that string, which is exactly why the first one missed it.
+    const classes = (fill: boolean) => {
+      const markup = renderToStaticMarkup(<CompactCard action={overlay} fill={fill} />)
+
+      return (markup.match(/class="([^"]*)"/)?.[1] ?? '').split(/\s+/)
+    }
+
+    expect(classes(true)).toContain('h-full')
+    expect(classes(false)).not.toContain('h-full')
   })
 })

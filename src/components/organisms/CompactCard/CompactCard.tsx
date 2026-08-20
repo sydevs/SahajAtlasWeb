@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
@@ -47,8 +48,17 @@ export function CompactCard({ action, fill }: CompactCardProps) {
   const { t } = useTranslation('common')
 
   return (
+    /* `clsx`, not a template literal. A `${cond ? ' h-full' : ''}` concatenation looks
+       equivalent and is not: prettier-plugin-tailwindcss re-sorts the static half and eats the
+       leading space, so the class shipped as `text-foregroundh-full` — present in the DOM,
+       matching nothing, with lint, typecheck and the unit lane all green. That is exactly the
+       silent-Tailwind failure `.claude/rules/code-style.md` warns about, and it got past a
+       computed-style check because the check read the wrong element. */
     <div
-      className={`flex w-full flex-col items-center justify-center gap-2 overflow-hidden bg-background p-3 text-foreground${fill ? 'h-full' : ''}`}
+      className={clsx(
+        'flex w-full flex-col items-center justify-center gap-2 overflow-hidden bg-background p-3 text-foreground',
+        fill && 'h-full',
+      )}
     >
       {/* Capped rather than full-bleed: a button stretched across a 1000px-wide short slot
           reads as a broken layout rather than a card. */}
