@@ -328,12 +328,16 @@ export function ViewHarness({
               <div
                 key={seedKey}
                 className={clsx(
-                  'relative z-10 flex flex-col overflow-hidden bg-background text-foreground',
+                  'z-10 flex flex-col overflow-hidden bg-background text-foreground',
+                  // ⚠ Exactly ONE position class, and the branches must not both contribute one.
+                  // An earlier version left `relative` in the shared half and added `absolute` in
+                  // the map arm: Tailwind emits `.relative` after `.absolute`, so `relative` won,
+                  // `inset-y-0` did nothing, and the column grew to its content — 994px inside an
+                  // 868px dialog, with no height bound for the body to scroll within. It read as
+                  // "the list will not scroll".
                   withMap
                     ? 'absolute inset-y-0 start-0 w-[22rem] max-w-full shadow-2xl'
-                    : height === 'container'
-                      ? 'h-full'
-                      : 'h-screen',
+                    : clsx('relative', height === 'container' ? 'h-full' : 'h-screen'),
                 )}
               >
                 <Suspense fallback={<DrawerLoading />}>
