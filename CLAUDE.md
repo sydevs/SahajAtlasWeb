@@ -72,6 +72,7 @@ pnpm test:run     # vitest run (one-shot — CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm audit:check  # dependency-advisory gate vs scripts/audit-baseline.json
+pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
 ```

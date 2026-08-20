@@ -161,7 +161,15 @@ lat/lng arithmetic.
 ## Verifying map behaviour in a browser
 
 Map changes ARE verifiable end-to-end with the Playwright MCP — prefer proving one
-over asking the user. Serve the app per `.claude/docs`/the worktree pattern (alt port
+over asking the user.
+
+**For anything about the widget as an EMBED — chunk loading, the slot decision, CSS scoping in a
+host's cascade — use `pnpm build && pnpm review:embed`** rather than hand-rolling a host page. It
+serves `dist/` on `VITE_HOST`'s port (same-origin, so the locales resolve) with the shapes that
+have produced real bugs. Its header documents the four traps that make the hand-rolled version cost
+an afternoon — chiefly that `<sahaj-atlas>` observes **no attributes**, so config must ride on the
+script URL, and that `dist/_redirects` makes a leftover server answer 200 with the app shell for a
+page it does not have. Serve the app per `.claude/docs`/the worktree pattern (alt port
 
 + matching `VITE_HOST`) against the seeded local backend.
 

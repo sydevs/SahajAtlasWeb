@@ -332,6 +332,30 @@ opens the interface somewhere it fits.
   so without it a deep-linked widget would mount **mid-scroll** and slam a modal over the page.
   A module flag in the provider stops a remount reopening what a visitor closed.
 
+⚠ **An effect in `AppShell` runs for a collapsed card too, and that produced four separate bugs.**
+The shell renders for every embed, including one whose entire appearance is a single button — so
+anything that writes the host's URL, fetches, injects a script or reports must mount with the
+**interface** (`FullInterface`, or from `interfaceElement`), never with the shell. The four, each
+found one at a time across two review rounds before the pattern was named:
+
+| Fired from a collapsed card | Cost |
+| --- | --- |
+| The home-region redirect | `navigate` writes `?atlas=/nl` onto the HOST's URL; reloading that address then opened a dialog nobody asked for |
+| `api.warmCaches()` | The whole events feed **and** the region tree, on every page view of a sidebar nobody presses |
+| `Fathom.load` | Our tracker script injected into the host's page |
+| `Fathom.trackPageview` | A pageview of `/` recorded for an interface nobody opened |
+
+**One property underwrites all four**: React never renders the card's `children` until the dialog
+opens — which is also what keeps mapbox-gl unfetched. Nothing pinned it, and each fix has its own
+spec that would keep passing if it broke, so it now has one of its own in
+`CompactEmbedView.mount.test.tsx`. It has to be **jsdom**: the dialog's content is a portal, and
+`renderToStaticMarkup` renders none, so the SSR version of that assertion is vacuous (see
+`.claude/rules/tests.md`).
+
+Two effects deliberately still fire from a collapsed card — the readiness marker and the embed
+report — because both attest that the widget *booted*, which is true whether or not anyone opened
+it. `clients/me` stays too: the card is themed and localized from that record.
+
 **Three things about the dialog were found in a browser and could not have been found any other
 way.**
 

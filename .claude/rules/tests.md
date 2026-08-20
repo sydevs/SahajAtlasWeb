@@ -205,6 +205,34 @@ whose whole job IS the DOM.** Six specs qualify today:
   `isConnected` case is the one worth having — a detached target swallows every portal in the
   app in silence, and releasing it is somebody else's effect cleanup.
 
+### `renderToStaticMarkup` renders NO portals — so asserting on portal content is vacuous
+
+The single most reusable form of the "covers the door" failure above, because this app is
+portal-dense: every vaul drawer, every Radix overlay, the filter sheet and `CompactEmbedView`'s
+expanded dialog all portal. **An SSR assertion about what is INSIDE one passes whether the content
+rendered or not**, since `renderToStaticMarkup` never serializes a portal at all.
+
+Asserting **absence** is the trap, and it is silent in the worst way — a correct-looking
+`expect(html).not.toContain(…)` is indistinguishable from a portal that was never going to appear.
+Issue #161 wrote exactly that spec for "a collapsed card does not render the interface", watched it
+pass, and it kept passing with the regression deliberately reintroduced. The property is real and
+load-bearing (three separate fixes rest on it), but only jsdom can see it —
+`CompactEmbedView.mount.test.tsx` is what pins it now.
+
+So: content behind a portal is a jsdom case. The node lane can still assert the trigger, the
+chrome, and anything rendered inline — just never the portal's subtree.
+
+### A regression spec is not finished until it has FAILED
+
+Write the spec, then **reintroduce the defect and watch it go red**, then restore. A green new test
+proves nothing on its own: twice in the #161 session a freshly written spec passed against the very
+bug it was written for.
+
+Reintroduce it **at the site that actually caused it**. The second miss came from flipping a nearby
+gate (`{node && children}` → `{children}`) that Radix already made unreachable while the dialog was
+closed — a simulation that could not fail, validating nothing. The regression has to take the shape
+it would really take, which there was the interface mounting *alongside* the card.
+
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`
 (`src/lib/shape/path.ts`) carries most of that logic and is tested in the node lane with
