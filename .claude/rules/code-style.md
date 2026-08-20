@@ -39,6 +39,11 @@ style rather than assuming the class works.
 - ESLint enforces `import/order` with blank lines between groups
   (type → builtin → object → external → internal → parent → sibling → index).
   The auto-fix handles ordering; don't fight it.
+- **`react/jsx-sort-props`' autofix moves props but leaves comments where they sat**, so a
+  commented prop inserted out of alphabetical order ends up documenting its neighbour — and lint
+  goes green on the result. Adding `measureAgainst` with a three-line note to a sorted `<Drawer>`
+  in #161 left that note over `handleOnly` and `handleOnly`'s note over it. Insert new props in
+  alphabetical position by hand, and re-read the block after `--fix`.
 - `unused-imports/no-unused-imports` auto-removes dead imports on fix — and the
   PostToolUse hook runs that fix after **every** edit. So an import added in a
   separate edit from its first use is stripped before the use lands, then fails

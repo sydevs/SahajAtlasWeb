@@ -29,7 +29,7 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
   key: null,
   map: true,
   routing: 'query',
-  compact: 'auto',
+  routeFromPage: false,
 }
 
 type EmbedBoot = {

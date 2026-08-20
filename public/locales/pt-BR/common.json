@@ -159,5 +159,8 @@
   "map": {
     "find_my_location": "Encontrar minha localização",
     "location_not_available": "Localização não disponível"
+  },
+  "compact": {
+    "open": "Encontre uma aula perto de você"
   }
 }

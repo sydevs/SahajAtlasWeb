@@ -1,116 +1,131 @@
 # Embedding Sahaj Atlas
 
-Everything a host site needs to put the atlas on a page: the snippet, the parameters, the
-Content-Security-Policy contract, sizing, what the widget does to your page, what leaves your
-visitor's browser, and what to check when it doesn't work.
+**Copy one of [the two embed codes](#the-two-embed-codes) below and you are done.** Everything
+after them is optional: parameters, sizing, the Content-Security-Policy contract, what the widget
+touches on your page, what leaves your visitor's browser, and what to check when something looks
+wrong.
 
 This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer guide and
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
 
+## The two embed codes
+
+**There are exactly two ways to embed the atlas, and both are one copy-paste.** Pick by whether
+your platform lets you add a `<script>` tag to a page's body.
+
+### 1. Script — the primary embed
+
+```html
+<script type="module" src="https://sahajatlas.com/auto.js?key=YOUR_KEY"></script>
+```
+
+That is the whole snippet. Put it in the body where the widget should appear. It renders
+full-screen over your page, which is what the atlas wants when it has a page to itself.
+
+**For an embed that stays inside your layout**, add `map=false` and give it a height:
+
+```html
+<style>
+  sahaj-atlas {
+    display: block;
+    height: 640px;
+  }
+</style>
+<script type="module" src="https://sahajatlas.com/auto.js?key=YOUR_KEY&map=false"></script>
+```
+
+### 2. Iframe — when you cannot add a script
+
+```html
+<iframe
+  src="https://sahajatlas.com/?key=YOUR_KEY&map=false"
+  title="Find a meditation class near you"
+  width="100%"
+  height="640"
+  loading="lazy"
+  allow="geolocation; clipboard-write; web-share"
+  style="border: 0"
+></iframe>
+```
+
+Use this on platforms that strip `<script>` from saved content — most WordPress roles below
+Administrator, and some page builders. It is a complete embed: everything below is optional.
+
+### Which one, and what you give up
+
+|                                                                          | Script            | Iframe          |
+| ------------------------------------------------------------------------ | ----------------- | --------------- |
+| Works where `<script>` is stripped                                       | no                | **yes**         |
+| The route appears in **your** page's URL, and is shareable and indexable | **yes**           | no              |
+| Grows out of a small slot when it needs room                             | **yes**, in place | opens a new tab |
+| Costs before a visitor scrolls to it                                     | ~3 KiB            | the whole page  |
+
+**Prefer the script.** The iframe cannot put the widget's route on your URL, which is the whole
+mechanism by which each city and event becomes a page search engines can index on your domain.
+
+### Both snippets, spelled out
+
+Everything either snippet needs is in it. Specifically:
+
+- **`key` is the only required setting** and is the same for both. Ask the Sahaj Atlas
+  maintainers for one. It is **public and published** — it ships in your page's HTML, it is
+  scoped to read-only atlas data, and it is not a secret.
+- **Every other setting rides on that URL's query string** — see [Parameters](#parameters).
+  There is no element to add and no attribute to misspell.
+- **`allow=` on the iframe is not optional decoration.** Three browser features are denied to a
+  cross-origin frame by default and each fails _silently_ — see
+  [Permissions Policy](#permissions-policy).
+- **`title` on the iframe is required for accessibility.** Without one it is announced as an
+  unlabelled frame. Write it for your visitors, in your language.
+- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` — see
+  [Embedding in an iframe](#embedding-in-an-iframe).
+
+Three rules for the script tag specifically:
+
+- **Put it in the body, where the widget should appear.** The element is inserted immediately
+  before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
+- **No `async` or `defer`.** The loader reads its own script tag to find both its settings and
+  its position, and those attributes hide it.
+- **`type="module"` is required** — the loader is an ES module.
+
+`auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
+the widget itself only when the embed is about to come into view — so an embed further down your
+page costs your visitors almost nothing until they scroll to it.
+
+### What you can add later
+
+Nothing below is needed to get a working embed. Reach for it when you want more:
+
+| You want                                                              | Read                                                                    |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| A different language, no map, or a specific opening view              | [Parameters](#parameters)                                               |
+| The embed to fit a column rather than the page                        | [Sizing the element](#sizing-the-element)                               |
+| Your page to send a Content-Security-Policy                           | [Content-Security-Policy](#content-security-policy)                     |
+| The locate, copy-link or share buttons to work behind a policy header | [Permissions Policy](#permissions-policy)                               |
+| Clean paths instead of `?atlas=`                                      | [The URL](#the-url)                                                     |
+| To know what the widget touches on your page                          | [What the widget does to your page](#what-the-widget-does-to-your-page) |
+| To answer a privacy question                                          | [Privacy](#privacy-storage-and-third-party-requests)                    |
+
 ## Contents
 
-- [Quick start](#quick-start)
-- [Where to load it from](#where-to-load-it-from)
+- [The two embed codes](#the-two-embed-codes)
 - [Parameters](#parameters)
 - [Sizing the element](#sizing-the-element)
+- [Embedding in an iframe](#embedding-in-an-iframe)
 - [The URL](#the-url)
 - [Content-Security-Policy](#content-security-policy)
+- [Permissions Policy](#permissions-policy)
+- [Where to load it from](#where-to-load-it-from)
 - [Browser support](#browser-support)
 - [What the widget does to your page](#what-the-widget-does-to-your-page)
 - [Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
 - [Updates and caching](#updates-and-caching)
+- [Migrating from the old element](#migrating-from-the-old-sahaj-atlas-element)
 - [Troubleshooting](#troubleshooting)
-
-## Quick start
-
-```html
-<script type="module" src="https://sahajatlas.com/auto.js?key=…"></script>
-```
-
-That is the whole snippet. **There is no element to add and no attribute to misspell** — the
-script creates the widget where you put the tag, and every setting rides on the script URL's
-query string.
-
-Three things about it:
-
-- **The file is `auto.js`.** It is a ~3 KiB loader, not the widget. It works out what your page
-  supports, then fetches the widget itself only when the embed is about to come into view — so a
-  widget further down your page costs your visitors almost nothing until they scroll to it.
-- **Put it where the widget should appear**, in the body. The element is inserted immediately
-  before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
-- **Don't add `async` or `defer`.** The loader reads its own script tag to find both its settings
-  and its position, and those attributes make the browser hide it.
-
-`type="module"` is required — the loader is an ES module.
-
-Ask the Sahaj Atlas maintainers for an API key. It is a **public, published** key: it
-ships in your page's HTML, it is scoped to read-only atlas data, and it is not a secret.
-
-### If you previously used `<sahaj-atlas>` and attributes
-
-The element and all nine attributes are gone. Most became query parameters; the rest moved to
-your client record or were removed (see [Parameters](#parameters)). The reason is worth knowing,
-because it is about your platform rather than our taste: WordPress
-strips `<script>` (and unknown attributes) from saved content for anyone below Administrator —
-and for **every** Site Administrator on multisite — while Wix supplies a bare script URL and its
-own attribute panel. One mechanism on the URL works identically on all of them, and the only
-thing a sanitizer can now destroy is the whole snippet, which is a failure you can see.
-
-```html
-<!-- before -->
-<script type="module" src="https://sahajatlas.com/embed.js"></script>
-<sahaj-atlas api-key="…" map="false" locale="fr"></sahaj-atlas>
-
-<!-- now -->
-<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false&locale=fr"></script>
-```
-
-Three things to check when you migrate:
-
-- `api-key` became **`key`**.
-- `base-path` became **`atlas`**, and now defers to a route already on the page's URL.
-- `analytics`, `geolocation`, `error-reporting`, `name`, `primary-color`, `secondary-color` and
-  `mount` no longer exist. A leftover value in your URL is ignored rather than misread.
-
-## Where to load it from
-
-Two hosts serve the identical bundle:
-
-| Host                           | What it is                                             |
-| ------------------------------ | ------------------------------------------------------ |
-| `https://sahajatlas.com`       | the production domain — **use this one**               |
-| `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
-
-**The origin you load the script from is not the only origin the widget contacts, and
-one of them is fixed regardless of your choice.** The bundle has the locale-JSON host
-compiled into it: whichever host you fetch `auto.js` from, the widget's UI strings are
-fetched from `https://sahajatlas.com/locales/…`. That matters only for your CSP, where
-`connect-src` has to name it — see the table below. If those requests are blocked, every
-string in the widget renders as its raw dotted key name (`events.title`, `nav.search`),
-which looks like a broken translation rather than a blocked request.
-
-That host is **compiled in from `VITE_HOST` at build time**, so it is a property of the
-deployment rather than of the source — a local build carries whatever the checked-in `.env`
-says. To confirm the current value rather than trusting this page, read it out of the
-shipped bundle:
-
-Two files sit at that origin's root, and only the first is one you reference:
-
-| File       | What it is                                         |
-| ---------- | -------------------------------------------------- |
-| `auto.js`  | the loader — the one you install                   |
-| `embed.js` | the widget itself, fetched by the loader on demand |
-
-To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
-
-```bash
-curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
-curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
-```
 
 ## Parameters
 
-Six parameters on the script URL, all optional except `key`. Standard query-string rules apply,
+Five parameters on the script URL, all optional except `key`. Standard query-string rules apply,
 so percent-encode anything with a reserved character in it (`atlas=%2Fgb%2Flondon` is equivalent
 to `atlas=/gb/london`; both work).
 
@@ -121,17 +136,11 @@ to `atlas=/gb/london`; both work).
 | `map`     | `true`                         | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)). |
 | `routing` | `query`                        | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                             |
 | `atlas`   | —                              | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                    |
-| `compact` | `auto`                         | Whether the widget may fall back to a compact card in a slot too small for the full interface. `always` / `never` force it either way.                                                                                               |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — the parameter absent, empty, `true`, `no`, `FALSE` — leaves it **on**. This is
 deliberate, so that a typo can never silently disable something you are relying on; but it also
 means `map=no` does not do what it looks like it does.
-
-`compact` has three values rather than two, so it cannot follow that rule exactly — but it keeps
-the important half: **an unrecognised value falls back to `auto`**, never to the setting that
-would lock your embed into the small card. `true`/`1` and `false`/`0` are accepted as synonyms for
-`always`/`never`.
 
 ### `atlas`, and how the route is chosen
 
@@ -170,10 +179,6 @@ location lookup is a keyless once-per-session city lookup. If a flow is neverthe
 your privacy notice, talk to the maintainers — the answer is a setting on your client record, not
 something an editor can change by editing a script tag.
 
-```html
-<script type="module" src="https://sahajatlas.com/auto.js?key=…&locale=fr&map=false"></script>
-```
-
 **One widget per page.** The loader marks the element it takes charge of, so a second copy of the
 snippet renders nothing and says so in the console rather than silently adopting the first one's
 widget and discarding its own settings. This is a real constraint rather than an oversight: two
@@ -206,17 +211,17 @@ hour, so this is one small request per page view, and nothing your visitor sees 
 Two things can refuse it, and both are configuration rather than a fault in your page — they are
 reported to the browser console and the widget carries on working:
 
-| Console message mentions | What it means |
-| --- | --- |
-| the origin is not allowed | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
-| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting |
+| Console message mentions     | What it means                                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
+| the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting                                                                               |
 
 ### The readiness marker
 
 Once the widget has genuinely mounted, it sets one attribute on your page's `<html>` element:
 
 ```html
-<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'>
+<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'></html>
 ```
 
 It is written **after** the widget renders, never on script load, and removed again if the widget
@@ -267,8 +272,122 @@ however narrow the column. Whether a dial link reaches a dialer is hardware.
 
 Map mode has no such adaptation, and that is a requirement rather than an oversight — the
 drawers compute their travel from the window, so a map-mode widget confined to a small box
-is broken by that arithmetic rather than merely cramped. **The widget now warns in the
-console** when it detects that placement instead of leaving you to discover it.
+is broken by that arithmetic rather than merely cramped. **A map embed that does not have the
+page to itself therefore renders the compact card instead**, whose button opens the map
+full-screen — see below. It used to warn in your console and then paint over your page anyway.
+
+### When the slot is too small
+
+Below a certain size there is no layout that works, so the widget stops trying to fit one in
+and shows a **compact card** instead: a heading and one button that opens the whole interface
+somewhere it fits. Your visitor still gets everything; it just does not try to live in a
+300-pixel box.
+
+**The card is the button.** It takes only the room it needs, centred across whatever box you
+gave and sitting at the top of it. If you gave the element **no height at all**, it sizes to its own content rather
+than collapsing — so a bare `<sahaj-atlas>` in a narrow column renders as a card in your page's
+flow instead of appearing not to render. It renders **no events and makes no location lookup** — a control whose whole
+job is to lead somewhere else has nothing to show, and it does not read the event feed or the
+region tree either: those are warmed when the interface opens, not while the card sits closed.
+It records no analytics pageview either — an interface nobody opened is not a page anybody
+viewed. It is not silent, though: the widget still reads your client record and sends the
+one-per-load [embed report](#what-the-loader-reports-back) while the card is collapsed.
+
+**Where the button goes depends on whether the widget can grow where it is.**
+
+| Your embed                  | The button                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
+| Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
+
+The floors are **360px wide and 420px tall**, and there is a second condition that matters as
+much: **the widget only degrades when there is somewhere bigger to go.** A slot that is
+essentially the whole screen is never called too small, because a card there would take the
+interface away and hand back nothing — so a full-width embed on a phone keeps the normal
+interface, and so does a small iframe on a small screen.
+
+**Map mode is measured differently, and this changed.** `map=true` always fills the viewport, so
+the question for it is simply whether it has the page to itself. An embed that does not — a map
+in an article column, or one you gave an explicit height — now renders the compact card, whose
+button opens the map full-screen. Previously it warned in your console and then painted over
+your page anyway.
+
+Three things worth knowing:
+
+- **It is decided once, when the widget mounts.** Resizing your page afterwards does not switch
+  between the two, because switching would remount the widget and throw away where the visitor
+  had navigated to. There is deliberately no parameter to override it: a knob for a measurement
+  we can get right is a setting you would have to maintain forever. If a slot of yours is
+  measured wrongly, that is a bug worth reporting rather than working around.
+- **Entering the compact card logs a console warning** naming what was measured and what to
+  change, so a slot you did not mean to make small is findable rather than mysterious. The
+  sentence differs for the two cases, because the fixes are opposite ones.
+- **The overlay locks your page's scroll while it is open**, and restores it on close. It is a
+  modal dialog, so while it is open the rest of your page is also marked `aria-hidden` — a
+  screen reader reads the widget rather than the page underneath it — and that is undone on
+  close too. **It keeps a margin**, so your page stays visible behind it and it reads as a layer
+  over your site rather than a departure from it. There are three ways out and you do not have
+  to find the right one: **clicking outside** it, **Escape** (which steps outward — dismissing
+  whatever the widget has open first, then closing), and the **×** in the corner. Focus returns
+  to the button that opened it.
+- **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
+  URL is a visitor who followed a link, so the widget mounts immediately rather than waiting to
+  be scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
+  script URL does not do this** — that is your default view, not a request from a visitor, so it
+  stays lazy and opens nothing. Closing the overlay does not reopen it.
+
+- ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
+  make that element the containing block for fixed-position content, so the overlay is confined
+  to it instead of covering the page — and the same already applies to the map, which is fixed
+  too. It is not a trap if it happens — clicking outside the overlay and pressing Escape both
+  still close it, wherever it has been confined to — but it will look wrong.
+  (`container-type` is fine; it does not have this effect, however
+  often it is said to.)
+
+## Embedding in an iframe
+
+**The script above is the primary way to embed the atlas.** An iframe is the supported
+alternative for platforms that will not let you add a script tag. (`sahajatlas.com` itself is not
+a destination — it exists to host these assets and to be framed.)
+
+```html
+<iframe
+  src="https://sahajatlas.com/?key=YOUR_KEY&map=false"
+  title="Find a meditation class near you"
+  width="100%"
+  height="600"
+  loading="lazy"
+  allow="geolocation; clipboard-write; web-share"
+  style="border: 0"
+></iframe>
+```
+
+Five things about that snippet are load-bearing:
+
+- **`title` is required for accessibility.** An iframe with no title is announced as an unlabelled
+  frame. Write it for your visitors, in your language.
+- **`allow="geolocation; clipboard-write; web-share"`** — see [Permissions Policy](#permissions-policy).
+  Without these the relevant features fail **silently**, which is the worst way to find out.
+- **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
+  card's button cannot open anything, and the browser blocks it silently, so nothing in your
+  console will say why. Add **`allow-same-origin`** too if you want the widget to keep its own
+  settings between visits; a sandbox gives the frame an opaque origin, which makes storage throw.
+  (A sandbox does _not_ stop the widget writing its own URL, contrary to what this guide used to
+  say — measured in Chrome 151.)
+- **`map=false` is usually what you want in a frame**, unless the frame is large.
+- **Give it a real height.** As with the element, a frame with no height collapses.
+
+**A frame is its own viewport, so `map=true` works inside one** — the map fills the frame rather
+than your page. That is the opposite of the advice under [Sizing](#sizing-the-element), which is
+about a script embed sharing a page with your content. A frame has no such neighbours.
+
+**If the frame is too small for the interface**, the widget shows the compact card, and its
+button opens the atlas in a **new tab** rather than an overlay — an overlay inside a frame would
+only cover the frame, which is the problem it was trying to solve. ⚠ **That new tab currently
+goes to `wemeditate.com/map`**, which is a different organisation's site; per-region canonical
+ownership will replace it with the owner's own domain. ⚠ Today that link lands on the
+map's home page rather than the exact route the visitor was on; it will carry the route once the
+canonical work lands.
 
 ## The URL
 
@@ -306,7 +425,8 @@ something each embed sets, so the fix is on our side.
 
 ### When the route is not in the URL
 
-In a sandboxed iframe, or a `file://` document, the browser refuses to let us write the URL at all.
+In a `file://` document — and in any browser that refuses `history.replaceState` outright — the URL
+cannot be written at all.
 The widget detects that at load and routes **in memory** instead: it works normally, but its route
 is not in the address bar, so it cannot be deep-linked from that page, and browser Back leaves your
 page rather than stepping back through the widget. Where the widget would offer a share link it
@@ -350,7 +470,7 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than something the bundle pins: today production serves the Cloudflare Images CDN (`imagedelivery.net`) and any relative URL is resolved against the API origin. | images only                                                                                   |
 |                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer. Sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                  | the flag glyphs only; the lists still render                                                  |
-| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                         | **the widget has no data and shows an error screen**                                          |
+| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                        | **the widget has no data and shows an error screen**                                          |
 |                            | `sahajatlas.com`                              | the locale JSON, from a different origin than the script                                                                                                                                                                                               | every string renders as its raw dotted key                                                    |
 |                            | `api.mapbox.com`                              | tile/style requests and the place-search geocoder                                                                                                                                                                                                      | the map and search fail                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |
@@ -398,6 +518,58 @@ one omission is deliberate: **`*.tiles.mapbox.com` is not in the list.** Older M
 guidance names it, but this version routes every tile, glyph and sprite request through
 `api.mapbox.com`, and there is no reference to the legacy host anywhere in the shipped
 map library. Add it only if you see it in a violation report.
+
+## Permissions Policy
+
+Alongside the origins in the CSP table above, the widget needs three browser **capabilities**.
+Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
+by a `Permissions-Policy` header on your own page.
+
+| Feature           | What uses it                            | What breaks without it                            |
+| ----------------- | --------------------------------------- | ------------------------------------------------- |
+| `geolocation`     | The map's "find my location" control    | The control appears and silently does nothing     |
+| `clipboard-write` | The copy-link button on the share sheet | Copying silently fails                            |
+| `web-share`       | The native share sheet on mobile        | The share button falls back to the copy/link list |
+
+**All three fail silently rather than erroring**, so nothing in your console will tell you. If
+you send a `Permissions-Policy` header, make sure these three are allowed for your own origin;
+if you embed in an iframe, put them in its `allow` attribute as shown above.
+
+## Where to load it from
+
+Two hosts serve the identical bundle:
+
+| Host                           | What it is                                             |
+| ------------------------------ | ------------------------------------------------------ |
+| `https://sahajatlas.com`       | the production domain — **use this one**               |
+| `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
+
+**The origin you load the script from is not the only origin the widget contacts, and
+one of them is fixed regardless of your choice.** The bundle has the locale-JSON host
+compiled into it: whichever host you fetch `auto.js` from, the widget's UI strings are
+fetched from `https://sahajatlas.com/locales/…`. That matters only for your CSP, where
+`connect-src` has to name it — see the table below. If those requests are blocked, every
+string in the widget renders as its raw dotted key name (`events.title`, `nav.search`),
+which looks like a broken translation rather than a blocked request.
+
+That host is **compiled in from `VITE_HOST` at build time**, so it is a property of the
+deployment rather than of the source — a local build carries whatever the checked-in `.env`
+says. To confirm the current value rather than trusting this page, read it out of the
+shipped bundle:
+
+Two files sit at that origin's root, and only the first is one you reference:
+
+| File       | What it is                                         |
+| ---------- | -------------------------------------------------- |
+| `auto.js`  | the loader — the one you install                   |
+| `embed.js` | the widget itself, fetched by the loader on demand |
+
+To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
+
+```bash
+curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
+curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
+```
 
 ## Browser support
 
@@ -504,9 +676,11 @@ designed so that it does not need one, and if a flow is still a problem for your
 talk to the maintainers rather than editing the snippet:
 
 - **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer
-  "classes near you" before the visitor types and show an online class's start time in
-  their own place. No referrer, no key, no cookies, five-second timeout, silent on
-  failure, and skipped entirely when neither feature could show. **An IP is personal data
+  "classes near you" before the visitor types, and show an online class's start time in their
+  own place. No
+  referrer, no key, no cookies, five-second timeout, silent on failure, and skipped entirely
+  when none of those could show — including for the rest of a session in which the visitor
+  dismissed the "classes near you" prompt. **An IP is personal data
   in the EU**, and it is not stored — the answer is used to pick a city and then discarded.
 - **`cdn.usefathom.com`** — cookieless, aggregate pageview counting, loaded only when the
   bundle was built with an analytics ID and your client record names a real primary
@@ -532,7 +706,7 @@ fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the b
 
 One thing the widget itself sends in the background, about your page rather than your visitor:
 the **embed report** described under [what the loader reports back](#what-the-loader-reports-back)
-— your origin and path, and four booleans about how the widget is mounted. Its *body* carries
+— your origin and path, and four booleans about how the widget is mounted. Its _body_ carries
 nothing about the visitor: no identifier, no location, and none of your query string bar a
 WordPress `?p=<number>`. Like any request a browser makes it still carries the visitor's IP and
 `User-Agent` as headers, which no client-side code can suppress — the distinction worth drawing is
@@ -559,6 +733,32 @@ unhashed and mutable, and they import content-hashed chunks by name.
   the channel; if you need advance notice for a large deployment, say so to the
   maintainers rather than pinning a URL.
 
+## Migrating from the old `<sahaj-atlas>` element
+
+The element and all nine attributes are gone. Most became query parameters; the rest moved to
+your client record or were removed (see [Parameters](#parameters)). The reason is worth knowing,
+because it is about your platform rather than our taste: WordPress
+strips `<script>` (and unknown attributes) from saved content for anyone below Administrator —
+and for **every** Site Administrator on multisite — while Wix supplies a bare script URL and its
+own attribute panel. One mechanism on the URL works identically on all of them, and the only
+thing a sanitizer can now destroy is the whole snippet, which is a failure you can see.
+
+```html
+<!-- before -->
+<script type="module" src="https://sahajatlas.com/embed.js"></script>
+<sahaj-atlas api-key="…" map="false" locale="fr"></sahaj-atlas>
+
+<!-- now -->
+<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false&locale=fr"></script>
+```
+
+Three things to check when you migrate:
+
+- `api-key` became **`key`**.
+- `base-path` became **`atlas`**, and now defers to a route already on the page's URL.
+- `analytics`, `geolocation`, `error-reporting`, `name`, `primary-color`, `secondary-color` and
+  `mount` no longer exist. A leftover value in your URL is ignored rather than misread.
+
 ## Troubleshooting
 
 | Symptom                                                               | Likely cause                                                                                                                                                                                            |
@@ -574,7 +774,8 @@ unhashed and mutable, and they import content-hashed chunks by name.
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                               |
 | **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                              |
-| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — a sandboxed iframe, or `file://`. The widget detects that and routes in memory; add `allow-same-origin` to the sandbox if you control it.                 |
+| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                       |
+| **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. Add `allow-popups`, or drop the `sandbox` attribute. Nothing in the console will tell you — the browser blocks it silently. |
 | **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                            |
 | **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                   |
 | **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                          |

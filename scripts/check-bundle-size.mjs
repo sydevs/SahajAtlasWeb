@@ -27,10 +27,13 @@
  *      so a check that only read `index.html` would never see the embed's cost
  *      at all — and the embed is the actual product.
  *
- * Dynamic `import()` targets (mapbox-gl, EventDetails, the lightbox, the admin
- * PreviewController) are deliberately excluded: they are a second hop, not the
- * first-load cost. Note that the map renders at mount today, so real
- * first-meaningful-paint is closer to `standalone + mapbox-gl`. Budgeting the
+ * Dynamic `import()` targets are excluded — but read that carefully, because it hid a real
+ * regression for the length of one PR. A dynamic import is only a second hop when the module
+ * HOLDING it is itself lazy. `react-map-gl` runs `const mapLib = import('mapbox-gl')` at module
+ * scope, so while anything in the eager graph imported it — including one re-export through the
+ * `organisms` barrel — 485 KiB gz was fetched concurrently with the payload and this gate
+ * reported a comfortable number. If you are adding a heavy dependency, check what its module
+ * BODY does, not just how the app imports it.
  * eager graph alone keeps this check honest about what it claims to measure.
  *
  * ## About the numbers
@@ -50,18 +53,23 @@ import { annotate, report } from './_ci-output.mjs'
 // ---------------------------------------------------------------------------
 // THE BUDGET. One constant, deliberately easy to edit.
 //
-// Set just above the payload as measured on 2026-08-06, so this catches
+// Set just above the payload as measured on 2026-08-20, so this catches
 // unnoticed *growth* without failing the day it lands. Headroom is ~3%: enough
 // to absorb a dependency patch bump, tight enough that a newly-eager view trips
-// it.
+// it — and comfortably above the ~2.1 KiB a credentialed build adds that CI
+// cannot see (see SLACK_FLOOR_KIB below).
 //
-//   standalone  382.1 KiB  →  395
-//   embed       383.6 KiB  →  395
+//   standalone  299.3 KiB  →  310
+//   embed       301.3 KiB  →  310
 //
-// Ratcheted here by issue #96, which took 99.7 KiB off both graphs by moving the
-// calendar, registration and share drawers behind lazy seams and dropping three
-// barrel re-exports that were holding Swiper and react-share in the eager graph.
-// The previous line was 495/495 against 479.5/480.4 (issue #99).
+// Ratcheted here by issue #161, which took ~83 KiB off both graphs by moving the
+// whole map-bearing interface behind a lazy `FullInterface` seam. That is what
+// makes a compact embed cheap: a slot too small for the interface now mounts a
+// card and one dialog, and never fetches mapbox-gl at all.
+//
+// The previous line was 395/395 against 382.1/383.6 (issue #96, which took 99.7
+// KiB off by lazying the calendar, registration and share drawers); before that
+// 495/495 against 479.5/480.4 (issue #99).
 //
 // RATCHET THIS DOWN again whenever the payload shrinks, or the budget quietly
 // re-accumulates the slack it just won. `SLACK_RATIO` below enforces that rather
@@ -75,9 +83,9 @@ import { annotate, report } from './_ci-output.mjs'
 // — but it is still budgeted, because "deferred" is not "free" and it is what a visitor who does
 // look at the widget waits for.
 const BUDGET_KIB = {
-  standalone: 395,
+  standalone: 310,
   loader: 3.8,
-  embed: 395,
+  embed: 310,
 }
 
 // A budget far above the real payload is a green check that checks nothing —

@@ -45,7 +45,7 @@ const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
 const VIEWPORT_CALLERS: Record<string, string> = {
   'config/responsive.ts':
     'defines the hooks, and is the fallback inside `useIsWide` for the case where there is nothing to measure',
-  'hooks/use-map-controller.tsx':
+  'hooks/use-map-controller-real.tsx':
     'map camera padding. A map only exists in map mode, and in map mode the widget spans the viewport',
   'components/atoms/Drawer/Drawer.stories.tsx':
     'a Ladle story is the whole page, so the viewport genuinely is its container',
@@ -133,5 +133,34 @@ describe('the container-vs-viewport decision table', () => {
     )
 
     expect(hardcoded).toEqual([])
+  })
+})
+
+/**
+ * The raw-measurement escape hatch, pinned the same way (#161).
+ *
+ * The hook-based list above scans for `useIsWideViewport` and `react-responsive`, so a module
+ * that reads `window.innerWidth` / `screen.avail*` directly is invisible to it — and #161 added
+ * exactly such a module. That is a sanctioned reading (the slot decision genuinely needs the
+ * viewport and the screen, and it runs before any hook could), but it must stay a CLOSED list
+ * for the same reason the hooks do: the next component that wants "is the widget wide" will copy
+ * the nearest precedent, and a raw read in `src/lib/` is now that precedent.
+ */
+const RAW_VIEWPORT_READERS: Record<string, string> = {
+  'lib/slot-decision.ts':
+    'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
+}
+
+describe('raw viewport reads are a closed list too', () => {
+  const RAW = /window\.(inner|outer)(Width|Height)|screen\.avail(Width|Height)/
+
+  it('names every module reading the viewport or screen directly', () => {
+    const readers = SOURCE_FILES.filter((relative) => RAW.test(read(relative)))
+
+    expect(readers.sort()).toEqual(Object.keys(RAW_VIEWPORT_READERS).sort())
+  })
+
+  it('is a real scan — it still finds the module it is meant to police', () => {
+    expect(RAW.test(read('lib/slot-decision.ts'))).toBe(true)
   })
 })

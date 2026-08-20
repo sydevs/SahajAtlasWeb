@@ -159,5 +159,8 @@
   "map": {
     "find_my_location": "Helyzetem megkeresése",
     "location_not_available": "A helymeghatározás nem érhető el"
+  },
+  "compact": {
+    "open": "Találjon egy tanfolyamot a közelében"
   }
 }

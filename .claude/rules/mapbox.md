@@ -1,9 +1,9 @@
 ---
 description: Mapbox / react-map-gl patterns — layers, sources, view state, turf.
 globs:
-  - "src/components/organisms/Mapbox/**/*.ts"
-  - "src/components/organisms/Mapbox/**/*.tsx"
-  - "src/hooks/use-mapbox.ts"
+  - 'src/components/organisms/Mapbox/**/*.ts'
+  - 'src/components/organisms/Mapbox/**/*.tsx'
+  - 'src/hooks/use-mapbox.ts'
 alwaysApply: false
 ---
 
@@ -36,7 +36,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   switch — nothing in the map branches on the theme. Decoded images are cached at
   module level, and the in-flight promise is cached too: Mapbox re-fires the event
   per missing id **per tile batch**, and the warm path has to add the image
-  *synchronously* inside the handler or the new style's first frame paints pinless.
+  _synchronously_ inside the handler or the new style's first frame paints pinless.
 - The images rasterise from an inline `data:` URI, so an embedding host needs
   **`img-src … data:`** in its CSP — the same allowance Mapbox GL's own recommended
   policy carries. A failed decode is dropped from the cache rather than remembered,
@@ -96,7 +96,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   cap at `REGION_MAX_ZOOM` and pad the edges so a tight region can't over-zoom.
   **Every in-app level transition flies one tuned Mapbox `flyTo` arc** — framing an
   event, drilling into a region/venue, searching a place, and **`restore(camera)`** on
-  a *back* navigation — so zooming in and out feel symmetric. `restore` reapplies a
+  a _back_ navigation — so zooming in and out feel symmetric. `restore` reapplies a
   remembered viewport — `useFrameOnTop` reads the per-`location.key` `useCameraHistory`
   snapshot on a POP (see `.claude/rules/i18n-and-state.md`) instead of re-deriving it.
 - `useMapbox().flyTo/fitBounds/moveMap(...)` are the low-level camera ops behind the
@@ -131,6 +131,27 @@ mid-session language switch does not relabel a control. That is the same limitat
 `language` prop carries. Keys not overridden stay English; the full set is `defaultLocale`
 in mapbox-gl.
 
+## The map needs browser PERMISSIONS, and a grep will not find them
+
+`<GeolocateControl />` is our JSX, but `navigator.geolocation` is called **inside mapbox-gl**. So
+searching `src/` for the API finds nothing and concludes no permission is needed — which is
+exactly the mistake that shipped a wrong answer once already.
+
+The widget is embedded in pages we do not own, and Permissions Policy denies these to a
+cross-origin frame by default (a host can also deny them to a script embed with a header). All
+three fail **silently**:
+
+| Feature           | Called by                              | Silent failure                  |
+| ----------------- | -------------------------------------- | ------------------------------- |
+| `geolocation`     | mapbox-gl's `GeolocateControl`         | "Find my location" does nothing |
+| `clipboard-write` | `ShareContent` (`navigator.clipboard`) | Copy-link does nothing          |
+| `web-share`       | `use-web-share` (`navigator.share`)    | The share sheet never opens     |
+
+`FullscreenControl` would add `fullscreen`; we do not mount it. **Adding a map control means
+asking what device API it reaches for and whether `docs/embedding.md`'s Permissions Policy table
+tells hosts to grant it** — the same rule `CLAUDE.md` states for a new fetch origin and the CSP
+table. Enumerate from the control list, never from a grep.
+
 ## Geo helpers
 
 Use `@turf/*` (`bbox`, `bbox-polygon`, `circle`) for geometry math (bounding
@@ -140,30 +161,40 @@ lat/lng arithmetic.
 ## Verifying map behaviour in a browser
 
 Map changes ARE verifiable end-to-end with the Playwright MCP — prefer proving one
-over asking the user. Serve the app per `.claude/docs`/the worktree pattern (alt port
-+ matching `VITE_HOST`) against the seeded local backend.
+over asking the user.
 
-- **Screenshots are readable.** `browser_take_screenshot` with a **relative**
+**For anything about the widget as an EMBED — chunk loading, the slot decision, CSS scoping in a
+host's cascade — use `pnpm build && pnpm review:embed`** rather than hand-rolling a host page. It
+serves `dist/` on `VITE_HOST`'s port (same-origin, so the locales resolve) with the shapes that
+have produced real bugs. Its header documents the four traps that make the hand-rolled version cost
+an afternoon — chiefly that `<sahaj-atlas>` observes **no attributes**, so config must ride on the
+script URL, and that `dist/_redirects` makes a leftover server answer 200 with the app shell for a
+page it does not have.
+
+For everything else — driving the map itself — serve the app the usual way (`pnpm dev`, or an alt
+port plus a matching `VITE_HOST` under the worktree pattern) against the seeded local backend.
+
+* **Screenshots are readable.** `browser_take_screenshot` with a **relative**
   `filename` writes into the project root, and `Read` displays it — WebGL content
   (pins, clusters, basemap) captures fine. `element`/`target` gives a close-up of one
   node. Delete the PNGs before committing. Note the asymmetry:
   `browser_evaluate`'s `filename` is NOT written locally — return values inline, and
   digest anything large (an ASCII alpha-map, a list of measurements) rather than
   dumping base64.
-- **Click pins with synthetic events.** The `Map` instance isn't reachable from
+* **Click pins with synthetic events.** The `Map` instance isn't reachable from
   `browser_evaluate` (react-map-gl keeps it in a ref), so drive the canvas instead:
   dispatch `mousemove` → `mousedown` → `mouseup` → `click` on
   `canvas.mapboxgl-canvas`, each with `clientX/clientY` and `bubbles: true`. A real
-  pin click navigates. Clicking a **cluster** zooms *without* changing the URL, so you
+  pin click navigates. Clicking a **cluster** zooms _without_ changing the URL, so you
   can descend to a single pin while staying on the current route — that's how to
   reproduce "clicked a pin from the root view" states.
-- **Assert marker registration from the console, not pixels.** Mapbox logs
-  `Image "<id>" could not be loaded` when nothing supplies an icon, so the *absence*
+* **Assert marker registration from the console, not pixels.** Mapbox logs
+  `Image "<id>" could not be loaded` when nothing supplies an icon, so the _absence_
   of that warning across repeated light⇄dark toggles is the assertion that
   `registerMarkerImages` is working. The `.playwright-mcp/console-*.log` files are
   readable. Toggle theme by swapping the root class — `useTheme` observes it, so the
   basemap follows without a reload.
-- **Measure, don't trust class names.** `getComputedStyle` /
+* **Measure, don't trust class names.** `getComputedStyle` /
   `getBoundingClientRect`, and `scrollWidth` vs `clientWidth` to find overflow (then
   walk descendants for the widest node). A Tailwind class that isn't generated still
   appears in the DOM with no CSS behind it — see `.claude/rules/code-style.md`.

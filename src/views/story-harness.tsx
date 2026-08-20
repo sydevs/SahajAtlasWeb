@@ -2,9 +2,11 @@ import type { ReactNode } from 'react'
 import type { Client, IpLocation } from '@/types'
 
 import { Suspense, useEffect, useMemo } from 'react'
+import clsx from 'clsx'
 import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
+import { MapProvider } from 'react-map-gl'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { DrawerControlContext } from '@/views/shared'
@@ -12,7 +14,9 @@ import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
+import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
+import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
@@ -95,6 +99,36 @@ export type ViewHarnessProps = {
    * ("Browse all countries") and none would show what the app actually offers.
    */
   path?: string
+  /**
+   * Render the real Mapbox canvas behind the drawer, as map mode does.
+   *
+   * Off by default, which is right for a view story about the view — the map costs a token, a
+   * WebGL context and live tiles, and a story previewing a list does not need one. Turn it on
+   * where the map IS part of what is being reviewed.
+   *
+   * ⚠ It is not just a flag on `WidgetMode`. `hasMap: true` alone tells the tree a map exists
+   * without rendering one and without a real `MapController`, which is a state the app never has
+   * — views would call `frameRegion` into a no-op and the canvas would be missing. All three
+   * move together here for that reason.
+   *
+   * Needs `VITE_MAPBOX_ACCESSTOKEN`; without one it falls back to the map-less arm rather than
+   * rendering a broken canvas.
+   */
+  map?: boolean
+  /**
+   * What the harness sizes itself against: the viewport (default) or its container.
+   *
+   * ⚠ **`screen` is wrong inside anything that is not the viewport**, and the compact embed's
+   * dialog is exactly that: it keeps a margin, so `h-screen` renders 32px taller than the box
+   * clipping it and the bottom of the scroll area — scrollbar included — is cut off. It still
+   * scrolls; it reads as though it does not, which is worse.
+   *
+   * This is the container-vs-viewport tension the dialog's margin introduces, in the one place
+   * we own the arithmetic. Note vaul has the same exposure and we do NOT own that one: it
+   * computes a snap-point sheet's travel from `window.innerHeight`, so a real bottom sheet
+   * inside the dialog is off by the same margin.
+   */
+  height?: 'screen' | 'container'
   children: ReactNode
 }
 
@@ -228,7 +262,19 @@ export function ViewStory({ example, state = NO_ERROR, children, ...harness }: V
   )
 }
 
-export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarnessProps) {
+export function ViewHarness({
+  seedKey,
+  seed,
+  mode,
+  path,
+  map,
+  height = 'screen',
+  children,
+}: ViewHarnessProps) {
+  // A token-less environment gets the map-less arm: a canvas that cannot load tiles previews
+  // nothing and fills the console with Mapbox errors.
+  const withMap = Boolean(map && import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
+
   const client = useMemo(() => {
     const c = new QueryClient({
       defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } },
@@ -254,9 +300,9 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
   return (
     <QueryClientProvider client={client}>
       <WidgetModeContext.Provider
-        value={{ standalone: true, hasMap: false, linkable: true, ...mode }}
+        value={{ standalone: true, hasMap: withMap, linkable: true, ...mode }}
       >
-        <NoopMapControllerProvider>
+        <MapFrame enabled={withMap}>
           {/* A full-view drawer panel: fills the story canvas (the width-xsmall frame,
               which the global decorator renders un-padded for views) as a flex column so
               the view's DrawerHeader (shrink-0) and DrawerBody (flex-1, scrolls) lay out
@@ -275,9 +321,25 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
               (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
           <DrawerControlContext.Provider value={STORY_DRAWER_CONTROL}>
             <DrawerSlotsProvider direction="bottom" mode="filled">
+              {/* With a map behind it the drawer is a PANEL, as it is in map mode; without one
+                  it fills the canvas, as a map-less embed does. Both are positioned: the map
+                  wrapper is `absolute`, and a positioned element paints above a static sibling
+                  whatever the DOM order — so a static column sat *underneath* the canvas and the
+                  view appeared to float transparently over the map. Measured, not guessed. */}
               <div
                 key={seedKey}
-                className="flex h-screen flex-col overflow-hidden bg-background text-foreground"
+                className={clsx(
+                  'z-10 flex flex-col overflow-hidden bg-background text-foreground',
+                  // ⚠ Exactly ONE position class, and the branches must not both contribute one.
+                  // An earlier version left `relative` in the shared half and added `absolute` in
+                  // the map arm: Tailwind emits `.relative` after `.absolute`, so `relative` won,
+                  // `inset-y-0` did nothing, and the column grew to its content — 994px inside an
+                  // 868px dialog, with no height bound for the body to scroll within. It read as
+                  // "the list will not scroll".
+                  withMap
+                    ? 'absolute inset-y-0 start-0 w-[22rem] max-w-full shadow-2xl'
+                    : clsx('relative', height === 'container' ? 'h-full' : 'h-screen'),
+                )}
               >
                 <Suspense fallback={<DrawerLoading />}>
                   <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
@@ -287,8 +349,29 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
               </div>
             </DrawerSlotsProvider>
           </DrawerControlContext.Provider>
-        </NoopMapControllerProvider>
+        </MapFrame>
       </WidgetModeContext.Provider>
     </QueryClientProvider>
+  )
+}
+
+/**
+ * The map layer, or nothing — the same shape `AppShell`'s `FullInterface` uses.
+ *
+ * Mirrors the app rather than approximating it: the canvas is `fixed; inset: 0` behind the
+ * drawer, `MapProvider` is what `useMapbox` reads, and `RealMapControllerProvider` must render
+ * inside it. Off, it is the same `NoopMapControllerProvider` every view story had before, so
+ * nothing that does not ask for a map changes.
+ */
+function MapFrame({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+  if (!enabled) return <NoopMapControllerProvider>{children}</NoopMapControllerProvider>
+
+  return (
+    <MapProvider>
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <Mapbox />
+      </div>
+      <RealMapControllerProvider>{children}</RealMapControllerProvider>
+    </MapProvider>
   )
 }

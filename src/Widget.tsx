@@ -15,7 +15,7 @@ import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning } from './lib/report'
-import { SLOT_WARNING_MESSAGE, mapSlotWarning } from './lib/embed-slot'
+import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
 import { mountDecision } from './lib/shape'
 import { queryClient } from './config/query-client'
@@ -124,40 +124,44 @@ function Atlas() {
   // with nothing left to take it down. See the effect in `App.tsx`.
   const attested = mount.current.routing
 
-  // Map mode always fills the viewport, whatever slot the host gave us — a REQUIREMENT rather
-  // than an oversight, argued in `lib/embed-slot.ts` (vaul's snap sheets are computed off the
-  // window height, so containing the map is not a `fixed`→`absolute` swap). Nothing here changes
-  // behaviour; it only turns a silent takeover of somebody's page into a named one, through the
-  // same channel as the other host-integration mistakes this file reports. Reads the host's own
-  // column, not our element: in map mode ours has no box to measure — everything below the
-  // `display: contents` root is fixed.
+  // Does the interface fit the slot the host gave us, and what do they need to hear about it?
+  // Decided ONCE, on the first render, from the element itself — which is reachable here
+  // without a ref because exactly one runs per page (see `owner`, below).
+  //
+  // **Once, and not on resize, deliberately.** Switching form remounts the whole widget: the
+  // query cache survives but the router's in-widget history, the drawer stack and any half-
+  // filled registration do not. A host page animating a sidebar or a phone rotating would
+  // otherwise throw a visitor's session away mid-read, which is a far worse failure than a
+  // widget that keeps the layout its initial size implied. `docs/embedding.md` says so.
+  // There is deliberately no override parameter: `compact` was one, and a documented knob for
+  // a measurement we can simply get right is a permanent edge case in exchange for a
+  // misconfiguration we would rather fix.
+  //
+  // Re-entrancy: `useLocale` below can suspend on a cold i18n boot and make React discard this
+  // render. Safe — the ref makes it once-only, and the measurement writes nothing.
+  const slot = useRef<SlotDecision>()
+
+  if (!slot.current) {
+    slot.current = decideSlot({
+      element: owner,
+      hasMap,
+      // BOTH reads must agree, and they are taken at different moments: the loader's at script
+      // execution, ours at React render, separated by a dynamic import and `requestIdleCallback`.
+      // A host SPA that adds `?atlas=` after boot would otherwise lazy-mount (the loader saw no
+      // route) and then auto-open anyway — a modal over the page mid-scroll, which is the exact
+      // situation eager-loading exists to prevent.
+      fromPage: mount.current.fromPage && config.routeFromPage,
+    })
+  }
+
+  const compact = slot.current.compact
+  const slotWarning = slot.current.warning
+
+  // Reported from an effect rather than from the decision above, exactly like the routing
+  // warning: a discarded render must not put a line in a stranger's console twice.
   useEffect(() => {
-    if (!hasMap) return
-
-    const element = themeRootRef.current?.parentElement
-
-    if (!element) return
-
-    // Guarded because these are four reads of a DOM we do not own, made purely to produce a
-    // console line. A
-    // host is free to have patched `getBoundingClientRect` — consent wrappers, anti-fingerprinting
-    // extensions and page builders all do — and an unguarded throw here would reach `RootBoundary`
-    // AFTER the tree has mounted, tearing the whole widget down and replacing it with the static
-    // "could not be loaded" rung. A diagnostic must never break the thing it is diagnosing.
-    try {
-      const warning = mapSlotWarning({
-        slotWidth: element.parentElement?.getBoundingClientRect().width ?? 0,
-        elementHeight: element.getBoundingClientRect().height,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-      })
-
-      if (warning) reportIntegrationWarning(SLOT_WARNING_MESSAGE[warning])
-    } catch {
-      // Nothing to do and nothing worth reporting: the host's own error would be the only
-      // payload, and a thrown message is the one field that reaches Sentry unfiltered.
-    }
-  }, [hasMap])
+    if (slotWarning) reportIntegrationWarning(slotWarning)
+  }, [slotWarning])
 
   const atlas = (
     /* display:contents keeps the wrapper out of the layout while still carrying the theme class +
@@ -184,6 +188,7 @@ function Atlas() {
     >
       <App
         apiKey={config.key ?? ''}
+        compact={compact}
         defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}
