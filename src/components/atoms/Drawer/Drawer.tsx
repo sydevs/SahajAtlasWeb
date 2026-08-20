@@ -79,9 +79,12 @@ const drawer = tv({
       // off-screen. The 3dvh bottom padding keeps the footer above the fold at the
       // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
       bottom: {
-        content: 'inset-x-0 bottom-0 h-dvh rounded-t-2xl border-t border-divider pb-[3dvh]',
+        content:
+          'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[3dvh]',
       },
-      top: { content: 'inset-x-0 top-0 h-dvh rounded-b-2xl border-b border-divider' },
+      top: {
+        content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
+      },
     },
     // How the panel relates to its container. These were two independent booleans
     // (`contained` + `full`), but only two of the four states were ever
@@ -183,6 +186,12 @@ export function Drawer({
   // Pass snap props unconditionally (undefined = no snap points) so the
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
   const rootProps = {
+    // ⚠ vaul measures the CONTAINER when given one and `window.innerHeight` otherwise
+    // (`snapPointsOffset`, vaul dist). Passing it is what makes a fractional snap point correct
+    // inside `CompactEmbedView`'s dialog, which keeps a margin and so is 16–32px shorter than
+    // the window — without it the near-full snap sat that far out and the sheet overran the
+    // clip edge. Same element we portal into, so the box vaul measures is the box it renders in.
+    container,
     direction,
     dismissible,
     handleOnly,

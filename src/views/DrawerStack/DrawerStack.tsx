@@ -196,10 +196,10 @@ function PeekStrip({
   } else {
     style.left = 0
     style.right = 0
-    style.height = '100dvh'
+    style.height = 'var(--sy-frame-h)'
     // `top` tracks the sheet's live position (rAF); the depth offset is the animated
     // transform below, so drag-tracking stays instant while the stack eases.
-    style.top = 'var(--sy-sheet-top, 100dvh)'
+    style.top = 'var(--sy-sheet-top, var(--sy-frame-h))'
     className = 'rounded-t-2xl border-t border-divider bg-background shadow-xl'
   }
 
@@ -391,7 +391,14 @@ export function DrawerStack() {
       if (!sheet) {
         still += 1
       } else {
-        const top = sheet.getBoundingClientRect().top
+        // Measured against the box the fixed layer resolves against, not the viewport.
+        // `getBoundingClientRect().top` is a VIEWPORT coordinate, and it is consumed as `top:`
+        // on fixed peek strips and `bottom:` on the sticky Register bar — both of which the
+        // expanded dialog contains (`contain: layout`). Left raw, every one of them sat 16–32px
+        // out inside the dialog, by exactly the margin. Zero offset everywhere else, so this is
+        // the same number it always was outside a dialog.
+        const frame = document.querySelector<HTMLElement>('[data-sy-expanded]')
+        const top = sheet.getBoundingClientRect().top - (frame?.getBoundingClientRect().top ?? 0)
 
         if (top === last) {
           still += 1
@@ -721,6 +728,10 @@ export function DrawerStack() {
           dismissible
           open
           activeSnapPoint={direction === 'bottom' ? snap : undefined}
+          // The box vaul should measure its snap points against, which is the dialog when a
+          // compact embed is expanded and the theme root otherwise — the same element the
+          // drawer portals into, so the two can never name different boxes.
+          container={target}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting drag
           // to the (absent) handle makes it undraggable — dismiss is the close button

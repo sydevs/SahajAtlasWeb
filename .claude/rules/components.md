@@ -29,7 +29,7 @@ Before hand-rolling UI, in this order:
    URL-driven stack; Modal (Radix Dialog) is the ephemeral one that never touches
    the URL or history. Input/Textarea wrap the native controls on the shared
    `fieldChrome` recipe; `Combobox` is the search-in-the-field picker (Radix Popover
-   + cmdk — the region filter), `Select` the plain list picker. Every form-control
+   - cmdk — the region filter), `Select` the plain list picker. Every form-control
      atom shares one error/active-state interface: **`isInvalid`** (danger visual +
      `aria-invalid`, with `aria-describedby` for the error text) and **`highlight`**
      (primary-tints the _unselected_ state, no layout shift, to flag an active
@@ -358,12 +358,25 @@ because the × was then the only exit and a host can hide, confine or scroll tha
 outside to click and Escape reaching the ladder above, there are two exits Radix maintains for
 free, so a confined dialog is a cosmetic problem rather than a trap and the observer is gone.
 
-⚠ The margin has a cost, and it is not paid everywhere. Anything inside the dialog that sizes
-itself off the **viewport** is now wrong by the margin: the story harness's `h-screen` column
-overflowed the dialog by exactly 32px and clipped its own scrollbar, which read as "the list will
-not scroll". We fixed ours (`ViewHarness`'s `height` prop). **We do not own vaul's** — it computes
-a snap-point sheet's travel from `window.innerHeight`, so a real bottom sheet inside the dialog
-has the same exposure. Unverified against a live drawer stack.
+⚠ **The margin means nothing inside the dialog may size itself off the viewport**, and four
+things did. Every drawer, peek strip and sheet is `position: fixed`, so `100dvh` is only correct
+while nothing has taken the containing block — and the dialog takes it, 16–32px short.
+
+The fix is one token, `--sy-frame-h`: `100dvh` on `.sy-atlas`, `100%` on `[data-sy-expanded]`.
+`100%` on a fixed child resolves against its containing block, which is the dialog there and the
+viewport everywhere else, so one value is right in both places. The drawer heights and the
+fallback `max-h` read it instead of naming `dvh`.
+
+`--sy-sheet-top` needed the matching correction: it is written from
+`getBoundingClientRect().top` — a VIEWPORT coordinate — and consumed as `top:` on fixed peek
+strips and `bottom:` on the sticky Register bar, so the dialog's own top is subtracted from it
+(zero everywhere else).
+
+**vaul is handled by its own API, not a patch.** It measures `container` when given one and
+`window.innerHeight` otherwise, so the Drawer atom forwards `container` to `Vaul.Root` — the same
+element it portals into, so the box vaul measures can never differ from the box it renders in.
+Verified with a real snap-point sheet in a contained 768px box at an 800px viewport: the sheet
+computes 768px, not 800, and its peek is exactly the 80px snap.
 
 ⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain` or a `will-change`
 naming one of them confines the surface to that element** — the measured table below, re-run for

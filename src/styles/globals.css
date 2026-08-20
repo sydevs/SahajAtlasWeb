@@ -100,6 +100,16 @@
    Specificity (0,1,0) rather than `:where()`, so it beats the reset but still loses to every
    Tailwind utility — a component that sets its own `text-*` or `font-*` keeps winning. */
 .sy-atlas {
+  /* The height of the box the widget's FIXED layer resolves against — the viewport normally,
+     the dialog when a compact embed is expanded.
+
+     Every drawer, peek strip and sheet is `position: fixed`, so `100dvh` is correct only while
+     nothing has taken the containing block. `CompactEmbedView`'s dialog does exactly that, with
+     `contain: layout`, and keeps a margin — so inside it `100dvh` overshoots by 16–32px and the
+     sheet, its peek strips and the sticky Register bar all overrun the clip edge. `100%` on a
+     fixed child resolves against its containing block, which is the dialog there and the
+     viewport everywhere else, so one token is right in both places. */
+  --sy-frame-h: 100dvh;
   color: hsl(var(--foreground));
   font-family: var(--sy-font-sans, 'Atlas Raleway', ui-sans-serif, system-ui, sans-serif);
   letter-spacing: normal;
@@ -417,6 +427,11 @@
    one thing map mode renders there. Unconditional rather than direction-aware: under RTL the
    collapse control moves to the other corner and this nudge is merely unnecessary, which is a
    better failure than two round buttons on top of each other. */
+/* Inside the dialog the fixed layer is contained by it, so the frame IS the container. */
+[data-sy-expanded] {
+  --sy-frame-h: 100%;
+}
+
 [data-sy-expanded] .mapboxgl-ctrl-top-right {
   margin-top: 2.5rem;
 }
