@@ -332,8 +332,8 @@ opens the interface somewhere it fits.
   so without it a deep-linked widget would mount **mid-scroll** and slam a modal over the page.
   A module flag in the provider stops a remount reopening what a visitor closed.
 
-**Three things about the surface were found in a browser and could not have been found any
-other way.**
+**Three things about the dialog were found in a browser and could not have been found any other
+way.**
 
 Escape never reaches the surface's own dialog: the drawer stack inside is vaul, which is Radix
 Dialog underneath, so its dismissable layer is the topmost one and Radix delivers the key
@@ -351,8 +351,19 @@ to the widget root, not `document`**, because Safari and Firefox on macOS do not
 the HOST had focused earlier. It also skips anything inside its own subtree, since the dialog's
 mount focus fires while that listener is still attached.
 
-And the surface **watches its own box while open** (`surfaceCoversPage`), closing itself with a
-warning rather than trapping anyone when it turns out not to cover the page.
+And the third: **the dialog keeps a margin, and clicking it closes** — which is what retired the
+machinery that used to guard this. An earlier full-bleed version watched its own box with a
+`ResizeObserver` (`surfaceCoversPage`) and closed itself when it stopped covering the viewport,
+because the × was then the only exit and a host can hide, confine or scroll that away. With an
+outside to click and Escape reaching the ladder above, there are two exits Radix maintains for
+free, so a confined dialog is a cosmetic problem rather than a trap and the observer is gone.
+
+⚠ The margin has a cost, and it is not paid everywhere. Anything inside the dialog that sizes
+itself off the **viewport** is now wrong by the margin: the story harness's `h-screen` column
+overflowed the dialog by exactly 32px and clipped its own scrollbar, which read as "the list will
+not scroll". We fixed ours (`ViewHarness`'s `height` prop). **We do not own vaul's** — it computes
+a snap-point sheet's travel from `window.innerHeight`, so a real bottom sheet inside the dialog
+has the same exposure. Unverified against a live drawer stack.
 
 ⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain` or a `will-change`
 naming one of them confines the surface to that element** — the measured table below, re-run for
