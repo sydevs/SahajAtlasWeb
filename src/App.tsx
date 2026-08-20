@@ -1,6 +1,6 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
-import type { CompactState } from '@/lib/compact-state'
+import type { CompactState } from '@/lib/slot-decision'
 
 import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'

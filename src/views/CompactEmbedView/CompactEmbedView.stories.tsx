@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
-import type { CompactState } from '@/lib/compact-state'
+import type { CompactState } from '@/lib/slot-decision'
 import type { CalendarSourceEvent } from '@/lib/shape'
 import type { Event, EventSlim, Region, RegionListItem } from '@/types'
 

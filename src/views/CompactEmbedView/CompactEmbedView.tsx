@@ -1,4 +1,4 @@
-import type { CompactState } from '@/lib/compact-state'
+import type { CompactState } from '@/lib/slot-decision'
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
