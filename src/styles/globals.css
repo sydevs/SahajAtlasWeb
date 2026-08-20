@@ -69,9 +69,21 @@
    **Cost, measured:** a forced style recalc over 3,200 nodes inside the scope took ~2× one
    outside it (41ms vs 20ms across five recalcs, Chrome 151). Full recalcs are rare — a theme
    toggle, not a scroll — and the results list is bounded by `MAX_REVEAL`, so this is priced and
-   accepted rather than unknown. Re-measure if that ceiling ever rises. */
+   accepted rather than unknown. Re-measure if that ceiling ever rises.
+
+   ⚠ **SVG IS EXCLUDED, and that is a bug fix rather than a nicety — never simplify it back to a
+   bare `*`.** In SVG 2 the geometry is CSS: `d`, `fill`, `stroke`, `cx`, `r`, `x`, `y`, `width`
+   and `height` are all properties, and a presentation attribute is only an author rule of zero
+   specificity — so `all: revert` beat every `d="…"` in the app and rolled it to `none`. The
+   effect is total and silent: the `<path>` stays in the DOM at full size with a computed fill,
+   `getBBox()` reports 0×0, and **every icon in the widget renders as nothing**. Measured in a
+   production build (53/53 paths, Chrome 151) after it had shipped, because no gate can see it —
+   lint, typecheck, the unit lane and `assert:css` are all green with every glyph invisible. The
+   reset exists to keep a HOST's CSS out of our HTML; SVG internals are not a surface a host
+   styles, so excluding them costs nothing it was there to buy.
+   `postcss-scope-widget.test.ts` pins the exclusion. */
 :where(.sy-atlas),
-:where(.sy-atlas) :where(*) {
+:where(.sy-atlas) :where(*:not(svg, svg *)) {
   all: revert;
 }
 

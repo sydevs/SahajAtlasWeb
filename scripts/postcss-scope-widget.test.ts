@@ -296,3 +296,29 @@ describe('agreement with the runtime', () => {
     expect(THEME_CLASSES.has('dark-theme')).toBe(true)
   })
 })
+
+describe('the defensive reset excludes SVG', () => {
+  // Regression pin for a bug that SHIPPED and that no other gate can see (#161).
+  //
+  // In SVG 2 the geometry is CSS — `d`, `fill`, `cx`, `r`, `x`, `y` are properties, and a
+  // presentation attribute is only an author rule of zero specificity. So `all: revert` over a
+  // bare `*` rolled every `d="…"` to `none`: the `<path>` stayed in the DOM at full size with a
+  // computed fill, `getBBox()` reported 0×0, and every icon in the widget rendered as nothing.
+  // Measured at 53/53 paths in a production build.
+  //
+  // Asserted as a STRING because that is the honest limit of this lane: whether a browser
+  // paints the glyph is not something node can answer. What it can pin is that nobody
+  // "simplifies" the exclusion away, which is exactly how it would come back.
+  const css = readFileSync('src/styles/globals.css', 'utf8')
+
+  it('does not apply `all: revert` to svg or its descendants', () => {
+    const reset = css.slice(css.indexOf(':where(.sy-atlas),'))
+
+    expect(reset).toMatch(/:where\(\.sy-atlas\) :where\(\*:not\(svg, svg \*\)\)/)
+    expect(reset).not.toMatch(/:where\(\.sy-atlas\) :where\(\*\)\s*\{/)
+  })
+
+  it('says why, so the exclusion survives the next tidy-up', () => {
+    expect(css).toMatch(/SVG IS EXCLUDED/)
+  })
+})
