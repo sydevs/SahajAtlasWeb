@@ -37,7 +37,15 @@ export function fallbackUrl(
   if (!configured) return DEFAULT_FALLBACK_URL
 
   try {
-    return new URL(configured).protocol === 'https:' ? configured : DEFAULT_FALLBACK_URL
+    // ⚠ Return the PARSED url, never `configured`. The WHATWG parser strips leading and embedded
+    // ASCII tab, LF, CR and spaces before parsing, so validating one string and returning another
+    // lets a value through that this function has not actually checked. A leading space — the
+    // likeliest `.env` typo — parses clean here and is then refused by `isSafeHref` at the sink,
+    // whose scheme test is `^`-anchored, producing exactly the dead unlabelled card the docblock
+    // above says this exists to prevent.
+    const url = new URL(configured)
+
+    return url.protocol === 'https:' ? url.toString() : DEFAULT_FALLBACK_URL
   } catch {
     return DEFAULT_FALLBACK_URL
   }

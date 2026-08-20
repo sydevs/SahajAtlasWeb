@@ -40,6 +40,18 @@ export function setDialog(element: HTMLElement | null): void {
 }
 
 /**
+ * The expanded dialog, when one is mounted and still in the document.
+ *
+ * Exposed so a caller needing the dialog's own box reads the node we already track, instead of
+ * `document.querySelector('[data-sy-expanded]')` — that searches the HOST's document, where an
+ * element of theirs carrying the attribute would win on document order and silently become the
+ * frame every sheet measures against.
+ */
+export function expandedDialog(): HTMLElement | null {
+  return expandedSurface?.isConnected ? expandedSurface : null
+}
+
+/**
  * The theme-scoped root, ignoring any expanded surface.
  *
  * The surface itself has to portal somewhere, and that somewhere cannot be itself — so the

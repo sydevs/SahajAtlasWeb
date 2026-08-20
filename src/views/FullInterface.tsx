@@ -6,6 +6,7 @@ import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { DrawerStack } from '@/views'
+import api from '@/config/api'
 
 /**
  * ⚠ **This module is lazy-loaded, and that is what makes the compact card's promise true.**
@@ -46,6 +47,14 @@ function FullInterface({ hasMap, homePath }: { hasMap: boolean; homePath?: strin
     didInit.current = true
     if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
   }, [homePath, location.pathname, navigate])
+
+  // The feed + region tree, warmed when the interface actually mounts. `App` skips this for a
+  // compact embed precisely so a collapsed card costs nothing, which leaves the expanded case to
+  // us. Idempotent — React Query dedupes — so the full form, where `App` has already fired it in
+  // parallel with the client bootstrap, pays nothing for the second call.
+  useEffect(() => {
+    api.warmCaches()
+  }, [])
 
   return hasMap ? (
     <MapProvider>

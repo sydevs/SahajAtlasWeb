@@ -287,8 +287,9 @@ somewhere it fits. Your visitor still gets everything; it just does not try to l
 box you gave. If you gave the element **no height at all**, it sizes to its own content rather
 than collapsing — so a bare `<sahaj-atlas>` in a narrow column renders as a card in your page's
 flow instead of appearing not to render. It renders **no events and makes no location lookup** — a control whose whole
-job is to lead somewhere else has nothing to show. It is not silent, though: the widget still
-reads your client record, warms its caches and sends the one-per-load
+job is to lead somewhere else has nothing to show, and it does not read the event feed or the
+region tree either: those are warmed when the interface opens, not while the card sits closed.
+It is not silent, though: the widget still reads your client record and sends the one-per-load
 [embed report](#what-the-loader-reports-back) while the card is collapsed.
 
 **Where the button goes depends on whether the widget can grow where it is.**
@@ -674,8 +675,8 @@ designed so that it does not need one, and if a flow is still a problem for your
 talk to the maintainers rather than editing the snippet:
 
 - **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer
-  "classes near you" before the visitor types, show an online class's start time in their
-  own place, and rank the classes on the compact card by distance rather than by date. No
+  "classes near you" before the visitor types, and show an online class's start time in their
+  own place. No
   referrer, no key, no cookies, five-second timeout, silent on failure, and skipped entirely
   when none of those could show — including for the rest of a session in which the visitor
   dismissed the "classes near you" prompt. **An IP is personal data

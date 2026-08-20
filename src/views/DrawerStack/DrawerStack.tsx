@@ -25,7 +25,7 @@ import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
-import { overlayContainer } from '@/lib/overlay'
+import { expandedDialog, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   atlasDepth,
@@ -397,8 +397,13 @@ export function DrawerStack() {
         // expanded dialog contains (`contain: layout`). Left raw, every one of them sat 16–32px
         // out inside the dialog, by exactly the margin. Zero offset everywhere else, so this is
         // the same number it always was outside a dialog.
-        const frame = document.querySelector<HTMLElement>('[data-sy-expanded]')
-        const top = sheet.getBoundingClientRect().top - (frame?.getBoundingClientRect().top ?? 0)
+        // Read from the node the overlay module already tracks, NOT
+        // `document.querySelector('[data-sy-expanded]')`: that searches the host's whole
+        // document, so an element of theirs carrying the attribute would win on document order
+        // and offset every strip by its box. Its RECT is still read per frame — the dialog's
+        // inset changes at the `sm:` crossing — but the lookup is a module read, not a query.
+        const top =
+          sheet.getBoundingClientRect().top - (expandedDialog()?.getBoundingClientRect().top ?? 0)
 
         if (top === last) {
           still += 1
@@ -728,15 +733,16 @@ export function DrawerStack() {
           dismissible
           open
           activeSnapPoint={direction === 'bottom' ? snap : undefined}
-          // The box vaul should measure its snap points against, which is the dialog when a
-          // compact embed is expanded and the theme root otherwise — the same element the
-          // drawer portals into, so the two can never name different boxes.
           container={target}
+          // The box vaul measures snap points against — the expanded dialog, or the window.
+          // Deliberately NOT `target`: that is the portal target, which embedded is the
+          // `display: contents` theme root and measures 0×0. See the note in `Drawer.tsx`.
+          handleOnly={direction === 'left'}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting drag
           // to the (absent) handle makes it undraggable — dismiss is the close button
           // only. The mobile bottom sheet keeps its full-panel snap-drag.
-          handleOnly={direction === 'left'}
+          measureAgainst={expandedDialog()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
           snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
           wide={wide}

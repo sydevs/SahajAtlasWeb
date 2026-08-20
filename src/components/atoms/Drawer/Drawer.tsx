@@ -162,6 +162,12 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   setActiveSnapPoint?: (snapPoint: number | string | null) => void
   /** Portal target (map-less passes the widget container; default is the theme root). */
   container?: HTMLElement | null
+  /**
+   * The box vaul measures snap points against. **Not the same question as `container`**, and
+   * conflating them inverts the sheet — see the note on `rootProps` below. Omit to measure the
+   * window, which is right for every mount except inside the expanded dialog.
+   */
+  measureAgainst?: HTMLElement | null
   children: ReactNode
 }
 
@@ -179,6 +185,7 @@ export function Drawer({
   activeSnapPoint,
   setActiveSnapPoint,
   container,
+  measureAgainst,
   children,
 }: DrawerProps) {
   const slots = drawer({ direction, mode, wide })
@@ -187,11 +194,22 @@ export function Drawer({
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
   const rootProps = {
     // ⚠ vaul measures the CONTAINER when given one and `window.innerHeight` otherwise
-    // (`snapPointsOffset`, vaul dist). Passing it is what makes a fractional snap point correct
-    // inside `CompactEmbedView`'s dialog, which keeps a margin and so is 16–32px shorter than
-    // the window — without it the near-full snap sat that far out and the sheet overran the
-    // clip edge. Same element we portal into, so the box vaul measures is the box it renders in.
-    container,
+    // (`snapPointsOffset`, vaul dist). Passing one is what makes a fractional snap point correct
+    // inside `CompactEmbedView`'s dialog, which keeps a margin and so is 16–32px shorter than the
+    // window — without it the near-full snap sat that far out and the sheet overran the clip edge.
+    //
+    // ⚠ **But it must be a box, and the portal target is not always one.** This briefly passed
+    // `container` — the element we portal into — on the reasoning that measuring the box we render
+    // in cannot be wrong. Embedded, that element is the theme root, which is `display: contents`
+    // (`Widget.tsx`) and therefore measures **0×0**; standalone it is `<html>`, which in map mode
+    // holds nothing but `position: fixed` children and measured **195px against an 844px
+    // viewport**. Every snap offset is `containerSize.height - height`, so at zero the ladder
+    // `['80px','300px',0.97]` becomes `[-80,-300,0]` instead of `[764,544,25]` — the sheet
+    // translates UP off the bottom and covers the top of the screen. That is the default phone
+    // experience of a map embed, and lint, typecheck and all 1263 unit specs stay green through it.
+    //
+    // So the measurement box is its own prop, and only the expanded dialog ever supplies one.
+    container: measureAgainst ?? undefined,
     direction,
     dismissible,
     handleOnly,

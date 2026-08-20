@@ -17,4 +17,22 @@ describe('fallbackUrl', () => {
       expect(fallbackUrl(value)).toBe(DEFAULT_FALLBACK_URL)
     },
   )
+
+  // ⚠ The whole point of parsing: the WHATWG parser strips leading/embedded ASCII whitespace
+  // BEFORE parsing, so a value with a leading space is a valid `https:` URL to `new URL` and is
+  // NOT one to `isSafeHref`, whose scheme test is `^`-anchored. Returning the raw string
+  // therefore passed this gate and produced the dead card the gate exists to prevent — for the
+  // likeliest `.env` typo there is. Returning the PARSED url is what closes it.
+  it.each([
+    ' https://example.org/classes',
+    '\thttps://example.org/classes',
+    'https://exa\nmple.org/',
+  ])('normalises rather than passing through the raw string: %j', (value) => {
+    const result = fallbackUrl(value)
+
+    expect(result).not.toContain(' ')
+    expect(result).not.toContain('\t')
+    expect(result).not.toContain('\n')
+    expect(result.startsWith('https://')).toBe(true)
+  })
 })

@@ -1,3 +1,13 @@
+// ⚠ **This module must stay free of `react-map-gl`, and nothing here will tell you if it stops.**
+// It is imported EAGERLY (App → DrawerStack → the views), and react-map-gl's `exports-mapbox.js`
+// runs `const mapLib = import('mapbox-gl')` at MODULE scope — so a single import here re-arms the
+// 485 KiB gz fetch that the compact card exists to avoid, on every page view of every embed.
+//
+// `pnpm size` CANNOT catch it: the budget walks the static graph, and a top-level `import()`
+// inside that graph is a fetch the walker never counts. This claim was wrong in three docblocks
+// before it was measured in a browser. The real provider, and every react-map-gl edge with it,
+// lives in `use-map-controller-real.tsx` behind the lazy `FullInterface` boundary.
+
 import type { CameraSnapshot } from '@/config/store'
 import type { Event, EventSlim, Region } from '@/types'
 
@@ -52,10 +62,7 @@ export const MapControllerContext = createContext<MapController>(NOOP)
 
 export const useMapController = () => useContext(MapControllerContext)
 
-// Zoom/padding anchored to the event zoom, so navigating between levels reads as a
 /** No map present (map=false): a controller of the same shape that does nothing. */
 export function NoopMapControllerProvider({ children }: { children: ReactNode }) {
   return <MapControllerContext.Provider value={NOOP}>{children}</MapControllerContext.Provider>
 }
-
-/** Drives the real Mapbox camera. Must render inside <MapProvider>. */

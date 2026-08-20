@@ -150,9 +150,21 @@ export default function App({
   // the moment we have the API key, in parallel with the client bootstrap the tree
   // suspends on — so region/map data isn't serialized behind clients/me. Fire-and-forget
   // and idempotent (React Query dedupes); AppShell still performs the real reads.
+  //
+  // ⚠ **Not while a compact card is all that renders.** The feed and the region tree exist to
+  // serve the interface, and a collapsed card shows neither — so warming them turns every page
+  // view of a sidebar embed nobody presses into two reads of the whole dataset. That is the
+  // exact cost #161 removed by deleting the card's preview rows, and it came straight back in
+  // through here: `CompactEmbedView.test.tsx` asserts the ROWS are absent, which a fetch two
+  // components above it satisfies while still making the requests. Found in a browser, because
+  // no unit spec can see a request the component under test never issues.
+  //
+  // `FullInterface` warms on mount instead, so pressing the button still warms them. It stays
+  // here for the full form because there the point is the PARALLELISM — moving it behind a lazy
+  // chunk would put the feed back behind a round trip it currently overlaps.
   useEffect(() => {
-    if (apiKey) api.warmCaches()
-  }, [apiKey])
+    if (apiKey && !compact) api.warmCaches()
+  }, [apiKey, compact])
 
   return (
     <RootBoundary>
