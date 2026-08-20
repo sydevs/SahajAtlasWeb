@@ -169,9 +169,10 @@ serves `dist/` on `VITE_HOST`'s port (same-origin, so the locales resolve) with 
 have produced real bugs. Its header documents the four traps that make the hand-rolled version cost
 an afternoon — chiefly that `<sahaj-atlas>` observes **no attributes**, so config must ride on the
 script URL, and that `dist/_redirects` makes a leftover server answer 200 with the app shell for a
-page it does not have. Serve the app per `.claude/docs`/the worktree pattern (alt port
+page it does not have.
 
-+ matching `VITE_HOST`) against the seeded local backend.
+For everything else — driving the map itself — serve the app the usual way (`pnpm dev`, or an alt
+port plus a matching `VITE_HOST` under the worktree pattern) against the seeded local backend.
 
 * **Screenshots are readable.** `browser_take_screenshot` with a **relative**
   `filename` writes into the project root, and `Read` displays it — WebGL content

@@ -9,10 +9,11 @@ import { CompactEmbedView } from './CompactEmbedView'
  * The collapsed card does not render the interface (issue #161).
  *
  * **jsdom, and the sibling SSR spec cannot do this job — I checked rather than assumed.** The
- * dialog's content is a Radix portal, and `renderToStaticMarkup` renders no portals at all, so an
- * SSR assertion that the interface is absent passes just as happily when it is rendered eagerly.
- * Written that way first, it stayed green with the regression deliberately reintroduced: a spec
- * covering the door rather than the state, which is the failure `.claude/rules/tests.md` records.
+ * dialog's content sits behind a Radix `Dialog.Portal`, which wraps its child in `<Presence>`, so
+ * while the dialog is CLOSED `createPortal` is never called and there is nothing for SSR to
+ * serialize. An `expect(html).not.toContain(…)` therefore passes whether or not the interface
+ * would have rendered. Written that way first, it stayed green with the regression deliberately
+ * reintroduced: a spec covering the door rather than the state (`.claude/rules/tests.md`).
  *
  * The property is worth pinning because THREE separate fixes on this branch rest on it alone, and
  * each has its own spec that would keep passing if this broke:
@@ -32,6 +33,12 @@ vi.mock('react-i18next', () => ({
 const overlay = { action: { kind: 'overlay' }, autoOpen: false } as const
 
 let cleanup: (() => void) | null = null
+
+// ⚠ **`autoOpened` in `use-expansion` is MODULE scope and leaks across cases in a file.** Opening
+// the dialog in any test here latches it, so an `autoOpen: true` case added below would observe
+// `expanded === false` and pass for the wrong reason. `vi.resetModules()` does NOT help — it only
+// affects future imports, not the instance this file already resolved at the top. That is why the
+// auto-open cases live in their own file, where vitest gives them a fresh registry.
 
 afterEach(() => {
   cleanup?.()

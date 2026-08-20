@@ -93,9 +93,13 @@ function probeParamPersisted(): boolean {
  * Can this document write its own URL?
  *
  * A genuine no-op — `replaceState` to the href we are already on — so it cannot disturb the host
- * or add a history entry. This feeds the embed report's `canonicalViable`, which is the only
- * thing that reads it: a page whose URL we cannot write cannot carry a shareable route, so it
- * cannot be a region's canonical page.
+ * or add a history entry. It feeds the embed report's `canonicalViable`: a page whose URL we
+ * cannot write cannot carry a shareable route, so it cannot be a region's canonical page.
+ *
+ * ⚠ **That is not its only reader, and treating it as one is how the field gets deleted with the
+ * report.** `urlWritable` also decides `mountDecision`'s router (`lib/shape/routing.ts`) — false
+ * puts the WHOLE widget into memory routing — and rides in the readiness marker that SahajCloud's
+ * verifier reads (`lib/embed-announce.ts`, #153). Change any of the three and check the other two.
  *
  * ⚠ **It is not a sandbox detector**, though it reads like one and this repo believed it was
  * until #161 measured it. In Chrome 151 a real `sandbox="allow-scripts"` frame has an opaque

@@ -46,7 +46,7 @@
  * (mapbox-gl in particular), the slot decision's console message, CSS scoping, and icon rendering.
  */
 
-import { createReadStream, existsSync } from 'node:fs'
+import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
 
@@ -86,11 +86,20 @@ const MIME = {
 // The host pages. Each one is a shape that has actually produced a bug.
 // ---------------------------------------------------------------------------
 
-const page = (title, body, note) => `<!doctype html>
+/**
+ * ⚠ `full` is not cosmetic. The normal shell centres content in a `max-width: 1100px` column, which
+ * makes `<sahaj-atlas>`'s parent 1164px — and since an empty custom element measures 0×0, that
+ * parent IS the slot `decideSlot` reads. Above a ~1455px viewport, 1164 is meaningfully smaller
+ * than the window, so a MAP page rendered in the normal shell correctly resolves to the compact
+ * card and shows no map at all. The one page whose whole purpose is "map mode owns the viewport"
+ * has to be full-bleed, or it demonstrates the opposite of its own note on any large monitor.
+ */
+const page = (title, body, note, full = false) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>${title}</title>
 <style>
   body { font: 16px/1.6 system-ui, sans-serif; margin: 0; color: #111; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  .wrap { max-width: ${full ? 'none' : '1100px'}; margin: 0 auto; padding: ${full ? '0' : '32px'}; }
+  .note { position: ${full ? 'absolute' : 'static'}; z-index: 1; }
   .note { background: #fffbe6; border-left: 4px solid #e6b800; padding: 12px 16px; margin-bottom: 24px; font-size: 14px; }
   aside { border: 2px solid #333; }
 </style></head>
@@ -108,6 +117,7 @@ function pages(src) {
       'Full-page map embed',
       `<sahaj-atlas></sahaj-atlas>${loader('key=KEY&map=true')}`,
       'map mode, full page. Narrow the window to ~390px: the bottom sheet must sit at the BOTTOM.',
+      true,
     ),
 
     // A slot too small for the interface: the compact card. Watch that no mapbox chunk is
@@ -238,7 +248,12 @@ const server = createServer((req, res) => {
 
   const file = join(DIST, normalize(pathname).replace(/^(\.\.[/\\])+/, ''))
 
-  if (!file.startsWith(DIST) || !existsSync(file)) {
+  // ⚠ `isFile`, not `existsSync`: a directory EXISTS, so `existsSync` waves it through, we send a
+  // 200, and `createReadStream(dir)` then emits an unhandled EISDIR — an uncaughtException that
+  // kills the server. `/assets` and `/locales` are both real directories in `dist/`, so one
+  // speculative fetch was enough. Same dead-port-and-no-message failure as the malformed escape
+  // above; this was the second of the two crash paths.
+  if (!file.startsWith(DIST) || !existsSync(file) || !statSync(file).isFile()) {
     // Deliberately NOT the SPA fallback: a 404 that says so beats a 200 of the wrong document.
     res.writeHead(404, { 'content-type': 'text/plain' })
     res.end(`404 ${pathname}\n\nThis review server does not apply dist/_redirects — see trap 4.`)
@@ -246,7 +261,10 @@ const server = createServer((req, res) => {
   }
 
   res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
-  createReadStream(file).pipe(res)
+  // Backstop: a read that fails after the headers are out must not become an uncaughtException.
+  createReadStream(file)
+    .on('error', () => res.end())
+    .pipe(res)
 })
 
 server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {

@@ -205,22 +205,31 @@ whose whole job IS the DOM.** Six specs qualify today:
   `isConnected` case is the one worth having — a detached target swallows every portal in the
   app in silence, and releasing it is somebody else's effect cleanup.
 
-### `renderToStaticMarkup` renders NO portals — so asserting on portal content is vacuous
+### A CLOSED portal renders nothing under SSR, so asserting its contents are absent proves nothing
 
-The single most reusable form of the "covers the door" failure above, because this app is
-portal-dense: every vaul drawer, every Radix overlay, the filter sheet and `CompactEmbedView`'s
-expanded dialog all portal. **An SSR assertion about what is INSIDE one passes whether the content
-rendered or not**, since `renderToStaticMarkup` never serializes a portal at all.
+This app is portal-dense — every vaul drawer, every Radix overlay, `CompactEmbedView`'s expanded
+dialog — and the node lane relates to them in two opposite ways depending on one bit:
 
-Asserting **absence** is the trap, and it is silent in the worst way — a correct-looking
-`expect(html).not.toContain(…)` is indistinguishable from a portal that was never going to appear.
-Issue #161 wrote exactly that spec for "a collapsed card does not render the interface", watched it
-pass, and it kept passing with the regression deliberately reintroduced. The property is real and
-load-bearing (three separate fixes rest on it), but only jsdom can see it —
-`CompactEmbedView.mount.test.tsx` is what pins it now.
+| under `renderToStaticMarkup` | what happens |
+| --- | --- |
+| **closed** portal (`open={false}`) | Radix wraps the child in `<Presence>`, so `createPortal` is never called. Nothing renders, nothing throws. |
+| **open** portal | React **throws** — *"Portals are not currently supported by the server renderer."* |
 
-So: content behind a portal is a jsdom case. The node lane can still assert the trigger, the
-chrome, and anything rendered inline — just never the portal's subtree.
+So the trap is narrow and specific: an **absence** assertion about a closed portal's contents
+passes for a reason that has nothing to do with the property under test. Issue #161 wrote exactly
+that spec for "a collapsed card does not render the interface", watched it pass, and it kept
+passing with the regression reintroduced — the dialog was closed either way, so there was never
+any markup for `not.toContain` to find. `CompactEmbedView.mount.test.tsx` is the jsdom version that
+actually holds.
+
+⚠ **Do not over-generalize this into "the node lane can never assert a portal".** It can, and it
+does so loudly: a portal that renders when it should not makes SSR throw rather than pass quietly.
+That asymmetry is the useful part — the node lane is blind to a closed portal and deafening about
+an open one.
+
+(An earlier version of this section said `renderToStaticMarkup` "renders NO portals" and drew the
+broad conclusion. That was inferred rather than measured, and it is wrong: it throws. Which is the
+point of the section immediately below.)
 
 ### A regression spec is not finished until it has FAILED
 
