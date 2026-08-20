@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
 
@@ -26,11 +27,72 @@ import api from '@/config/api'
  * camera provider. `NoopMapControllerProvider` is deliberately imported from the seam module,
  * which carries no such edge.
  */
+// ⚠ **Module scope, not a ref, and this is a bug fix rather than a style choice.** This component
+// unmounts every time a compact embed's dialog closes, so a ref resets on the next open — while
+// `'fathom' in window` is by then TRUE, because our own script put it there. The load effect would
+// return early, never re-set the flag, and the pageview effect below would short-circuit for the
+// rest of the document's life: analytics silently dead after the first collapse, in exactly the
+// compact form this was moved here to serve. Same reasoning as `autoOpened` in `use-expansion`.
+//
+// `lastTracked` is module scope for the matching reason: the contract is one pageview per real
+// NAVIGATION, and closing and reopening the dialog on the same route is not one.
+let ownsTracker = false
+let lastTracked = ''
+
+/**
+ * One Fathom pageview per real navigation, under the client's primary domain.
+ *
+ * **It lives with the interface, and that placement is the point.** These effects used to run from
+ * `AppShell`, which renders for every embed — including one whose whole appearance is a collapsed
+ * card. That recorded a pageview of `/` on every host page view of a sidebar nobody pressed, for an
+ * interface nobody opened, and injected our tracker into the host's page to do it. Here it cannot
+ * run before the interface does: immediately in the full form, and only on opening in the compact
+ * one. The home-region redirect and the cache warm are here for the same reason — a collapsed card
+ * should do nothing a visitor did not ask for.
+ */
+function useAnalytics(primaryDomain: string, pathname: string) {
+  const enabled =
+    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
+
+  useEffect(() => {
+    // The guard is "is the tracker on this page SOMEBODY ELSE'S", so it has to pass once ours is
+    // loaded — hence the `ownsTracker` half. `Fathom.load` no-ops on a second call anyway.
+    if (!enabled || ownsTracker || 'fathom' in window) return
+
+    ownsTracker = true
+    // `auto: false` matters more than it looks: left on (the default), Fathom's script records the
+    // page it lands on — the HOST's real URL, query string and all, which may carry a reset token
+    // or an OAuth param and is not ours to send anywhere. The effect below reports the widget's own
+    // route under the client's primary domain instead, which is the only thing this is for.
+    // `honorDNT` because a visitor who set the header has already answered the question.
+    Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
+  }, [enabled])
+
+  useEffect(() => {
+    if (!enabled || !ownsTracker || lastTracked === pathname) return
+
+    lastTracked = pathname
+    // `pathname` only — never `location.search`, which carries `?q=` search text, `?center=` and
+    // `?cc=`. The route is what this measures.
+    Fathom.trackPageview({ url: `https://${primaryDomain}${pathname}` })
+  }, [pathname, enabled, primaryDomain])
+}
+
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
-function FullInterface({ hasMap, homePath }: { hasMap: boolean; homePath?: string }) {
+function FullInterface({
+  hasMap,
+  homePath,
+  primaryDomain = '',
+}: {
+  hasMap: boolean
+  homePath?: string
+  primaryDomain?: string
+}) {
   const navigate = useNavigate()
   const location = useLocation()
   const didInit = useRef(false)
+
+  useAnalytics(primaryDomain, location.pathname)
 
   // The configured home region opens as a RegionView over CountriesView on first load; Back
   // returns to the global list. Runs once — re-visiting `/` shows the list, not a redirect loop.

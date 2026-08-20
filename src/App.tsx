@@ -2,10 +2,8 @@ import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
-import { useLocation } from 'react-router'
+import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
-import * as Fathom from 'fathom-client'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
@@ -220,58 +218,6 @@ export default function App({
   )
 }
 
-// ===== ANALYTICS ===== //
-
-/**
- * One Fathom pageview per real navigation, under the client's primary domain.
- *
- * **It is a component so that it MOUNTS WITH THE INTERFACE, and that placement is the point.**
- * These effects used to live in `AppShell`, which renders for every embed — including one whose
- * whole appearance is a collapsed card. That recorded a pageview of `/` on every host page view
- * of a sidebar nobody pressed, for an interface nobody opened, and injected our tracker into the
- * host's page to do it. Mounted from `interfaceElement` instead, it cannot run before the
- * interface does: in the full form that is immediately, and in the compact form only once the
- * dialog opens. The same reasoning moved the home-region redirect into `FullInterface` and the
- * cache warm out of a collapsed card — a collapsed card should do nothing a visitor did not ask
- * for.
- *
- * Rendering nothing is deliberate: there is no analytics UI, only a side effect that needs an
- * honest mount point.
- */
-function Analytics({ primaryDomain }: { primaryDomain: string }) {
-  const location = useLocation()
-  const enabled =
-    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
-
-  // Dedupe repeats so a `replace` or a map-click landing on the same URL isn't double-counted.
-  const lastTracked = useRef('')
-  // Whether the tracker on this page is OURS. `Fathom.load` returns early if `window.fathom`
-  // already exists, so on a host that runs its own Fathom we would otherwise write our routes
-  // into THEIR site — and the guarantees below are properties of our script tag, not theirs.
-  const ownsTracker = useRef(false)
-
-  useEffect(() => {
-    if (!enabled || 'fathom' in window) return
-
-    ownsTracker.current = true
-    // `auto: false` matters more than it looks: left on (the default), Fathom's script records
-    // the page it lands on — the HOST's real URL, query string and all, which may carry a reset
-    // token or an OAuth param and is not ours to send anywhere. The effect below reports the
-    // widget's own route under the client's primary domain instead, which is the only thing this
-    // analytics is for. `honorDNT` because a visitor who set the header has already answered the
-    // question.
-    Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
-  }, [enabled])
-
-  useEffect(() => {
-    if (!enabled || !ownsTracker.current || lastTracked.current === location.pathname) return
-    lastTracked.current = location.pathname
-    Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
-  }, [location.pathname, enabled, primaryDomain])
-
-  return null
-}
-
 // ===== APP SHELL ===== //
 
 type AppShellProps = {
@@ -329,8 +275,11 @@ function AppShell({
     }
   }, [defaultLocale, client.locale])
 
-  // Fathom injects OUR tracker script into the HOST's page, so the host gets the last
-  // word: `analytics="false"` on <sahaj-atlas> keeps it out entirely (issue #95).
+  // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side opt-out:
+  // `analytics="false"` was one, but the element observes no attributes at all (`Widget.tsx`) and
+  // the loader parses no such parameter — `docs/embedding.md` lists it among the ignored ones.
+  // What actually gates analytics is this build's `VITE_FATHOM_ID` plus the client record's
+  // primary domain, and nothing else. Don't restore the claim without restoring the parameter.
   const primaryDomain = useMemo(
     () =>
       client.allowedDomains
@@ -347,10 +296,7 @@ function AppShell({
   // with a loading panel instead of showing one where the interface is about to appear.
   const interfaceElement = (
     <Suspense fallback={<LoadingFallback />}>
-      {/* Inside the element, so it is mounted by the same thing that puts the interface on
-          screen. See the note on `Analytics`. */}
-      <Analytics primaryDomain={primaryDomain} />
-      <FullInterface hasMap={hasMap} homePath={homePath} />
+      <FullInterface hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
     </Suspense>
   )
 

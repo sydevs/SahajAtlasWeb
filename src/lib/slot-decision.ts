@@ -1,8 +1,3 @@
-import type { Box, Destination } from './embed-slot'
-
-import { COMPACT_MESSAGE, embedLayout, resolveDestination } from './embed-slot'
-import { fallbackUrl } from './fallback-url'
-
 /**
  * The whole slot decision, in one place both entries call (issue #161).
  *
@@ -16,6 +11,12 @@ import { fallbackUrl } from './fallback-url'
  * The DOM reads live here rather than in `embed-slot.ts`, which stays pure so the node lane can
  * table-drive it with no jsdom.
  */
+
+import type { Box, Destination } from './embed-slot'
+
+import { COMPACT_MESSAGE, embedLayout, resolveDestination } from './embed-slot'
+import { fallbackUrl } from './fallback-url'
+
 /**
  * Everything the compact card needs, assembled once by whichever entry could measure the slot
  * (issue #161).
@@ -81,7 +82,16 @@ const FULL: SlotDecision = { compact: null, warning: null }
  * A cross-origin parent makes `window.top` throw on access rather than return a foreign window,
  * so the comparison has to be guarded — and a throw here means we are framed.
  */
-function framed(): boolean {
+/**
+ * Whether we are inside a frame. Exported so `main.tsx` shares this definition rather than keeping
+ * a second inverted copy — the `catch` arm is the part people get wrong (a cross-origin parent
+ * makes the comparison THROW, and a throw means framed).
+ *
+ * ⚠ `src/loader/index.ts` keeps a third copy deliberately. It must NOT import this one: a value
+ * import across the `src/loader/` seam makes the module reachable from both entries and fails
+ * `pnpm size`'s chunk-disjointness assertion (see `src/loader/literals.ts`).
+ */
+export function framed(): boolean {
   try {
     return window.self !== window.top
   } catch {

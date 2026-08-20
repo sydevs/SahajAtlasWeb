@@ -156,14 +156,14 @@ export function parseConfig(
     params = new URLSearchParams()
   }
 
-  const resolved = resolveRoute(params.get(ROUTE_PARAM), pageSearch)
-  const route = { route: resolved.route, routeFromPage: resolved.fromPage }
+  const { route, fromPage } = resolveRoute(params.get(ROUTE_PARAM), pageSearch)
 
   return {
     key: params.get('key') || null,
     map: enabled(params.get('map')),
     locale: text(params.get('locale')),
     routing: routingMode(params.get('routing')),
-    ...route,
+    route,
+    routeFromPage: fromPage,
   }
 }

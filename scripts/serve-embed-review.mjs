@@ -46,47 +46,27 @@
  * (mapbox-gl in particular), the slot decision's console message, CSS scoping, and icon rendering.
  */
 
-import { createReadStream, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
-import { createConnection } from 'node:net'
+
+import { loadEnv } from 'vite'
 
 const DIST = resolve('dist')
 
-/** Read a `VITE_`-prefixed value from `.env.local` first, then `.env`. */
-function env(name) {
-  for (const file of ['.env.local', '.env']) {
-    if (!existsSync(file)) continue
-    const line = readFileSync(file, 'utf8')
-      .split('\n')
-      .find((l) => l.trim().startsWith(`${name}=`))
-    if (line)
-      return line
-        .slice(line.indexOf('=') + 1)
-        .trim()
-        .replace(/^["']|["']$/g, '')
-  }
-  return ''
-}
+/**
+ * Vite's own env loader, not a hand-rolled one: it applies `.env` → `.env.local` precedence and
+ * handles quoting and inline comments correctly. A 15-line reader here got both subtly wrong, and
+ * `fallback-url.ts` on this same branch is the cautionary tale for validating one string and using
+ * another.
+ */
+const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
 
 /**
  * The port the bundle expects its locales on. Serving anywhere else re-arms trap 2, so this is
  * derived rather than chosen — a `--port` flag here would be a footgun with a friendly name.
  */
-function vitehostPort() {
-  const host = env('VITE_HOST')
-  const match = host.match(/:(\d+)/)
-  return match ? Number(match[1]) : 5173
-}
-
-function portFree(port) {
-  return new Promise((done) => {
-    const socket = createConnection({ port, host: '127.0.0.1' })
-    socket.on('connect', () => (socket.destroy(), done(false)))
-    socket.on('error', () => done(true))
-    setTimeout(() => (socket.destroy(), done(true)), 700)
-  })
-}
+const port = Number(new URL(viteEnv.VITE_HOST || 'http://localhost:5173').port) || 5173
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -199,49 +179,51 @@ function pages(src) {
 
 // ---------------------------------------------------------------------------
 
-const port = vitehostPort()
-
 if (!existsSync(join(DIST, 'auto.js'))) {
   console.error('✖ No dist/auto.js — run `pnpm build` first.')
   process.exit(1)
 }
 
-if (!(await portFree(port))) {
-  console.error(
-    `✖ Port ${port} is already in use.\n` +
-      '  Refusing to start: dist/_redirects makes any leftover server answer 200 with the app\n' +
-      '  shell for a page it does not have, so you would review the wrong document (trap 4).\n' +
-      `  Free it first:  lsof -ti tcp:${port} | xargs kill -9`,
-  )
-  process.exit(1)
-}
-
-const key = env('VITE_SAHAJCLOUD_API_KEY')
+const key = viteEnv.VITE_SAHAJCLOUD_API_KEY ?? ''
 
 if (!key) console.warn('⚠ No VITE_SAHAJCLOUD_API_KEY in .env.local — the widget will not boot.')
 
-// Written into dist/ (gitignored) so the pages are served same-origin with the assets and the
-// locales. They are rewritten on every run, so editing them in place is pointless — edit here.
 const written = pages(`http://localhost:${port}/auto.js`)
 
-writeFileSync(
-  join(DIST, '__review_index.html'),
-  page(
-    'Embed review',
-    '<ul>' +
-      Object.keys(written)
-        .map((name) => `<li><a href="/__review/${name}">${name}</a></li>`)
-        .join('') +
-      '</ul>',
-    'each page is a shape that has produced a real bug.',
-  ),
+// Served from memory, never written to disk. An earlier version wrote the index into `dist/`,
+// which left a stray file for `assert-no-sourcemaps` to scan on the next build and implied the
+// same-origin property came from living there — it comes from the server, as the other six pages
+// already demonstrate.
+const index = page(
+  'Embed review',
+  '<ul>' +
+    Object.keys(written)
+      .map((name) => `<li><a href="/__review/${name}">${name}</a></li>`)
+      .join('') +
+    '</ul>',
+  'each page is a shape that has produced a real bug.',
 )
 
-createServer((req, res) => {
+const server = createServer((req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${port}`)
-  let pathname = decodeURIComponent(url.pathname)
+  let pathname
 
-  if (pathname === '/' && !url.search) pathname = '/__review_index.html'
+  try {
+    pathname = decodeURIComponent(url.pathname)
+  } catch {
+    // `decodeURIComponent('/%')` throws, and an unguarded throw in this listener is an
+    // uncaughtException that kills the server — leaving a dead port and no message, which is
+    // trap 4 wearing a different hat.
+    res.writeHead(400, { 'content-type': 'text/plain' })
+    res.end('400 malformed path')
+    return
+  }
+
+  if (pathname === '/' && !url.search) {
+    res.writeHead(200, { 'content-type': MIME['.html'] })
+    res.end(index)
+    return
+  }
 
   const review = pathname.startsWith('/__review/') && pathname.slice('/__review/'.length)
 
@@ -251,7 +233,7 @@ createServer((req, res) => {
     return
   }
 
-  // The standalone app, for the iframe pages.
+  // The standalone app, for the iframe pages (they pass a query string, so they land here).
   if (pathname === '/') pathname = '/index.html'
 
   const file = join(DIST, normalize(pathname).replace(/^(\.\.[/\\])+/, ''))
@@ -265,7 +247,25 @@ createServer((req, res) => {
 
   res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
   createReadStream(file).pipe(res)
-}).listen(port, () => {
+})
+
+server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {
+  if (error.code !== 'EADDRINUSE') throw error
+
+  console.error(
+    `✖ Port ${port} is already in use.\n` +
+      '  Refusing to start: dist/_redirects makes any leftover server answer 200 with the app\n' +
+      '  shell for a page it does not have, so you would review the wrong document (trap 4).\n' +
+      `  Free it first:  lsof -ti tcp:${port} | xargs kill -9`,
+  )
+  process.exit(1)
+})
+
+// ⚠ Loopback ONLY. Without the host argument Node binds 0.0.0.0, and every page here has the
+// client API key substituted into it — so on shared Wi-Fi the whole subnet could read the key and
+// browse `dist/`. The key is a published client credential rather than a secret, but there is no
+// reason to hand it out, and a bind that answers only 127.0.0.1 costs nothing.
+server.listen(port, '127.0.0.1', () => {
   console.log(`\n  Embed review → http://localhost:${port}/\n`)
   console.log(`  Serving dist/ on ${port} (VITE_HOST's port, so locales resolve same-origin).`)
   for (const name of Object.keys(written)) console.log(`    /__review/${name}`)

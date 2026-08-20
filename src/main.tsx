@@ -8,7 +8,7 @@ import { capturePreview } from './config/preview'
 import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
-import { decideSlot } from './lib/slot-decision'
+import { decideSlot, framed } from './lib/slot-decision'
 
 const searchParams = new URLSearchParams(window.location.search)
 
@@ -37,13 +37,7 @@ initTheme()
  * run the loader (`docs/embedding.md`) — and framing changes two things below: where a link may
  * point, and whether a route is worth handing to anybody.
  */
-const topLevel = (() => {
-  try {
-    return window.self === window.top
-  } catch {
-    return false
-  }
-})()
+const topLevel = !framed()
 
 /**
  * Where a link to this route should point, or `undefined` when there is honestly nowhere.
