@@ -1,124 +1,127 @@
 # Embedding Sahaj Atlas
 
-Everything a host site needs to put the atlas on a page: the snippet, the parameters, the
-Content-Security-Policy contract, sizing, what the widget does to your page, what leaves your
-visitor's browser, and what to check when it doesn't work.
+**Copy one of [the two embed codes](#the-two-embed-codes) below and you are done.** Everything
+after them is optional: parameters, sizing, the Content-Security-Policy contract, what the widget
+touches on your page, what leaves your visitor's browser, and what to check when something looks
+wrong.
 
 This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer guide and
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
 
+## The two embed codes
+
+**There are exactly two ways to embed the atlas, and both are one copy-paste.** Pick by whether
+your platform lets you add a `<script>` tag to a page's body.
+
+### 1. Script — the primary embed
+
+```html
+<script type="module" src="https://sahajatlas.com/auto.js?key=YOUR_KEY"></script>
+```
+
+That is the whole snippet. Put it in the body where the widget should appear. It renders
+full-screen over your page, which is what the atlas wants when it has a page to itself.
+
+**For an embed that stays inside your layout**, add `map=false` and give it a height:
+
+```html
+<style>
+  sahaj-atlas {
+    display: block;
+    height: 640px;
+  }
+</style>
+<script type="module" src="https://sahajatlas.com/auto.js?key=YOUR_KEY&map=false"></script>
+```
+
+### 2. Iframe — when you cannot add a script
+
+```html
+<iframe
+  src="https://sahajatlas.com/?key=YOUR_KEY&map=false"
+  title="Find a meditation class near you"
+  width="100%"
+  height="640"
+  loading="lazy"
+  allow="geolocation; clipboard-write; web-share"
+  style="border: 0"
+></iframe>
+```
+
+Use this on platforms that strip `<script>` from saved content — most WordPress roles below
+Administrator, and some page builders. It is a complete embed: everything below is optional.
+
+### Which one, and what you give up
+
+|                                                                          | Script            | Iframe          |
+| ------------------------------------------------------------------------ | ----------------- | --------------- |
+| Works where `<script>` is stripped                                       | no                | **yes**         |
+| The route appears in **your** page's URL, and is shareable and indexable | **yes**           | no              |
+| Grows out of a small slot when it needs room                             | **yes**, in place | opens a new tab |
+| Costs before a visitor scrolls to it                                     | ~3 KiB            | the whole page  |
+
+**Prefer the script.** The iframe cannot put the widget's route on your URL, which is the whole
+mechanism by which each city and event becomes a page search engines can index on your domain.
+
+### Both snippets, spelled out
+
+Everything either snippet needs is in it. Specifically:
+
+- **`key` is the only required setting** and is the same for both. Ask the Sahaj Atlas
+  maintainers for one. It is **public and published** — it ships in your page's HTML, it is
+  scoped to read-only atlas data, and it is not a secret.
+- **Every other setting rides on that URL's query string** — see [Parameters](#parameters).
+  There is no element to add and no attribute to misspell.
+- **`allow=` on the iframe is not optional decoration.** Three browser features are denied to a
+  cross-origin frame by default and each fails _silently_ — see
+  [Permissions Policy](#permissions-policy).
+- **`title` on the iframe is required for accessibility.** Without one it is announced as an
+  unlabelled frame. Write it for your visitors, in your language.
+- **Do not sandbox the iframe.** If your platform insists, add `allow-popups` — see
+  [Embedding in an iframe](#embedding-in-an-iframe).
+
+Three rules for the script tag specifically:
+
+- **Put it in the body, where the widget should appear.** The element is inserted immediately
+  before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
+- **No `async` or `defer`.** The loader reads its own script tag to find both its settings and
+  its position, and those attributes hide it.
+- **`type="module"` is required** — the loader is an ES module.
+
+`auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
+the widget itself only when the embed is about to come into view — so an embed further down your
+page costs your visitors almost nothing until they scroll to it.
+
+### What you can add later
+
+Nothing below is needed to get a working embed. Reach for it when you want more:
+
+| You want                                                              | Read                                                                    |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| A different language, no map, or a specific opening view              | [Parameters](#parameters)                                               |
+| The embed to fit a column rather than the page                        | [Sizing the element](#sizing-the-element)                               |
+| Your page to send a Content-Security-Policy                           | [Content-Security-Policy](#content-security-policy)                     |
+| The locate, copy-link or share buttons to work behind a policy header | [Permissions Policy](#permissions-policy)                               |
+| Clean paths instead of `?atlas=`                                      | [The URL](#the-url)                                                     |
+| To know what the widget touches on your page                          | [What the widget does to your page](#what-the-widget-does-to-your-page) |
+| To answer a privacy question                                          | [Privacy](#privacy-storage-and-third-party-requests)                    |
+
 ## Contents
 
-- [Quick start](#quick-start)
-- [Where to load it from](#where-to-load-it-from)
+- [The two embed codes](#the-two-embed-codes)
 - [Parameters](#parameters)
 - [Sizing the element](#sizing-the-element)
 - [Embedding in an iframe](#embedding-in-an-iframe)
 - [The URL](#the-url)
 - [Content-Security-Policy](#content-security-policy)
 - [Permissions Policy](#permissions-policy)
+- [Where to load it from](#where-to-load-it-from)
 - [Browser support](#browser-support)
 - [What the widget does to your page](#what-the-widget-does-to-your-page)
 - [Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
 - [Updates and caching](#updates-and-caching)
+- [Migrating from the old element](#migrating-from-the-old-sahaj-atlas-element)
 - [Troubleshooting](#troubleshooting)
-
-## How the atlas is delivered
-
-**One script tag is the primary way to embed the atlas**, and everything below assumes it. An
-**iframe** is the supported alternative for platforms that will not let you add a script — see
-[Embedding in an iframe](#embedding-in-an-iframe).
-
-`sahajatlas.com` is neither of those things: it is where these assets are hosted and the page an
-iframe points at. It is not a destination for your visitors and it is deliberately not indexed,
-so nothing in the widget will ever send somebody there.
-
-## Quick start
-
-```html
-<script type="module" src="https://sahajatlas.com/auto.js?key=…"></script>
-```
-
-That is the whole snippet. **There is no element to add and no attribute to misspell** — the
-script creates the widget where you put the tag, and every setting rides on the script URL's
-query string.
-
-Three things about it:
-
-- **The file is `auto.js`.** It is a ~3 KiB loader, not the widget. It works out what your page
-  supports, then fetches the widget itself only when the embed is about to come into view — so a
-  widget further down your page costs your visitors almost nothing until they scroll to it.
-- **Put it where the widget should appear**, in the body. The element is inserted immediately
-  before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
-- **Don't add `async` or `defer`.** The loader reads its own script tag to find both its settings
-  and its position, and those attributes make the browser hide it.
-
-`type="module"` is required — the loader is an ES module.
-
-Ask the Sahaj Atlas maintainers for an API key. It is a **public, published** key: it
-ships in your page's HTML, it is scoped to read-only atlas data, and it is not a secret.
-
-### If you previously used `<sahaj-atlas>` and attributes
-
-The element and all nine attributes are gone. Most became query parameters; the rest moved to
-your client record or were removed (see [Parameters](#parameters)). The reason is worth knowing,
-because it is about your platform rather than our taste: WordPress
-strips `<script>` (and unknown attributes) from saved content for anyone below Administrator —
-and for **every** Site Administrator on multisite — while Wix supplies a bare script URL and its
-own attribute panel. One mechanism on the URL works identically on all of them, and the only
-thing a sanitizer can now destroy is the whole snippet, which is a failure you can see.
-
-```html
-<!-- before -->
-<script type="module" src="https://sahajatlas.com/embed.js"></script>
-<sahaj-atlas api-key="…" map="false" locale="fr"></sahaj-atlas>
-
-<!-- now -->
-<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false&locale=fr"></script>
-```
-
-Three things to check when you migrate:
-
-- `api-key` became **`key`**.
-- `base-path` became **`atlas`**, and now defers to a route already on the page's URL.
-- `analytics`, `geolocation`, `error-reporting`, `name`, `primary-color`, `secondary-color` and
-  `mount` no longer exist. A leftover value in your URL is ignored rather than misread.
-
-## Where to load it from
-
-Two hosts serve the identical bundle:
-
-| Host                           | What it is                                             |
-| ------------------------------ | ------------------------------------------------------ |
-| `https://sahajatlas.com`       | the production domain — **use this one**               |
-| `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
-
-**The origin you load the script from is not the only origin the widget contacts, and
-one of them is fixed regardless of your choice.** The bundle has the locale-JSON host
-compiled into it: whichever host you fetch `auto.js` from, the widget's UI strings are
-fetched from `https://sahajatlas.com/locales/…`. That matters only for your CSP, where
-`connect-src` has to name it — see the table below. If those requests are blocked, every
-string in the widget renders as its raw dotted key name (`events.title`, `nav.search`),
-which looks like a broken translation rather than a blocked request.
-
-That host is **compiled in from `VITE_HOST` at build time**, so it is a property of the
-deployment rather than of the source — a local build carries whatever the checked-in `.env`
-says. To confirm the current value rather than trusting this page, read it out of the
-shipped bundle:
-
-Two files sit at that origin's root, and only the first is one you reference:
-
-| File       | What it is                                         |
-| ---------- | -------------------------------------------------- |
-| `auto.js`  | the loader — the one you install                   |
-| `embed.js` | the widget itself, fetched by the loader on demand |
-
-To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
-
-```bash
-curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
-curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
-```
 
 ## Parameters
 
@@ -175,10 +178,6 @@ reports carry no cookies or session replay and reduce your page to origin and pa
 location lookup is a keyless once-per-session city lookup. If a flow is nevertheless a problem for
 your privacy notice, talk to the maintainers — the answer is a setting on your client record, not
 something an editor can change by editing a script tag.
-
-```html
-<script type="module" src="https://sahajatlas.com/auto.js?key=…&locale=fr&map=false"></script>
-```
 
 **One widget per page.** The loader marks the element it takes charge of, so a second copy of the
 snippet renders nothing and says so in the console rather than silently adopting the first one's
@@ -530,6 +529,42 @@ by a `Permissions-Policy` header on your own page.
 you send a `Permissions-Policy` header, make sure these three are allowed for your own origin;
 if you embed in an iframe, put them in its `allow` attribute as shown above.
 
+## Where to load it from
+
+Two hosts serve the identical bundle:
+
+| Host                           | What it is                                             |
+| ------------------------------ | ------------------------------------------------------ |
+| `https://sahajatlas.com`       | the production domain — **use this one**               |
+| `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
+
+**The origin you load the script from is not the only origin the widget contacts, and
+one of them is fixed regardless of your choice.** The bundle has the locale-JSON host
+compiled into it: whichever host you fetch `auto.js` from, the widget's UI strings are
+fetched from `https://sahajatlas.com/locales/…`. That matters only for your CSP, where
+`connect-src` has to name it — see the table below. If those requests are blocked, every
+string in the widget renders as its raw dotted key name (`events.title`, `nav.search`),
+which looks like a broken translation rather than a blocked request.
+
+That host is **compiled in from `VITE_HOST` at build time**, so it is a property of the
+deployment rather than of the source — a local build carries whatever the checked-in `.env`
+says. To confirm the current value rather than trusting this page, read it out of the
+shipped bundle:
+
+Two files sit at that origin's root, and only the first is one you reference:
+
+| File       | What it is                                         |
+| ---------- | -------------------------------------------------- |
+| `auto.js`  | the loader — the one you install                   |
+| `embed.js` | the widget itself, fetched by the loader on demand |
+
+To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
+
+```bash
+curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
+curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
+```
+
 ## Browser support
 
 The bundle targets **Baseline Widely Available 2026-01-01**, which is the Vite 8 default
@@ -691,6 +726,32 @@ unhashed and mutable, and they import content-hashed chunks by name.
 - Because there is no pinning, a breaking change is a change you receive. The changelog is
   the channel; if you need advance notice for a large deployment, say so to the
   maintainers rather than pinning a URL.
+
+## Migrating from the old `<sahaj-atlas>` element
+
+The element and all nine attributes are gone. Most became query parameters; the rest moved to
+your client record or were removed (see [Parameters](#parameters)). The reason is worth knowing,
+because it is about your platform rather than our taste: WordPress
+strips `<script>` (and unknown attributes) from saved content for anyone below Administrator —
+and for **every** Site Administrator on multisite — while Wix supplies a bare script URL and its
+own attribute panel. One mechanism on the URL works identically on all of them, and the only
+thing a sanitizer can now destroy is the whole snippet, which is a failure you can see.
+
+```html
+<!-- before -->
+<script type="module" src="https://sahajatlas.com/embed.js"></script>
+<sahaj-atlas api-key="…" map="false" locale="fr"></sahaj-atlas>
+
+<!-- now -->
+<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false&locale=fr"></script>
+```
+
+Three things to check when you migrate:
+
+- `api-key` became **`key`**.
+- `base-path` became **`atlas`**, and now defers to a route already on the page's URL.
+- `analytics`, `geolocation`, `error-reporting`, `name`, `primary-color`, `secondary-color` and
+  `mount` no longer exist. A leftover value in your URL is ignored rather than misread.
 
 ## Troubleshooting
 

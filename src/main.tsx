@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, MemoryRouter } from 'react-router'
+import { BrowserRouter } from 'react-router'
 
 import { RoutingContext } from './config/routing'
 import App from './App.tsx'
@@ -9,7 +9,6 @@ import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 import { fallbackUrl } from './lib/fallback-url'
 import { decideSlot } from './lib/slot-decision'
-import { urlWritable } from './lib/url-writable'
 
 const searchParams = new URLSearchParams(window.location.search)
 
@@ -32,13 +31,12 @@ capturePreview()
 initTheme()
 
 /**
- * Is this document allowed to write its own URL, and is it the top one?
+ * Is this the top document, or is it framed?
  *
  * **This build is the frame target** — the documented secondary delivery for hosts that cannot
- * run the loader (`docs/embedding.md`) — so both answers change what is correct here, and
- * neither was being asked before (#161).
+ * run the loader (`docs/embedding.md`) — and framing changes two things below: where a link may
+ * point, and whether a route is worth handing to anybody.
  */
-const writable = urlWritable(window.history, window.location.href)
 const topLevel = (() => {
   try {
     return window.self === window.top
@@ -55,13 +53,9 @@ const topLevel = (() => {
  * should be sent to. Composing against `window.location.origin` inside a frame handed every
  * share sheet a `sahajatlas.com` URL whenever an event had no canonical of its own, which is
  * both a dead end for the visitor and the branding leak #158 exists to close.
- *
- * `undefined` in memory mode is read by `useShareUrl` as "this route is not in a URL", so the
- * share block renders nothing rather than the wrong thing.
  */
-const hrefFor = writable
-  ? (route: string) => new URL(route, topLevel ? window.location.origin : fallbackUrl()).toString()
-  : undefined
+const hrefFor = (route: string) =>
+  new URL(route, topLevel ? window.location.origin : fallbackUrl()).toString()
 
 // Does the interface fit? With no element to measure, the slot is the viewport — which for a
 // framed build is the frame. `fromPage: false` because a framed embed never auto-opens: its
@@ -71,31 +65,30 @@ const { compact, warning } = decideSlot({ element: null, hasMap, fromPage: false
 
 if (warning) console.warn(`[sahaj-atlas] ${warning}`)
 
-// A document that refuses `pushState` — `file://`, and any engine stricter than Chrome — would
-// have thrown on the visitor's FIRST in-widget navigation under the bare BrowserRouter this file
-// used to mount, rather than failing at boot where it could be seen.
-//
-// ⚠ **A sandboxed iframe is NOT that document, though the docs said so for a long time.**
-// Measured in Chrome 151: `sandbox="allow-scripts"` gives an opaque origin (`localStorage`
-// throws) and still permits `replaceState`/`pushState`. So this branch is insurance rather than
-// the fix it was introduced as — see `lib/url-writable.ts` for the measurement and for what a
-// sandbox does block, which is `window.open`.
-const router = writable ? (
-  <BrowserRouter>
-    <App
-      standalone
-      apiKey={atlasAuth.apiKey}
-      compact={compact}
-      hasMap={hasMap}
-      linkable={topLevel}
-    />
-  </BrowserRouter>
-) : (
-  <MemoryRouter initialEntries={[window.location.pathname + window.location.search]}>
-    <App standalone apiKey={atlasAuth.apiKey} compact={compact} hasMap={hasMap} linkable={false} />
-  </MemoryRouter>
-)
-
+/**
+ * `BrowserRouter`, unconditionally.
+ *
+ * An earlier draft of this file probed `history.replaceState` and fell back to a `MemoryRouter`
+ * where it threw, on the belief that a sandboxed iframe refuses URL writes. **Measured in Chrome
+ * 151, it does not** — a real `sandbox="allow-scripts"` frame has an opaque origin
+ * (`localStorage` throws) and still permits `replaceState` and `pushState`. That left the probe
+ * covering only `file://`, which is not a supported way to run this build: it has no origin for
+ * the API to accept, no CORS, and no way to reach SahajCloud at all, so a widget there fails long
+ * before its router does.
+ *
+ * A branch whose only remaining case is a configuration we do not support is a branch that is
+ * never exercised and never right, so it is gone rather than kept as insurance.
+ */
 ReactDOM.createRoot(document.getElementById('syatlas')!).render(
-  <RoutingContext.Provider value={hrefFor}>{router}</RoutingContext.Provider>,
+  <RoutingContext.Provider value={hrefFor}>
+    <BrowserRouter>
+      <App
+        standalone
+        apiKey={atlasAuth.apiKey}
+        compact={compact}
+        hasMap={hasMap}
+        linkable={topLevel}
+      />
+    </BrowserRouter>
+  </RoutingContext.Provider>,
 )

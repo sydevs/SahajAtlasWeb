@@ -38,30 +38,3 @@ export const ELEMENT_NAME = 'sahaj-atlas'
  */
 export const safeLoaderPath = (path: string | null | undefined): string | undefined =>
   path && path.startsWith('/') && !/^[/\\\t\n\r]/.test(path.slice(1)) ? path : undefined
-
-/**
- * Can this document write its own URL? The widget's copy is `urlWritable` in
- * `src/lib/url-writable.ts`, which is where the reasoning lives.
- *
- * A no-op `replaceState` to the current href, so it cannot disturb the host or add a history
- * entry. The loader uses it to decide the routing mode it reports; the widget's copy decides the
- * standalone router. Both take the history object so `literals.test.ts` can drive them with a
- * throwing stub.
- *
- * ⚠ It does **not** detect a sandboxed iframe — measured, see `src/lib/url-writable.ts`. It
- * catches `file://` and any engine that refuses outright.
- */
-export const loaderUrlWritable = (
-  history: Pick<History, 'replaceState' | 'state'> | undefined,
-  href: string,
-): boolean => {
-  if (!history) return false
-
-  try {
-    history.replaceState(history.state, '', href)
-
-    return true
-  } catch {
-    return false
-  }
-}

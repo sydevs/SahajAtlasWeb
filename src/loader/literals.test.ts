@@ -13,12 +13,11 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { ELEMENT_NAME as LOADER_ELEMENT_NAME, loaderUrlWritable, safeLoaderPath } from './literals'
+import { ELEMENT_NAME as LOADER_ELEMENT_NAME, safeLoaderPath } from './literals'
 import { parseConfig } from './config'
 
 import { attributeEnabled } from '@/config/attributes'
 import { ELEMENT_NAME as WIDGET_ELEMENT_NAME } from '@/lib/element'
-import { urlWritable } from '@/lib/url-writable'
 import { safePath } from '@/lib/shape'
 
 describe('the loader/widget duplication pins', () => {
@@ -63,49 +62,6 @@ describe('the loader/widget duplication pins', () => {
 
     it.each([null, undefined])('agrees on %s', (value) => {
       expect(safeLoaderPath(value)).toBe(safePath(value))
-    })
-  })
-
-  describe("the writability probe matches the widget's copy", () => {
-    // Duplicated across the loader seam rather than imported: one value import would make the
-    // module reachable from both entries, and `pnpm size` fails the closure-disjointness
-    // assertion. Both copies take the history object precisely so this spec can drive them
-    // with stubs and compare BEHAVIOUR rather than source text.
-    const working = () => ({ replaceState: () => {}, state: { host: 1 } })
-    const throwing = () => ({
-      replaceState: () => {
-        throw new DOMException('SecurityError')
-      },
-      state: null,
-    })
-
-    it('agrees that a normal document is writable', () => {
-      expect(loaderUrlWritable(working(), '/a')).toBe(urlWritable(working(), '/a'))
-      expect(loaderUrlWritable(working(), '/a')).toBe(true)
-    })
-
-    it('agrees that a sandboxed document is not', () => {
-      // The opaque-origin case: `allow-scripts` without `allow-same-origin`, and `file://`.
-      expect(loaderUrlWritable(throwing(), '/a')).toBe(urlWritable(throwing(), '/a'))
-      expect(loaderUrlWritable(throwing(), '/a')).toBe(false)
-    })
-
-    it('agrees that a missing history is not', () => {
-      expect(loaderUrlWritable(undefined, '/a')).toBe(urlWritable(undefined, '/a'))
-      expect(loaderUrlWritable(undefined, '/a')).toBe(false)
-    })
-
-    it("passes the host's own state straight back, so nothing they put there is lost", () => {
-      const seen: unknown[] = []
-      const history = {
-        state: { host: 'value' },
-        replaceState: (state: unknown) => void seen.push(state),
-      }
-
-      loaderUrlWritable(history, '/a')
-      urlWritable(history, '/a')
-
-      expect(seen).toEqual([{ host: 'value' }, { host: 'value' }])
     })
   })
 

@@ -134,8 +134,18 @@ in host pages, **and** runs standalone in dev. Because of that:
   **The widget has no opinion about the host's `#anchor`.** It never reads or writes the fragment,
   so the whole three-way ours/free/foreign decision of #92 is gone.
   **`memory` is a degradation, not a mode anyone asks for**, taken only where the document refuses
-  `replaceState` (a sandboxed iframe, `file://`). `routing=path` is accepted, warns, and falls back
-  to query until its prefix arrives from the client record.
+  `replaceState`. ⚠ **That is NOT a sandboxed iframe, though this rule said so until #161 measured
+  it**: in Chrome 151 a real `sandbox="allow-scripts"` frame has an opaque origin (`localStorage`
+  throws) and still permits `replaceState` and `pushState`. What a sandbox blocks is `window.open`.
+  `routing=path` is accepted, warns, and falls back to query until its prefix arrives from the
+  client record.
+
+  **`file://` is explicitly not supported, and nothing may be built to accommodate it.** #161 added
+  a `MemoryRouter` fallback to `main.tsx` for it and then removed it: with the sandbox case gone,
+  `file://` was the branch's only remaining trigger, and a `file://` document has no origin the API
+  will accept and no CORS, so the widget fails long before its router does. **A branch whose only
+  case is a configuration we do not support is never exercised and never right.** Reach for the
+  same reasoning before adding insurance for any other unsupported host.
   ⚠ **The trap the history exists to avoid**: `Router` defaults `location.key` to a constant, so a
   history that doesn't mint one per entry collapses every `rememberCamera(location.key)` snapshot
   into a single bucket — back-navigation restores the wrong viewport, and nothing else in the app

@@ -32,7 +32,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME, loaderUrlWritable, safeLoaderPath } from './literals'
+import { ELEMENT_NAME, safeLoaderPath } from './literals'
 
 /** Console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -89,6 +89,29 @@ function probeParamPersisted(): boolean {
   }
 }
 
+/**
+ * Can this document write its own URL?
+ *
+ * A genuine no-op — `replaceState` to the href we are already on — so it cannot disturb the host
+ * or add a history entry. This feeds the embed report's `canonicalViable`, which is the only
+ * thing that reads it: a page whose URL we cannot write cannot carry a shareable route, so it
+ * cannot be a region's canonical page.
+ *
+ * ⚠ **It is not a sandbox detector**, though it reads like one and this repo believed it was
+ * until #161 measured it. In Chrome 151 a real `sandbox="allow-scripts"` frame has an opaque
+ * origin (`localStorage` throws) and still permits `replaceState` and `pushState`. What a
+ * sandbox actually blocks is `window.open`.
+ */
+function probeUrlWritable(): boolean {
+  try {
+    window.history.replaceState(window.history.state, '', window.location.href)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 function detect(config: LoaderConfig): EmbedFingerprint {
   const signals: DetectionSignals = {
     // A cross-origin parent makes `window.top` throw on access rather than return a foreign
@@ -100,7 +123,7 @@ function detect(config: LoaderConfig): EmbedFingerprint {
         return false
       }
     })(),
-    urlWritable: loaderUrlWritable(window.history, window.location.href),
+    urlWritable: probeUrlWritable(),
     paramPersisted: probeParamPersisted(),
   }
 
