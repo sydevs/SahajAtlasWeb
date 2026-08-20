@@ -91,3 +91,5 @@ export const Default: Story = () => {
     </StoryWrapper>
   )
 }
+
+Default.storyName = 'Modal'

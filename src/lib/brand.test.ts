@@ -56,7 +56,7 @@ const COPY_FILES = [
   'src/components/molecules/EventMetadata/EventMetadata.tsx',
   // The compact form's whole visible surface is a heading and one button (#161), which makes
   // it the single easiest screen in the app to name after the product by accident.
-  'src/components/organisms/CompactCard/CompactCard.tsx',
+  'src/views/CompactView/CompactView.tsx',
 ]
 
 describe('no brand names reach a visitor', () => {

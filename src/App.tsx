@@ -21,10 +21,11 @@ import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
-import { CompactCard, Mapbox, ReportIssueModal } from '@/components/organisms'
+import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { Dialog } from '@/components/atoms'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { DrawerStack } from '@/views'
+import { CompactView } from '@/views/CompactView'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
 import { useReportModal } from '@/config/store'
@@ -118,7 +119,7 @@ type AppProps = {
    *
    * `null`/absent is the full interface, and is the only answer the standalone build gives
    * when it is not framed. One nullable object rather than a flag plus its satellites, so a
-   * caller cannot pass a fill or an auto-open that nothing reads.
+   * caller cannot pass an auto-open that nothing reads.
    */
   compact?: CompactState | null
   // Is the route on screen in the URL, and therefore shareable? True for both routers
@@ -369,25 +370,25 @@ function CompactShell({ compact, children }: { compact: CompactState; children: 
   if (compact.action.kind === 'link') {
     return (
       <NoExpansionProvider>
-        <CompactCard action={compact.action} fill={compact.fill} />
+        <CompactView action={compact.action} />
       </NoExpansionProvider>
     )
   }
 
   return (
     <LocalExpansionProvider autoOpen={compact.autoOpen}>
-      <CompactForm fill={compact.fill}>{children}</CompactForm>
+      <CompactForm>{children}</CompactForm>
     </LocalExpansionProvider>
   )
 }
 
-function CompactForm({ fill, children }: { fill: boolean; children: ReactNode }) {
+function CompactForm({ children }: { children: ReactNode }) {
   const { t } = useLocale()
   const { expanded, expand, collapse } = useExpansion()
 
   return (
     <>
-      <CompactCard action={{ kind: 'overlay', onOpen: expand }} fill={fill} />
+      <CompactView action={{ kind: 'overlay', onOpen: expand }} />
       <Dialog
         closeLabel={t('close')}
         open={expanded}

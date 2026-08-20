@@ -105,10 +105,6 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
       compact: compactState({
         destination,
         href: fallbackUrl(),
-        // Only a height the HOST wrote is a box to fill. An element they gave none measures 0
-        // and must size to the card's own content instead, or it collapses and reads as an
-        // embed that did not render.
-        fill: (box?.height ?? 0) > 0,
         fromPage,
       }),
       warning: reason ? COMPACT_MESSAGE[reason] : null,

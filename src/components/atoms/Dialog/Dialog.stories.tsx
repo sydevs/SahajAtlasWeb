@@ -62,4 +62,4 @@ export const Default: Story = () => {
   )
 }
 
-Default.storyName = 'Expanded Surface'
+Default.storyName = 'Dialog'

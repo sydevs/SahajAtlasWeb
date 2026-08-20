@@ -131,10 +131,10 @@ src/
   components/         # atomic taxonomy, folder-per-component — see DESIGN_SYSTEM.md
     atoms/            # Primitives: Drawer/, Modal/, Dialog/, Button/, Chip/, Dropdown/, Select/, Link/, Spinner/, Icons/
     molecules/        # Compositions: ListToolbar/, List/, ListItem/, EventListItem/, EventFacts/, EventActions/, ActionRow/, EventMetadata/, ImageCarousel/, ShareContent/, FormField/, Fallbacks/
-    organisms/        # Data-connected: EventsList/, CompactCard/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
+    organisms/        # Data-connected: EventsList/, EventDetails/, RegistrationForm/, ReportIssueForm/, Mapbox/
     <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
     <tier>/index.ts   # one barrel per tier
-  views/              # URL-driven drawer views (replace pages/): DrawerStack + Countries (the base)/Search/Calendar/Region/Online/Event/Registration/Filter/Share
+  views/              # URL-driven drawer views (replace pages/): DrawerStack + Countries (the base)/Search/Calendar/Region/Online/Event/Registration/Filter/Share/Compact
   config/
     api/              # PayloadSDK client + zod-parsed fetchers (client.ts, fetch.ts, mutate.ts, auth.ts) + query factories (index.ts)
     store.ts          # zustand stores (view / camera-history / calendar-position / results-reveal / report-modal / registration-draft; filters live in the URL)

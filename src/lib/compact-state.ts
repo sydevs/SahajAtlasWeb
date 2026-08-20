@@ -13,8 +13,6 @@ export type CompactAction = { kind: 'overlay'; autoOpen: boolean } | { kind: 'li
 
 export type CompactState = {
   action: CompactAction
-  /** See `CompactCardProps.fill` — true only when the host gave the element a height. */
-  fill: boolean
   /** `autoOpen` hoisted for the provider, false for a link. */
   autoOpen: boolean
 }
@@ -23,10 +21,9 @@ export type CompactState = {
 export function compactState(input: {
   destination: Destination
   href: string
-  fill: boolean
   fromPage: boolean
 }): CompactState | null {
-  const { destination, href, fill, fromPage } = input
+  const { destination, href, fromPage } = input
 
   if (destination.kind === 'none') return null
 
@@ -34,8 +31,8 @@ export function compactState(input: {
   // popup anyway — so a deep link into a framed embed leaves the route behind the button
   // rather than following it.
   if (destination.kind === 'link') {
-    return { action: { kind: 'link', href }, fill, autoOpen: false }
+    return { action: { kind: 'link', href }, autoOpen: false }
   }
 
-  return { action: { kind: 'overlay', autoOpen: fromPage }, fill, autoOpen: fromPage }
+  return { action: { kind: 'overlay', autoOpen: fromPage }, autoOpen: fromPage }
 }

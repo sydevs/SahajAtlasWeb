@@ -82,7 +82,7 @@ describe('decideSlot — the whole decision', () => {
       fromPage: false,
     })
 
-    expect(compact).toMatchObject({ action: { kind: 'overlay', autoOpen: false }, fill: true })
+    expect(compact).toMatchObject({ action: { kind: 'overlay', autoOpen: false } })
     expect(warning).toContain('360×420')
   })
 
@@ -97,20 +97,6 @@ describe('decideSlot — the whole decision', () => {
     expect(compact).toMatchObject({ action: { kind: 'overlay' } })
     // The two reasons earn opposite advice; this one must not tell them to resize the element.
     expect(warning).toContain('map=false')
-  })
-
-  it('sizes to content when the host gave the element no height', () => {
-    setWindow({ inner: [1440, 900] })
-
-    const { compact } = decideSlot({
-      element: elementOf(300, 0, 300),
-      hasMap: false,
-      fromPage: false,
-    })
-
-    // `h-full` against no height resolves to nothing and the card would collapse, reading as
-    // an embed that did not render.
-    expect(compact?.fill).toBe(false)
   })
 
   it('opens on mount for a page route, and never for a configured one', () => {
