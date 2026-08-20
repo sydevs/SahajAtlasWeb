@@ -220,6 +220,58 @@ export default function App({
   )
 }
 
+// ===== ANALYTICS ===== //
+
+/**
+ * One Fathom pageview per real navigation, under the client's primary domain.
+ *
+ * **It is a component so that it MOUNTS WITH THE INTERFACE, and that placement is the point.**
+ * These effects used to live in `AppShell`, which renders for every embed — including one whose
+ * whole appearance is a collapsed card. That recorded a pageview of `/` on every host page view
+ * of a sidebar nobody pressed, for an interface nobody opened, and injected our tracker into the
+ * host's page to do it. Mounted from `interfaceElement` instead, it cannot run before the
+ * interface does: in the full form that is immediately, and in the compact form only once the
+ * dialog opens. The same reasoning moved the home-region redirect into `FullInterface` and the
+ * cache warm out of a collapsed card — a collapsed card should do nothing a visitor did not ask
+ * for.
+ *
+ * Rendering nothing is deliberate: there is no analytics UI, only a side effect that needs an
+ * honest mount point.
+ */
+function Analytics({ primaryDomain }: { primaryDomain: string }) {
+  const location = useLocation()
+  const enabled =
+    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
+
+  // Dedupe repeats so a `replace` or a map-click landing on the same URL isn't double-counted.
+  const lastTracked = useRef('')
+  // Whether the tracker on this page is OURS. `Fathom.load` returns early if `window.fathom`
+  // already exists, so on a host that runs its own Fathom we would otherwise write our routes
+  // into THEIR site — and the guarantees below are properties of our script tag, not theirs.
+  const ownsTracker = useRef(false)
+
+  useEffect(() => {
+    if (!enabled || 'fathom' in window) return
+
+    ownsTracker.current = true
+    // `auto: false` matters more than it looks: left on (the default), Fathom's script records
+    // the page it lands on — the HOST's real URL, query string and all, which may carry a reset
+    // token or an OAuth param and is not ours to send anywhere. The effect below reports the
+    // widget's own route under the client's primary domain instead, which is the only thing this
+    // analytics is for. `honorDNT` because a visitor who set the header has already answered the
+    // question.
+    Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
+  }, [enabled])
+
+  useEffect(() => {
+    if (!enabled || !ownsTracker.current || lastTracked.current === location.pathname) return
+    lastTracked.current = location.pathname
+    Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
+  }, [location.pathname, enabled, primaryDomain])
+
+  return null
+}
+
 // ===== APP SHELL ===== //
 
 type AppShellProps = {
@@ -244,7 +296,6 @@ function AppShell({
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
-  const location = useLocation()
   const { locale } = useLocale()
 
   // The configured home region. The redirect that consumes it lives in `FullInterface`, which
@@ -278,9 +329,6 @@ function AppShell({
     }
   }, [defaultLocale, client.locale])
 
-  // Analytics: one pageview per real navigation. Dedupe repeats so a `replace` or a
-  // map-click landing on the same URL isn't double-counted.
-  //
   // Fathom injects OUR tracker script into the HOST's page, so the host gets the last
   // word: `analytics="false"` on <sahaj-atlas> keeps it out entirely (issue #95).
   const primaryDomain = useMemo(
@@ -291,33 +339,6 @@ function AppShell({
         .find(Boolean) ?? '',
     [client.allowedDomains],
   )
-  const fathomEnabled =
-    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
-  const lastTracked = useRef('')
-  // Whether the tracker on this page is OURS. `Fathom.load` returns early if
-  // `window.fathom` already exists, so on a host that runs its own Fathom we would
-  // otherwise write our routes into THEIR site — and the guarantees below are
-  // properties of our script tag, not theirs.
-  const ownsTracker = useRef(false)
-
-  useEffect(() => {
-    if (!fathomEnabled || 'fathom' in window) return
-
-    ownsTracker.current = true
-    // `auto: false` matters more than it looks: left on (the default), Fathom's script
-    // records the page it lands on — the HOST's real URL, query string and all, which
-    // may carry a reset token or an OAuth param and is not ours to send anywhere. The
-    // effect below reports the widget's own route under the client's primary domain
-    // instead, which is the only thing this analytics is for. `honorDNT` because a
-    // visitor who set the header has already answered the question.
-    Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
-  }, [fathomEnabled])
-
-  useEffect(() => {
-    if (!fathomEnabled || !ownsTracker.current || lastTracked.current === location.pathname) return
-    lastTracked.current = location.pathname
-    Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
-  }, [location.pathname, fathomEnabled, primaryDomain])
 
   // Built as an ELEMENT, not rendered here: in the compact form it is handed to the surface,
   // and React never renders it until that opens — which is what keeps mapbox-gl unfetched.
@@ -326,6 +347,9 @@ function AppShell({
   // with a loading panel instead of showing one where the interface is about to appear.
   const interfaceElement = (
     <Suspense fallback={<LoadingFallback />}>
+      {/* Inside the element, so it is mounted by the same thing that puts the interface on
+          screen. See the note on `Analytics`. */}
+      <Analytics primaryDomain={primaryDomain} />
       <FullInterface hasMap={hasMap} homePath={homePath} />
     </Suspense>
   )

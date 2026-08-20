@@ -289,8 +289,9 @@ than collapsing — so a bare `<sahaj-atlas>` in a narrow column renders as a ca
 flow instead of appearing not to render. It renders **no events and makes no location lookup** — a control whose whole
 job is to lead somewhere else has nothing to show, and it does not read the event feed or the
 region tree either: those are warmed when the interface opens, not while the card sits closed.
-It is not silent, though: the widget still reads your client record and sends the one-per-load
-[embed report](#what-the-loader-reports-back) while the card is collapsed.
+It records no analytics pageview either — an interface nobody opened is not a page anybody
+viewed. It is not silent, though: the widget still reads your client record and sends the
+one-per-load [embed report](#what-the-loader-reports-back) while the card is collapsed.
 
 **Where the button goes depends on whether the widget can grow where it is.**
 
