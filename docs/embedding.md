@@ -286,9 +286,10 @@ somewhere it fits. Your visitor still gets everything; it just does not try to l
 **The card is the button.** It takes only the room it needs, centred both ways inside whatever
 box you gave. If you gave the element **no height at all**, it sizes to its own content rather
 than collapsing — so a bare `<sahaj-atlas>` in a narrow column renders as a card in your page's
-flow instead of appearing not to render. It also makes **no data requests at all** — no event
-feed, no IP lookup — because a control whose whole job is to lead somewhere else has nothing to
-show.
+flow instead of appearing not to render. It renders **no events and makes no location lookup** — a control whose whole
+job is to lead somewhere else has nothing to show. It is not silent, though: the widget still
+reads your client record, warms its caches and sends the one-per-load
+[embed report](#what-the-loader-reports-back) while the card is collapsed.
 
 **Where the button goes depends on whether the widget can grow where it is.**
 
@@ -336,8 +337,9 @@ Three things worth knowing:
 - ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
   make that element the containing block for fixed-position content, so the overlay is confined
   to it instead of covering the page — and the same already applies to the map, which is fixed
-  too. If the overlay finds itself confined, it closes itself and says so in the console rather
-  than trapping your visitor. (`container-type` is fine; it does not have this effect, however
+  too. It is not a trap if it happens — clicking outside the overlay and pressing Escape both
+  still close it, wherever it has been confined to — but it will look wrong.
+  (`container-type` is fine; it does not have this effect, however
   often it is said to.)
 
 ## Embedding in an iframe
@@ -379,7 +381,9 @@ about a script embed sharing a page with your content. A frame has no such neigh
 
 **If the frame is too small for the interface**, the widget shows the compact card, and its
 button opens the atlas in a **new tab** rather than an overlay — an overlay inside a frame would
-only cover the frame, which is the problem it was trying to solve. ⚠ Today that link lands on the
+only cover the frame, which is the problem it was trying to solve. ⚠ **That new tab currently
+goes to `wemeditate.com/map`**, which is a different organisation's site; per-region canonical
+ownership will replace it with the owner's own domain. ⚠ Today that link lands on the
 map's home page rather than the exact route the visitor was on; it will carry the route once the
 canonical work lands.
 

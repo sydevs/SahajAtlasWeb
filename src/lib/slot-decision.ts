@@ -108,9 +108,16 @@ function newTabBox(): Box {
   const outer = { width: window.outerWidth, height: window.outerHeight }
   const avail = { width: window.screen?.availWidth ?? 0, height: window.screen?.availHeight ?? 0 }
 
+  // ⚠ Unmeasurable must resolve to 0, not Infinity. `||`-ing a zero reading up to Infinity made
+  // `meaningfullyBigger(viewport, screen)` unconditionally true, so a browser reporting 0 for
+  // both (some WebViews, prerender, hardened privacy modes) sent EVERY framed embed — however
+  // large — to the compact card and then off-site. `meaningfullyBigger` already treats a 0 axis
+  // as "no evidence", which is the bias every other predicate here takes.
+  const smaller = (a: number, b: number) => (a > 0 && b > 0 ? Math.min(a, b) : a || b || 0)
+
   return {
-    width: Math.min(outer.width || Infinity, avail.width || Infinity),
-    height: Math.min(outer.height || Infinity, avail.height || Infinity),
+    width: smaller(outer.width, avail.width),
+    height: smaller(outer.height, avail.height),
   }
 }
 

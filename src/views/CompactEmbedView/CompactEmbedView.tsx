@@ -83,7 +83,9 @@ function Card({ action }: { action: CardAction }) {
 
 // ===== THE DIALOG IT OPENS ===== //
 
-const overlayClass = 'fixed inset-0 z-50 bg-black/40'
+// The same scrim as the `Modal` atom, deliberately: two dialogs in one app should not
+// dim the page by different amounts. It drifted to /40 when this was copied.
+const overlayClass = 'fixed inset-0 z-50 bg-black/50'
 // `contain: layout` via the arbitrary variant — see `ExpandedDialog`'s note. The inset is the
 // margin that lets the host's page show through; rounded + shadow so the frame reads as
 // deliberate.
@@ -205,16 +207,19 @@ function ExpandedDialog({
           asChild
           aria-describedby={undefined}
           onCloseAutoFocus={(event) => {
-            event.preventDefault()
-
             const root = widgetOverlayContainer()
+            const opening = opener.current
 
-            // Re-checked against the root rather than trusted: `isConnected` alone would still
-            // be true for a host element, and the recorder is not the only thing that could have
-            // written here.
-            if (opener.current?.isConnected && root?.contains(opener.current)) {
-              opener.current.focus()
-            }
+            // ⚠ `preventDefault()` ONLY when we have somewhere to send focus. Unconditionally,
+            // it also suppresses Radix's own restore — and `opener` is empty on two real paths:
+            // the auto-open one (the dialog is open on its first render, so the recorder effect
+            // never runs) and Safari/Firefox on macOS (no `focusin` from a button click). Both
+            // then dropped the visitor on the HOST page's `<body>`, which is the outcome this
+            // handler exists to prevent.
+            if (!opening?.isConnected || !root?.contains(opening)) return
+
+            event.preventDefault()
+            opening.focus()
           }}
           // Focus the container, not the first control inside it. Radix's default sends focus to
           // the first tabbable — here whatever chrome the interface renders first, announced with

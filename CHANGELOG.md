@@ -30,7 +30,9 @@ cover everything a host would notice since the widget was first deployed.
   **The card is the button.** It takes only the room it needs, centred both ways in whatever box
   you gave; an element with **no height of its own** sizes to the card's content instead of
   collapsing, so a bare `<sahaj-atlas>` in a column renders in your page's flow rather than
-  appearing not to render. It makes **no data requests at all** — no event feed, no IP lookup.
+  appearing not to render. It renders **no events and makes no location lookup**. It is not silent, though — the widget
+  still reads your client record, warms its caches and sends its one-per-load embed report while
+  the card is collapsed.
 
   **Where the button goes depends on whether the widget can grow where it is.** On your page it
   opens a full-screen overlay. **Inside an iframe it opens a new tab instead** — an overlay in a
@@ -61,8 +63,9 @@ cover everything a host would notice since the widget was first deployed.
 
   ⚠ The overlay is `position: fixed`, so an ancestor of your embed carrying `transform`,
   `filter` or `contain` confines it to that element instead of covering the page. That was
-  already true of the map. Clicking outside it or pressing Escape still closes it, so a
-  confined overlay is a cosmetic problem rather than a trap. See [Sizing the element].
+  already true of the map. Clicking outside it or pressing Escape still closes it wherever it
+  has been confined to, so this is a cosmetic problem rather than a trap. See
+  [Sizing the element].
 
 - **The widget documents the browser permissions it needs.** ([#161]) `geolocation`,
   `clipboard-write` and `web-share`, which a cross-origin iframe denies by default and a

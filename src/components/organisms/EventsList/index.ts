@@ -1,5 +1,5 @@
 // `EventsList` (presentational, ./EventsList) stays module-private — DynamicEventsList,
-// the story and the compact card consume it, and all three import it directly. The
+// the story consume it, and both import it directly. The
 // network-bound container lives in its own module so importing the presentational
 // list (e.g. from its story) doesn't drag in the api/i18n graph.
 export { DynamicEventsList } from './DynamicEventsList'

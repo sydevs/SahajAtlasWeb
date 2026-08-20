@@ -108,9 +108,6 @@ type AppProps = {
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
-  // Whether this slot can hold the interface at all, decided once at mount by
-  // `full` is the default and the only answer the standalone build ever gives: it owns its
-  // page, so there is nothing to degrade to and nowhere bigger to expand into.
   /**
    * Render the compact card instead of the interface, and everything that decision carried
    * with it — decided once at mount by the entry that can measure the slot (#161).
@@ -360,8 +357,9 @@ function FullInterface({ hasMap }: { hasMap: boolean }) {
               `--sy-sheet-top` — which pins the sticky Register bar — is a viewport-
               relative measurement for the same reason. `map="false"` is the mode that
               stays inside its box, and it is container-relative throughout (#107).
-              A host that gets this wrong now hears about it: `Widget.tsx` warns at mount
-              via `lib/embed-slot.ts`, rather than silently painting over their page. */}
+              A host that gets this wrong now gets the compact card instead of a takeover:
+              `lib/slot-decision.ts` measures at mount and `AppShell` renders `CompactEmbedView`,
+              whose button opens the map full-screen. */}
       <div style={{ position: 'fixed', inset: 0 }}>
         <Mapbox />
       </div>

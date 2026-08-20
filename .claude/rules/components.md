@@ -29,7 +29,7 @@ Before hand-rolling UI, in this order:
    URL-driven stack; Modal (Radix Dialog) is the ephemeral one that never touches
    the URL or history. Input/Textarea wrap the native controls on the shared
    `fieldChrome` recipe; `Combobox` is the search-in-the-field picker (Radix Popover
-   - cmdk — the region filter), `Select` the plain list picker. Every form-control
+   + cmdk — the region filter), `Select` the plain list picker. Every form-control
      atom shares one error/active-state interface: **`isInvalid`** (danger visual +
      `aria-invalid`, with `aria-describedby` for the error text) and **`highlight`**
      (primary-tints the _unselected_ state, no layout shift, to flag an active

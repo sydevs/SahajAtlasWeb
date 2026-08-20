@@ -163,7 +163,7 @@ lat/lng arithmetic.
 Map changes ARE verifiable end-to-end with the Playwright MCP — prefer proving one
 over asking the user. Serve the app per `.claude/docs`/the worktree pattern (alt port
 
-- matching `VITE_HOST`) against the seeded local backend.
++ matching `VITE_HOST`) against the seeded local backend.
 
 * **Screenshots are readable.** `browser_take_screenshot` with a **relative**
   `filename` writes into the project root, and `Read` displays it — WebGL content

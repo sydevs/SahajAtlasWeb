@@ -142,7 +142,16 @@ function Atlas() {
   const slot = useRef<SlotDecision>()
 
   if (!slot.current) {
-    slot.current = decideSlot({ element: owner, hasMap, fromPage: mount.current.fromPage })
+    slot.current = decideSlot({
+      element: owner,
+      hasMap,
+      // BOTH reads must agree, and they are taken at different moments: the loader's at script
+      // execution, ours at React render, separated by a dynamic import and `requestIdleCallback`.
+      // A host SPA that adds `?atlas=` after boot would otherwise lazy-mount (the loader saw no
+      // route) and then auto-open anyway — a modal over the page mid-scroll, which is the exact
+      // situation eager-loading exists to prevent.
+      fromPage: mount.current.fromPage && config.routeFromPage,
+    })
   }
 
   const compact = slot.current.compact

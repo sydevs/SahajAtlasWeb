@@ -172,7 +172,7 @@ component barrels.
   9. **`ShareContent/`** (molecules) — `ShareContent` + `CopyField` (also used by
      the event panel's desktop contact popover).
   10. **`Fallbacks/`** (molecules) — `LoadingFallback` + `ErrorFallback` + `FallbackPanel`
-      - `ResetErrorBoundary`, over one shared policy every no-content state renders from
+      + `ResetErrorBoundary`, over one shared policy every no-content state renders from
         (issue #89). The loading half is pending a split into its own folder; the rest belongs
         together — a second copy of the policy is exactly the drift #89 removed, and it is why
         the empty-list states live here too rather than as their own molecules (`OnwardOffer`

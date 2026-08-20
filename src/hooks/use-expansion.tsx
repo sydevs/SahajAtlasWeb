@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useMemo, useState } from 'react'
+import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 // The expansion seam (issue #161), the same shape as the camera seam in
 // `use-map-controller.tsx` and for the same reason: components call these
@@ -7,14 +7,6 @@ import { type ReactNode, createContext, useContext, useMemo, useState } from 're
 // page (the Radix overlay below), in a frame (the provider that lands with E1/E2),
 // or in a surface that is already the whole viewport (the no-op).
 export type Expansion = {
-  /**
-   * Is there anywhere bigger to go? False in the standalone build and in a full-form
-   * embed, where the widget already occupies everything it can.
-   *
-   * A consumer reads this to decide whether to OFFER expansion, never to decide what to
-   * render — `expand()` is safe to call either way.
-   */
-  canExpand: boolean
   /** Is the widget currently expanded? */
   expanded: boolean
   expand: () => void
@@ -22,7 +14,6 @@ export type Expansion = {
 }
 
 const NOOP: Expansion = {
-  canExpand: false,
   expanded: false,
   expand: () => {},
   collapse: () => {},
@@ -55,7 +46,7 @@ export function NoExpansionProvider({ children }: { children: ReactNode }) {
  * **There is deliberately no framed provider.** A frame cannot expand — `position: fixed`
  * resolves against the frame, so an overlay would cover the same undersized box the card is
  * already in. A framed embed too small for the interface gets an anchor to somewhere that fits
- * instead (`lib/fallback-url.ts`), which needs no provider at all: `CompactShell` renders the
+ * instead (`lib/fallback-url.ts`), which needs no provider at all: `CompactEmbedView` renders the
  * card under `NoExpansionProvider`, and the Escape ladder in `DrawerStack` correctly finds
  * nothing above it to collapse.
  *
@@ -82,16 +73,20 @@ export function LocalExpansionProvider({
   autoOpen?: boolean
   children: ReactNode
 }) {
-  const [expanded, setExpanded] = useState(() => {
-    if (!autoOpen || autoOpened) return false
+  const [expanded, setExpanded] = useState(autoOpen && !autoOpened)
 
-    autoOpened = true
+  // ⚠ The latch is an EFFECT, never the `useState` initialiser it started as. React double-
+  // invokes initialisers under `<StrictMode>` (which `providers.tsx` mounts unconditionally) and
+  // keeps the SECOND result — so an initialiser that set the flag on pass 1 returned `false` on
+  // pass 2, and auto-open silently never fired in dev, Ladle, or any discarded render. Verified
+  // by running it: committed state `false`, flag `true`. An effect runs only for a commit that
+  // survived, which is exactly the event "this document has auto-opened once" should mean.
+  useEffect(() => {
+    if (expanded) autoOpened = true
+  }, [expanded])
 
-    return true
-  })
   const value = useMemo<Expansion>(
     () => ({
-      canExpand: true,
       expanded,
       expand: () => setExpanded(true),
       collapse: () => setExpanded(false),

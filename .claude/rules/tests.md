@@ -163,7 +163,7 @@ the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
 express, an agreement with a router/DOM API that a pure test can only assume, or a library
-whose whole job IS the DOM.** Five specs qualify today:
+whose whole job IS the DOM.** Six specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
   already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
@@ -194,6 +194,10 @@ whose whole job IS the DOM.** Five specs qualify today:
   that spec alone, restoring the bug it was written for keeps the lane green. **A spec
   that can only reach a state through the door the story uses is not covering the state,
   it is covering the door.**
+- `src/lib/slot-decision.test.ts` — the composed slot decision, which is DOM by definition: its
+  whole job is reading `window.innerWidth`, `outerWidth`, `screen.avail*` and an element's box,
+  and whether we are framed. A pure spec could only assert against a fake of the thing under
+  test; the pure halves are already table-driven with no DOM in `embed-slot.test.ts`.
 - `src/lib/overlay.test.ts` — the portal target, and the one piece of module state it carries
   (#161). Every branch is a question about a real document: which element is the theme root,
   whether the expanded surface is still connected to it, and what `document.body` is, so a pure

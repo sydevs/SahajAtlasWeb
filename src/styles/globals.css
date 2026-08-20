@@ -413,7 +413,7 @@
 }
 
 /* Keep Mapbox's own control column clear of the expanded surface's collapse control.
-   Both sit in the top-inline-end corner (`ExpandedSurface`), and the geolocate button is the
+   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and the geolocate button is the
    one thing map mode renders there. Unconditional rather than direction-aware: under RTL the
    collapse control moves to the other corner and this nudge is merely unnecessary, which is a
    better failure than two round buttons on top of each other. */

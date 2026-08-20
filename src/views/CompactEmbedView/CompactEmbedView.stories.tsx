@@ -13,7 +13,7 @@ import { EventView } from '@/views/EventView/EventView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { SearchView } from '@/views/SearchView/SearchView'
 import { useLocale } from '@/hooks/use-locale'
-import { eventsQuery } from '@/config/api'
+import { eventQuery, eventsQuery } from '@/config/api'
 import { DEFAULT_FILTERS, filtersKey } from '@/lib/shape'
 import { mockEvent } from '@/mocks/events'
 import { mockCountries, mockCountryRegion } from '@/mocks/regions'
@@ -24,15 +24,19 @@ const INTERFACES = ['Countries', 'Search', 'Region', 'Event', 'Calendar'] as con
 
 type InterfaceKey = (typeof INTERFACES)[number]
 
-// Where the map starts when no search has moved it — the same default `SearchView` reads.
-const DEFAULT_CENTER: [number, number] = [0, 20]
+// SearchView with no `?center` snapshots `useViewState.getState()`, whose defaults are 0/0
+// (`config/store.ts`). Seeding any other centre produces a DIFFERENT `eventsQuery` key, and a
+// divergent key does not error — it silently misses and the story hits the absent backend, which
+// is the failure `eventsQuery`'s own docblock warns about. An earlier version of this file used
+// [0, 20] under a comment claiming it matched.
+const DEFAULT_CENTER: [number, number] = [0, 0]
 
 /** Seed every key the chosen interface reads, so none of them reaches the absent backend. */
-function seedFor(view: InterfaceKey, locale: string) {
+function seedFor(locale: string) {
   return (client: QueryClient) => {
     client.setQueryData<RegionListItem[]>(['countries'], mockCountries)
     client.setQueryData<Region>(['region', mockCountryRegion.slug, locale], mockCountryRegion)
-    client.setQueryData<Event>(['event', mockEvent.id, locale], mockEvent)
+    client.setQueryData<Event>(eventQuery(mockEvent.id, locale).queryKey, mockEvent)
     client.setQueryData<EventSlim[]>(
       eventsQuery(DEFAULT_CENTER[1], DEFAULT_CENTER[0], DEFAULT_FILTERS, locale).queryKey,
       mockEventVariants,
@@ -41,14 +45,6 @@ function seedFor(view: InterfaceKey, locale: string) {
       ['calendar', filtersKey(DEFAULT_FILTERS), locale],
       [],
     )
-
-    if (view === 'Calendar') {
-      // The calendar expands its own occurrences, and an empty feed is a legitimate month.
-      client.setQueryData<CalendarSourceEvent[]>(
-        ['calendar', filtersKey(DEFAULT_FILTERS), locale],
-        [],
-      )
-    }
   }
 }
 
@@ -114,12 +110,7 @@ export const Default: Story<{ view: InterfaceKey; inContext: boolean; map: boole
 
   const embed = (
     <CompactEmbedView compact={compact}>
-      <ViewHarness
-        height="container"
-        map={map}
-        seed={seedFor(view, locale)}
-        seedKey={`${view}·${map}`}
-      >
+      <ViewHarness height="container" map={map} seed={seedFor(locale)} seedKey={`${view}·${map}`}>
         <Interface view={view} />
       </ViewHarness>
     </CompactEmbedView>
