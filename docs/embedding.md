@@ -365,10 +365,12 @@ Five things about that snippet are load-bearing:
   frame. Write it for your visitors, in your language.
 - **`allow="geolocation; clipboard-write; web-share"`** — see [Permissions Policy](#permissions-policy).
   Without these the relevant features fail **silently**, which is the worst way to find out.
-- **Do not sandbox the frame.** If you must, include **`allow-popups`** and
-  **`allow-same-origin`**: without the first the expand button cannot open anything, and without
-  the second the widget cannot write its own URL and falls back to routing in memory, so a
-  visitor cannot copy a link to what they are looking at.
+- **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
+  card's button cannot open anything, and the browser blocks it silently, so nothing in your
+  console will say why. Add **`allow-same-origin`** too if you want the widget to keep its own
+  settings between visits; a sandbox gives the frame an opaque origin, which makes storage throw.
+  (A sandbox does _not_ stop the widget writing its own URL, contrary to what this guide used to
+  say — measured in Chrome 151.)
 - **`map=false` is usually what you want in a frame**, unless the frame is large.
 - **Give it a real height.** As with the element, a frame with no height collapses.
 
@@ -418,7 +420,8 @@ something each embed sets, so the fix is on our side.
 
 ### When the route is not in the URL
 
-In a sandboxed iframe, or a `file://` document, the browser refuses to let us write the URL at all.
+In a `file://` document — and in any browser that refuses `history.replaceState` outright — the URL
+cannot be written at all.
 The widget detects that at load and routes **in memory** instead: it works normally, but its route
 is not in the address bar, so it cannot be deep-linked from that page, and browser Back leaves your
 page rather than stepping back through the widget. Where the widget would offer a share link it
@@ -704,7 +707,8 @@ unhashed and mutable, and they import content-hashed chunks by name.
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                               |
 | **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                              |
-| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — a sandboxed iframe, or `file://`. The widget detects that and routes in memory; add `allow-same-origin` to the sandbox if you control it.                 |
+| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                       |
+| **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so `window.open` is blocked. Add `allow-popups`, or drop the `sandbox` attribute. Nothing in the console will tell you — the browser blocks it silently. |
 | **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                            |
 | **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                   |
 | **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                          |

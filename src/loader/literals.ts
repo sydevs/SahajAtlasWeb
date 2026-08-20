@@ -44,9 +44,12 @@ export const safeLoaderPath = (path: string | null | undefined): string | undefi
  * `src/lib/url-writable.ts`, which is where the reasoning lives.
  *
  * A no-op `replaceState` to the current href, so it cannot disturb the host or add a history
- * entry; it throws in a sandboxed iframe (opaque origin) and on `file://`. The loader uses it
- * to decide the routing mode it reports; the widget's copy decides the standalone router. Both
- * take the history object so `literals.test.ts` can drive them with a throwing stub.
+ * entry. The loader uses it to decide the routing mode it reports; the widget's copy decides the
+ * standalone router. Both take the history object so `literals.test.ts` can drive them with a
+ * throwing stub.
+ *
+ * ⚠ It does **not** detect a sandboxed iframe — measured, see `src/lib/url-writable.ts`. It
+ * catches `file://` and any engine that refuses outright.
  */
 export const loaderUrlWritable = (
   history: Pick<History, 'replaceState' | 'state'> | undefined,

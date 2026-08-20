@@ -71,10 +71,15 @@ const { compact, warning } = decideSlot({ element: null, hasMap, fromPage: false
 
 if (warning) console.warn(`[sahaj-atlas] ${warning}`)
 
-// A sandboxed frame (`allow-scripts` without `allow-same-origin`) and a `file://` document both
-// refuse `pushState`, and the bare BrowserRouter this file used to mount would throw on the
-// visitor's FIRST in-widget navigation rather than at boot — a live failure the frame delivery
-// would have walked straight into.
+// A document that refuses `pushState` — `file://`, and any engine stricter than Chrome — would
+// have thrown on the visitor's FIRST in-widget navigation under the bare BrowserRouter this file
+// used to mount, rather than failing at boot where it could be seen.
+//
+// ⚠ **A sandboxed iframe is NOT that document, though the docs said so for a long time.**
+// Measured in Chrome 151: `sandbox="allow-scripts"` gives an opaque origin (`localStorage`
+// throws) and still permits `replaceState`/`pushState`. So this branch is insurance rather than
+// the fix it was introduced as — see `lib/url-writable.ts` for the measurement and for what a
+// sandbox does block, which is `window.open`.
 const router = writable ? (
   <BrowserRouter>
     <App
