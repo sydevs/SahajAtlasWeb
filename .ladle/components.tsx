@@ -3,6 +3,7 @@ import type { GlobalProvider } from '@ladle/react'
 import { useEffect, useRef } from 'react'
 import { ActionType, ThemeState, useLadleContext } from '@ladle/react'
 import { MemoryRouter } from 'react-router'
+import clsx from 'clsx'
 import { I18nextProvider } from 'react-i18next'
 
 import storyI18n from './i18n'
@@ -21,6 +22,13 @@ import '@/styles/fonts'
 // standalone build — so it carries the style scope class or no rule in the sheet matches
 // anything (issue #91). At module scope, not in an effect: an effect runs after the first
 // render and every story would paint unstyled for a frame.
+//
+// ⚠ This alone is NOT enough, and the gap is invisible until you use it: Ladle's **viewport**
+// control (`?width=…`) re-renders the story inside an iframe, and this side effect ran against
+// the document that loaded the module, not the one the story lands in. The iframe got the
+// stylesheet and no `.sy-atlas`, so every rule in it matched nothing and every component in
+// every story rendered with UA defaults. The wrapper below carries the class too, which is what
+// makes it document-agnostic.
 if (typeof document !== 'undefined') {
   document.documentElement.classList.add(WIDGET_SCOPE_CLASS)
 }
@@ -129,13 +137,19 @@ export const Provider: GlobalProvider = ({ children }) => {
     <I18nextProvider i18n={storyI18n}>
       <MemoryRouter>
         <Providers>
+          {/* The scope class is on the wrapper as well as on <html>, deliberately. See the
+              note at the top: in viewport mode the story renders into an iframe that the
+              module-scope add never reaches, and an in-tree ancestor is the only thing that
+              travels with it. Harmless where both apply — `:where()` contributes no
+              specificity, and the inherited-property block sets the same values at either
+              level. */}
           <main
             ref={wrapperRef}
-            className={
-              isView
-                ? 'min-h-screen bg-background text-foreground'
-                : 'min-h-screen bg-background p-6 text-foreground'
-            }
+            className={clsx(
+              WIDGET_SCOPE_CLASS,
+              'min-h-screen bg-background text-foreground',
+              !isView && 'p-6',
+            )}
           >
             {children}
           </main>
