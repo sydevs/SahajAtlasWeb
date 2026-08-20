@@ -22,12 +22,16 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => copy(key) ?? key }),
 }))
 
-const overlay = { kind: 'overlay', onOpen: () => {} } as const
-const link = { kind: 'link', href: 'https://wemeditate.com/map' } as const
+// The view takes the whole decision `decideSlot` reached, so the specs build one.
+const overlay = { action: { kind: 'overlay' }, autoOpen: false } as const
+const link = {
+  action: { kind: 'link', href: 'https://wemeditate.com/map' },
+  autoOpen: false,
+} as const
 
 describe('CompactView', () => {
   it('names the task, not the product', () => {
-    const html = renderToStaticMarkup(<CompactView action={overlay} />)
+    const html = renderToStaticMarkup(<CompactView compact={overlay}>{null}</CompactView>)
 
     expect(html).toContain(copy('compact.open'))
     expect(copy('compact.open')).toMatch(/find a class/i)
@@ -35,13 +39,13 @@ describe('CompactView', () => {
 
   it('carries no brand string', () => {
     // The #158 ratchet, at the one control most likely to forget it.
-    expect(renderToStaticMarkup(<CompactView action={overlay} />)).not.toMatch(
+    expect(renderToStaticMarkup(<CompactView compact={overlay}>{null}</CompactView>)).not.toMatch(
       /sahaj\s*atlas|we ?meditate/i,
     )
   })
 
   it('renders a real button for the in-place overlay', () => {
-    const html = renderToStaticMarkup(<CompactView action={overlay} />)
+    const html = renderToStaticMarkup(<CompactView compact={overlay}>{null}</CompactView>)
 
     expect(html).toContain('<button')
     expect(html).not.toContain('<a ')
@@ -51,7 +55,7 @@ describe('CompactView', () => {
     // An anchor rather than a button that calls `window.open`: middle-click, "open in new tab"
     // and a visible target all come free, and it inherits the `Button` atom's `isSafeHref` gate
     // rather than adding a fourth JSX anchor to the inventory `href.test.ts` pins.
-    const html = renderToStaticMarkup(<CompactView action={link} />)
+    const html = renderToStaticMarkup(<CompactView compact={link}>{null}</CompactView>)
 
     expect(html).toContain('href="https://wemeditate.com/map"')
     expect(html).toContain('target="_blank"')
@@ -62,7 +66,7 @@ describe('CompactView', () => {
     // Rows cost a feed read, a titles read and a third-party IP lookup on every page view of a
     // sidebar embed nobody scrolls to, and were sized by a per-row pixel estimate that a wrapped
     // title or a larger default font made wrong. Asserted as ABSENCE so they cannot creep back.
-    const html = renderToStaticMarkup(<CompactView action={overlay} />)
+    const html = renderToStaticMarkup(<CompactView compact={overlay}>{null}</CompactView>)
 
     expect(html).not.toContain('<ul')
     expect(html).not.toContain('<li')
@@ -79,7 +83,9 @@ describe('CompactView', () => {
     // `text-foregroundh-full` — a class present in the DOM matching no rule, with every gate
     // green. A substring assertion passes on that string.
     const classes = (
-      renderToStaticMarkup(<CompactView action={overlay} />).match(/class="([^"]*)"/)?.[1] ?? ''
+      renderToStaticMarkup(<CompactView compact={overlay}>{null}</CompactView>).match(
+        /class="([^"]*)"/,
+      )?.[1] ?? ''
     ).split(/\s+/)
 
     expect(classes).not.toContain('h-full')

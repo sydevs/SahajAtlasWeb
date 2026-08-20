@@ -310,7 +310,13 @@ opens the interface somewhere it fits.
   `MapController`. There is deliberately **no framed provider**: a frame cannot expand, so a
   framed embed gets an anchor (`lib/fallback-url.ts`) rendered through the `Button` atom's href
   form — not a new JSX anchor, because `href.test.ts` pins that inventory to three components.
-- **What it expands into is the `Dialog` atom, which keeps a margin.** A full-bleed `inset: 0`
+- **What it expands into is a module-private dialog inside `CompactView`, which keeps a margin.**
+  It was briefly a `Dialog` atom, and that was wrong twice over: it sat beside `Modal` doing what
+  looked like the same job, and the one that looked generic was not — it publishes itself as the
+  app's portal target, it needs `contain: layout` because _this_ app's interface is fixed
+  throughout, and it had exactly one caller. Atoms stay primitive and single-use compositions are
+  inlined in their one parent; both rules are above. `Modal` is now unambiguously the dialog
+  atom — small, centred, chrome-ful, generic. A full-bleed `inset: 0`
   layer reads as a navigation — the host's page simply gone — so the dialog insets and the page
   shows through, and clicking that margin closes it. ⚠ **`contain: layout` on the dialog content
   is what makes the margin possible**: everything inside is `position: fixed`, and a fixed

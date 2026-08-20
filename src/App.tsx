@@ -22,13 +22,11 @@ import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
-import { Dialog } from '@/components/atoms'
-import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
+import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { DrawerStack } from '@/views'
 import { CompactView } from '@/views/CompactView'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
-import { useReportModal } from '@/config/store'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). A side-effect import beside the
@@ -335,7 +333,7 @@ function AppShell({
         </Suspense>
       )}
       {compact ? (
-        <CompactShell compact={compact}>{interfaceElement}</CompactShell>
+        <CompactView compact={compact}>{interfaceElement}</CompactView>
       ) : (
         <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}
@@ -344,77 +342,6 @@ function AppShell({
 }
 
 // ===== THE COMPACT FORM ===== //
-
-/**
- * The widget in a slot too small for it: a card, and a way out of the card (issue #161).
- *
- * **It sits here rather than deeper, and above `MapProvider`, for one measurable reason** —
- * `AppShell` is the only component above the map subtree, so this is the only place from which
- * the whole of it can be left unmounted. mapbox-gl is the app's single largest second hop and
- * `react-map-gl` only imports it when a map actually mounts, so a compact embed never fetches
- * it at all. That saving is **invisible to `pnpm size` by design**: the gate budgets the eager
- * graph, and mapbox-gl is a dynamic import that was never in it.
- *
- * `DrawerStack`'s own `useIsWide(container)` is untouched by any of this. Wide-vs-narrow and
- * compact-vs-full are different questions asked of the same box: the first picks a side panel
- * or a bottom sheet, the second asks whether either would fit.
- *
- * The interface is passed as `children` rather than constructed here, so it is an element that
- * React never renders until the surface opens — which is what makes the paragraph above true
- * rather than aspirational.
- */
-function CompactShell({ compact, children }: { compact: CompactState; children: ReactNode }) {
-  // A `link` card has no surface to open, so it needs no provider state and no dialog: the
-  // button is an anchor. Rendering the card alone here is what keeps `NoExpansionProvider`'s
-  // no-op `collapse()` the honest answer for the Escape ladder in `DrawerStack`.
-  if (compact.action.kind === 'link') {
-    return (
-      <NoExpansionProvider>
-        <CompactView action={compact.action} />
-      </NoExpansionProvider>
-    )
-  }
-
-  return (
-    <LocalExpansionProvider autoOpen={compact.autoOpen}>
-      <CompactForm>{children}</CompactForm>
-    </LocalExpansionProvider>
-  )
-}
-
-function CompactForm({ children }: { children: ReactNode }) {
-  const { t } = useLocale()
-  const { expanded, expand, collapse } = useExpansion()
-
-  return (
-    <>
-      <CompactView action={{ kind: 'overlay', onOpen: expand }} />
-      <Dialog
-        closeLabel={t('close')}
-        open={expanded}
-        // The same name the widget's own landmark carries, for the same reason: a dialog
-        // whose accessible name resolves empty is announced as an unlabelled group.
-        title={t('widget.label')}
-        onOpenChange={(next) => {
-          if (next) return
-
-          // `ReportIssueModal` is mounted OUTSIDE this branch (it has to outlive the app
-          // boundary so the error fallbacks can reach it) but portals through
-          // `overlayContainer()`, which is this surface while it is open. Collapsing with the
-          // modal up would leave it rendering into a detached node with its own scroll lock
-          // still on the host page. Closing it first is one line; moving the modal would cost
-          // the placement its own docblock argues for.
-          useReportModal.getState().closeReport()
-          collapse()
-        }}
-      >
-        {children}
-      </Dialog>
-    </>
-  )
-}
-
-// ===== THE FULL INTERFACE ===== //
 
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
 function FullInterface({ hasMap }: { hasMap: boolean }) {

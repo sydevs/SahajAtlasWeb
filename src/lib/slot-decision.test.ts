@@ -82,7 +82,7 @@ describe('decideSlot — the whole decision', () => {
       fromPage: false,
     })
 
-    expect(compact).toMatchObject({ action: { kind: 'overlay', autoOpen: false } })
+    expect(compact).toMatchObject({ action: { kind: 'overlay' }, autoOpen: false })
     expect(warning).toContain('360×420')
   })
 
@@ -104,7 +104,7 @@ describe('decideSlot — the whole decision', () => {
     const element = elementOf(300, 500)
 
     expect(decideSlot({ element, hasMap: false, fromPage: true }).compact).toMatchObject({
-      action: { kind: 'overlay', autoOpen: true },
+      action: { kind: 'overlay' },
       autoOpen: true,
     })
     expect(decideSlot({ element, hasMap: false, fromPage: false }).compact).toMatchObject({

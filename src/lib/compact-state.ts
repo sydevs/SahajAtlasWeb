@@ -9,11 +9,16 @@ import type { Destination } from './embed-slot'
  * `overlay` card has no href because it never leaves the page. Both entries build this; `App`
  * only reads it.
  */
-export type CompactAction = { kind: 'overlay'; autoOpen: boolean } | { kind: 'link'; href: string }
+export type CompactAction = { kind: 'overlay' } | { kind: 'link'; href: string }
 
 export type CompactState = {
   action: CompactAction
-  /** `autoOpen` hoisted for the provider, false for a link. */
+  /**
+   * Open the dialog on mount — a visitor who followed a deep link, never a host's default view.
+   *
+   * Always false for a `link` action: there is no dialog, and following the anchor on mount
+   * would be a redirect nobody asked for that a browser would block as a popup anyway.
+   */
   autoOpen: boolean
 }
 
@@ -34,5 +39,5 @@ export function compactState(input: {
     return { action: { kind: 'link', href }, autoOpen: false }
   }
 
-  return { action: { kind: 'overlay', autoOpen: fromPage }, autoOpen: fromPage }
+  return { action: { kind: 'overlay' }, autoOpen: fromPage }
 }
