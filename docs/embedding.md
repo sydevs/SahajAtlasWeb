@@ -13,13 +13,25 @@ This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer 
 - [Where to load it from](#where-to-load-it-from)
 - [Parameters](#parameters)
 - [Sizing the element](#sizing-the-element)
+- [Embedding in an iframe](#embedding-in-an-iframe)
 - [The URL](#the-url)
 - [Content-Security-Policy](#content-security-policy)
+- [Permissions Policy](#permissions-policy)
 - [Browser support](#browser-support)
 - [What the widget does to your page](#what-the-widget-does-to-your-page)
 - [Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)
 - [Updates and caching](#updates-and-caching)
 - [Troubleshooting](#troubleshooting)
+
+## How the atlas is delivered
+
+**One script tag is the primary way to embed the atlas**, and everything below assumes it. An
+**iframe** is the supported alternative for platforms that will not let you add a script — see
+[Embedding in an iframe](#embedding-in-an-iframe).
+
+`sahajatlas.com` is neither of those things: it is where these assets are hosted and the page an
+iframe points at. It is not a destination for your visitors and it is deliberately not indexed,
+so nothing in the widget will ever send somebody there.
 
 ## Quick start
 
@@ -110,7 +122,7 @@ curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/l
 
 ## Parameters
 
-Six parameters on the script URL, all optional except `key`. Standard query-string rules apply,
+Five parameters on the script URL, all optional except `key`. Standard query-string rules apply,
 so percent-encode anything with a reserved character in it (`atlas=%2Fgb%2Flondon` is equivalent
 to `atlas=/gb/london`; both work).
 
@@ -121,17 +133,11 @@ to `atlas=/gb/london`; both work).
 | `map`     | `true`                         | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)). |
 | `routing` | `query`                        | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                             |
 | `atlas`   | —                              | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                    |
-| `compact` | `auto`                         | Whether the widget may fall back to a compact card in a slot too small for the full interface. `always` / `never` force it either way. See [Sizing](#when-the-slot-is-too-small).                                                    |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — the parameter absent, empty, `true`, `no`, `FALSE` — leaves it **on**. This is
 deliberate, so that a typo can never silently disable something you are relying on; but it also
 means `map=no` does not do what it looks like it does.
-
-`compact` has three values rather than two, so it cannot follow that rule exactly — but it keeps
-the important half: **an unrecognised value falls back to `auto`**, never to the setting that
-would lock your embed into the small card. `true`/`1` and `false`/`0` are accepted as synonyms for
-`always`/`never`.
 
 ### `atlas`, and how the route is chosen
 
@@ -267,44 +273,53 @@ however narrow the column. Whether a dial link reaches a dialer is hardware.
 
 Map mode has no such adaptation, and that is a requirement rather than an oversight — the
 drawers compute their travel from the window, so a map-mode widget confined to a small box
-is broken by that arithmetic rather than merely cramped. **The widget warns in the
-console** when it detects that placement instead of leaving you to discover it.
+is broken by that arithmetic rather than merely cramped. **A map embed that does not have the
+page to itself therefore renders the compact card instead**, whose button opens the map
+full-screen — see below. It used to warn in your console and then paint over your page anyway.
 
 ### When the slot is too small
 
 Below a certain size there is no layout that works, so the widget stops trying to fit one in
-and shows a **compact card** instead: a button that opens the whole interface in a full-screen
-overlay, with a couple of upcoming classes above it when there is room. Your visitor still gets
-everything; it just does not try to live in a 300-pixel box.
+and shows a **compact card** instead: a heading and one button that opens the whole interface
+somewhere it fits. Your visitor still gets everything; it just does not try to live in a
+300-pixel box.
 
-**The card takes only the room it needs.** The button is the part that always renders; the
-preview classes appear only when your box has spare height above it, and the content is centred
-both ways inside whatever box you gave. If you gave the element **no height at all**, the card
-sizes to its own content rather than collapsing — so a bare `<sahaj-atlas>` in a narrow column
-renders as a card in your page's flow instead of appearing not to render. A card showing no
-preview rows also makes **no data requests at all**, including the IP lookup.
+**The card is the button.** It takes only the room it needs, centred both ways inside whatever
+box you gave. If you gave the element **no height at all**, it sizes to its own content rather
+than collapsing — so a bare `<sahaj-atlas>` in a narrow column renders as a card in your page's
+flow instead of appearing not to render. It also makes **no data requests at all** — no event
+feed, no IP lookup — because a control whose whole job is to lead somewhere else has nothing to
+show.
 
-The floors are **360px wide and 420px tall**. The width is measured on the element itself, or
-on the column it sits in when the element has no box of its own; the height is only ever read
-from the element, so **an element you have given no height is never called too short** — only
-too narrow, and it then sizes to the card's own content as above. A slot that is essentially the whole screen is never called too small either,
-because there would be nothing bigger to expand into: a full-width embed on a phone keeps the
-normal interface.
+**Where the button goes depends on whether the widget can grow where it is.**
 
-| `compact`        | What happens                                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `auto` (default) | Measured. Below either floor, the compact card; otherwise the full interface.                                          |
-| `always`         | Always the compact card, whatever the slot measures.                                                                   |
-| `never`          | Always the full interface. In a slot that does not fit it will be cramped, and the widget says so in the console once. |
+| Your embed                  | The button                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
+| Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
 
-Four things worth knowing:
+The floors are **360px wide and 420px tall**, and there is a second condition that matters as
+much: **the widget only degrades when there is somewhere bigger to go.** A slot that is
+essentially the whole screen is never called too small, because a card there would take the
+interface away and hand back nothing — so a full-width embed on a phone keeps the normal
+interface, and so does a small iframe on a small screen.
+
+**Map mode is measured differently, and this changed.** `map=true` always fills the viewport, so
+the question for it is simply whether it has the page to itself. An embed that does not — a map
+in an article column, or one you gave an explicit height — now renders the compact card, whose
+button opens the map full-screen. Previously it warned in your console and then painted over
+your page anyway.
+
+Three things worth knowing:
 
 - **It is decided once, when the widget mounts.** Resizing your page afterwards does not switch
   between the two, because switching would remount the widget and throw away where the visitor
-  had navigated to. If your layout can be either size, pick the one you want with `always` or
-  `never`.
-- **Entering the compact card logs a console warning** naming the size measured and the size
-  needed, so a slot you did not mean to make small is findable rather than mysterious.
+  had navigated to. There is deliberately no parameter to override it: a knob for a measurement
+  we can get right is a setting you would have to maintain forever. If a slot of yours is
+  measured wrongly, that is a bug worth reporting rather than working around.
+- **Entering the compact card logs a console warning** naming what was measured and what to
+  change, so a slot you did not mean to make small is findable rather than mysterious. The
+  sentence differs for the two cases, because the fixes are opposite ones.
 - **The overlay locks your page's scroll while it is open**, and restores it on close. It is a
   modal dialog, so while it is open the rest of your page is also marked `aria-hidden` — a
   screen reader reads the widget rather than the page underneath it — and that is undone on
@@ -313,15 +328,59 @@ Four things worth knowing:
   closes it too, and focus returns to the button that opened it. If the overlay ever finds
   itself unable to cover the page, it closes itself rather than leaving a visitor stuck on a
   page they cannot scroll.
-- **A deep link opens the card, not the route.** `?atlas=/gb/london` on a page whose embed is
-  compact still shows the card first; the route is waiting behind the button and the overlay
-  opens straight onto it. That is deliberate — a full-screen overlay appearing on page load,
-  over your content, with nobody having asked for it, is worse than one press.
+- **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
+  URL is a visitor who followed a link, so the widget mounts immediately rather than waiting to
+  be scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
+  script URL does not do this** — that is your default view, not a request from a visitor, so it
+  stays lazy and opens nothing. Closing the overlay does not reopen it.
+
 - ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
   make that element the containing block for fixed-position content, so the overlay is confined
   to it instead of covering the page — and the same already applies to the map, which is fixed
-  too. The widget warns in the console when it finds one. (`container-type` is fine; it does not
-  have this effect, however often it is said to.)
+  too. If the overlay finds itself confined, it closes itself and says so in the console rather
+  than trapping your visitor. (`container-type` is fine; it does not have this effect, however
+  often it is said to.)
+
+## Embedding in an iframe
+
+**The script above is the primary way to embed the atlas.** An iframe is the supported
+alternative for platforms that will not let you add a script tag. (`sahajatlas.com` itself is not
+a destination — it exists to host these assets and to be framed.)
+
+```html
+<iframe
+  src="https://sahajatlas.com/?key=YOUR_KEY&map=false"
+  title="Find a meditation class near you"
+  width="100%"
+  height="600"
+  loading="lazy"
+  allow="geolocation; clipboard-write; web-share"
+  style="border: 0"
+></iframe>
+```
+
+Five things about that snippet are load-bearing:
+
+- **`title` is required for accessibility.** An iframe with no title is announced as an unlabelled
+  frame. Write it for your visitors, in your language.
+- **`allow="geolocation; clipboard-write; web-share"`** — see [Permissions Policy](#permissions-policy).
+  Without these the relevant features fail **silently**, which is the worst way to find out.
+- **Do not sandbox the frame.** If you must, include **`allow-popups`** and
+  **`allow-same-origin`**: without the first the expand button cannot open anything, and without
+  the second the widget cannot write its own URL and falls back to routing in memory, so a
+  visitor cannot copy a link to what they are looking at.
+- **`map=false` is usually what you want in a frame**, unless the frame is large.
+- **Give it a real height.** As with the element, a frame with no height collapses.
+
+**A frame is its own viewport, so `map=true` works inside one** — the map fills the frame rather
+than your page. That is the opposite of the advice under [Sizing](#sizing-the-element), which is
+about a script embed sharing a page with your content. A frame has no such neighbours.
+
+**If the frame is too small for the interface**, the widget shows the compact card, and its
+button opens the atlas in a **new tab** rather than an overlay — an overlay inside a frame would
+only cover the frame, which is the problem it was trying to solve. ⚠ Today that link lands on the
+map's home page rather than the exact route the visitor was on; it will carry the route once the
+canonical work lands.
 
 ## The URL
 
@@ -451,6 +510,22 @@ one omission is deliberate: **`*.tiles.mapbox.com` is not in the list.** Older M
 guidance names it, but this version routes every tile, glyph and sprite request through
 `api.mapbox.com`, and there is no reference to the legacy host anywhere in the shipped
 map library. Add it only if you see it in a violation report.
+
+## Permissions Policy
+
+Alongside the origins in the CSP table above, the widget needs three browser **capabilities**.
+Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
+by a `Permissions-Policy` header on your own page.
+
+| Feature           | What uses it                            | What breaks without it                            |
+| ----------------- | --------------------------------------- | ------------------------------------------------- |
+| `geolocation`     | The map's "find my location" control    | The control appears and silently does nothing     |
+| `clipboard-write` | The copy-link button on the share sheet | Copying silently fails                            |
+| `web-share`       | The native share sheet on mobile        | The share button falls back to the copy/link list |
+
+**All three fail silently rather than erroring**, so nothing in your console will tell you. If
+you send a `Permissions-Policy` header, make sure these three are allowed for your own origin;
+if you embed in an iframe, put them in its `allow` attribute as shown above.
 
 ## Browser support
 

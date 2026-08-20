@@ -50,6 +50,14 @@ snippet spent months telling hosts to load a filename the build has never emitte
 An origin added to a fetch, an attribute added to `Widget.tsx`, a new `<style>` injection
 or a change to what the map requests all land in that guide's CSP table.
 
+**A browser CAPABILITY is part of that contract too, and our own source does not enumerate them.**
+Permissions Policy denies `geolocation`, `clipboard-write` and `web-share` to a cross-origin frame
+by default, and a host can deny them to a script embed with a header — and all three fail
+_silently_. Grepping `src/` for `navigator.geolocation` finds nothing, because the call is inside
+mapbox-gl and only the `<GeolocateControl />` is ours. Enumerate from the rendered control list
+and the libraries behind it, never from a grep, and put the answer in `docs/embedding.md`'s
+Permissions Policy table.
+
 ## Essential commands
 
 ```bash
@@ -87,7 +95,7 @@ unnoticed (issue #99), and each is built so that passing means something:
   import walker half-breaking.
   It also asserts the **loader and embed graphs share no chunk** (bundler runtime
   helpers excepted). The budget alone cannot see that failure, because its cost is
-  not bytes: one *value* import across the `src/loader/` seam makes a module
+  not bytes: one _value_ import across the `src/loader/` seam makes a module
   reachable from both entries, rolldown factors it into a chunk **both** entries
   statically import, and every host then fetches it on the loader's critical path
   whether or not the widget ever renders. `src/loader/literals.ts` states that rule
@@ -166,12 +174,13 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   (`navigate(-1)`, restoring the prior camera) when in-widget history exists and
   only climb to the structural parent for a fresh deep link (depth 0) — never
   popping the host page's history. See `.claude/rules/i18n-and-state.md`.
-- **Form**: below 360×420px there is no layout left to adapt to, so `AppShell` renders the
-  **compact card** in place of the interface and expands into a viewport-covering surface
-  (`embedForm` in `src/lib/embed-slot.ts`, the `useExpansion` seam, issue #161). That is what
-  the `compact` parameter has meant since #149. Decided ONCE at mount, above `MapProvider` so
-  mapbox-gl is never fetched — a saving `pnpm size` cannot see, by design. See
-  `.claude/rules/components.md`.
+- **Layout**: when the interface does not fit, `AppShell` renders a **compact card** — one
+  task-named button — instead. The question is never "is this small" but **"is the space we have
+  meaningfully smaller than where the button would take the visitor?"**: an in-page overlay
+  top-level, a new tab when framed (`lib/slot-decision.ts` joins the two pure halves in
+  `lib/embed-slot.ts`; the `useExpansion` seam; issue #161). Decided ONCE at mount, above
+  `MapProvider` so mapbox-gl is never fetched — a saving `pnpm size` cannot see, by design.
+  There is deliberately **no override parameter**. See `.claude/rules/components.md`.
 - **Responsive**: the widget adapts to **its own box**, not the browser window
   (`src/config/responsive.ts`, issue #107). `useIsWide`/`useIsWideWidget` measure the
   container (a ResizeObserver owned by `DrawerStack`, shared via `WidgetWidthContext`);
@@ -205,6 +214,9 @@ matched by `*.local`). Full list in `.claude/docs/environment.md`. Key vars:
 - `VITE_HOST` — origin used to load `public/locales` over HTTP
 - `VITE_SAHAJCLOUD_API_KEY` — published `sahaj-atlas-client` API key passed to the widget in dev
 - `VITE_FATHOM_ID` — Fathom analytics site id (optional)
+- `VITE_WEMEDITATE_MAP_URL` — where a **framed** embed too small for the interface sends a
+  visitor (a frame cannot expand in place). Public; a default that per-region canonical
+  ownership will eventually replace
 - `VITE_TURNSTILE_SITE_KEY` — Cloudflare Turnstile **site** key for the report-issue
   form (public by design; `.env` ships the always-passes test key, and production must
   override it — the form delivers real email since #103, so this key is what stands in

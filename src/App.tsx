@@ -169,8 +169,8 @@ export default function App({
             >
               <AppShell
                 apiKey={apiKey}
-                defaultLocale={defaultLocale}
                 compact={compact}
+                defaultLocale={defaultLocale}
                 hasMap={hasMap}
                 linkable={linkable}
                 routing={routing}

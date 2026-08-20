@@ -24,33 +24,58 @@ cover everything a host would notice since the widget was first deployed.
 ### Added
 
 - **A slot too small for the interface now gets a compact card instead of a cramped one.**
-  ([#161]) Below 360×420px the widget shows one button — "Find a class near you" — which opens
-  the whole interface in a full-screen overlay and closes back to where you were, with a couple
-  of upcoming classes above it when your box has room for them.
+  ([#161]) The widget shows one button — "Find a class near you" — that opens the whole
+  interface somewhere it fits, and closes back to where you were.
 
-  **The card takes only the room it needs.** The button always renders; the preview classes
-  appear only when there is spare height above it, and the content is centred both ways in
-  whatever box you gave. An element with **no height of its own** sizes to the card's content
-  instead of collapsing, so a bare `<sahaj-atlas>` in a column renders in your page's flow
-  rather than appearing not to render at all. A card with no preview rows makes no data
-  requests, the IP lookup included. This is what the `compact` parameter has always
-  described: `auto` measures, `always` and `never` force it either way, and an unrecognised
-  value still falls back to `auto`.
+  **The card is the button.** It takes only the room it needs, centred both ways in whatever box
+  you gave; an element with **no height of its own** sizes to the card's content instead of
+  collapsing, so a bare `<sahaj-atlas>` in a column renders in your page's flow rather than
+  appearing not to render. It makes **no data requests at all** — no event feed, no IP lookup.
 
-  Three things a host can observe. The measurement happens **once, at mount**, so resizing your
-  page does not switch between the two forms — remounting the widget would discard wherever the
-  visitor had navigated to. Entering the compact card **logs one console warning** naming the
-  size measured and the size needed, and so does `compact=never` in a slot that does not fit.
-  And the overlay **locks your page's scroll while it is open**, restoring it on close — the
-  same exception the widget already documents for its modals — and, being a modal dialog, marks
-  the rest of your page `aria-hidden` for as long as it covers it. Escape steps outward through
-  the widget and then closes the overlay, and if the overlay is ever prevented from covering the
-  page it closes itself rather than trapping a visitor on a page they cannot scroll or click.
+  **Where the button goes depends on whether the widget can grow where it is.** On your page it
+  opens a full-screen overlay. **Inside an iframe it opens a new tab instead** — an overlay in a
+  frame would only cover the frame — which makes the compact card work for iframe embeds for the
+  first time. See [Embedding in an iframe] for the snippet and the `allow` attribute it needs.
+
+  **A map embed that does not have your page to itself now renders the card too**, whose button
+  opens the map full-screen. Previously it warned in your console and then painted over your
+  page anyway. Note a frame _is_ a viewport, so `map=true` works normally inside one.
+
+  The floors are 360×420px, and there is a second condition worth knowing: **the widget only
+  degrades when there is somewhere bigger to go.** A full-width embed on a phone, or a small
+  iframe on a small screen, keeps the normal interface — a card there would take the interface
+  away and hand back nothing.
+
+  Four things a host can observe. The measurement happens **once, at mount**, so resizing your
+  page does not switch between the two — remounting would discard wherever the visitor had
+  navigated to. Entering the card **logs one console warning** naming what was measured and what
+  to change. The overlay **locks your page's scroll while it is open**, restoring it on close,
+  and marks the rest of your page `aria-hidden` while it covers it; Escape steps outward through
+  the widget and then closes it, and if it is ever prevented from covering the page it closes
+  itself rather than trapping a visitor. And **a deep link now opens the route**: `?atlas=` on
+  your page's URL makes the widget load immediately rather than waiting to be scrolled to, and
+  opens straight onto that route. The `atlas` parameter on the _script_ URL is your default view
+  and does not do this.
 
   ⚠ The overlay is `position: fixed`, so an ancestor of your embed carrying `transform`,
   `filter` or `contain` confines it to that element instead of covering the page. That was
-  already true of the map; it is now true of a map-less embed too, and the widget warns in the
-  console when it finds one. See [Sizing the element] in the integrator guide.
+  already true of the map. The overlay detects it and closes itself rather than trapping anyone.
+  See [Sizing the element] in the integrator guide.
+
+- **The widget documents the browser permissions it needs.** ([#161]) `geolocation`,
+  `clipboard-write` and `web-share`, which a cross-origin iframe denies by default and a
+  `Permissions-Policy` header on your own page can deny to a script embed. All three fail
+  **silently** — the locate control does nothing, copy-link does nothing, the share sheet never
+  opens — so there was no way to discover this from the widget. See [Permissions Policy].
+
+### Removed
+
+- **The `compact` parameter is gone.** ([#161]) It was documented with three values (`auto`,
+  `always`, `never`) and read by nothing, so no embed's behaviour changes by removing it; a
+  stray `compact=` on your script URL is now ignored like any other unknown parameter. The
+  widget measures, and there is no longer a way to override that — a knob for a measurement we
+  can get right is a setting you would have to maintain forever, so a slot measured wrongly is
+  a bug worth reporting instead.
 
 ### Changed
 
@@ -333,3 +358,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [Sizing the element]: docs/embedding.md#sizing-the-element
+[Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
+[Permissions Policy]: docs/embedding.md#permissions-policy

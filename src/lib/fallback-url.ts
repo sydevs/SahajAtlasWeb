@@ -31,7 +31,9 @@ export const DEFAULT_FALLBACK_URL = 'https://wemeditate.com/map'
  * dead, unlabelled box where the way out should be. A typo'd env var would ship a compact embed
  * with no exit, and nothing would say so.
  */
-export function fallbackUrl(configured: string | undefined = import.meta.env.VITE_WEMEDITATE_MAP_URL): string {
+export function fallbackUrl(
+  configured: string | undefined = import.meta.env.VITE_WEMEDITATE_MAP_URL,
+): string {
   if (!configured) return DEFAULT_FALLBACK_URL
 
   try {

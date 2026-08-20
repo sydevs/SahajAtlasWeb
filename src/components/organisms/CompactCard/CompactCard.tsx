@@ -48,7 +48,7 @@ export function CompactCard({ action, fill }: CompactCardProps) {
 
   return (
     <div
-      className={`flex w-full flex-col items-center justify-center gap-2 overflow-hidden bg-background p-3 text-foreground${fill ? ' h-full' : ''}`}
+      className={`flex w-full flex-col items-center justify-center gap-2 overflow-hidden bg-background p-3 text-foreground${fill ? 'h-full' : ''}`}
     >
       {/* Capped rather than full-bleed: a button stretched across a 1000px-wide short slot
           reads as a broken layout rather than a card. */}

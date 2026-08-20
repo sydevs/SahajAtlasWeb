@@ -77,11 +77,17 @@ if (warning) console.warn(`[sahaj-atlas] ${warning}`)
 // would have walked straight into.
 const router = writable ? (
   <BrowserRouter>
-    <App compact={compact} apiKey={atlasAuth.apiKey} hasMap={hasMap} linkable={topLevel} standalone />
+    <App
+      standalone
+      apiKey={atlasAuth.apiKey}
+      compact={compact}
+      hasMap={hasMap}
+      linkable={topLevel}
+    />
   </BrowserRouter>
 ) : (
   <MemoryRouter initialEntries={[window.location.pathname + window.location.search]}>
-    <App compact={compact} apiKey={atlasAuth.apiKey} hasMap={hasMap} linkable={false} standalone />
+    <App standalone apiKey={atlasAuth.apiKey} compact={compact} hasMap={hasMap} linkable={false} />
   </MemoryRouter>
 )
 

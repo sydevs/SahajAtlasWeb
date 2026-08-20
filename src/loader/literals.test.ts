@@ -13,11 +13,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  ELEMENT_NAME as LOADER_ELEMENT_NAME,
-  loaderUrlWritable,
-  safeLoaderPath,
-} from './literals'
+import { ELEMENT_NAME as LOADER_ELEMENT_NAME, loaderUrlWritable, safeLoaderPath } from './literals'
 import { parseConfig } from './config'
 
 import { attributeEnabled } from '@/config/attributes'

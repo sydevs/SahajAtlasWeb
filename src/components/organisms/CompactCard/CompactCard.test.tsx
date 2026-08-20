@@ -28,7 +28,7 @@ const link = { kind: 'link', href: 'https://wemeditate.com/map' } as const
 
 describe('CompactCard', () => {
   it('names the task, not the product', () => {
-    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
+    const html = renderToStaticMarkup(<CompactCard fill action={overlay} />)
 
     expect(html).toContain(copy('compact.open'))
     expect(copy('compact.open')).toMatch(/find a class/i)
@@ -36,13 +36,13 @@ describe('CompactCard', () => {
 
   it('carries no brand string', () => {
     // The #158 ratchet, at the one control most likely to forget it.
-    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
+    const html = renderToStaticMarkup(<CompactCard fill action={overlay} />)
 
     expect(html).not.toMatch(/sahaj\s*atlas|we ?meditate/i)
   })
 
   it('renders a real button for the in-page overlay', () => {
-    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
+    const html = renderToStaticMarkup(<CompactCard fill action={overlay} />)
 
     expect(html).toContain('<button')
     expect(html).not.toContain('<a ')
@@ -52,7 +52,7 @@ describe('CompactCard', () => {
     // An anchor rather than a button that calls `window.open`: middle-click, "open in new tab"
     // and a visible target all come free, and it inherits the `Button` atom's `isSafeHref`
     // gate rather than adding a fourth JSX anchor to the inventory `href.test.ts` pins.
-    const html = renderToStaticMarkup(<CompactCard action={link} fill />)
+    const html = renderToStaticMarkup(<CompactCard fill action={link} />)
 
     expect(html).toContain('href="https://wemeditate.com/map"')
     expect(html).toContain('target="_blank"')
@@ -64,7 +64,7 @@ describe('CompactCard', () => {
     // on every page view of a sidebar embed nobody scrolls to, and were sized by a per-row
     // pixel estimate that a wrapped title or a larger default font made wrong. Asserted as
     // ABSENCE so a row cannot creep back without turning this red.
-    const html = renderToStaticMarkup(<CompactCard action={overlay} fill />)
+    const html = renderToStaticMarkup(<CompactCard fill action={overlay} />)
 
     expect(html).not.toContain('<ul')
     expect(html).not.toContain('<li')
@@ -73,7 +73,7 @@ describe('CompactCard', () => {
   it('fills a box the host sized, and takes content height when they gave none', () => {
     // `h-full` against a host who gave no height resolves to nothing, so the card would
     // collapse and read as an embed that did not render.
-    expect(renderToStaticMarkup(<CompactCard action={overlay} fill />)).toContain('h-full')
+    expect(renderToStaticMarkup(<CompactCard fill action={overlay} />)).toContain('h-full')
     expect(renderToStaticMarkup(<CompactCard action={overlay} fill={false} />)).not.toContain(
       'h-full',
     )

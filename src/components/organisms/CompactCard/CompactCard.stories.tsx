@@ -33,14 +33,14 @@ const Slot = ({
 /** The live reference shape: `sahajayoga.nl` embeds at a hard-coded 400×600. */
 export const ReferenceSlot: Story = () => (
   <Slot height={600} width={400}>
-    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill />
+    <CompactCard fill action={{ kind: 'overlay', onOpen: () => {} }} />
   </Slot>
 )
 
 /** A narrow sidebar, which is what the floors are set to catch. */
 export const NarrowColumn: Story = () => (
   <Slot height={480} width={300}>
-    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill />
+    <CompactCard fill action={{ kind: 'overlay', onOpen: () => {} }} />
   </Slot>
 )
 
@@ -62,13 +62,13 @@ export const NoHeightGiven: Story = () => (
  */
 export const FramedFallback: Story = () => (
   <Slot height={600} width={400}>
-    <CompactCard action={{ kind: 'link', href: 'https://wemeditate.com/map' }} fill />
+    <CompactCard fill action={{ kind: 'link', href: 'https://wemeditate.com/map' }} />
   </Slot>
 )
 
 /** Short and wide, where an uncapped button would read as a broken layout rather than a card. */
 export const ShortAndWide: Story = () => (
   <Slot height={300} width={900}>
-    <CompactCard action={{ kind: 'overlay', onOpen: () => {} }} fill />
+    <CompactCard fill action={{ kind: 'overlay', onOpen: () => {} }} />
   </Slot>
 )

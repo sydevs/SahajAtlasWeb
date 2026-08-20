@@ -1,9 +1,9 @@
 ---
 description: React component patterns — Radix primitives, tailwind-variants, widget context.
 globs:
-  - "src/components/**/*.tsx"
-  - "src/views/**/*.tsx"
-  - "src/providers.tsx"
+  - 'src/components/**/*.tsx'
+  - 'src/views/**/*.tsx'
+  - 'src/providers.tsx'
 alwaysApply: false
 ---
 
@@ -25,15 +25,15 @@ Before hand-rolling UI, in this order:
 1. **Check `src/components/atoms/`** — Alert, Button, Checkbox, Chip, Combobox,
    Drawer, Dropdown, Input, Link, Modal, RadioGroup, Select, Slider, Spinner,
    Textarea, ToggleGroup already exist and carry the app's tokens and focus
-   behaviour. Drawer (vaul) is the surface for anything that's a *place* in the
+   behaviour. Drawer (vaul) is the surface for anything that's a _place_ in the
    URL-driven stack; Modal (Radix Dialog) is the ephemeral one that never touches
    the URL or history. Input/Textarea wrap the native controls on the shared
    `fieldChrome` recipe; `Combobox` is the search-in-the-field picker (Radix Popover
-   + cmdk — the region filter), `Select` the plain list picker. Every form-control
-   atom shares one error/active-state interface: **`isInvalid`** (danger visual +
-   `aria-invalid`, with `aria-describedby` for the error text) and **`highlight`**
-   (primary-tints the *unselected* state, no layout shift, to flag an active
-   filter) — see `DESIGN_SYSTEM.md`.
+   - cmdk — the region filter), `Select` the plain list picker. Every form-control
+     atom shares one error/active-state interface: **`isInvalid`** (danger visual +
+     `aria-invalid`, with `aria-describedby` for the error text) and **`highlight`**
+     (primary-tints the _unselected_ state, no layout shift, to flag an active
+     filter) — see `DESIGN_SYSTEM.md`.
 2. **Check Radix** for an unstyled primitive to build on (`@radix-ui/react-*` —
    dialog, select, popover, checkbox, switch, slider, toggle-group, dropdown-menu,
    label are installed). Radix owns the interaction/ARIA; we own the Tailwind skin.
@@ -75,6 +75,7 @@ Fewer custom components means less maintenance and a consistent look.
   mean "not confined" rather than "leaks" — the message says which.
 
   Three things this does NOT cover, so they still need care:
+
   - **A selector you write against `.sy-atlas` yourself is passed through untouched.**
     That is the escape hatch for rules that must address the theme ROOT (which is also
     where the light/dark class lives) rather than something inside it.
@@ -87,6 +88,7 @@ Fewer custom components means less maintenance and a consistent look.
     `.sy-atlas` lifts every rule by one class, which then outranks that runtime-injected
     third-party CSS: it broke the Mapbox geocoder's input padding, and the search icon
     landed on top of the placeholder.
+
 - **The scope class must stay on the theme root**, the same element as the light/dark
   class and `dir` — the scoped `dark:` / `rtl:` variants resolve both against one
   ancestor. It is applied in `src/Widget.tsx` (embedded), `index.html` (standalone) and
@@ -106,7 +108,7 @@ Fewer custom components means less maintenance and a consistent look.
 - **Host-authored rich text is sanitized by an allowlist, and the allowlist has to be
   load-bearing.** `sanitizeDescription` (`organisms/EventDetails/sanitize.ts`) is the only
   DOMPurify call in the repo. Two ways it has already been silently inert: an option that
-  *replaces* rather than intersects with `ALLOWED_TAGS` (`USE_PROFILES` did exactly that,
+  _replaces_ rather than intersects with `ALLOWED_TAGS` (`USE_PROFILES` did exactly that,
   so the real policy was the full HTML profile), and the options that are independent of
   `ALLOWED_ATTR` entirely — `ALLOW_DATA_ATTR` / `ALLOW_ARIA_ATTR` default to **true** and
   have to be turned off by name. This markup lands in a HOST page, so the difference is
@@ -157,7 +159,7 @@ in host pages, **and** runs standalone in dev. Because of that:
 - **One `<sahaj-atlas>` per page.** A second element is refused in `connectedCallback` and
   never mounts, because the API key (`config/api/auth`) and BrandTheme's theme root are
   page-global singletons a second instance would silently share. A second copy of the embed
-  *script* is a no-op too (`customElements.get` guard). Both say so via
+  _script_ is a no-op too (`customElements.get` guard). Both say so via
   `reportIntegrationWarning` (`src/lib/report.ts`).
 - Don't assume control of `<head>`, global CSS, or the full viewport — the host
   page owns those. Scope styles to the widget's own DOM.
@@ -171,7 +173,7 @@ in host pages, **and** runs standalone in dev. Because of that:
   a marker written on script load attests to a page whose widget may never have rendered and
   makes verification theatre. And it is **removed with page-global ownership**
   (`releaseAnnouncement`), so it cannot outlive the widget it vouches for on a host SPA that
-  unmounted it. It attests the routing the router *actually* uses — `MountDecision.routing`,
+  unmounted it. It attests the routing the router _actually_ uses — `MountDecision.routing`,
   not the `routing` parameter somebody configured, which is accepted without being honoured.
   A `postMessage` was rejected: the Browser Rendering API returns DOM with no message channel,
   and an injected listener races the widget's boot, which fails **healthy** sites.
@@ -200,20 +202,20 @@ asserts the viewport call sites as a closed list, the way `href.test.ts` pins th
 JSX anchors. A fourth turns the unit lane red rather than shipping a narrow embed that
 quietly behaves like a desktop.
 
-| Behaviour | Signal | Why |
-| --- | --- | --- |
-| Drawer direction — left panel vs bottom sheet (`DrawerStack`) | **container** | A fit question: does a 22rem side panel leave usable space beside it? |
-| Drag handle · swipe-dismiss · `handleOnly` · the snap ladder | **container** (follows direction) | The handle exists *iff* the sheet is a bottom sheet. One signal is what stops a handle-less panel being draggable, or a sheet losing its handle. **The handle is passed explicitly by `DrawerStack`, not left to the atom's default** — that default is `direction === 'bottom' && mode !== 'filled'`, which was right while `filled` could only be the wide left panel, and would now leave a narrow map-less sheet drag-dismissible with nothing on screen saying so. It keys on dismissibility, so the map-less root (`dismissible={false}`) still shows none. |
-| Filter-overlay direction (right vs bottom) | **container** | Same panel-vs-sheet question, same answer. |
-| Sticky Register bar (`EventView`) | **container** | It exists because a snap sheet can scroll the CTA out of sight. That is a property of the sheet, so it must agree with whatever picked the sheet. |
-| Contact — `tel:` vs number + copy popover (`EventActions`) | **input** | Whether `tel:` reaches a dialer is hardware. Narrowing a desktop window has never given it one, and a phone in landscape can be wider than any crossing we'd pick. **The one place the ticket's "narrow ⇒ mobile" reading is wrong**, and the reason the table exists. |
-| Map camera padding (`use-map-controller`) | **viewport** | A map only exists in map mode, and in map mode the widget spans the viewport — there is no container that could answer differently. It is also structurally out of reach of the measured signal, since it renders `DrawerStack`. |
-| Anchored-panel geometry — `lg:inset-y-4`, `lg:rounded-2xl`, `max-w-[calc(100vw-2rem)]` (Drawer atom, PeekStrip) | **viewport (Tailwind)** | Only reachable in map mode: map-less is `mode="filled"`, whose `!important` overrides cancel every one of them. Viewport == container wherever they apply. |
-| SettingsMenu cog offset — `md:start-[calc(var(--sy-drawer-w,22rem)+2rem)]` | **viewport (Tailwind)** | Map mode only (the map-less cog is `absolute` in the container). Same reason. |
-| Modal box sizing (`100dvh`/`100vw`) | **viewport** | A modal is deliberately viewport-centred; it is not a citizen of the widget's slot. |
-| `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9` | **viewport (Tailwind) — accepted residue** | The only two variants that fire *wrongly* in a narrow map-less embed. Both cosmetic (12px of top padding; a 28→36px icon), and both in files #107 did not own. Fix them if you are in there anyway. |
-| Compact card vs the full interface (`AppShell`) | **the slot, measured ONCE at mount** | Not one of the three signals, and deliberately not reactive — see below. |
-| Reduced motion, colour scheme | **preference** | Not a size question at all — see the three motion seams above. |
+| Behaviour                                                                                                       | Signal                                     | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Drawer direction — left panel vs bottom sheet (`DrawerStack`)                                                   | **container**                              | A fit question: does a 22rem side panel leave usable space beside it?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Drag handle · swipe-dismiss · `handleOnly` · the snap ladder                                                    | **container** (follows direction)          | The handle exists _iff_ the sheet is a bottom sheet. One signal is what stops a handle-less panel being draggable, or a sheet losing its handle. **The handle is passed explicitly by `DrawerStack`, not left to the atom's default** — that default is `direction === 'bottom' && mode !== 'filled'`, which was right while `filled` could only be the wide left panel, and would now leave a narrow map-less sheet drag-dismissible with nothing on screen saying so. It keys on dismissibility, so the map-less root (`dismissible={false}`) still shows none. |
+| Filter-overlay direction (right vs bottom)                                                                      | **container**                              | Same panel-vs-sheet question, same answer.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Sticky Register bar (`EventView`)                                                                               | **container**                              | It exists because a snap sheet can scroll the CTA out of sight. That is a property of the sheet, so it must agree with whatever picked the sheet.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Contact — `tel:` vs number + copy popover (`EventActions`)                                                      | **input**                                  | Whether `tel:` reaches a dialer is hardware. Narrowing a desktop window has never given it one, and a phone in landscape can be wider than any crossing we'd pick. **The one place the ticket's "narrow ⇒ mobile" reading is wrong**, and the reason the table exists.                                                                                                                                                                                                                                                                                            |
+| Map camera padding (`use-map-controller`)                                                                       | **viewport**                               | A map only exists in map mode, and in map mode the widget spans the viewport — there is no container that could answer differently. It is also structurally out of reach of the measured signal, since it renders `DrawerStack`.                                                                                                                                                                                                                                                                                                                                  |
+| Anchored-panel geometry — `lg:inset-y-4`, `lg:rounded-2xl`, `max-w-[calc(100vw-2rem)]` (Drawer atom, PeekStrip) | **viewport (Tailwind)**                    | Only reachable in map mode: map-less is `mode="filled"`, whose `!important` overrides cancel every one of them. Viewport == container wherever they apply.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| SettingsMenu cog offset — `md:start-[calc(var(--sy-drawer-w,22rem)+2rem)]`                                      | **viewport (Tailwind)**                    | Map mode only (the map-less cog is `absolute` in the container). Same reason.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Modal box sizing (`100dvh`/`100vw`)                                                                             | **viewport**                               | A modal is deliberately viewport-centred; it is not a citizen of the widget's slot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `EventHeader`'s `md:pt-4`, `ListItem`'s `lg:h-9 lg:w-9`                                                         | **viewport (Tailwind) — accepted residue** | The only two variants that fire _wrongly_ in a narrow map-less embed. Both cosmetic (12px of top padding; a 28→36px icon), and both in files #107 did not own. Fix them if you are in there anyway.                                                                                                                                                                                                                                                                                                                                                               |
+| Compact card vs the full interface (`AppShell`)                                                                 | **the slot, measured ONCE at mount**       | Not one of the three signals, and deliberately not reactive — see below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Reduced motion, colour scheme                                                                                   | **preference**                             | Not a size question at all — see the three motion seams above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Two properties of the mechanism are load-bearing:
 
@@ -221,7 +223,7 @@ Two properties of the mechanism are load-bearing:
   there is nothing to measure — the theme root is `display: contents`, the canvas is
   `position: fixed; inset: 0`, every drawer is `fixed` — so `useIsWide` falls through to the
   viewport and returns precisely what the old `useIsDesktop` did. Only map-less embeds, which
-  *have* a box, see a different answer.
+  _have_ a box, see a different answer.
 - **The first measurement is not damped; every later one is.** The seed runs in a layout
   effect, so the correct model is on screen from the first frame. Damping it too would paint
   a frame of the viewport's answer and then remount the drawer — the exact thrash the delay
@@ -240,58 +242,76 @@ is not a `fixed` → `absolute` swap:
   viewport-relative `getBoundingClientRect().top`;
 - the whole drawer layer, the peek strips and the cog are `position: fixed`.
 
-A host that gets it wrong now **hears about it**: `Widget.tsx` warns at mount through
-`lib/embed-slot.ts` (a narrow host column, or an explicit height on the element), instead of
-silently painting over their page. The thresholds there are deliberately slack — a false
-positive lands in a stranger's console.
+A host that gets it wrong now gets **a compact card instead of a takeover**: `lib/slot-decision.ts`
+measures at mount, and a map embed that does not own its viewport renders the card, whose button
+opens the map full-screen. It used to warn and then paint over their page anyway, which is the
+weaker of the two answers by a distance — the console line was the only thing standing between a
+misconfigured embed and somebody's article disappearing.
 
-### A slot too small for any layout: the compact form (issue #161)
+### A slot too small for any layout: the compact card (issue #161)
 
-#107 made the widget adapt to its box. Below a floor there is no layout left to adapt to, so
-the widget stops trying: `embedForm` (`src/lib/embed-slot.ts`) picks a **compact card** — a
-heading, up to three rows and one task-named button — which expands into a viewport-covering
-surface. That is what the `compact` parameter has meant since #149, when it was added to the
-loader's config surface and documented to hosts with nothing reading it.
+#107 made the widget adapt to its box. Below a floor there is no layout left to adapt to, so the
+widget stops trying and renders a **compact card** — a heading and one task-named button that
+opens the interface somewhere it fits.
 
-Four properties, each the reason something is where it is:
-
-- **There are THREE questions here, not one, and each has its own predicate in
-  `embed-slot.ts`.** `mapSlotWarning` asks "did somebody intend a box here?"; `embedForm` asks
-  "does the interface fit?"; `compactFit` asks "does anything beyond the button fit?". All
-  three are answered from ONE measurement taken at mount, so nothing can drift between them.
-  The button is the card's irreducible content — a box too short for a single preview row still
-  gets it — and an element with no height of its own makes the card size to its CONTENT rather
-  than to an `h-full` that resolves against nothing and collapses the embed to invisible.
-  A card with no rows makes no data requests at all, the IP lookup included.
-- **The thresholds differ in KIND from `mapSlotWarning`'s**, and the docblock argues it. That
-  one asks "did somebody intend a box here?" — relative, slack, a false positive costs one line
-  in a stranger's console. This one asks "does the interface fit?" — absolute pixels, and a
-  false positive changes what renders. `MIN_EXPANSION_GAIN` is what stops absolute floors
-  calling every phone too small: **a compact card is only worth offering when the overlay would
-  be bigger than the slot**, and when the slot IS the screen there is nothing to expand into.
+- **ONE question, not three, and that is a correction.** The first implementation had
+  `mapSlotWarning`, `embedForm` and `compactFit`, each with its own constants, over one
+  measurement — and the wiring between them suppressed the map warning in exactly the case where
+  the takeover was real. Every predicate was exhaustively specced; the _join_ was wrong. What
+  survives is the question underneath all three: **is the space we have meaningfully smaller than
+  the space the button would take the visitor to?** That needs two boxes, because "too small" is
+  meaningless alone — 360px is cramped inside a 1440px page and is simply the screen on a phone.
+  `resolveDestination` answers where the button goes; `embedLayout` answers what to render; both
+  are pure and both are driven through `decideSlot` (`lib/slot-decision.ts`), which is the
+  exported join **because the join is where the bug was**.
+- **The destination discriminator is NOT "am I framed", though it looks like it should be.** It
+  is whether the local viewport is bigger than the slot; framing only picks the fallback when it
+  is not. Two cases make that concrete. A web component inside a _generously sized_ iframe — page
+  builders and CMS previews produce these — would otherwise be sent off-site while a 1200×800
+  overlay sat available. And **a frame IS a viewport**: `position: fixed` resolves against it and
+  `window.innerHeight` is its height, so a framed map embed at 400×600 satisfies every argument
+  behind "map mode needs a full-page slot" and must stay full.
+- **`SLOT_GAIN` is one ratio where there were three**, and 0.8 is not a midpoint. It preserves the
+  old `BOXED_SLOT_RATIO` boundary to the pixel, converts a 1000px map column that was silent
+  before, and fixes a live false positive at 0.9 where a normally padded phone layout degraded a
+  working map-less embed. Ratcheted in **both** directions.
+- **`hasMap` changes the question, not just the answer.** Map mode always fills the viewport, so
+  for it the whole question is whether it owns one. Map-less is container-relative by design and
+  is happy in a box, so it needs the absolute floors as well.
 - **`AppShell` owns the decision, above `MapProvider`, and nothing else can.** It is the only
-  component above the map subtree, so it is the only place from which the whole of it can be
-  left unmounted — which is what keeps mapbox-gl unfetched. The interface is passed to the
-  surface as `children`, so React never renders it until the surface opens. That saving is
-  **invisible to `pnpm size` by design**: the gate budgets the eager graph, and mapbox-gl is a
-  dynamic import that was never in it.
-- **The measurement happens once, on the first render**, in `Widget.tsx`, off the element
-  itself (reachable there without a ref, because one runs per page). Not on resize: switching
-  form remounts the widget and discards the in-widget history and the drawer stack, so a host
-  page animating a sidebar would throw a visitor's session away mid-read. `DrawerStack`'s own
-  `useIsWide(container)` is untouched — wide-vs-narrow and compact-vs-full are different
-  questions asked of the same box.
+  component above the map subtree, so it is the only place from which the whole of it can be left
+  unmounted — which is what keeps mapbox-gl unfetched. The interface is passed to the surface as
+  `children`, so React never renders it until the surface opens. That saving is **invisible to
+  `pnpm size` by design**: the gate budgets the eager graph, and mapbox-gl is a dynamic import
+  that was never in it.
+- **The measurement happens once, on the first render.** Not on resize: switching remounts the
+  widget and discards the in-widget history and the drawer stack, so a host page animating a
+  sidebar would throw a visitor's session away mid-read. **There is deliberately no override
+  parameter** — `compact` was one, documented to hosts and read by nothing, and a knob for a
+  measurement we can get right is a permanent edge case traded for a bug we would rather fix.
+  `DrawerStack`'s own `useIsWide(container)` is untouched: wide-vs-narrow and compact-vs-full are
+  different questions asked of the same box.
+- **The card is the button, and makes no data requests.** Preview rows were sized by a per-row
+  pixel estimate that a wrapped title, a long locale or a larger default font made wrong, and
+  cost a feed read, a titles read and a third-party IP lookup on every page view of a sidebar
+  embed nobody scrolls to. `CompactCard.test.tsx` asserts their ABSENCE so they cannot creep back.
 - **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape as
-  `MapController`: `LocalExpansionProvider` renders in-page, `NoExpansionProvider` answers
-  `canExpand: false`, and a framed provider lands with E1/E2 of the white-label programme.
-  Nothing branches on whether expansion is possible.
+  `MapController`. There is deliberately **no framed provider**: a frame cannot expand, so a
+  framed embed gets an anchor (`lib/fallback-url.ts`) rendered through the `Button` atom's href
+  form — not a new JSX anchor, because `href.test.ts` pins that inventory to three components.
+- **A deep link loads eagerly and opens; a configured default does not.** The distinction is
+  whether the **page** URL carried `?atlas=`, surfaced as `routeFromPage` in the loader and
+  `MountDecision.fromPage` in the widget — one signal feeding both, so they cannot disagree.
+  Eager-loading is not an optimisation: the loader lazy-mounts behind an `IntersectionObserver`,
+  so without it a deep-linked widget would mount **mid-scroll** and slam a modal over the page.
+  A module flag in the provider stops a remount reopening what a visitor closed.
 
 **Three things about the surface were found in a browser and could not have been found any
 other way.**
 
 Escape never reaches the surface's own dialog: the drawer stack inside is vaul, which is Radix
 Dialog underneath, so its dismissable layer is the topmost one and Radix delivers the key
-there. Dismissing the drawer the viewer is looking at is right; doing *nothing* once the stack
+there. Dismissing the drawer the viewer is looking at is right; doing _nothing_ once the stack
 has nowhere left to go is not, because it leaves the collapse control as the only exit — and a
 host can hide, confine or scroll that away, which locks a visitor onto a page they cannot
 scroll or click. **The ladder is therefore finished in `DrawerStack`'s `onEscapeKeyDown`**,
@@ -309,10 +329,14 @@ And the surface **watches its own box while open** (`surfaceCoversPage`), closin
 warning rather than trapping anyone when it turns out not to cover the page.
 
 ⚠ **A host ancestor carrying `transform`, `filter`, `perspective`, `contain` or a `will-change`
-naming one of them confines the surface to that element** — the measured table below, re-run
-for this change. `containingBlockProperty` walks for one at mount and warns, because a `fixed`
-overlay silently trapped in a 300px box looks like our bug. `container-type` is **not** on that
-list, however often it is claimed to be.
+naming one of them confines the surface to that element** — the measured table below, re-run for
+this change. `container-type` is **not** on that list, however often it is claimed to be.
+
+There used to be a `containingBlockProperty` predicate walking the ancestors at mount to name the
+offending property. It was **deleted**: ~80 lines plus a `getComputedStyle` walk to say at mount
+what `SURFACE_CONFINED_MESSAGE` already says at the first press, and it could only ever catch
+causes it enumerated. Watching the box catches the _state_ — including a host that hides the slot
+while the surface is open, which no mount-time check can see.
 
 ### Why there is no `@tailwindcss/container-queries`
 
@@ -322,7 +346,7 @@ where viewport == container, or cancelled outright by `filled` map-less. That se
 measured, not assumed — at a 1440px viewport (so every `lg:` variant is live) a `filled`
 drawer computes to `position: absolute`, `max-width: none`, `border-radius: 0`, and fills its
 box to the pixel, so `fixed`, `w-[22rem]`, `max-w-[calc(100vw-2rem)]`, `lg:inset-y-4` and
-`lg:rounded-2xl` all have no effect in the only mode that *has* a container. The real cases
+`lg:rounded-2xl` all have no effect in the only mode that _has_ a container. The real cases
 were behavioural, and a ResizeObserver covers those.
 
 **A caution against a plausible-sounding reason that is FALSE.** It is widely repeated that
@@ -331,14 +355,14 @@ descendants — which would matter enormously here, since the map canvas, every 
 peek strips and the cog are all fixed. It was written into this rule on that belief and then
 measured, in Chrome 151:
 
-| host style | fixed child resolves against |
-| --- | --- |
+| host style                    | fixed child resolves against                  |
+| ----------------------------- | --------------------------------------------- |
 | `container-type: inline-size` | the **viewport** (1440×900) — no re-parenting |
-| `container-type: size` | the **viewport** (1440×900) — no re-parenting |
-| `contain: layout` | the **host** (400×200) |
-| `transform: translateZ(0)` | the **host** (400×200) |
+| `container-type: size`        | the **viewport** (1440×900) — no re-parenting |
+| `contain: layout`             | the **host** (400×200)                        |
+| `transform: translateZ(0)`    | the **host** (400×200)                        |
 
-So `container-type` is *not* the hazard; `contain` and `transform` are. If a genuine CSS-side
+So `container-type` is _not_ the hazard; `contain` and `transform` are. If a genuine CSS-side
 case ever appears, adopting the plugin is not blocked by this — but keep `contain: layout`
 and any transform off every ancestor of the fixed layer, and re-measure rather than trusting
 either this table or the folklore it corrects.

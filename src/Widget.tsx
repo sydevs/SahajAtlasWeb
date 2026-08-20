@@ -179,8 +179,8 @@ function Atlas() {
     >
       <App
         apiKey={config.key ?? ''}
-        defaultLocale={config.locale}
         compact={compact}
+        defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}
         routing={attested}

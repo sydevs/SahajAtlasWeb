@@ -9,9 +9,7 @@ import type { Destination } from './embed-slot'
  * `overlay` card has no href because it never leaves the page. Both entries build this; `App`
  * only reads it.
  */
-export type CompactAction =
-  | { kind: 'overlay'; autoOpen: boolean }
-  | { kind: 'link'; href: string }
+export type CompactAction = { kind: 'overlay'; autoOpen: boolean } | { kind: 'link'; href: string }
 
 export type CompactState = {
   action: CompactAction

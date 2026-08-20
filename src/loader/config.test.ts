@@ -11,9 +11,7 @@ const at = (query: string, pageSearch = '') =>
 
 describe('parseConfig', () => {
   it('reads every documented parameter off the script URL', () => {
-    const config = at(
-      '?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london',
-    )
+    const config = at('?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london')
 
     expect(config).toEqual({
       key: 'abc123',
