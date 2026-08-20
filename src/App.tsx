@@ -24,7 +24,7 @@ import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components
 import { Mapbox, ReportIssueModal } from '@/components/organisms'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { DrawerStack } from '@/views'
-import { CompactView } from '@/views/CompactView'
+import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
 import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
@@ -333,7 +333,7 @@ function AppShell({
         </Suspense>
       )}
       {compact ? (
-        <CompactView compact={compact}>{interfaceElement}</CompactView>
+        <CompactEmbedView compact={compact}>{interfaceElement}</CompactEmbedView>
       ) : (
         <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}

@@ -262,7 +262,7 @@ misconfigured embed and somebody's article disappearing.
 ### A slot too small for any layout: the compact card (issue #161)
 
 #107 made the widget adapt to its box. Below a floor there is no layout left to adapt to, so the
-widget stops trying and renders **`CompactView`** (`src/views/`) — a compact card — a heading and one task-named button that
+widget stops trying and renders **`CompactEmbedView`** (`src/views/`) — a compact card — a heading and one task-named button that
 opens the interface somewhere it fits.
 
 - **ONE question, not three, and that is a correction.** The first implementation had
@@ -305,12 +305,12 @@ opens the interface somewhere it fits.
 - **The card is the button, and makes no data requests.** Preview rows were sized by a per-row
   pixel estimate that a wrapped title, a long locale or a larger default font made wrong, and
   cost a feed read, a titles read and a third-party IP lookup on every page view of a sidebar
-  embed nobody scrolls to. `CompactView.test.tsx` asserts their ABSENCE so they cannot creep back.
+  embed nobody scrolls to. `CompactEmbedView.test.tsx` asserts their ABSENCE so they cannot creep back.
 - **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape as
   `MapController`. There is deliberately **no framed provider**: a frame cannot expand, so a
   framed embed gets an anchor (`lib/fallback-url.ts`) rendered through the `Button` atom's href
   form — not a new JSX anchor, because `href.test.ts` pins that inventory to three components.
-- **What it expands into is a module-private dialog inside `CompactView`, which keeps a margin.**
+- **What it expands into is a module-private dialog inside `CompactEmbedView`, which keeps a margin.**
   It was briefly a `Dialog` atom, and that was wrong twice over: it sat beside `Modal` doing what
   looked like the same job, and the one that looked generic was not — it publishes itself as the
   app's portal target, it needs `contain: layout` because _this_ app's interface is fixed

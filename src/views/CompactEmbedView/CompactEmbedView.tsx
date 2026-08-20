@@ -264,7 +264,7 @@ function ExpandedDialog({
 
 // ===== THE VIEW ===== //
 
-export type CompactViewProps = {
+export type CompactEmbedViewProps = {
   /** The decision `decideSlot` reached: where the button goes, and whether to open on mount. */
   compact: CompactState
   /**
@@ -277,7 +277,7 @@ export type CompactViewProps = {
   children: ReactNode
 }
 
-export function CompactView({ compact, children }: CompactViewProps) {
+export function CompactEmbedView({ compact, children }: CompactEmbedViewProps) {
   // A `link` card has nothing to open: the button is an anchor to a page that fits, because a
   // framed embed cannot grow where it is. No provider state, no dialog — and `NoExpansionProvider`
   // is what keeps `collapse()` an honest no-op for the Escape ladder in `DrawerStack`.
