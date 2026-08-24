@@ -76,12 +76,19 @@ export function fingerprint(signals: DetectionSignals, routing: RoutingMode): Em
     //
     // **All three are MEASUREMENTS, and that is the point.** This used to exempt `routing === 'path'`
     // from the third — reasoning that path routing never uses the param, and that the deciding half
-    // is a server fact no client probe can see. But `routing` comes off the host's own script URL
-    // (`?routing=path`) while `mountDecision` hard-codes the effective shape to `query`, so the
-    // exemption let any host turn the one judgement in this payload on for a mount that is in fact
-    // query-routing with a parameter their router demonstrably eats — and nothing server-side could
-    // contradict it, since the endpoint stores no `canonicalViable` to cross-check. Restore the
-    // exemption in the same commit that teaches `mountDecision` to honour path routing, not before.
+    // is a server fact no client probe can see. The exemption let any host turn the one judgement in
+    // this payload on for a mount that is in fact query-routing with a parameter their router
+    // demonstrably eats, and nothing server-side could contradict it: the endpoint stores no
+    // `canonicalViable` to cross-check.
+    //
+    // ⚠ **An earlier version of this note said to restore the exemption "in the same commit that
+    // teaches `mountDecision` to honour path routing". That commit has landed, and the exemption
+    // stays off — permanently.** Its premise was that the effective shape was hard-coded, and the
+    // real reason is stronger and does not expire: this runs in the LOADER, at script execution,
+    // from `config.routing` alone. Whether path routing is actually honoured depends on a prefix
+    // that arrives on the client record long afterwards, and on the page matching it — so from
+    // here, `routing === 'path'` is a REQUEST, not a finding. Exempting on a request is exactly
+    // what let a query-routed mount claim to be canonical.
     canonicalViable: signals.topLevel && signals.urlWritable && signals.paramPersisted,
   }
 }

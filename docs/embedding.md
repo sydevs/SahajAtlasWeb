@@ -199,10 +199,23 @@ reads that record before it can construct its router — where query routing con
 immediately. On a page that is already server-rendering the event content (the arrangement path
 routing exists for), the visitor is reading real content throughout and never sees the difference.
 
-**Your own query parameters are safe.** In path mode the widget writes its state — the searched
-place, filters, sort order — to the real query string rather than packing it into one parameter.
-It only ever touches parameters it owns; anything else on your URL is preserved across every
-navigation the widget makes.
+**In path mode the widget uses the real query string**, rather than packing its state into one
+parameter as query routing does. That is the trade clean paths make, and it means there is a list
+of parameter names the widget claims on the pages under your prefix — it reads them as its own
+state and rewrites them when the visitor navigates:
+
+`q` · `center` · `bbox` · `cc` · `sort` · `format` · `cadence` · `days` · `time` · `langs` ·
+`dates` · `region`
+
+**Every other parameter on your URL is preserved** across every navigation the widget makes,
+including `locale`, which the widget reads but never writes. If one of the twelve above is
+meaningful to your own page, put the widget on a path where it is not — or use query routing,
+which claims only `atlas`.
+
+⚠ **Existing `?atlas=` links do not survive the switch.** A URL you have already shared or had
+indexed — `your-site.org/classes?atlas=/gb/london` — opens the root view once you enable path
+routing, because the route is now read from the path. Plan the change the way you would any URL
+migration: the old links keep working right up until you flip it, and not after.
 
 **There are also no privacy opt-outs**, and the flows they used to switch off are described under
 [Privacy](#privacy-storage-and-third-party-requests): analytics is cookieless and aggregate, crash

@@ -170,10 +170,11 @@ function Atlas({ prefix }: { prefix?: string }) {
   // render. Guarded to a ref because the widget re-renders reactively (a locale change), and
   // re-deciding would teleport the visitor back to the embed's default route.
   //
+  // `path` is the opt-in third case: the route is the pathname under the client record's mount.
   // `query` is the normal case: the route lives in `?atlas=` on the host's own URL, which is a
   // real, indexable, shareable link on their domain. `memory` is a degradation, taken only where
   // the URL cannot be written at all — a sandboxed iframe, a `file://` document — which the loader
-  // has already probed. There is no third case: the widget no longer reads or writes the fragment,
+  // has already probed. The widget no longer reads or writes the fragment,
   // so a host's `#respond` anchor is simply none of its business (the whole of #92 goes with it).
   //
   // Memory mode still costs the two things it always did, and `linkable` is how the tree asks
@@ -196,9 +197,9 @@ function Atlas({ prefix }: { prefix?: string }) {
     })
   }
 
-  // Reported once, from the render that decided it. `routing=path` is accepted and not yet
-  // honoured, and saying so is the difference between a host discovering their server config is
-  // unused and believing it works.
+  // Reported once, from the render that decided it. A `routing=path` that could not be honoured —
+  // no prefix on the record, or a page outside it — says so here, which is the difference between
+  // a host discovering their server config is unused and believing it works.
   const warning = mount.current.warning
 
   useEffect(() => {
@@ -223,9 +224,9 @@ function Atlas({ prefix }: { prefix?: string }) {
   const { locale: activeLocale, t } = useLocale()
 
   // The URL shape the router ACTUALLY uses, handed down for the readiness marker to attest (#153)
-  // — not `config.routing`, which is the shape somebody asked for and which `routing=path` gets
-  // without it being honoured. `mountDecision` owns that difference and is where a real path mode
-  // will land; a marker carrying a request rather than a finding is worth nothing to the verifier
+  // — not `config.routing`, which is the shape somebody ASKED for and which a path embed does not
+  // always get: `mountDecision` degrades to query when the prefix is missing or the page sits
+  // outside it. A marker carrying a request rather than a finding is worth nothing to the verifier
   // reading it.
   //
   // **The attesting itself deliberately does NOT happen here**, even though this is where the

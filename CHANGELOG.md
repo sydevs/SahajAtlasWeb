@@ -152,8 +152,7 @@ cover everything a host would notice since the widget was first deployed.
   **Old `#!/…` links are not translated.** A visitor arriving on one gets the embed's default
   route. There is no migration shim, deliberately.
 
-  `routing=path` is accepted but not yet available — it warns in the console and uses query routing
-  instead. Its prefix comes from your client record, which is not wired up yet.
+  `routing=path` shipped later in this same release — see its entry above.
 
 - **The snippet is now a single script tag, and configuration moved onto its URL.** ([#149])
 

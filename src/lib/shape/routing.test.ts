@@ -161,8 +161,6 @@ describe('mountDecision', () => {
     expect(mountDecision({ routing: 'query', search: '' }).mode).toBe('query')
   })
 
-  // `path` is accepted and not yet honoured. Silently behaving as query is how a host concludes
-  // their server configuration is working when nothing is using it.
   describe('fromPage — whose route it is', () => {
     // `path` alone cannot tell a visitor who deep-linked from a host who configured a default
     // view, and only the first may open the compact card's surface on mount: otherwise every

@@ -12,7 +12,7 @@ import { createContext, useContext } from 'react'
 //  - `hasMap`: whether a Mapbox canvas renders (default true). map=false omits the
 //    whole map subtree; the MapController is then a no-op.
 //  - `linkable`: whether the route on screen can be handed to somebody else — true for the
-//    standalone build (the route is the pathname) and for embedded QUERY routing (it's `?atlas=`
+//    standalone build (the route is the pathname) and for embedded query OR path routing (it's `?atlas=`
 //    on the host's own URL), false in memory mode. `mountDecision` (`lib/shape/routing.ts`) makes
 //    that call ONCE at mount and `Widget.tsx` passes its answer down. Nothing may re-derive it
 //    from `window.location` — a second reading is how the two drift (issue #115).

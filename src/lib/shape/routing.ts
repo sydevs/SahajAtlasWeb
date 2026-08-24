@@ -110,16 +110,11 @@ export function routeFromParam(search: string | null | undefined): string | unde
 /**
  * Decide which router to mount and where to start.
  *
- * **`path` is accepted and not yet honoured.** Its prefix comes from the client record rather than
- * the script URL, and that record arrives after the router must already exist — so it lands with
- * the canonical-ownership work. Until then it falls back to query and says so, because a routing
- * mode that silently behaves as a different one is how a host concludes their server config is
- * working when nothing is using it.
- *
- * **Memory is a degradation, never a request.** It is taken when the URL cannot be written at all
- * — a sandboxed iframe or a `file://` document, which the loader has already probed — because a
- * route we cannot write is a route nobody can link to, and mounting a query router over a URL that
- * refuses writes would fail on the visitor's first click rather than at boot.
+ * **Path mode needs two things and refuses without either**, loudly: a prefix (from the client
+ * record's `canonical.embed`, via `mountPrefix`) and a pathname actually under it. Memory outranks
+ * both — a route we cannot write is a route nobody can link to. Every refusal degrades to query and
+ * names its cause, because a routing mode that silently behaves as a different one is how a host
+ * concludes their server config is working when nothing is using it.
  */
 export function mountDecision(input: {
   /** The requested mode, from the embed's `routing` parameter. */
