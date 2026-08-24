@@ -222,7 +222,9 @@ describe('the query router, against the real react-router', () => {
 describe('the path router, against the real react-router', () => {
   it('boots at the pathname under the prefix', () => {
     visit(`${ORIGIN}/map/gb/london`)
-    renderPath(<Probe />, '/gb/london', '/map')
+    // ⚠ A fallback DIFFERENT from the expectation, so this cannot pass on `read() ?? initialPath`
+    // with the path shape returning nothing — which is how three of these specs were vacuous.
+    renderPath(<Probe />, '/fallback', '/map')
 
     expect(read('path')).toBe('/gb/london')
   })
@@ -260,18 +262,24 @@ describe('the path router, against the real react-router', () => {
   })
 
   it('round-trips the widget’s own query on the real query string', () => {
-    visit(`${ORIGIN}/map/search?utm_source=news&sort=distance`)
-    renderPath(<Probe />, '/search?sort=distance', '/map')
+    visit(`${ORIGIN}/map/search?utm_source=news&sort=distance&format=online`)
+    renderPath(<Probe />, '/fallback', '/map')
 
-    expect(read('path')).toBe('/search?sort=distance')
+    // `format` is the case that was missing: a widget-owned param that no spec claimed, which is
+    // how it went unclaimed in `WIDGET_PARAMS` and was dropped on every navigation.
+    expect(read('path')).toBe('/search?sort=distance&format=online')
 
-    // The host's parameter is not ours to read into the route, and not ours to drop either.
+    // Navigating is what proves the host's parameter survives — asserting it without one only
+    // re-reads the URL the test itself wrote.
+    act(() => link().click())
+
     expect(new URLSearchParams(window.location.search).get('utm_source')).toBe('news')
+    expect(window.location.pathname).toBe('/map/nl/amsterdam')
   })
 
   it('roots at the prefix itself for the root route', () => {
     visit(`${ORIGIN}/map`)
-    renderPath(<Probe />, '/', '/map')
+    renderPath(<Probe />, '/fallback', '/map')
 
     expect(read('path')).toBe('/')
   })

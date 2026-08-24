@@ -1,13 +1,13 @@
 ---
 description: i18next localization and zustand state-store conventions.
 globs:
-  - "src/config/i18n.ts"
-  - "src/config/store.ts"
-  - "src/hooks/use-filters.ts"
-  - "src/hooks/use-locale.ts"
-  - "src/hooks/use-reveal.ts"
-  - "src/hooks/use-sort.ts"
-  - "public/locales/**"
+  - 'src/config/i18n.ts'
+  - 'src/config/store.ts'
+  - 'src/hooks/use-filters.ts'
+  - 'src/hooks/use-locale.ts'
+  - 'src/hooks/use-reveal.ts'
+  - 'src/hooks/use-sort.ts'
+  - 'public/locales/**'
 alwaysApply: false
 ---
 
@@ -83,7 +83,7 @@ Six stores, each the single source of truth for its slice:
   (`month-grid`/`week`/`list`) + focused `date`, so a filter apply (which remounts the
   filters-keyed grid) or returning from an event doesn't reset the grid to the month
   view on today. The grid **seeds** from it once at mount (`getState`) — a write never
-  re-renders the *grid* — and both fields are written imperatively as the user navigates
+  re-renders the _grid_ — and both fields are written imperatively as the user navigates
   (the header's controls call `setView`; the SX `onSelectedDateUpdate` callback calls
   `setDate`). It's read **reactively** (selectors) by the CalendarView's own header
   (`CalendarControls` — highlights the active view in the picker, formats the month/year
@@ -113,10 +113,10 @@ Six stores, each the single source of truth for its slice:
   by **`revealKey`** (`src/lib/shape/reveal.ts`) — built FROM the events query key (so
   the quantized centre, the filters and the locale have one definition, shared with the
   fetch) plus the sort, which that key deliberately omits. Reading under a different key
-  simply *is* the first page, so a new search, a filter edit or a re-sort shows the
+  simply _is_ the first page, so a new search, a filter edit or a re-sort shows the
   reveal reset **by construction**; there is no reset call for `useSetFilters` /
   `useSetSortOrder` / `FilterView` to forget. Note the store holds **one** key, so this
-  is a reset going *forward*, not an erase: sorting away and back restores the position
+  is a reset going _forward_, not an erase: sorting away and back restores the position
   you left rather than starting over. The reveal advances inside a `useTransition` so
   the control can show a loading state; it never `disable`s that control, because a
   browser unfocuses a disabled element and a keyboard user would lose their place on
@@ -167,12 +167,20 @@ of truth, so all are linkable/shareable:
 - **The searched location** — `?q`/`?center`/`?bbox`, plus **`?cc`** (the
   searched country's ISO code, `SEARCH_COUNTRY_PARAM` in `src/lib/shape/path.ts` beside
   `searchPath`/`parseCenter`). Read raw with a local parse helper rather than through a
-  codec — unlike filters/sort, these are *replaced* by a new search, not merged:
+  codec — unlike filters/sort, these are _replaced_ by a new search, not merged:
   `preserveSearchState` (`src/views/shared.tsx`) re-encodes from an **empty** base, so
   every location param drops by construction and a previous country can't leak into the
   next search. `?cc` exists because it can't be re-derived: a country with no programs
   has no feed features and so no geometry to resolve a point against, so the geocoder's
   answer has to ride in the URL (it drives the country-website offer, `useCountrySite`).
+  ⚠ **In `routing=path` these URL-derived slices live on the HOST page's real query string**, not
+  inside `?atlas=`. Nothing that reads them changes — they are still `location.search` as far as
+  react-router is concerned — but `WIDGET_PARAMS` in `src/lib/shape/routing.ts` is the list of names
+  the path history lifts out of the host's query and writes back, and it has to stay a superset of
+  what these slices actually use. A param missing from it is silently dropped on every navigation;
+  a param wrongly in it is stolen from the host. Query mode is immune, because it packs the whole
+  route into one parameter and never touches theirs.
+
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
   in `src/lib/shape/path.ts`) — of the ROUTER's location, to be exact, which on a host page
   whose anchor the widget declined to take is a MemoryRouter's rather than the address
@@ -191,7 +199,7 @@ of truth, so all are linkable/shareable:
   `useCameraHistory`): it's read only at depth > 0 and written only at depth 0, so a
   write can never change the current render.
   **Each strip is NAMED for where it lands** (`stripLabel`, `src/views/DrawerStack/
-  strip-label.ts`, issue #102) — they were all "Back", which gave a three-deep stack
+strip-label.ts`, issue #102) — they were all "Back", which gave a three-deep stack
   three identically-named buttons going to three different places. The names come from
   the `['regions']` tree and the event-titles sliver, read **cache-only**
   (`enabled: false`) exactly as `DrawerChrome` reads them, so naming a strip can never
@@ -209,7 +217,7 @@ Camera control goes through the `MapController` seam
 separate — an inner fallback must never re-throw to escalate.
 
 - **Never split a view to manufacture a seam.** Every view calls `useSuspenseQuery` at the
-  top and *then* returns its header + body, so a boundary inside a view does not preserve
+  top and _then_ returns its header + body, so a boundary inside a view does not preserve
   that view's header — the component returned nothing. Add a body-level boundary only
   where a seam already exists: a child that owns its own suspense read below the chrome.
   That's exactly three places (`CalendarGrid`, `DynamicEventsList`, the lazy
@@ -227,14 +235,14 @@ separate — an inner fallback must never re-throw to escalate.
   Below a view's own header (the calendar's grid) use `DrawerLoadingBody` /
   `DrawerErrorBody`, never the chrome-ful pair — those draw a second header.
 - **Body-level boundaries need `resetKeys`.** The drawer boundary is keyed on the
-  *pathname*, but a re-search or a filter change moves only the query string — so without
+  _pathname_, but a re-search or a filter change moves only the query string — so without
   one, a single failure pins its error over every later attempt and the boundary added to
   contain a failure instead creates a permanent dead end. Search excludes `?q`
   (`listResetKey`, `lib/shape/path.ts`): the geocoder rewrites it per keystroke.
 - **Each such site needs its own `QueryErrorResetBoundary`** — `useSuspenseQuery` binds to
   the nearest one, and without it "Try again" re-throws the cached error.
 - **One table covers the empty states too, not just the failures.** `FallbackKind` spans
-  the five classified failures *and* the ways a screen ends up with nothing to act on
+  the five classified failures _and_ the ways a screen ends up with nothing to act on
   (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`, `share-unavailable`),
   because a barren region and a URL that never existed leave a viewer in exactly the same
   position. They
@@ -262,12 +270,12 @@ separate — an inner fallback must never re-throw to escalate.
   surface — no boundary to reset, nowhere to navigate (the app-level fallback, where the
   drawer stack never mounted), a geocoder already in the chrome (SearchView) — and
   restores the report CTA if narrowing removed every way out the policy promised. A row
-  that promised *nothing* is left alone: `no-nearby` is a note about the list below it,
+  that promised _nothing_ is left alone: `no-nearby` is a note about the list below it,
   whose own "Show distant events" control is the way out.
 - **Actions sit outside the alert banner; the onward link sits inside it.** The split is
   what each one is: `retry` / `clearFilters` / `report` operate on the screen you're
   looking at, so out here they can't inherit its tint or be read as part of the sentence.
-  The onward rung *continues* the sentence ("we couldn't find that place… see events in
+  The onward rung _continues_ the sentence ("we couldn't find that place… see events in
   Belgium"), so it stays in the banner, where it reads as one thought rather than a filled
   button competing with a retry that isn't there.
 - **One column, one width.** Banner, action row and geocoder are all `w-full` inside a
@@ -297,7 +305,7 @@ separate — an inner fallback must never re-throw to escalate.
   `BrowserClient` on a private `Scope`, **not `Sentry.init`**: `init` hooks the page's
   global error events, and on a host page those are somebody else's.
 - **Above all of it is `RootBoundary`** (`App.tsx`, issue #92), whose fallback is static,
-  untranslated and inline-styled. Everything above catches failures *in the app*; this one
+  untranslated and inline-styled. Everything above catches failures _in the app_; this one
   catches failures in what the app is built on — `Providers`, `BrandTheme`, the query
   client, the i18n boot — which used to unmount the widget in silence. It therefore reads
   none of them: a rung that has to consult the thing that just broke is not a rung. It is

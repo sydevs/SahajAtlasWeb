@@ -213,37 +213,65 @@ export function mountDecision(input: {
 /**
  * The path prefix a `path`-routed widget lives under, from the client record's `canonical.embed`.
  *
- * `canonical.embed` is a **mount key** — an origin joined to a pathname, as `splitMountKey` records
- * it on the SahajCloud side (`wemeditate.com/map`). Only the path half is ours; the origin half is
- * whatever host reported that embed, which is not necessarily the host we are running on right now
- * (a client may have several embeds and nominate one). So this reads the path and ignores the rest
- * rather than trying to match origins — being on the wrong host is a canonical-ownership question,
- * answered in the CMS, not a routing one.
+ * `canonical.embed` is a **mount key** — a host joined to a pathname, as `splitMountKey` records it
+ * on the SahajCloud side (`wemeditate.com/map`). Both halves are load-bearing here:
+ *
+ * - the **path** becomes the prefix, and
+ * - the **host** must match the page we are running on, or we refuse.
+ *
+ * ⚠ **Matching the host is not optional, though an earlier draft of this said it was** ("being on
+ * the wrong host is a canonical-ownership question"). It is a routing question, because the prefix
+ * is the only thing confining path mode to a subtree — and a client may nominate one embed while
+ * running others elsewhere. Without the check, a record naming `wemeditate.com/map` would happily
+ * root a widget on a different host's `/account/settings` and rewrite that URL on the first click.
  *
  * Returns `''` for a root mount, and `undefined` when there is nothing usable — which the caller
  * must treat as "cannot honour path routing" rather than as "mount at the root". Those are
- * different: a widget that silently roots itself at `/` on a host serving it under `/map` would
- * read every visitor's URL as a route it does not recognise.
+ * different, and conflating them is the sharp edge: `routeFromPathname` short-circuits its
+ * segment-boundary check when the prefix is empty, so a `''` reached by accident makes the #92
+ * basename-miss guard — the stated reason this is ours rather than `Router`'s `basename` —
+ * **unable to fire at all**. So a root mount has to be spelled, with a trailing slash
+ * (`sahajayoga.nl/`), exactly as `splitMountKey` writes it. A bare host, a typo, or anything else
+ * slashless is refused rather than silently claiming the whole origin.
  */
-export function mountPrefix(embed: string | null | undefined): string | undefined {
+export function mountPrefix(
+  embed: string | null | undefined,
+  currentHost: string | null | undefined,
+): string | undefined {
   if (typeof embed !== 'string' || embed.trim() === '') return undefined
+
+  const trimmed = embed.trim()
 
   // Tolerate a scheme even though the stored form has none — an operator pasting a full URL into
   // the picker is the obvious mistake, and refusing it would be a silent fallback to query.
-  const withoutScheme = embed.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+  //
+  // ⚠ **The `//` is REQUIRED, and making it optional broke a real case.** A mount key keeps the
+  // port (`splitMountKey` records `url.host`), so `localhost:5173/pathmode` has a colon before its
+  // first slash — and an optional `//` parses `localhost:` as the scheme, leaving host `5173`,
+  // which matches nothing. Found in a browser after a review suggested loosening it to refuse
+  // `javascript:`. That concern is already covered: a schemeless `javascript:alert(1)` has no
+  // slash, and the slashless rule below refuses it.
+  const withoutScheme = trimmed.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
   const slash = withoutScheme.indexOf('/')
 
-  if (slash === -1) return ''
+  // No slash at all is not a root mount — it is a malformed key. `splitMountKey` always writes at
+  // least the `/` of the pathname, so a value without one did not come from a reported embed.
+  if (slash === -1) return undefined
 
-  // Everything from the first slash is the mount path. Strip a trailing slash so the prefix
-  // composes as `${prefix}${route}` with the route's own leading slash and never doubles it.
-  const path = withoutScheme.slice(slash).replace(/\/+$/, '')
+  const host = withoutScheme.slice(0, slash)
+  const rawPath = withoutScheme.slice(slash)
 
-  // The same guard every other server-provided path goes through. A mount is a route prefix that
-  // ends up in an `<a href>`, so `//evil.com` and the tab/LF/CR forms are refused here too.
-  if (path === '') return ''
+  // The record names the page the widget is mounted on. If that is not this page's host, path
+  // routing is not ours to do here, whatever the CMS says about ownership.
+  if (!currentHost || host.toLowerCase() !== currentHost.toLowerCase()) return undefined
 
-  return safePath(path) === undefined ? undefined : path
+  // ⚠ `safePath` BEFORE the trailing-slash strip, not after. `host//` normalises to `''` and would
+  // otherwise reach the root-mount return without ever meeting the guard — and `//evil.com` is the
+  // single input shape that guard exists for.
+  if (safePath(rawPath) === undefined) return undefined
+
+  // A root mount is `/`, and stays the empty prefix so `${prefix}${route}` never doubles a slash.
+  return rawPath.replace(/\/+$/, '')
 }
 
 /**
@@ -300,9 +328,15 @@ export const WIDGET_PARAMS: ReadonlySet<string> = new Set<string>([
   SEARCH_COUNTRY_PARAM,
   SORT_PARAM,
   ...FILTER_PARAM_KEYS,
-  // The UI language, read by i18next's querystring detector (`config/i18n-options.ts`).
-  'locale',
 ])
+
+/**
+ * ⚠ **`locale` is deliberately NOT in that set.** It is the widget's parameter — i18next's
+ * querystring detector reads it (`config/i18n-options.ts`) — but it is only ever a PAGE parameter:
+ * no route carries it, and nothing writes it back. Claiming it would mean deleting it on the first
+ * in-widget navigation, so a French link into a path embed renders French once and then loses the
+ * language on the first click, while query mode preserves it. Read-only is the whole distinction.
+ */
 
 function ownSearch(search: string | null | undefined): string {
   try {
@@ -331,6 +365,16 @@ export function pathHrefFor(href: string, route: string, prefix: string): string
     const [routePath, routeSearch = ''] = route.split('?')
 
     url.pathname = `${prefix}${routePath === '/' && prefix !== '' ? '' : routePath}`
+
+    // ⚠ Confinement, because `safePath` does not provide it. It inspects the first two characters,
+    // so a CMS-authored `webPath` of `/../../wp-admin` is "site-relative" by its rules — and the
+    // URL parser then resolves the dot segments and walks the href straight out of the mount
+    // subtree onto an unrelated page of the host's own site. Not an origin escape (the `pathname`
+    // setter cannot change the host), but an href that leaves the widget and a `pushState` that
+    // renames the visitor's page. `''` is the refusal both this function and `isSafeHref` already
+    // agree on.
+    if (prefix !== '' && url.pathname !== prefix && !url.pathname.startsWith(`${prefix}/`))
+      return ''
 
     // Drop only our own params, then re-add whatever this route carries. A host param the widget
     // has never heard of survives untouched, which is the same courtesy `hrefFor` extends.

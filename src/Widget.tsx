@@ -3,7 +3,7 @@ import type { LoaderConfig } from './loader/config'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
 
@@ -78,46 +78,81 @@ function AtlasBoot() {
 
   if (config.routing !== 'path' || !config.key) return <Atlas />
 
+  return <PathBoot apiKey={config.key} />
+}
+
+/**
+ * Reads the prefix, then gets out of the way.
+ *
+ * ⚠ **The read is behind the boundary; the widget is NOT.** `PathPrefix` used to render `<Atlas>`
+ * as its own child, which put the router, the theme wrapper and the whole of `App` inside both the
+ * `Suspense` and the `ErrorBoundary` below. Two things went wrong with that, and both were review
+ * findings rather than anything a spec could see:
+ *
+ * - **Misattribution.** Any throw escaping `App`'s own boundaries was reported as `'path prefix'`
+ *   and answered by re-rendering the identical tree without one — which then printed a warning
+ *   blaming a blameless client record, the exact misdiagnosis `onError` was added to prevent.
+ * - **A mid-session remount.** `useSuspenseQuery` throws on a failed BACKGROUND refetch too, so a
+ *   reconnect blip past the stale window would tear the whole widget down and rebuild it in query
+ *   mode over a path-shaped URL — discarding the drawer stack, the in-widget history, the camera
+ *   snapshots and any half-filled registration, then writing `/map/gb/london?atlas=/nl` from then
+ *   on.
+ *
+ * Lifting the answer into state fixes both: the observer unmounts once it has resolved, so there is
+ * no later refetch to throw, and everything below renders outside the boundary.
+ */
+function PathBoot({ apiKey }: { apiKey: string }) {
+  // `undefined` is "not answered yet"; `{ value: undefined }` is "answered: no usable prefix",
+  // which is a real answer and must not be mistaken for still waiting.
+  const [resolved, setResolved] = useState<{ value?: string }>()
+
+  if (resolved) return <Atlas prefix={resolved.value} />
+
   return (
     // Falling back to `<Atlas />` is falling back to QUERY routing, which is what `mountDecision`
     // does for every other unhonourable path config. It matters most for the failure this catches:
-    // a rejected API key makes the read below throw, and without this the RootBoundary above would
-    // answer with its static untranslated screen instead of App's own configuration-error one.
+    // a rejected API key makes the read throw, and without this the RootBoundary above would answer
+    // with its static untranslated screen instead of App's own configuration-error one.
     <ErrorBoundary
       fallbackRender={() => <Atlas />}
       // ⚠ **Report, or this fallback hides its own causes.** Degrading to query is a legitimate
-      // state that renders perfectly, so a THROW here is indistinguishable from a client with no
-      // canonical embed — and `mountDecision` then prints a warning blaming the record, which may
-      // be blameless. Two bugs hid behind exactly that during this change: the API key was claimed
-      // below this read, so the fetch went out unauthenticated; and the tree's `QueryClientProvider`
-      // lives inside `App`, below here, so `useSuspenseQuery` threw "No QueryClient set". Both were
-      // found in a browser and neither was visible to any spec.
+      // state that renders perfectly, so a throw here is indistinguishable from a client with no
+      // canonical embed — and `mountDecision` then prints a warning blaming the record. Two bugs
+      // hid behind exactly that during this change: the API key was claimed below the read, so the
+      // fetch went out unauthenticated; and the tree's `QueryClientProvider` lives inside `App`,
+      // below here, so `useSuspenseQuery` threw "No QueryClient set". Both were found in a browser
+      // and neither was visible to any spec.
       onError={(error) => reportInternalError(error, 'path prefix')}
     >
-      {/* ⚠ Its OWN provider, over the same module-singleton client `Providers` uses. The tree's
-          `QueryClientProvider` lives inside `App`, which is below the router this read exists to
-          construct — so reading the record here without one throws "No QueryClient set", the
-          boundary catches it, and every path embed degrades to query while blaming the client
-          record. Found in a browser: the failure is indistinguishable from the legitimate
-          fallback, so nothing in the lane could have caught it.
-
-          Sharing the singleton is what keeps this free — `AppShell`'s own `clientQuery` read is
-          then a cache hit rather than a second request. */}
+      {/* Its OWN provider, over the same module-singleton client `Providers` uses — the tree's is
+          inside `App`, below the router this read exists to construct. Sharing the singleton is
+          what keeps it free: `AppShell`'s own `clientQuery` read is then a cache hit. */}
       <QueryClientProvider client={queryClient}>
         <Suspense fallback={null}>
-          <PathPrefix apiKey={config.key} />
+          <PathPrefix apiKey={apiKey} onResolved={setResolved} />
         </Suspense>
       </QueryClientProvider>
     </ErrorBoundary>
   )
 }
 
-function PathPrefix({ apiKey }: { apiKey: string }) {
+function PathPrefix({
+  apiKey,
+  onResolved,
+}: {
+  apiKey: string
+  onResolved: (resolved: { value?: string }) => void
+}) {
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
+  const value = mountPrefix(client.canonical?.embed, window.location.host)
 
-  // `undefined` here is not "mount at the root" — it is "cannot honour path routing", which
-  // `mountDecision` turns into query plus a console warning naming what is missing.
-  return <Atlas prefix={mountPrefix(client.canonical?.embed)} />
+  // An effect, not a render-body call: setting a parent's state during render is a React error, and
+  // this component's whole job is to hand its answer upward and unmount.
+  useEffect(() => {
+    onResolved({ value })
+  }, [value, onResolved])
+
+  return null
 }
 
 function Atlas({ prefix }: { prefix?: string }) {
@@ -268,6 +303,7 @@ function Atlas({ prefix }: { prefix?: string }) {
         defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}
+        prefix={mount.current.prefix}
         routing={attested}
         themeRootRef={themeRootRef}
       />

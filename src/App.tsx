@@ -131,6 +131,8 @@ type AppProps = {
   // entry has a real answer; the standalone build publishes no marker at all (nothing observed
   // it), so its default is never read.
   routing?: RoutingMode
+  /** The path prefix, in `path` routing — what the embed report files as the mount. */
+  prefix?: string
 }
 
 export default function App({
@@ -143,6 +145,7 @@ export default function App({
   compact = null,
   linkable = true,
   routing = 'query',
+  prefix,
 }: AppProps) {
   // Warm the agnostic map/hierarchy caches (feed + region tree) + current-locale titles
   // the moment we have the API key, in parallel with the client bootstrap the tree
@@ -185,6 +188,7 @@ export default function App({
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
                 linkable={linkable}
+                prefix={prefix}
                 routing={routing}
                 standalone={standalone}
               />
@@ -228,6 +232,7 @@ type AppShellProps = {
   compact: CompactState | null
   linkable: boolean
   routing: RoutingMode
+  prefix?: string
 }
 
 function AppShell({
@@ -238,6 +243,7 @@ function AppShell({
   compact,
   linkable,
   routing,
+  prefix,
 }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
@@ -266,8 +272,8 @@ function AppShell({
    * boundary took down.
    */
   useEffect(() => {
-    void announceEmbed({ routing, observed: embed.observed })
-  }, [routing])
+    void announceEmbed({ routing, observed: embed.observed, prefix })
+  }, [routing, prefix])
 
   useEffect(() => {
     if (defaultLocale || client.locale) {

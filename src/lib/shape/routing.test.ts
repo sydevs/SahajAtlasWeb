@@ -275,37 +275,69 @@ describe('mountDecision', () => {
 })
 
 describe('mountPrefix', () => {
-  it('takes the path half of a mount key and ignores the host', () => {
-    expect(mountPrefix('wemeditate.com/map')).toBe('/map')
+  const HOST = 'wemeditate.com'
+
+  it('takes the path half of a mount key', () => {
+    expect(mountPrefix('wemeditate.com/map', HOST)).toBe('/map')
   })
 
   it('tolerates a pasted full URL, because that is the obvious operator mistake', () => {
-    expect(mountPrefix('https://wemeditate.com/map')).toBe('/map')
+    expect(mountPrefix('https://wemeditate.com/map', HOST)).toBe('/map')
   })
 
   it('normalises a trailing slash away, so the prefix never doubles the route’s own', () => {
-    expect(mountPrefix('wemeditate.com/map/')).toBe('/map')
+    expect(mountPrefix('wemeditate.com/map/', HOST)).toBe('/map')
   })
 
-  it('reads a root mount as the empty prefix, not as absent', () => {
-    // '' and undefined mean very different things downstream: mount at the root, versus cannot
-    // honour path routing at all.
-    expect(mountPrefix('sahajayoga.nl')).toBe('')
-    expect(mountPrefix('sahajayoga.nl/')).toBe('')
+  it('reads an explicit root mount as the empty prefix', () => {
+    // `splitMountKey` writes at least the pathname's `/`, so this is the shape a real root mount
+    // arrives in — and `''` genuinely means "mount at the root".
+    expect(mountPrefix('wemeditate.com/', HOST)).toBe('')
   })
+
+  // ⚠ The sharp one. `''` disables `routeFromPathname`'s segment-boundary check, so a prefix that
+  // reaches `''` BY ACCIDENT makes the #92 basename-miss guard unable to fire — and path mode then
+  // adopts the host's entire URL space, rewriting whatever page it is on. A root mount has to be
+  // spelled with the slash; everything slashless is a malformed key.
+  it.each(['wemeditate.com', 'map', 'not a url', 'javascript:alert(1)'])(
+    'refuses a slashless value rather than claiming the whole origin: %j',
+    (embed) => {
+      expect(mountPrefix(embed, HOST)).toBeUndefined()
+    },
+  )
 
   it('is absent for an absent or blank embed', () => {
-    expect(mountPrefix(undefined)).toBeUndefined()
-    expect(mountPrefix(null)).toBeUndefined()
-    expect(mountPrefix('   ')).toBeUndefined()
+    expect(mountPrefix(undefined, HOST)).toBeUndefined()
+    expect(mountPrefix(null, HOST)).toBeUndefined()
+    expect(mountPrefix('   ', HOST)).toBeUndefined()
+  })
+
+  // The record names the page the widget is mounted on. Being somewhere else is not a
+  // canonical-ownership question — it is the only thing confining path mode to a subtree.
+  it('refuses a mount key for a different host', () => {
+    expect(mountPrefix('wemeditate.com/map', 'evil.example')).toBeUndefined()
+    expect(mountPrefix('wemeditate.com/map', undefined)).toBeUndefined()
+  })
+
+  it('matches the host case-insensitively', () => {
+    expect(mountPrefix('WeMeditate.com/map', HOST)).toBe('/map')
+  })
+
+  // ⚠ A mount key keeps the port (`splitMountKey` records `url.host`), and a colon before the
+  // first slash is exactly what a too-eager scheme strip mistakes for a scheme. Loosening that
+  // regex to also match a scheme without `//` left host `5173` here, and only a browser showed it.
+  it('handles a host with a port, which is what a mount key actually carries', () => {
+    expect(mountPrefix('localhost:5173/pathmode', 'localhost:5173')).toBe('/pathmode')
+    expect(mountPrefix('http://localhost:5173/pathmode', 'localhost:5173')).toBe('/pathmode')
   })
 
   // The mount ends up in an `<a href>`, so it takes the same guard every other server-provided
-  // path takes — `safePath`, whose hostile table pins these exact shapes.
-  it.each(['host.example//evil.com', 'host.example/\\evil.com', 'host.example/\tevil'])(
-    'refuses a mount that is not a safe site-relative path: %j',
-    (embed) => {
-      expect(mountPrefix(embed)).toBeUndefined()
+  // path takes — and BEFORE the trailing-slash strip, or `host//` normalises to `''` and reaches
+  // the root-mount answer without ever meeting it.
+  it.each(['//evil.com', '/\\evil.com', '/\tevil', '//'])(
+    'refuses a mount path that is not safe: %j',
+    (path) => {
+      expect(mountPrefix(`${HOST}${path}`, HOST)).toBeUndefined()
     },
   )
 })
@@ -367,6 +399,42 @@ describe('pathHrefFor', () => {
 
   it('returns empty for a URL that will not parse, like its query counterpart', () => {
     expect(pathHrefFor('not a url', '/nl', '/map')).toBe('')
+  })
+
+  // ⚠ `safePath` inspects the first two characters, so a CMS-authored `/../../wp-admin` is
+  // "site-relative" by its rules — and the URL parser then resolves the dot segments and walks the
+  // href out of the mount subtree onto an unrelated page of the host's own site.
+  it.each(['/../../wp-admin', '/%2e%2e/%2e%2e/wp-admin', '/../'])(
+    'refuses a route that escapes the mount subtree: %j',
+    (route) => {
+      expect(pathHrefFor('https://host.example/map/gb', route, '/map')).toBe('')
+    },
+  )
+
+  it('still allows the prefix itself and everything genuinely under it', () => {
+    expect(pathHrefFor('https://host.example/map/gb', '/', '/map')).toBe('https://host.example/map')
+    expect(pathHrefFor('https://host.example/map/gb', '/nl/x', '/map')).toBe(
+      'https://host.example/map/nl/x',
+    )
+  })
+
+  // `locale` is the widget's parameter but only ever a PAGE one — nothing writes it back, so
+  // claiming it would delete a visitor's language on the first click.
+  it('leaves ?locale= alone', () => {
+    expect(pathHrefFor('https://host.example/map?locale=fr&utm=x', '/gb', '/map')).toContain(
+      'locale=fr',
+    )
+  })
+
+  it('replaces a filter param rather than stacking a second copy', () => {
+    const href = pathHrefFor(
+      'https://host.example/m/search?format=online',
+      '/search?format=weekly',
+      '/m',
+    )
+
+    expect(href).toContain('format=weekly')
+    expect(href).not.toContain('format=online')
   })
 })
 
