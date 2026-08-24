@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import { FILTER_PARAM_KEYS } from './filters'
+import { SEARCH_COUNTRY_PARAM } from './path'
+import { SORT_PARAM } from './sort'
 import {
   ROUTE_PARAM,
+  WIDGET_PARAMS,
   hrefFor,
   mountDecision,
   mountPrefix,
@@ -363,5 +367,40 @@ describe('pathHrefFor', () => {
 
   it('returns empty for a URL that will not parse, like its query counterpart', () => {
     expect(pathHrefFor('not a url', '/nl', '/map')).toBe('')
+  })
+})
+
+describe('WIDGET_PARAMS', () => {
+  /**
+   * ⚠ **Both ways of getting this wrong are silent, which is why it is asserted rather than read.**
+   *
+   * In `routing=path` the widget's state lives on the HOST page's real query string, so this set is
+   * what the history lifts out on read and rewrites on navigate. A name MISSING from it is a filter
+   * silently dropped on every navigation; a name wrongly IN it is one of the host's own parameters
+   * silently stolen. Query mode is immune — it packs the whole route into one parameter — so
+   * nothing else in the app would go red either way.
+   *
+   * The first draft was hand-listed and named a `filters` param that has never existed, while the
+   * seven real filter names went unclaimed.
+   */
+  it('claims every name the URL-derived slices actually own', () => {
+    for (const key of [SEARCH_COUNTRY_PARAM, SORT_PARAM, ...FILTER_PARAM_KEYS]) {
+      expect(WIDGET_PARAMS.has(key)).toBe(true)
+    }
+  })
+
+  it('claims the searched place, which has no constant of its own', () => {
+    for (const key of ['q', 'center', 'bbox']) expect(WIDGET_PARAMS.has(key)).toBe(true)
+  })
+
+  // The route parameter is query mode's carrier and is never one of ours to lift in path mode.
+  it('does not claim the route parameter itself', () => {
+    expect(WIDGET_PARAMS.has(ROUTE_PARAM)).toBe(false)
+  })
+
+  it('claims nothing a host would plausibly own', () => {
+    for (const key of ['utm_source', 'p', 'page', 'id', 's', 'lang', 'ref']) {
+      expect(WIDGET_PARAMS.has(key)).toBe(false)
+    }
   })
 })

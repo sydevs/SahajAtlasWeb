@@ -22,7 +22,9 @@
  * This module is pure — no `window` — so the whole decision is testable in the node lane.
  * `atlas-history.ts` is the part that touches `history`.
  */
-import { safePath } from './path'
+import { SEARCH_COUNTRY_PARAM, safePath } from './path'
+import { FILTER_PARAM_KEYS } from './filters'
+import { SORT_PARAM } from './sort'
 
 /**
  * The query parameter the route rides on.
@@ -283,9 +285,24 @@ export function routeFromPathname(
  * The widget's own parameters, filtered out of a host page's query string.
  *
  * We never claim a param we do not own: anything not in this list belongs to the host and is
- * neither read into the route nor dropped when we write.
+ * neither read into the route nor dropped when we write. Both mistakes are silent — a name missing
+ * here is a filter dropped on every navigation, and a name wrongly here is a host's parameter
+ * stolen — so this is **composed from the modules that own each name**, never hand-listed. The
+ * first draft was hand-listed and included a `filters` param that has never existed, which would
+ * have discarded every filter in path mode while `format`, `cadence`, `days`, `time`, `langs`,
+ * `dates` and `region` went unclaimed. `routing.test.ts` pins the set against those owners.
  */
-const WIDGET_PARAMS = new Set(['q', 'center', 'bbox', 'cc', 'sort', 'filters', 'locale'])
+export const WIDGET_PARAMS: ReadonlySet<string> = new Set<string>([
+  // The searched place (`views/shared.tsx`), which has no constant of its own to import.
+  'q',
+  'center',
+  'bbox',
+  SEARCH_COUNTRY_PARAM,
+  SORT_PARAM,
+  ...FILTER_PARAM_KEYS,
+  // The UI language, read by i18next's querystring detector (`config/i18n-options.ts`).
+  'locale',
+])
 
 function ownSearch(search: string | null | undefined): string {
   try {
