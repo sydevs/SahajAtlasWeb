@@ -23,6 +23,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **`routing=path` now works.** ([#164]) Your widget's route can live in the path —
+  `your-site.org/classes/gb/london` — instead of in `?atlas=`. It needs your server to serve the
+  same page for everything under the prefix, and a canonical embed on your client record to say
+  what that prefix is; the prefix is deliberately not a script parameter, because it is the same
+  value your canonical URLs are built from and two copies could disagree. **Missing either one
+  falls back to query routing and logs which was missing** — it never silently behaves as a
+  different mode. In path mode the widget writes its own state to the real query string and leaves
+  every parameter it does not own alone. See [Routing](docs/embedding.md).
+
 - **A slot too small for the interface now gets a compact card instead of a cramped one.**
   ([#161]) The widget shows one button — "Find a class near you" — that opens the whole
   interface somewhere it fits, and closes back to where you were.
@@ -361,6 +370,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#135]: https://github.com/sydevs/SahajAtlasWeb/pull/135
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
+[#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy

@@ -56,6 +56,15 @@ const render = (ui: React.ReactNode, path = '/') =>
     )
   })
 
+const renderPath = (ui: React.ReactNode, path: string, prefix: string) =>
+  act(() => {
+    root.render(
+      <AtlasRouter mode="path" path={path} prefix={prefix}>
+        {ui}
+      </AtlasRouter>,
+    )
+  })
+
 function Probe() {
   const location = useLocation()
 
@@ -198,5 +207,72 @@ describe('the query router, against the real react-router', () => {
     expect(read('path')).toBe('/gb')
     // Memory mode still renders; it simply never writes the URL.
     expect(window.location.search).toBe('?p=123')
+  })
+})
+
+/**
+ * Path mode against the real router.
+ *
+ * Same justification as the query suite above, and one addition specific to this mode: react-router
+ * has its own `basename` feature that does what this looks like, and we deliberately do not use it
+ * — because `Router` renders `null` on a basename miss, silently, which is #92's blank widget. Our
+ * guard lives in `mountDecision` and is asserted in the node lane; what can only be asserted here
+ * is that the library agrees with the URLs our history composes.
+ */
+describe('the path router, against the real react-router', () => {
+  it('boots at the pathname under the prefix', () => {
+    visit(`${ORIGIN}/map/gb/london`)
+    renderPath(<Probe />, '/gb/london', '/map')
+
+    expect(read('path')).toBe('/gb/london')
+  })
+
+  it('renders an absolute href under the prefix, not against the widget’s own route', () => {
+    visit(`${ORIGIN}/map/gb/london`)
+    renderPath(<Probe />, '/gb/london', '/map')
+
+    // The whole point of `createHref` being absolute: middle-click, "copy link address" and
+    // open-in-new-tab all read this string.
+    expect(link().href).toBe(`${ORIGIN}/map/nl/amsterdam`)
+  })
+
+  it('pushes into the host’s pathname, keeping their foreign parameters', () => {
+    visit(`${ORIGIN}/map/gb?p=123`)
+    renderPath(<Probe />, '/gb', '/map')
+
+    act(() => link().click())
+
+    expect(window.location.pathname).toBe('/map/nl/amsterdam')
+    expect(new URLSearchParams(window.location.search).get('p')).toBe('123')
+    expect(read('path')).toBe('/nl/amsterdam')
+  })
+
+  it('mints a distinct key per entry here too — camera history depends on it', () => {
+    visit(`${ORIGIN}/map/gb`)
+    renderPath(<Probe />, '/gb', '/map')
+
+    const first = read('key')
+
+    act(() => link().click())
+
+    expect(read('key')).not.toBe(first)
+    expect(read('key')).not.toBe('default')
+  })
+
+  it('round-trips the widget’s own query on the real query string', () => {
+    visit(`${ORIGIN}/map/search?utm_source=news&sort=distance`)
+    renderPath(<Probe />, '/search?sort=distance', '/map')
+
+    expect(read('path')).toBe('/search?sort=distance')
+
+    // The host's parameter is not ours to read into the route, and not ours to drop either.
+    expect(new URLSearchParams(window.location.search).get('utm_source')).toBe('news')
+  })
+
+  it('roots at the prefix itself for the root route', () => {
+    visit(`${ORIGIN}/map`)
+    renderPath(<Probe />, '/', '/map')
+
+    expect(read('path')).toBe('/')
   })
 })

@@ -3,22 +3,25 @@ import type { LoaderConfig } from './loader/config'
 import type { MountDecision } from './lib/shape'
 
 import r2wc from '@r2wc/react-to-web-component'
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
 
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
 import atlasAuth from './config/api/auth'
+import { clientQuery } from './config/api'
 import embed from './config/embed'
+import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
-import { reportIntegrationWarning } from './lib/report'
+import { reportIntegrationWarning, reportInternalError } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
-import { mountDecision } from './lib/shape'
-import { queryClient } from './config/query-client'
+import { mountDecision, mountPrefix } from './lib/shape'
 
 // Implementation of the embeddable widget's custom element.
 //
@@ -37,20 +40,91 @@ import { queryClient } from './config/query-client'
 export default function Widget() {
   return (
     <RootBoundary>
-      <Atlas />
+      <AtlasBoot />
     </RootBoundary>
   )
 }
 
-function Atlas() {
+/**
+ * Resolves `routing=path`'s prefix before the router exists, and nothing else.
+ *
+ * ⚠ **The prefix is the one piece of configuration that cannot arrive with the rest.** Everything
+ * else the widget needs is on the loader's script URL and is known before this element does. The
+ * path prefix deliberately is not: it lives on the client record as `canonical.embed`, because it
+ * is the *same value* SahajCloud composes canonical URLs from, and a second copy on the script URL
+ * could disagree with the one a canonical was built from. That was the whole argument for deleting
+ * the `mount` parameter — and it left path routing needing a value that arrives over the network
+ * after the router must be constructed.
+ *
+ * So path mode waits. Query mode — every embed today — does not reach this at all.
+ *
+ * **Waiting costs nothing in path mode's own use case.** A host on path routing is serving a whole
+ * URL subtree to the widget, which is the tier-3 shape: their server has already rendered the
+ * event content as children of the element, so the visitor is reading real content while this
+ * resolves. The alternative — boot at the root and adopt the URL when the record lands — puts a
+ * visible route change after first paint and two sources of truth in between.
+ */
+function AtlasBoot() {
+  const { config } = embed
+
+  // ⚠ **Claimed HERE, not in `Atlas`, because `PathPrefix` below issues a request.** While this
+  // lived one component down, the path-prefix read went out unauthenticated, came back 401, threw
+  // to the boundary and degraded every path embed to query — with a warning blaming the client
+  // record, which was blameless. Found in a browser; nothing in the lane could see it, because the
+  // fallback it lands in is a legitimate state that renders perfectly well.
+  if (!atlasAuth.apiKey) {
+    atlasAuth.apiKey = config.key
+  }
+
+  if (config.routing !== 'path' || !config.key) return <Atlas />
+
+  return (
+    // Falling back to `<Atlas />` is falling back to QUERY routing, which is what `mountDecision`
+    // does for every other unhonourable path config. It matters most for the failure this catches:
+    // a rejected API key makes the read below throw, and without this the RootBoundary above would
+    // answer with its static untranslated screen instead of App's own configuration-error one.
+    <ErrorBoundary
+      fallbackRender={() => <Atlas />}
+      // ⚠ **Report, or this fallback hides its own causes.** Degrading to query is a legitimate
+      // state that renders perfectly, so a THROW here is indistinguishable from a client with no
+      // canonical embed — and `mountDecision` then prints a warning blaming the record, which may
+      // be blameless. Two bugs hid behind exactly that during this change: the API key was claimed
+      // below this read, so the fetch went out unauthenticated; and the tree's `QueryClientProvider`
+      // lives inside `App`, below here, so `useSuspenseQuery` threw "No QueryClient set". Both were
+      // found in a browser and neither was visible to any spec.
+      onError={(error) => reportInternalError(error, 'path prefix')}
+    >
+      {/* ⚠ Its OWN provider, over the same module-singleton client `Providers` uses. The tree's
+          `QueryClientProvider` lives inside `App`, which is below the router this read exists to
+          construct — so reading the record here without one throws "No QueryClient set", the
+          boundary catches it, and every path embed degrades to query while blaming the client
+          record. Found in a browser: the failure is indistinguishable from the legitimate
+          fallback, so nothing in the lane could have caught it.
+
+          Sharing the singleton is what keeps this free — `AppShell`'s own `clientQuery` read is
+          then a cache hit rather than a second request. */}
+      <QueryClientProvider client={queryClient}>
+        <Suspense fallback={null}>
+          <PathPrefix apiKey={config.key} />
+        </Suspense>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  )
+}
+
+function PathPrefix({ apiKey }: { apiKey: string }) {
+  const { data: client } = useSuspenseQuery(clientQuery(apiKey))
+
+  // `undefined` here is not "mount at the root" — it is "cannot honour path routing", which
+  // `mountDecision` turns into query plus a console warning naming what is missing.
+  return <Atlas prefix={mountPrefix(client.canonical?.embed)} />
+}
+
+function Atlas({ prefix }: { prefix?: string }) {
   // Read once per render from the boot singleton (`config/embed.ts`) rather than from props.
   // Configuration arrives on the loader's script URL, so it is known before this element exists
   // and there is nothing for the element to observe — see that module for why it is not a prop.
   const { config } = embed
-
-  if (!atlasAuth.apiKey) {
-    atlasAuth.apiKey = config.key
-  }
 
   // NB: the initial locale is applied by App's AppShell effect (from `defaultLocale` below),
   // which runs once on mount and again only if the host changes it. Don't call
@@ -80,6 +154,8 @@ function Atlas() {
     mount.current = mountDecision({
       routing: config.routing,
       search: window.location.search,
+      pathname: window.location.pathname,
+      prefix,
       route: config.route,
       urlWritable: embed.observed?.urlWritable,
     })
@@ -97,7 +173,7 @@ function Atlas() {
   // One name for the one decision: it picks the router below AND is the `linkable` mode axis
   // handed to the tree. Deriving both from the same const is what stops a later reader from
   // answering "is our route in the URL?" a second, divergent way.
-  const linkable = mount.current.mode === 'query'
+  const linkable = mount.current.mode === 'query' || mount.current.mode === 'path'
   const hasMap = config.map
 
   // The widget scopes its theme to this wrapper so it never mutates the host page's <html>. Set
@@ -201,7 +277,7 @@ function Atlas() {
   // Never switches after the first render — `mount` is a ref — so this can't remount the tree
   // mid-session.
   return (
-    <AtlasRouter mode={mount.current.mode} path={mount.current.path}>
+    <AtlasRouter mode={mount.current.mode} path={mount.current.path} prefix={mount.current.prefix}>
       {atlas}
     </AtlasRouter>
   )

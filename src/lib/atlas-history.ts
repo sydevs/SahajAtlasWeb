@@ -2,7 +2,14 @@ import type { Location, NavigationType, Navigator, To } from 'react-router'
 
 import { createPath, parsePath } from 'react-router'
 
-import { ROUTE_PARAM, hrefFor, routeFromParam, routeToParam } from './shape/routing'
+import {
+  ROUTE_PARAM,
+  hrefFor,
+  pathHrefFor,
+  routeFromParam,
+  routeFromPathname,
+  routeToParam,
+} from './shape/routing'
 
 /**
  * A react-router `History` that keeps the widget's route in a query parameter on the host page
@@ -55,6 +62,40 @@ function toLocation(route: string, state: AtlasState): Location {
   return { pathname, search, hash, state: state.usr ?? null, key: state.key }
 }
 
+/**
+ * Where the route lives in the host's URL — the only difference between the two URL-backed modes.
+ *
+ * The history's mechanics are identical either way: mint a key per entry, namespace our slice of
+ * `history.state`, never write an identical URL, keep the tree consistent when a write is refused.
+ * Only *reading* the route out of a URL and *composing* one back into it differ, so those two
+ * functions are the seam rather than a second history.
+ */
+export type RouteShape = {
+  /** The route currently in the URL, or `undefined` when this URL names none. */
+  read(win: Window): string | undefined
+  /** The absolute URL that would carry `route`. */
+  href(win: Window, route: string): string
+}
+
+/** `?atlas=/gb/london` on the host's own page — the default. */
+export const queryShape: RouteShape = {
+  read: (win) => routeFromParam(win.location.search),
+  href: (win, route) => hrefFor(win.location.href, route),
+}
+
+/**
+ * `/{prefix}/gb/london` — the host has dedicated a path subtree to the widget.
+ *
+ * ⚠ `read` returns `undefined` when the page is served outside `prefix`, and the caller falls back
+ * to the boot route rather than rendering nothing. `mountDecision` has already refused to enter
+ * path mode at all if the FIRST read misses; this covers a host that navigates their own SPA out
+ * from under us afterwards.
+ */
+export const pathShape = (prefix: string): RouteShape => ({
+  read: (win) => routeFromPathname(win.location.pathname, prefix, win.location.search),
+  href: (win, route) => pathHrefFor(win.location.href, route, prefix),
+})
+
 export type QueryHistoryOptions = {
   /** Injected so the whole thing is drivable in a test without a global. */
   window?: Window
@@ -66,11 +107,14 @@ export type QueryHistoryOptions = {
    * answer there is the route the widget booted at — not the root, which the visitor never chose.
    */
   initialPath: string
+  /** Where the route lives. Defaults to the query parameter. */
+  shape?: RouteShape
 }
 
 export function createQueryHistory({
   window: win = window,
   initialPath,
+  shape = queryShape,
 }: QueryHistoryOptions): AtlasHistory {
   let index = 0
   let listener: ((update: { action: NavigationType; location: Location }) => void) | null = null
@@ -102,7 +146,7 @@ export function createQueryHistory({
   function readLocation(): Location {
     // The parameter first, then the embed's default. Never the root as a silent fallback — see
     // `initialPath`.
-    return toLocation(routeFromParam(win.location.search) ?? initialPath, currentState())
+    return toLocation(shape.read(win) ?? initialPath, currentState())
   }
 
   let location = readLocation()
@@ -110,7 +154,7 @@ export function createQueryHistory({
 
   function navigate(to: To, state: unknown, replace: boolean) {
     const route = typeof to === 'string' ? to : createPath(to)
-    const url = hrefFor(win.location.href, route)
+    const url = shape.href(win, route)
 
     // ⚠ Never write an identical URL. React-router will happily push a duplicate entry, and the
     // visible symptom is a Back press that appears to do nothing — the filter and sort writers
@@ -153,7 +197,7 @@ export function createQueryHistory({
      * for absolute-over-relative is in `hrefFor`.
      */
     createHref(to: To) {
-      return hrefFor(win.location.href, typeof to === 'string' ? to : createPath(to))
+      return shape.href(win, typeof to === 'string' ? to : createPath(to))
     },
 
     createURL(to: To) {
@@ -187,7 +231,7 @@ export function createQueryHistory({
         const state = currentState()
 
         action = 'POP' as NavigationType
-        location = toLocation(routeFromParam(win.location.search) ?? initialPath, state)
+        location = toLocation(shape.read(win) ?? initialPath, state)
         index = state.idx
         fn({ action, location })
       }

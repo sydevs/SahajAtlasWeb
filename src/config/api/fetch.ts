@@ -626,6 +626,8 @@ const getClient = async () => {
         allowedDomains: true,
         clientId: true,
         region: true,
+        // `routing=path` reads its prefix out of `canonical.embed` — see `mountPrefix`.
+        canonical: true,
       },
       populate: { regions: { slug: true, name: true, level: true, webPath: true, webUrl: true } },
     },

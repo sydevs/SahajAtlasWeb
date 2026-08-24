@@ -37,8 +37,8 @@ import { safePath } from './path'
  */
 export const ROUTE_PARAM = 'atlas'
 
-/** How the widget's route reaches the URL. `path` is not implemented yet — see `mountDecision`. */
-export type RouterMode = 'query' | 'memory'
+/** How the widget's route reaches the URL. */
+export type RouterMode = 'query' | 'path' | 'memory'
 
 export type MountDecision = {
   mode: RouterMode
@@ -48,13 +48,16 @@ export type MountDecision = {
    * The URL shape actually in effect — what an observer of this page would *find*, as opposed to
    * the `routing` parameter, which is what somebody asked for (#153).
    *
-   * The two differ, and this is the only place that knows it: `routing=path` is accepted here and
-   * not honoured, so a widget configured for it query-routes anyway. The readiness marker attests
-   * this value, and a marker carrying a request rather than a finding is worth nothing to the
-   * verifier reading it. Memory is a degradation of the query shape rather than a third shape —
-   * the route is not in the URL at all, which the marker says through `urlWritable` instead.
+   * The two differ whenever `path` was asked for and could not be honoured — no prefix on the
+   * client record, or a page served outside it — in which case this reads `query` and `warning`
+   * says why. The readiness marker attests this value, and a marker carrying a request rather than
+   * a finding is worth nothing to the verifier reading it. Memory is a degradation of the query
+   * shape rather than a third shape — the route is not in the URL at all, which the marker says
+   * through `urlWritable` instead.
    */
   routing: 'query' | 'path'
+  /** The resolved path prefix, when `mode === 'path'`. The router composes hrefs from it. */
+  prefix?: string
   /**
    * Did `path` come from the PAGE's `?atlas=`, rather than the embed's configured default?
    *
@@ -121,18 +124,21 @@ export function mountDecision(input: {
   routing: 'query' | 'path'
   /** `window.location.search` of the host page. */
   search: string | null | undefined
+  /** `window.location.pathname` of the host page. Only read in path mode. */
+  pathname?: string
+  /**
+   * The path prefix for `path` routing, from the client record's `canonical.embed`.
+   *
+   * `undefined` means the record has not arrived, or supplies nothing usable. Path mode cannot be
+   * honoured without it — see the fallback below.
+   */
+  prefix?: string
   /** The embed's default route, already resolved by the loader (page wins over script). */
   route?: string
   /** Whether the URL can be written at all. `undefined` means nobody probed — assume it can. */
   urlWritable?: boolean
 }): MountDecision {
-  const { routing, search, route, urlWritable } = input
-
-  const warning =
-    routing === 'path'
-      ? 'routing=path is not available yet — the widget is using query routing instead. ' +
-        'The path prefix comes from your client record, which is not wired up yet.'
-      : undefined
+  const { routing, search, pathname, prefix, route, urlWritable } = input
 
   // A route already in the page's URL always wins: that visitor deep-linked or followed a shared
   // link, and the embed's default is only ever an answer to "nobody asked for anything".
@@ -142,20 +148,186 @@ export function mountDecision(input: {
   // cannot be derived by comparing against `route` — the loader's `resolveRoute` has already
   // folded the page route into it.
   const pageRoute = routeFromParam(search)
-  const path = pageRoute ?? route ?? '/'
-  const fromPage = pageRoute !== undefined
 
-  // Constant while `path` is accepted-but-not-honoured, and deliberately stated here rather than
-  // at the two places that consume it. The warning above and this field are the same fact said
-  // twice — one to the host, one to the verifier — so when path routing does arrive, it arrives
-  // in this function and both follow.
-  const effective = 'query' as const
-
+  // ⚠ Memory beats everything, including path. A route we cannot write is a route nobody can link
+  // to, so mounting any URL-backed router over it would fail on the visitor's first click rather
+  // than at boot.
   if (urlWritable === false) {
-    return { mode: 'memory', path, routing: effective, fromPage, warning }
+    return {
+      mode: 'memory',
+      path: pageRoute ?? route ?? '/',
+      routing: 'query',
+      fromPage: pageRoute !== undefined,
+    }
   }
 
-  return { mode: 'query', path, routing: effective, fromPage, warning }
+  if (routing === 'path') {
+    // The record has not arrived, or carries no usable mount. Both are the same answer — fall back
+    // to query and SAY SO — because a routing mode that silently behaves as a different one is how
+    // a host concludes their server config is working when nothing is using it.
+    if (prefix === undefined) {
+      return {
+        mode: 'query',
+        path: pageRoute ?? route ?? '/',
+        routing: 'query',
+        fromPage: pageRoute !== undefined,
+        warning:
+          'routing=path needs a canonical embed on your client record to know which path prefix ' +
+          'the widget is mounted under. The widget is using query routing instead.',
+      }
+    }
+
+    const fromPath = routeFromPathname(pathname ?? '/', prefix, search)
+
+    // ⚠ The basename miss (#92), caught rather than handed to react-router — whose `Router`
+    // renders `null` on one, silently, which is a blank widget on somebody's page.
+    if (fromPath === undefined) {
+      return {
+        mode: 'query',
+        path: pageRoute ?? route ?? '/',
+        routing: 'query',
+        fromPage: pageRoute !== undefined,
+        warning:
+          `routing=path expected this page to be served under "${prefix}", and it is not. ` +
+          'The widget is using query routing instead — check that the canonical embed on your ' +
+          'client record names the page the widget is actually mounted on.',
+      }
+    }
+
+    // In path mode the pathname IS the route, so it always came from the page. There is no
+    // "nobody asked" state to fall back to a configured default from: the host's server chose to
+    // serve us this URL.
+    return { mode: 'path', path: fromPath, routing: 'path', fromPage: fromPath !== '/', prefix }
+  }
+
+  return {
+    mode: 'query',
+    path: pageRoute ?? route ?? '/',
+    routing: 'query',
+    fromPage: pageRoute !== undefined,
+  }
+}
+
+/**
+ * The path prefix a `path`-routed widget lives under, from the client record's `canonical.embed`.
+ *
+ * `canonical.embed` is a **mount key** — an origin joined to a pathname, as `splitMountKey` records
+ * it on the SahajCloud side (`wemeditate.com/map`). Only the path half is ours; the origin half is
+ * whatever host reported that embed, which is not necessarily the host we are running on right now
+ * (a client may have several embeds and nominate one). So this reads the path and ignores the rest
+ * rather than trying to match origins — being on the wrong host is a canonical-ownership question,
+ * answered in the CMS, not a routing one.
+ *
+ * Returns `''` for a root mount, and `undefined` when there is nothing usable — which the caller
+ * must treat as "cannot honour path routing" rather than as "mount at the root". Those are
+ * different: a widget that silently roots itself at `/` on a host serving it under `/map` would
+ * read every visitor's URL as a route it does not recognise.
+ */
+export function mountPrefix(embed: string | null | undefined): string | undefined {
+  if (typeof embed !== 'string' || embed.trim() === '') return undefined
+
+  // Tolerate a scheme even though the stored form has none — an operator pasting a full URL into
+  // the picker is the obvious mistake, and refusing it would be a silent fallback to query.
+  const withoutScheme = embed.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+  const slash = withoutScheme.indexOf('/')
+
+  if (slash === -1) return ''
+
+  // Everything from the first slash is the mount path. Strip a trailing slash so the prefix
+  // composes as `${prefix}${route}` with the route's own leading slash and never doubles it.
+  const path = withoutScheme.slice(slash).replace(/\/+$/, '')
+
+  // The same guard every other server-provided path goes through. A mount is a route prefix that
+  // ends up in an `<a href>`, so `//evil.com` and the tab/LF/CR forms are refused here too.
+  if (path === '') return ''
+
+  return safePath(path) === undefined ? undefined : path
+}
+
+/**
+ * The widget's route, read out of the host page's pathname under `prefix`.
+ *
+ * ⚠ **A miss returns `undefined`, and the caller must not render.** This is #92's blank widget in
+ * its second incarnation: react-router's `Router` returns `null` on a basename miss, silently, so a
+ * host whose server serves our page from outside the configured prefix would show nothing at all
+ * with every gate green. Reporting it and degrading is the whole reason this is ours rather than
+ * `Router`'s `basename`.
+ */
+export function routeFromPathname(
+  pathname: string,
+  prefix: string,
+  search?: string | null,
+): string | undefined {
+  if (prefix !== '' && !pathname.startsWith(prefix)) return undefined
+
+  // A prefix must match on a segment boundary: `/mapped` is not inside `/map`.
+  const rest = pathname.slice(prefix.length)
+
+  if (prefix !== '' && rest !== '' && !rest.startsWith('/')) return undefined
+
+  const route = rest === '' ? '/' : rest
+
+  if (safePath(route) === undefined) return undefined
+
+  // ⚠ The widget's own query rides on the REAL query string in path mode, unlike query mode where
+  // the whole route including its search is packed into one parameter. That is the trade path mode
+  // exists to make: the host has dedicated this URL space to the widget, so clean paths mean the
+  // filters are readable too. Foreign params are preserved on write (`pathHrefFor`), so a host's
+  // own `?utm_source` survives a navigation.
+  const own = ownSearch(search)
+
+  return own === '' ? route : `${route}?${own}`
+}
+
+/**
+ * The widget's own parameters, filtered out of a host page's query string.
+ *
+ * We never claim a param we do not own: anything not in this list belongs to the host and is
+ * neither read into the route nor dropped when we write.
+ */
+const WIDGET_PARAMS = new Set(['q', 'center', 'bbox', 'cc', 'sort', 'filters', 'locale'])
+
+function ownSearch(search: string | null | undefined): string {
+  try {
+    const params = new URLSearchParams(search ?? '')
+    const mine = new URLSearchParams()
+
+    for (const [key, value] of params) if (WIDGET_PARAMS.has(key)) mine.append(key, value)
+
+    return mine.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * The absolute URL for a widget route under `prefix`, on the host's own page — path mode's
+ * counterpart to {@link hrefFor}.
+ *
+ * Same three guarantees as the query form: absolute (so middle-click and "copy link" work and a
+ * `<base href>` cannot redirect it), the host's foreign parameters preserved, and ours replaced
+ * rather than appended. The difference is only where the route lives.
+ */
+export function pathHrefFor(href: string, route: string, prefix: string): string {
+  try {
+    const url = new URL(href)
+    const [routePath, routeSearch = ''] = route.split('?')
+
+    url.pathname = `${prefix}${routePath === '/' && prefix !== '' ? '' : routePath}`
+
+    // Drop only our own params, then re-add whatever this route carries. A host param the widget
+    // has never heard of survives untouched, which is the same courtesy `hrefFor` extends.
+    const params = new URLSearchParams(url.search)
+
+    for (const key of WIDGET_PARAMS) params.delete(key)
+    for (const [key, value] of new URLSearchParams(routeSearch)) params.append(key, value)
+
+    url.search = params.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
+
+    return url.toString()
+  } catch {
+    return ''
+  }
 }
 
 /**

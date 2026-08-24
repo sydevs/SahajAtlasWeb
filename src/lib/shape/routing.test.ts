@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { ROUTE_PARAM, hrefFor, mountDecision, routeFromParam, routeToParam } from './routing'
+import {
+  ROUTE_PARAM,
+  hrefFor,
+  mountDecision,
+  mountPrefix,
+  pathHrefFor,
+  routeFromParam,
+  routeFromPathname,
+  routeToParam,
+} from './routing'
 
 const HOST = 'https://host.example/classes'
 
@@ -193,19 +202,166 @@ describe('mountDecision', () => {
   })
 
   describe('routing=path', () => {
-    it('falls back to query', () => {
-      expect(mountDecision({ routing: 'path', search: '' }).mode).toBe('query')
+    const PATH = {
+      routing: 'path',
+      search: '',
+      pathname: '/map/gb/london',
+      prefix: '/map',
+    } as const
+
+    it('mounts in path mode once a prefix is known', () => {
+      const decision = mountDecision(PATH)
+
+      expect(decision.mode).toBe('path')
+      expect(decision.routing).toBe('path')
+      expect(decision.path).toBe('/gb/london')
+      expect(decision.prefix).toBe('/map')
+      expect(decision.warning).toBeUndefined()
     })
 
-    it('carries a warning naming what happened', () => {
-      const { warning } = mountDecision({ routing: 'path', search: '' })
+    it('reads the root of the subtree as the root route', () => {
+      expect(mountDecision({ ...PATH, pathname: '/map' }).path).toBe('/')
+      expect(mountDecision({ ...PATH, pathname: '/map/' }).path).toBe('/')
+    })
 
-      expect(warning).toMatch(/routing=path/)
-      expect(warning).toMatch(/query routing/)
+    it('carries the widget’s own params through, and leaves the host’s alone', () => {
+      const decision = mountDecision({
+        ...PATH,
+        pathname: '/map/search',
+        search: '?utm_source=news&center=4.9,52.3',
+      })
+
+      expect(decision.path).toBe('/search?center=4.9,52.3')
+    })
+
+    // ⚠ Without a prefix path mode cannot be honoured at all — the record has not arrived, or the
+    // client has no canonical embed. Falling back silently is the failure this whole branch of
+    // `mountDecision` exists to avoid.
+    it('falls back to query, loudly, when no prefix is available', () => {
+      const decision = mountDecision({ routing: 'path', search: '', pathname: '/map' })
+
+      expect(decision.mode).toBe('query')
+      expect(decision.routing).toBe('query')
+      expect(decision.warning).toMatch(/canonical embed/)
+    })
+
+    // ⚠ #92's blank widget in its second form: react-router renders `null` on a basename miss,
+    // silently. We refuse to enter path mode instead, and say which prefix we expected.
+    it('falls back to query, loudly, when the page is outside the prefix', () => {
+      const decision = mountDecision({ ...PATH, pathname: '/blog/post' })
+
+      expect(decision.mode).toBe('query')
+      expect(decision.warning).toContain('/map')
+    })
+
+    it('refuses a prefix that only looks like a match at the string level', () => {
+      // `/mapped` is not inside `/map`. A prefix has to land on a segment boundary.
+      expect(mountDecision({ ...PATH, pathname: '/mapped/gb' }).mode).toBe('query')
+    })
+
+    // Memory is a degradation of the URL itself, so it outranks a mode that needs to write one.
+    it('is outranked by an unwritable URL', () => {
+      expect(mountDecision({ ...PATH, urlWritable: false }).mode).toBe('memory')
     })
 
     it('says nothing when query was what was asked for', () => {
       expect(mountDecision({ routing: 'query', search: '' }).warning).toBeUndefined()
     })
+  })
+})
+
+describe('mountPrefix', () => {
+  it('takes the path half of a mount key and ignores the host', () => {
+    expect(mountPrefix('wemeditate.com/map')).toBe('/map')
+  })
+
+  it('tolerates a pasted full URL, because that is the obvious operator mistake', () => {
+    expect(mountPrefix('https://wemeditate.com/map')).toBe('/map')
+  })
+
+  it('normalises a trailing slash away, so the prefix never doubles the route’s own', () => {
+    expect(mountPrefix('wemeditate.com/map/')).toBe('/map')
+  })
+
+  it('reads a root mount as the empty prefix, not as absent', () => {
+    // '' and undefined mean very different things downstream: mount at the root, versus cannot
+    // honour path routing at all.
+    expect(mountPrefix('sahajayoga.nl')).toBe('')
+    expect(mountPrefix('sahajayoga.nl/')).toBe('')
+  })
+
+  it('is absent for an absent or blank embed', () => {
+    expect(mountPrefix(undefined)).toBeUndefined()
+    expect(mountPrefix(null)).toBeUndefined()
+    expect(mountPrefix('   ')).toBeUndefined()
+  })
+
+  // The mount ends up in an `<a href>`, so it takes the same guard every other server-provided
+  // path takes — `safePath`, whose hostile table pins these exact shapes.
+  it.each(['host.example//evil.com', 'host.example/\\evil.com', 'host.example/\tevil'])(
+    'refuses a mount that is not a safe site-relative path: %j',
+    (embed) => {
+      expect(mountPrefix(embed)).toBeUndefined()
+    },
+  )
+})
+
+describe('routeFromPathname', () => {
+  it('strips the prefix', () => {
+    expect(routeFromPathname('/map/gb/london', '/map')).toBe('/gb/london')
+  })
+
+  it('works with an empty prefix (a root mount)', () => {
+    expect(routeFromPathname('/gb/london', '')).toBe('/gb/london')
+  })
+
+  it('is undefined outside the prefix, never a best guess', () => {
+    expect(routeFromPathname('/blog', '/map')).toBeUndefined()
+    expect(routeFromPathname('/mapped/gb', '/map')).toBeUndefined()
+  })
+
+  it('picks up only the widget’s own query params', () => {
+    expect(routeFromPathname('/map/search', '/map', '?utm=x&sort=distance&q=Lille')).toBe(
+      '/search?sort=distance&q=Lille',
+    )
+  })
+})
+
+describe('pathHrefFor', () => {
+  const PAGE = 'https://wemeditate.com/map/gb?utm_source=news'
+
+  it('composes an absolute URL under the prefix', () => {
+    expect(pathHrefFor(PAGE, '/nl/amsterdam', '/map')).toBe(
+      'https://wemeditate.com/map/nl/amsterdam?utm_source=news',
+    )
+  })
+
+  it('keeps the host’s foreign params — the audience for this feature runs WordPress', () => {
+    expect(pathHrefFor('https://host.example/m/gb?p=123', '/nl', '/m')).toContain('p=123')
+  })
+
+  it('replaces our own params rather than appending them', () => {
+    const href = pathHrefFor(
+      'https://host.example/m/search?sort=distance',
+      '/search?sort=soonest',
+      '/m',
+    )
+
+    expect(href).toContain('sort=soonest')
+    expect(href).not.toContain('sort=distance')
+  })
+
+  it('drops our params when the new route carries none', () => {
+    expect(pathHrefFor('https://host.example/m/search?q=Lille', '/nl', '/m')).not.toContain('q=')
+  })
+
+  it('roots correctly at the prefix itself', () => {
+    expect(pathHrefFor('https://wemeditate.com/map/gb', '/', '/map')).toBe(
+      'https://wemeditate.com/map',
+    )
+  })
+
+  it('returns empty for a URL that will not parse, like its query counterpart', () => {
+    expect(pathHrefFor('not a url', '/nl', '/map')).toBe('')
   })
 })

@@ -21,5 +21,22 @@ export const ClientSchema = z.object({
   allowedDomains: z.string().nullish(),
   clientId: z.string().nullish(),
   region: z.union([RegionRefSchema, z.number(), z.null()]).optional(),
+  /**
+   * Canonical ownership (SahajCloud #635). The widget reads exactly one thing from it: `embed`,
+   * the mount key naming the page whose URLs this client owns, which is where `routing=path`
+   * gets its prefix (`mountPrefix`, `lib/shape/routing.ts`).
+   *
+   * ⚠ **Everything here is nullish on purpose, including the group.** Canonical ownership is off
+   * by default, `embed` is only required once it is switched on, and a client key may not be
+   * granted the field at all. Path routing degrades to query with a console warning in every one
+   * of those cases, so a missing field must parse rather than fail the whole client read — which
+   * would blank the widget over a feature it is not using.
+   */
+  canonical: z
+    .object({
+      enabled: z.boolean().nullish(),
+      embed: z.string().nullish(),
+    })
+    .nullish(),
 })
 export type Client = z.infer<typeof ClientSchema>
