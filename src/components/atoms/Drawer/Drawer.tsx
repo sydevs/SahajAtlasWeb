@@ -79,9 +79,12 @@ const drawer = tv({
       // off-screen. The 3dvh bottom padding keeps the footer above the fold at the
       // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
       bottom: {
-        content: 'inset-x-0 bottom-0 h-dvh rounded-t-2xl border-t border-divider pb-[3dvh]',
+        content:
+          'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[3dvh]',
       },
-      top: { content: 'inset-x-0 top-0 h-dvh rounded-b-2xl border-b border-divider' },
+      top: {
+        content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
+      },
     },
     // How the panel relates to its container. These were two independent booleans
     // (`contained` + `full`), but only two of the four states were ever
@@ -159,6 +162,12 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   setActiveSnapPoint?: (snapPoint: number | string | null) => void
   /** Portal target (map-less passes the widget container; default is the theme root). */
   container?: HTMLElement | null
+  /**
+   * The box vaul measures snap points against. **Not the same question as `container`**, and
+   * conflating them inverts the sheet — see the note on `rootProps` below. Omit to measure the
+   * window, which is right for every mount except inside the expanded dialog.
+   */
+  measureAgainst?: HTMLElement | null
   children: ReactNode
 }
 
@@ -176,6 +185,7 @@ export function Drawer({
   activeSnapPoint,
   setActiveSnapPoint,
   container,
+  measureAgainst,
   children,
 }: DrawerProps) {
   const slots = drawer({ direction, mode, wide })
@@ -183,6 +193,23 @@ export function Drawer({
   // Pass snap props unconditionally (undefined = no snap points) so the
   // WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
   const rootProps = {
+    // ⚠ vaul measures the CONTAINER when given one and `window.innerHeight` otherwise
+    // (`snapPointsOffset`, vaul dist). Passing one is what makes a fractional snap point correct
+    // inside `CompactEmbedView`'s dialog, which keeps a margin and so is 16–32px shorter than the
+    // window — without it the near-full snap sat that far out and the sheet overran the clip edge.
+    //
+    // ⚠ **But it must be a box, and the portal target is not always one.** This briefly passed
+    // `container` — the element we portal into — on the reasoning that measuring the box we render
+    // in cannot be wrong. Embedded, that element is the theme root, which is `display: contents`
+    // (`Widget.tsx`) and therefore measures **0×0**; standalone it is `<html>`, which in map mode
+    // holds nothing but `position: fixed` children and measured **195px against an 844px
+    // viewport**. Every snap offset is `containerSize.height - height`, so at zero the ladder
+    // `['80px','300px',0.97]` becomes `[-80,-300,0]` instead of `[764,544,25]` — the sheet
+    // translates UP off the bottom and covers the top of the screen. That is the default phone
+    // experience of a map embed, and lint, typecheck and all 1263 unit specs stay green through it.
+    //
+    // So the measurement box is its own prop, and only the expanded dialog ever supplies one.
+    container: measureAgainst ?? undefined,
     direction,
     dismissible,
     handleOnly,
@@ -233,6 +260,16 @@ export type DrawerContentProps = {
   className?: string
   /** Show the drag handle. Defaults to true for bottom sheets (never when filled). */
   handle?: boolean
+  /**
+   * Escape, before vaul acts on it.
+   *
+   * Forwarded to the underlying Radix dialog, which delivers the key to the TOPMOST
+   * dismissable layer only — a drawer is always that layer, so nothing outside it can see
+   * Escape while it is open. `preventDefault()` stops vaul dismissing and hands the key to
+   * this handler instead, which is the only way anything containing the drawer can ever
+   * receive it (issue #161).
+   */
+  onEscapeKeyDown?: (event: KeyboardEvent) => void
 }
 
 /** The portaled, positioned drawer panel. Compose Header/Body/Footer inside. */
@@ -241,6 +278,7 @@ export function DrawerContent({
   children,
   className,
   handle,
+  onEscapeKeyDown,
 }: DrawerContentProps) {
   const { slots, direction, mode, container } = useDrawerSlots()
 
@@ -250,7 +288,11 @@ export function DrawerContent({
 
   return (
     <Vaul.Portal container={target ?? undefined}>
-      <Vaul.Content aria-describedby={undefined} className={slots.content({ className })}>
+      <Vaul.Content
+        aria-describedby={undefined}
+        className={slots.content({ className })}
+        onEscapeKeyDown={onEscapeKeyDown}
+      >
         {/* Single Radix title, sr-only — the visible header (if any) is a separate
             child, so we never render two <Dialog.Title>s. */}
         <Vaul.Title className="sr-only">{ariaLabel}</Vaul.Title>

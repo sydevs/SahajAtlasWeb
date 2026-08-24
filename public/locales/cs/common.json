@@ -159,5 +159,8 @@
   "map": {
     "find_my_location": "Najít mou polohu",
     "location_not_available": "Poloha není dostupná"
+  },
+  "compact": {
+    "open": "Najděte kurz ve svém okolí"
   }
 }

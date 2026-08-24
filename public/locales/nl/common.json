@@ -159,5 +159,8 @@
   "map": {
     "find_my_location": "Mijn locatie zoeken",
     "location_not_available": "Locatie niet beschikbaar"
+  },
+  "compact": {
+    "open": "Vind een les bij jou in de buurt"
   }
 }

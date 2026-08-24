@@ -1,87 +1,151 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  BOXED_SLOT_RATIO,
-  NARROW_SLOT_RATIO,
-  SLOT_WARNING_MESSAGE,
-  mapSlotWarning,
+  COMPACT_MESSAGE,
+  MIN_INTERFACE_HEIGHT_PX,
+  MIN_INTERFACE_WIDTH_PX,
+  SLOT_GAIN,
+  embedLayout,
+  resolveDestination,
 } from './embed-slot'
 
-// Map mode requires a full-page slot (issue #107). This predicate is what makes that
-// requirement audible instead of leaving the host to discover it as a widget painting over
-// their page. It warns into a stranger's console, so the cases that must NOT fire matter
-// more here than the ones that must.
+const box = (width: number, height: number) => ({ width, height })
 
-const FULL_PAGE = {
-  slotWidth: 1440,
-  elementHeight: 0,
-  viewportWidth: 1440,
-  viewportHeight: 900,
-}
+const DESKTOP = box(1440, 900)
+const PHONE = box(375, 667)
 
-describe('mapSlotWarning — stays quiet', () => {
-  it('for a full-page slot', () => {
-    expect(mapSlotWarning(FULL_PAGE)).toBeNull()
+describe('resolveDestination', () => {
+  it('offers the in-page overlay when the viewport is meaningfully bigger than the slot', () => {
+    expect(resolveDestination(box(300, 400), DESKTOP, DESKTOP, false)).toEqual({ kind: 'overlay' })
   })
 
-  // A host that DID size the element, but to the full page — `height: 100vh` on the embed is
-  // a perfectly good map-mode integration and must not be scolded for being explicit.
-  it.each([900, 880, 1200])('for an element %ipx tall on a 900px viewport', (elementHeight) => {
-    expect(mapSlotWarning({ ...FULL_PAGE, elementHeight })).toBeNull()
+  it('offers nothing when the slot already IS the viewport and we are top-level', () => {
+    // The standalone build's own case, and a phone: there is no bigger box to expand into, so
+    // degrading would take the interface away and hand back nothing.
+    expect(resolveDestination(PHONE, PHONE, box(390, 844), false)).toEqual({ kind: 'none' })
   })
 
-  // A centred layout, body margins, a scrollbar, a padded article column — all normal, none
-  // of them an integration mistake. The threshold is slack on purpose.
-  it.each([1440, 1200, 1000, 900])(
-    'for a host column of %ipx on a 1440px viewport',
-    (slotWidth) => {
-      expect(mapSlotWarning({ ...FULL_PAGE, slotWidth })).toBeNull()
-    },
-  )
-
-  // Before layout, in a hidden tab, or in a detached test harness. A widget that cannot be
-  // measured is not a widget that is wrong.
-  it.each([
-    { viewportWidth: 0, viewportHeight: 0 },
-    { viewportWidth: Number.NaN, viewportHeight: Number.NaN },
-    { slotWidth: 0, elementHeight: 0 },
-  ])('when the metrics are not yet real (%p)', (partial) => {
-    expect(mapSlotWarning({ ...FULL_PAGE, ...partial })).toBeNull()
-  })
-})
-
-describe('mapSlotWarning — reports', () => {
-  it('a sidebar column', () => {
-    expect(mapSlotWarning({ ...FULL_PAGE, slotWidth: 320 })).toBe('narrow')
+  it('offers a new tab when a frame is meaningfully smaller than the screen', () => {
+    // The live reference shape: a small hand-written iframe on a desktop page.
+    expect(resolveDestination(box(320, 480), box(320, 480), DESKTOP, true)).toEqual({
+      kind: 'link',
+    })
   })
 
-  it('an element the host gave its own height', () => {
-    expect(mapSlotWarning({ ...FULL_PAGE, elementHeight: 640 })).toBe('boxed')
+  it('prefers the overlay over the link when the frame is roomy', () => {
+    // A web component inside a GENEROUSLY sized iframe — page builders and CMS previews make
+    // these. Discriminating on "am I framed" would send this visitor off-site while a
+    // 1200×800 overlay sat available.
+    expect(resolveDestination(box(300, 400), box(1200, 800), DESKTOP, true)).toEqual({
+      kind: 'overlay',
+    })
   })
 
-  // Both wrong at once is one message, and it is the more actionable one: the mode is the
-  // mistake, not the height.
-  it('the column first when a slot is both narrow and boxed', () => {
-    expect(mapSlotWarning({ ...FULL_PAGE, slotWidth: 320, elementHeight: 640 })).toBe('narrow')
+  it('offers nothing when the screen reports the content window (anti-fingerprinting)', () => {
+    // Firefox `resistFingerprinting` and Safari Lockdown make `screen.*` report the content
+    // window, so `screen ≈ viewport` and no destination resolves. Named explicitly because the
+    // degradation is SILENT: the embed stays full and cramped rather than erroring.
+    expect(resolveDestination(box(320, 480), box(320, 480), box(320, 480), true)).toEqual({
+      kind: 'none',
+    })
   })
 
-  it('every case with a message that names the fix', () => {
-    for (const message of Object.values(SLOT_WARNING_MESSAGE)) {
-      expect(message).toContain('map="false"')
-    }
+  it('ignores an axis nothing could measure', () => {
+    // Map mode measures no height — at first render the element is still empty — so a
+    // predicate requiring both axes would never fire in the mode this exists to serve.
+    expect(resolveDestination(box(300, 0), DESKTOP, DESKTOP, false)).toEqual({ kind: 'overlay' })
+    expect(resolveDestination(box(0, 0), DESKTOP, DESKTOP, false)).toEqual({ kind: 'none' })
   })
 })
 
-describe('the thresholds', () => {
-  // Pinned as a ratchet: LOOSENING either one is a decision to warn more strangers, and
-  // should be a visible line in a diff rather than a nudged constant.
-  //
-  // Not "slack enough that no normal page trips them" — 0.6 does fire for a centred
-  // `max-w-3xl` article column on a 1440px viewport. That is a CORRECT warning by this
-  // feature's own definition (map mode would paint over exactly that page), not a false
-  // positive; the slackness is about not warning a full-page embed that merely has margins.
-  it('cannot be loosened without saying so', () => {
-    expect(NARROW_SLOT_RATIO).toBeLessThanOrEqual(0.6)
-    expect(BOXED_SLOT_RATIO).toBeLessThanOrEqual(0.8)
+describe('embedLayout', () => {
+  const overlay = { kind: 'overlay' } as const
+  const none = { kind: 'none' } as const
+
+  it('keeps the full interface when there is nowhere bigger to go', () => {
+    expect(embedLayout({ hasMap: false, slot: box(300, 400), destination: none })).toEqual({
+      layout: 'full',
+    })
+  })
+
+  describe('map mode, where owning the viewport IS the question', () => {
+    it.each([
+      ['a 768px article column', box(768, 0)],
+      ['a 1000px content column — silent before this change', box(1000, 0)],
+      ['a host-written height:640px in a 900 viewport', box(1440, 640)],
+    ])('degrades %s to the card rather than painting over the page', (_label, slot) => {
+      expect(embedLayout({ hasMap: true, slot, destination: overlay })).toEqual({
+        layout: 'compact',
+        reason: 'map',
+      })
+    })
+
+    it('stays full when the map owns its viewport, however small that viewport is', () => {
+      // A framed map embed at 400×600: `position: fixed` resolves against the FRAME and
+      // `window.innerHeight` IS the frame's height, so every argument behind "map mode needs a
+      // full-page slot" is already satisfied. The frame is a viewport, just a small one.
+      expect(embedLayout({ hasMap: true, slot: box(400, 600), destination: none })).toEqual({
+        layout: 'full',
+      })
+    })
+  })
+
+  describe('map-less, which is container-relative and needs the absolute floor too', () => {
+    it('keeps the full interface in a box that merely has room above it', () => {
+      // Container-relative by design (#107): a 500px column on a desktop is a perfectly good
+      // map-less embed even though an overlay would be bigger.
+      expect(embedLayout({ hasMap: false, slot: box(500, 600), destination: overlay })).toEqual({
+        layout: 'full',
+      })
+    })
+
+    it('keeps the live 400×600 reference embed at full size', () => {
+      expect(embedLayout({ hasMap: false, slot: box(400, 600), destination: overlay })).toEqual({
+        layout: 'full',
+      })
+    })
+
+    it('degrades below either floor', () => {
+      expect(embedLayout({ hasMap: false, slot: box(300, 600), destination: overlay })).toEqual({
+        layout: 'compact',
+        reason: 'floors',
+      })
+      expect(embedLayout({ hasMap: false, slot: box(500, 300), destination: overlay })).toEqual({
+        layout: 'compact',
+        reason: 'floors',
+      })
+    })
+
+    it('does not degrade a padded phone layout', () => {
+      // 327px inside a 375px phone is a normal page with 24px of padding. `MIN_EXPANSION_GAIN`
+      // at 0.9 called this cramped and shipped a card over a working embed; at 0.8 the phone
+      // resolves to no destination at all, so the floors never get asked.
+      const destination = resolveDestination(box(327, 620), PHONE, box(390, 844), false)
+
+      expect(embedLayout({ hasMap: false, slot: box(327, 620), destination })).toEqual({
+        layout: 'full',
+      })
+    })
+  })
+})
+
+describe('the constants, ratcheted', () => {
+  it('holds SLOT_GAIN in both directions', () => {
+    // Raising it degrades more embeds that are working; lowering it re-silences the map-mode
+    // takeover a 1000px column produces. Both directions are regressions, so both are pinned.
+    expect(SLOT_GAIN).toBe(0.8)
+  })
+
+  it('does not let the interface floors drift upward', () => {
+    expect(MIN_INTERFACE_WIDTH_PX).toBeLessThanOrEqual(360)
+    expect(MIN_INTERFACE_HEIGHT_PX).toBeLessThanOrEqual(420)
+  })
+
+  it('names the measured size and the fix in each reason', () => {
+    expect(COMPACT_MESSAGE.floors).toContain(`${MIN_INTERFACE_WIDTH_PX}×${MIN_INTERFACE_HEIGHT_PX}`)
+    // The two reasons earn opposite advice, and telling a map host to "give the element more
+    // room" would point them away from the fix.
+    expect(COMPACT_MESSAGE.map).toContain('map=false')
+    expect(COMPACT_MESSAGE.floors).not.toContain('map=false')
   })
 })

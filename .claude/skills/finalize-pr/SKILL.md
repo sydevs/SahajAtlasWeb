@@ -61,6 +61,12 @@ full branch diff (`origin/main...HEAD`) and return its findings (severity + `fil
 fix) — in an **isolated context** so its file reading doesn't bloat the main thread. Run it
 **once**: not inline, and no second review pass afterwards — one pass is the contract.
 
+- **Dispatch it READ-ONLY, and say so explicitly** — the agent must not edit, write, format, stage,
+  stash or commit anything, and its entire output is a findings report. A review agent left able to
+  "helpfully" run `lint:fix` once edited 17 files on a #161 review, reformatting governance markdown
+  and mangling a comment in a file the branch never touched, which then had to be found and reverted
+  from `origin/main`. Instructing read-only costs nothing in report quality — the agents confirm the
+  tree is untouched and report the same findings.
 - **Blocking**: triage every finding. Fix the valid ones (each as its own commit), then re-run the
   lean gate. Note any finding you dismiss with a one-line reason for the report.
 - For a deeper pass you may note that the user can run the billed `/code-review ultra` (cloud,
@@ -122,6 +128,13 @@ review. That is why `src/config/i18n-options.ts` is deliberately absent: its one
 
 Fix and re-run on failure. CI (step 8) is the real gate — it adds the production build; don't
 reproduce that locally unless debugging a red run (`pr-prep/check.sh --full` adds `pnpm build`).
+
+**One exception, worth the two minutes.** If the diff adds or moves an `import`, a `lazy()`
+boundary, or a barrel re-export, run `pnpm build && pnpm size` before pushing. The budget fails
+when a graph runs far **under** it as well as over — so a branch that legitimately *shrank* the
+payload reddens CI until `BUDGET_KIB` is ratcheted down in the same commit. #161 moved the whole
+map-bearing interface behind a lazy seam, took ~83 KiB off both graphs, and would have gone red on
+a green-looking lean gate.
 
 ### 5. Update documentation
 
@@ -215,7 +228,8 @@ test:run + build + ladle:build); the **Smoke** job runs separately against the C
 - **Never** report success while CI is red.
 - **Always** run `/simplify` and `/code-review` over the **full branch diff**, not just the last commit.
 - **Always** run `/code-review` (and the conditional security review) via a **dispatched Task
-  subagent**, never inline in the main thread.
+  subagent**, never inline in the main thread — and **always read-only**: no edits, no formatting,
+  no staging, no commits, report only.
 - **One** code-review pass — no redundant second review.
 - **Always** commit a **documentation sync as the final commit before pushing** (step 5) — update
   `CLAUDE.md`, `.claude/docs/*`, `.claude/rules/*`, and any example the diff affects; or state in the

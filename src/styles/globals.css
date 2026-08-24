@@ -69,9 +69,21 @@
    **Cost, measured:** a forced style recalc over 3,200 nodes inside the scope took ~2× one
    outside it (41ms vs 20ms across five recalcs, Chrome 151). Full recalcs are rare — a theme
    toggle, not a scroll — and the results list is bounded by `MAX_REVEAL`, so this is priced and
-   accepted rather than unknown. Re-measure if that ceiling ever rises. */
+   accepted rather than unknown. Re-measure if that ceiling ever rises.
+
+   ⚠ **SVG IS EXCLUDED, and that is a bug fix rather than a nicety — never simplify it back to a
+   bare `*`.** In SVG 2 the geometry is CSS: `d`, `fill`, `stroke`, `cx`, `r`, `x`, `y`, `width`
+   and `height` are all properties, and a presentation attribute is only an author rule of zero
+   specificity — so `all: revert` beat every `d="…"` in the app and rolled it to `none`. The
+   effect is total and silent: the `<path>` stays in the DOM at full size with a computed fill,
+   `getBBox()` reports 0×0, and **every icon in the widget renders as nothing**. Measured in a
+   production build (53/53 paths, Chrome 151) after it had shipped, because no gate can see it —
+   lint, typecheck, the unit lane and `assert:css` are all green with every glyph invisible. The
+   reset exists to keep a HOST's CSS out of our HTML; SVG internals are not a surface a host
+   styles, so excluding them costs nothing it was there to buy.
+   `postcss-scope-widget.test.ts` pins the exclusion. */
 :where(.sy-atlas),
-:where(.sy-atlas) :where(*) {
+:where(.sy-atlas) :where(*:not(svg, svg *)) {
   all: revert;
 }
 
@@ -88,6 +100,16 @@
    Specificity (0,1,0) rather than `:where()`, so it beats the reset but still loses to every
    Tailwind utility — a component that sets its own `text-*` or `font-*` keeps winning. */
 .sy-atlas {
+  /* The height of the box the widget's FIXED layer resolves against — the viewport normally,
+     the dialog when a compact embed is expanded.
+
+     Every drawer, peek strip and sheet is `position: fixed`, so `100dvh` is correct only while
+     nothing has taken the containing block. `CompactEmbedView`'s dialog does exactly that, with
+     `contain: layout`, and keeps a margin — so inside it `100dvh` overshoots by 16–32px and the
+     sheet, its peek strips and the sticky Register bar all overrun the clip edge. `100%` on a
+     fixed child resolves against its containing block, which is the dialog there and the
+     viewport everywhere else, so one token is right in both places. */
+  --sy-frame-h: 100dvh;
   color: hsl(var(--foreground));
   font-family: var(--sy-font-sans, 'Atlas Raleway', ui-sans-serif, system-ui, sans-serif);
   letter-spacing: normal;
@@ -398,4 +420,18 @@
 .sx-calendar .sx__time-grid-event.is-event-new,
 .sx-calendar .sx__date-grid-event.is-event-new {
   animation: none;
+}
+
+/* Inside the dialog the fixed layer is contained by it, so the frame IS the container. */
+[data-sy-expanded] {
+  --sy-frame-h: 100%;
+}
+
+/* Keep Mapbox's own control column clear of the expanded surface's collapse control. Both sit in
+   the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and the geolocate button is
+   the one thing map mode renders there. Unconditional rather than direction-aware: under RTL the
+   collapse control moves to the other corner and this nudge is merely unnecessary, which is a
+   better failure than two round buttons on top of each other. */
+[data-sy-expanded] .mapboxgl-ctrl-top-right {
+  margin-top: 2.5rem;
 }

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 
 // The drawer's width lives in two places that cannot reference each other: `DRAWER_W_REM`
-// in `use-map-controller.tsx` (which becomes the map's LEFT CAMERA PADDING, so the map
+// in `use-map-controller-real.tsx` (which becomes the map's LEFT CAMERA PADDING, so the map
 // knows how much of itself the panel covers) and the `22rem` fallback baked into the
 // `w-[var(--sy-drawer-w,22rem)]` Tailwind classes. A class string can't read a TS constant
 // — the JIT scanner needs a literal — so nothing but agreement keeps them equal, and
@@ -34,7 +34,7 @@ const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
 const FALLBACK = /--sy-drawer-w,\s*(\d+(?:\.\d+)?)rem/g
 
 describe('drawer width — the TS constant and its CSS twin', () => {
-  const controller = read('hooks/use-map-controller.tsx')
+  const controller = read('hooks/use-map-controller-real.tsx')
   const declaredRem = controller.match(/const DRAWER_W_REM = (\d+(?:\.\d+)?)/)?.[1]
 
   it('declares DRAWER_W_REM, and derives the px padding from it', () => {

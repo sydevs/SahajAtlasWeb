@@ -1,13 +1,11 @@
 import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
+import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
-import * as Fathom from 'fathom-client'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
-import { MapProvider } from 'react-map-gl'
 
 import { useLocale } from './hooks/use-locale'
 import Providers from './providers'
@@ -20,11 +18,16 @@ import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
 import embed from '@/config/embed'
 import { ErrorFallback, LoadingFallback, ResetErrorBoundary } from '@/components/molecules'
-import { Mapbox, ReportIssueModal } from '@/components/organisms'
-import { DrawerStack } from '@/views'
+// ⚠ The component's own path, NOT the `@/components/organisms` barrel. The barrel re-exports
+// `Mapbox`, so importing ANYTHING through it pulls `react-map-gl` — whose `exports-mapbox.js`
+// fires `import('mapbox-gl')` at module scope — straight back into the eager graph. Splitting
+// `FullInterface` behind `lazy` was not enough on its own: measured in a browser, the compact
+// embed still fetched all 485 KiB gz through this one barrel import.
+import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
+import { NoExpansionProvider } from '@/hooks/use-expansion'
+import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
 import preview from '@/config/preview'
-import { NoopMapControllerProvider, RealMapControllerProvider } from '@/hooks/use-map-controller'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). A side-effect import beside the
 // stylesheet because that is what it is — the part of our CSS that a `url()` in an
@@ -35,6 +38,10 @@ import i18n from '@/config/i18n'
 
 // Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
 // the controller land in their own chunk — zero cost to normal standalone/embedded use.
+// Lazy on purpose — see the module's own docblock. This is the boundary that keeps
+// `react-map-gl` (and therefore mapbox-gl) out of a compact embed's payload.
+const FullInterface = lazy(() => import('@/views/FullInterface'))
+
 const PreviewController = lazy(() =>
   import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
 )
@@ -105,6 +112,15 @@ type AppProps = {
   standalone?: boolean
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
+  /**
+   * Render the compact card instead of the interface, and everything that decision carried
+   * with it — decided once at mount by the entry that can measure the slot (#161).
+   *
+   * `null`/absent is the full interface, and is the only answer the standalone build gives
+   * when it is not framed. One nullable object rather than a flag plus its satellites, so a
+   * caller cannot pass an auto-open that nothing reads.
+   */
+  compact?: CompactState | null
   // Is the route on screen in the URL, and therefore shareable? True for both routers
   // that write one (BrowserRouter standalone, the query router embedded); the embedded widget
   // passes false when it mounted a MemoryRouter over a host anchor it declined to take.
@@ -124,6 +140,7 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
+  compact = null,
   linkable = true,
   routing = 'query',
 }: AppProps) {
@@ -131,9 +148,21 @@ export default function App({
   // the moment we have the API key, in parallel with the client bootstrap the tree
   // suspends on — so region/map data isn't serialized behind clients/me. Fire-and-forget
   // and idempotent (React Query dedupes); AppShell still performs the real reads.
+  //
+  // ⚠ **Not while a compact card is all that renders.** The feed and the region tree exist to
+  // serve the interface, and a collapsed card shows neither — so warming them turns every page
+  // view of a sidebar embed nobody presses into two reads of the whole dataset. That is the
+  // exact cost #161 removed by deleting the card's preview rows, and it came straight back in
+  // through here: `CompactEmbedView.test.tsx` asserts the ROWS are absent, which a fetch two
+  // components above it satisfies while still making the requests. Found in a browser, because
+  // no unit spec can see a request the component under test never issues.
+  //
+  // `FullInterface` warms on mount instead, so pressing the button still warms them. It stays
+  // here for the full form because there the point is the PARALLELISM — moving it behind a lazy
+  // chunk would put the feed back behind a round trip it currently overlaps.
   useEffect(() => {
-    if (apiKey) api.warmCaches()
-  }, [apiKey])
+    if (apiKey && !compact) api.warmCaches()
+  }, [apiKey, compact])
 
   return (
     <RootBoundary>
@@ -152,6 +181,7 @@ export default function App({
             >
               <AppShell
                 apiKey={apiKey}
+                compact={compact}
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
                 linkable={linkable}
@@ -195,31 +225,30 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
+  compact: CompactState | null
   linkable: boolean
   routing: RoutingMode
 }
 
-function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing }: AppShellProps) {
+function AppShell({
+  apiKey,
+  defaultLocale,
+  standalone,
+  hasMap,
+  compact,
+  linkable,
+  routing,
+}: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
-  const navigate = useNavigate()
-  const location = useLocation()
   const { locale } = useLocale()
 
-  // The configured home region opens as a RegionView over CountriesView on first load;
-  // Back returns to the global list. Runs once — re-visiting `/` shows the list,
-  // not a redirect loop.
+  // The configured home region. The redirect that consumes it lives in `FullInterface`, which
+  // renders only once the interface is on screen — see the note there.
   const homePath =
     (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
     undefined
-  const didInit = useRef(false)
-
-  useEffect(() => {
-    if (didInit.current) return
-    didInit.current = true
-    if (location.pathname === '/' && homePath && homePath !== '/') navigate(homePath)
-  }, [homePath, location.pathname, navigate])
 
   /**
    * Attest that the widget booted, and tell SahajCloud what it found (#153).
@@ -246,11 +275,11 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
     }
   }, [defaultLocale, client.locale])
 
-  // Analytics: one pageview per real navigation. Dedupe repeats so a `replace` or a
-  // map-click landing on the same URL isn't double-counted.
-  //
-  // Fathom injects OUR tracker script into the HOST's page, so the host gets the last
-  // word: `analytics="false"` on <sahaj-atlas> keeps it out entirely (issue #95).
+  // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side opt-out:
+  // `analytics="false"` was one, but the element observes no attributes at all (`Widget.tsx`) and
+  // the loader parses no such parameter — `docs/embedding.md` lists it among the ignored ones.
+  // What actually gates analytics is this build's `VITE_FATHOM_ID` plus the client record's
+  // primary domain, and nothing else. Don't restore the claim without restoring the parameter.
   const primaryDomain = useMemo(
     () =>
       client.allowedDomains
@@ -259,33 +288,17 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
         .find(Boolean) ?? '',
     [client.allowedDomains],
   )
-  const fathomEnabled =
-    !!import.meta.env.VITE_FATHOM_ID && !!primaryDomain && !primaryDomain.includes('localhost')
-  const lastTracked = useRef('')
-  // Whether the tracker on this page is OURS. `Fathom.load` returns early if
-  // `window.fathom` already exists, so on a host that runs its own Fathom we would
-  // otherwise write our routes into THEIR site — and the guarantees below are
-  // properties of our script tag, not theirs.
-  const ownsTracker = useRef(false)
 
-  useEffect(() => {
-    if (!fathomEnabled || 'fathom' in window) return
-
-    ownsTracker.current = true
-    // `auto: false` matters more than it looks: left on (the default), Fathom's script
-    // records the page it lands on — the HOST's real URL, query string and all, which
-    // may carry a reset token or an OAuth param and is not ours to send anywhere. The
-    // effect below reports the widget's own route under the client's primary domain
-    // instead, which is the only thing this analytics is for. `honorDNT` because a
-    // visitor who set the header has already answered the question.
-    Fathom.load(import.meta.env.VITE_FATHOM_ID, { auto: false, honorDNT: true })
-  }, [fathomEnabled])
-
-  useEffect(() => {
-    if (!fathomEnabled || !ownsTracker.current || lastTracked.current === location.pathname) return
-    lastTracked.current = location.pathname
-    Fathom.trackPageview({ url: `https://${primaryDomain}${location.pathname}` })
-  }, [location.pathname, fathomEnabled, primaryDomain])
+  // Built as an ELEMENT, not rendered here: in the compact form it is handed to the surface,
+  // and React never renders it until that opens — which is what keeps mapbox-gl unfetched.
+  // Its own Suspense, so the boundary travels WITH the element: in the compact form this
+  // renders inside the dialog, and suspending to `AppShell`'s boundary would replace the card
+  // with a loading panel instead of showing one where the interface is about to appear.
+  const interfaceElement = (
+    <Suspense fallback={<LoadingFallback />}>
+      <FullInterface hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
+    </Suspense>
+  )
 
   return (
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
@@ -302,34 +315,10 @@ function AppShell({ apiKey, defaultLocale, standalone, hasMap, linkable, routing
           <PreviewController />
         </Suspense>
       )}
-      {hasMap ? (
-        <MapProvider>
-          {/* Inline fixed/inset so the map always fills the viewport behind the
-              drawers — independent of Tailwind viewport-unit utility generation.
-
-              **This is why map mode requires a FULL-PAGE slot, and issue #107 settled
-              that as a documented requirement rather than containing it.** The canvas
-              covers the viewport whatever size the host made `<sahaj-atlas>`, and the
-              drawers over it are `fixed` too. Containing the lot is not a `fixed` →
-              `absolute` swap: vaul computes a snap-point sheet's translate from the
-              WINDOW height (see the `bottom` variant in `atoms/Drawer/Drawer.tsx`), so a
-              contained sheet is pushed off-screen by the library's own arithmetic, and
-              `--sy-sheet-top` — which pins the sticky Register bar — is a viewport-
-              relative measurement for the same reason. `map="false"` is the mode that
-              stays inside its box, and it is container-relative throughout (#107).
-              A host that gets this wrong now hears about it: `Widget.tsx` warns at mount
-              via `lib/embed-slot.ts`, rather than silently painting over their page. */}
-          <div style={{ position: 'fixed', inset: 0 }}>
-            <Mapbox />
-          </div>
-          <RealMapControllerProvider>
-            <DrawerStack />
-          </RealMapControllerProvider>
-        </MapProvider>
+      {compact ? (
+        <CompactEmbedView compact={compact}>{interfaceElement}</CompactEmbedView>
       ) : (
-        <NoopMapControllerProvider>
-          <DrawerStack />
-        </NoopMapControllerProvider>
+        <NoExpansionProvider>{interfaceElement}</NoExpansionProvider>
       )}
     </WidgetModeContext.Provider>
   )

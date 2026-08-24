@@ -18,13 +18,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import clsx from 'clsx'
 
 import { eventTitlesQuery, regionsQuery } from '@/config/api'
+import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
-import { overlayContainer } from '@/lib/overlay'
+import { expandedDialog, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   atlasDepth,
@@ -195,10 +196,10 @@ function PeekStrip({
   } else {
     style.left = 0
     style.right = 0
-    style.height = '100dvh'
+    style.height = 'var(--sy-frame-h)'
     // `top` tracks the sheet's live position (rAF); the depth offset is the animated
     // transform below, so drag-tracking stays instant while the stack eases.
-    style.top = 'var(--sy-sheet-top, 100dvh)'
+    style.top = 'var(--sy-sheet-top, var(--sy-frame-h))'
     className = 'rounded-t-2xl border-t border-divider bg-background shadow-xl'
   }
 
@@ -242,6 +243,9 @@ export function DrawerStack() {
   // reason — a second call would double this component's i18next subscription, and
   // DrawerStack re-renders on every geocoder keystroke.
   const { t, locale } = useLocale()
+  // Read unconditionally, like every other seam consumer: with no surface above us this is
+  // the no-op provider and the Escape ladder below simply ends where it always did.
+  const { collapse } = useExpansion()
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less
@@ -387,7 +391,19 @@ export function DrawerStack() {
       if (!sheet) {
         still += 1
       } else {
-        const top = sheet.getBoundingClientRect().top
+        // Measured against the box the fixed layer resolves against, not the viewport.
+        // `getBoundingClientRect().top` is a VIEWPORT coordinate, and it is consumed as `top:`
+        // on fixed peek strips and `bottom:` on the sticky Register bar — both of which the
+        // expanded dialog contains (`contain: layout`). Left raw, every one of them sat 16–32px
+        // out inside the dialog, by exactly the margin. Zero offset everywhere else, so this is
+        // the same number it always was outside a dialog.
+        // Read from the node the overlay module already tracks, NOT
+        // `document.querySelector('[data-sy-expanded]')`: that searches the host's whole
+        // document, so an element of theirs carrying the attribute would win on document order
+        // and offset every strip by its box. Its RECT is still read per frame — the dialog's
+        // inset changes at the `sm:` crossing — but the lookup is a module read, not a query.
+        const top =
+          sheet.getBoundingClientRect().top - (expandedDialog()?.getBoundingClientRect().top ?? 0)
 
         if (top === last) {
           still += 1
@@ -529,6 +545,29 @@ export function DrawerStack() {
     <DrawerContent
       aria-label={t('free_meditation_classes')}
       handle={direction === 'bottom' && sheetDismissible}
+      /**
+       * The last rung of the Escape ladder, and the only place it can be built.
+       *
+       * A drawer is always the TOPMOST dismissable layer — vaul is a Radix dialog underneath
+       * — and Radix delivers Escape to the topmost layer alone. So nothing containing the
+       * widget can ever see the key, and inside a compact embed the thing containing it is
+       * the expanded surface, whose collapse control is otherwise the only way out. If the
+       * host has hidden, confined or scrolled that control away, a visitor with no Escape is
+       * locked out of the page until they reload (issue #161).
+       *
+       * The ladder is innermost-first: the stack dismisses while it has somewhere to go, the
+       * sheet collapses to its peek while it can, and only then does the key belong outward.
+       * `collapse()` is a no-op with no surface above us — the seam's whole point — so a
+       * normal embed reaches this line and nothing changes: at that point vaul's own
+       * dismissal was already a no-op too (`dismissAction` returns 'collapse', and the sheet
+       * is either already collapsed or has no snap points to collapse to).
+       */
+      onEscapeKeyDown={(event) => {
+        if (control.canDismiss || (control.canCollapse && !control.collapsed)) return
+
+        event.preventDefault()
+        collapse()
+      }}
     >
       <AnimatePresence mode="popLayout">
         <motion.div
@@ -694,11 +733,16 @@ export function DrawerStack() {
           dismissible
           open
           activeSnapPoint={direction === 'bottom' ? snap : undefined}
+          container={target}
           direction={direction}
           // The left panel (≥md) has no handle and no snap points, so restricting drag
           // to the (absent) handle makes it undraggable — dismiss is the close button
           // only. The mobile bottom sheet keeps its full-panel snap-drag.
           handleOnly={direction === 'left'}
+          // The box vaul measures snap points against — the expanded dialog, or the window.
+          // Deliberately NOT `target`: that is the portal target, which embedded is the
+          // `display: contents` theme root and measures 0×0. See the note in `Drawer.tsx`.
+          measureAgainst={expandedDialog()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
           snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
           wide={wide}

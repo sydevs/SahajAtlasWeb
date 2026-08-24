@@ -125,3 +125,5 @@ export const Default: Story = () => {
     </StoryWrapper>
   )
 }
+
+Default.storyName = 'Report Issue Form'

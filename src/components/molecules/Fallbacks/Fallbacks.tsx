@@ -678,7 +678,7 @@ export function FallbackRegion({
  *    sentence and leave only the buttons — the failure mode of a fix for invisible content.
  */
 export const CENTERED_BODY =
-  'flex h-full max-h-[calc(100dvh_-_var(--sy-sheet-top,0px))] flex-col items-center p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
+  'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center p-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
 
 /**
  * The other posture: top-left, no centring at all.

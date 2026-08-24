@@ -21,6 +21,66 @@ Entries reference the pull request that landed them.
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
 
+### Added
+
+- **A slot too small for the interface now gets a compact card instead of a cramped one.**
+  ([#161]) The widget shows one button — "Find a class near you" — that opens the whole
+  interface somewhere it fits, and closes back to where you were.
+
+  **The card is the button.** It takes only the room it needs, centred across whatever box
+  you gave; an element with **no height of its own** sizes to the card's content instead of
+  collapsing, so a bare `<sahaj-atlas>` in a column renders in your page's flow rather than
+  appearing not to render. It renders **no events and makes no location lookup**. It is not silent, though — the widget
+  still reads your client record, warms its caches and sends its one-per-load embed report while
+  the card is collapsed.
+
+  **Where the button goes depends on whether the widget can grow where it is.** On your page it
+  opens a full-screen overlay. **Inside an iframe it opens a new tab instead** — an overlay in a
+  frame would only cover the frame — which makes the compact card work for iframe embeds for the
+  first time. See [Embedding in an iframe] for the snippet and the `allow` attribute it needs.
+
+  **A map embed that does not have your page to itself now renders the card too**, whose button
+  opens the map full-screen. Previously it warned in your console and then painted over your
+  page anyway. Note a frame _is_ a viewport, so `map=true` works normally inside one.
+
+  The floors are 360×420px, and there is a second condition worth knowing: **the widget only
+  degrades when there is somewhere bigger to go.** A full-width embed on a phone, or a small
+  iframe on a small screen, keeps the normal interface — a card there would take the interface
+  away and hand back nothing.
+
+  Four things a host can observe. The measurement happens **once, at mount**, so resizing your
+  page does not switch between the two — remounting would discard wherever the visitor had
+  navigated to. Entering the card **logs one console warning** naming what was measured and what
+  to change. The overlay **keeps a margin, so your page stays visible behind it, and clicking
+  that margin closes it** — along with Escape and the × in the corner. It **locks your page's
+  scroll while it is open**, restoring it on close,
+  and marks the rest of your page `aria-hidden` while it covers it; Escape steps outward through
+  the widget and then closes it. And **a deep link now opens the route**: `?atlas=` on
+  your page's URL makes the widget load immediately rather than waiting to be scrolled to, and
+  opens straight onto that route. The `atlas` parameter on the _script_ URL is your default view
+  and does not do this.
+
+  ⚠ The overlay is `position: fixed`, so an ancestor of your embed carrying `transform`,
+  `filter` or `contain` confines it to that element instead of covering the page. That was
+  already true of the map. Clicking outside it or pressing Escape still closes it wherever it
+  has been confined to, so this is a cosmetic problem rather than a trap. See
+  [Sizing the element].
+
+- **The widget documents the browser permissions it needs.** ([#161]) `geolocation`,
+  `clipboard-write` and `web-share`, which a cross-origin iframe denies by default and a
+  `Permissions-Policy` header on your own page can deny to a script embed. All three fail
+  **silently** — the locate control does nothing, copy-link does nothing, the share sheet never
+  opens — so there was no way to discover this from the widget. See [Permissions Policy].
+
+### Removed
+
+- **The `compact` parameter is gone.** ([#161]) It was documented with three values (`auto`,
+  `always`, `never`) and read by nothing, so no embed's behaviour changes by removing it; a
+  stray `compact=` on your script URL is now ignored like any other unknown parameter. The
+  widget measures, and there is no longer a way to override that — a knob for a measurement we
+  can get right is a setting you would have to maintain forever, so a slot measured wrongly is
+  a bug worth reporting instead.
+
 ### Changed
 
 - **The widget no longer names itself anywhere a visitor can see.** ([#156]) The accessible name of
@@ -282,6 +342,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
 [#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156
+[#161]: https://github.com/sydevs/SahajAtlasWeb/pull/161
 [#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
 [#149]: https://github.com/sydevs/SahajAtlasWeb/pull/149
 [#94]: https://github.com/sydevs/SahajAtlasWeb/issues/94
@@ -300,3 +361,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#135]: https://github.com/sydevs/SahajAtlasWeb/pull/135
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
+[Sizing the element]: docs/embedding.md#sizing-the-element
+[Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
+[Permissions Policy]: docs/embedding.md#permissions-policy

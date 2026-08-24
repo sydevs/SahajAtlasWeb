@@ -163,7 +163,7 @@ the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
 express, an agreement with a router/DOM API that a pure test can only assume, or a library
-whose whole job IS the DOM.** Four specs qualify today:
+whose whole job IS the DOM.** Six specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
   already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
@@ -194,6 +194,53 @@ whose whole job IS the DOM.** Four specs qualify today:
   that spec alone, restoring the bug it was written for keeps the lane green. **A spec
   that can only reach a state through the door the story uses is not covering the state,
   it is covering the door.**
+- `src/lib/slot-decision.test.ts` — the composed slot decision, which is DOM by definition: its
+  whole job is reading `window.innerWidth`, `outerWidth`, `screen.avail*` and an element's box,
+  and whether we are framed. A pure spec could only assert against a fake of the thing under
+  test; the pure halves are already table-driven with no DOM in `embed-slot.test.ts`.
+- `src/lib/overlay.test.ts` — the portal target, and the one piece of module state it carries
+  (#161). Every branch is a question about a real document: which element is the theme root,
+  whether the expanded surface is still connected to it, and what `document.body` is, so a pure
+  spec could only re-assert the branch structure it was reading off the source. The
+  `isConnected` case is the one worth having — a detached target swallows every portal in the
+  app in silence, and releasing it is somebody else's effect cleanup.
+
+### A CLOSED portal renders nothing under SSR, so asserting its contents are absent proves nothing
+
+This app is portal-dense — every vaul drawer, every Radix overlay, `CompactEmbedView`'s expanded
+dialog — and the node lane relates to them in two opposite ways depending on one bit:
+
+| under `renderToStaticMarkup` | what happens |
+| --- | --- |
+| **closed** portal (`open={false}`) | Radix wraps the child in `<Presence>`, so `createPortal` is never called. Nothing renders, nothing throws. |
+| **open** portal | React **throws** — *"Portals are not currently supported by the server renderer."* |
+
+So the trap is narrow and specific: an **absence** assertion about a closed portal's contents
+passes for a reason that has nothing to do with the property under test. Issue #161 wrote exactly
+that spec for "a collapsed card does not render the interface", watched it pass, and it kept
+passing with the regression reintroduced — the dialog was closed either way, so there was never
+any markup for `not.toContain` to find. `CompactEmbedView.mount.test.tsx` is the jsdom version that
+actually holds.
+
+⚠ **Do not over-generalize this into "the node lane can never assert a portal".** It can, and it
+does so loudly: a portal that renders when it should not makes SSR throw rather than pass quietly.
+That asymmetry is the useful part — the node lane is blind to a closed portal and deafening about
+an open one.
+
+(An earlier version of this section said `renderToStaticMarkup` "renders NO portals" and drew the
+broad conclusion. That was inferred rather than measured, and it is wrong: it throws. Which is the
+point of the section immediately below.)
+
+### A regression spec is not finished until it has FAILED
+
+Write the spec, then **reintroduce the defect and watch it go red**, then restore. A green new test
+proves nothing on its own: twice in the #161 session a freshly written spec passed against the very
+bug it was written for.
+
+Reintroduce it **at the site that actually caused it**. The second miss came from flipping a nearby
+gate (`{node && children}` → `{children}`) that Radix already made unreachable while the dialog was
+closed — a simulation that could not fail, validating nothing. The regression has to take the shape
+it would really take, which there was the interface mounting *alongside* the card.
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`
