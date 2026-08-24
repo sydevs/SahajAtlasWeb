@@ -237,6 +237,15 @@ Write the spec, then **reintroduce the defect and watch it go red**, then restor
 proves nothing on its own: twice in the #161 session a freshly written spec passed against the very
 bug it was written for.
 
+**This is not only for regression specs.** Any new assertion earns the same treatment, and #165 is
+why: three specs written for a brand-new feature were vacuous, because the rule was read as covering
+regressions only.
+
+⚠ **`read() ?? fallback` is the local shape of this.** The history and the loader are full of it, so
+a spec that asserts the same value it passed as the fallback proves nothing — it passes with the
+code under test returning `undefined`. Pass a distinguishable fallback (`'/fallback'`), as the query
+suite does and the path suite did not.
+
 Reintroduce it **at the site that actually caused it**. The second miss came from flipping a nearby
 gate (`{node && children}` → `{children}`) that Radix already made unreachable while the dialog was
 closed — a simulation that could not fail, validating nothing. The regression has to take the shape
