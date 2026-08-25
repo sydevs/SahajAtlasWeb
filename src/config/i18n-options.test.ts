@@ -142,8 +142,28 @@ describe('enabled languages (scripts/atlas-languages.json)', () => {
  * the loader seam too, and #153 broke it anyway with a one-line string join.
  *
  * `supportedLngs` is the one legitimate consumer, and it lives in this module.
+ *
+ * ⚠ **One bypass this cannot see**, recorded so nobody mistakes a green lane for a closed door:
+ * `i18nSharedOptions.supportedLngs` is exported and IS the inventory, so
+ * `i18nSharedOptions.supportedLngs.map(…)` renders all ten rows without ever naming
+ * `shippedLanguages`. Narrowing the export would cost more than it buys — that option object is
+ * handed to i18next whole, by the app and by Ladle — so this is a deterrent against the obvious
+ * mistake, not a proof.
  */
 const SHIPPED_LANGUAGES_READERS = ['config/i18n-options.ts', 'config/i18n-options.test.ts']
+
+/**
+ * Source with comments removed, so the scans below match CODE rather than prose.
+ *
+ * Without this, the most natural place to write "shippedLanguages" — a docblock in
+ * `use-languages.ts` explaining what the fallback is — turns the lane red with a message about
+ * *importing* it. That is a gate training people to phrase things awkwardly, which is how a gate
+ * stops being trusted.
+ */
+const code = (file: string): string =>
+  readFileSync(file, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
 
 const sourceFiles = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -163,7 +183,7 @@ const relative = (file: string) => file.slice(srcDir.length + 1)
 describe('who may read the inventory directly', () => {
   it('is exactly this module and its spec — everything else asks useLanguages()', () => {
     const readers = allSources
-      .filter((file) => /\bshippedLanguages\b/.test(readFileSync(file, 'utf8')))
+      .filter((file) => /\bshippedLanguages\b/.test(code(file)))
       .map(relative)
       .sort()
 
@@ -183,7 +203,7 @@ describe('who may read the inventory directly', () => {
     // Matched on an IMPORT rather than a mention: this file reads the snapshot through
     // `readFileSync`, which is the one access that is fine, and both modules name it in prose.
     const importers = allSources
-      .filter((file) => /from\s+['"][^'"]*atlas-languages/.test(readFileSync(file, 'utf8')))
+      .filter((file) => /from\s+['"][^'"]*atlas-languages/.test(code(file)))
       .map(relative)
 
     expect(importers).toEqual([])
@@ -248,6 +268,51 @@ describe('preferredLanguage', () => {
     // the live language, from asking for another change on every pass.
     expect(offered).toContain(once)
     expect(preferredLanguage(once, offered)).toBe(once)
+  })
+
+  /**
+   * ⚠ **A REGIONAL tag must resolve to its base language, not to English.**
+   *
+   * This is not symmetry for its own sake — it is the one call site whose input has never been
+   * through i18next. `defaultLocale` is the host's raw `locale=` from the script URL, unvalidated
+   * (`src/loader/config.ts`), so `de-DE` arrives verbatim. i18next used to be the normalizer:
+   * `changeLanguage('de-DE')` resolved through `supportedLngs` to the `de` bundle. Narrowing at
+   * the write site put this predicate in front of that, and an exact `includes` check answered
+   * "not offered" for every regional tag a host has ever shipped — `de-DE`, `de-AT`, `fr-CA`,
+   * `nl-BE`, `es-MX`, `pt-br` — silently rendering English on an atlas where nothing had been
+   * disabled at all.
+   *
+   * The docblock on `preferredLanguage` used to argue language-part matching would be dead code,
+   * on the premise that `active` is always a code i18next resolved. True of the guard, false of
+   * the host parameter, and the measurement that missed it used `locale=de` — already canonical.
+   */
+  it('resolves a regional tag to the base language it belongs to', () => {
+    expect(preferredLanguage('de-DE', shippedLanguages)).toBe('de')
+    expect(preferredLanguage('nl-BE', ['en', 'fr', 'nl'])).toBe('nl')
+  })
+
+  it('matches case-insensitively, as i18next does', () => {
+    // i18next resolves `pt-br` to the `pt-BR` bundle; an exact match would drop it to English.
+    expect(preferredLanguage('pt-br', shippedLanguages)).toBe('pt-BR')
+    expect(preferredLanguage('PT-BR', shippedLanguages)).toBe('pt-BR')
+  })
+
+  it('reaches a regional bundle from the bare language — deliberately MORE tolerant than i18next', () => {
+    // We ship `pt-BR` and no bare `pt`, so a host asking for `pt` gets the one Portuguese bundle
+    // that exists rather than English, which is plainly the better answer for a Portuguese page.
+    //
+    // ⚠ **i18next itself splits on this, so do not "align" it with the library without checking
+    // which path you mean.** Its DETECTOR path (`getBestMatchFromCodes`) does exactly this — a
+    // `pt` browser preference resolves to `pt-BR`. Its explicit-`lng` path does not: `init({lng:
+    // 'pt'})` rejects `pt` at `isSupportedCode` and falls back to `en`. Measured against i18next
+    // 24.2.3 with this repo's own `supportedLngs`; every other tag in that comparison agreed.
+    // `defaultLocale` is a host asking for a language, so the detector's answer is the right one.
+    expect(preferredLanguage('pt', shippedLanguages)).toBe('pt-BR')
+  })
+
+  it('still corrects a regional tag whose base language is not offered', () => {
+    // The narrowing has to survive the tolerance: `de-DE` on an en/fr/nl atlas is still English.
+    expect(preferredLanguage('de-DE', ['en', 'fr', 'nl'])).toBe('en')
   })
 
   it('leaves the language alone when nothing is offered', () => {

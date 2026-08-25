@@ -443,8 +443,17 @@ describe('getAtlasConfig (through its query factory)', () => {
   const read = () => atlasConfigQuery().queryFn()
 
   it('reads the operator-owned language set off the sy-atlas-config global', async () => {
+    // The `id` is what the live wire actually sends (`{"code":"cs","id":"6a8e…"}`) — the fixture
+    // carries it so the spec exercises the real payload rather than an idealized one, and so the
+    // assertion below pins that zod STRIPS it. A later `.strict()` would ship green otherwise.
     sdk.request.mockResolvedValue(
-      jsonResponse({ languages: [{ code: 'en' }, { code: 'fr' }, { code: 'nl' }] }),
+      jsonResponse({
+        languages: [
+          { code: 'en', id: '6a8e1ba24cca890015c5317e' },
+          { code: 'fr', id: '6a8e1ba24cca890015c53180' },
+          { code: 'nl', id: '6a8e1ba24cca890015c53182' },
+        ],
+      }),
     )
 
     const config = await read()

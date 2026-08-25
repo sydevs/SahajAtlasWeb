@@ -199,8 +199,11 @@ gone, and a widget still offering it would contradict your own search results.
 
 Three things follow, and none of them needs anything from you:
 
-- **`locale` still does what it says.** If you ask for a language that is not on offer, the widget
-  falls back to English rather than rendering one the atlas does not advertise.
+- **`locale` still does what it says**, including regional forms — `locale=de-DE` gets the German
+  atlas, as it always has. If you ask for a language that is genuinely not on offer, the widget
+  falls back to English rather than rendering one the atlas does not advertise. (If an
+  administrator has switched English off too, it falls back to one of the languages that *is*
+  offered — there is no such thing as rendering in none.)
 - **Enabling a language is not instant.** The widget can only render one it ships a translation
   bundle for, so a newly enabled language needs a matching bundle here — ask a developer before
   turning one on. Until then it simply is not offered; nothing breaks.

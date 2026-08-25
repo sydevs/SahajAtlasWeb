@@ -122,6 +122,18 @@ if (!Array.isArray(global.languages)) {
 
 const live = [...new Set(global.languages.map((row) => row?.code).filter(Boolean))].sort()
 
+// ⚠ The `Array.isArray` guard above catches `{}` but not `[]`, and not a row-shape rename — a
+// field renamed under `code` collapses `live` to empty through `?.code` + `filter(Boolean)`
+// without any of it throwing. The reason for refusing `{}` — "an empty one asserts nothing" —
+// applies verbatim, so it is enforced here rather than restated: writing `[]` would leave the
+// unit gate red with a message about hand-editing, which is not what happened.
+if (live.length === 0) {
+  console.error('✖ The global returned rows, but none of them had a usable `code`.')
+  console.error(`  First row: ${JSON.stringify(global.languages[0])}`)
+  console.error('  The row shape has probably changed upstream. Leaving the snapshot alone.')
+  process.exit(2)
+}
+
 const snapshot = JSON.parse(await readFile(SNAPSHOT, 'utf8'))
 const stored = [...snapshot.languages].sort()
 
@@ -157,7 +169,9 @@ if (drifted) {
   if (added.length) console.error(`  enabled since the last sync : ${added.join(', ')}`)
   if (removed.length) console.error(`  no longer enabled           : ${removed.join(', ')}`)
 
-  console.error('\n  Take it with:  pnpm sync:atlas-languages --write\n')
+  // Not printed on the run that is already taking it — "take it with --write" under a `--write`
+  // invocation reads as though the write did not happen.
+  if (!write) console.error('\n  Take it with:  pnpm sync:atlas-languages --write\n')
 }
 
 // `--write` stamps `syncedAt` even when nothing drifted, because that is the fact it records: the
@@ -173,4 +187,8 @@ if (write) {
   console.log(`  Every one has a bundle in public/locales/. Last synced: ${snapshot.syncedAt ?? 'never'}`)
 }
 
-process.exit(drifted || missing.length ? 1 : 0)
+// ⚠ Exit on the state AFTER the write, not before it. `drifted` describes the snapshot this run
+// found; a successful `--write` has just resolved it, and reporting failure then breaks the one
+// thing anybody chains onto this command (`--write && git commit`) on its success path. A missing
+// bundle still fails, because writing the snapshot does not make the bundle exist.
+process.exit(missing.length || (drifted && !write) ? 1 : 0)

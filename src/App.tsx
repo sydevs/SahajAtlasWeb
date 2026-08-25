@@ -287,74 +287,73 @@ function AppShell({
     void announceEmbed({ routing, observed: embed.observed, prefix })
   }, [routing, prefix])
 
-  /**
-   * The latest offered set, readable by the effect below WITHOUT making it re-run.
-   *
-   * That distinction is the whole point: `defaultLocale` must be applied when the host changes
-   * it and at no other time — re-running on `languages` would re-impose the host's configured
-   * language over a viewer's own pick from the settings menu the moment the CMS read landed.
-   * A ref reads the current value; the dependency list decides the trigger.
-   *
-   * Written during render, which React documents against in general and which is safe here for
-   * two specific reasons rather than by habit: nothing reads it during render (only the effect
-   * below, after commit), and the value derives from nothing but the query cache — so a render
-   * that is discarded or replayed can only ever write the identical array.
-   */
-  const offered = useRef(languages)
-
-  offered.current = languages
-
-  /**
-   * Narrow the active language to what the operator says the atlas is offered in (#167).
-   *
-   * i18next resolves a language at init from the shipped bundles, before this build knows
-   * anything about the CMS; `languages` on `sy-atlas-config` is the operator's answer to a
-   * question the bundles cannot settle, and it arrives over the network. So the correction is
-   * here rather than in `supportedLngs` — which is a build fact, and which i18next copies out of
-   * its options at init anyway (see `config/i18n-options.ts`).
-   *
-   * It runs for a compact card too, and should: the card is localized.
-   *
-   * ⚠ **This is a BACKSTOP, not the mechanism.** It covers the one case the write below cannot:
-   * a cold cache, where the offered set had not arrived when the language was chosen. Anything
-   * that sets a language narrows at its own write site, because correcting afterwards means
-   * i18next has already resolved, FETCHED and broadcast the language being corrected — measured
-   * as two discarded locale-bundle requests per load, and a visible switch on a slow connection.
-   * If you add a third writer, narrow it there too rather than leaning on this.
-   *
-   * In practice there is nothing left for it to do: `warmLanguages` puts the CMS read in flight
-   * alongside the `clients/me` read the component above suspends on, so `languages` is already
-   * the operator's set on the first render that gets here.
-   */
-  useEffect(() => {
-    const preferred = preferredLanguage(locale, languages)
-
-    if (preferred !== locale) void i18n.changeLanguage(preferred)
-  }, [languages, locale])
-
   // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language should match
   // the page it is embedded in, and `<html lang>` says that per page — where a record-level setting
   // says it once for every page a client embeds on, and is then a second thing to keep in step with
   // the site around it. So the chain is: this parameter → `?locale=` on the page → the host's
   // `<html lang>` → the browser → English, with the viewer's own pick from the settings menu
   // overriding all of it for the session. `config/i18n-options.ts` owns the middle three.
-  //
-  // ⚠ **Narrowed HERE, at the write, not by the guard above.** Handing `changeLanguage` a
-  // language the operator has switched off is not free: i18next resolves it, the HTTP backend
-  // fetches both of its namespaces, every `useLocale` consumer relocalizes, and only then does
-  // the guard put it back — plus a visible switch wherever that correction lands after first
-  // paint. Measured on the review harness with `locale=de` on the script URL against an
-  // en/fr/nl atlas: without the narrowing the widget fetches `de/common` and `de/events` and
-  // discards both; with it, only the `en` bundles are ever requested.
-  //
-  // ⚠ **The sibling case is NOT fixable here, which is what the guard is for.** `?locale=de` on
-  // the page URL is read by i18next's OWN querystring detector during `init` — at module load,
-  // before any of this exists — so those two fetches happen whatever we do, and correcting after
-  // the fact is the only move left. Measured: that path still fetches the German bundles. The
-  // difference is worth knowing before "simplifying" one of these into the other.
+
+  /**
+   * The host's configured language, once it has been consumed.
+   *
+   * `defaultLocale` is applied when the HOST changes it and at no other time. Without this the
+   * effect below would have to depend on `defaultLocale` and re-impose it on every later run —
+   * over a viewer's own pick from the settings menu the moment the CMS read landed.
+   */
+  const consumedDefault = useRef<string | null | undefined>(undefined)
+
+  /**
+   * The one place the widget decides what language it renders in (#167).
+   *
+   * Two things are settled here, and they are one effect rather than two on purpose.
+   *
+   * **What the language should be.** i18next resolves one at init from the shipped bundles,
+   * before this build knows anything about the CMS; `languages` on `sy-atlas-config` is the
+   * operator's answer to a question the bundles cannot settle, and it arrives over the network.
+   * So the narrowing is here rather than in `supportedLngs` — a build fact, which i18next copies
+   * out of its options at init anyway (see `config/i18n-options.ts`). It runs for a compact card
+   * too, and should: the card is localized.
+   *
+   * **And that it is decided ONCE.** This was two effects — one applying `defaultLocale`, one
+   * narrowing whatever was active — and on the mount commit they both called `changeLanguage`.
+   * i18next has no ordering guard: `loadResources` returns synchronously for a language already
+   * in the store and asynchronously for one that must be fetched, and whichever finishes LAST
+   * wins. Normally invisible, because the narrowing effect's target was `en`, which `fallbackLng`
+   * has loaded at init. But an operator who switches English OFF makes both targets need a fetch,
+   * and then a host's explicit `locale=nl` loses a coin-flip against the correction's `fr`. One
+   * writer, one target, and the race cannot occur.
+   *
+   * Narrowing happens at the write, never after it. Handing `changeLanguage` a language the
+   * operator has switched off is not free: i18next resolves it, the HTTP backend fetches both of
+   * its namespaces, every `useLocale` consumer relocalizes, and only then would a correction put
+   * it back. Measured on the review harness with `locale=de` on the script URL against an
+   * en/fr/nl atlas — un-narrowed it fetches `de/common` and `de/events` and discards both;
+   * narrowed, only the `en` bundles are ever requested.
+   *
+   * ⚠ **The sibling case is NOT fixable here.** `?locale=de` on the page URL is read by i18next's
+   * OWN querystring detector during `init` — at module load, before any of this exists — so those
+   * two fetches happen whatever we do and correcting afterwards is the only move left. That is
+   * what the `locale` half of this effect's dependencies is for. The difference is worth knowing
+   * before "simplifying" one of these paths into the other.
+   *
+   * It terminates because `preferredLanguage` always answers with a member of `languages`, every
+   * member is in `supportedLngs`, and so `resolvedLanguage` after the change equals what was
+   * asked for — the next pass finds nothing to do.
+   */
   useEffect(() => {
-    if (defaultLocale) i18n.changeLanguage(preferredLanguage(defaultLocale, offered.current))
-  }, [defaultLocale])
+    // Only on the run where the host's value is new — `undefined → 'de'` at mount, or a genuine
+    // prop change. Every other run narrows whatever is actually active, which is what keeps a
+    // late CMS arrival from re-imposing `defaultLocale` over a viewer's own pick.
+    const hostChanged = defaultLocale !== consumedDefault.current
+
+    consumedDefault.current = defaultLocale
+
+    const requested = hostChanged && defaultLocale ? defaultLocale : locale
+    const preferred = preferredLanguage(requested, languages)
+
+    if (preferred !== locale) void i18n.changeLanguage(preferred)
+  }, [defaultLocale, languages, locale])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side opt-out:
   // `analytics="false"` was one, but the element observes no attributes at all (`Widget.tsx`) and

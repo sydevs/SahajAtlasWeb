@@ -61,8 +61,14 @@ export const offeredLanguages = (configured: readonly string[] | null | undefine
   // `new Set(undefined)` and `new Set(null)` are both empty, so absent-or-empty falls through the
   // filter and lands on the same tail as "nothing enabled is shipped" — one statement of the rule
   // rather than two places to keep agreeing.
-  const enabled = new Set(configured)
-  const offered = shippedLanguages.filter((language) => enabled.has(language))
+  //
+  // Case-folded, because a locale code's case is a convention and not a guarantee: we ship
+  // `pt-BR`, i18next resolves `pt-br` to it, and a CMS row that happens to be stored lower-case
+  // would otherwise be dropped in silence — one mis-cased row simply not offered, or every row
+  // mis-cased failing open to the whole inventory, which reads as "the operator's narrowing was
+  // ignored" and reports nothing.
+  const enabled = new Set([...(configured ?? [])].map((code) => code.toLowerCase()))
+  const offered = shippedLanguages.filter((language) => enabled.has(language.toLowerCase()))
 
   return offered.length > 0 ? offered : [...shippedLanguages]
 }
@@ -76,15 +82,33 @@ export const offeredLanguages = (configured: readonly string[] | null | undefine
  * the last word. This is the correction, and it is idempotent by construction: the answer is
  * always in `offered`, so applying it cannot ask for another correction.
  *
- * ⚠ **No language-part matching, on purpose.** It would be dead code: `active` is whatever
- * `supportedLngs` resolved, so it is always a code we ship, and `offered` is a subset of the
- * same list — there is no `pt-BR`-to-`pt` gap left for it to bridge. i18next already closed it.
+ * ⚠ **It resolves a regional tag the way i18next would, and that is load-bearing rather than
+ * tidy.** An earlier version matched exactly, on the premise that `active` is always a code
+ * i18next had already resolved — true of the guard, and FALSE of the other caller: the host's
+ * `locale=` from the script URL arrives unvalidated, so `de-DE` reaches this verbatim. Exact
+ * matching answered "not offered" for every regional tag a host has ever shipped and rendered
+ * English on an atlas where nothing was disabled. So: case-folded, then the base language
+ * (`de-DE` → `de`), then a regional variant of it (`pt` → `pt-BR`, which is the bundle we
+ * actually ship) — the same three steps `supportedLngs` makes i18next take.
+ *
+ * The narrowing still wins where it should: `de-DE` on an en/fr/nl atlas is English, because
+ * neither `de-DE` nor `de` is offered.
  *
  * An empty `offered` returns `active` untouched. Nothing produces one today (`offeredLanguages`
  * never does), and a set of zero languages is not a statement about which one to render in.
  */
 export const preferredLanguage = (active: string, offered: readonly string[]): string => {
-  if (offered.length === 0 || offered.includes(active)) return active
+  if (offered.length === 0) return active
+
+  const wanted = active.toLowerCase()
+  const base = wanted.split('-')[0]
+
+  const match =
+    offered.find((language) => language.toLowerCase() === wanted) ??
+    offered.find((language) => language.toLowerCase() === base) ??
+    offered.find((language) => language.toLowerCase().split('-')[0] === base)
+
+  if (match) return match
 
   return offered.includes(FALLBACK_LANGUAGE) ? FALLBACK_LANGUAGE : offered[0]
 }

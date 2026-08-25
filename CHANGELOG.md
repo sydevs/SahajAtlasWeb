@@ -28,7 +28,8 @@ cover everything a host would notice since the widget was first deployed.
   `hreflang` links on every atlas page — so the widget can no longer offer a language your search
   results say is gone. Nothing to change on your side, and no new origin for your CSP: the setting
   is read from the API you already allow. Asking for a language that is not on offer (via `locale`
-  or `?locale=`) falls back to English instead. **Until an administrator changes it the list is the
+  or `?locale=`) falls back to English instead — or, if English is not offered either, to one that
+  is. **Until an administrator changes it the list is the
   same ten languages as before**, so an atlas nobody has touched behaves exactly as it did.
 - **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
   so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:

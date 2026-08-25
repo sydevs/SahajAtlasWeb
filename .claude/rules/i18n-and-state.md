@@ -30,7 +30,7 @@ alwaysApply: false
   code. Only pass `count` when the key genuinely has `_one`/`_other` forms (see
   `locations.description_one` / `venues.description_one`).
 - **Detection is spelled out, and persists nothing** (`i18nDetectionOptions`,
-  `src/config/i18n-options.ts`): `order: ['querystring', 'navigator']`, `caches: []`.
+  `src/config/i18n-options.ts`): `order: ['querystring', 'hostHtmlLang', 'navigator']`, `caches: []`.
   The library's defaults would read cookies + localStorage and write `i18nextLng`
   onto the HOST page's origin — undeclared storage on a domain that isn't ours
   (issue #95). It can still be overridden by the widget's `locale` prop (see `App.tsx`;
