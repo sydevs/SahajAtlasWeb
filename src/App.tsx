@@ -166,10 +166,10 @@ export default function App({
   // here for the full form because there the point is the PARALLELISM — moving it behind a lazy
   // chunk would put the feed back behind a round trip it currently overlaps.
   //
-  // The language set is warmed BESIDE it and is deliberately not gated on `compact` — the card
-  // is localized, so which languages the atlas is offered in is part of rendering the card
-  // itself. See `warmLanguages` for the argument and for what it costs (one global read of a
-  // ten-row array, next to the client record already in flight).
+  // The language set is warmed BESIDE it, ungated by `compact` — the card is localized, so which
+  // languages the atlas is offered in is part of drawing the card itself. ⚠ Gating this would not
+  // stop the request: `AppShell` reads the same query unconditionally and renders for a collapsed
+  // card, so all the gate could do is make the read serial. See `warmLanguages`.
   useEffect(() => {
     if (!apiKey) return
 
@@ -294,6 +294,11 @@ function AppShell({
    * it and at no other time — re-running on `languages` would re-impose the host's configured
    * language over a viewer's own pick from the settings menu the moment the CMS read landed.
    * A ref reads the current value; the dependency list decides the trigger.
+   *
+   * Written during render, which React documents against in general and which is safe here for
+   * two specific reasons rather than by habit: nothing reads it during render (only the effect
+   * below, after commit), and the value derives from nothing but the query cache — so a render
+   * that is discarded or replayed can only ever write the identical array.
    */
   const offered = useRef(languages)
 

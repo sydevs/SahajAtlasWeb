@@ -368,14 +368,21 @@ Two effects deliberately still fire from a collapsed card — the readiness mark
 report — because both attest that the widget _booted_, which is true whether or not anyone opened
 it. `clients/me` stays too: the card is themed and localized from that record.
 
-**And one read was added to that list on purpose (#167): `api.warmLanguages()`, the operator-owned
-language set.** Same argument as `clients/me`, and it has to be made rather than assumed, because
-the table above is what the next person auditing a collapsed card's requests reads. The card is
-localized, so which languages the atlas is offered in decides what language the card itself renders
-in — that is part of drawing the card, not part of the interface behind it. The cost is one global
-read of a ten-row array, next to the client record already in flight; it is not the feed-and-region-
-tree pair the table's second row removed. `CompactEmbedView.mount.test.tsx` pins the absences, not
-this presence — so if you are adding a request here, add the argument too.
+**And one read was added to that list on purpose (#167): the operator-owned language set.** Same
+argument as `clients/me`, and it has to be made rather than assumed, because the table above is what
+the next person auditing a collapsed card's requests reads. The card is localized, so which
+languages the atlas is offered in decides what language the card itself renders in — that is part of
+drawing the card, not part of the interface behind it. The cost is one global read of a ten-row
+array, next to the client record already in flight; it is not the feed-and-region-tree pair the
+table's second row removed.
+
+⚠ **The request comes from `AppShell`'s `useLanguages()` observer, NOT from the ungated
+`api.warmLanguages()` warm beside `warmCaches`** — a distinction worth stating because everything
+else in this section is about effects, and the obvious reading is wrong. `AppShell` renders for a
+collapsed card and reads that query unconditionally, so adding a `compact` gate to the warm would
+make the read serial and remove no request at all. If you want it gone from the card, the observer
+is what has to move. `CompactEmbedView.mount.test.tsx` pins the absences, not this presence — so if
+you are adding a request here, add the argument too.
 
 **Three things about the dialog were found in a browser and could not have been found any other
 way.**

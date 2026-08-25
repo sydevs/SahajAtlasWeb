@@ -752,7 +752,10 @@ const warmCaches = (): void => {
  * whole of why the correction is invisible; it is not a nicety on top of a guard that was already
  * fine.
  *
- * ⚠ **Unlike `warmCaches`, this runs for a COMPACT embed too**, and the argument is the one that
+ * ⚠ **This is ungated by `compact`, but do not mistake that for what causes the request.**
+ * `AppShell` calls `useLanguages()` unconditionally and renders for a collapsed card, so the
+ * observer issues this read for every embed whether or not the warm is gated — gating it would
+ * cost the parallelism and remove nothing. The request itself is deliberate, on the argument that
  * keeps `clients/me` there: the card is themed and localized from the CMS, so which languages the
  * atlas is offered in is part of rendering the card at all, not part of the interface behind it.
  * The cost is one global read of a ten-row array, next to the client record already being fetched

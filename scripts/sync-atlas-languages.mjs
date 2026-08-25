@@ -34,10 +34,12 @@
  * than no opinion at all. It lives in `scripts/` beside `audit-baseline.json`, which is the same
  * kind of thing: a committed observation that a gate compares against.
  *
- * The API key is read from `ATLAS_API_KEY`, falling back to `VITE_SAHAJCLOUD_API_KEY` — either in
- * your shell or in `.env.local`. It must be a PRODUCTION key: this deliberately ignores
- * `VITE_SAHAJCLOUD_URL`, because that is usually pointed at a seeded local backend, and a snapshot
- * of dev data asserted against in CI is worse than none.
+ * The API key is read from `ATLAS_API_KEY`, in your shell or in `.env.local`. It must be a
+ * PRODUCTION key: this always reads production and deliberately ignores `VITE_SAHAJCLOUD_URL`,
+ * because that is usually pointed at a seeded local backend and a snapshot of dev data asserted
+ * against in CI is worse than none. `VITE_SAHAJCLOUD_API_KEY` is accepted as a fallback ONLY when
+ * that variable's own backend IS production — otherwise it is a key for somewhere else, and
+ * sending it here would put it in production's request logs to earn a 403.
  */
 
 import { readdir, readFile, writeFile } from 'node:fs/promises'
@@ -66,10 +68,24 @@ const env = loadEnv('development', fileURLToPath(new URL('..', import.meta.url))
   'VITE_',
 ])
 
-const apiKey = env.ATLAS_API_KEY || env.VITE_SAHAJCLOUD_API_KEY || null
+// ⚠ **The `VITE_` fallback is gated on that variable's own backend being production.** In the
+// documented dev setup `.env.local` points `VITE_SAHAJCLOUD_URL` at a seeded local backend and
+// carries THAT backend's key — and this script always talks to production, deliberately. Taking
+// the key without checking the URL it belongs to transmits a credential issued for one
+// environment in an `Authorization` header to another, where it lands in that server's logs. The
+// 403 it earns is the harmless half; the header is already sent by then.
+const usingProductionBackend =
+  !env.VITE_SAHAJCLOUD_URL || new URL(env.VITE_SAHAJCLOUD_URL).origin === new URL(ENDPOINT).origin
+
+const apiKey = env.ATLAS_API_KEY || (usingProductionBackend ? env.VITE_SAHAJCLOUD_API_KEY : null)
 
 if (!apiKey) {
   console.error('✖ No API key. Set ATLAS_API_KEY (a production sahaj-atlas client key).')
+
+  if (!usingProductionBackend) {
+    console.error(`  (Ignoring VITE_SAHAJCLOUD_API_KEY — it belongs to ${env.VITE_SAHAJCLOUD_URL}.)`)
+  }
+
   console.error('  See .claude/docs/environment.md.')
   process.exit(2)
 }
