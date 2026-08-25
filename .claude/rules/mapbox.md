@@ -174,6 +174,27 @@ page it does not have.
 For everything else — driving the map itself — serve the app the usual way (`pnpm dev`, or an alt
 port plus a matching `VITE_HOST` under the worktree pattern) against the seeded local backend.
 
+* **The backend is not a prerequisite — stub `clients/me`.** The widget suspends on that one read
+  before anything renders, so almost every boot-path question is answerable by intercepting it:
+
+  ```js
+  await page.route('**/clients/me*', (r) =>
+    r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+      body: JSON.stringify({ user: { id: 1, name: 'T', locale: 'en', allowedDomains: 'localhost',
+        clientId: 't', region: null, canonical: { enabled: true, embed: 'localhost:5173/map' } } }) }))
+  ```
+
+  Three things make it work, each learned the slow way in #165: the **CORS header is required**
+  (the API is a different origin, so an unheadered fulfill is blocked and looks exactly like a
+  rejected key); Playwright matches the **most recently registered** route first, so a broad
+  catch-all registered afterwards silently shadows this; and a host serving a whole subtree needs
+  `page.route('**/prefix/**', …)` returning the page, since the review server 404s by design.
+  This is currently the ONLY way to see a rendered interface — the seeded local backend rejects
+  every key in `.env.local`.
+* **`data-sahaj-atlas-ready` is the best single observable.** It attests what the router ACTUALLY
+  did (`{"v":2,"routing":"path",…}`), as opposed to what was configured, which is exactly the
+  distinction most boot bugs turn on. ⚠ Poll for it: a later error boundary CLEARS it, so a read
+  taken after the data layer fails returns `null` on a boot that was fine.
 * **Screenshots are readable.** `browser_take_screenshot` with a **relative**
   `filename` writes into the project root, and `Read` displays it — WebGL content
   (pins, clusters, basemap) captures fine. `element`/`target` gives a close-up of one

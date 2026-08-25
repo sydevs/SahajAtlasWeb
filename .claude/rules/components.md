@@ -137,8 +137,20 @@ in host pages, **and** runs standalone in dev. Because of that:
   `replaceState`. ⚠ **That is NOT a sandboxed iframe, though this rule said so until #161 measured
   it**: in Chrome 151 a real `sandbox="allow-scripts"` frame has an opaque origin (`localStorage`
   throws) and still permits `replaceState` and `pushState`. What a sandbox blocks is `window.open`.
-  `routing=path` is accepted, warns, and falls back to query until its prefix arrives from the
-  client record.
+  **`routing=path` is implemented**, and its prefix comes from the client record's
+  `canonical.embed` — never from a script parameter, because it is the same value SahajCloud
+  composes canonical URLs from and two copies could disagree. The route is then the pathname under
+  that prefix, and `?atlas=` carries whatever the path does not — the route's own query. One
+  claimed parameter and one encoder in both modes.
+  ⚠ **That prefix arrives over the network, so path mode WAITS for the client record before
+  constructing its router** (`AtlasBoot`, `src/Widget.tsx`). Query mode never reaches that code.
+  Anything reading the record above `App` needs what `App` provides — the API key must already be
+  claimed, and a `QueryClientProvider` must be mounted, because the tree's own lives inside `App`,
+  below the router this read exists to build. Both were bugs first, and both degraded to query
+  while blaming the client record, so the boundary there now reports its own cause.
+  Every unhonourable path config falls back to query and says which: no prefix on the record, or a
+  page served outside it. That second is #92's blank widget in a new form — react-router's `Router`
+  renders `null` on a basename miss, silently — which is why the guard is ours, not its `basename`.
 
   **`file://` is explicitly not supported, and nothing may be built to accommodate it.** #161 added
   a `MemoryRouter` fallback to `main.tsx` for it and then removed it: with the sandbox case gone,
@@ -338,12 +350,12 @@ anything that writes the host's URL, fetches, injects a script or reports must m
 **interface** (`FullInterface`, or from `interfaceElement`), never with the shell. The four, each
 found one at a time across two review rounds before the pattern was named:
 
-| Fired from a collapsed card | Cost |
-| --- | --- |
-| The home-region redirect | `navigate` writes `?atlas=/nl` onto the HOST's URL; reloading that address then opened a dialog nobody asked for |
-| `api.warmCaches()` | The whole events feed **and** the region tree, on every page view of a sidebar nobody presses |
-| `Fathom.load` | Our tracker script injected into the host's page |
-| `Fathom.trackPageview` | A pageview of `/` recorded for an interface nobody opened |
+| Fired from a collapsed card | Cost                                                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| The home-region redirect    | `navigate` writes `?atlas=/nl` onto the HOST's URL; reloading that address then opened a dialog nobody asked for |
+| `api.warmCaches()`          | The whole events feed **and** the region tree, on every page view of a sidebar nobody presses                    |
+| `Fathom.load`               | Our tracker script injected into the host's page                                                                 |
+| `Fathom.trackPageview`      | A pageview of `/` recorded for an interface nobody opened                                                        |
 
 **One property underwrites all four**: React never renders the card's `children` until the dialog
 opens — which is also what keeps mapbox-gl unfetched. Nothing pinned it, and each fix has its own
@@ -353,7 +365,7 @@ spec that would keep passing if it broke, so it now has one of its own in
 `.claude/rules/tests.md`).
 
 Two effects deliberately still fire from a collapsed card — the readiness marker and the embed
-report — because both attest that the widget *booted*, which is true whether or not anyone opened
+report — because both attest that the widget _booted_, which is true whether or not anyone opened
 it. `clients/me` stays too: the card is themed and localized from that record.
 
 **Three things about the dialog were found in a browser and could not have been found any other

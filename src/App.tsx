@@ -131,6 +131,8 @@ type AppProps = {
   // entry has a real answer; the standalone build publishes no marker at all (nothing observed
   // it), so its default is never read.
   routing?: RoutingMode
+  /** The path prefix, in `path` routing — what the embed report files as the mount. */
+  prefix?: string
 }
 
 export default function App({
@@ -143,6 +145,7 @@ export default function App({
   compact = null,
   linkable = true,
   routing = 'query',
+  prefix,
 }: AppProps) {
   // Warm the agnostic map/hierarchy caches (feed + region tree) + current-locale titles
   // the moment we have the API key, in parallel with the client bootstrap the tree
@@ -185,6 +188,7 @@ export default function App({
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
                 linkable={linkable}
+                prefix={prefix}
                 routing={routing}
                 standalone={standalone}
               />
@@ -228,6 +232,7 @@ type AppShellProps = {
   compact: CompactState | null
   linkable: boolean
   routing: RoutingMode
+  prefix?: string
 }
 
 function AppShell({
@@ -238,6 +243,7 @@ function AppShell({
   compact,
   linkable,
   routing,
+  prefix,
 }: AppShellProps) {
   if (!apiKey) throw atlasError('config', 'Missing api key.')
 
@@ -266,14 +272,18 @@ function AppShell({
    * boundary took down.
    */
   useEffect(() => {
-    void announceEmbed({ routing, observed: embed.observed })
-  }, [routing])
+    void announceEmbed({ routing, observed: embed.observed, prefix })
+  }, [routing, prefix])
 
+  // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language should match
+  // the page it is embedded in, and `<html lang>` says that per page — where a record-level setting
+  // says it once for every page a client embeds on, and is then a second thing to keep in step with
+  // the site around it. So the chain is: this parameter → `?locale=` on the page → the host's
+  // `<html lang>` → the browser → English, with the viewer's own pick from the settings menu
+  // overriding all of it for the session. `config/i18n-options.ts` owns the middle three.
   useEffect(() => {
-    if (defaultLocale || client.locale) {
-      i18n.changeLanguage(defaultLocale || client.locale || 'en')
-    }
-  }, [defaultLocale, client.locale])
+    if (defaultLocale) i18n.changeLanguage(defaultLocale)
+  }, [defaultLocale])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side opt-out:
   // `analytics="false"` was one, but the element observes no attributes at all (`Widget.tsx`) and
@@ -304,9 +314,20 @@ function AppShell({
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it, and the widget's hash URLs
-          were never canonical anyway (hence `standalone` existing at all). */}
+          were never canonical anyway (hence `standalone` existing at all).
+
+          ⚠ **`lang`/`dir` on <html> are an OUTPUT here, not an input**, and that is the whole
+          asymmetry with the embedded case. Embedded, the host's `<html lang>` describes THEIR
+          content and is evidence we read (`hostHtmlLangDetector`). Standalone, the document is
+          ours: `index.html` ships `lang="en"` as a pre-hydration placeholder, and once we have
+          resolved a language it is our job to say so, because WCAG 3.1.1 asks the page to declare
+          the language it is actually in. Without this a French visitor got French content inside
+          `<html lang="en">`, and a screen reader read it with English pronunciation.
+
+          No feedback loop: the detector refuses to read a document carrying our own scope class,
+          so writing this back can never become the thing we detect next time. */}
       {standalone && (
-        <Helmet>
+        <Helmet htmlAttributes={{ lang: locale, dir: i18n.dir(locale) }}>
           <meta content={locale} property="og:locale" />
         </Helmet>
       )}

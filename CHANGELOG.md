@@ -21,7 +21,26 @@ Entries reference the pull request that landed them.
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
 
+### Changed
+
+- **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
+  so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:
+  `locale` on the script URL → `?locale=` on the page → **`<html lang>`** → the browser → English.
+  ⚠ **The `locale` field on your client record is no longer read** — a record-level language says
+  it once for every page you embed on, where `<html lang>` says it per page and your CMS already
+  sets it. If you were relying on that field, set `locale` on the script URL instead, or check that
+  your pages declare the language you want.
+
 ### Added
+
+- **`routing=path` now works.** ([#164]) Your widget's route can live in the path —
+  `your-site.org/classes/gb/london` — instead of in `?atlas=`. It needs your server to serve the
+  same page for everything under the prefix, and a canonical embed on your client record to say
+  what that prefix is; the prefix is deliberately not a script parameter, because it is the same
+  value your canonical URLs are built from and two copies could disagree. **Missing either one
+  falls back to query routing and logs which was missing** — it never silently behaves as a
+  different mode. In path mode the widget writes its own state to the real query string and leaves
+  every parameter it does not own alone. See [Routing](docs/embedding.md).
 
 - **A slot too small for the interface now gets a compact card instead of a cramped one.**
   ([#161]) The widget shows one button — "Find a class near you" — that opens the whole
@@ -143,8 +162,7 @@ cover everything a host would notice since the widget was first deployed.
   **Old `#!/…` links are not translated.** A visitor arriving on one gets the embed's default
   route. There is no migration shim, deliberately.
 
-  `routing=path` is accepted but not yet available — it warns in the console and uses query routing
-  instead. Its prefix comes from your client record, which is not wired up yet.
+  `routing=path` shipped later in this same release — see its entry above.
 
 - **The snippet is now a single script tag, and configuration moved onto its URL.** ([#149])
 
@@ -361,6 +379,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#135]: https://github.com/sydevs/SahajAtlasWeb/pull/135
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
+[#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy

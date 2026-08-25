@@ -153,7 +153,7 @@ describe('i18nDetectionOptions', () => {
   // storage to find it (issue #95). Only an exhaustive assertion says "nothing else".
   it('reads the locale query param and the browser preference, and persists nothing', () => {
     expect(i18nDetectionOptions).toEqual({
-      order: ['querystring', 'navigator'],
+      order: ['querystring', 'hostHtmlLang', 'navigator'],
       lookupQuerystring: 'locale',
       caches: [],
       convertDetectedLanguage: expect.any(Function),

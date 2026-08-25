@@ -16,6 +16,8 @@
 // translated into (its `src/lib/locales/index.ts` is the source of truth, and
 // `activeLocale()` in config/api/client.ts sends the resolved language straight
 // through) — all ten are, since sydevs/SahajCloud#578 added hu + nl.
+import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
+
 export const supportedLanguages = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt-BR', 'ru', 'uk']
 
 // Language detection, spelled out — because `i18next-browser-languagedetector`'s
@@ -31,15 +33,38 @@ export const supportedLanguages = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt
 //
 // Spread into `init` rather than passed by reference — the detector writes its own
 // defaults back into the object it is handed.
+/**
+ * The host page's declared language — the strongest signal short of somebody saying it outright.
+ *
+ * **The widget's content should match the page it is embedded in.** A Dutch site embedding the
+ * atlas wants a Dutch atlas, whatever language the visitor's browser happens to prefer, and
+ * `<html lang>` is the one declaration every CMS already sets. It sits below the explicit
+ * configuration (`locale` on the script URL, `?locale=` on the page) and above the browser, which
+ * is a guess about the visitor rather than a statement about the content.
+ *
+ * ⚠ **It is deliberately NOT i18next's built-in `htmlTag` detector**, because that would read our
+ * OWN shell. The standalone build is `<html class="sy-atlas" lang="en">` — a hard-coded
+ * placeholder describing nothing — so the built-in would pin every standalone visitor to English
+ * and quietly undo the browser detection that works today. The scope class is the discriminator:
+ * it marks a document as ours, and a host's page never carries it on `<html>`.
+ */
+export const hostHtmlLangDetector = {
+  name: 'hostHtmlLang',
+  lookup: () => {
+    if (typeof document === 'undefined') return undefined
+
+    const root = document.documentElement
+
+    if (root.classList.contains(WIDGET_SCOPE_CLASS)) return undefined
+
+    return root.getAttribute('lang')?.trim() || undefined
+  },
+}
+
 export const i18nDetectionOptions = {
-  order: ['querystring', 'navigator'],
+  order: ['querystring', 'hostHtmlLang', 'navigator'],
   lookupQuerystring: 'locale',
   caches: [],
-  // `?locale=` is a param on the HOST's URL, so anyone who can link to their page can
-  // set it. `cimode` is i18next's own translator-debug pseudo-language: it is appended
-  // to `supportedLngs` internally, skips resource loading, and makes every `t()` return
-  // its raw key — so a link ending `?locale=cimode` renders somebody's embed as a list
-  // of dotted key names. It is the one detected value that has to be refused.
   convertDetectedLanguage: (language: string) =>
     /^(cimode|dev)$/i.test(language) ? 'en' : language,
 }

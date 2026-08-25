@@ -48,9 +48,9 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 // Keyed on `seedKey` (the control's use-case) so switching case remounts with a
 // freshly seeded client.
 
-/** A minimal host-client record — CountriesView suspends on this (locale + home
+/** A minimal host-client record — CountriesView suspends on this (theme + home
  *  region bootstrap); no home region, so no canonical link is emitted. */
-const mockClient: Client = { id: 1, name: 'Demo Host', locale: 'en', region: null }
+const mockClient: Client = { id: 1, name: 'Demo Host', region: null }
 
 /** A passive IP guess (Cambridge) so the nearby-suggestion prompt renders on the
  *  views that show it (Countries / Region / Search). Sits where the feed has a

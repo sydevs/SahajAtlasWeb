@@ -69,6 +69,11 @@ fix) — in an **isolated context** so its file reading doesn't bloat the main t
   tree is untouched and report the same findings.
 - **Blocking**: triage every finding. Fix the valid ones (each as its own commit), then re-run the
   lean gate. Note any finding you dismiss with a one-line reason for the report.
+- ⚠ **A finding's suggested fix is a proposal, not a patch.** Check its premise still holds against
+  the current diff — several will have been written against an earlier commit of the same review —
+  and re-run whatever verified the original behaviour, not just the lean gate. In #165 a Low
+  finding's suggested regex broke every mount key carrying a port, with the whole lane green; only
+  the browser check caught it.
 - For a deeper pass you may note that the user can run the billed `/code-review ultra` (cloud,
   multi-agent) themselves — Claude cannot launch it.
 
@@ -226,6 +231,10 @@ test:run + build + ladle:build); the **Smoke** job runs separately against the C
 - **Never** force-push `main`/any shared branch; **never** `--no-verify`; **never** commit
   `.env.local` or any `sk.`/API secret.
 - **Never** report success while CI is red.
+- **Never gate an action on a PIPELINE's exit status.** `check.sh 2>&1 | grep … && git commit`
+  commits when `grep` matches, not when the gate passes — that shipped a commit on a red lane in the
+  #165 session. Run the gate as its own command and read its status, or `set -o pipefail`. The same
+  trap makes `git push … && echo ok` print `ok` on a rejected push.
 - **Always** run `/simplify` and `/code-review` over the **full branch diff**, not just the last commit.
 - **Always** run `/code-review` (and the conditional security review) via a **dispatched Task
   subagent**, never inline in the main thread — and **always read-only**: no edits, no formatting,

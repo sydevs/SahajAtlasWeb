@@ -349,7 +349,22 @@ export const filtersKey = (filters: EventFilters): string =>
 // The filters live in the URL so a filtered view is linkable/shareable. One compact
 // key per group; a default (unrestricted) group is omitted so links stay clean.
 
-const FILTER_PARAM_KEYS = ['format', 'cadence', 'days', 'time', 'langs', 'dates', 'region'] as const
+/**
+ * Every query-parameter name the filters own.
+ *
+ * Exported because `routing=path` has to know which of the HOST page's parameters are the widget's
+ * to read and rewrite (`WIDGET_PARAMS`, `./routing`) — a hand-copied list there silently dropped
+ * every filter on navigation before this was shared.
+ */
+export const FILTER_PARAM_KEYS = [
+  'format',
+  'cadence',
+  'days',
+  'time',
+  'langs',
+  'dates',
+  'region',
+] as const
 const CADENCES: readonly string[] = ['once', 'DAILY', 'WEEKLY', 'MONTHLY']
 
 const parseDays = (value: string | null): number[] =>

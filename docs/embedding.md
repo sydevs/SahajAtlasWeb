@@ -129,13 +129,13 @@ Five parameters on the script URL, all optional except `key`. Standard query-str
 so percent-encode anything with a reserved character in it (`atlas=%2Fgb%2Flondon` is equivalent
 to `atlas=/gb/london`; both work).
 
-| Parameter | Default                        | What it does                                                                                                                                                                                                                         |
-| --------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `key`     | —                              | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen, and the loader logs an error naming the problem.                                                          |
-| `locale`  | the visitor's browser language | Force a UI language, e.g. `fr`. Full precedence: this parameter → the language on your client record → **`?locale=` on the page URL** → the browser's language → English.                                                            |
-| `map`     | `true`                         | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)). |
-| `routing` | `query`                        | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                             |
-| `atlas`   | —                              | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                    |
+| Parameter | Default                       | What it does                                                                                                                                                                                                                                           |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `key`     | —                             | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen, and the loader logs an error naming the problem.                                                                            |
+| `locale`  | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. Full precedence: this parameter → **`?locale=` on the page URL** → **your page's `<html lang>`** → the browser's language → English. A viewer's own pick from the settings menu overrides all of it for their session. |
+| `map`     | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                   |
+| `routing` | `query`                       | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                                               |
+| `atlas`   | —                             | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                      |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — the parameter absent, empty, `true`, `no`, `FALSE` — leaves it **on**. This is
@@ -156,6 +156,20 @@ or followed a link somebody shared, and sending them to your default instead wou
 where they asked to be. Use `atlas` for an embed that should always open somewhere specific — a
 page dedicated to one city, or an event's registration form.
 
+### The widget follows your page's language
+
+**You usually do not need the `locale` parameter at all.** The widget reads your page's
+`<html lang>` and matches it, so a Dutch page gets a Dutch atlas whatever language the visitor's
+browser prefers — which is almost always what you want, since the widget is part of your content
+rather than a separate app.
+
+Reach for `locale` only when your page's declared language is wrong or missing, or when you
+deliberately want the atlas in a different language from the page around it.
+
+**This used to be a setting on your client record and no longer is**, on purpose: a record-level
+language says it once for every page you embed on, and then has to be kept in step with a site
+that may not be monolingual. `<html lang>` already says it per page, and your CMS already sets it.
+
 ### What you configure in the CMS instead
 
 Some things are **not** parameters, on purpose:
@@ -171,6 +185,43 @@ is worse than merely redundant: it is the value we compose your canonical URLs f
 copy on a script tag could disagree with the one the canonical was built from — and a canonical
 pointing at a URL that does not restore the view is precisely the failure canonical URLs exist to
 prevent.
+
+### `routing=path` — clean paths, and what your server has to do
+
+By default the widget's route is a parameter on your page's own URL:
+`https://your-site.org/classes?atlas=/gb/london`. With `routing=path` it becomes part of the path
+instead — `https://your-site.org/classes/gb/london` — which is the shape a search engine and a
+reader both prefer.
+
+**It asks two things of you, and the widget refuses rather than half-works if either is missing.**
+
+1. **Your server must serve the same page for everything under the prefix.** The widget navigates
+   with the History API, so an in-page click never hits your server — but a visitor who reloads,
+   bookmarks or follows a shared link does, and `/classes/gb/london` has to return the page your
+   embed is on. On most platforms that is a wildcard route or a catch-all rewrite; on WordPress it
+   needs a rewrite rule, which is one of the things the plugin will do for you.
+2. **A canonical embed on your client record**, naming the page the widget is mounted on. The
+   prefix comes from there rather than from this script tag, for the reason in the table above:
+   it is the same value your canonical URLs are composed from, and two copies can disagree.
+
+**If either is missing, the widget uses query routing and says so in the console** — naming which
+of the two it was. It never silently behaves as a different mode, because a host whose server
+config is doing nothing should find out from us rather than from their analytics six months later.
+
+**It does not cost you a round trip.** The widget reads your client record before it can build its
+router — but it reads that record in either mode, before it can render anything, so path mode makes
+the same single request query mode already makes. It shows a spinner through it, exactly as query
+mode does.
+
+**Your other query parameters are still safe, and there is still only one of ours.** In path mode
+the route's _path_ is the pathname and `?atlas=` carries whatever is left — the searched place,
+filters, sort order. So the rule is the same in both modes: **we set and read exactly one
+parameter, and leave every other one on your URL alone.**
+
+⚠ **Existing `?atlas=` links do not survive the switch.** A URL you have already shared or had
+indexed — `your-site.org/classes?atlas=/gb/london` — opens the root view once you enable path
+routing, because the route is now read from the path. Plan the change the way you would any URL
+migration: the old links keep working right up until you flip it, and not after.
 
 **There are also no privacy opt-outs**, and the flows they used to switch off are described under
 [Privacy](#privacy-storage-and-third-party-requests): analytics is cookieless and aggregate, crash
@@ -403,7 +454,7 @@ search engine can index. Every event and every city is a distinct URL on **your*
 Three consequences worth stating plainly:
 
 - **Your other query parameters survive.** We set and read exactly one, `atlas`, and leave the rest
-  alone. WordPress's `/?p=123` permalinks keep working.
+  alone — in both routing modes. WordPress's `/?p=123` permalinks keep working.
 - **Your page's `#anchor` is none of our business.** The widget never reads or writes the fragment.
   A page that loads at `#respond` scrolls where you expect, anything of yours reading
   `location.hash` still works, and the widget routes normally alongside it. (Before this, the widget
@@ -761,29 +812,29 @@ Three things to check when you migrate:
 
 ## Troubleshooting
 
-| Symptom                                                               | Likely cause                                                                                                                                                                                            |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing renders; a 404 for the script**                             | The filename is `auto.js`. `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                            |
-| **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` — it was renamed when configuration moved onto the script URL. The loader logs an error naming it. Otherwise the key itself is wrong, revoked, or not yet issued. |
-| **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                     |
-| **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                              |
-| **The widget renders completely unstyled**                            | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                                                   |
-| **Every label reads like `events.title`**                             | The locale JSON is blocked — add `https://sahajatlas.com` to `connect-src`. It is a different origin from the script even when you load the script from `pages.dev`.                                    |
-| **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                |
-| **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                             |
-| **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                |
-| **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                               |
-| **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                              |
-| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                       |
+| Symptom                                                               | Likely cause                                                                                                                                                                                                          |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nothing renders; a 404 for the script**                             | The filename is `auto.js`. `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                                          |
+| **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` — it was renamed when configuration moved onto the script URL. The loader logs an error naming it. Otherwise the key itself is wrong, revoked, or not yet issued.               |
+| **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                   |
+| **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                            |
+| **The widget renders completely unstyled**                            | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                                                                 |
+| **Every label reads like `events.title`**                             | The locale JSON is blocked — add `https://sahajatlas.com` to `connect-src`. It is a different origin from the script even when you load the script from `pages.dev`.                                                  |
+| **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                              |
+| **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
+| **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |
+| **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                             |
+| **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                                            |
+| **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                     |
 | **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. Add `allow-popups`, or drop the `sandbox` attribute. Nothing in the console will tell you — the browser blocks it silently. |
-| **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                            |
-| **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                   |
-| **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                          |
-| **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                                                  |
-| **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                          |
-| **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                   |
-| **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way; talk to the maintainers.            |
-| **The widget only appears when you scroll to it**                     | Intended. The loader defers fetching the widget until the embed is near the viewport, so a widget below the fold costs your visitors nothing until they reach it.                                       |
+| **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                          |
+| **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                 |
+| **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                                        |
+| **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                                                                |
+| **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                        |
+| **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                 |
+| **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way; talk to the maintainers.                          |
+| **The widget only appears when you scroll to it**                     | Intended. The loader defers fetching the widget until the embed is near the viewport, so a widget below the fold costs your visitors nothing until they reach it.                                                     |
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings
 control, and offered on most error screens) reaches the maintainers with the failure

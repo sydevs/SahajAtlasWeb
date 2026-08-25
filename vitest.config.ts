@@ -21,5 +21,16 @@ export default defineConfig({
     // `.claude/worktrees` holds gitignored git worktrees (each a full checkout with
     // its own node_modules) — never scan those, or the lane runs duplicate/foreign specs.
     exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**', '.claude/worktrees/**'],
+    // ⚠ Raised from vitest's 5 s default because three specs were flaking in the FULL run while
+    // passing in isolation — `href.test.ts`, which TypeScript-AST-walks every `src/**/*.tsx` to pin
+    // the JSX-anchor inventory, and the two jsdom `CompactEmbedView` specs, which each boot a DOM
+    // and mount a Radix dialog. All three finished in 5–7 s under parallel load on a fast laptop,
+    // so a slower CI runner is the case that matters.
+    //
+    // Nothing here is waiting on a network or a timer, so this timeout was never catching a hang —
+    // it was only capping how slow an inherently slow spec may be while the pool is saturated.
+    // Keep the lane itself fast (`.claude/rules/tests.md` wants < ~5 s total) by not adding slow
+    // specs; this ceiling exists so the ones that are slow fail for real reasons.
+    testTimeout: 20_000,
   },
 })

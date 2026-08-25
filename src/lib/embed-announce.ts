@@ -107,8 +107,22 @@ export async function announceEmbed(args: {
   routing: RoutingMode
   /** What the loader probed, or `null` on a surface it never booted. */
   observed: EmbedFingerprint | null
+  /**
+   * The mount prefix, in `path` routing only.
+   *
+   * ⚠ **Without it, path mode poisons the very field it reads back.** The mount is filed from
+   * `window.location`, and in path mode the widget's route IS the pathname — so a visitor
+   * deep-linked to `/map/gb/london/1204` would file THAT as a mount. The client record is the
+   * source of `canonical.embed`, which is where `mountPrefix` gets the prefix, so the record would
+   * fill with one "mount" per route anybody ever linked to, the operator's picker would no longer
+   * contain a nameable page, and the 50-mount cap would be exhausted inside a day of traffic —
+   * after which every report 429s and prints on the host's console on every page view.
+   *
+   * The mount is the subtree root, not the route inside it.
+   */
+  prefix?: string
 }): Promise<void> {
-  const { routing, observed } = args
+  const { routing, observed, prefix } = args
 
   // No loader means nothing was probed: the standalone dev entry and every Ladle story mount the
   // widget directly. A marker asserting an embed nobody measured is exactly the theatre it exists
@@ -128,7 +142,7 @@ export async function announceEmbed(args: {
   // now is when it is true. `undefined` means this page has no mount the endpoint would store — a
   // `blob:` document, an over-long path — which costs the report and NOT the marker above, since a
   // widget on an unreportable URL is still a widget that booted.
-  const mount = currentMount()
+  const mount = currentMount(routing === 'path' ? prefix : undefined)
 
   if (!mount) return
 

@@ -173,6 +173,19 @@ function pages(src) {
       'do NOT sandbox these — target="_blank" needs allow-popups, and the router needs allow-same-origin.',
     ),
 
+    // Path routing. ⚠ This page is the ONE exception to trap 4's 404 rule — the server serves it for
+    // everything under `/__review/pathmode`, because that wildcard IS what path routing asks of a
+    // host. The exception is narrow on purpose: exactly this prefix, nothing else.
+    //
+    // It will still fall back to query until a client record carries a matching `canonical.embed`
+    // (`localhost:<port>/__review/pathmode`), which the seeded backend does not. To see path mode
+    // actually engage, stub `clients/me` — see `.claude/rules/mapbox.md`.
+    'pathmode.html': page(
+      'Path routing',
+      `<sahaj-atlas></sahaj-atlas>${loader('key=KEY&map=false&routing=path')}`,
+      'served for the whole /__review/pathmode subtree. Expect a console warning naming the missing canonical embed, unless you stub clients/me.',
+    ),
+
     // A deep link on the PAGE url: eager mount + auto-open. The script-URL `atlas` param is a
     // configured default and must do neither.
     'deep-link.html': page(
@@ -232,6 +245,15 @@ const server = createServer((req, res) => {
   if (pathname === '/' && !url.search) {
     res.writeHead(200, { 'content-type': MIME['.html'] })
     res.end(index)
+    return
+  }
+
+  // ⚠ The single wildcard, and it stays single. Path routing requires the host to serve one
+  // document for a whole subtree, so the page demonstrating it cannot be reached any other way —
+  // but a general fallback here would re-arm trap 4, which is the whole reason this server 404s.
+  if (pathname === '/__review/pathmode' || pathname.startsWith('/__review/pathmode/')) {
+    res.writeHead(200, { 'content-type': MIME['.html'] })
+    res.end(written['pathmode.html'].replaceAll('KEY', key))
     return
   }
 

@@ -108,6 +108,11 @@ export function mountParts(href: string | null | undefined): MountParts | undefi
  * than captured earlier and carried. A host router that rewrote the URL between the loader's probes
  * and the widget's mount is therefore reported as it finally stands.
  */
-export function currentMount(): MountParts | undefined {
-  return mountParts(window.location.href)
+export function currentMount(prefix?: string): MountParts | undefined {
+  const parts = mountParts(window.location.href)
+
+  // In `path` routing the widget's route is part of the pathname, so the raw location names a
+  // route rather than a mount. `prefix` is the subtree root the widget is mounted at, which is the
+  // thing worth filing — see the argument on `announceEmbed`'s own `prefix`.
+  return parts && prefix !== undefined ? { ...parts, pathname: prefix || '/' } : parts
 }
