@@ -12,8 +12,8 @@ import {
   SettingsIcon,
   SunFilledIcon,
 } from '@/components/atoms/Icons'
-import { supportedLanguages } from '@/config/i18n-options'
 import { useReportModal } from '@/config/store'
+import { useLanguages } from '@/hooks/use-languages'
 import { useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
@@ -50,6 +50,10 @@ export type SettingsMenuProps = {
 export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) {
   const { t } = useTranslation('common')
   const { locale, setLocale, languageNames } = useLocale()
+  // The operator's set, not this build's inventory (#167) — an atlas offered in four languages
+  // shows four rows here. Falls back to every shipped bundle while the CMS read is in flight or
+  // if it fails, which is what the picker offered before the setting existed.
+  const languages = useLanguages()
   const { preference, setPreference } = useThemePreference()
   const openReport = useReportModal((state) => state.openReport)
   const container = overlayContainer()
@@ -84,7 +88,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
             <DropdownMenu.Portal container={container}>
               <DropdownMenu.SubContent className={menu} sideOffset={4}>
                 <DropdownMenu.RadioGroup value={locale} onValueChange={setLocale}>
-                  {supportedLanguages.map((lng) => (
+                  {languages.map((lng) => (
                     <DropdownMenu.RadioItem key={lng} className={item} value={lng}>
                       <ItemCheck />
                       <span className="capitalize">{languageNames.of(lng)}</span>

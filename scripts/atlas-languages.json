@@ -1,0 +1,23 @@
+{
+  "note": [
+    "The languages an operator has enabled on SahajCloud's Sahaj Atlas configuration global",
+    "(sydevs/SahajCloud#645). Refreshed with `pnpm sync:atlas-languages --write`; read by",
+    "src/config/i18n-options.test.ts, which fails if any of them has no bundle in",
+    "public/locales/. That is the whole job: the CMS owns which languages the atlas is OFFERED",
+    "in, this build owns which ones it can actually render, and a language enabled with no",
+    "bundle renders English while SahajCloud's hreflang promises a page in it.",
+    "",
+    "NOTHING UNDER src/ MAY IMPORT THIS FILE. It is an observation, not configuration. The",
+    "widget reads the live global at runtime and falls back to `shippedLanguages` when it can't",
+    "— a stale third opinion about what an operator wanted would be worse than no opinion.",
+    "",
+    "`syncedAt` is null because there is nothing to sync yet: SahajCloud's `languages` field is",
+    "still on an unmerged branch, and production's global answers with no such field. The list",
+    "below is therefore their DOCUMENTED DEFAULT for that state (ATLAS_DEFAULT_LOCALES in",
+    "src/lib/atlas/defaultLocales.ts — the launch ten, which is also what this build ships), not",
+    "an operator's choice. Run the sync once #645 deploys; until then the assertion holds",
+    "trivially, which is correct — the set genuinely has not moved."
+  ],
+  "syncedAt": null,
+  "languages": ["cs", "de", "en", "es", "fr", "hu", "nl", "pt-BR", "ru", "uk"]
+}

@@ -28,9 +28,11 @@ import { i18nSharedOptions } from '@/config/i18n-options'
 //
 // The app loads locale JSON over HTTP (VITE_HOST) via i18next-http-backend;
 // Ladle has no backend, so we bundle every shipped locale's namespaces as static
-// resources instead — all ten, because SettingsMenu builds its picker from
-// `supportedLanguages`, and a language with no resources here is a menu row that
-// silently does nothing when a reviewer clicks it. Stories render this instance
+// resources instead — all ten, because a language with no resources here is a menu
+// row that silently does nothing when a reviewer clicks it. All ten is also the right
+// number now that the picker's list comes from the CMS (#167): a story has no API key,
+// so `useLanguages` falls back to `shippedLanguages` and SettingsMenu renders the full
+// inventory here whatever an operator has enabled in production. Stories render this instance
 // through <I18nextProvider> (see
 // components.tsx), which both useTranslation() and useLocale() read from — so
 // story text resolves offline through this instance. (The app's HTTP-backed

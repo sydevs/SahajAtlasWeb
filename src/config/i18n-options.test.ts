@@ -4,7 +4,13 @@ import { fileURLToPath } from 'node:url'
 import { createInstance } from 'i18next'
 import { describe, it, expect, beforeAll } from 'vitest'
 
-import { i18nDetectionOptions, i18nSharedOptions, supportedLanguages } from './i18n-options'
+import {
+  i18nDetectionOptions,
+  i18nSharedOptions,
+  offeredLanguages,
+  preferredLanguage,
+  shippedLanguages,
+} from './i18n-options'
 
 // i18n-options is the side-effect-free config shared by the app's HTTP-backed
 // instance (i18n.ts) and the Ladle story instance, so its Ruby-style %{...}
@@ -43,10 +49,15 @@ describe('i18nSharedOptions', () => {
   })
 })
 
-// The settings picker is built from `supportedLanguages`, and the HTTP backend fetches
+// `shippedLanguages` is this build's inventory, and the HTTP backend fetches
 // `public/locales/<lng>/<ns>.json`. Nothing else connects the two, so before issue #95
 // eight of the ten shipped bundles were unreachable with every gate green. This pins
 // the parity in both directions.
+//
+// ⚠ It stays an EQUALITY even though the CMS now owns which languages are offered (#167).
+// The two lists answer different questions: this one is "what did this build ship", which is
+// still exactly `public/locales/`, and the superset check below is the one that involves the
+// CMS. Loosening this to a superset would let a bundle nobody can reach sit in the repo again.
 const localesDir = fileURLToPath(new URL('../../public/locales', import.meta.url))
 
 const shippedLocales = readdirSync(localesDir, { withFileTypes: true })
@@ -54,13 +65,13 @@ const shippedLocales = readdirSync(localesDir, { withFileTypes: true })
   .map((entry) => entry.name)
   .sort()
 
-describe('supportedLanguages', () => {
-  it('offers exactly the locale bundles that ship in public/locales', () => {
-    expect([...supportedLanguages].sort()).toEqual(shippedLocales)
+describe('shippedLanguages', () => {
+  it('lists exactly the locale bundles that ship in public/locales', () => {
+    expect([...shippedLanguages].sort()).toEqual(shippedLocales)
   })
 
-  it('ships every configured namespace for every offered language', () => {
-    const missing = supportedLanguages.flatMap((lng) => {
+  it('ships every configured namespace for every language in the inventory', () => {
+    const missing = shippedLanguages.flatMap((lng) => {
       const files = readdirSync(`${localesDir}/${lng}`)
 
       return i18nSharedOptions.ns
@@ -71,8 +82,117 @@ describe('supportedLanguages', () => {
     expect(missing).toEqual([])
   })
 
-  it('keeps the en fallback in the offered set', () => {
-    expect(supportedLanguages).toContain(i18nSharedOptions.fallbackLng)
+  it('keeps the en fallback in the inventory', () => {
+    expect(shippedLanguages).toContain(i18nSharedOptions.fallbackLng)
+  })
+})
+
+// ── The CMS owns which of them are OFFERED (#167) ───────────────────────────────
+
+/**
+ * The languages an operator has enabled, as `pnpm sync:atlas-languages` last observed them.
+ *
+ * This is the drift check that replaces the old equality-against-a-constant: the enabled set
+ * moved into SahajCloud (sydevs/SahajCloud#645), so "the picker's list IS public/locales" stopped
+ * being true — but the thing it was protecting against did not go away, it changed direction.
+ * What matters now is one-sided: every language the CMS offers must have a bundle here, because
+ * SahajCloud publishes an `hreflang` for each and a missing bundle renders English underneath it.
+ * The reverse gap is fine and expected — a bundle we ship that an operator has switched off is
+ * simply not offered.
+ *
+ * Read from `scripts/`, not imported from `src/`, and that separation is load-bearing: the
+ * snapshot is an observation for this gate, never a runtime fallback. See the file's own note.
+ */
+const enabledLanguages: string[] = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL('../../scripts/atlas-languages.json', import.meta.url)),
+    'utf8',
+  ),
+).languages
+
+describe('enabled languages (scripts/atlas-languages.json)', () => {
+  it('ships a bundle for every language the CMS offers', () => {
+    const missing = enabledLanguages.filter((lng) => !shippedLanguages.includes(lng))
+
+    expect(
+      missing,
+      'enabled in SahajCloud with no bundle in public/locales — the atlas would advertise an ' +
+        'hreflang for a page it renders in English. Add the bundle, or ask the operator to ' +
+        'disable the language.',
+    ).toEqual([])
+  })
+
+  it('records a non-empty set, so the assertion above is not vacuous', () => {
+    // A snapshot written from a global that answered `{}` would pass the superset check for the
+    // worst possible reason. The sync script refuses to write that state; this is the half of
+    // the guard that survives somebody editing the file by hand.
+    expect(enabledLanguages.length).toBeGreaterThan(0)
+  })
+})
+
+describe('offeredLanguages', () => {
+  it('narrows the CMS set to the bundles this build ships', () => {
+    expect(offeredLanguages(['en', 'fr', 'nl'])).toEqual(['en', 'fr', 'nl'])
+  })
+
+  it('drops an enabled language with no bundle, rather than offering a dead row', () => {
+    // The misconfiguration the snapshot gate above exists to catch. At runtime it must degrade:
+    // i18next refuses `it` at `supportedLngs`, so a picker row for it would change no text at
+    // all when a viewer clicked it.
+    expect(offeredLanguages(['en', 'it'])).toEqual(['en'])
+  })
+
+  it('orders by the shipped inventory, not by the order the rows were stored in', () => {
+    expect(offeredLanguages(['uk', 'cs', 'nl'])).toEqual(['cs', 'nl', 'uk'])
+  })
+
+  it('drops duplicate rows', () => {
+    expect(offeredLanguages(['fr', 'fr', 'en'])).toEqual(['en', 'fr'])
+  })
+
+  it('falls back to the whole inventory when the CMS says nothing', () => {
+    // The state of production until sydevs/SahajCloud#645 deploys: the field does not exist, so
+    // a `select` of it answers `{}`. Both of these must be today's behaviour, not an empty menu.
+    expect(offeredLanguages(undefined)).toEqual([...shippedLanguages])
+    expect(offeredLanguages([])).toEqual([...shippedLanguages])
+  })
+
+  it('falls back to the whole inventory when NOTHING enabled is shipped', () => {
+    expect(offeredLanguages(['it', 'ja'])).toEqual([...shippedLanguages])
+  })
+})
+
+describe('preferredLanguage', () => {
+  it('leaves an offered language alone', () => {
+    expect(preferredLanguage('fr', ['en', 'fr', 'nl'])).toBe('fr')
+  })
+
+  it('corrects a language the operator does not offer to the en fallback', () => {
+    // Detection resolved `de` from the browser; the operator offers three others. Without this
+    // the widget renders a language SahajCloud publishes no hreflang for.
+    expect(preferredLanguage('de', ['en', 'fr', 'nl'])).toBe('en')
+  })
+
+  it('corrects to the first offered language when en itself is not offered', () => {
+    expect(preferredLanguage('de', ['fr', 'nl'])).toBe('fr')
+  })
+
+  it('is idempotent — its own answer needs no further correction', () => {
+    const offered = ['fr', 'nl']
+    const once = preferredLanguage('de', offered)
+
+    // Both halves matter. That the answer is IN the offered set is what makes it a correction at
+    // all — without it, "does applying it twice change anything?" is satisfied by never
+    // correcting. That re-applying is stable is what stops the guard in AppShell, which keys on
+    // the live language, from asking for another change on every pass.
+    expect(offered).toContain(once)
+    expect(preferredLanguage(once, offered)).toBe(once)
+  })
+
+  it('leaves the language alone when nothing is offered', () => {
+    // Not reachable through `offeredLanguages`, which never returns empty — but the correction
+    // must not answer "render in nothing", so the identity is asserted rather than assumed.
+    expect(preferredLanguage('de', [])).toBe('de')
   })
 })
 
@@ -100,7 +220,7 @@ const untranslated = (locale: string, ns: string): string[] => {
     .filter((key) => !String(translated.get(key) ?? '').trim())
 }
 
-const offeredButNotEnglish = supportedLanguages.filter((lng) => lng !== 'en')
+const offeredButNotEnglish = shippedLanguages.filter((lng) => lng !== 'en')
 
 /**
  * Event-domain copy that landed after the last translation pass and renders the en
@@ -191,7 +311,7 @@ const resolveThrough = async (lng: string) => {
       read: (language: string, _ns: string, done: (err: unknown, data: unknown) => void) => {
         requested.add(language)
 
-        const ships = supportedLanguages.includes(language)
+        const ships = shippedLanguages.includes(language)
 
         done(ships ? null : new Error('404'), ships ? { greeting: 'hello' } : false)
       },

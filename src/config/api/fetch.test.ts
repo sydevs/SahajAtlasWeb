@@ -435,6 +435,41 @@ describe('getEvent', () => {
   })
 })
 
+describe('getAtlasConfig', () => {
+  it('reads the operator-owned language set off the sy-atlas-config global', async () => {
+    sdk.request.mockResolvedValue(
+      jsonResponse({ languages: [{ code: 'en' }, { code: 'fr' }, { code: 'nl' }] }),
+    )
+
+    const config = await api.getAtlasConfig()
+
+    expect(config.languages).toEqual([{ code: 'en' }, { code: 'fr' }, { code: 'nl' }])
+    // Selected explicitly, at depth 0 — SahajCloud enforces a `select` on every client read, and
+    // the rows are plain values with nothing to populate. The map defaults on the same global are
+    // deliberately not asked for: nothing reads them.
+    expect(sdk.request).toHaveBeenCalledWith({
+      method: 'GET',
+      path: '/globals/sy-atlas-config',
+      args: { depth: 0, select: { languages: true } },
+    })
+  })
+
+  it('parses the answer production gives today — a global with no such field', async () => {
+    // Not a hypothetical: sydevs/SahajCloud#645 ships the field after this, and selecting a
+    // column the server does not have answers `{}` with a 200 rather than a 400. If this threw,
+    // every widget would boot into an error screen the day this deployed.
+    sdk.request.mockResolvedValue(jsonResponse({}))
+
+    await expect(api.getAtlasConfig()).resolves.toEqual({})
+  })
+
+  it('rejects a row shape it cannot read, rather than passing junk to the picker', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ languages: ['en', 'fr'] }))
+
+    await expect(api.getAtlasConfig()).rejects.toThrow()
+  })
+})
+
 describe('shapeEventDoc', () => {
   const parse = (overrides: Record<string, unknown> = {}) =>
     EventDocSchema.parse({

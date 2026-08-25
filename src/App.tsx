@@ -8,10 +8,12 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import { useLocale } from './hooks/use-locale'
+import { useLanguages } from './hooks/use-languages'
 import Providers from './providers'
 import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
+import { preferredLanguage } from '@/config/i18n-options'
 import { safePath } from '@/lib/shape'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
@@ -163,8 +165,17 @@ export default function App({
   // `FullInterface` warms on mount instead, so pressing the button still warms them. It stays
   // here for the full form because there the point is the PARALLELISM — moving it behind a lazy
   // chunk would put the feed back behind a round trip it currently overlaps.
+  //
+  // The language set is warmed BESIDE it and is deliberately not gated on `compact` — the card
+  // is localized, so which languages the atlas is offered in is part of rendering the card
+  // itself. See `warmLanguages` for the argument and for what it costs (one global read of a
+  // ten-row array, next to the client record already in flight).
   useEffect(() => {
-    if (apiKey && !compact) api.warmCaches()
+    if (!apiKey) return
+
+    api.warmLanguages()
+
+    if (!compact) api.warmCaches()
   }, [apiKey, compact])
 
   return (
@@ -249,6 +260,7 @@ function AppShell({
 
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
   const { locale } = useLocale()
+  const languages = useLanguages()
 
   // The configured home region. The redirect that consumes it lives in `FullInterface`, which
   // renders only once the interface is on screen — see the note there.
@@ -274,6 +286,31 @@ function AppShell({
   useEffect(() => {
     void announceEmbed({ routing, observed: embed.observed, prefix })
   }, [routing, prefix])
+
+  /**
+   * Narrow the active language to what the operator says the atlas is offered in (#167).
+   *
+   * i18next resolves a language at init from the shipped bundles, before this build knows
+   * anything about the CMS; `languages` on `sy-atlas-config` is the operator's answer to a
+   * question the bundles cannot settle, and it arrives over the network. So the correction is
+   * here rather than in `supportedLngs` — which is a build fact, and which i18next copies out of
+   * its options at init anyway (see `config/i18n-options.ts`).
+   *
+   * It runs for a compact card too, and should: the card is localized. It is also the only
+   * effect here that can fire twice in a boot — once when the offered set arrives, once if
+   * `defaultLocale` below then asks for a language the operator has switched off — and that is
+   * why it keys on the live `locale` rather than running once. `preferredLanguage` always
+   * answers with a member of `languages`, so the second pass is the last one.
+   *
+   * In practice there is no visible switch: `warmLanguages` puts this read in flight alongside
+   * the `clients/me` read the component above suspends on, so `languages` is already the
+   * operator's set on the first render that gets here.
+   */
+  useEffect(() => {
+    const preferred = preferredLanguage(locale, languages)
+
+    if (preferred !== locale) void i18n.changeLanguage(preferred)
+  }, [languages, locale])
 
   // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language should match
   // the page it is embedded in, and `<html lang>` says that per page — where a record-level setting

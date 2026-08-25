@@ -1,4 +1,5 @@
 import { SVGProps } from 'react'
+export * from './atlas-config'
 export * from './client'
 export * from './event'
 export * from './geojson'

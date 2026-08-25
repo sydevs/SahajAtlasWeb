@@ -41,6 +41,18 @@ export const REGIONS_STALE_TIME = 30 * 60 * 1000
  */
 export const EVENTS_STALE_TIME = GEOJSON_STALE_TIME
 
+/**
+ * The atlas configuration global — the operator-owned language set (#167).
+ *
+ * Deliberately the same number as `REGIONS_STALE_TIME` rather than a window of its own: both
+ * are settings-shaped rather than content-shaped, changed by a person a handful of times a
+ * year, and a page view that re-read either would learn nothing. What the window really buys
+ * here is that the language set is asked for TWICE — once by the guard that narrows the active
+ * language at boot, once by the settings picker when a viewer opens it, possibly much later in
+ * the same session — and neither should cost a request.
+ */
+export const ATLAS_CONFIG_STALE_TIME = REGIONS_STALE_TIME
+
 // ── Retention windows ───────────────────────────────────────────────────────────
 
 /**

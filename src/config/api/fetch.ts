@@ -1,4 +1,5 @@
 import type {
+  AtlasConfig,
   Event,
   EventDoc,
   EventSlim,
@@ -14,6 +15,7 @@ import type { Position } from 'geojson'
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
 
 import {
+  ATLAS_CONFIG_STALE_TIME,
   GEOJSON_STALE_TIME,
   REGIONS_STALE_TIME,
   WHOLESALE_GC_TIME,
@@ -42,6 +44,7 @@ import {
   todayISO,
 } from '@/lib/shape'
 import {
+  AtlasConfigSchema,
   ClientSchema,
   EventDocSchema,
   EventSlimSchema,
@@ -637,6 +640,51 @@ const getClient = async () => {
   return ClientSchema.parse(user)
 }
 
+/**
+ * The atlas-wide configuration global — read for the operator-owned language set
+ * (sydevs/SahajCloud#645), and for nothing else.
+ *
+ * Raw `requestJson` rather than the SDK's typed `findGlobal`, for the same reason `getClient`
+ * above is: the field is newer than our synced `payload-types.ts`, so `select: { languages: true }`
+ * does not type-check against the generated `SyAtlasConfigSelect` until SahajCloud's own change
+ * lands on `main` and `pnpm types:cms` picks it up. Selecting a column the server does not have
+ * answers `{}` with a 200 rather than a 400 — verified against production — so the read is safe to
+ * ship first, and `AtlasConfigSchema` is written to parse that answer.
+ *
+ * `depth: 0`: the rows are plain values, nothing to populate.
+ */
+const getAtlasConfig = async (): Promise<AtlasConfig> =>
+  AtlasConfigSchema.parse(
+    await requestJson<unknown>({
+      method: 'GET',
+      path: '/globals/sy-atlas-config',
+      args: { depth: 0, select: { languages: true } },
+    }),
+  )
+
+/**
+ * The atlas-config query contract in one place — shared by the language guard that narrows the
+ * active language at boot (`use-languages`), the settings picker, and the warm below, so the key
+ * and its windows cannot drift between them.
+ *
+ * Declared here beside its fetcher rather than in `./index` (which would close an import cycle,
+ * since that module imports this one) and re-exported from `@/config/api` with the rest.
+ *
+ * Locale is deliberately absent from the key: the rows are language CODES, identical in every
+ * locale. `applyRequestContext` still puts `?locale=` on the wire — it does that for every
+ * request — but nothing about the answer varies with it, so keying on it would just buy a second
+ * copy of the same array per language a viewer tries.
+ */
+export const atlasConfigQuery = () => ({
+  queryKey: ['atlas-config'] as const,
+  queryFn: () => getAtlasConfig(),
+  staleTime: ATLAS_CONFIG_STALE_TIME,
+  // Pinned for the same reason the wholesale caches pin it: the default gcTime (5 min) is
+  // SHORTER than the stale window above, so the entry could be evicted while still nominally
+  // fresh — and the picker, which is the second reader, may not be opened for many minutes.
+  gcTime: WHOLESALE_GC_TIME,
+})
+
 // ── Live-preview populate (issue #40) ────────────────────────────────────────────
 
 // Render an unsaved edit: push the admin's form-state doc through Payload's populate
@@ -672,6 +720,32 @@ const warmCaches = (): void => {
   void loadRegions().catch(() => {})
 }
 
+/**
+ * Warm the operator-owned language set, in parallel with the client bootstrap the tree suspends
+ * on — the same waterfall-break as `warmCaches`, for a read that has to land EARLY rather than
+ * merely soon.
+ *
+ * The language guard corrects the active language when detection resolved to one the operator
+ * does not offer. Read serially — after `clients/me` unblocks `AppShell` — that correction lands
+ * a round trip *after* the interface has painted, and a viewer watches the widget change language
+ * in front of them. Read in parallel it is settled before the first localized frame.
+ *
+ * ⚠ **Unlike `warmCaches`, this runs for a COMPACT embed too**, and the argument is the one that
+ * keeps `clients/me` there: the card is themed and localized from the CMS, so which languages the
+ * atlas is offered in is part of rendering the card at all, not part of the interface behind it.
+ * The cost is one global read of a ten-row array, next to the client record already being fetched
+ * — not the feed-and-region-tree pair that #161 removed from that path.
+ *
+ * `prefetchQuery` is handed the SHARED factory verbatim, deliberately: options passed here are
+ * written onto the shared `Query` and read back by the observers, so a warm with options of its
+ * own would silently re-tune both readers (see the pressure-knob rule in `.claude/rules/
+ * data-layer.md`). Same object, nothing to diverge. It never rejects — React Query's prefetch
+ * swallows the failure — so a dead global leaves the readers on the shipped bundles.
+ */
+const warmLanguages = (): void => {
+  void queryClient.prefetchQuery(atlasConfigQuery())
+}
+
 export default {
   getGeojson,
   getRegions,
@@ -684,5 +758,7 @@ export default {
   getEventDoc,
   populatePreviewDoc,
   getClient,
+  getAtlasConfig,
   warmCaches,
+  warmLanguages,
 }

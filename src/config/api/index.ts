@@ -63,10 +63,11 @@ export const eventsQuery = (
   gcTime: EVENTS_GC_TIME,
 })
 
-// The localized titles sliver's contract. Declared in `fetch.ts` beside the fetcher it
-// wraps (declaring it here would close an import cycle, since this module imports that
-// one) and surfaced here with the rest, so callers still find every factory in one place.
-export { eventTitlesQuery } from './fetch'
+// The localized titles sliver's contract, and the atlas-config global's. Both are declared in
+// `fetch.ts` beside the fetchers they wrap (declaring them here would close an import cycle,
+// since this module imports that one) and surfaced here with the rest, so callers still find
+// every factory in one place.
+export { atlasConfigQuery, eventTitlesQuery } from './fetch'
 
 // The wholesale region-tree query contract in one place — shared by the region
 // matcher, the Region filter's options, and the region-pill name lookup so the key +
