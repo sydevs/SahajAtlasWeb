@@ -261,12 +261,10 @@ describe('the path router, against the real react-router', () => {
     expect(read('key')).not.toBe('default')
   })
 
-  it('round-trips the widget’s own query on the real query string', () => {
-    visit(`${ORIGIN}/map/search?utm_source=news&sort=distance&format=online`)
+  it('round-trips the route’s query through ?atlas=, leaving the host’s parameters alone', () => {
+    visit(`${ORIGIN}/map/search?utm_source=news&atlas=sort%3Ddistance%26format%3Donline`)
     renderPath(<Probe />, '/fallback', '/map')
 
-    // `format` is the case that was missing: a widget-owned param that no spec claimed, which is
-    // how it went unclaimed in `WIDGET_PARAMS` and was dropped on every navigation.
     expect(read('path')).toBe('/search?sort=distance&format=online')
 
     // Navigating is what proves the host's parameter survives — asserting it without one only

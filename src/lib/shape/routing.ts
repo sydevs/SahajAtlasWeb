@@ -22,9 +22,7 @@
  * This module is pure — no `window` — so the whole decision is testable in the node lane.
  * `atlas-history.ts` is the part that touches `history`.
  */
-import { SEARCH_COUNTRY_PARAM, safePath } from './path'
-import { FILTER_PARAM_KEYS } from './filters'
-import { SORT_PARAM } from './sort'
+import { safePath } from './path'
 
 /**
  * The query parameter the route rides on.
@@ -146,63 +144,53 @@ export function mountDecision(input: {
   // folded the page route into it.
   const pageRoute = routeFromParam(search)
 
-  // ⚠ Memory beats everything, including path. A route we cannot write is a route nobody can link
-  // to, so mounting any URL-backed router over it would fail on the visitor's first click rather
-  // than at boot.
-  if (urlWritable === false) {
-    return {
-      mode: 'memory',
-      path: pageRoute ?? route ?? '/',
-      routing: 'query',
-      fromPage: pageRoute !== undefined,
-    }
-  }
-
-  if (routing === 'path') {
-    // The record has not arrived, or carries no usable mount. Both are the same answer — fall back
-    // to query and SAY SO — because a routing mode that silently behaves as a different one is how
-    // a host concludes their server config is working when nothing is using it.
-    if (prefix === undefined) {
-      return {
-        mode: 'query',
-        path: pageRoute ?? route ?? '/',
-        routing: 'query',
-        fromPage: pageRoute !== undefined,
-        warning:
-          'routing=path needs a canonical embed on your client record to know which path prefix ' +
-          'the widget is mounted under. The widget is using query routing instead.',
-      }
-    }
-
-    const fromPath = routeFromPathname(pathname ?? '/', prefix, search)
-
-    // ⚠ The basename miss (#92), caught rather than handed to react-router — whose `Router`
-    // renders `null` on one, silently, which is a blank widget on somebody's page.
-    if (fromPath === undefined) {
-      return {
-        mode: 'query',
-        path: pageRoute ?? route ?? '/',
-        routing: 'query',
-        fromPage: pageRoute !== undefined,
-        warning:
-          `routing=path expected this page to be served under "${prefix}", and it is not. ` +
-          'The widget is using query routing instead — check that the canonical embed on your ' +
-          'client record names the page the widget is actually mounted on.',
-      }
-    }
-
-    // In path mode the pathname IS the route, so it always came from the page. There is no
-    // "nobody asked" state to fall back to a configured default from: the host's server chose to
-    // serve us this URL.
-    return { mode: 'path', path: fromPath, routing: 'path', fromPage: fromPath !== '/', prefix }
-  }
-
-  return {
-    mode: 'query',
+  // Every outcome but path mode is the same decision — boot at the page's route or the embed's
+  // default, with the route in `?atlas=`. Only `mode` and whether we owe the host an explanation
+  // vary. Memory is included deliberately: it is a degradation of the query SHAPE, which is why it
+  // reports `routing: 'query'`, and saying that once here beats repeating it at each return.
+  const queryMode = (mode: 'query' | 'memory', warning?: string): MountDecision => ({
+    mode,
     path: pageRoute ?? route ?? '/',
     routing: 'query',
     fromPage: pageRoute !== undefined,
+    warning,
+  })
+
+  // ⚠ Memory outranks everything, path included. A route we cannot write is a route nobody can
+  // link to, so any URL-backed router over it would fail on the visitor's first click rather than
+  // at boot.
+  if (urlWritable === false) return queryMode('memory')
+
+  if (routing !== 'path') return queryMode('query')
+
+  // The record has not arrived, or carries no usable mount. Both are the same answer — fall back
+  // to query and SAY SO — because a routing mode that silently behaves as a different one is how a
+  // host concludes their server config is working when nothing is using it.
+  if (prefix === undefined) {
+    return queryMode(
+      'query',
+      'routing=path needs a canonical embed on your client record to know which path prefix ' +
+        'the widget is mounted under. The widget is using query routing instead.',
+    )
   }
+
+  const fromPath = routeFromPathname(pathname ?? '/', prefix, search)
+
+  // ⚠ The basename miss (#92), caught rather than handed to react-router — whose `Router` renders
+  // `null` on one, silently, which is a blank widget on somebody's page.
+  if (fromPath === undefined) {
+    return queryMode(
+      'query',
+      `routing=path expected this page to be served under "${prefix}", and it is not. ` +
+        'The widget is using query routing instead — check that the canonical embed on your ' +
+        'client record names the page the widget is actually mounted on.',
+    )
+  }
+
+  // In path mode the pathname IS the route, so it always came from the page. There is no "nobody
+  // asked" state to fall back to a configured default from: the host's server chose to serve us
+  // this URL.
+  return { mode: 'path', path: fromPath, routing: 'path', fromPage: fromPath !== '/', prefix }
 }
 
 /**
@@ -270,14 +258,16 @@ export function mountPrefix(
 }
 
 /**
- * The widget's route, read out of the host page's pathname under `prefix`.
+ * Restore `/` and `,` after a `URLSearchParams` serialize.
  *
- * ⚠ **A miss returns `undefined`, and the caller must not render.** This is #92's blank widget in
- * its second incarnation: react-router's `Router` returns `null` on a basename miss, silently, so a
- * host whose server serves our page from outside the configured prefix would show nothing at all
- * with every gate green. Reporting it and degrading is the whole reason this is ours rather than
- * `Router`'s `basename`.
+ * Both are explicitly legal in a query value (RFC 3986: `query = *( pchar / "/" / "?" )`) and both
+ * appear constantly — every route is slash-separated and `?center=4.9,52.3` is a comma pair — so
+ * leaving them encoded turns the one thing that has to stay readable in a shared link into noise.
+ * `?` stays encoded deliberately: a raw one makes it ambiguous whether a nested query belongs to
+ * the widget or to the host.
  */
+const readable = (query: string): string => query.replace(/%2F/g, '/').replace(/%2C/g, ',')
+
 export function routeFromPathname(
   pathname: string,
   prefix: string,
@@ -294,65 +284,50 @@ export function routeFromPathname(
 
   if (safePath(route) === undefined) return undefined
 
-  // ⚠ The widget's own query rides on the REAL query string in path mode, unlike query mode where
-  // the whole route including its search is packed into one parameter. That is the trade path mode
-  // exists to make: the host has dedicated this URL space to the widget, so clean paths mean the
-  // filters are readable too. Foreign params are preserved on write (`pathHrefFor`), so a host's
-  // own `?utm_source` survives a navigation.
-  const own = ownSearch(search)
+  const query = queryFromParam(search)
 
-  return own === '' ? route : `${route}?${own}`
+  return query === undefined ? route : `${route}?${query}`
 }
 
 /**
- * The widget's own parameters, filtered out of a host page's query string.
+ * The widget's transient state in `path` routing — the route's query, read out of `?atlas=`.
  *
- * We never claim a param we do not own: anything not in this list belongs to the host and is
- * neither read into the route nor dropped when we write. Both mistakes are silent — a name missing
- * here is a filter dropped on every navigation, and a name wrongly here is a host's parameter
- * stolen — so this is **composed from the modules that own each name**, never hand-listed. The
- * first draft was hand-listed and included a `filters` param that has never existed, which would
- * have discarded every filter in path mode while `format`, `cadence`, `days`, `time`, `langs`,
- * `dates` and `region` went unclaimed. `routing.test.ts` pins the set against those owners.
+ * **One parameter, in both modes, and this is the second version of it.** The first put the
+ * widget's state on the host's REAL query string, governed by an allowlist of the twelve names the
+ * widget owns. Both ways of getting that list wrong were silent — a missing name dropped a filter
+ * on every navigation, a surplus one stole a parameter from the host — and it forced a host-facing
+ * promise enumerating twelve names we take over on their pages.
+ *
+ * So path mode carries its state the same way query mode always has: in `?atlas=`. The rule is now
+ * one sentence — **`?atlas=` carries whatever the path does not.** In query mode the path carries
+ * nothing, so the parameter holds the whole route; in path mode the pathname holds the route's
+ * path, so the parameter holds only its query. One name claimed on a host's URL either way, one
+ * encoder, one collision to document.
+ *
+ * It costs nothing where it matters: the URLs that have to be indexable and shareable — a region,
+ * a venue, an event — carry no query at all (every `webPath` in `atlas-url-contract.json` is
+ * path-only). Filters and a sort order are a reading position, and `?atlas=center=4.9,52.3` is no
+ * worse a thing to look at than the packed form query mode has always shown.
  */
-export const WIDGET_PARAMS: ReadonlySet<string> = new Set<string>([
-  // The searched place (`views/shared.tsx`), which has no constant of its own to import.
-  'q',
-  'center',
-  'bbox',
-  SEARCH_COUNTRY_PARAM,
-  SORT_PARAM,
-  ...FILTER_PARAM_KEYS,
-])
-
-/**
- * ⚠ **`locale` is deliberately NOT in that set.** It is the widget's parameter — i18next's
- * querystring detector reads it (`config/i18n-options.ts`) — but it is only ever a PAGE parameter:
- * no route carries it, and nothing writes it back. Claiming it would mean deleting it on the first
- * in-widget navigation, so a French link into a path embed renders French once and then loses the
- * language on the first click, while query mode preserves it. Read-only is the whole distinction.
- */
-
-function ownSearch(search: string | null | undefined): string {
+function queryFromParam(search: string | null | undefined): string | undefined {
   try {
-    const params = new URLSearchParams(search ?? '')
-    const mine = new URLSearchParams()
+    const value = new URLSearchParams(search ?? '').get(ROUTE_PARAM)
 
-    for (const [key, value] of params) if (WIDGET_PARAMS.has(key)) mine.append(key, value)
-
-    return mine.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
+    // A leading `/` means this is a query-mode route in a path-mode URL — someone's stale link, or
+    // a host who switched modes. Refuse it rather than reading a path as a query string.
+    return value === null || value === '' || value.startsWith('/') ? undefined : value
   } catch {
-    return ''
+    return undefined
   }
 }
 
 /**
- * The absolute URL for a widget route under `prefix`, on the host's own page — path mode's
- * counterpart to {@link hrefFor}.
+ * The absolute URL for a widget route under `prefix` — path mode's counterpart to {@link hrefFor}.
  *
  * Same three guarantees as the query form: absolute (so middle-click and "copy link" work and a
- * `<base href>` cannot redirect it), the host's foreign parameters preserved, and ours replaced
- * rather than appended. The difference is only where the route lives.
+ * `<base href>` cannot redirect it), the host's other parameters untouched, and ours replaced
+ * rather than appended. The difference is only that the route's PATH goes in the pathname, leaving
+ * `?atlas=` to carry its query — see {@link queryFromParam}.
  */
 export function pathHrefFor(href: string, route: string, prefix: string): string {
   try {
@@ -371,14 +346,12 @@ export function pathHrefFor(href: string, route: string, prefix: string): string
     if (prefix !== '' && url.pathname !== prefix && !url.pathname.startsWith(`${prefix}/`))
       return ''
 
-    // Drop only our own params, then re-add whatever this route carries. A host param the widget
-    // has never heard of survives untouched, which is the same courtesy `hrefFor` extends.
-    const params = new URLSearchParams(url.search)
+    // Exactly one parameter written, exactly as query mode does it — every other name on the
+    // host's URL is none of our business in either mode now.
+    if (routeSearch === '') url.searchParams.delete(ROUTE_PARAM)
+    else url.searchParams.set(ROUTE_PARAM, routeSearch)
 
-    for (const key of WIDGET_PARAMS) params.delete(key)
-    for (const [key, value] of new URLSearchParams(routeSearch)) params.append(key, value)
-
-    url.search = params.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
+    url.search = readable(url.search)
 
     return url.toString()
   } catch {
@@ -411,10 +384,9 @@ export function hrefFor(href: string, route: string): string {
 
     url.searchParams.set(ROUTE_PARAM, route)
 
-    // `URLSearchParams` percent-encodes `/` and `,` on serialize, so the readable form is restored
-    // afterwards rather than by building the query by hand — which would mean re-implementing the
-    // host's own parameter encoding and getting it subtly wrong.
-    url.search = url.search.replace(/%2F/g, '/').replace(/%2C/g, ',')
+    // Restored rather than built by hand, which would mean re-implementing the host's own
+    // parameter encoding and getting it subtly wrong.
+    url.search = readable(url.search)
 
     return url.toString()
   } catch {

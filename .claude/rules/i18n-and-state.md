@@ -173,13 +173,12 @@ of truth, so all are linkable/shareable:
   next search. `?cc` exists because it can't be re-derived: a country with no programs
   has no feed features and so no geometry to resolve a point against, so the geocoder's
   answer has to ride in the URL (it drives the country-website offer, `useCountrySite`).
-  ⚠ **In `routing=path` these URL-derived slices live on the HOST page's real query string**, not
-  inside `?atlas=`. Nothing that reads them changes — they are still `location.search` as far as
-  react-router is concerned — but `WIDGET_PARAMS` in `src/lib/shape/routing.ts` is the list of names
-  the path history lifts out of the host's query and writes back, and it has to stay a superset of
-  what these slices actually use. A param missing from it is silently dropped on every navigation;
-  a param wrongly in it is stolen from the host. Query mode is immune, because it packs the whole
-  route into one parameter and never touches theirs.
+  ⚠ **In `routing=path` these slices ride in `?atlas=` too**, not on the host's real query string. An
+  earlier version put them on the real query, governed by an allowlist of the twelve names the widget
+  owns — and both ways of getting that list wrong were silent: a missing name dropped a filter on
+  every navigation, a surplus one stole a parameter from the host. The rule is now one sentence,
+  **`?atlas=` carries whatever the path does not**, so there is one claimed name and one encoder in
+  both modes and nothing to keep in sync.
 
 - **Navigation** — the drawer stack is a pure function of the URL (`resolveStack`
   in `src/lib/shape/path.ts`) — of the ROUTER's location, to be exact, which on a host page

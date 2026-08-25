@@ -194,23 +194,15 @@ reader both prefer.
 of the two it was. It never silently behaves as a different mode, because a host whose server
 config is doing nothing should find out from us rather than from their analytics six months later.
 
-⚠ **Path routing costs one round trip at boot.** The prefix is on your client record, so the widget
-reads that record before it can construct its router — where query routing constructs one
-immediately. On a page that is already server-rendering the event content (the arrangement path
-routing exists for), the visitor is reading real content throughout and never sees the difference.
+**It does not cost you a round trip.** The widget reads your client record before it can build its
+router — but it reads that record in either mode, before it can render anything, so path mode makes
+the same single request query mode already makes. It shows a spinner through it, exactly as query
+mode does.
 
-**In path mode the widget uses the real query string**, rather than packing its state into one
-parameter as query routing does. That is the trade clean paths make, and it means there is a list
-of parameter names the widget claims on the pages under your prefix — it reads them as its own
-state and rewrites them when the visitor navigates:
-
-`q` · `center` · `bbox` · `cc` · `sort` · `format` · `cadence` · `days` · `time` · `langs` ·
-`dates` · `region`
-
-**Every other parameter on your URL is preserved** across every navigation the widget makes,
-including `locale`, which the widget reads but never writes. If one of the twelve above is
-meaningful to your own page, put the widget on a path where it is not — or use query routing,
-which claims only `atlas`.
+**Your other query parameters are still safe, and there is still only one of ours.** In path mode
+the route's _path_ is the pathname and `?atlas=` carries whatever is left — the searched place,
+filters, sort order. So the rule is the same in both modes: **we set and read exactly one
+parameter, and leave every other one on your URL alone.**
 
 ⚠ **Existing `?atlas=` links do not survive the switch.** A URL you have already shared or had
 indexed — `your-site.org/classes?atlas=/gb/london` — opens the root view once you enable path
@@ -448,7 +440,7 @@ search engine can index. Every event and every city is a distinct URL on **your*
 Three consequences worth stating plainly:
 
 - **Your other query parameters survive.** We set and read exactly one, `atlas`, and leave the rest
-  alone. WordPress's `/?p=123` permalinks keep working.
+  alone — in both routing modes. WordPress's `/?p=123` permalinks keep working.
 - **Your page's `#anchor` is none of our business.** The widget never reads or writes the fragment.
   A page that loads at `#respond` scrolls where you expect, anything of yours reading
   `location.hash` still works, and the widget routes normally alongside it. (Before this, the widget

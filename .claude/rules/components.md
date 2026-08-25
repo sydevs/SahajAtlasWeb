@@ -140,8 +140,8 @@ in host pages, **and** runs standalone in dev. Because of that:
   **`routing=path` is implemented**, and its prefix comes from the client record's
   `canonical.embed` — never from a script parameter, because it is the same value SahajCloud
   composes canonical URLs from and two copies could disagree. The route is then the pathname under
-  that prefix, and the widget's own state (`?q`, `?center`, `?sort`, …) rides on the REAL query
-  string, where query mode packs all of it into one parameter.
+  that prefix, and `?atlas=` carries whatever the path does not — the route's own query. One
+  claimed parameter and one encoder in both modes.
   ⚠ **That prefix arrives over the network, so path mode WAITS for the client record before
   constructing its router** (`AtlasBoot`, `src/Widget.tsx`). Query mode never reaches that code.
   Anything reading the record above `App` needs what `App` provides — the API key must already be

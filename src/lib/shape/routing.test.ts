@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { FILTER_PARAM_KEYS } from './filters'
-import { SEARCH_COUNTRY_PARAM } from './path'
-import { SORT_PARAM } from './sort'
 import {
   ROUTE_PARAM,
-  WIDGET_PARAMS,
   hrefFor,
   mountDecision,
   mountPrefix,
@@ -226,14 +222,20 @@ describe('mountDecision', () => {
       expect(mountDecision({ ...PATH, pathname: '/map/' }).path).toBe('/')
     })
 
-    it('carries the widget’s own params through, and leaves the host’s alone', () => {
+    it('reads the route’s query out of ?atlas=, and leaves the host’s params alone', () => {
       const decision = mountDecision({
         ...PATH,
         pathname: '/map/search',
-        search: '?utm_source=news&center=4.9,52.3',
+        search: '?utm_source=news&atlas=center=4.9,52.3',
       })
 
       expect(decision.path).toBe('/search?center=4.9,52.3')
+    })
+
+    // A leading slash means a query-mode route sitting in a path-mode URL — a stale link, or a
+    // host mid-switch. Reading it as a query string would produce nonsense, so it is refused.
+    it('ignores a query-mode ?atlas= value it finds in a path-mode URL', () => {
+      expect(mountDecision({ ...PATH, search: '?atlas=/nl/amsterdam' }).path).toBe('/gb/london')
     })
 
     // ⚠ Without a prefix path mode cannot be honoured at all — the record has not arrived, or the
@@ -354,10 +356,14 @@ describe('routeFromPathname', () => {
     expect(routeFromPathname('/mapped/gb', '/map')).toBeUndefined()
   })
 
-  it('picks up only the widget’s own query params', () => {
-    expect(routeFromPathname('/map/search', '/map', '?utm=x&sort=distance&q=Lille')).toBe(
+  it('reads the route’s query from ?atlas=, ignoring the host’s own parameters', () => {
+    expect(routeFromPathname('/map/search', '/map', '?utm=x&atlas=sort=distance%26q=Lille')).toBe(
       '/search?sort=distance&q=Lille',
     )
+  })
+
+  it('is just the path when there is no ?atlas=', () => {
+    expect(routeFromPathname('/map/search', '/map', '?utm=x')).toBe('/search')
   })
 })
 
@@ -374,20 +380,31 @@ describe('pathHrefFor', () => {
     expect(pathHrefFor('https://host.example/m/gb?p=123', '/nl', '/m')).toContain('p=123')
   })
 
-  it('replaces our own params rather than appending them', () => {
+  it('writes the route’s query into ?atlas=, replacing any previous value', () => {
     const href = pathHrefFor(
-      'https://host.example/m/search?sort=distance',
+      'https://host.example/m/search?atlas=sort=distance',
       '/search?sort=soonest',
       '/m',
     )
 
-    expect(href).toContain('sort=soonest')
-    expect(href).not.toContain('sort=distance')
+    expect(href).toContain('atlas=sort%3Dsoonest')
+    expect(href).not.toContain('distance')
   })
 
-  it('drops our params when the new route carries none', () => {
-    expect(pathHrefFor('https://host.example/m/search?q=Lille', '/nl', '/m')).not.toContain('q=')
+  it('drops the parameter entirely when the new route carries no query', () => {
+    expect(pathHrefFor('https://host.example/m/search?atlas=q=Lille', '/nl', '/m')).not.toContain(
+      'atlas=',
+    )
   })
+
+  // ⚠ The whole point of the change: a host's parameters are not ours in EITHER mode now. The
+  // previous design claimed twelve names on their pages, and got the list wrong.
+  it.each(['q', 'sort', 'region', 'format', 'days', 'locale', 'utm_source', 'p'])(
+    'leaves the host’s ?%s= alone',
+    (key) => {
+      expect(pathHrefFor(`https://host.example/m/gb?${key}=x`, '/nl', '/m')).toContain(`${key}=x`)
+    },
+  )
 
   it('roots correctly at the prefix itself', () => {
     expect(pathHrefFor('https://wemeditate.com/map/gb', '/', '/map')).toBe(
@@ -416,57 +433,15 @@ describe('pathHrefFor', () => {
     )
   })
 
-  // `locale` is the widget's parameter but only ever a PAGE one — nothing writes it back, so
-  // claiming it would delete a visitor's language on the first click.
-  it('leaves ?locale= alone', () => {
-    expect(pathHrefFor('https://host.example/map?locale=fr&utm=x', '/gb', '/map')).toContain(
-      'locale=fr',
-    )
-  })
-
-  it('replaces a filter param rather than stacking a second copy', () => {
+  it('carries a filter through ?atlas=, without touching a host param of the same name', () => {
     const href = pathHrefFor(
       'https://host.example/m/search?format=online',
       '/search?format=weekly',
       '/m',
     )
 
-    expect(href).toContain('format=weekly')
-    expect(href).not.toContain('format=online')
-  })
-})
-
-describe('WIDGET_PARAMS', () => {
-  /**
-   * ⚠ **Both ways of getting this wrong are silent, which is why it is asserted rather than read.**
-   *
-   * In `routing=path` the widget's state lives on the HOST page's real query string, so this set is
-   * what the history lifts out on read and rewrites on navigate. A name MISSING from it is a filter
-   * silently dropped on every navigation; a name wrongly IN it is one of the host's own parameters
-   * silently stolen. Query mode is immune — it packs the whole route into one parameter — so
-   * nothing else in the app would go red either way.
-   *
-   * The first draft was hand-listed and named a `filters` param that has never existed, while the
-   * seven real filter names went unclaimed.
-   */
-  it('claims every name the URL-derived slices actually own', () => {
-    for (const key of [SEARCH_COUNTRY_PARAM, SORT_PARAM, ...FILTER_PARAM_KEYS]) {
-      expect(WIDGET_PARAMS.has(key)).toBe(true)
-    }
-  })
-
-  it('claims the searched place, which has no constant of its own', () => {
-    for (const key of ['q', 'center', 'bbox']) expect(WIDGET_PARAMS.has(key)).toBe(true)
-  })
-
-  // The route parameter is query mode's carrier and is never one of ours to lift in path mode.
-  it('does not claim the route parameter itself', () => {
-    expect(WIDGET_PARAMS.has(ROUTE_PARAM)).toBe(false)
-  })
-
-  it('claims nothing a host would plausibly own', () => {
-    for (const key of ['utm_source', 'p', 'page', 'id', 's', 'lang', 'ref']) {
-      expect(WIDGET_PARAMS.has(key)).toBe(false)
-    }
+    // Ours is inside the parameter; theirs is left exactly where it was.
+    expect(href).toContain('atlas=format%3Dweekly')
+    expect(href).toContain('format=online')
   })
 })

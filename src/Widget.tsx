@@ -21,6 +21,7 @@ import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning, reportInternalError } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
+import { Spinner } from './components/atoms/Spinner'
 import { mountDecision, mountPrefix } from './lib/shape'
 
 // Implementation of the embeddable widget's custom element.
@@ -128,11 +129,32 @@ function PathBoot({ apiKey }: { apiKey: string }) {
           inside `App`, below the router this read exists to construct. Sharing the singleton is
           what keeps it free: `AppShell`'s own `clientQuery` read is then a cache hit. */}
       <QueryClientProvider client={queryClient}>
-        <Suspense fallback={null}>
+        <Suspense fallback={<BootSurface />}>
           <PathPrefix apiKey={apiKey} onResolved={setResolved} />
         </Suspense>
       </QueryClientProvider>
     </ErrorBoundary>
+  )
+}
+
+/**
+ * What a path embed shows while it reads the prefix.
+ *
+ * ⚠ **Not `null`, and not `LoadingFallback` either.** The wait itself is not extra latency — query
+ * mode suspends on the very same `clients/me` request, and shows `LoadingFallback` through it
+ * (`App.tsx`). The only thing path mode was missing is that state, because the theme root and the
+ * provider stack live inside `Atlas`, below the point where it waits. So this is the smallest
+ * thing that can be styled: the scope class and the theme class, which is all our stylesheet needs
+ * to reach a spinner. `Spinner` is an atom and calls no `useTranslation`, so unlike
+ * `LoadingFallback` it cannot suspend inside a Suspense fallback — which would throw.
+ */
+function BootSurface() {
+  return (
+    <div className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`}>
+      <div className="flex h-full w-full items-center justify-center p-8">
+        <Spinner color="secondary" />
+      </div>
+    </div>
   )
 }
 
