@@ -314,9 +314,20 @@ function AppShell({
     <WidgetModeContext.Provider value={{ standalone, hasMap, linkable }}>
       {/* Standalone only. Embedded, this <head> is the HOST page's: their og:locale
           describes their document, not the widget inside it, and the widget's hash URLs
-          were never canonical anyway (hence `standalone` existing at all). */}
+          were never canonical anyway (hence `standalone` existing at all).
+
+          ⚠ **`lang`/`dir` on <html> are an OUTPUT here, not an input**, and that is the whole
+          asymmetry with the embedded case. Embedded, the host's `<html lang>` describes THEIR
+          content and is evidence we read (`hostHtmlLangDetector`). Standalone, the document is
+          ours: `index.html` ships `lang="en"` as a pre-hydration placeholder, and once we have
+          resolved a language it is our job to say so, because WCAG 3.1.1 asks the page to declare
+          the language it is actually in. Without this a French visitor got French content inside
+          `<html lang="en">`, and a screen reader read it with English pronunciation.
+
+          No feedback loop: the detector refuses to read a document carrying our own scope class,
+          so writing this back can never become the thing we detect next time. */}
       {standalone && (
-        <Helmet>
+        <Helmet htmlAttributes={{ lang: locale, dir: i18n.dir(locale) }}>
           <meta content={locale} property="og:locale" />
         </Helmet>
       )}
