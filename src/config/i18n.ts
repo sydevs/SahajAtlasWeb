@@ -3,14 +3,21 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import HttpBackend, { HttpBackendOptions } from 'i18next-http-backend'
 
-import { i18nDetectionOptions, i18nSharedOptions } from './i18n-options'
+import { hostHtmlLangDetector, i18nDetectionOptions, i18nSharedOptions } from './i18n-options'
+
+const languageDetector = new LanguageDetector()
+
+languageDetector.addDetector(hostHtmlLangDetector)
 
 i18n
   // Load translations from the backend
   .use(HttpBackend)
   // detect user language
   // learn more: https://github.com/i18next/i18next-browser-languageDetector
-  .use(LanguageDetector)
+  // An INSTANCE, not the class, because `hostHtmlLang` has to be registered before init —
+  // `addDetector` is an instance method, and a name in `detection.order` that no detector answers
+  // to is skipped in SILENCE. `i18n-options.test.ts` asserts the order and the registration agree.
+  .use(languageDetector)
   // pass the i18n instance to react-i18next.
   .use(initReactI18next)
   // init i18next

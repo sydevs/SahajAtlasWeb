@@ -3,7 +3,12 @@ import z from 'zod'
 import { RegionRefSchema } from './region-ref'
 
 // `GET /api/clients/me` — the widget's own SahajCloud service document, used to
-// bootstrap its locale, theme colors, and home region. `region` resolves to a
+// bootstrap its theme colors and home region.
+//
+// ⚠ **`locale` is deliberately absent.** SahajCloud still has the field; the widget stopped
+// reading it, because the language should follow the PAGE (`<html lang>`) rather than a
+// record-level setting that says it once for every page a client embeds on. Removing it from the
+// schema as well as the `select` is what stops it quietly coming back. `region` resolves to a
 // RegionRef at depth=1; `allowedDomains` is a newline-separated list.
 //
 // `legacyConfig` is gone (#153). SahajCloud removed the field rather than promoting
@@ -14,7 +19,6 @@ import { RegionRefSchema } from './region-ref'
 export const ClientSchema = z.object({
   id: z.number(),
   name: z.string().nullish(),
-  locale: z.string().nullish(),
   color1: z.string().nullish(),
   color2: z.string().nullish(),
   color3: z.string().nullish(),

@@ -21,6 +21,16 @@ Entries reference the pull request that landed them.
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
 
+### Changed
+
+- **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
+  so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:
+  `locale` on the script URL → `?locale=` on the page → **`<html lang>`** → the browser → English.
+  ⚠ **The `locale` field on your client record is no longer read** — a record-level language says
+  it once for every page you embed on, where `<html lang>` says it per page and your CMS already
+  sets it. If you were relying on that field, set `locale` on the script URL instead, or check that
+  your pages declare the language you want.
+
 ### Added
 
 - **`routing=path` now works.** ([#164]) Your widget's route can live in the path —

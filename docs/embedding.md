@@ -129,13 +129,13 @@ Five parameters on the script URL, all optional except `key`. Standard query-str
 so percent-encode anything with a reserved character in it (`atlas=%2Fgb%2Flondon` is equivalent
 to `atlas=/gb/london`; both work).
 
-| Parameter | Default                        | What it does                                                                                                                                                                                                                         |
-| --------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `key`     | —                              | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen, and the loader logs an error naming the problem.                                                          |
-| `locale`  | the visitor's browser language | Force a UI language, e.g. `fr`. Full precedence: this parameter → the language on your client record → **`?locale=` on the page URL** → the browser's language → English.                                                            |
-| `map`     | `true`                         | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)). |
-| `routing` | `query`                        | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                             |
-| `atlas`   | —                              | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                    |
+| Parameter | Default                       | What it does                                                                                                                                                                                                                                           |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `key`     | —                             | **Required.** Your published SahajCloud client key. Without a valid one the widget renders its configuration-error screen, and the loader logs an error naming the problem.                                                                            |
+| `locale`  | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. Full precedence: this parameter → **`?locale=` on the page URL** → **your page's `<html lang>`** → the browser's language → English. A viewer's own pick from the settings menu overrides all of it for their session. |
+| `map`     | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all** — no Mapbox, no map token needed, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                   |
+| `routing` | `query`                       | Where the widget's route lives. `path` additionally needs your server to serve the same page for everything under the atlas prefix, and that prefix comes from your client record rather than from here.                                               |
+| `atlas`   | —                             | The route to open at when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                      |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — the parameter absent, empty, `true`, `no`, `FALSE` — leaves it **on**. This is
@@ -155,6 +155,20 @@ That ordering is the point. A visitor arriving with `?atlas=` in the URL deep-li
 or followed a link somebody shared, and sending them to your default instead would throw away
 where they asked to be. Use `atlas` for an embed that should always open somewhere specific — a
 page dedicated to one city, or an event's registration form.
+
+### The widget follows your page's language
+
+**You usually do not need the `locale` parameter at all.** The widget reads your page's
+`<html lang>` and matches it, so a Dutch page gets a Dutch atlas whatever language the visitor's
+browser prefers — which is almost always what you want, since the widget is part of your content
+rather than a separate app.
+
+Reach for `locale` only when your page's declared language is wrong or missing, or when you
+deliberately want the atlas in a different language from the page around it.
+
+**This used to be a setting on your client record and no longer is**, on purpose: a record-level
+language says it once for every page you embed on, and then has to be kept in step with a site
+that may not be monolingual. `<html lang>` already says it per page, and your CMS already sets it.
 
 ### What you configure in the CMS instead
 

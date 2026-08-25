@@ -275,11 +275,15 @@ function AppShell({
     void announceEmbed({ routing, observed: embed.observed, prefix })
   }, [routing, prefix])
 
+  // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language should match
+  // the page it is embedded in, and `<html lang>` says that per page — where a record-level setting
+  // says it once for every page a client embeds on, and is then a second thing to keep in step with
+  // the site around it. So the chain is: this parameter → `?locale=` on the page → the host's
+  // `<html lang>` → the browser → English, with the viewer's own pick from the settings menu
+  // overriding all of it for the session. `config/i18n-options.ts` owns the middle three.
   useEffect(() => {
-    if (defaultLocale || client.locale) {
-      i18n.changeLanguage(defaultLocale || client.locale || 'en')
-    }
-  }, [defaultLocale, client.locale])
+    if (defaultLocale) i18n.changeLanguage(defaultLocale)
+  }, [defaultLocale])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side opt-out:
   // `analytics="false"` was one, but the element observes no attributes at all (`Widget.tsx`) and

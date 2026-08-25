@@ -619,7 +619,6 @@ const getClient = async () => {
       depth: 1,
       select: {
         name: true,
-        locale: true,
         color1: true,
         color2: true,
         color3: true,
