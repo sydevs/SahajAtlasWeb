@@ -730,6 +730,14 @@ const warmCaches = (): void => {
  * a round trip *after* the interface has painted, and a viewer watches the widget change language
  * in front of them. Read in parallel it is settled before the first localized frame.
  *
+ * **Measured rather than argued**, on a `?locale=de` load against an operator set of en/fr/nl,
+ * polling `<html lang>` and the settings cog's translated label every 50 ms. Warmed here, this
+ * read starts 52 ms after `clients/me` and finishes 1 ms after it, and the interface paints once,
+ * in English. Holding the same response back by 3 s — which is what a serial read approximates —
+ * the widget paints in German at 3.9 s and flips to English at 5.4 s. So the parallelism is the
+ * whole of why the correction is invisible; it is not a nicety on top of a guard that was already
+ * fine.
+ *
  * ⚠ **Unlike `warmCaches`, this runs for a COMPACT embed too**, and the argument is the one that
  * keeps `clients/me` there: the card is themed and localized from the CMS, so which languages the
  * atlas is offered in is part of rendering the card at all, not part of the interface behind it.

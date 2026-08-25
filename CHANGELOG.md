@@ -23,6 +23,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The languages the picker offers are now a CMS setting.** ([#167]) An administrator chooses them
+  on the Sahaj Atlas Configuration screen, for the whole atlas, and the same list drives the
+  `hreflang` links on every atlas page — so the widget can no longer offer a language your search
+  results say is gone. Nothing to change on your side, and no new origin for your CSP: the setting
+  is read from the API you already allow. Asking for a language that is not on offer (via `locale`
+  or `?locale=`) falls back to English instead. **Until an administrator changes it the list is the
+  same ten languages as before**, so an atlas nobody has touched behaves exactly as it did.
 - **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
   so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:
   `locale` on the script URL → `?locale=` on the page → **`<html lang>`** → the browser → English.
@@ -380,6 +387,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
+[#165]: https://github.com/sydevs/SahajAtlasWeb/pull/165
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy

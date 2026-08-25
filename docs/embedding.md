@@ -164,7 +164,9 @@ browser prefers — which is almost always what you want, since the widget is pa
 rather than a separate app.
 
 Reach for `locale` only when your page's declared language is wrong or missing, or when you
-deliberately want the atlas in a different language from the page around it.
+deliberately want the atlas in a different language from the page around it. Whatever you ask for,
+the widget renders a language the atlas is actually offered in — see
+[The languages on offer](#the-languages-on-offer-are-a-cms-setting).
 
 **This used to be a setting on your client record and no longer is**, on purpose: a record-level
 language says it once for every page you embed on, and then has to be kept in step with a site
@@ -178,6 +180,7 @@ Some things are **not** parameters, on purpose:
 | ---------------------------------- | ---------------------------------------------------------------------- |
 | Display name, brand colours        | your client record                                                     |
 | The path prefix for `routing=path` | your client record — the same value your canonical URLs are built from |
+| Which languages the atlas offers   | the Sahaj Atlas **Configuration** screen, for the whole atlas          |
 
 Identity is the same on every page you embed on, so making it per-embed only creates the
 opportunity for two of your pages to disagree about what the product is called. The routing prefix
@@ -185,6 +188,24 @@ is worse than merely redundant: it is the value we compose your canonical URLs f
 copy on a script tag could disagree with the one the canonical was built from — and a canonical
 pointing at a URL that does not restore the view is precisely the failure canonical URLs exist to
 prevent.
+
+### The languages on offer are a CMS setting
+
+**The language picker inside the widget lists what an administrator has enabled**, on the Sahaj
+Atlas Configuration screen — not every language the widget has ever been translated into. It is one
+setting for the whole atlas rather than a per-embed one, because the same list drives the
+`hreflang` links on every atlas page: turning a language off tells search engines that language is
+gone, and a widget still offering it would contradict your own search results.
+
+Three things follow, and none of them needs anything from you:
+
+- **`locale` still does what it says.** If you ask for a language that is not on offer, the widget
+  falls back to English rather than rendering one the atlas does not advertise.
+- **Enabling a language is not instant.** The widget can only render one it ships a translation
+  bundle for, so a newly enabled language needs a matching bundle here — ask a developer before
+  turning one on. Until then it simply is not offered; nothing breaks.
+- **A change takes effect on the next page load.** There is nothing to redeploy and no cache on
+  your side to clear.
 
 ### `routing=path` — clean paths, and what your server has to do
 
@@ -521,7 +542,7 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than something the bundle pins: today production serves the Cloudflare Images CDN (`imagedelivery.net`) and any relative URL is resolved against the API origin. | images only                                                                                   |
 |                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer. Sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                  | the flag glyphs only; the lists still render                                                  |
-| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                        | **the widget has no data and shows an error screen**                                          |
+| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the atlas's language settings and the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for any of them.                                                                                        | **the widget has no data and shows an error screen**                                          |
 |                            | `sahajatlas.com`                              | the locale JSON, from a different origin than the script                                                                                                                                                                                               | every string renders as its raw dotted key                                                    |
 |                            | `api.mapbox.com`                              | tile/style requests and the place-search geocoder                                                                                                                                                                                                      | the map and search fail                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |

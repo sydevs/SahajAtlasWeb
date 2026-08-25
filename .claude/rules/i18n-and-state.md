@@ -33,24 +33,58 @@ alwaysApply: false
   `src/config/i18n-options.ts`): `order: ['querystring', 'navigator']`, `caches: []`.
   The library's defaults would read cookies + localStorage and write `i18nextLng`
   onto the HOST page's origin — undeclared storage on a domain that isn't ours
-  (issue #95). It can still be overridden by the widget's `locale` prop or the
-  client's `client.locale` (see `App.tsx`). Read the active locale with
+  (issue #95). It can still be overridden by the widget's `locale` prop (see `App.tsx`;
+  the client record's own `locale` stopped being read in #165, because the language should
+  follow the PAGE), and whatever the chain resolves is then narrowed to the operator's
+  offered set — see `preferredLanguage` below. Read the active locale with
   `useLocale()`, not `i18n.language` directly. `?locale=cimode` is refused
   (`convertDetectedLanguage`): it is i18next's translator-debug pseudo-language,
   and a link carrying it would render somebody's embed as raw dotted key names.
-- **`supportedLanguages` (`src/config/i18n-options.ts`) is BOTH the picker's list and
-  i18next's `supportedLngs`** — and `i18n-options.test.ts` pins it to
-  `public/locales/` in both directions, so a bundle nobody can select and a code
-  with no bundle are equally a failure. Adding a language: add the
-  `public/locales/<lng>/` JSON files (both namespaces), add the code to that one
-  array, confirm SahajCloud is translated into it (its `src/lib/locales/index.ts`
-  is the source of truth — `activeLocale()` sends the resolved language straight
-  through), add the bundle to `.ladle/i18n.ts` so stories can render it, and check
-  `MAP_WORLDVIEWS` in `src/components/organisms/Mapbox/Map.tsx` for whether a
-  worldview is needed.
+- **Which languages exist and which are OFFERED are two questions with two owners** (#167).
+  `shippedLanguages` (`src/config/i18n-options.ts`) is this build's inventory, still pinned
+  to `public/locales/` in both directions by `i18n-options.test.ts` — a bundle nobody can
+  reach and a code with no bundle are equally a failure. Which of them the atlas is offered
+  in belongs to an **operator**, on the `languages` field of SahajCloud's `sy-atlas-config`
+  global (sydevs/SahajCloud#645), read at runtime and narrowed by `offeredLanguages` to
+  `shipped ∩ enabled`. That intersection is what `useLanguages` returns and the settings
+  picker renders.
+  Adding a language: add the `public/locales/<lng>/` JSON files (both namespaces), add the
+  code to `shippedLanguages`, confirm SahajCloud is translated into it (its
+  `src/lib/locales/index.ts` is the source of truth — `activeLocale()` sends the resolved
+  language straight through), add the bundle to `.ladle/i18n.ts` so stories can render it,
+  and check `MAP_WORLDVIEWS` in `src/components/organisms/Mapbox/Map.tsx` for whether a
+  worldview is needed. Shipping it does **not** offer it: an operator enables it in the CMS.
+- **`supportedLngs` stays the SHIPPED set and must not be driven by the CMS.** Its job is
+  "never fetch a bundle that does not exist", which is a fact about this build — hand it the
+  enabled set and a language an operator turns on before we ship it becomes two guaranteed
+  404s and an English interface under `lang="it"`, which is the promise #167 exists to stop us
+  making. It also cannot be narrowed later: i18next's `LanguageUtil` **copies** `supportedLngs`
+  in its constructor, so changing it post-init means writing to `services.languageUtils`.
+  The operator's set is applied where it can be applied honestly instead — the picker's rows,
+  and `preferredLanguage`'s correction in `AppShell`.
   Do **not** reach for `load: 'languageOnly'` to stop a regional tag being fetched:
   it strips `pt-BR` — a bundle we ship — to a `pt` we don't. `supportedLngs` already
   resolves `en-US`→`en` and `de-DE`→`de` without fetching either.
+- **The boot order is "initialize wide, narrow once the config arrives", and the parallelism
+  is what makes it invisible.** i18next initializes synchronously at module load from the
+  shipped bundles; the CMS answer arrives over the network, and until it does `useLanguages`
+  returns the whole inventory — which is precisely what the widget offered before the field
+  existed, so a failed read, a key without access and a CMS that has not shipped the field all
+  degrade to today's behaviour rather than to an error screen. `api.warmLanguages()` (fired
+  from `App`'s mount effect, and deliberately **not** gated on `compact` — the card is
+  localized) puts that read in flight beside the `clients/me` read the tree already suspends
+  on. Measured on a `?locale=de` load against an operator set of en/fr/nl: warmed, the
+  interface paints once in English; the same response held back 3 s paints German at 3.9 s and
+  flips at 5.4 s. Serialize it and a viewer watches the widget change language.
+- **The `shipped ⊇ enabled` check is a snapshot, not a live fetch.** `scripts/atlas-languages.json`
+  is refreshed by `pnpm sync:atlas-languages --write` and asserted in the unit lane, which must
+  never touch the network. It catches a language enabled with no bundle — invisible at runtime,
+  since nothing errors and the viewer just gets English while SahajCloud's `hreflang` promises
+  a page. It does **not** catch an operator acting after the last sync; the runtime survives
+  that gap by construction (`offeredLanguages` drops what it cannot render) rather than
+  depending on the gate. Nothing under `src/` may import that snapshot — it is an observation
+  for a gate, and a stale third opinion about what an operator wanted would be worse than
+  falling back to the inventory.
 - **The `common` namespace is at full parity across all ten locales, enforced per
   locale**; `events` carries a short list of known-untranslated keys
   (`UNTRANSLATED_EVENT_KEYS`) that ratchets down. A missing key is not always
