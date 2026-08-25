@@ -5,7 +5,7 @@ import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import preview from '@/config/preview'
-import { eventsQuery } from '@/config/api'
+import { atlasConfigQuery, eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
@@ -435,13 +435,19 @@ describe('getEvent', () => {
   })
 })
 
-describe('getAtlasConfig', () => {
+describe('getAtlasConfig (through its query factory)', () => {
+  // Driven through `atlasConfigQuery().queryFn()` rather than a bare fetcher, because the factory
+  // is how the app reaches it — the fetcher itself is module-private, and a spec that called it
+  // directly would leave the one piece of wiring nothing else exercises untested (#132's lesson:
+  // a green spec is not evidence that the thing it tests is reachable).
+  const read = () => atlasConfigQuery().queryFn()
+
   it('reads the operator-owned language set off the sy-atlas-config global', async () => {
     sdk.request.mockResolvedValue(
       jsonResponse({ languages: [{ code: 'en' }, { code: 'fr' }, { code: 'nl' }] }),
     )
 
-    const config = await api.getAtlasConfig()
+    const config = await read()
 
     expect(config.languages).toEqual([{ code: 'en' }, { code: 'fr' }, { code: 'nl' }])
     // Selected explicitly, at depth 0 — SahajCloud enforces a `select` on every client read, and
@@ -454,19 +460,21 @@ describe('getAtlasConfig', () => {
     })
   })
 
-  it('parses the answer production gives today — a global with no such field', async () => {
-    // Not a hypothetical: sydevs/SahajCloud#645 ships the field after this, and selecting a
-    // column the server does not have answers `{}` with a 200 rather than a 400. If this threw,
-    // every widget would boot into an error screen the day this deployed.
+  it('parses a global with no such field, which the wire answers as a bare {}', async () => {
+    // Not a hypothetical — it was production's live answer while this was written, and stays
+    // reachable for an installation whose row predates the field or a key not granted it.
+    // Selecting a column the server does not have is a 200 with `{}`, never a 400, so nothing
+    // upstream turns it into an error: if this threw, those widgets would boot into an error
+    // screen instead of the language set they had before.
     sdk.request.mockResolvedValue(jsonResponse({}))
 
-    await expect(api.getAtlasConfig()).resolves.toEqual({})
+    await expect(read()).resolves.toEqual({})
   })
 
   it('rejects a row shape it cannot read, rather than passing junk to the picker', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ languages: ['en', 'fr'] }))
 
-    await expect(api.getAtlasConfig()).rejects.toThrow()
+    await expect(read()).rejects.toThrow()
   })
 })
 

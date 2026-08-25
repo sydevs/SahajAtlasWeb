@@ -89,7 +89,13 @@ those are derived client-side:
   drops keeps its text and so goes missing in silence (issue #101).
 - **`getClient`** → `/api/clients/me` via the raw `request` helper — the bare
   `sdk.me()` can't carry the required `select` — an API-key self-read of locale, theme
-  colors, home `region`. **`getAtlasConfig`** → `sy-atlas-config` global (map defaults).
+  colors, home `region`. **`getAtlasConfig`** → the `sy-atlas-config` global, for the operator-owned
+  **language set** and nothing else (#167). ⚠ This line used to say "map defaults" while no such
+  fetcher existed at all; the global does carry `defaultMapCenter`/`defaultZoomLevel` and the
+  fetcher deliberately does **not** select them, because nothing reads them and a schema demanding
+  a field we ignore turns a harmless CMS rename into a failed read. Its query factory
+  (`atlasConfigQuery`) is declared beside it in `fetch.ts` for the `eventTitlesQuery` reason —
+  declaring it in `index.ts` would close an import cycle.
 
 Every fetcher parses through a zod schema from `src/types/` (raw `*DocSchema` /
 `FeedEventSchema` / `GeojsonSchema` for the wire, the derived view-model schemas

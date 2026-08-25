@@ -12,8 +12,8 @@ import { offeredLanguages } from '@/config/i18n-options'
  * initializes at module load with the shipped bundles, this arrives afterwards, and every reader
  * gets a correct-but-wider answer in the meantime: `offeredLanguages(undefined)` is the shipped
  * inventory, which is exactly what the widget offered before the field existed. So a failed
- * global read, a client key without access to it, and a CMS that has not shipped the field yet
- * all land in the same place — today's behaviour — rather than on an error screen. Blocking the
+ * global read, a client key without access to it, and an installation whose global predates the
+ * field all land in the same place — today's behaviour — rather than on an error screen. Blocking the
  * whole widget on a language list would be a hard dependency bought for a dropdown.
  *
  * The read itself is warmed in parallel with `clients/me` (`api.warmLanguages`, fired from

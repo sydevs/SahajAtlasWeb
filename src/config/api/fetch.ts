@@ -644,12 +644,14 @@ const getClient = async () => {
  * The atlas-wide configuration global — read for the operator-owned language set
  * (sydevs/SahajCloud#645), and for nothing else.
  *
- * Raw `requestJson` rather than the SDK's typed `findGlobal`, for the same reason `getClient`
- * above is: the field is newer than our synced `payload-types.ts`, so `select: { languages: true }`
- * does not type-check against the generated `SyAtlasConfigSelect` until SahajCloud's own change
- * lands on `main` and `pnpm types:cms` picks it up. Selecting a column the server does not have
- * answers `{}` with a 200 rather than a 400 — verified against production — so the read is safe to
- * ship first, and `AtlasConfigSchema` is written to parse that answer.
+ * Raw `requestJson` rather than the SDK's typed `findGlobal`, because the field is newer than our
+ * synced `payload-types.ts`: `select: { languages: true }` does not type-check against the
+ * generated `SyAtlasConfigSelect` until `pnpm types:cms` picks it up. It landed upstream while
+ * this branch was being written, and the sync was deliberately left out of it — that command
+ * pulls everything on SahajCloud's `main`, which is 600 lines of unrelated CMS drift here, and a
+ * renamed enum value rides through it invisibly (our zod schemas are hand-written, so typecheck
+ * cannot see one). Switching to `findGlobal` is a good follow-up ON that sync, not before it.
+ * `getClient` above uses the same helper for its own reason.
  *
  * `depth: 0`: the rows are plain values, nothing to populate.
  */
@@ -683,6 +685,18 @@ export const atlasConfigQuery = () => ({
   // SHORTER than the stale window above, so the entry could be evicted while still nominally
   // fresh — and the picker, which is the second reader, may not be opened for many minutes.
   gcTime: WHOLESALE_GC_TIME,
+  // ⚠ **A FAILED read must not be re-asked by every new observer.** React Query's
+  // `shouldLoadOnMount` fetches whenever `state.data === undefined`, and the in-flight dedupe
+  // deliberately excludes a retryer whose promise already rejected — so with this unset, a client
+  // key without access to the global (or a renamed slug) turns one optional read into four
+  // requests per page view: the warm, App's warm again, `AppShell`'s observer and the picker's,
+  // plus one more each time a breakpoint crossing remounts `SettingsMenu`. On pages we do not
+  // own, that is exactly the pressure `shouldRetryQuery` refuses to add for the same 4xx.
+  // Re-asking buys nothing anyway: `useLanguages` answers a failure with the shipped inventory.
+  //
+  // It does NOT suppress the first fetch — the flag is read only when `state.status === 'error'`
+  // (verified in query-core 5.101.4's `shouldLoadOnMount`), and a `{}` answer counts as data.
+  retryOnMount: false,
 })
 
 // ── Live-preview populate (issue #40) ────────────────────────────────────────────
@@ -766,7 +780,6 @@ export default {
   getEventDoc,
   populatePreviewDoc,
   getClient,
-  getAtlasConfig,
   warmCaches,
   warmLanguages,
 }

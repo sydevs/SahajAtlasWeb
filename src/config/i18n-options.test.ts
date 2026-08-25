@@ -130,6 +130,66 @@ describe('enabled languages (scripts/atlas-languages.json)', () => {
   })
 })
 
+/**
+ * Who is allowed to read the inventory directly.
+ *
+ * **Reaching for the wrong list fails SILENTLY**, which is why this is an assertion rather than a
+ * sentence in a docblock. A component that imports `shippedLanguages` instead of calling
+ * `useLanguages()` renders all ten languages, looks perfect, and leaves every other gate green —
+ * the equality spec above still passes, because it is about `public/locales/` and knows nothing
+ * about callers. Same shape as `responsive.test.ts`'s closed list of viewport call sites and
+ * `href.test.ts`'s three JSX anchors, and for the same reason: prose was the only thing enforcing
+ * the loader seam too, and #153 broke it anyway with a one-line string join.
+ *
+ * `supportedLngs` is the one legitimate consumer, and it lives in this module.
+ */
+const SHIPPED_LANGUAGES_READERS = ['config/i18n-options.ts', 'config/i18n-options.test.ts']
+
+const sourceFiles = (dir: string): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = `${dir}/${entry.name}`
+
+    if (entry.isDirectory()) return sourceFiles(full)
+
+    return /\.tsx?$/.test(entry.name) ? [full] : []
+  })
+
+// No trailing slash: `${dir}/${name}` supplies the separator, and a doubled one would leave every
+// path prefixed with `/` after the slice below.
+const srcDir = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '')
+const allSources = sourceFiles(srcDir)
+const relative = (file: string) => file.slice(srcDir.length + 1)
+
+describe('who may read the inventory directly', () => {
+  it('is exactly this module and its spec — everything else asks useLanguages()', () => {
+    const readers = allSources
+      .filter((file) => /\bshippedLanguages\b/.test(readFileSync(file, 'utf8')))
+      .map(relative)
+      .sort()
+
+    expect(
+      readers,
+      "importing `shippedLanguages` bypasses the operator's set and renders every bundle this " +
+        'build ships. Call `useLanguages()` instead — or add the file here if it genuinely needs ' +
+        'the inventory rather than the offer.',
+    ).toEqual([...SHIPPED_LANGUAGES_READERS].sort())
+  })
+
+  it('keeps the CI snapshot out of the runtime entirely', () => {
+    // `scripts/atlas-languages.json` is an observation for the gate below, refreshed by hand. If
+    // anything under `src/` ever imported it, a stale third opinion about what an operator wanted
+    // would start competing with the live read — and it would look like a sensible fallback.
+    //
+    // Matched on an IMPORT rather than a mention: this file reads the snapshot through
+    // `readFileSync`, which is the one access that is fine, and both modules name it in prose.
+    const importers = allSources
+      .filter((file) => /from\s+['"][^'"]*atlas-languages/.test(readFileSync(file, 'utf8')))
+      .map(relative)
+
+    expect(importers).toEqual([])
+  })
+})
+
 describe('offeredLanguages', () => {
   it('narrows the CMS set to the bundles this build ships', () => {
     expect(offeredLanguages(['en', 'fr', 'nl'])).toEqual(['en', 'fr', 'nl'])
@@ -151,8 +211,9 @@ describe('offeredLanguages', () => {
   })
 
   it('falls back to the whole inventory when the CMS says nothing', () => {
-    // The state of production until sydevs/SahajCloud#645 deploys: the field does not exist, so
-    // a `select` of it answers `{}`. Both of these must be today's behaviour, not an empty menu.
+    // Reachable whenever the global has no such field — an installation whose row predates it, a
+    // key not granted it — which the wire reports as a bare `{}` with a 200 rather than an error.
+    // Both of these must land on today's behaviour, not an empty menu.
     expect(offeredLanguages(undefined)).toEqual([...shippedLanguages])
     expect(offeredLanguages([])).toEqual([...shippedLanguages])
   })

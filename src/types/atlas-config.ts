@@ -10,12 +10,14 @@ import z from 'zod'
  * `defaultZoomLevel`) are deliberately NOT selected: nothing reads them, and a schema that
  * demands a field we ignore turns a harmless CMS rename into a failed boot.
  *
- * ⚠ **`languages` is nullish, and that is not defensive habit.** SahajCloud ships the field
- * after this lands, and a global read that `select`s a column the server does not have yet
- * answers `{}` with a 200 — verified against production. So the absent case is the *current*
- * case, not a hypothetical one, and it has to parse. `offeredLanguages` (`config/i18n-options`)
- * turns absent-or-empty back into the bundles this build ships, which is exactly the set the
- * widget offered before the field existed.
+ * ⚠ **`languages` is nullish, and that is not defensive habit.** A global read that `select`s a
+ * column the server does not have answers `{}` with a **200, not a 400** — verified against
+ * production, where this was the live answer until SahajCloud deployed the field mid-way through
+ * writing this. So "absent" is a state the wire really produces, and it reaches us as a silent
+ * empty object rather than an error: a fresh installation whose global predates the field, a
+ * client key not granted it, a future rename. `offeredLanguages` (`config/i18n-options`) turns
+ * absent-or-empty back into the bundles this build ships — the set the widget offered before the
+ * field existed — so every one of those degrades to today's behaviour instead of an empty picker.
  *
  * Rows are `{ code }` rather than bare strings, and the field is named `languages` rather than
  * `locales`. Both are fixed upstream and documented on the field itself: a global's array field

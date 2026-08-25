@@ -69,8 +69,9 @@ alwaysApply: false
   is what makes it invisible.** i18next initializes synchronously at module load from the
   shipped bundles; the CMS answer arrives over the network, and until it does `useLanguages`
   returns the whole inventory — which is precisely what the widget offered before the field
-  existed, so a failed read, a key without access and a CMS that has not shipped the field all
-  degrade to today's behaviour rather than to an error screen. `api.warmLanguages()` (fired
+  existed, so a failed read, a key without access and a global with no such field (which the wire
+  answers as a bare `{}` with a 200, never an error) all degrade to today's behaviour rather than
+  to an error screen. `api.warmLanguages()` (fired
   from `App`'s mount effect, and deliberately **not** gated on `compact` — the card is
   localized) puts that read in flight beside the `clients/me` read the tree already suspends
   on. Measured on a `?locale=de` load against an operator set of en/fr/nl: warmed, the

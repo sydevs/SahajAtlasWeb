@@ -11,15 +11,16 @@
     "widget reads the live global at runtime and falls back to `shippedLanguages` when it can't",
     "— a stale third opinion about what an operator wanted would be worse than no opinion.",
     "",
-    "A null `syncedAt` means this has never been synced, and that is the state it ships in:",
-    "SahajCloud's `languages` field is still on an unmerged branch, so production's global",
-    "answers with no such field and the sync refuses to write. The list below is therefore",
-    "their DOCUMENTED DEFAULT for exactly that case (ATLAS_DEFAULT_LOCALES in",
-    "src/lib/atlas/defaultLocales.ts — the launch ten, which is also what this build ships),",
-    "not an operator's choice, so the assertion holds trivially. That is correct: the set",
-    "genuinely has not moved. Run the sync once #645 deploys, and delete this paragraph when",
-    "`syncedAt` stops being null."
+    "`syncedAt` is the day somebody last checked this against production — null would mean",
+    "never. It is stamped on every `--write`, including one that changed nothing, because a",
+    "snapshot that has matched for a year and one nobody has ever verified are otherwise the",
+    "same file.",
+    "",
+    "The set below is currently identical to `shippedLanguages`, and that is a real reading",
+    "rather than a placeholder: SahajCloud's field defaults to the launch ten and no operator",
+    "has narrowed it yet. So the superset assertion passes trivially TODAY and stops doing so",
+    "the moment anyone enables an eleventh — which is exactly when it needs to fire."
   ],
-  "syncedAt": null,
+  "syncedAt": "2026-08-25",
   "languages": ["cs", "de", "en", "es", "fr", "hu", "nl", "pt-BR", "ru", "uk"]
 }

@@ -51,14 +51,16 @@ export const shippedLanguages = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt-B
  * operator assembled in whatever order they clicked, and the picker should not reshuffle itself
  * because somebody re-added a row. Filtering the shipped list also drops duplicate rows for free.
  *
- * **Empty in, everything out.** Both ways of arriving at an empty intersection — the field absent
- * (which is the state of production until SahajCloud's own change lands) and every enabled code
- * unshipped (the misconfiguration above) — leave us with no usable statement of intent, so we
- * fall back to the inventory rather than to a picker with nothing in it.
+ * **Empty in, everything out.** Both ways of arriving at an empty intersection — no field on the
+ * global at all (an installation whose row predates it, or a key not granted it: the read answers
+ * `{}` with a 200, never an error) and every enabled code unshipped (the misconfiguration above) —
+ * leave us with no usable statement of intent, so we fall back to the inventory rather than to a
+ * picker with nothing in it.
  */
 export const offeredLanguages = (configured: readonly string[] | null | undefined): string[] => {
-  if (!configured || configured.length === 0) return [...shippedLanguages]
-
+  // `new Set(undefined)` and `new Set(null)` are both empty, so absent-or-empty falls through the
+  // filter and lands on the same tail as "nothing enabled is shipped" — one statement of the rule
+  // rather than two places to keep agreeing.
   const enabled = new Set(configured)
   const offered = shippedLanguages.filter((language) => enabled.has(language))
 

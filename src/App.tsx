@@ -2,7 +2,7 @@ import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo } from 'react'
+import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -288,6 +288,18 @@ function AppShell({
   }, [routing, prefix])
 
   /**
+   * The latest offered set, readable by the effect below WITHOUT making it re-run.
+   *
+   * That distinction is the whole point: `defaultLocale` must be applied when the host changes
+   * it and at no other time — re-running on `languages` would re-impose the host's configured
+   * language over a viewer's own pick from the settings menu the moment the CMS read landed.
+   * A ref reads the current value; the dependency list decides the trigger.
+   */
+  const offered = useRef(languages)
+
+  offered.current = languages
+
+  /**
    * Narrow the active language to what the operator says the atlas is offered in (#167).
    *
    * i18next resolves a language at init from the shipped bundles, before this build knows
@@ -296,15 +308,18 @@ function AppShell({
    * here rather than in `supportedLngs` — which is a build fact, and which i18next copies out of
    * its options at init anyway (see `config/i18n-options.ts`).
    *
-   * It runs for a compact card too, and should: the card is localized. It is also the only
-   * effect here that can fire twice in a boot — once when the offered set arrives, once if
-   * `defaultLocale` below then asks for a language the operator has switched off — and that is
-   * why it keys on the live `locale` rather than running once. `preferredLanguage` always
-   * answers with a member of `languages`, so the second pass is the last one.
+   * It runs for a compact card too, and should: the card is localized.
    *
-   * In practice there is no visible switch: `warmLanguages` puts this read in flight alongside
-   * the `clients/me` read the component above suspends on, so `languages` is already the
-   * operator's set on the first render that gets here.
+   * ⚠ **This is a BACKSTOP, not the mechanism.** It covers the one case the write below cannot:
+   * a cold cache, where the offered set had not arrived when the language was chosen. Anything
+   * that sets a language narrows at its own write site, because correcting afterwards means
+   * i18next has already resolved, FETCHED and broadcast the language being corrected — measured
+   * as two discarded locale-bundle requests per load, and a visible switch on a slow connection.
+   * If you add a third writer, narrow it there too rather than leaning on this.
+   *
+   * In practice there is nothing left for it to do: `warmLanguages` puts the CMS read in flight
+   * alongside the `clients/me` read the component above suspends on, so `languages` is already
+   * the operator's set on the first render that gets here.
    */
   useEffect(() => {
     const preferred = preferredLanguage(locale, languages)
@@ -318,8 +333,22 @@ function AppShell({
   // the site around it. So the chain is: this parameter → `?locale=` on the page → the host's
   // `<html lang>` → the browser → English, with the viewer's own pick from the settings menu
   // overriding all of it for the session. `config/i18n-options.ts` owns the middle three.
+  //
+  // ⚠ **Narrowed HERE, at the write, not by the guard above.** Handing `changeLanguage` a
+  // language the operator has switched off is not free: i18next resolves it, the HTTP backend
+  // fetches both of its namespaces, every `useLocale` consumer relocalizes, and only then does
+  // the guard put it back — plus a visible switch wherever that correction lands after first
+  // paint. Measured on the review harness with `locale=de` on the script URL against an
+  // en/fr/nl atlas: without the narrowing the widget fetches `de/common` and `de/events` and
+  // discards both; with it, only the `en` bundles are ever requested.
+  //
+  // ⚠ **The sibling case is NOT fixable here, which is what the guard is for.** `?locale=de` on
+  // the page URL is read by i18next's OWN querystring detector during `init` — at module load,
+  // before any of this exists — so those two fetches happen whatever we do, and correcting after
+  // the fact is the only move left. Measured: that path still fetches the German bundles. The
+  // difference is worth knowing before "simplifying" one of these into the other.
   useEffect(() => {
-    if (defaultLocale) i18n.changeLanguage(defaultLocale)
+    if (defaultLocale) i18n.changeLanguage(preferredLanguage(defaultLocale, offered.current))
   }, [defaultLocale])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side opt-out:
