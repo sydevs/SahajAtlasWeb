@@ -389,6 +389,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [#165]: https://github.com/sydevs/SahajAtlasWeb/pull/165
+[#167]: https://github.com/sydevs/SahajAtlasWeb/pull/168
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
