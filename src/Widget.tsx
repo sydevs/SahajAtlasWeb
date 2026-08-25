@@ -10,7 +10,7 @@ import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
 import atlasAuth from './config/api/auth'
-import { clientQuery } from './config/api'
+import api, { clientQuery } from './config/api'
 import embed from './config/embed'
 import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
@@ -106,6 +106,20 @@ function PathBoot({ apiKey }: { apiKey: string }) {
   // `undefined` is "not answered yet"; `{ value: undefined }` is "answered: no usable prefix",
   // which is a real answer and must not be mistaken for still waiting.
   const [resolved, setResolved] = useState<{ value?: string }>()
+
+  // ⚠ **Path mode reads `clients/me` ABOVE `App`, so App's own warm is too late here** (#167).
+  // Query mode fires `api.warmLanguages()` from App's mount effect, in parallel with the
+  // `clients/me` read `AppShell` suspends on — which is what settles the operator's language set
+  // before the first localized frame. In path mode that read happens *here* instead, and App does
+  // not mount until it resolves, so the same call would go out one round trip later and the
+  // language guard could correct a viewer's language after they had seen a frame of it.
+  //
+  // Warming it beside the read it would otherwise queue behind restores the parallelism. Calling
+  // it in both places is free: `prefetchQuery` returns immediately for an entry that is already
+  // fresh or in flight, so App's effect is a no-op once this has run.
+  useEffect(() => {
+    api.warmLanguages()
+  }, [])
 
   if (resolved) return <Atlas prefix={resolved.value} />
 
