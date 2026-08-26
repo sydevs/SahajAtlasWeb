@@ -1,19 +1,19 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { overlayContainer, setDialog } from './overlay'
+import { frameElement, overlayContainer, setFrame } from './overlay'
 
 import { setThemeRoot } from '@/hooks/use-theme'
 
 /**
- * The portal target, and the one piece of state it carries (issue #161).
+ * The portal target, and the one piece of state it carries (issues #161, #169).
  *
  * jsdom, because every branch here is a question about a real document: which element is
  * the theme root, whether a node is still connected to it, and what `document.body` is. A
  * pure spec could only re-assert the branch structure it was reading off the source.
  */
 afterEach(() => {
-  setDialog(null)
+  setFrame(null)
   setThemeRoot(null)
   document.body.innerHTML = ''
 })
@@ -33,9 +33,10 @@ describe('overlayContainer', () => {
   })
 })
 
-describe('the expanded dialog', () => {
-  // The reason this override exists: a modal dialog traps focus in its own content, so
-  // anything portaled beside it is unreachable. Every portal has to land inside.
+describe('the frame', () => {
+  // The reason this override exists, twice over: a portal target outside the frame renders a
+  // `fixed` child that resolves against the viewport and escapes the box, and a modal dialog
+  // additionally traps focus in its own content. Every portal has to land inside.
   it('wins over the theme root while it is open', () => {
     const wrapper = document.createElement('div')
     const surface = document.createElement('div')
@@ -43,7 +44,7 @@ describe('the expanded dialog', () => {
     document.body.append(wrapper)
     wrapper.append(surface)
     setThemeRoot(wrapper)
-    setDialog(surface)
+    setFrame(surface)
 
     expect(overlayContainer()).toBe(surface)
   })
@@ -53,8 +54,8 @@ describe('the expanded dialog', () => {
 
     document.body.append(wrapper)
     setThemeRoot(wrapper)
-    setDialog(document.createElement('div'))
-    setDialog(null)
+    setFrame(document.createElement('div'))
+    setFrame(null)
 
     expect(overlayContainer()).toBe(wrapper)
   })
@@ -69,9 +70,40 @@ describe('the expanded dialog', () => {
     document.body.append(wrapper)
     wrapper.append(surface)
     setThemeRoot(wrapper)
-    setDialog(surface)
+    setFrame(surface)
     surface.remove()
 
     expect(overlayContainer()).toBe(wrapper)
+  })
+})
+
+describe('frameElement — the box the fixed layer resolves against', () => {
+  // vaul's snap measurement, the `--sy-sheet-top` mirror and the widget's own width all read
+  // this rather than `document.querySelector('[data-sy-frame]')`, which would search the HOST's
+  // document and let an element of theirs win on document order.
+  it('is null until something takes the containing block', () => {
+    expect(frameElement()).toBeNull()
+  })
+
+  it('is the adopted node, independently of the theme root', () => {
+    const frame = document.createElement('div')
+
+    document.body.append(frame)
+    setFrame(frame)
+
+    expect(frameElement()).toBe(frame)
+  })
+
+  it('is null again once the node leaves the document', () => {
+    // Zero offset and `window.innerHeight` are the right answers with no frame, and both of
+    // this function's callers get them from `null` — so a detached node must not linger as a
+    // box every sheet measures against.
+    const frame = document.createElement('div')
+
+    document.body.append(frame)
+    setFrame(frame)
+    frame.remove()
+
+    expect(frameElement()).toBeNull()
   })
 })

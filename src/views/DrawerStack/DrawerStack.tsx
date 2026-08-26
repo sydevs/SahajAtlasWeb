@@ -25,7 +25,7 @@ import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
-import { expandedDialog, overlayContainer } from '@/lib/overlay'
+import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   atlasDepth,
@@ -249,12 +249,17 @@ export function DrawerStack() {
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less
-  // layout root below — the box the host sized — and is null in map mode, where the widget
-  // spans the viewport and `useIsWide` falls back to it. So a 320px column embed on a
-  // desktop gets the bottom sheet, its drag handle and its swipe-dismiss, while a full-page
-  // embed behaves exactly as it did. Shared with the subtree via `WidgetWidthContext` at
-  // the foot of this component, so no descendant can disagree with the drawer it is inside.
-  const isWide = useIsWide(container)
+  // layout root below — the box the host sized. In map mode there is no such element, and
+  // until #169 there was nothing to measure at all: the widget spanned the viewport, so
+  // `useIsWide` fell back to it. Now map mode can have a FRAME — a contained embed's own box,
+  // or the compact card's expanded dialog — and where one exists it is the honest answer to
+  // "does a 22rem side panel leave usable space beside it?", because the panel is inside it.
+  // With no frame this is `useIsWide(null)`, which is exactly what it always computed. So a
+  // 320px column embed on a desktop gets the bottom sheet, its drag handle and its
+  // swipe-dismiss, and a 600px contained map now does too. Shared with the subtree via
+  // `WidgetWidthContext` at the foot of this component, so no descendant can disagree with
+  // the drawer it is inside.
+  const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
@@ -393,17 +398,19 @@ export function DrawerStack() {
       } else {
         // Measured against the box the fixed layer resolves against, not the viewport.
         // `getBoundingClientRect().top` is a VIEWPORT coordinate, and it is consumed as `top:`
-        // on fixed peek strips and `bottom:` on the sticky Register bar — both of which the
-        // expanded dialog contains (`contain: layout`). Left raw, every one of them sat 16–32px
-        // out inside the dialog, by exactly the margin. Zero offset everywhere else, so this is
-        // the same number it always was outside a dialog.
+        // on fixed peek strips and `bottom:` on the sticky Register bar — both of which a frame
+        // contains (`contain: layout`). Left raw, every one of them sat 16–32px out inside the
+        // expanded dialog, by exactly its margin; contained on a host's page (#169) the error
+        // is however far down their page the element sits, which is unbounded. Zero offset
+        // with no frame, so this is the same number it always was.
         // Read from the node the overlay module already tracks, NOT
-        // `document.querySelector('[data-sy-expanded]')`: that searches the host's whole
+        // `document.querySelector('[data-sy-frame]')`: that searches the host's whole
         // document, so an element of theirs carrying the attribute would win on document order
         // and offset every strip by its box. Its RECT is still read per frame — the dialog's
-        // inset changes at the `sm:` crossing — but the lookup is a module read, not a query.
+        // inset changes at the `sm:` crossing, and a contained frame moves with the host's own
+        // scrolling — but the lookup is a module read, not a query.
         const top =
-          sheet.getBoundingClientRect().top - (expandedDialog()?.getBoundingClientRect().top ?? 0)
+          sheet.getBoundingClientRect().top - (frameElement()?.getBoundingClientRect().top ?? 0)
 
         if (top === last) {
           still += 1
@@ -739,10 +746,10 @@ export function DrawerStack() {
           // to the (absent) handle makes it undraggable — dismiss is the close button
           // only. The mobile bottom sheet keeps its full-panel snap-drag.
           handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the expanded dialog, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is the
-          // `display: contents` theme root and measures 0×0. See the note in `Drawer.tsx`.
-          measureAgainst={expandedDialog()}
+          // The box vaul measures snap points against — the frame, or the window. Deliberately
+          // NOT `target`: that is the portal target, which embedded is the `display: contents`
+          // theme root and measures 0×0. See the note in `Drawer.tsx`.
+          measureAgainst={frameElement()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
           snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
           wide={wide}

@@ -289,6 +289,7 @@ function Atlas({ prefix }: { prefix?: string }) {
   }
 
   const compact = slot.current.compact
+  const contained = slot.current.contained
   const slotWarning = slot.current.warning
 
   // Reported from an effect rather than from the decision above, exactly like the routing
@@ -323,6 +324,7 @@ function Atlas({ prefix }: { prefix?: string }) {
       <App
         apiKey={config.key ?? ''}
         compact={compact}
+        contained={contained}
         defaultLocale={config.locale}
         hasMap={hasMap}
         linkable={linkable}

@@ -113,6 +113,11 @@ type AppProps = {
   // Render the Mapbox canvas (default true). map=false omits the whole map subtree.
   hasMap?: boolean
   /**
+   * Map mode lives inside the host's element rather than filling the window (issue #169) —
+   * decided by the same single measurement as `compact`, and never true at the same time.
+   */
+  contained?: boolean
+  /**
    * Render the compact card instead of the interface, and everything that decision carried
    * with it — decided once at mount by the entry that can measure the slot (#161).
    *
@@ -142,6 +147,7 @@ export default function App({
   themeRootRef,
   standalone = false,
   hasMap = true,
+  contained = false,
   compact = null,
   linkable = true,
   routing = 'query',
@@ -185,6 +191,7 @@ export default function App({
               <AppShell
                 apiKey={apiKey}
                 compact={compact}
+                contained={contained}
                 defaultLocale={defaultLocale}
                 hasMap={hasMap}
                 linkable={linkable}
@@ -229,6 +236,7 @@ type AppShellProps = {
   defaultLocale?: string | null
   standalone: boolean
   hasMap: boolean
+  contained: boolean
   compact: CompactState | null
   linkable: boolean
   routing: RoutingMode
@@ -240,6 +248,7 @@ function AppShell({
   defaultLocale,
   standalone,
   hasMap,
+  contained,
   compact,
   linkable,
   routing,
@@ -306,7 +315,12 @@ function AppShell({
   // with a loading panel instead of showing one where the interface is about to appear.
   const interfaceElement = (
     <Suspense fallback={<LoadingFallback />}>
-      <FullInterface hasMap={hasMap} homePath={homePath} primaryDomain={primaryDomain} />
+      <FullInterface
+        contained={contained}
+        hasMap={hasMap}
+        homePath={homePath}
+        primaryDomain={primaryDomain}
+      />
     </Suspense>
   )
 

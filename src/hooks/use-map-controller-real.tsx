@@ -8,9 +8,10 @@ import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useViewState } from '@/config/store'
-import { useIsWideViewport } from '@/config/responsive'
+import { useIsWide } from '@/config/responsive'
 import { eventFrameZoom } from '@/lib/camera'
 import { isOnline } from '@/lib/shape'
+import { frameElement } from '@/lib/overlay'
 
 // The fixed left-drawer footprint and the mobile peek height, fed to map padding
 // directly — so the camera/controls aren't occluded, without ever DOM-measuring the panel.
@@ -74,17 +75,22 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   const setSelection = useViewState((s) => s.setSelection)
   const setHover = useViewState((s) => s.setHover)
   const setBoundary = useViewState((s) => s.setBoundary)
-  // The VIEWPORT, deliberately, while everything else moved to the widget's own width
-  // (issue #107) — and the two agree by construction rather than by luck. This provider
-  // only ever runs where a map exists, and a map exists only in map mode, where the widget
-  // spans the viewport: the canvas is `position: fixed; inset: 0` and the drawer occluding
-  // it is fixed too. There is no container here to measure that would answer differently.
+  // The box the map actually occupies — the frame when a contained embed or the compact
+  // card's expanded dialog has taken the containing block (issue #169), and the viewport
+  // otherwise, which is what this computed before frames existed.
   //
-  // It is also structurally out of reach of the measured signal: `WidgetWidthContext` is
-  // provided by DrawerStack, which this provider RENDERS. Reading the same named threshold
-  // (`WIDE_MIN_PX`, via `useIsWideViewport`) is what keeps the padding on the same crossing
-  // as the panel it is padding around.
-  const isWide = useIsWideViewport()
+  // **It has to be the same box `DrawerStack` measures, because this pads the camera around
+  // the panel that box decides.** Until #169 the viewport was that box by construction —
+  // map mode spanned it — so reading `useIsWideViewport` agreed by luck of the crossing
+  // being shared. A contained 600px map breaks that: the drawer becomes a bottom sheet
+  // while a viewport read still reserves 22rem of camera on the left for a panel that is
+  // not there.
+  //
+  // It cannot read `WidgetWidthContext` instead: that is provided by `DrawerStack`, which
+  // this provider RENDERS. `frameElement()` is the shared node rather than a shared context,
+  // which is why both can reach it — and why `MapFrame` publishes it in the layout phase,
+  // before either of us first renders.
+  const isWide = useIsWide(frameElement())
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {

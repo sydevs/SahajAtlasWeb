@@ -69,6 +69,7 @@ describe('decideSlot — the whole decision', () => {
 
     expect(decideSlot({ element: elementOf(800, 700), hasMap: false, fromPage: false })).toEqual({
       compact: null,
+      contained: false,
       warning: null,
     })
   })
@@ -97,6 +98,66 @@ describe('decideSlot — the whole decision', () => {
     expect(compact).toMatchObject({ action: { kind: 'overlay' } })
     // The two reasons earn opposite advice; this one must not tell them to resize the element.
     expect(warning).toContain('map=false')
+  })
+
+  describe('a contained map (#169) — the host gave the element a height', () => {
+    it("lives in the host's page instead of becoming a card", () => {
+      // The reversal this ticket is for. Before it, an explicit height was the clearest
+      // evidence a map embed did not own the page, so `decideSlot` answered with a card.
+      setWindow({ inner: [1440, 900] })
+
+      expect(decideSlot({ element: elementOf(1000, 640), hasMap: true, fromPage: false })).toEqual({
+        compact: null,
+        contained: true,
+        warning: null,
+      })
+    })
+
+    // ⚠ The invariant `MapFrame` and `CompactEmbedView` both depend on: they are the same
+    // slot's two answers, and a host CAN size a map embed into a box no interface fits — so
+    // this is reconciled rather than assumed. Both true would render a card that had already
+    // taken the containing block, and `frameElement()` would then hand vaul a box with no
+    // drawer in it.
+    it('never reports contained and compact together', () => {
+      setWindow({ inner: [1440, 900] })
+
+      const decision = decideSlot({ element: elementOf(300, 200), hasMap: true, fromPage: false })
+
+      expect(decision.contained).toBe(false)
+      expect(decision.compact).toMatchObject({ action: { kind: 'overlay' } })
+      // Below the floors, so the advice is "give the element more room" — not the map-mode
+      // sentence, which would tell this host to take the height back off again.
+      expect(decision.warning).toContain('360×420')
+    })
+
+    it('stays UNcontained when the host gave no height', () => {
+      // The default map embed: everything below the `display: contents` root is fixed, so the
+      // element measures zero and the width comes from the host's column. Bit-for-bit the
+      // behaviour that shipped in #161.
+      setWindow({ inner: [1440, 900] })
+
+      const decision = decideSlot({ element: elementOf(0, 0, 768), hasMap: true, fromPage: false })
+
+      expect(decision.contained).toBe(false)
+      expect(decision.compact).toMatchObject({ action: { kind: 'overlay' } })
+    })
+
+    it('is never contained without a map to contain', () => {
+      // `map=false` is container-relative already and has no fixed layer to re-parent, so a
+      // frame there would be a stacking context bought for nothing.
+      setWindow({ inner: [1440, 900] })
+
+      expect(
+        decideSlot({ element: elementOf(800, 700), hasMap: false, fromPage: false }).contained,
+      ).toBe(false)
+    })
+
+    it('is never contained with no element — the standalone build', () => {
+      // Its slot IS the viewport, so containing it would mean containing it in itself.
+      setWindow({ inner: [1440, 900] })
+
+      expect(decideSlot({ element: null, hasMap: true, fromPage: false }).contained).toBe(false)
+    })
   })
 
   it('opens on mount for a page route, and never for a configured one', () => {
@@ -187,6 +248,7 @@ describe('decideSlot — the whole decision', () => {
 
     expect(decideSlot({ element, hasMap: false, fromPage: false })).toEqual({
       compact: null,
+      contained: false,
       warning: null,
     })
   })

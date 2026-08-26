@@ -45,8 +45,6 @@ const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
 const VIEWPORT_CALLERS: Record<string, string> = {
   'config/responsive.ts':
     'defines the hooks, and is the fallback inside `useIsWide` for the case where there is nothing to measure',
-  'hooks/use-map-controller-real.tsx':
-    'map camera padding. A map only exists in map mode, and in map mode the widget spans the viewport',
   'components/atoms/Drawer/Drawer.stories.tsx':
     'a Ladle story is the whole page, so the viewport genuinely is its container',
 }
@@ -54,13 +52,24 @@ const VIEWPORT_CALLERS: Record<string, string> = {
 /**
  * The call sites that read the measured signal.
  *
- * **Only the first changes behaviour today**, and the distinction is worth keeping straight:
- * `DrawerStack`'s direction is the fix — a narrow map-less embed becomes a bottom sheet.
- * `EventView`'s sticky bar is gated on `hasMap`, and map mode has no container to measure,
- * so that line computes exactly what it did before. It reads the measured signal so it
- * cannot disagree with the drawer it pins inside, not because it gained a new answer.
+ * `DrawerStack`'s direction is the original fix (#107) — a narrow map-less embed becomes a
+ * bottom sheet. `EventView`'s sticky bar reads the same signal so it cannot disagree with the
+ * drawer it pins inside.
+ *
+ * **The map camera padding joined them in #169**, and that is the entry worth understanding.
+ * It was the ONE sanctioned viewport read in the app, on an argument that was true when it was
+ * written: a map only existed in map mode, and map mode spanned the viewport, so the two boxes
+ * were the same box and reading either kept the padding on the same crossing as the panel it
+ * pads around. Containment breaks that equality — a 600px contained map gets the bottom sheet
+ * while a viewport read still reserves 22rem of camera for a panel that is not there. It cannot
+ * take `WidgetWidthContext` (it RENDERS the provider), so both now measure `frameElement()`,
+ * which is `null` — and therefore the viewport — wherever no frame exists.
  */
-const CONTAINER_CALLERS = ['views/DrawerStack/DrawerStack.tsx', 'views/EventView/EventView.tsx']
+const CONTAINER_CALLERS = [
+  'views/DrawerStack/DrawerStack.tsx',
+  'views/EventView/EventView.tsx',
+  'hooks/use-map-controller-real.tsx',
+]
 
 // `useIsDesktop` is gone. Named here so a revert — or a copy-paste from an older branch —
 // is a red lane rather than a quiet return to viewport-derived behaviour.

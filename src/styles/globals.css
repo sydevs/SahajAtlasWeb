@@ -101,14 +101,15 @@
    Tailwind utility — a component that sets its own `text-*` or `font-*` keeps winning. */
 .sy-atlas {
   /* The height of the box the widget's FIXED layer resolves against — the viewport normally,
-     the dialog when a compact embed is expanded.
+     a frame when one has taken the containing block.
 
      Every drawer, peek strip and sheet is `position: fixed`, so `100dvh` is correct only while
-     nothing has taken the containing block. `CompactEmbedView`'s dialog does exactly that, with
-     `contain: layout`, and keeps a margin — so inside it `100dvh` overshoots by 16–32px and the
-     sheet, its peek strips and the sticky Register bar all overrun the clip edge. `100%` on a
-     fixed child resolves against its containing block, which is the dialog there and the
-     viewport everywhere else, so one token is right in both places. */
+     nothing has taken that block. Two elements deliberately do, both with `contain: layout`:
+     `CompactEmbedView`'s dialog, which keeps a margin — so inside it `100dvh` overshoots by
+     16–32px and the sheet, its peek strips and the sticky Register bar all overrun the clip
+     edge — and `MapFrame` (#169), which is however tall the host made their element. `100%` on
+     a fixed child resolves against its containing block, which is the frame there and the
+     viewport everywhere else, so one token is right in all three places. */
   --sy-frame-h: 100dvh;
   color: hsl(var(--foreground));
   font-family: var(--sy-font-sans, 'Atlas Raleway', ui-sans-serif, system-ui, sans-serif);
@@ -422,8 +423,10 @@
   animation: none;
 }
 
-/* Inside the dialog the fixed layer is contained by it, so the frame IS the container. */
-[data-sy-expanded] {
+/* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill. Carried by
+   `CompactEmbedView`'s expanded dialog and by `MapFrame`; see `lib/overlay.ts` for why there is
+   only ever one. `data-sy-expanded` below is the narrower, dialog-only marker. */
+[data-sy-frame] {
   --sy-frame-h: 100%;
 }
 

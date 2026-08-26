@@ -14,7 +14,7 @@
 
 import type { Box, Destination } from './embed-slot'
 
-import { COMPACT_MESSAGE, embedLayout, resolveDestination } from './embed-slot'
+import { COMPACT_MESSAGE, embedLayout, mapIsContained, resolveDestination } from './embed-slot'
 import { fallbackUrl } from './fallback-url'
 
 /**
@@ -70,11 +70,21 @@ export type SlotInput = {
 export type SlotDecision = {
   /** `null` when the interface fits — the overwhelmingly common answer. */
   compact: CompactState | null
+  /**
+   * Map mode lives inside the host's element rather than filling the window (issue #169).
+   *
+   * ⚠ **Never true alongside `compact`.** A host CAN size a map embed into a box too small for
+   * any interface, and that is still a card — so the two answers are capable of fighting, which
+   * is the class of bug this module exists as one function to prevent. They are reconciled in
+   * exactly one place, the return below, and `slot-decision.test.ts` asserts the invariant
+   * rather than trusting it.
+   */
+  contained: boolean
   /** The one sentence the host's console gets, or `null`. */
   warning: string | null
 }
 
-const FULL: SlotDecision = { compact: null, warning: null }
+const FULL: SlotDecision = { compact: null, contained: false, warning: null }
 
 /**
  * Are we inside a frame?
@@ -153,10 +163,14 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
         }
       : viewport
 
-    const destination = resolveDestination(slot, viewport, newTabBox(), framed())
-    const { layout, reason } = embedLayout({ hasMap, slot, destination })
+    // ⚠ The ELEMENT's own box, not the composed `slot` above — a fallback to the host's column
+    // width is evidence about the page, not a height they gave us. See `mapIsContained`.
+    const contained = mapIsContained(hasMap, box ? { width: box.width, height: box.height } : null)
 
-    if (layout === 'full') return FULL
+    const destination = resolveDestination(slot, viewport, newTabBox(), framed())
+    const { layout, reason } = embedLayout({ hasMap, contained, slot, destination })
+
+    if (layout !== 'compact') return { compact: null, contained, warning: null }
 
     return {
       compact: compactState({
@@ -164,6 +178,7 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
         href: fallbackUrl(),
         fromPage,
       }),
+      contained: false,
       warning: reason ? COMPACT_MESSAGE[reason] : null,
     }
   } catch {

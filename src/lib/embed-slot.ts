@@ -13,6 +13,11 @@
  * is cramped inside a 1440px page and is simply *the screen* on a phone. So we compare the
  * space we have against the space the button would take the visitor to, and if there is no
  * bigger space, there is nothing to offer and we render the interface as-is.
+ *
+ * **There is a third answer since #169, and it is upstream of that whole comparison.** A map
+ * embed whose host gave the element a box of its own is *contained* — it lives in their page
+ * rather than filling the window — and containment changes what the questions below mean rather
+ * than merely their answers. See `mapIsContained`.
  */
 
 /**
@@ -33,6 +38,11 @@
  * card. 0.9 keeps a live false positive: a normally padded phone layout degrades a map-less
  * embed that is working perfectly well. 0.8 is exactly the old `BOXED_SLOT_RATIO`, so that
  * boundary is preserved to the pixel.
+ *
+ * ⚠ The third row is **stale as a map-mode case since #169**: a host who wrote `height: 640px`
+ * has sized the element, so that embed is contained and never reaches this ratio at all. It is
+ * kept because the calibration argument is what the constant is answerable to, and the row is
+ * still live for `map=false`.
  *
  * ⚠ Ratchet in BOTH directions (`embed-slot.test.ts`). Raising it degrades more embeds;
  * lowering it re-silences the map-mode takeover.
@@ -69,7 +79,7 @@ export type Destination = { kind: 'overlay' } | { kind: 'link' } | { kind: 'none
 /** Why the widget went compact — each reason earns a different sentence in the host's console. */
 export type CompactReason = 'floors' | 'map'
 
-type EmbedLayout = 'full' | 'compact'
+type EmbedLayout = 'full' | 'contained' | 'compact'
 
 /**
  * Is `bigger` meaningfully bigger than `box`, on either axis?
@@ -87,6 +97,27 @@ function meaningfullyBigger(box: Box, bigger: Box): boolean {
   const taller = box.height > 0 && bigger.height > 0 && box.height < bigger.height * SLOT_GAIN
 
   return wider || taller
+}
+
+/**
+ * Does map mode live inside the host's element rather than filling the window? (issue #169)
+ *
+ * **The signal is that the host gave the element a box, and nothing else.** Map mode renders
+ * everything `position: fixed`, so `<sahaj-atlas>` measures zero height on its own — an
+ * unstyled custom element is an inline box with no in-flow content. A height therefore cannot
+ * appear by accident: it is a rule the host wrote, and it is the same rule `map=false` has
+ * always asked for. That makes sizing the element the opt-in, which is what stops "contained
+ * map" and "compact card" both firing on one embed — a contained map is container-relative, so
+ * it asks the floors question and never the viewport-ownership one.
+ *
+ * ⚠ **The box must be the ELEMENT's own, not the slot `decideSlot` composes.** That one falls
+ * back to the host's column width when our element has none, which is right for judging the
+ * space available and wrong here: a column is evidence about the page, not consent to contain.
+ * `null` is "there is no element" — the standalone build — where the viewport is the slot and
+ * containing it would mean containing it in itself.
+ */
+export function mapIsContained(hasMap: boolean, elementBox: Box | null): boolean {
+  return hasMap && !!elementBox && elementBox.height > 0
 }
 
 /** Is either measured axis below the floor the interface needs? */
@@ -137,29 +168,47 @@ export function resolveDestination(
  * Which layout this slot gets, and why.
  *
  * The reason is not decoration — the two compact cases earn genuinely different advice. A slot
- * under the floors wants more room; a map embed that does not own its viewport wants
- * `map="false"` or a full-page slot, and telling that host to "give the element more room"
+ * under the floors wants more room; a map embed that does not own its viewport wants a height,
+ * a full-page slot or `map="false"`, and telling that host to "give the element more room"
  * would point them at the opposite of the fix.
+ *
+ * **`contained` changes which question is asked, not just the answer** (issue #169). An unboxed
+ * map embed fills the window whatever slot it was given, so for it the whole question is
+ * whether it owns one. A contained map has taken the containing block and is
+ * container-relative, exactly like `map=false` — so it drops out of that rule entirely and asks
+ * only what every boxed embed asks: is there room for the interface at all?
  */
-export function embedLayout(input: { hasMap: boolean; slot: Box; destination: Destination }): {
+export function embedLayout(input: {
+  hasMap: boolean
+  contained: boolean
+  slot: Box
+  destination: Destination
+}): {
   layout: EmbedLayout
   reason?: CompactReason
 } {
-  const { hasMap, slot, destination } = input
+  const { hasMap, contained, slot, destination } = input
+  // Where "the interface fits" lands. Containment is a property of the embed rather than a
+  // verdict on the space, so it survives every branch that does not degrade.
+  const fits: EmbedLayout = contained ? 'contained' : 'full'
 
   // Nowhere bigger to go. Degrading here would take the interface away and offer nothing back.
-  if (destination.kind === 'none') return { layout: 'full' }
+  if (destination.kind === 'none') return { layout: fits }
 
-  // Map mode requires owning the viewport — a documented requirement rather than a bug (see
-  // `.claude/rules/components.md`). An overlay destination means precisely that it does not,
-  // so the card is the honest answer where the old code warned and then painted over the page.
-  if (hasMap && destination.kind === 'overlay') return { layout: 'compact', reason: 'map' }
+  // An UNBOXED map embed requires owning the viewport — a documented requirement rather than a
+  // bug (see `.claude/rules/components.md`). An overlay destination means precisely that it
+  // does not, so the card is the honest answer where the old code warned and then painted over
+  // the page.
+  if (hasMap && !contained && destination.kind === 'overlay') {
+    return { layout: 'compact', reason: 'map' }
+  }
 
-  // A map-less embed is container-relative throughout (#107) and is perfectly happy in a box,
-  // so it needs the absolute floor as well as somewhere to go.
+  // A map-less embed is container-relative throughout (#107) and a contained map now is too,
+  // so both are perfectly happy in a box and both need the absolute floor as well as somewhere
+  // to go.
   if (belowFloors(slot)) return { layout: 'compact', reason: 'floors' }
 
-  return { layout: 'full' }
+  return { layout: fits }
 }
 
 /** The sentence each reason earns. Kept beside the predicate so the numbers cannot drift. */
@@ -169,7 +218,8 @@ export const COMPACT_MESSAGE: Record<CompactReason, string> = {
     'full interface needs, so it is showing a compact card that opens the whole thing instead. ' +
     'Give the element more room to keep the full interface.',
   map:
-    'this map embed does not have the page to itself, and map mode always fills the whole ' +
-    'viewport — so it is showing a compact card that opens the map instead of painting over ' +
-    'your page. Give it a full-page slot, or use map=false for an embed that stays in its box.',
+    'this map embed does not have the page to itself, and a map embed with no height of its ' +
+    'own fills the whole viewport — so it is showing a compact card that opens the map instead ' +
+    'of painting over your page. Give the element a height to keep the map inside it, give it ' +
+    'a full-page slot, or use map=false for an embed with no map at all.',
 }
