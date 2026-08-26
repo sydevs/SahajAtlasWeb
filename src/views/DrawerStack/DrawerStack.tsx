@@ -25,7 +25,7 @@ import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
 import { useCalendarPosition } from '@/config/store'
-import { expandedDialog, overlayContainer } from '@/lib/overlay'
+import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
   atlasDepth,
@@ -191,8 +191,13 @@ function PeekStrip({
     // rounded at ≥lg — geometry lives in these classes, not inline styles.
     // Width is the paired `22rem` — twin is `DRAWER_W_REM` in
     // `hooks/use-map-controller.tsx`; see the Drawer atom for why.
+    // ⚠ `max-w-[calc(100%-2rem)]`, not `100vw`: these panels are `position: fixed`, so inside a
+    // frame (#169) a viewport unit describes a box they are not in. A percentage resolves
+    // against the containing block — the frame where there is one, the viewport where there is
+    // not. Inert either way at present (the anchored panel only renders at >=768px, where
+    // `22rem` always fits), which is exactly why it is worth correcting before it is not.
     className =
-      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -249,12 +254,17 @@ export function DrawerStack() {
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less
-  // layout root below — the box the host sized — and is null in map mode, where the widget
-  // spans the viewport and `useIsWide` falls back to it. So a 320px column embed on a
-  // desktop gets the bottom sheet, its drag handle and its swipe-dismiss, while a full-page
-  // embed behaves exactly as it did. Shared with the subtree via `WidgetWidthContext` at
-  // the foot of this component, so no descendant can disagree with the drawer it is inside.
-  const isWide = useIsWide(container)
+  // layout root below — the box the host sized. In map mode there is no such element, and
+  // until #169 there was nothing to measure at all: the widget spanned the viewport, so
+  // `useIsWide` fell back to it. Now map mode can have a FRAME — a contained embed's own box,
+  // or the compact card's expanded dialog — and where one exists it is the honest answer to
+  // "does a 22rem side panel leave usable space beside it?", because the panel is inside it.
+  // With no frame this is `useIsWide(null)`, which is exactly what it always computed. So a
+  // 320px column embed on a desktop gets the bottom sheet, its drag handle and its
+  // swipe-dismiss, and a 600px contained map now does too. Shared with the subtree via
+  // `WidgetWidthContext` at the foot of this component, so no descendant can disagree with
+  // the drawer it is inside.
+  const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   const stripsRef = useRef<HTMLDivElement>(null)
@@ -377,13 +387,21 @@ export function DrawerStack() {
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
     // re-query the DOM every frame. `isConnected` is what makes caching safe now that the
     // effect no longer re-runs per depth change: two elements carry `[data-vaul-drawer]`
-    // (the main sheet and the filter overlay) and both portal to `document.body`, so a
-    // resize across the md breakpoint can leave this holding the overlay — and once that
-    // closes, a detached node measures `top: 0` and would write `--sy-sheet-top: 0px` onto
-    // the LIVE strips, pinning every peek to the top of the viewport.
+    // (the main sheet and the filter overlay), so a resize across the md breakpoint can leave
+    // this holding the overlay — and once that closes, a detached node measures `top: 0` and
+    // would write `--sy-sheet-top: 0px` onto the LIVE strips, pinning every peek to the top.
+    //
+    // ⚠ **Scoped to our own portal target, not `document`.** Both drawers portal through
+    // `overlayContainer()` — the frame, or the theme root — never `document.body`, whatever an
+    // older comment here claimed. A document-wide query reaches the HOST's DOM, and vaul is a
+    // common shadcn dependency: a drawer of theirs earlier in document order would win, and we
+    // would then write an inline `--sy-sheet-top` onto a host node every frame while our own
+    // strips took their offset from somebody else's box.
     let sheet: HTMLElement | null = null
     const tick = () => {
-      if (!sheet?.isConnected) sheet = document.querySelector<HTMLElement>('[data-vaul-drawer]')
+      if (!sheet?.isConnected) {
+        sheet = (overlayContainer() ?? document).querySelector<HTMLElement>('[data-vaul-drawer]')
+      }
       const el = stripsRef.current
 
       // No sheet is still a settled frame: counting it as movement would re-arm the loop
@@ -393,19 +411,35 @@ export function DrawerStack() {
       } else {
         // Measured against the box the fixed layer resolves against, not the viewport.
         // `getBoundingClientRect().top` is a VIEWPORT coordinate, and it is consumed as `top:`
-        // on fixed peek strips and `bottom:` on the sticky Register bar — both of which the
-        // expanded dialog contains (`contain: layout`). Left raw, every one of them sat 16–32px
-        // out inside the dialog, by exactly the margin. Zero offset everywhere else, so this is
-        // the same number it always was outside a dialog.
+        // on fixed peek strips and `bottom:` on the sticky Register bar — both of which a frame
+        // contains (`contain: layout`). Left raw, every one of them sat 16–32px out inside the
+        // expanded dialog, by exactly its margin; contained on a host's page (#169) the error
+        // is however far down their page the element sits, which is unbounded. Zero offset
+        // with no frame, so this is the same number it always was.
         // Read from the node the overlay module already tracks, NOT
-        // `document.querySelector('[data-sy-expanded]')`: that searches the host's whole
+        // `document.querySelector('[data-sy-frame]')`: that searches the host's whole
         // document, so an element of theirs carrying the attribute would win on document order
         // and offset every strip by its box. Its RECT is still read per frame — the dialog's
-        // inset changes at the `sm:` crossing — but the lookup is a module read, not a query.
-        const top =
-          sheet.getBoundingClientRect().top - (expandedDialog()?.getBoundingClientRect().top ?? 0)
+        // inset changes at the `sm:` crossing, and a contained frame moves with the host's own
+        // scrolling — but the lookup is a module read, not a query.
+        // ⚠ Guarded, like `decideSlot`'s read and for the same reason: hosts patch
+        // `getBoundingClientRect` (consent wrappers, anti-fingerprinting extensions). A THROW
+        // here would kill the loop permanently — the `raf =` reassignment below never runs — and
+        // then re-throw into the host's `window.onerror` on every wake event. A `NaN` is worse
+        // than it looks: `top === last` is never true, so `still` resets every frame and the
+        // loop never parks, spending a forced layout flush per frame on somebody else's page.
+        let top = Number.NaN
 
-        if (top === last) {
+        try {
+          top =
+            sheet.getBoundingClientRect().top - (frameElement()?.getBoundingClientRect().top ?? 0)
+        } catch {
+          top = Number.NaN
+        }
+
+        if (!Number.isFinite(top)) {
+          still += 1
+        } else if (top === last) {
           still += 1
         } else {
           still = 0
@@ -723,7 +757,22 @@ export function DrawerStack() {
                 Both `22rem` fallbacks below are the drawer-width pair — twin is
                 `DRAWER_W_REM` in `hooks/use-map-controller.tsx`. */}
               {!wide && (
-                <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
+                <SettingsMenu
+                  className={clsx(
+                    'fixed top-3 z-40',
+                    // ⚠ **`isWide`, not a `md:` variant, and that is the #169 correction.** This
+                    // clears the LEFT PANEL, so it has to agree with whatever decided there is
+                    // one — and that is now the frame's width, not the viewport's. A 600px
+                    // contained map on a desktop gets the bottom sheet, and a viewport variant
+                    // would still push the cog 384px right for a panel that is not there; at a
+                    // 400px frame it lands past the edge, where the frame's `overflow-hidden`
+                    // clips it away entirely. Outside a frame `isWide` IS the viewport's answer,
+                    // so this is the same offset it always was.
+                    isWide
+                      ? 'start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4'
+                      : 'start-3',
+                  )}
+                />
               )}
             </>,
             target,
@@ -739,10 +788,10 @@ export function DrawerStack() {
           // to the (absent) handle makes it undraggable — dismiss is the close button
           // only. The mobile bottom sheet keeps its full-panel snap-drag.
           handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the expanded dialog, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is the
-          // `display: contents` theme root and measures 0×0. See the note in `Drawer.tsx`.
-          measureAgainst={expandedDialog()}
+          // The box vaul measures snap points against — the frame, or the window. Deliberately
+          // NOT `target`: that is the portal target, which embedded is the `display: contents`
+          // theme root and measures 0×0. See the note in `Drawer.tsx`.
+          measureAgainst={frameElement()}
           setActiveSnapPoint={direction === 'bottom' ? setSnap : undefined}
           snapPoints={direction === 'bottom' ? SNAP_POINTS : undefined}
           wide={wide}

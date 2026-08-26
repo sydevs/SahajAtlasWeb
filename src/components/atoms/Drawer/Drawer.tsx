@@ -68,11 +68,11 @@ const drawer = tv({
       // and nothing anywhere fails to tell you.
       left: {
         content:
-          'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
       },
       right: {
         content:
-          'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
+          'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
       // Snap-point sheets must be full viewport height: vaul computes its snap
       // translate from the window height, so a content-sized sheet gets pushed
@@ -80,7 +80,7 @@ const drawer = tv({
       // 0.97 top snap (the last 3% is hidden); `full` cancels it for map-less.
       bottom: {
         content:
-          'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[3dvh]',
+          'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[calc(var(--sy-frame-h)*0.03)]',
       },
       top: {
         content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
@@ -208,7 +208,9 @@ export function Drawer({
     // translates UP off the bottom and covers the top of the screen. That is the default phone
     // experience of a map embed, and lint, typecheck and all 1263 unit specs stay green through it.
     //
-    // So the measurement box is its own prop, and only the expanded dialog ever supplies one.
+    // So the measurement box is its own prop. `DrawerStack` supplies `frameElement()` — the
+    // compact card's expanded dialog, or a contained map's `MapFrame` (#169) — and `undefined`
+    // wherever there is no frame, which is where vaul's own `window.innerHeight` is correct.
     container: measureAgainst ?? undefined,
     direction,
     dismissible,

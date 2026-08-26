@@ -2,10 +2,10 @@
 
 Two lanes, kept separate so the fast one never touches the network:
 
-| Lane      | Config                    | Command                  | Runs                                   |
-| --------- | ------------------------- | ------------------------ | -------------------------------------- |
-| **Unit**  | `vitest.config.ts`        | `pnpm test` / `test:run` | Co-located `src/**/*.test.ts(x)`, node |
-| **Smoke** | `vitest.smoke.config.ts`  | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs CF preview  |
+| Lane      | Config                   | Command                  | Runs                                   |
+| --------- | ------------------------ | ------------------------ | -------------------------------------- |
+| **Unit**  | `vitest.config.ts`       | `pnpm test` / `test:run` | Co-located `src/**/*.test.ts(x)`, node |
+| **Smoke** | `vitest.smoke.config.ts` | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs CF preview  |
 
 - `pnpm test` — watch (inner loop). `pnpm test:run` — one-shot (CI + the pre-PR
   gate + the PostToolUse hook). `pnpm test:smoke` — needs `PREVIEW_URL`; skips
@@ -39,7 +39,7 @@ Two lanes, kept separate so the fast one never touches the network:
   it is and whose build it serves are different questions. So discovery **ranks
   candidates by provenance** instead of taking the first match: the deployment
   named by our own check run for the head SHA wins (that run's `details_url` ends
-  in the deployment UUID, whose first 8 characters *are* the alias — an unbroken
+  in the deployment UUID, whose first 8 characters _are_ the alias — an unbroken
   chain from commit to host), then a deploy-shaped URL from a per-SHA source, then
   one from a Cloudflare comment naming the head, then a branch alias; a comment
   naming some **other** commit is refused outright, and so is the bare project
@@ -61,12 +61,12 @@ fault red is — and "no preview" is not one thing.
 `scripts/get-cloudflare-preview-url.mjs` therefore emits a second output beside
 `preview_url`: **`preview_status`**, which ci.yml branches its message on.
 
-| status | what it saw | what it tells the reader |
-| --- | --- | --- |
-| `pending` / `unreachable` | a deploy demonstrably exists; we stopped waiting | **re-run** |
-| `failed` | our project's run finished and did NOT succeed | **read the Cloudflare log** — re-running fails identically |
-| `absent` | no Cloudflare signal of any kind for the SHA | **investigate** — the deploy never happened |
-| `error` | discovery itself broke (missing env, a throw) | read the discovery step |
+| status                    | what it saw                                      | what it tells the reader                                   |
+| ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| `pending` / `unreachable` | a deploy demonstrably exists; we stopped waiting | **re-run**                                                 |
+| `failed`                  | our project's run finished and did NOT succeed   | **read the Cloudflare log** — re-running fails identically |
+| `absent`                  | no Cloudflare signal of any kind for the SHA     | **investigate** — the deploy never happened                |
+| `error`                   | discovery itself broke (missing env, a throw)    | read the discovery step                                    |
 
 All of them still fail a same-repo PR, and an **unrecognised** status takes the
 loud branch on purpose. The step summary carries the elapsed wait and the last
@@ -85,29 +85,29 @@ Two findings behind that script, so they aren't re-derived:
 - **A "Cloudflare is building" state IS observable — and a retrospective API
   query will tell you it isn't.** The check run carries `status: in_progress` for
   the whole build (watch the discovery step's log on any PR). But Cloudflare sets
-  `started_at` when it *completes* the run, so a finished run always reads
+  `started_at` when it _completes_ the run, so a finished run always reads
   `started_at == completed_at` — and sampling historical commits, which is what
   #124's evidence and a 230-run sweep of this repo both did, cannot see the
   in-progress window at all and concludes it never existed. **#132 was written on
   that wrong answer, and it survived a full review pass; only the live CI run
   caught it.** If you are asking "what does this integration publish while it
   works?", watch a live build — a query over completed objects cannot answer it.
-  (The check *suite* is genuinely useless: GitHub pre-creates one per installed
+  (The check _suite_ is genuinely useless: GitHub pre-creates one per installed
   app on every push, so Cloudflare's is indistinguishable from the vercel /
   railway / sentry suites of apps that post nothing.)
   The deadline is nonetheless **flat**, and that choice outlived the correction:
   it is justified in the script's header against 86 measured builds
   (p50 99s · p95 373s · max 453s) and clears the slowest by ~1.3×, so extending
   adaptively would only change cases a long-enough deadline already covers. The
-  6-minute deadline it replaced sat *below* the 95th percentile, which is how
+  6-minute deadline it replaced sat _below_ the 95th percentile, which is how
   #124 went red on a healthy commit. Override with `PREVIEW_TIMEOUT_MS` (it is in
   milliseconds, and capped), don't edit the constant.
-- **The discovery *sources* (#122) and `pick()`'s hostname-boundary match are
+- **The discovery _sources_ (#122) and `pick()`'s hostname-boundary match are
   load-bearing.** The latter is a security property: `pages.dev` subdomains are
   first-come-first-served and source 4 scrapes URLs out of bot comments, so a
   substring match would let a bot belonging to any installed GitHub App aim the
   smoke lane at a host somebody else controls and collect a green check that
-  verified nothing. (The Bot-author gate means this is *not* "anyone who can
+  verified nothing. (The Bot-author gate means this is _not_ "anyone who can
   comment" — `user.type` is GitHub's word, not self-declared.) Both are pinned by
   `scripts/get-cloudflare-preview-url.test.ts`.
 
@@ -117,12 +117,13 @@ Two findings behind that script, so they aren't re-derived:
   one that fires and the fallbacks are genuinely fallbacks. The refusal is logged
   by name (`Ignoring <url> — not attributable to <sha>`), because a correct refusal
   that reads as an oversight is one someone eventually "fixes".
+
 - **A passing unit spec is not evidence that the thing it tests is reachable.**
   #132 added the `failed` status, spec'd `timeoutStatus` returning it, and then
   never destructured `failure` in `main()` — so `timeoutStatus` was called without
   it and `failed` could not occur in production for as long as its four assertions
   stayed green. Both reviews and CI missed it, because the defect was in the
-  *wiring*, which no pure test can see. When a helper's output feeds a caller, be
+  _wiring_, which no pure test can see. When a helper's output feeds a caller, be
   sure something exercises the caller — a live run of the script against a real SHA
   is what caught this one.
 
@@ -163,7 +164,7 @@ the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1
 
 **Reach for it only when the behaviour under test is a re-render that SSR markup cannot
 express, an agreement with a router/DOM API that a pure test can only assume, or a library
-whose whole job IS the DOM.** Six specs qualify today:
+whose whole job IS the DOM.** Seven specs qualify today:
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
   already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
@@ -198,6 +199,13 @@ whose whole job IS the DOM.** Six specs qualify today:
   whole job is reading `window.innerWidth`, `outerWidth`, `screen.avail*` and an element's box,
   and whether we are framed. A pure spec could only assert against a fake of the thing under
   test; the pure halves are already table-driven with no DOM in `embed-slot.test.ts`.
+- `src/views/MapFrame.test.tsx` — the frame a contained map lives in (#169). The property worth
+  the DOM is a TIMING one: the frame publishes itself in a callback ref and holds its children
+  back until it has, because `overlayContainer()` is read in render bodies — so a ref alone would
+  be one commit late and the first drawer would portal outside the frame it is meant to live in.
+  `renderToStaticMarkup` runs no refs and no effects, so an SSR spec would assert the markup and
+  skip the entire contract. It also pins the JOIN in source (`FullInterface` wraps the map and the
+  stack in one), because that file imports `react-map-gl` and cannot be rendered in this lane.
 - `src/lib/overlay.test.ts` — the portal target, and the one piece of module state it carries
   (#161). Every branch is a question about a real document: which element is the theme root,
   whether the expanded surface is still connected to it, and what `document.body` is, so a pure
@@ -210,10 +218,10 @@ whose whole job IS the DOM.** Six specs qualify today:
 This app is portal-dense — every vaul drawer, every Radix overlay, `CompactEmbedView`'s expanded
 dialog — and the node lane relates to them in two opposite ways depending on one bit:
 
-| under `renderToStaticMarkup` | what happens |
-| --- | --- |
+| under `renderToStaticMarkup`       | what happens                                                                                               |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **closed** portal (`open={false}`) | Radix wraps the child in `<Presence>`, so `createPortal` is never called. Nothing renders, nothing throws. |
-| **open** portal | React **throws** — *"Portals are not currently supported by the server renderer."* |
+| **open** portal                    | React **throws** — _"Portals are not currently supported by the server renderer."_                         |
 
 So the trap is narrow and specific: an **absence** assertion about a closed portal's contents
 passes for a reason that has nothing to do with the property under test. Issue #161 wrote exactly
@@ -249,7 +257,7 @@ suite does and the path suite did not.
 Reintroduce it **at the site that actually caused it**. The second miss came from flipping a nearby
 gate (`{node && children}` → `{children}`) that Radix already made unreachable while the dialog was
 closed — a simulation that could not fail, validating nothing. The regression has to take the shape
-it would really take, which there was the interface mounting *alongside* the card.
+it would really take, which there was the interface mounting _alongside_ the card.
 
 Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
 prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`
@@ -270,7 +278,7 @@ the pure part encodes a foreign contract.
   fixtures next to the assertions that use them.
 - **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see
   `src/config/api/fetch.test.ts`): mock `@payloadcms/sdk` / `@/config/i18n`, not
-  our own logic. Don't test Radix / react-map-gl / library internals — only *our*
+  our own logic. Don't test Radix / react-map-gl / library internals — only _our_
   contracts.
 
 ## Type-checking & the edit-loop hook

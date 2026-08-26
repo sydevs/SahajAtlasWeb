@@ -174,48 +174,77 @@ page it does not have.
 For everything else — driving the map itself — serve the app the usual way (`pnpm dev`, or an alt
 port plus a matching `VITE_HOST` under the worktree pattern) against the seeded local backend.
 
-* **The backend is not a prerequisite — stub `clients/me`.** The widget suspends on that one read
+- **The backend is not a prerequisite — stub `clients/me`.** The widget suspends on that one read
   before anything renders, so almost every boot-path question is answerable by intercepting it:
 
   ```js
   await page.route('**/clients/me*', (r) =>
-    r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
-      body: JSON.stringify({ user: { id: 1, name: 'T', locale: 'en', allowedDomains: 'localhost',
-        clientId: 't', region: null, canonical: { enabled: true, embed: 'localhost:5173/map' } } }) }))
+    r.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        user: {
+          id: 1,
+          name: 'T',
+          locale: 'en',
+          allowedDomains: 'localhost',
+          clientId: 't',
+          region: null,
+          color1: '#1E6C71',
+          color2: '#A1C3D7',
+          color3: '#e08e79',
+          canonical: { enabled: true, embed: 'localhost:5173/map' },
+        },
+      }),
+    }),
+  )
   ```
 
-  Three things make it work, each learned the slow way in #165: the **CORS header is required**
+  ⚠ **`color1`/`color2`/`color3` are NOT decoration — omit them and the widget renders completely
+  unstyled**, which looks like a CSS-scoping bug and is not one (#169 lost several turns to it and
+  filed a wrong report against `main` before catching it). `BrandTheme` adopts the widget wrapper as
+  the theme root from a **layout effect keyed on the resolved palette**, and that effect's first run
+  is too early — the wrapper is an ANCESTOR of `BrandTheme`, so React attaches its ref after the
+  child's layout effect. What saves it in production is the palette changing when the client record
+  lands, which re-runs the effect with the ref attached. A record with no colours never changes the
+  memo, the effect never re-runs, `getThemeRoot()` stays `document.documentElement` for the session,
+  and every portal goes to `document.body` — outside `.sy-atlas`, where our `:where(.sy-atlas)`
+  stylesheet cannot reach it. The symptom is a drawer or dialog with `position: static` and no
+  chrome at all. **If a portaled surface looks unstyled, check the stub before the CSS.**
+
+  Three more things make it work, each learned the slow way in #165: the **CORS header is required**
   (the API is a different origin, so an unheadered fulfill is blocked and looks exactly like a
   rejected key); Playwright matches the **most recently registered** route first, so a broad
   catch-all registered afterwards silently shadows this; and a host serving a whole subtree needs
   `page.route('**/prefix/**', …)` returning the page, since the review server 404s by design.
   This is currently the ONLY way to see a rendered interface — the seeded local backend rejects
   every key in `.env.local`.
-* **`data-sahaj-atlas-ready` is the best single observable.** It attests what the router ACTUALLY
+
+- **`data-sahaj-atlas-ready` is the best single observable.** It attests what the router ACTUALLY
   did (`{"v":2,"routing":"path",…}`), as opposed to what was configured, which is exactly the
   distinction most boot bugs turn on. ⚠ Poll for it: a later error boundary CLEARS it, so a read
   taken after the data layer fails returns `null` on a boot that was fine.
-* **Screenshots are readable.** `browser_take_screenshot` with a **relative**
+- **Screenshots are readable.** `browser_take_screenshot` with a **relative**
   `filename` writes into the project root, and `Read` displays it — WebGL content
   (pins, clusters, basemap) captures fine. `element`/`target` gives a close-up of one
   node. Delete the PNGs before committing. Note the asymmetry:
   `browser_evaluate`'s `filename` is NOT written locally — return values inline, and
   digest anything large (an ASCII alpha-map, a list of measurements) rather than
   dumping base64.
-* **Click pins with synthetic events.** The `Map` instance isn't reachable from
+- **Click pins with synthetic events.** The `Map` instance isn't reachable from
   `browser_evaluate` (react-map-gl keeps it in a ref), so drive the canvas instead:
   dispatch `mousemove` → `mousedown` → `mouseup` → `click` on
   `canvas.mapboxgl-canvas`, each with `clientX/clientY` and `bubbles: true`. A real
   pin click navigates. Clicking a **cluster** zooms _without_ changing the URL, so you
   can descend to a single pin while staying on the current route — that's how to
   reproduce "clicked a pin from the root view" states.
-* **Assert marker registration from the console, not pixels.** Mapbox logs
+- **Assert marker registration from the console, not pixels.** Mapbox logs
   `Image "<id>" could not be loaded` when nothing supplies an icon, so the _absence_
   of that warning across repeated light⇄dark toggles is the assertion that
   `registerMarkerImages` is working. The `.playwright-mcp/console-*.log` files are
   readable. Toggle theme by swapping the root class — `useTheme` observes it, so the
   basemap follows without a reload.
-* **Measure, don't trust class names.** `getComputedStyle` /
+- **Measure, don't trust class names.** `getComputedStyle` /
   `getBoundingClientRect`, and `scrollWidth` vs `clientWidth` to find overflow (then
   walk descendants for the widest node). A Tailwind class that isn't generated still
   appears in the DOM with no CSS behind it — see `.claude/rules/code-style.md`.

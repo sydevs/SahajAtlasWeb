@@ -77,20 +77,21 @@ describe('Drawer — the box vaul measures', () => {
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('false')
   })
 
-  it('measures the expanded dialog when one is passed', () => {
-    const dialog = document.createElement('div')
+  it('measures the frame when one is passed', () => {
+    const frame = document.createElement('div')
 
-    dialog.setAttribute('data-sy-expanded', '')
-    document.body.append(dialog)
+    frame.setAttribute('data-sy-frame', '')
+    document.body.append(frame)
 
     mount(
-      <Drawer open direction="bottom" measureAgainst={dialog} snapPoints={['80px', '300px', 0.97]}>
+      <Drawer open direction="bottom" measureAgainst={frame} snapPoints={['80px', '300px', 0.97]}>
         <DrawerContent aria-label="Test sheet">content</DrawerContent>
       </Drawer>,
     )
 
-    // The one case that needs a container: the dialog keeps a margin, so it is 16–32px shorter
-    // than the window and a fractional snap measured against the window overruns its clip.
+    // The case that needs a container: a frame is shorter than the window — by its margin for
+    // the compact card's dialog, by however tall the host made their element for a contained
+    // map (#169) — so a fractional snap measured against the window overruns its clip.
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('true')
   })
 })

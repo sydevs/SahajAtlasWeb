@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from 'cmdk'
 
-import { overlayContainer } from '@/lib/overlay'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 import { fieldChrome } from '@/components/atoms/Select'
 import { CheckIcon, DownArrowIcon, SearchIcon } from '@/components/atoms/Icons'
 
@@ -104,6 +104,7 @@ export function Combobox({
         <Popover.Content
           align="start"
           className="z-50 w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          {...frameCollision()}
           sideOffset={4}
         >
           <Command shouldFilter={false}>

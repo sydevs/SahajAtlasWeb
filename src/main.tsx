@@ -61,7 +61,7 @@ const hrefFor = topLevel
 // framed build is the frame. `fromPage: false` because a framed embed never auto-opens: its
 // button is an anchor to another document, and following it on mount would be a redirect
 // nobody asked for.
-const { compact, warning } = decideSlot({ element: null, hasMap, fromPage: false })
+const { compact, contained, warning } = decideSlot({ element: null, hasMap, fromPage: false })
 
 if (warning) reportIntegrationWarning(warning)
 
@@ -82,7 +82,13 @@ if (warning) reportIntegrationWarning(warning)
 ReactDOM.createRoot(document.getElementById('syatlas')!).render(
   <RoutingContext.Provider value={hrefFor}>
     <BrowserRouter>
-      <App standalone apiKey={atlasAuth.apiKey} compact={compact} hasMap={hasMap} />
+      <App
+        standalone
+        apiKey={atlasAuth.apiKey}
+        compact={compact}
+        contained={contained}
+        hasMap={hasMap}
+      />
     </BrowserRouter>
   </RoutingContext.Provider>,
 )

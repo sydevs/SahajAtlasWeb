@@ -6,6 +6,7 @@ import {
   MIN_INTERFACE_WIDTH_PX,
   SLOT_GAIN,
   embedLayout,
+  mapMode,
   resolveDestination,
 } from './embed-slot'
 
@@ -58,23 +59,52 @@ describe('resolveDestination', () => {
   })
 })
 
+describe('mapMode — which of the three kinds of map this embed has', () => {
+  it('reads containment off the height the host gave the ELEMENT, and nothing else', () => {
+    // Map mode renders everything fixed, so `<sahaj-atlas>` measures zero height on its own.
+    // A height cannot appear by accident: it is a rule the host wrote, and that is the opt-in.
+    expect(mapMode(true, box(1440, 640))).toBe('contained')
+    expect(mapMode(true, box(1440, 0))).toBe('viewport')
+  })
+
+  it('needs BOTH axes, so an inline-block element is not a box we can fill', () => {
+    // `display: inline-block; height: 640px` measures 0x640. The height alone would opt it in,
+    // and `decideSlot`'s parent-column width fallback would then clear the floors — leaving the
+    // map contained in a box whose `w-full` resolves to nothing.
+    expect(mapMode(true, box(0, 640))).toBe('viewport')
+    expect(mapMode(true, box(640, 0))).toBe('viewport')
+  })
+
+  it('is never contained without an element to be contained by', () => {
+    // The standalone build. Its slot IS the viewport, so containing it would mean containing
+    // it in itself — and `App` defaults `contained` to false, which this keeps honest.
+    expect(mapMode(true, null)).toBe('viewport')
+  })
+
+  it("is 'none' for map-less, whatever box it was given", () => {
+    // Nothing in `map=false` is `position: fixed`, so there is no containing block to take —
+    // and the three-state return is what makes "contained, with no map" unrepresentable.
+    expect(mapMode(false, box(1440, 640))).toBe('none')
+    expect(mapMode(false, null)).toBe('none')
+  })
+})
+
 describe('embedLayout', () => {
   const overlay = { kind: 'overlay' } as const
   const none = { kind: 'none' } as const
 
   it('keeps the full interface when there is nowhere bigger to go', () => {
-    expect(embedLayout({ hasMap: false, slot: box(300, 400), destination: none })).toEqual({
+    expect(embedLayout({ map: 'none', slot: box(300, 400), destination: none })).toEqual({
       layout: 'full',
     })
   })
 
-  describe('map mode, where owning the viewport IS the question', () => {
+  describe("a 'viewport' map, where owning the viewport IS the question", () => {
     it.each([
       ['a 768px article column', box(768, 0)],
-      ['a 1000px content column — silent before this change', box(1000, 0)],
-      ['a host-written height:640px in a 900 viewport', box(1440, 640)],
+      ['a 1000px content column — silent before #161', box(1000, 0)],
     ])('degrades %s to the card rather than painting over the page', (_label, slot) => {
-      expect(embedLayout({ hasMap: true, slot, destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'viewport', slot, destination: overlay })).toEqual({
         layout: 'compact',
         reason: 'map',
       })
@@ -84,33 +114,72 @@ describe('embedLayout', () => {
       // A framed map embed at 400×600: `position: fixed` resolves against the FRAME and
       // `window.innerHeight` IS the frame's height, so every argument behind "map mode needs a
       // full-page slot" is already satisfied. The frame is a viewport, just a small one.
-      expect(embedLayout({ hasMap: true, slot: box(400, 600), destination: none })).toEqual({
+      expect(embedLayout({ map: 'viewport', slot: box(400, 600), destination: none })).toEqual({
         layout: 'full',
       })
     })
   })
 
-  describe('map-less, which is container-relative and needs the absolute floor too', () => {
+  describe("a 'contained' map (#169), which asks the boxed question instead", () => {
+    const held = { map: 'contained' } as const
+
+    it('keeps a host-written height:640px in the page instead of carding it', () => {
+      // The case this ticket exists for, and the one row of the old table that reverses: an
+      // explicit height used to be the clearest evidence a map embed did NOT own the page, so
+      // it became a card. Now it is the host saying where the map goes.
+      expect(embedLayout({ ...held, slot: box(1440, 640), destination: overlay })).toEqual({
+        layout: 'contained',
+      })
+    })
+
+    it('does not consult viewport ownership at all', () => {
+      // A 500px map column beside a sticky header — an overlay is available and irrelevant,
+      // because the map is not going to fill the window.
+      expect(embedLayout({ ...held, slot: box(500, 600), destination: overlay })).toEqual({
+        layout: 'contained',
+      })
+    })
+
+    it('still degrades below the floors, exactly like map-less', () => {
+      // A host CAN size a map embed into a box no interface fits, and that is still a card —
+      // which is why `decideSlot` has to reconcile the two answers rather than trusting them.
+      expect(embedLayout({ ...held, slot: box(300, 200), destination: overlay })).toEqual({
+        layout: 'compact',
+        reason: 'floors',
+      })
+    })
+
+    it('stays contained when there is nowhere bigger to go', () => {
+      // A host who sized the element to their whole page. Rendering `full` here would be
+      // visually identical but would drop the frame, and with it the stacking context and the
+      // box vaul measures against.
+      expect(embedLayout({ ...held, slot: box(1440, 900), destination: none })).toEqual({
+        layout: 'contained',
+      })
+    })
+  })
+
+  describe("'none', which is container-relative and needs the absolute floor too", () => {
     it('keeps the full interface in a box that merely has room above it', () => {
       // Container-relative by design (#107): a 500px column on a desktop is a perfectly good
       // map-less embed even though an overlay would be bigger.
-      expect(embedLayout({ hasMap: false, slot: box(500, 600), destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(500, 600), destination: overlay })).toEqual({
         layout: 'full',
       })
     })
 
     it('keeps the live 400×600 reference embed at full size', () => {
-      expect(embedLayout({ hasMap: false, slot: box(400, 600), destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(400, 600), destination: overlay })).toEqual({
         layout: 'full',
       })
     })
 
     it('degrades below either floor', () => {
-      expect(embedLayout({ hasMap: false, slot: box(300, 600), destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(300, 600), destination: overlay })).toEqual({
         layout: 'compact',
         reason: 'floors',
       })
-      expect(embedLayout({ hasMap: false, slot: box(500, 300), destination: overlay })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(500, 300), destination: overlay })).toEqual({
         layout: 'compact',
         reason: 'floors',
       })
@@ -122,7 +191,7 @@ describe('embedLayout', () => {
       // resolves to no destination at all, so the floors never get asked.
       const destination = resolveDestination(box(327, 620), PHONE, box(390, 844), false)
 
-      expect(embedLayout({ hasMap: false, slot: box(327, 620), destination })).toEqual({
+      expect(embedLayout({ map: 'none', slot: box(327, 620), destination })).toEqual({
         layout: 'full',
       })
     })

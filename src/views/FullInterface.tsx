@@ -7,6 +7,7 @@ import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { DrawerStack } from '@/views'
+import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
 
 /**
@@ -80,10 +81,18 @@ function useAnalytics(primaryDomain: string, pathname: string) {
 
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
 function FullInterface({
+  contained,
   hasMap,
   homePath,
   primaryDomain = '',
 }: {
+  /**
+   * Map mode lives inside the host's element rather than filling the window (issue #169).
+   *
+   * Required, like `hasMap` beside it: `AppShell` is the only caller and always passes it, and
+   * a default of `false` would be the one wrong answer nobody could see — it is the common case.
+   */
+  contained: boolean
   hasMap: boolean
   homePath?: string
   primaryDomain?: string
@@ -120,28 +129,30 @@ function FullInterface({
 
   return hasMap ? (
     <MapProvider>
-      {/* Inline fixed/inset so the map always fills the viewport behind the
-              drawers — independent of Tailwind viewport-unit utility generation.
+      {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
+          one.** Everything below is byte-identical in both: the canvas stays `position: fixed;
+          inset: 0`, the drawers and peek strips stay fixed, and no view branches on which one
+          it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
+          host's box, which is what makes that possible — the alternative, a `fixed` →
+          `absolute` swap, is what made containment look intractable until #161 solved both of
+          its obstacles for the expanded dialog (see `MapFrame` for the pair, and #169 for the
+          argument that the comment which used to sit here had gone stale).
 
-              **This is why map mode requires a FULL-PAGE slot, and issue #107 settled
-              that as a documented requirement rather than containing it.** The canvas
-              covers the viewport whatever size the host made `<sahaj-atlas>`, and the
-              drawers over it are `fixed` too. Containing the lot is not a `fixed` →
-              `absolute` swap: vaul computes a snap-point sheet's translate from the
-              WINDOW height (see the `bottom` variant in `atoms/Drawer/Drawer.tsx`), so a
-              contained sheet is pushed off-screen by the library's own arithmetic, and
-              `--sy-sheet-top` — which pins the sticky Register bar — is a viewport-
-              relative measurement for the same reason. `map="false"` is the mode that
-              stays inside its box, and it is container-relative throughout (#107).
-              A host that gets this wrong now gets the compact card instead of a takeover:
-              `lib/slot-decision.ts` measures at mount and `AppShell` renders `CompactEmbedView`,
-              whose button opens the map full-screen. */}
-      <div style={{ position: 'fixed', inset: 0 }}>
-        <Mapbox />
-      </div>
-      <RealMapControllerProvider>
-        <DrawerStack />
-      </RealMapControllerProvider>
+          Unframed, map mode still fills the browser window whatever slot the host gave the
+          element — a documented requirement (#107), and now the answer only for a host who
+          gave it no height. One that does not have the page to itself AND did not size it gets
+          the compact card rather than a takeover: `lib/slot-decision.ts` measures at mount and
+          `AppShell` renders `CompactEmbedView`, whose button opens the map full-screen. */}
+      <MapFrame contained={contained}>
+        {/* Inline fixed/inset so the map always fills its frame behind the drawers —
+            independent of Tailwind viewport-unit utility generation. */}
+        <div style={{ position: 'fixed', inset: 0 }}>
+          <Mapbox />
+        </div>
+        <RealMapControllerProvider>
+          <DrawerStack />
+        </RealMapControllerProvider>
+      </MapFrame>
     </MapProvider>
   ) : (
     <NoopMapControllerProvider>

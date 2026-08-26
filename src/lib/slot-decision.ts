@@ -14,7 +14,7 @@
 
 import type { Box, Destination } from './embed-slot'
 
-import { COMPACT_MESSAGE, embedLayout, resolveDestination } from './embed-slot'
+import { COMPACT_MESSAGE, embedLayout, mapMode, resolveDestination } from './embed-slot'
 import { fallbackUrl } from './fallback-url'
 
 /**
@@ -70,18 +70,22 @@ export type SlotInput = {
 export type SlotDecision = {
   /** `null` when the interface fits — the overwhelmingly common answer. */
   compact: CompactState | null
+  /**
+   * Map mode lives inside the host's element rather than filling the window (issue #169).
+   *
+   * ⚠ **Never true alongside `compact`.** A host CAN size a map embed into a box too small for
+   * any interface, and that is still a card — so the two answers are capable of fighting, which
+   * is the class of bug this module exists as one function to prevent. They are reconciled in
+   * exactly one place, the return below, and `slot-decision.test.ts` asserts the invariant
+   * rather than trusting it.
+   */
+  contained: boolean
   /** The one sentence the host's console gets, or `null`. */
   warning: string | null
 }
 
-const FULL: SlotDecision = { compact: null, warning: null }
+const FULL: SlotDecision = { compact: null, contained: false, warning: null }
 
-/**
- * Are we inside a frame?
- *
- * A cross-origin parent makes `window.top` throw on access rather than return a foreign window,
- * so the comparison has to be guarded — and a throw here means we are framed.
- */
 /**
  * Whether we are inside a frame. Exported so `main.tsx` shares this definition rather than keeping
  * a second inverted copy — the `catch` arm is the part people get wrong (a cross-origin parent
@@ -153,10 +157,19 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
         }
       : viewport
 
-    const destination = resolveDestination(slot, viewport, newTabBox(), framed())
-    const { layout, reason } = embedLayout({ hasMap, slot, destination })
+    // ⚠ The ELEMENT's own box, not the composed `slot` above — a fallback to the host's column
+    // width is evidence about the page, not a height they gave us. See `mapMode`. A `DOMRect`
+    // already satisfies `Box`, so there is nothing to convert.
+    const map = mapMode(hasMap, box ?? null)
 
-    if (layout === 'full') return FULL
+    const destination = resolveDestination(slot, viewport, newTabBox(), framed())
+    const { layout, reason } = embedLayout({ map, slot, destination })
+
+    // ⚠ Both fields read from `layout`, never from what was passed in. That is what makes the
+    // returned shape one answer rather than two that can disagree — the whole reason this
+    // module is a single composed function.
+    if (layout !== 'compact')
+      return { compact: null, contained: layout === 'contained', warning: null }
 
     return {
       compact: compactState({
@@ -164,6 +177,7 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
         href: fallbackUrl(),
         fromPage,
       }),
+      contained: false,
       warning: reason ? COMPACT_MESSAGE[reason] : null,
     }
   } catch {

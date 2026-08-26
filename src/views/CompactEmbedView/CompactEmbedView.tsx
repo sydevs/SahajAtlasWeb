@@ -1,6 +1,6 @@
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/atoms/Button'
 import { CloseIcon } from '@/components/atoms/Icons'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
-import { setDialog, widgetOverlayContainer } from '@/lib/overlay'
+import { useFrame } from '@/hooks/use-frame'
+import { widgetOverlayContainer } from '@/lib/overlay'
 import { useReportModal } from '@/config/store'
 
 /**
@@ -115,6 +116,12 @@ const closeClass =
  * same mechanism pointed the other way: there it would re-parent the fixed layer to the host's
  * element and break map mode. Here re-parenting is what we want. Do not move it up the tree.
  *
+ * **Two data attributes, two meanings.** `data-sy-frame` says "the fixed layer resolves against
+ * me", which `MapFrame` (#169) now says as well and which is what `--sy-frame-h: 100%` keys off.
+ * `data-sy-expanded` says "this is the compact card's dialog", which stays dialog-only: what it
+ * carries is the nudge that keeps Mapbox's control column clear of the collapse control in the
+ * corner, and a contained map has no such control.
+ *
  * **Radix owns the behaviour**: focus trap, `aria-modal`, Escape, the host page's scroll lock
  * (via `Primitive.Overlay`, where `react-remove-scroll` lives, which `docs/embedding.md`
  * documents as an honest exception) and — now that there is an outside — dismissal by pointer.
@@ -126,7 +133,7 @@ const closeClass =
  * Radix dialog too, so its dismissable layer sits above and takes the key first — correctly.
  * `DrawerStack`'s `onEscapeKeyDown` finishes the ladder once the stack has nowhere left to go.
  *
- * **Every portal in the app is redirected inside it while it is open** (`setDialog`). Not
+ * **Every portal in the app is redirected inside it while it is open** (`setFrame`). Not
  * tidiness: a modal traps focus in its own content and hides everything else from assistive
  * technology, so a drawer portaled beside it would be unreachable by keyboard.
  */
@@ -143,20 +150,20 @@ function ExpandedDialog({
   closeLabel: string
   children: ReactNode
 }) {
-  // The content node, held in STATE rather than a ref, and the children wait for it.
+  // Published as the widget's frame, and the children wait for it — `useFrame` carries the
+  // timing argument, which `MapFrame` depends on identically.
   //
-  // `overlayContainer()` is read in render bodies all over the app, so this has to be published
-  // before its children first render — a ref alone would be one commit late and the first drawer
-  // would portal itself outside the dialog. A callback ref publishes during the layout phase and
-  // the resulting re-render is flushed before paint. Stable identity, or every render would
-  // release and re-adopt.
-  const [node, setNode] = useState<HTMLDivElement | null>(null)
+  // The extra `contentRef` is this component's own: the focus handlers below read the node
+  // synchronously from callbacks that must not re-subscribe when it changes.
+  const { node, adopt: adoptFrame } = useFrame<HTMLDivElement>()
   const contentRef = useRef<HTMLDivElement | null>(null)
-  const adopt = useCallback((element: HTMLDivElement | null) => {
-    contentRef.current = element
-    setDialog(element)
-    setNode(element)
-  }, [])
+  const adopt = useCallback(
+    (element: HTMLDivElement | null) => {
+      contentRef.current = element
+      adoptFrame(element)
+    },
+    [adoptFrame],
+  )
 
   // Who to give focus back to on close.
   //
@@ -239,6 +246,7 @@ function ExpandedDialog({
             animate={{ opacity: 1 }}
             className={contentClass}
             data-sy-expanded=""
+            data-sy-frame=""
             initial={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
