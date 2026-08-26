@@ -120,8 +120,33 @@ function pages(src) {
       true,
     ),
 
-    // A slot too small for the interface: the compact card. Watch that no mapbox chunk is
-    // fetched and that only `clients/me` is requested while it is closed.
+    // The shape issue #169 exists for: a site's own sticky header, then the atlas below it. The
+    // element carries a height, which is the whole opt-in — `MapFrame` takes the containing
+    // block with `contain: layout`, so the map, its drawers and its peek strips all resolve
+    // against this box instead of the window. Two things to look at: the header must stay
+    // visible and on top while scrolling, and NOTHING the widget renders may paint outside the
+    // bordered box.
+    'contained-map.html': page(
+      'Contained map, under a sticky header',
+      `<header style="position:sticky;top:0;z-index:100;background:#1E6C71;color:#fff;padding:16px 24px;font-weight:600">
+      A host site's own sticky header (z-index: 100)</header>
+    <div style="padding:24px">
+      <h1>Find a class near you</h1>
+      <p>The map below is inside the page, not over it. Scroll: the header floats above the map
+      — correctly — instead of above the widget's drawers.</p>
+      <sahaj-atlas style="display:block;height:640px;border:2px solid #333"></sahaj-atlas>
+      <p style="height:80vh">Content below the atlas, to scroll against.</p>
+    </div>${loader('key=KEY&map=true')}`,
+      'the map must stay INSIDE the bordered box. Drawers, peek strips and the cog too.',
+      true,
+    ),
+
+    // A slot too small for the interface: the compact card. Note the height — since #169 that
+    // makes this a CONTAINED map, so the card here is earned by the 300px width being under the
+    // interface floor, and the console says so. A map embed with no height of its own is the
+    // one that still gets the viewport-ownership sentence.
+    // Watch that no mapbox chunk is fetched and that only `clients/me` is requested while it is
+    // closed.
     'sidebar-map.html': page(
       'Narrow sidebar, map mode',
       `<div style="display:flex;gap:32px">
@@ -130,7 +155,7 @@ function pages(src) {
       interface, so the compact card renders instead.</p></div>
       <aside style="width:300px;flex:none"><sahaj-atlas style="display:block;height:520px"></sahaj-atlas></aside>
     </div>${loader('key=KEY&map=true')}`,
-      'expect a CARD, zero mapbox requests, and only clients/me until the button is pressed.',
+      'expect a CARD (300px is under the 360px floor), zero mapbox requests, and only clients/me.',
     ),
 
     // Map-less, which is container-relative and is what most hosts should embed.
