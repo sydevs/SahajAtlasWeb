@@ -87,12 +87,6 @@ export type SlotDecision = {
 const FULL: SlotDecision = { compact: null, contained: false, warning: null }
 
 /**
- * Are we inside a frame?
- *
- * A cross-origin parent makes `window.top` throw on access rather than return a foreign window,
- * so the comparison has to be guarded — and a throw here means we are framed.
- */
-/**
  * Whether we are inside a frame. Exported so `main.tsx` shares this definition rather than keeping
  * a second inverted copy — the `catch` arm is the part people get wrong (a cross-origin parent
  * makes the comparison THROW, and a throw means framed).

@@ -67,6 +67,14 @@ describe('mapMode — which of the three kinds of map this embed has', () => {
     expect(mapMode(true, box(1440, 0))).toBe('viewport')
   })
 
+  it('needs BOTH axes, so an inline-block element is not a box we can fill', () => {
+    // `display: inline-block; height: 640px` measures 0x640. The height alone would opt it in,
+    // and `decideSlot`'s parent-column width fallback would then clear the floors — leaving the
+    // map contained in a box whose `w-full` resolves to nothing.
+    expect(mapMode(true, box(0, 640))).toBe('viewport')
+    expect(mapMode(true, box(640, 0))).toBe('viewport')
+  })
+
   it('is never contained without an element to be contained by', () => {
     // The standalone build. Its slot IS the viewport, so containing it would mean containing
     // it in itself — and `App` defaults `contained` to false, which this keeps honest.

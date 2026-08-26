@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { MapFrame } from './MapFrame'
 
@@ -78,7 +78,67 @@ describe('MapFrame, uncontained', () => {
   })
 })
 
+describe('MapFrame, contained by a box it cannot fill', () => {
+  /**
+   * ⚠ The case `mapMode` cannot see, because it reads the element's RECT.
+   *
+   * `min-height: 640px` gives a non-zero rect while `height: 100%` on the child resolves to
+   * `auto` — percentages resolve against the parent's computed `height`, not its used one. The
+   * frame then computes to 0, and `contain: layout` makes that zero-height box the containing
+   * block for the entire fixed layer, so nothing renders at all while the readiness marker still
+   * attests a healthy embed. Measured in Chrome 151 on a real host page.
+   *
+   * Refusing rather than only warning is the point: before #169 that same host got the compact
+   * card — a working button and the right advice — so leaving it invisible would be a
+   * regression. jsdom reports 0 for every `offsetHeight`, which is exactly this condition.
+   */
+  it('refuses the frame and renders its children uncontained', () => {
+    const wrapper = mount(
+      <MapFrame contained>
+        <span>{CHILD}</span>
+      </MapFrame>,
+    )
+
+    // The children are the whole point of the fallback: they must still render, resolving
+    // against the viewport the way an unsized map embed always has.
+    expect(wrapper.textContent).toContain(CHILD)
+    expect(wrapper.querySelector('[data-sy-frame]')).toBeNull()
+    // And nothing may be left holding the singleton, or every portal in the app follows it into
+    // a box with no height.
+    expect(frameElement()).toBeNull()
+    expect(overlayContainer()).toBe(wrapper)
+  })
+})
+
+/**
+ * Give the frame a box, because jsdom performs no layout and reports `offsetHeight === 0` for
+ * every element — which is precisely the "cannot be filled" condition the component refuses.
+ *
+ * Stubbing it is not a workaround; it is the spec being explicit that these cases are about a
+ * frame that DID get a box, and the describe above is about one that did not.
+ */
+function withLayout() {
+  const descriptors = {
+    offsetHeight: Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight'),
+    offsetWidth: Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth'),
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 640 })
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 1024 })
+  })
+
+  afterEach(() => {
+    for (const [name, descriptor] of Object.entries(descriptors)) {
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, name, descriptor)
+      else delete (HTMLElement.prototype as unknown as Record<string, unknown>)[name]
+    }
+  })
+}
+
 describe('MapFrame, contained', () => {
+  withLayout()
+
   it('takes the containing block with contain:layout, and marks itself for the CSS', () => {
     // `contain: layout` is the whole mechanism: it makes this the containing block for every
     // fixed descendant — the canvas, the drawers, the peek strips — with no `fixed` →

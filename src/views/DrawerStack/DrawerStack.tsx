@@ -387,13 +387,21 @@ export function DrawerStack() {
     // Look the sheet up lazily (it mounts with this effect) and cache it — no need to
     // re-query the DOM every frame. `isConnected` is what makes caching safe now that the
     // effect no longer re-runs per depth change: two elements carry `[data-vaul-drawer]`
-    // (the main sheet and the filter overlay) and both portal to `document.body`, so a
-    // resize across the md breakpoint can leave this holding the overlay — and once that
-    // closes, a detached node measures `top: 0` and would write `--sy-sheet-top: 0px` onto
-    // the LIVE strips, pinning every peek to the top of the viewport.
+    // (the main sheet and the filter overlay), so a resize across the md breakpoint can leave
+    // this holding the overlay — and once that closes, a detached node measures `top: 0` and
+    // would write `--sy-sheet-top: 0px` onto the LIVE strips, pinning every peek to the top.
+    //
+    // ⚠ **Scoped to our own portal target, not `document`.** Both drawers portal through
+    // `overlayContainer()` — the frame, or the theme root — never `document.body`, whatever an
+    // older comment here claimed. A document-wide query reaches the HOST's DOM, and vaul is a
+    // common shadcn dependency: a drawer of theirs earlier in document order would win, and we
+    // would then write an inline `--sy-sheet-top` onto a host node every frame while our own
+    // strips took their offset from somebody else's box.
     let sheet: HTMLElement | null = null
     const tick = () => {
-      if (!sheet?.isConnected) sheet = document.querySelector<HTMLElement>('[data-vaul-drawer]')
+      if (!sheet?.isConnected) {
+        sheet = (overlayContainer() ?? document).querySelector<HTMLElement>('[data-vaul-drawer]')
+      }
       const el = stripsRef.current
 
       // No sheet is still a settled frame: counting it as movement would re-arm the loop
@@ -414,10 +422,24 @@ export function DrawerStack() {
         // and offset every strip by its box. Its RECT is still read per frame — the dialog's
         // inset changes at the `sm:` crossing, and a contained frame moves with the host's own
         // scrolling — but the lookup is a module read, not a query.
-        const top =
-          sheet.getBoundingClientRect().top - (frameElement()?.getBoundingClientRect().top ?? 0)
+        // ⚠ Guarded, like `decideSlot`'s read and for the same reason: hosts patch
+        // `getBoundingClientRect` (consent wrappers, anti-fingerprinting extensions). A THROW
+        // here would kill the loop permanently — the `raf =` reassignment below never runs — and
+        // then re-throw into the host's `window.onerror` on every wake event. A `NaN` is worse
+        // than it looks: `top === last` is never true, so `still` resets every frame and the
+        // loop never parks, spending a forced layout flush per frame on somebody else's page.
+        let top = Number.NaN
 
-        if (top === last) {
+        try {
+          top =
+            sheet.getBoundingClientRect().top - (frameElement()?.getBoundingClientRect().top ?? 0)
+        } catch {
+          top = Number.NaN
+        }
+
+        if (!Number.isFinite(top)) {
+          still += 1
+        } else if (top === last) {
           still += 1
         } else {
           still = 0

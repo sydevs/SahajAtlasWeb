@@ -329,6 +329,17 @@ box. **`display:block` (or `flex`/`grid`) matters as much as the height**: a cus
 defaults to `display: inline`, which cannot take one — so an element with a height rule but no
 display rule is _not_ sized, and a map embed there will take the window instead of your box.
 
+⚠ **`min-height` on its own is not a height.** The widget fills your element with
+`height: 100%`, which needs a definite height to resolve against — `min-height: 640px` gives the
+element a size on screen but leaves the widget nothing to fill, so it refuses the box, says so in
+your console, and falls back to filling the browser window. Use `height`, a grid or flex track, or
+`aspect-ratio`. (The same applies to width and `display: inline-block`.)
+
+⚠ **Size it to what a visitor can see at once.** Nothing caps a contained map from above: if you
+give the element `height: 100vh` below your own sticky header, its bottom edge — where the mobile
+bottom sheet and its drag handle live — sits below the fold, and a first-time visitor sees a map
+with no visible controls until they scroll. Subtract your header, or use a fixed height.
+
 ⚠ **A flex or grid item is sized even if you never wrote a height.** A stretched item takes its
 track's cross size, so `<sahaj-atlas>` in a full-height flex column is a _contained_ map. That is
 almost always what you want — your layout had already said where the widget goes — but it is the

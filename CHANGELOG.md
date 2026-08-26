@@ -50,7 +50,9 @@ cover everything a host would notice since the widget was first deployed.
   in a sized track** already has a height from that track, without any rule naming `<sahaj-atlas>`,
   so it becomes contained too. That is usually what you want — your layout had already said where
   the widget goes — but it is the one way this changes without your having written a height. See
-  [Sizing the element].
+  [Sizing the element] — which also covers the two ways to size an element that do **not** work
+  (`min-height` alone, and `display: inline-block`), both of which the widget now refuses out loud
+  rather than rendering into a box it cannot fill.
 
 - **`routing=path` now works.** ([#164]) Your widget's route can live in the path —
   `your-site.org/classes/gb/london` — instead of in `?atlas=`. It needs your server to serve the

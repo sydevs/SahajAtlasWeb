@@ -3,6 +3,7 @@ import type { SortOrder } from '@/lib/shape'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 
+import { frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
 import { CheckIcon, DownArrowIcon } from '@/components/atoms/Icons'
 import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
@@ -57,7 +58,7 @@ export function SortMenu() {
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
-        <DropdownMenu.Content align="end" className={menu} sideOffset={8}>
+        <DropdownMenu.Content align="end" className={menu} sideOffset={8} {...frameCollision()}>
           <DropdownMenu.RadioGroup
             value={order}
             onValueChange={(value) => setOrder(value as SortOrder)}

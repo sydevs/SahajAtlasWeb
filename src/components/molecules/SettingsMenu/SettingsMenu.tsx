@@ -2,6 +2,7 @@ import { type ReactNode } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
 
+import { frameCollision } from '@/lib/overlay'
 import {
   CheckIcon,
   HelpIcon,
@@ -74,7 +75,13 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal container={container}>
-        <DropdownMenu.Content align="start" className={menu} side={side} sideOffset={8}>
+        <DropdownMenu.Content
+          align="start"
+          className={menu}
+          side={side}
+          sideOffset={8}
+          {...frameCollision()}
+        >
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <LanguageIcon size={18} />
@@ -82,7 +89,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
               <RightArrowIcon className="text-gray-11" />
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal container={container}>
-              <DropdownMenu.SubContent className={menu} sideOffset={4}>
+              <DropdownMenu.SubContent className={menu} sideOffset={4} {...frameCollision()}>
                 <DropdownMenu.RadioGroup value={locale} onValueChange={setLocale}>
                   {supportedLanguages.map((lng) => (
                     <DropdownMenu.RadioItem key={lng} className={item} value={lng}>

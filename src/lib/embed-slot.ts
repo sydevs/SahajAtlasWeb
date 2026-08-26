@@ -139,7 +139,12 @@ export type MapMode = 'none' | 'viewport' | 'contained'
 export function mapMode(hasMap: boolean, elementBox: Box | null): MapMode {
   if (!hasMap) return 'none'
 
-  return elementBox && elementBox.height > 0 ? 'contained' : 'viewport'
+  // ⚠ **BOTH axes, and the width half is not symmetry for its own sake.** An
+  // `display: inline-block; height: 640px` element measures 0×640: the height passes, and
+  // `decideSlot`'s parent-column fallback then makes the composed slot look wide enough to clear
+  // the floors — so it would be contained inside a box whose `w-full` resolves to nothing. A box
+  // we cannot fill on either axis is not a box we can be contained by.
+  return elementBox && elementBox.height > 0 && elementBox.width > 0 ? 'contained' : 'viewport'
 }
 
 /** Is either measured axis below the floor the interface needs? */

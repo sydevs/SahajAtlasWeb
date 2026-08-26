@@ -38,6 +38,11 @@
  *
  * ## What you still need, and what currently blocks it
  *
+ * ⚠ **A stubbed `clients/me` must carry `color1`/`color2`/`color3`.** Without them the widget's
+ * theme root is never adopted, every portal lands in `document.body` outside `.sy-atlas`, and the
+ * drawers and dialogs render with no CSS at all — which reads exactly like a scoping regression.
+ * The mechanism, and why production is unaffected, is in `.claude/rules/mapbox.md`.
+ *
  * The widget reads SahajCloud on boot (`clients/me`), so a rendered *interface* needs a backend and
  * a key that backend accepts. As of 2026-08-20 the seeded local backend answers `403` /
  * "Not authenticated as an Atlas client" for both keys in `.env.local`, so the interface falls

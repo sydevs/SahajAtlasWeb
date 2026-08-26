@@ -2,7 +2,7 @@ import { type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import { tv } from 'tailwind-variants'
 
-import { overlayContainer } from '@/lib/overlay'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 import { DownArrowIcon } from '@/components/atoms/Icons'
 
 // Shared chrome for every field-like control: this Select's trigger, the registration
@@ -88,6 +88,7 @@ export function Select({
             matches the trigger's width rather than sizing to its longest option. */}
         <RadixSelect.Content
           className="z-50 flex max-h-72 w-[var(--radix-select-trigger-width)] flex-col overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"
+          {...frameCollision()}
           position="popper"
           sideOffset={4}
         >

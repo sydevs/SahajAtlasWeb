@@ -70,6 +70,28 @@ export function frameElement(): HTMLElement | null {
 }
 
 /**
+ * The collision boundary a Radix popper needs to stay inside the frame (#169).
+ *
+ * ⚠ **Radix's popper defaults to an EMPTY boundary, which Floating UI reads as the viewport.**
+ * That was right while the widget owned the viewport and is wrong the moment a frame contains it:
+ * a menu opened near the bottom of a 640px contained map sees hundreds of pixels of free browser
+ * window below its trigger, places itself there, and the frame's `overflow-hidden` erases it. The
+ * control then appears to do nothing, with nothing in the console.
+ *
+ * `null` is filtered out by Radix, so with no frame this is exactly today's behaviour.
+ *
+ * **Spread it at every Radix popper surface**, which `overlay.popper.test.ts` pins as a closed
+ * list — the cog offset in `DrawerStack` was fixed one place and missed another on this very
+ * branch, and five call sites is precisely where that happens again.
+ *
+ * Floating UI surfaces (`atoms/Dropdown`, `use-popover`) need none of this: their own default is
+ * `clippingAncestors`, which already respects the frame.
+ */
+export function frameCollision(): { collisionBoundary: HTMLElement | null } {
+  return { collisionBoundary: frameElement() }
+}
+
+/**
  * The theme-scoped root, ignoring any frame.
  *
  * The frame itself has to portal somewhere, and that somewhere cannot be itself — so the

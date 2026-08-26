@@ -1,6 +1,8 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useCallback, useState } from 'react'
 
 import { useFrame } from '@/hooks/use-frame'
+import { ELEMENT_NAME } from '@/lib/element'
+import { reportIntegrationWarning } from '@/lib/report'
 
 /**
  * The box a **contained** map embed lives in (issue #169).
@@ -51,12 +53,61 @@ export function MapFrame({ contained, children }: { contained: boolean; children
 }
 
 /**
+ * The sentence a host gets when they sized the element in a way `height: 100%` cannot fill.
+ *
+ * Names the actual fix, because the two rules look interchangeable and are not.
+ */
+const NO_BOX_MESSAGE =
+  `this map embed is inside a <${ELEMENT_NAME}> that reports a size but cannot be filled — the ` +
+  'widget lays itself out with `height: 100%`, which needs the element to have a definite ' +
+  'height, and `min-height` on its own does not give it one (nor does `display: inline-block` ' +
+  'for the width). The map is falling back to filling the browser window. Use `height`, a grid ' +
+  'or flex track, or `aspect-ratio` to keep it inside your box.'
+
+/**
  * Split from `MapFrame` so the uncontained path runs no hooks at all — a single component
  * could not early-return before them, and would have to guard the adoption on `contained` and
  * turn the children gate into a two-way condition. More code, and one more expressible state.
  */
 function ContainedFrame({ children }: { children: ReactNode }) {
-  const { node, adopt } = useFrame<HTMLDivElement>()
+  const { node, adopt: adoptFrame } = useFrame<HTMLDivElement>()
+  const [unfillable, setUnfillable] = useState(false)
+
+  /**
+   * ⚠ **Verify the box before containing anything in it, because the measurement that chose
+   * containment cannot see this.** `mapMode` reads the element's RECT, and a rect is non-zero
+   * for `min-height: 640px` — while `height: 100%` against that same element resolves to `auto`,
+   * because percentage heights resolve against the parent's computed `height`, not its used one.
+   * The frame then computes to 0px, and since it carries `contain: layout` the whole fixed layer
+   * resolves against a zero-height containing block: the map, the drawers and the cog all vanish,
+   * with the readiness marker still attesting a healthy embed.
+   *
+   * That is also a REGRESSION if left unhandled, which is what makes reporting insufficient on
+   * its own: before #169 the very same page rendered the compact card — a working button and the
+   * right advice. So an unfillable box is refused outright and the embed falls back to the
+   * viewport map it would have had, with one line saying which rule to change.
+   *
+   * The check runs in the callback ref, during the layout phase: the div is in the DOM with its
+   * final box for that pass, `offsetHeight` forces the flush that makes the read correct, and the
+   * children are still gated on `node` — so nothing has rendered inside the broken frame yet.
+   */
+  const adopt = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element && (element.offsetHeight === 0 || element.offsetWidth === 0)) {
+        reportIntegrationWarning(NO_BOX_MESSAGE)
+        setUnfillable(true)
+        adoptFrame(null)
+
+        return
+      }
+
+      adoptFrame(element)
+    },
+    [adoptFrame],
+  )
+
+  // Refused: render exactly what an unsized map embed renders, resolving against the viewport.
+  if (unfillable) return <>{children}</>
 
   return (
     // `h-full` resolves against `<sahaj-atlas>` — the theme root between us is
