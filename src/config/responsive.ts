@@ -13,9 +13,12 @@ import { useMediaQuery } from 'react-responsive'
  *  - **container** (`useIsWide` / `useIsWideWidget`) — a fit question. Does a 22rem side
  *    panel leave usable space beside it? Does a short sheet scroll the CTA away? A 320px
  *    column on a 1600px desktop must answer these the way a phone does.
- *  - **viewport** (`useIsWideViewport`) — for the one thing that genuinely is the screen:
- *    the map camera padding, since a map only exists in map mode, and in map mode the
- *    widget IS the viewport (see below).
+ *  - **viewport** (`useIsWideViewport`) — for the case where the screen genuinely is the
+ *    question. It has no app call sites left: the map camera padding was the last one, and
+ *    #169 moved it to the container signal because a contained map's frame and the viewport
+ *    stopped being the same box. It survives as `useIsWide`'s own fallback — which is how a
+ *    widget with nothing to measure still gets the right answer — and in a Ladle story,
+ *    where the viewport really is the container.
  *  - **input** (`useCoarsePointer`) — for affordances that depend on the DEVICE rather than
  *    on the space: whether `tel:` reaches a dialer. Narrowing a desktop window has never
  *    given it a phone.

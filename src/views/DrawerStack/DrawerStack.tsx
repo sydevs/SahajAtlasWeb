@@ -191,8 +191,13 @@ function PeekStrip({
     // rounded at ≥lg — geometry lives in these classes, not inline styles.
     // Width is the paired `22rem` — twin is `DRAWER_W_REM` in
     // `hooks/use-map-controller.tsx`; see the Drawer atom for why.
+    // ⚠ `max-w-[calc(100%-2rem)]`, not `100vw`: these panels are `position: fixed`, so inside a
+    // frame (#169) a viewport unit describes a box they are not in. A percentage resolves
+    // against the containing block — the frame where there is one, the viewport where there is
+    // not. Inert either way at present (the anchored panel only renders at >=768px, where
+    // `22rem` always fits), which is exactly why it is worth correcting before it is not.
     className =
-      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -730,7 +735,22 @@ export function DrawerStack() {
                 Both `22rem` fallbacks below are the drawer-width pair — twin is
                 `DRAWER_W_REM` in `hooks/use-map-controller.tsx`. */}
               {!wide && (
-                <SettingsMenu className="fixed start-3 top-3 z-40 md:start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4" />
+                <SettingsMenu
+                  className={clsx(
+                    'fixed top-3 z-40',
+                    // ⚠ **`isWide`, not a `md:` variant, and that is the #169 correction.** This
+                    // clears the LEFT PANEL, so it has to agree with whatever decided there is
+                    // one — and that is now the frame's width, not the viewport's. A 600px
+                    // contained map on a desktop gets the bottom sheet, and a viewport variant
+                    // would still push the cog 384px right for a panel that is not there; at a
+                    // 400px frame it lands past the edge, where the frame's `overflow-hidden`
+                    // clips it away entirely. Outside a frame `isWide` IS the viewport's answer,
+                    // so this is the same offset it always was.
+                    isWide
+                      ? 'start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4'
+                      : 'start-3',
+                  )}
+                />
               )}
             </>,
             target,

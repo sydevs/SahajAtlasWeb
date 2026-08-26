@@ -45,8 +45,12 @@ cover everything a host would notice since the widget was first deployed.
   ⚠ **This reverses what an explicit height used to mean.** A map embed you had given a height
   was read as evidence it did not own the page and rendered the [compact card]; it now renders the
   map in your box. If you were relying on the card, remove the height. A map embed with **no**
-  height is unchanged in every respect — it still fills the window, and still degrades to the card
-  when it does not have the page to itself. See [Sizing the element].
+  height is unchanged — it still fills the window, and still degrades to the card when it does not
+  have the page to itself. ⚠ One case is worth checking: an element that is a **flex or grid item
+  in a sized track** already has a height from that track, without any rule naming `<sahaj-atlas>`,
+  so it becomes contained too. That is usually what you want — your layout had already said where
+  the widget goes — but it is the one way this changes without your having written a height. See
+  [Sizing the element].
 
 - **`routing=path` now works.** ([#164]) Your widget's route can live in the path —
   `your-site.org/classes/gb/london` — instead of in `?atlas=`. It needs your server to serve the

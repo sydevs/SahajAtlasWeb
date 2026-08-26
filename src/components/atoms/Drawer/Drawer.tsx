@@ -68,11 +68,11 @@ const drawer = tv({
       // and nothing anywhere fails to tell you.
       left: {
         content:
-          'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
       },
       right: {
         content:
-          'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100vw-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
+          'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
       // Snap-point sheets must be full viewport height: vaul computes its snap
       // translate from the window height, so a content-sized sheet gets pushed

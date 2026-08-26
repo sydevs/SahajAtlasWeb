@@ -81,13 +81,18 @@ function useAnalytics(primaryDomain: string, pathname: string) {
 
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
 function FullInterface({
-  contained = false,
+  contained,
   hasMap,
   homePath,
   primaryDomain = '',
 }: {
-  /** Map mode lives inside the host's element rather than filling the window (issue #169). */
-  contained?: boolean
+  /**
+   * Map mode lives inside the host's element rather than filling the window (issue #169).
+   *
+   * Required, like `hasMap` beside it: `AppShell` is the only caller and always passes it, and
+   * a default of `false` would be the one wrong answer nobody could see — it is the common case.
+   */
+  contained: boolean
   hasMap: boolean
   homePath?: string
   primaryDomain?: string

@@ -14,7 +14,7 @@
 
 import type { Box, Destination } from './embed-slot'
 
-import { COMPACT_MESSAGE, embedLayout, mapIsContained, resolveDestination } from './embed-slot'
+import { COMPACT_MESSAGE, embedLayout, mapMode, resolveDestination } from './embed-slot'
 import { fallbackUrl } from './fallback-url'
 
 /**
@@ -164,13 +164,18 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
       : viewport
 
     // ⚠ The ELEMENT's own box, not the composed `slot` above — a fallback to the host's column
-    // width is evidence about the page, not a height they gave us. See `mapIsContained`.
-    const contained = mapIsContained(hasMap, box ? { width: box.width, height: box.height } : null)
+    // width is evidence about the page, not a height they gave us. See `mapMode`. A `DOMRect`
+    // already satisfies `Box`, so there is nothing to convert.
+    const map = mapMode(hasMap, box ?? null)
 
     const destination = resolveDestination(slot, viewport, newTabBox(), framed())
-    const { layout, reason } = embedLayout({ hasMap, contained, slot, destination })
+    const { layout, reason } = embedLayout({ map, slot, destination })
 
-    if (layout !== 'compact') return { compact: null, contained, warning: null }
+    // ⚠ Both fields read from `layout`, never from what was passed in. That is what makes the
+    // returned shape one answer rather than two that can disagree — the whole reason this
+    // module is a single composed function.
+    if (layout !== 'compact')
+      return { compact: null, contained: layout === 'contained', warning: null }
 
     return {
       compact: compactState({

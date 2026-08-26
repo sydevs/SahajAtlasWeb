@@ -1,6 +1,6 @@
-import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { type ReactNode } from 'react'
 
-import { setFrame } from '@/lib/overlay'
+import { useFrame } from '@/hooks/use-frame'
 
 /**
  * The box a **contained** map embed lives in (issue #169).
@@ -50,25 +50,13 @@ export function MapFrame({ contained, children }: { contained: boolean; children
   return <ContainedFrame>{children}</ContainedFrame>
 }
 
+/**
+ * Split from `MapFrame` so the uncontained path runs no hooks at all — a single component
+ * could not early-return before them, and would have to guard the adoption on `contained` and
+ * turn the children gate into a two-way condition. More code, and one more expressible state.
+ */
 function ContainedFrame({ children }: { children: ReactNode }) {
-  // The node, held in STATE rather than a ref, and the children wait for it — the same shape
-  // as `CompactEmbedView`'s dialog and for the same reason. `overlayContainer()` and
-  // `frameElement()` are read in render bodies (the drawer's portal target, vaul's measurement
-  // box, the widget's own width), so a target published in a passive effect would arrive one
-  // commit late and the first drawer would portal itself outside the frame. A callback ref
-  // publishes during the layout phase and the resulting re-render is flushed before paint.
-  // Stable identity, or every render would release and re-adopt.
-  const [node, setNode] = useState<HTMLDivElement | null>(null)
-  const adopt = useCallback((element: HTMLDivElement | null) => {
-    setFrame(element)
-    setNode(element)
-  }, [])
-
-  // React calls the callback ref with `null` on unmount, so the release above already happens.
-  // This is the belt for the brace: a frame left standing after its subtree is gone would
-  // swallow every portal in the app into a detached node, which `frameElement()` guards
-  // against by `isConnected` but `overlayContainer()` should never be asked to.
-  useEffect(() => () => setFrame(null), [])
+  const { node, adopt } = useFrame<HTMLDivElement>()
 
   return (
     // `h-full` resolves against `<sahaj-atlas>` — the theme root between us is
@@ -76,8 +64,8 @@ function ContainedFrame({ children }: { children: ReactNode }) {
     // fills, exactly as in `map=false`. `overflow-hidden` is the promise kept: nothing the
     // interface renders paints outside the box they gave us.
     <div ref={adopt} className="h-full w-full overflow-hidden [contain:layout]" data-sy-frame="">
-      {/* Held back until the ref above has published this node, so the first drawer portals
-          inside the frame rather than beside it. */}
+      {/* Held back until `adopt` has published this node, so the first drawer portals inside
+          the frame rather than beside it. `useFrame` carries the argument. */}
       {node && children}
     </div>
   )

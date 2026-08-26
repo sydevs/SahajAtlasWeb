@@ -1,6 +1,6 @@
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/atoms/Button'
 import { CloseIcon } from '@/components/atoms/Icons'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
-import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
+import { useFrame } from '@/hooks/use-frame'
+import { widgetOverlayContainer } from '@/lib/overlay'
 import { useReportModal } from '@/config/store'
 
 /**
@@ -149,20 +150,20 @@ function ExpandedDialog({
   closeLabel: string
   children: ReactNode
 }) {
-  // The content node, held in STATE rather than a ref, and the children wait for it.
+  // Published as the widget's frame, and the children wait for it — `useFrame` carries the
+  // timing argument, which `MapFrame` depends on identically.
   //
-  // `overlayContainer()` is read in render bodies all over the app, so this has to be published
-  // before its children first render — a ref alone would be one commit late and the first drawer
-  // would portal itself outside the dialog. A callback ref publishes during the layout phase and
-  // the resulting re-render is flushed before paint. Stable identity, or every render would
-  // release and re-adopt.
-  const [node, setNode] = useState<HTMLDivElement | null>(null)
+  // The extra `contentRef` is this component's own: the focus handlers below read the node
+  // synchronously from callbacks that must not re-subscribe when it changes.
+  const { node, adopt: adoptFrame } = useFrame<HTMLDivElement>()
   const contentRef = useRef<HTMLDivElement | null>(null)
-  const adopt = useCallback((element: HTMLDivElement | null) => {
-    contentRef.current = element
-    setFrame(element)
-    setNode(element)
-  }, [])
+  const adopt = useCallback(
+    (element: HTMLDivElement | null) => {
+      contentRef.current = element
+      adoptFrame(element)
+    },
+    [adoptFrame],
+  )
 
   // Who to give focus back to on close.
   //

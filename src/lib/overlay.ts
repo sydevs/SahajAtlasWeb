@@ -62,6 +62,10 @@ export function setFrame(element: HTMLElement | null): void {
  * box every sheet measures against.
  */
 export function frameElement(): HTMLElement | null {
+  // Guarded on `isConnected` rather than trusted: releasing is somebody else's ref detach, and a
+  // stale detached node would silently swallow every portal in the app — and become a 0×0 box
+  // for vaul to measure snap points against. `overlayContainer()` funnels through here so there
+  // is one definition of "a live frame".
   return frame?.isConnected ? frame : null
 }
 
@@ -81,9 +85,5 @@ export function widgetOverlayContainer(): HTMLElement | undefined {
 }
 
 export function overlayContainer(): HTMLElement | undefined {
-  // Guarded on `isConnected` rather than trusted: releasing is somebody else's `useEffect`
-  // cleanup, and a stale detached node would silently swallow every portal in the app.
-  if (frame?.isConnected) return frame
-
-  return widgetOverlayContainer()
+  return frameElement() ?? widgetOverlayContainer()
 }

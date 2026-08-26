@@ -100,15 +100,33 @@ function meaningfullyBigger(box: Box, bigger: Box): boolean {
 }
 
 /**
- * Does map mode live inside the host's element rather than filling the window? (issue #169)
+ * What kind of map this embed has, which is the question every rule below turns on (#169).
  *
- * **The signal is that the host gave the element a box, and nothing else.** Map mode renders
- * everything `position: fixed`, so `<sahaj-atlas>` measures zero height on its own — an
- * unstyled custom element is an inline box with no in-flow content. A height therefore cannot
- * appear by accident: it is a rule the host wrote, and it is the same rule `map=false` has
- * always asked for. That makes sizing the element the opt-in, which is what stops "contained
- * map" and "compact card" both firing on one embed — a contained map is container-relative, so
- * it asks the floors question and never the viewport-ownership one.
+ * **Three states rather than two booleans, because the fourth combination is impossible.**
+ * `hasMap` and `contained` alongside each other can express "contained, with no map", which is
+ * meaningless — and then every reader has to hold the invariant in their head instead of the
+ * type holding it. Same argument as `CompactAction` above.
+ *
+ * - `none` — `map=false`. Container-relative already; nothing is `position: fixed`.
+ * - `viewport` — a map the host gave no height. Fills the browser window whatever slot it is in.
+ * - `contained` — a map living inside the host's element (`MapFrame`).
+ *
+ * **The signal for `contained` is that the host's layout gave the element a box.** Map mode
+ * renders everything `position: fixed`, so an in-flow `<sahaj-atlas>` measures zero height on
+ * its own — an unstyled custom element is an inline box with no in-flow content. So the usual
+ * way to get one is the rule `map=false` has always asked for, and sizing the element is the
+ * opt-in. That is what stops "contained map" and "compact card" both firing on one embed: a
+ * contained map is container-relative, so it asks the floors question and never the
+ * viewport-ownership one.
+ *
+ * ⚠ **"A height cannot appear by accident" would be one layout mode too strong.** As a flex or
+ * grid ITEM the element is blockified, and `align-items: stretch` gives it the track's cross
+ * size with no rule naming `<sahaj-atlas>` anywhere. That embed becomes contained on upgrade
+ * without its host writing a height — which is the intended reading of the ticket ("this should
+ * follow from what the host's layout already says") rather than a hole, since a sized track is
+ * the host saying where the widget goes just as plainly. It is called out because it is the one
+ * case where "unchanged unless you gave it a height" is not literally true, and `CHANGELOG.md`
+ * carries the same caveat for hosts.
  *
  * ⚠ **The box must be the ELEMENT's own, not the slot `decideSlot` composes.** That one falls
  * back to the host's column width when our element has none, which is right for judging the
@@ -116,8 +134,12 @@ function meaningfullyBigger(box: Box, bigger: Box): boolean {
  * `null` is "there is no element" — the standalone build — where the viewport is the slot and
  * containing it would mean containing it in itself.
  */
-export function mapIsContained(hasMap: boolean, elementBox: Box | null): boolean {
-  return hasMap && !!elementBox && elementBox.height > 0
+export type MapMode = 'none' | 'viewport' | 'contained'
+
+export function mapMode(hasMap: boolean, elementBox: Box | null): MapMode {
+  if (!hasMap) return 'none'
+
+  return elementBox && elementBox.height > 0 ? 'contained' : 'viewport'
 }
 
 /** Is either measured axis below the floor the interface needs? */
@@ -173,34 +195,33 @@ export function resolveDestination(
  * and telling that host to "give the element more room" would point them at the opposite of the
  * fix.
  *
- * **`contained` changes which question is asked, not just the answer** (issue #169). An unboxed
- * map embed fills the window whatever slot it was given, so for it the whole question is
- * whether it owns one. A contained map has taken the containing block and is
- * container-relative, exactly like `map=false` — so it drops out of that rule entirely and asks
- * only what every boxed embed asks: is there room for the interface at all?
+ * **The map MODE changes which question is asked, not just the answer** (issue #169). A
+ * `viewport` map fills the window whatever slot it was given, so for it the whole question is
+ * whether it owns one. A `contained` map has taken the containing block and is
+ * container-relative, exactly like `none` — so it drops out of that rule entirely and asks only
+ * what every boxed embed asks: is there room for the interface at all?
+ *
+ * ⚠ **The returned layout is the single answer**, including whether the embed stayed contained.
+ * `decideSlot` derives its `contained` from this rather than from what it passed in, so a
+ * branch added here cannot be silently ignored by the caller.
  */
-export function embedLayout(input: {
-  hasMap: boolean
-  contained: boolean
-  slot: Box
-  destination: Destination
-}): {
+export function embedLayout(input: { map: MapMode; slot: Box; destination: Destination }): {
   layout: EmbedLayout
   reason?: CompactReason
 } {
-  const { hasMap, contained, slot, destination } = input
+  const { map, slot, destination } = input
   // Where "the interface fits" lands. Containment is a property of the embed rather than a
   // verdict on the space, so it survives every branch that does not degrade.
-  const fits: EmbedLayout = contained ? 'contained' : 'full'
+  const fits: EmbedLayout = map === 'contained' ? 'contained' : 'full'
 
   // Nowhere bigger to go. Degrading here would take the interface away and offer nothing back.
   if (destination.kind === 'none') return { layout: fits }
 
-  // An UNBOXED map embed requires owning the viewport — a documented requirement rather than a
-  // bug (see `.claude/rules/components.md`). An overlay destination means precisely that it
-  // does not, so the card is the honest answer where the old code warned and then painted over
-  // the page.
-  if (hasMap && !contained && destination.kind === 'overlay') {
+  // A `viewport` map requires owning the viewport — a documented requirement rather than a bug
+  // (see `.claude/rules/components.md`). An overlay destination means precisely that it does
+  // not, so the card is the honest answer where the old code warned and then painted over the
+  // page.
+  if (map === 'viewport' && destination.kind === 'overlay') {
     return { layout: 'compact', reason: 'map' }
   }
 

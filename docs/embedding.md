@@ -329,6 +329,11 @@ box. **`display:block` (or `flex`/`grid`) matters as much as the height**: a cus
 defaults to `display: inline`, which cannot take one — so an element with a height rule but no
 display rule is _not_ sized, and a map embed there will take the window instead of your box.
 
+⚠ **A flex or grid item is sized even if you never wrote a height.** A stretched item takes its
+track's cross size, so `<sahaj-atlas>` in a full-height flex column is a _contained_ map. That is
+almost always what you want — your layout had already said where the widget goes — but it is the
+one way a map embed ends up contained without a height rule of your own.
+
 **The widget adapts to your element, not to the browser window** (issue #107) — in `map=false`,
 and in a contained map too. A 320px column on a large desktop screen gets the narrow layout — a
 bottom sheet with a drag handle and swipe-to-dismiss — because the widget measures its own box.

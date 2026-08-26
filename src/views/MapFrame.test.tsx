@@ -159,12 +159,12 @@ describe('MapFrame, contained', () => {
  * `react-map-gl`, whose `exports-mapbox.js` fires `import('mapbox-gl')` at module scope, which
  * is precisely what the node lane must never pull in.
  */
+const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (relative: string) => readFileSync(join(SRC, relative), 'utf8')
+
 describe('the wiring', () => {
   it('is what FullInterface wraps the map and the drawer stack in', () => {
-    const source = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), 'FullInterface.tsx'),
-      'utf8',
-    )
+    const source = read('views/FullInterface.tsx')
 
     expect(source).toMatch(/<MapFrame contained=\{contained\}>/)
     // Inside it, not beside it — a frame whose siblings are the fixed layer contains nothing.
@@ -172,5 +172,33 @@ describe('the wiring', () => {
 
     expect(frame).toContain('<Mapbox />')
     expect(frame).toContain('<DrawerStack />')
+  })
+})
+
+/**
+ * `data-sy-frame` is the whole JS↔CSS contract — it is what switches `--sy-frame-h` from
+ * `100dvh` to `100%` — and it is a bare literal in three files that no type connects.
+ *
+ * The repo has the precedent and the scar: `WIDGET_SCOPE_CLASS` (`lib/scope.ts`) is pinned
+ * across its four copies by `postcss-scope-widget.test.ts` because that class had drifted. Here
+ * a rename or a typo would break ONE of the two frames and leave the other working, with lint,
+ * typecheck and the rest of the lane green.
+ */
+describe('the data-sy-frame contract', () => {
+  const ATTRIBUTE = 'data-sy-frame'
+
+  it('is emitted by both frames', () => {
+    expect(read('views/MapFrame.tsx')).toContain(`${ATTRIBUTE}=""`)
+    // The compact card's expanded dialog is the other one. It also carries `data-sy-expanded`,
+    // which is deliberately NARROWER — dialog-only, for the Mapbox control-column nudge.
+    expect(read('views/CompactEmbedView/CompactEmbedView.tsx')).toContain(`${ATTRIBUTE}=""`)
+  })
+
+  it('is what the stylesheet keys the frame height off', () => {
+    const css = readFileSync(join(SRC, 'styles/globals.css'), 'utf8')
+
+    expect(css).toMatch(new RegExp(`\\[${ATTRIBUTE}\\]\\s*\\{[^}]*--sy-frame-h:\\s*100%`))
+    // And the fallback it overrides, so a deleted token is not mistaken for a passing test.
+    expect(css).toMatch(/--sy-frame-h:\s*100dvh/)
   })
 })
