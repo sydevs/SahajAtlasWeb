@@ -168,9 +168,10 @@ export function resolveDestination(
  * Which layout this slot gets, and why.
  *
  * The reason is not decoration — the two compact cases earn genuinely different advice. A slot
- * under the floors wants more room; a map embed that does not own its viewport wants a height,
- * a full-page slot or `map="false"`, and telling that host to "give the element more room"
- * would point them at the opposite of the fix.
+ * under the floors wants more room; an unboxed map embed that does not own its viewport wants a
+ * height (the #169 answer, and the one that keeps the map), a full-page slot or `map="false"` —
+ * and telling that host to "give the element more room" would point them at the opposite of the
+ * fix.
  *
  * **`contained` changes which question is asked, not just the answer** (issue #169). An unboxed
  * map embed fills the window whatever slot it was given, so for it the whole question is

@@ -33,6 +33,21 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **A map embed can now live inside an element on your page, instead of only taking the whole
+  window.** ([#170]) **Give `<sahaj-atlas>` a `display: block` and a height and the map stays in
+  that box** — your site's header above it, your content below, nothing painting over either.
+  Everything the widget draws, panels and controls included, sits in one stacking context, so its
+  `z-index` values no longer compete with yours: a sticky header of yours floats over the map the
+  way it floats over any other content. Inside a box the widget also measures **that box** rather
+  than the browser window, so a narrow contained map gets the bottom sheet and its drag handle,
+  exactly as `map=false` already did ([#107]).
+
+  ⚠ **This reverses what an explicit height used to mean.** A map embed you had given a height
+  was read as evidence it did not own the page and rendered the [compact card]; it now renders the
+  map in your box. If you were relying on the card, remove the height. A map embed with **no**
+  height is unchanged in every respect — it still fills the window, and still degrades to the card
+  when it does not have the page to itself. See [Sizing the element].
+
 - **`routing=path` now works.** ([#164]) Your widget's route can live in the path —
   `your-site.org/classes/gb/london` — instead of in `?atlas=`. It needs your server to serve the
   same page for everything under the prefix, and a canonical embed on your client record to say
@@ -380,6 +395,9 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#136]: https://github.com/sydevs/SahajAtlasWeb/pull/136
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
+[#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
+[#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
+[compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy

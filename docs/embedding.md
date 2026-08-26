@@ -282,18 +282,33 @@ not evidence. Nothing on your page needs to read it, and nothing of yours is des
 
 ## Sizing the element
 
-The two modes want opposite things from you, and neither is obvious from the markup.
+**One rule covers both modes: give the element a height and the widget lives inside it.**
+What differs is only what happens when you _don't_.
 
-**With the map (default), the widget takes the viewport.** The map canvas is rendered
-`position: fixed; inset: 0`, so it fills the browser window and the drawers sit over it,
-regardless of the size of the element the loader inserted. In practice this mode wants
-a **full-page slot**: a dedicated page or a template with no surrounding content it could
-cover. Putting it halfway down an article does not scale it into that space — it covers
-the article.
+**With `map=false`, a height is required.** The widget fills its container (`height: 100%`),
+and an unsized custom element is an inline box of zero height, so it collapses and appears not
+to render.
 
-**With `map=false`, you size it.** The widget fills its container (`height: 100%`), and
-an unsized custom element is an inline box of zero height, so it collapses and appears not
-to render:
+**With the map (default), a height is optional and changes the shape you get.**
+
+| What you give the element                                     | What you get                                                                                                                              |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| A height (`height: 640px`, a grid track, an aspect-ratio box) | The map lives **inside that box**, in your page's flow — your header above it, your content below                                         |
+| No height at all                                              | The map fills the **browser window**: the canvas is `position: fixed; inset: 0` and the drawers sit over it, whatever size the element is |
+
+The second is the older behaviour and still the right one for a dedicated atlas page. It wants
+a **full-page slot** — a template with no surrounding content it could cover — because putting
+it halfway down an article does not scale it into that space, it covers the article. (An
+article-column map with no height therefore gets the compact card rather than a takeover; see
+below.)
+
+**A contained map is one element in your layout, and stacks like one.** The widget puts every
+part of itself — the map, its panels, its controls — inside a single stacking context, so its
+internal `z-index` values do not compete with your CSS. A sticky header of yours with a
+`z-index` floats over the map, the way it floats over any other content. Nothing the widget
+draws escapes the box you gave it.
+
+Either way, sizing looks the same:
 
 The loader inserts the element for you, so size it with a rule rather than an inline style:
 
@@ -307,25 +322,27 @@ The loader inserts the element for you, so size it with a rule rather than an in
 <script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false"></script>
 ```
 
-Any way of giving it a height works — a CSS class, a grid or flex track, an aspect-ratio
-box. `display:block` (or `flex`/`grid`) matters as much as the height: a custom element
-defaults to `display: inline`.
+(Drop `&map=false` from that URL for a contained map instead.)
 
-**In `map=false` the widget adapts to your element, not to the browser window** (issue
-#107). A 320px column on a large desktop screen gets the narrow layout — a bottom sheet
-with a drag handle and swipe-to-dismiss — because the widget measures its own box. Resize
-the element and it follows. Before this, layout keyed off the viewport, so a sidebar embed
-on a wide screen was handed the desktop interaction model and had no drag handle to grab.
+Any way of giving it a height works — a CSS class, a grid or flex track, an aspect-ratio
+box. **`display:block` (or `flex`/`grid`) matters as much as the height**: a custom element
+defaults to `display: inline`, which cannot take one — so an element with a height rule but no
+display rule is _not_ sized, and a map embed there will take the window instead of your box.
+
+**The widget adapts to your element, not to the browser window** (issue #107) — in `map=false`,
+and in a contained map too. A 320px column on a large desktop screen gets the narrow layout — a
+bottom sheet with a drag handle and swipe-to-dismiss — because the widget measures its own box.
+Before this, layout keyed off the viewport, so a sidebar embed on a wide screen was handed the
+desktop interaction model and had no drag handle to grab.
 
 Touch affordances are the deliberate exception and follow the **device**, not the box: a
 phone number is a `tel:` link on a touchscreen and a copyable number everywhere else,
 however narrow the column. Whether a dial link reaches a dialer is hardware.
 
-Map mode has no such adaptation, and that is a requirement rather than an oversight — the
-drawers compute their travel from the window, so a map-mode widget confined to a small box
-is broken by that arithmetic rather than merely cramped. **A map embed that does not have the
-page to itself therefore renders the compact card instead**, whose button opens the map
-full-screen — see below. It used to warn in your console and then paint over your page anyway.
+An **unsized** map embed is the one thing that does not adapt, because there is no box for it to
+adapt to: it fills the window. **A map embed that neither has a height nor has the page to
+itself renders the compact card instead**, whose button opens the map full-screen — see below.
+It used to warn in your console and then paint over your page anyway.
 
 ### When the slot is too small
 
@@ -357,11 +374,14 @@ essentially the whole screen is never called too small, because a card there wou
 interface away and hand back nothing — so a full-width embed on a phone keeps the normal
 interface, and so does a small iframe on a small screen.
 
-**Map mode is measured differently, and this changed.** `map=true` always fills the viewport, so
-the question for it is simply whether it has the page to itself. An embed that does not — a map
-in an article column, or one you gave an explicit height — now renders the compact card, whose
-button opens the map full-screen. Previously it warned in your console and then painted over
-your page anyway.
+**Map mode is measured differently, and this changed twice.** A map embed with **no height of its
+own** fills the viewport, so the question for it is simply whether it has the page to itself: an
+embed that does not — a map in an article column — renders the compact card, whose button opens
+the map full-screen, where it used to warn in your console and then paint over your page anyway.
+A map embed you **gave a height** is not asked that question at all. It lives in your box, so it
+is measured exactly like `map=false`: against the floors above, and nothing else. (An explicit
+height used to be read as the clearest evidence a map embed did not own the page, and produced a
+card. It is now the way to say where the map goes.)
 
 Three things worth knowing:
 
@@ -389,11 +409,14 @@ Three things worth knowing:
 
 - ⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those
   make that element the containing block for fixed-position content, so the overlay is confined
-  to it instead of covering the page — and the same already applies to the map, which is fixed
+  to it instead of covering the page — and the same applies to an unsized map, which is fixed
   too. It is not a trap if it happens — clicking outside the overlay and pressing Escape both
   still close it, wherever it has been confined to — but it will look wrong.
   (`container-type` is fine; it does not have this effect, however
-  often it is said to.)
+  often it is said to.) A **contained** map is unaffected: it establishes that containing block
+  itself, which is exactly how it stays in your box, so an outer one changes nothing.
+  If you find yourself reaching for one of those properties to stop a map painting over your
+  page, **give the element a height instead** — that is the supported way to say the same thing.
 
 ## Embedding in an iframe
 
@@ -829,7 +852,7 @@ Three things to check when you migrate:
 | **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. Add `allow-popups`, or drop the `sandbox` attribute. Nothing in the console will tell you — the browser blocks it silently. |
 | **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                          |
 | **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                 |
-| **The widget covers the rest of the page**                            | Map mode renders `position: fixed; inset: 0` and wants a full-page slot. Use `map=false` for an in-page embed.                                                                                                        |
+| **The widget covers the rest of the page**                            | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                   |
 | **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out of it.                                                                                |
 | **It broke after working yesterday**                                  | The embed updates in place — check [`CHANGELOG.md`](../CHANGELOG.md), then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                        |
 | **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                 |

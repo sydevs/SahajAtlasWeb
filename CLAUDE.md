@@ -175,6 +175,12 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
   (`navigate(-1)`, restoring the prior camera) when in-widget history exists and
   only climb to the structural parent for a fresh deep link (depth 0) — never
   popping the host page's history. See `.claude/rules/i18n-and-state.md`.
+- **Map containment**: map mode fills the viewport only when the host gave `<sahaj-atlas>` no
+  height. Given one, `MapFrame` (`src/views/MapFrame.tsx`) takes the containing block with
+  `contain: layout` and the whole fixed layer — canvas, drawers, peek strips — re-parents onto
+  the host's box unchanged (#169). `lib/overlay.ts` holds the one frame reference, shared with
+  the compact card's expanded dialog. **Never put `contain: layout` on the scope root**: same
+  mechanism, pointed at a box the host owns. See `.claude/rules/components.md`.
 - **Layout**: when the interface does not fit, `AppShell` renders a **compact card** — one
   task-named button — instead. The question is never "is this small" but **"is the space we have
   meaningfully smaller than where the button would take the visitor?"**: an in-page overlay
@@ -185,11 +191,11 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained)
 - **Responsive**: the widget adapts to **its own box**, not the browser window
   (`src/config/responsive.ts`, issue #107). `useIsWide`/`useIsWideWidget` measure the
   container (a ResizeObserver owned by `DrawerStack`, shared via `WidgetWidthContext`);
-  `useIsWideViewport` is for the map camera only; `useCoarsePointer` for touch
-  affordances. In map mode there is nothing to measure — the widget spans the viewport,
-  which is a **documented requirement** of that mode — so the container signal returns
-  the viewport's answer there. The per-behaviour decision table, the map-mode argument
-  and why there is no container-query plugin are in `.claude/rules/components.md`;
+  `useCoarsePointer` is for touch affordances. Map mode measures its **frame** where it has
+  one — a contained embed's box (#169) or the compact card's expanded dialog — and falls
+  through to the viewport where it has none, which is what an unsized map embed spans.
+  The per-behaviour decision table, the containment argument and why there is no
+  container-query plugin are in `.claude/rules/components.md`;
   `src/config/responsive.test.ts` asserts the viewport call sites as a closed list.
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`;
   never inline layer paint/layout in JSX. Camera control goes through the

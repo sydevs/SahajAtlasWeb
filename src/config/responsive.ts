@@ -22,14 +22,18 @@ import { useMediaQuery } from 'react-responsive'
  *
  * ## Why the container signal is a strict generalization, not a behaviour change
  *
- * In **map mode** the widget has no container to measure, by construction: the theme root
- * is `display: contents`, the map canvas is `position: fixed; inset: 0` and every drawer is
- * `fixed` too — so `<sahaj-atlas>` has no box at all and the widget occupies the viewport
- * whatever slot the host put it in. (That is a documented REQUIREMENT of map mode, not an
- * oversight — see the comment on the map container in `App.tsx`.) With nothing to observe,
- * `useIsWide` falls through to the viewport and returns exactly the answer `useIsDesktop`
- * used to. In **map-less mode** the host sizes the element and the widget fills its slot,
- * so there is a real box, and that box is what the app now reads.
+ * In an **unboxed map embed** the widget has no container to measure, by construction: the
+ * theme root is `display: contents`, the map canvas is `position: fixed; inset: 0` and every
+ * drawer is `fixed` too — so `<sahaj-atlas>` has no box at all and the widget occupies the
+ * viewport whatever slot the host put it in. With nothing to observe, `useIsWide` falls
+ * through to the viewport and returns exactly the answer `useIsDesktop` used to. In
+ * **map-less mode** the host sizes the element and the widget fills its slot, so there is a
+ * real box, and that box is what the app now reads.
+ *
+ * **Map mode can have a box too since #169**: a `MapFrame` where the host sized the element,
+ * or the compact card's expanded dialog. Both take the containing block with `contain: layout`,
+ * so the panel a fit question is asking about is genuinely inside them — `frameElement()`
+ * (`lib/overlay.ts`) is what that box is passed as, and `null` there still means the viewport.
  */
 
 /**
@@ -81,9 +85,9 @@ export function useCoarsePointer(): boolean {
 /**
  * Is the widget itself wide — measured, not inferred.
  *
- * Pass the widget's own layout root. Pass `null` when there isn't one (map mode), and the
- * viewport stands in; that is the same answer, because in map mode the widget spans the
- * viewport.
+ * Pass the widget's own layout root — the map-less container, or map mode's frame. Pass `null`
+ * when there isn't one (an unboxed map embed), and the viewport stands in; that is the same
+ * answer, because such an embed spans the viewport.
  *
  * **Measuring a new element is not damped; a change of width is.** The seed runs in a layout
  * effect, so it lands before the browser paints and the correct model is on screen from
