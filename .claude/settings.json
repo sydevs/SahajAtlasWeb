@@ -1,4 +1,7 @@
 {
+  "env": {
+    "MAX_THINKING_TOKENS": "10000"
+  },
   "permissions": {
     "allow": [
       "WebFetch(domain:nextui.org)",
@@ -92,46 +95,10 @@
     "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/status-line.sh"
   },
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-generated-files.mjs"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-wrong-bash.mjs"
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/security-scan.sh"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/prettier-format.mjs"
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/eslint-fix.mjs"
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck.mjs"
-          },
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/unit-test.mjs"
@@ -139,5 +106,16 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "sydevs": {
+      "source": {
+        "source": "github",
+        "repo": "sydevs/claude-workflow"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "workflow@sydevs": true
   }
 }

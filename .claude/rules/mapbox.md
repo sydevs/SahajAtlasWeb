@@ -193,7 +193,7 @@ port plus a matching `VITE_HOST` under the worktree pattern) against the seeded 
           color1: '#1E6C71',
           color2: '#A1C3D7',
           color3: '#e08e79',
-          canonical: { enabled: true, embed: 'localhost:5173/map' },
+          canonical: { enabled: true, embed: 'localhost:5174/map' },
         },
       }),
     }),

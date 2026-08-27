@@ -5,8 +5,8 @@
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 
-# Vite dev server (port 5173 by default)
-PORT="${PORT:-5173}"
+# Vite dev server (port 5174 by default; 5173 belongs to WeMeditateWeb)
+PORT="${PORT:-5174}"
 if lsof -i ":$PORT" -t >/dev/null 2>&1; then
   SERVER="dev:🟢 :$PORT"
 else

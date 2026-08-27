@@ -185,6 +185,11 @@ function stripDsStore(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
+  // 5174, not Vite's default 5173, because WeMeditateWeb's dev server owns 5173 and the
+  // two run side by side when working on the `/map` embed. SahajCloud already assumes this
+  // port — see `SAHAJATLAS_URL` in its `.env.example`.
+  server: { port: 5174, strictPort: true },
+  preview: { port: 5174 },
   plugins: [
     cssInjectedByJsPlugin({
       // v5 deprecated `styleId` in favor of `attributes`; host sites key off

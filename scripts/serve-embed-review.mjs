@@ -20,7 +20,7 @@
  *
  * **2. Locales are fetched from `VITE_HOST`, not from wherever the page is served.** The built
  * bundle hard-codes that origin, so a host page on another port fetches
- * `http://localhost:5173/locales/en/common.json` regardless. If nothing serves it, i18next retries
+ * `http://localhost:5174/locales/en/common.json` regardless. If nothing serves it, i18next retries
  * forever and the widget renders NOTHING — no error, no fallback, just an empty element.
  *
  * **3. `python3 -m http.server` sends no CORS headers.** So even with the locales served, a host
@@ -71,7 +71,7 @@ const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
  * The port the bundle expects its locales on. Serving anywhere else re-arms trap 2, so this is
  * derived rather than chosen — a `--port` flag here would be a footgun with a friendly name.
  */
-const port = Number(new URL(viteEnv.VITE_HOST || 'http://localhost:5173').port) || 5173
+const port = Number(new URL(viteEnv.VITE_HOST || 'http://localhost:5174').port) || 5174
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
