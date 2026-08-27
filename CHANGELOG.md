@@ -123,6 +123,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A venue's room now shows in the address.** ([#172]) The Room field has been editable in the CMS
+  and rendered nowhere — it was fetched and then dropped, so a class in a named hall showed only the
+  street and the city. It now reads `street, room, city`, matching the address line SahajCloud's own
+  SEO endpoint publishes, and appears everywhere the place is shown: the list card, the event
+  details, the registration form and the calendar export.
+
 - **The `theme` storage key is namespaced.** ([#156]) It was the bare string `theme`, so a page
   storing its own light/dark preference under that name had it read and overwritten by the widget —
   a collision the integrator guide has admitted for months. It is now `atlas.theme`, and the old key
@@ -359,6 +365,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
+[#172]: https://github.com/sydevs/SahajAtlasWeb/pull/172
 [#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156
 [#161]: https://github.com/sydevs/SahajAtlasWeb/pull/161
 [#154]: https://github.com/sydevs/SahajAtlasWeb/pull/154
