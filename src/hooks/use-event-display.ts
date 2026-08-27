@@ -91,6 +91,38 @@ export function calendarLineParts({ recurrenceLine, whenLine, time, hasNext }: C
 }
 
 /**
+ * The one-line place string for a physical class — the ONLY place a street address is composed.
+ *
+ * Pure and exported for the same reason as {@link composeCalendarLine}: `EventFacts`, the
+ * registration view and the calendar export all render this one string, so a rule that lives only
+ * inside the hook is a rule three surfaces inherit and none of them can pin.
+ *
+ * ⚠ **`room` belongs in it, and leaving it out was the repo's oldest open issue (#2).** A venue's
+ * "Community Room" was edited in the CMS and appeared nowhere on the site — `room` was in the zod
+ * schema and in the fetcher's `select`, and simply never read. The order matches SahajCloud's own
+ * `addressOneLine` (`street, room, city, region, country postCode`), so the widget and the SEO
+ * endpoint describe a venue the same way rather than two ways.
+ *
+ * ⚠ **An inactive venue gets the municipality only, never the street.** A dormant listing must not
+ * send anybody to a door that no longer opens.
+ */
+export function composeWhereLine({
+  address,
+  regionName,
+  inactive,
+}: {
+  address?: { street?: string | null; room?: string | null; city?: string | null } | null
+  regionName?: string | null
+  inactive: boolean
+}): string {
+  if (inactive) return address?.city || regionName || ''
+
+  return (
+    [address?.street, address?.room, address?.city].filter(Boolean).join(', ') || regionName || ''
+  )
+}
+
+/**
  * Compose the compact calendar fact — the repeat pattern (or, for a one-off /
  * terminal event, the authoritative when-line) joined to the occurrence time
  * with a middot. Delegates the gating to {@link calendarLineParts} so it shares a
@@ -241,15 +273,14 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
 
-    // ── Where ── An inactive venue has no precise location: show only the
-    // municipality (city / region name), never the street address.
+    // ── Where ── see `composeWhereLine`.
     const whereLine = display.online
       ? `${t('display.online')} • ${t('display.hosted_from', { city: originCity })}`
-      : display.status === 'inactive'
-        ? event.address?.city || event.region?.name || ''
-        : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
-          event.region?.name ||
-          ''
+      : composeWhereLine({
+          address: event.address,
+          regionName: event.region?.name,
+          inactive: display.status === 'inactive',
+        })
     // Online only: the viewer's local time, faded under the where line, named
     // with their region ("10 AM in British Columbia") so the conversion says
     // whose clock it is without a "(your time)" label. The weekday is carried

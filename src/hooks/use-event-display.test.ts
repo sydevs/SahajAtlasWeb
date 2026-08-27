@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { composeCalendarLine } from './use-event-display'
+import { composeCalendarLine, composeWhereLine } from './use-event-display'
 
 // The shared calendar-line composition used by both the list card (EventFacts
 // compact) and the map-pin hover popover (#72). Pure string logic — the i18n /
@@ -60,5 +60,50 @@ describe('composeCalendarLine', () => {
         hasNext: false,
       }),
     ).toBe('Contact host for timings')
+  })
+})
+
+// The one-line place string every physical-event surface renders — the list card, the event
+// details, the registration view and the calendar export all read this single value.
+describe('composeWhereLine', () => {
+  const hall = { street: '12 Mill Lane', room: 'Community Room', city: 'Toronto' }
+
+  // ⚠ Issue #2, the repo's oldest: `room` was in the zod schema and in the fetcher's `select`, and
+  // read by nothing — so a venue's "Community Room", edited in the CMS, appeared nowhere on the
+  // site. Reintroducing the defect is a one-token edit here, which is exactly why it needs a spec.
+  it('includes the room, between the street and the city', () => {
+    expect(composeWhereLine({ address: hall, inactive: false })).toBe(
+      '12 Mill Lane, Community Room, Toronto',
+    )
+  })
+
+  // The order is SahajCloud's `addressOneLine` (`street, room, city, …`), so the widget and the
+  // SEO endpoint describe one venue the same way rather than two ways.
+  it('keeps that order when a part is missing', () => {
+    expect(
+      composeWhereLine({ address: { room: 'Room 2', city: 'Toronto' }, inactive: false }),
+    ).toBe('Room 2, Toronto')
+    expect(
+      composeWhereLine({ address: { street: '12 Mill Lane', city: 'Toronto' }, inactive: false }),
+    ).toBe('12 Mill Lane, Toronto')
+  })
+
+  // ⚠ A dormant listing must not send anybody to a door that no longer opens — so an inactive
+  // venue gets the municipality and never the street, room included.
+  it('gives an inactive venue the city alone', () => {
+    expect(composeWhereLine({ address: hall, inactive: true })).toBe('Toronto')
+  })
+
+  it('falls back to the region name when there is no address at all', () => {
+    expect(composeWhereLine({ address: null, regionName: 'Ontario', inactive: false })).toBe(
+      'Ontario',
+    )
+    expect(composeWhereLine({ address: null, regionName: 'Ontario', inactive: true })).toBe(
+      'Ontario',
+    )
+  })
+
+  it('and to nothing when there is neither', () => {
+    expect(composeWhereLine({ inactive: false })).toBe('')
   })
 })
