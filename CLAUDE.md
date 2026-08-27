@@ -61,7 +61,7 @@ Permissions Policy table.
 ## Essential commands
 
 ```bash
-pnpm dev          # Vite dev server (http://localhost:5173)
+pnpm dev          # Vite dev server (http://localhost:5174)
 pnpm build        # tsc (typecheck) + vite build → dist/ + assert:css + assert:maps
 pnpm preview      # serve the production build locally
 pnpm typecheck    # tsc --noEmit (app + tests/scripts via tsconfig.test.json)
@@ -319,10 +319,11 @@ access running an unpinned global install alongside `ACCENT_API_KEY`. Locale JSO
 ## Git / PR workflow
 
 - Branch from `main`: `<type>/<short-slug>` (e.g. `feat/venue-clustering`).
-- Conventional commits: `<type>(<scope>): <subject>` (see
-  `.claude/skills/draft-ticket/conventions.md`).
-- Use the `/implement-issue`, `/finalize-pr`, `/pr-prep`, `/draft-ticket`, and
-  `/reflect-session` skills for structured workflows.
+- Conventional commits: `<type>(<scope>): <subject>` — derive the scopes in use
+  from `git log --oneline -50`.
+- Use the `workflow` plugin's skills: `/workflow:draft-ticket`,
+  `/workflow:implement-issue`, `/workflow:finalize-pr`,
+  `/workflow:cross-repo-issue`, `/workflow:dev-server`.
 - Never force-push `main`, never skip hooks (`--no-verify`), never commit
   `.env.local` or any `sk.`/API secret.
 
@@ -378,14 +379,8 @@ PRs move through three phases. The point is to **batch CI runs** — don't push
    changed) → lean gate → push → create/refresh the PR → watch CI (capped
    fix-loop) → report. Run it when the PR is ready for review/merge.
 
-Skills: `.claude/skills/implement-issue/` (phase 1) and
-`.claude/skills/finalize-pr/` (phase 3, also reused by phase 1). The lean gate
-(`/pr-prep`) is `pnpm lint && pnpm typecheck && pnpm test:run`; CI adds the
-production build + `ladle:build` (see `.claude/rules/tests.md`).
+Skills come from the **`workflow` plugin** (`sydevs/claude-workflow`), enabled in `.claude/settings.json`: `/workflow:implement-issue` (phase 1) and `/workflow:finalize-pr` (phase 3, also reused by phase 1). Per-repo variation — lean gate, contract step, security-review trigger paths, the autonomy allowlist — lives in `.claude/workflow.json`. There is exactly one copy of each skill, so there is no parity spec to keep in sync.
 
-This pipeline is **shared with SahajCloud and WeMeditateWeb**. Its canonical spec
-— step lists, shared invariants, and the table of intentional per-repo deltas —
-is `.claude/docs/workflow-parity.md`, kept **byte-identical** in all three repos.
-When a workflow change lands here, port it to the siblings and update all three
-copies. Run **`/sync-workflow`** to audit this repo's skills against the spec and
-report drift (read-only until you approve the fixes).
+The lean gate is `.claude/skills/pr-prep/check.sh` (`pnpm lint && pnpm typecheck
+&& pnpm test:run`); CI adds the production build + `ladle:build` (see
+`.claude/rules/tests.md`).

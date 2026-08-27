@@ -19,8 +19,8 @@ MCP servers are declared in `.mcp.json` (project root) and enabled per-user in
 - A real browser for driving the running widget: navigate, click the map,
   fill the registration form, take screenshots. This is the **visual
   verification** path for a map-heavy UI with no automated test suite.
-- Typical loop: `pnpm dev` (Vite on :5173) → point the Playwright MCP at
-  `http://localhost:5173` → interact and screenshot.
+- Typical loop: `pnpm dev` (Vite on :5174) → point the Playwright MCP at
+  `http://localhost:5174` → interact and screenshot.
 
 ### cloudflare-docs (`mcp__cloudflare-docs__*`)
 

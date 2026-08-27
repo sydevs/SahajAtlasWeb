@@ -142,7 +142,7 @@ The package manager is **pnpm** (a repo hook blocks npm/yarn):
 
 ```bash
 pnpm install
-pnpm dev          # http://localhost:5173
+pnpm dev          # http://localhost:5174
 ```
 
 Copy `.env` to `.env.local` and fill in the secrets you need — at minimum a
