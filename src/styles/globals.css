@@ -112,7 +112,7 @@
      viewport everywhere else, so one token is right in all three places. */
   --sy-frame-h: 100dvh;
   color: hsl(var(--foreground));
-  font-family: var(--sy-font-sans, 'Atlas Raleway', ui-sans-serif, system-ui, sans-serif);
+  font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);
   letter-spacing: normal;
   text-align: start;
   text-transform: none;

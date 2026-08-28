@@ -37,7 +37,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
         )}
         <div className="flex-grow text-lg">
           <div>{label}</div>
-          {subtitle && <div className="mt-0.5 text-md font-light">{subtitle}</div>}
+          {subtitle && <div className="mt-0.5 text-md font-normal">{subtitle}</div>}
         </div>
         {/* Both step down from the title, but not to the same place: the count is still
             information, so it keeps a readable step; the chevron only restates what tapping

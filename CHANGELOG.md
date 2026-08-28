@@ -31,6 +31,14 @@ cover everything a host would notice since the widget was first deployed.
   sets it. If you were relying on that field, set `locale` on the script URL instead, or check that
   your pages declare the language you want.
 
+- **The widget's typeface is now Rethink Sans**, replacing Raleway. It is still self-hosted, so
+  nothing changes for your CSP and no visitor IP reaches a font CDN. The `@font-face` family is
+  now `Atlas Rethink Sans` (it was `Atlas Raleway`) — still deliberately not the plain typeface
+  name, so it cannot override a face your own page self-hosts. Russian and Ukrainian keep Raleway,
+  which the new typeface has no Cyrillic subset for; the two are split by `unicode-range` under
+  the one family name, so no page ever mixes them. If you were keying off the old family name, or
+  overriding it with `--sy-font-sans`, update the name.
+
 ### Added
 
 - **A map embed can now live inside an element on your page, instead of only taking the whole
