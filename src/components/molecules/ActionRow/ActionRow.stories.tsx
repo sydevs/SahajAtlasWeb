@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { Globe, Navigation, PhoneOutgoing, Share } from 'lucide-react'
+import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
 
 import {
   StoryWrapper,
@@ -74,7 +74,7 @@ export const Default: Story = () => (
           <ActionCircle
             isExternal
             href="https://maps.example"
-            icon={<Navigation />}
+            icon={<Milestone />}
             label="Directions"
           />
           <ActionCircle isExternal href="https://example.org" icon={<Globe />} label="Website" />
@@ -99,7 +99,7 @@ export const Default: Story = () => (
           <ActionCircle
             isExternal
             href="https://maps.example"
-            icon={<Navigation />}
+            icon={<Milestone />}
             label="Directions"
           />
           <ActionCircle icon={<Share size={20} />} label="Share" onClick={() => {}} />
@@ -135,7 +135,7 @@ export const Default: Story = () => (
           <ActionCircle
             isExternal
             href="https://maps.example"
-            icon={<Navigation />}
+            icon={<Milestone />}
             label="Directions"
           />
           <ActionCircle isExternal href="https://example.org" icon={<Globe />} label="Website" />

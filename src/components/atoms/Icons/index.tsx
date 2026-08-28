@@ -16,6 +16,6 @@ export * from './socials'
 // ⚠ RTL mirroring is now per call site. `BaseIcon`'s `flipRtl` used to carry it centrally
 // for the two directional glyphs; with the swap, every directional usage declares
 // `rtl:-scale-x-100` itself — the drill-in chevrons (ListItem, SettingsMenu, the calendar's
-// month arrows) and the directions arrow (EventActions). Symmetric glyphs (globe, calendar,
+// month arrows) and the directions signpost (EventActions). Symmetric glyphs (globe, calendar,
 // share, pin) never mirror, and neither does the external-link ↗, whose convention is
 // direction-agnostic. When adding a directional icon, add the class.

@@ -13,15 +13,16 @@ import {
   LoaderCircle,
   MapPin,
   Menu,
+  Milestone,
   Monitor,
-  Navigation,
+  Moon,
   Pause,
   PhoneOutgoing,
   Search,
   Settings,
   Share,
   SquarePlay,
-  Video,
+  Sun,
   X,
 } from 'lucide-react'
 
@@ -29,36 +30,48 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { Logo, SocialIcon } from './index'
 
+import { Button } from '@/components/atoms/Button'
+
 export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
-// The interface set, as the app uses it. All Lucide: one 24px grid, 2px stroke, round
-// caps and joins, outline only — which is the point of the swap. Named for the glyph
-// rather than the job, so a second use of the same shape doesn't need a second name.
+/**
+ * The gallery is the icons the app ACTUALLY RENDERS — not a curated subset of Lucide, and
+ * not a wishlist. Adding an icon here without a call site turns this page into a second,
+ * worse copy of the Lucide catalogue: it goes stale the moment Lucide ships anything, and
+ * it invites picking a glyph from our page rather than from the 2,000 upstream. So the
+ * rule is one-way — an icon earns its row by being used, and the button below covers
+ * everything else.
+ *
+ * ⚠ Keep this list in step with the imports in app code (excluding stories and tests).
+ * `Video` and `Calendar` are the ones to watch: both appear in `Chip.stories.tsx` only, so
+ * neither belongs here.
+ */
 const ICONS = [
-  { name: 'Search', Icon: Search },
-  { name: 'X', Icon: X },
-  { name: 'Share', Icon: Share },
-  { name: 'ChevronRight', Icon: ChevronRight },
-  { name: 'ChevronDown', Icon: ChevronDown },
-  { name: 'CalendarDays', Icon: CalendarDays },
-  { name: 'MapPin', Icon: MapPin },
-  { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
-  { name: 'Languages', Icon: Languages },
-  { name: 'Monitor', Icon: Monitor },
-  { name: 'Globe', Icon: Globe },
-  { name: 'Navigation', Icon: Navigation },
-  { name: 'Funnel', Icon: Funnel },
-  { name: 'Menu', Icon: Menu },
-  { name: 'Settings', Icon: Settings },
-  { name: 'Info', Icon: Info },
-  { name: 'Check', Icon: Check },
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
-  { name: 'Pause', Icon: Pause },
-  { name: 'SquarePlay', Icon: SquarePlay },
-  { name: 'Video', Icon: Video },
+  { name: 'CalendarDays', Icon: CalendarDays },
+  { name: 'Check', Icon: Check },
+  { name: 'ChevronDown', Icon: ChevronDown },
+  { name: 'ChevronRight', Icon: ChevronRight },
+  { name: 'Funnel', Icon: Funnel },
+  { name: 'Globe', Icon: Globe },
+  { name: 'Info', Icon: Info },
+  { name: 'Languages', Icon: Languages },
   { name: 'LoaderCircle', Icon: LoaderCircle },
+  { name: 'MapPin', Icon: MapPin },
+  { name: 'Menu', Icon: Menu },
+  { name: 'Milestone', Icon: Milestone },
+  { name: 'Monitor', Icon: Monitor },
+  { name: 'Moon', Icon: Moon },
+  { name: 'Pause', Icon: Pause },
+  { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
+  { name: 'Search', Icon: Search },
+  { name: 'Settings', Icon: Settings },
+  { name: 'Share', Icon: Share },
+  { name: 'SquarePlay', Icon: SquarePlay },
+  { name: 'Sun', Icon: Sun },
+  { name: 'X', Icon: X },
 ] as const
 
 const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
@@ -74,22 +87,43 @@ const PALETTE = [
 ] as const
 
 /**
- * Icons — the Lucide interface set the app draws with, plus the brand marks that stay
- * ours (Lucide ships no brand icons). Rendered as a labelled gallery at size 28.
+ * Icons — the Lucide glyphs the app renders, plus the brand marks that stay ours (Lucide
+ * ships no brand icons). Rendered as a labelled gallery at size 28.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The Lucide glyphs used across the app — one grid, one stroke weight, outline only."
+      description="Every Lucide glyph the app renders today — one grid, one stroke weight, outline only. This list is the app's usage, not a selection: an icon appears here once something imports it."
       title="Gallery"
     >
-      <div className="flex flex-wrap gap-6">
-        {ICONS.map(({ name, Icon }) => (
-          <div key={name} className="flex w-24 flex-col items-center gap-2 text-center">
-            <Icon size={28} />
-            <span className="text-xs text-gray-11">{name}</span>
-          </div>
-        ))}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap gap-6">
+          {ICONS.map(({ name, Icon }) => (
+            <div key={name} className="flex w-24 flex-col items-center gap-2 text-center">
+              <Icon size={28} />
+              <span className="text-xs text-gray-11">{name}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Reaching for a glyph we don't use yet is the common case, and the answer is
+            upstream rather than a longer list here — see the docblock on ICONS. */}
+        <div className="flex flex-col items-start gap-2">
+          <Button
+            href="https://lucide.dev/icons/"
+            rel="noopener noreferrer"
+            size="sm"
+            target="_blank"
+            variant="bordered"
+          >
+            Browse all Lucide icons
+            <ArrowUpRight size={16} />
+          </Button>
+          <p className="text-xs text-gray-11">
+            Need one that isn&apos;t here? Take it from the full catalogue, then add it to this
+            gallery in the same change that first uses it.
+          </p>
+        </div>
       </div>
     </StorySection>
 
@@ -136,7 +170,7 @@ export const Default: Story = () => (
     >
       <div className="flex items-center gap-6" dir="rtl">
         <ChevronRight className="rtl:-scale-x-100" size={24} />
-        <Navigation className="rtl:-scale-x-100" size={24} />
+        <Milestone className="rtl:-scale-x-100" size={24} />
         <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
       </div>
     </StorySection>

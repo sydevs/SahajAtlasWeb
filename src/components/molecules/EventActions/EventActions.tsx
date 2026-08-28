@@ -1,6 +1,6 @@
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Navigation, PhoneOutgoing, Share } from 'lucide-react'
+import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
@@ -107,7 +107,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 key="directions"
                 isExternal
                 href={mapsUrl}
-                icon={<Navigation className="rtl:-scale-x-100" />}
+                icon={<Milestone className="rtl:-scale-x-100" />}
                 label={t('actions.directions')}
                 variant="bordered"
               />,

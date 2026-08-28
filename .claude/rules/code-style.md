@@ -100,8 +100,13 @@ style rather than assuming the class works.
   an interface glyph there.
 - **A directional glyph needs `rtl:-scale-x-100` at its call site.** `BaseIcon`'s `flipRtl`
   used to carry that centrally and Lucide has no equivalent, so each drill-in chevron and
-  the directions arrow declares it. Symmetric glyphs (globe, calendar, pin, share) never
+  the directions signpost declares it. Symmetric glyphs (globe, calendar, pin, share) never
   mirror, and neither does the external-link ↗.
+- **The Icons story's gallery is the app's USAGE, not a catalogue.** An icon earns a row by
+  being imported somewhere outside a story or test; the story links to lucide.dev for
+  everything else. `Icons.usage.test.tsx` asserts the two agree in both directions, so a
+  newly-used glyph fails the lane until it is listed and a glyph that loses its last call
+  site cannot linger.
 
 ## After code changes
 
