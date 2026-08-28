@@ -147,4 +147,25 @@ describe('useCameraSettled', () => {
 
     expect(useCameraSettled.getState()).toBe(first)
   })
+
+  // The flag describes one map instance, and this store outlives it: a compact embed unmounts
+  // the whole interface when its dialog closes. Without this, the SECOND view meets a stale
+  // `true` — no curtain, and the first framing flies across the planet from [0,0] zoom 0, which
+  // is both of the defects this store exists to fix, back again.
+  it('is forgotten when the map goes, so the next one arrives afresh', () => {
+    useCameraSettled.getState().markSettled()
+    expect(useCameraSettled.getState().settled).toBe(true)
+
+    useCameraSettled.getState().forgetSettled()
+
+    expect(useCameraSettled.getState().settled).toBe(false)
+  })
+
+  it('forgets idempotently too, so a teardown cannot re-render a live map', () => {
+    const before = useCameraSettled.getState()
+
+    useCameraSettled.getState().forgetSettled()
+
+    expect(useCameraSettled.getState()).toBe(before)
+  })
 })

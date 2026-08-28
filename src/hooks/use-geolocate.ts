@@ -1,7 +1,7 @@
 import type { Geojson } from '@/types'
 
 import { useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
@@ -33,6 +33,13 @@ import { placeSearchPath } from '@/lib/shape'
  */
 export function useGeolocateToSearch(geojson: Geojson | undefined) {
   const navigate = useAtlasNavigate()
+  // The RAW navigate for the naming replace below. `useAtlasNavigate` is for pushes: it stamps
+  // an incrementing `atlasDepth` and remembers the outgoing camera, and doing either for an
+  // entry that added no history would leave the drawer stack drawing a peek strip for a
+  // back-step that does not exist. Its own docblock reserves it, the same way FilterView's
+  // apply-replace does.
+  const replace = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const { locale } = useLocale()
 
@@ -47,9 +54,9 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
    * A ref refreshed every render is the fix: `Mapbox` re-renders on filter and location changes
    * already, so this is always current by the time anyone can press the control.
    */
-  const live = useRef({ navigate, searchParams, geojson, locale })
+  const live = useRef({ navigate, replace, location, searchParams, geojson, locale })
 
-  live.current = { navigate, searchParams, geojson, locale }
+  live.current = { navigate, replace, location, searchParams, geojson, locale }
 
   return useCallback((position: GeolocationPosition) => {
     const { navigate: go, searchParams: params, geojson: feed, locale: lang } = live.current
@@ -59,15 +66,16 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
     // Navigate FIRST, on the coordinates alone. Getting here has already cost up to Mapbox's
     // six-second `positionOptions.timeout`, so nothing else may be waited on before the map
     // moves and the list re-ranks.
-    go(placeSearchPath(params, place))
+    const target = placeSearchPath(params, place)
+
+    go(target)
 
     // Then name the place, if the network obliges. `?q` fills the search field so it says where
     // the results are from, and `?cc` turns on the country-site offer and the foreign-distance
     // rule — neither of which a `GeolocationPosition` can supply.
     //
     // Rebuilt from the same `params` and `place` rather than merged onto whatever the URL says
-    // by then, so the naming cannot disturb the search it is naming. `replace` because this is
-    // the same destination gaining a label, not a second place to press Back through.
+    // by then, so the naming cannot disturb the search it is naming.
     void reverseGeocode(point, lang).then((feature) => {
       if (!feature) return
 
@@ -76,7 +84,22 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
 
       if (!q && !countryCode) return
 
-      go(placeSearchPath(params, { ...place, q, countryCode }), { replace: true })
+      // ⚠ **Only label the search we started, and only while the visitor is still on it.** This
+      // resolves a few hundred ms late, which is easily long enough to tap a class — and a
+      // `replace` fired then would overwrite THAT route with the search, with no Back to undo
+      // it. Comparing against the route we pushed is exact, because both sides come from
+      // `placeSearchPath` over the same inputs.
+      const now = live.current.location
+
+      if (`${now.pathname}${now.search}` !== target) return
+
+      live.current.replace(placeSearchPath(params, { ...place, q, countryCode }), {
+        replace: true,
+        // Carried explicitly: the raw navigate forwards only what it is given, and dropping the
+        // entry's `atlasDepth` would make the drawer's X climb to the structural parent instead
+        // of going back. Same reason `MapSearch.setQuery` carries it.
+        state: now.state,
+      })
     })
   }, [])
 }

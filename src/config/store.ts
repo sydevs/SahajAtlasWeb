@@ -119,6 +119,7 @@ export const rememberCamera = (key: string): void => {
 type CameraSettled = {
   settled: boolean
   markSettled: () => void
+  forgetSettled: () => void
 }
 
 export const useCameraSettled = create<CameraSettled>((set) => ({
@@ -127,6 +128,20 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
   // that returned a fresh object each time would notify subscribers — re-rendering the map on
   // every pan and zoom for a boolean that stopped changing after the first one.
   markSettled: () => set((state) => (state.settled ? state : { settled: true })),
+  /**
+   * Forget it, because the map this described has gone.
+   *
+   * ⚠ **Not housekeeping — without it both fixed defects come back on the second view.** This
+   * store is module-global while the map is not: a compact embed unmounts the whole interface
+   * when its dialog closes (`CompactEmbedView` passes the interface as `children` and
+   * deliberately does not `forceMount` it). A stale `true` would then meet a freshly mounted map
+   * sitting at [0, 0] zoom 0 — so the curtain would not draw, the world frame would be painted,
+   * and the first framing would fly across the planet again.
+   *
+   * Called from the map's own unmount, because "the camera has arrived" is a fact about a live
+   * map instance and has to die with it.
+   */
+  forgetSettled: () => set((state) => (state.settled ? { settled: false } : state)),
 }))
 
 // ===== CALENDAR POSITION ===== //

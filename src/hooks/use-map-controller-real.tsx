@@ -173,6 +173,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         flyTo([camera.longitude, camera.latitude], camera.zoom)
       },
       reset() {
+        // Like the two framing calls, this owns the emphasized point: the root view shows the
+        // whole world, and a pin for the class you were just looking at has no place on it.
+        // Reached by pressing the root peek strip out of an event, which is a PUSH, not the POP
+        // that `restore` would have reinstated it for.
+        setSelection(null)
         setBoundary(undefined)
         moveMap({ zoom: 0 })
       },

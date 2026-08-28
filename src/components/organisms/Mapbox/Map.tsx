@@ -265,6 +265,11 @@ export function Mapbox() {
       height: '100%',
       opacity: settled ? 1 : 0,
       transition: 'opacity 250ms ease-out',
+      // ⚠ A hidden map must also be an inert one. `opacity: 0` hides the canvas but leaves it
+      // fully interactive, and the curtain over it is `pointer-events-none` — so a click would
+      // land on pins nobody can see and navigate to a class the visitor never chose. Reachable
+      // on any route that does not frame the camera, where the reveal waits out the backstop.
+      pointerEvents: settled ? undefined : ('none' as const),
     }),
     [settled],
   )
@@ -276,7 +281,16 @@ export function Mapbox() {
   }, [reveal])
   const revealTimer = useRef<number>()
 
-  useEffect(() => () => window.clearTimeout(revealTimer.current), [])
+  // The flag describes THIS map instance, so it dies with it — a compact embed unmounts the
+  // whole interface when its dialog closes, and a stale `true` would meet the next map at the
+  // world view with neither the curtain nor the arrival jump. See `forgetSettled`.
+  useEffect(
+    () => () => {
+      window.clearTimeout(revealTimer.current)
+      useCameraSettled.getState().forgetSettled()
+    },
+    [],
+  )
 
   // The individual event pin (unclustered-point) currently under the pointer, for
   // the timing popover — never a cluster. Cleared when the pointer moves to empty
