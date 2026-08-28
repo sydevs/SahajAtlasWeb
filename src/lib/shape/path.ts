@@ -295,3 +295,22 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
  */
 export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry | undefined =>
   isFilterOverlay(entries, hasMap) ? entries.at(-2) : entries.at(-1)
+
+/**
+ * Which view the base drawer is actually showing, as a stable identity — DrawerStack's
+ * `AnimatePresence` key, and the thing `useFrameOnTop` compares itself against.
+ *
+ * **The camera belongs to the view that is on top, and only that one.** DrawerStack keeps an
+ * outgoing view mounted for its 150ms exit, and router context reaches it — so an exiting view
+ * re-renders under the NEW url, and any framing it derives from the url re-runs against a route
+ * it no longer owns. SearchView did exactly that: leaving `/search` for an event, its
+ * `?center`/`?bbox` read as absent, and `frameSearch({})` reset the camera to the world a beat
+ * before the event framed, which read as a zoom-out followed by a long fly back in.
+ *
+ * ⚠ **Not `location.pathname`.** At `/calendar/filters` the trailing entry is peeled into a modal
+ * overlay, so the base drawer is still the calendar and the key is `/calendar` — a pathname
+ * comparison would call that a view change and mute the calendar's framing. Derived through
+ * `baseStackEntry` so that carve-out has one definition, the same reason `isFilterOverlay` does.
+ */
+export const topViewKey = (pathname: string, hasMap = true): string =>
+  baseStackEntry(resolveStack(pathname), hasMap)?.path ?? '/'

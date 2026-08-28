@@ -2,7 +2,7 @@ import type { MapSearchProps } from '@/components/organisms/Mapbox/MapSearch'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
@@ -40,6 +40,7 @@ import {
   resolvePath,
   sortFromParams,
   sortToParams,
+  topViewKey,
 } from '@/lib/shape'
 
 // Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
@@ -308,8 +309,22 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
   const location = useLocation()
   const navigationType = useNavigationType()
   const { hasMap, restore } = useMapController()
+  // Which view the base drawer is showing NOW, against which one this hook belongs to. A ref
+  // because the latter is this view's identity, fixed for its lifetime — recomputing it would
+  // only ever compare the live value with itself.
+  const activeView = topViewKey(location.pathname, hasMap)
+  const ownView = useRef(activeView)
 
   useEffect(() => {
+    // An EXITING view does not own the camera. DrawerStack keeps it mounted for its 150ms exit
+    // and router context still reaches it, so a view whose deps come from the URL re-renders
+    // under the NEXT route and re-runs this effect for a level it no longer shows. That is how
+    // tapping a pin from a search used to reset the camera to the world a beat before the event
+    // framed — read as a zoom-out followed by a long fly back in. See `topViewKey` for why this
+    // is not a `location.pathname` comparison, and why it must not be "did the location change"
+    // (a re-search moves `?center` and legitimately re-frames the SAME view).
+    if (activeView !== ownView.current) return
+
     // On a POP back to a remembered entry, restore the camera the user left rather
     // than re-deriving the framing — so closing an event returns to the prior
     // viewport/zoom (browser back/forward get this for free). Otherwise (a PUSH, or a

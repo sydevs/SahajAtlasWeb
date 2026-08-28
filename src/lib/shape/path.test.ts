@@ -10,6 +10,7 @@ import {
   resolvePath,
   resolveStack,
   safePath,
+  topViewKey,
 } from './path'
 
 describe('safePath', () => {
@@ -287,5 +288,45 @@ describe('listResetKey', () => {
   it('handles the bare search with no params', () => {
     expect(key('')).toBe('')
     expect(key('q=anything')).toBe('')
+  })
+})
+
+describe('topViewKey', () => {
+  it('is the root for the base view', () => {
+    expect(topViewKey('/')).toBe('/')
+  })
+
+  it('is the deepest entry for an ordinary stack', () => {
+    expect(topViewKey('/india/pune/507')).toBe('/india/pune/507')
+    expect(topViewKey('/search')).toBe('/search')
+  })
+
+  // The whole reason this is not a `location.pathname` comparison: a trailing `filters` over
+  // the calendar is a modal overlay, so the base drawer is still the calendar and its framing
+  // must keep running. Peeling it is `isFilterOverlay`'s rule, reached via `baseStackEntry`.
+  it('peels a filter overlay off the calendar in map mode', () => {
+    expect(topViewKey('/calendar/filters')).toBe('/calendar')
+  })
+
+  // Map-less renders no overlay — there the trailing entry IS the view, so nothing is peeled.
+  it('does not peel it in the map-less build', () => {
+    expect(topViewKey('/calendar/filters', false)).toBe('/calendar/filters')
+  })
+
+  // Filters over anything else is a stacked view, not an overlay, in either build.
+  it('does not peel filters that are not over the calendar', () => {
+    expect(topViewKey('/search/filters')).toBe('/search/filters')
+  })
+
+  // The property the camera guard rests on: leaving a view changes the key, so an exiting
+  // view can tell that it no longer owns the camera.
+  it('changes when the visitor leaves a view', () => {
+    expect(topViewKey('/search')).not.toBe(topViewKey('/india/pune/507'))
+  })
+
+  // ...and a re-search does NOT change it, which is why the guard cannot be "did the location
+  // change": the same SearchView must re-frame when `?center` moves.
+  it('is unchanged by a re-search on the same view', () => {
+    expect(topViewKey('/search')).toBe(topViewKey('/search'))
   })
 })

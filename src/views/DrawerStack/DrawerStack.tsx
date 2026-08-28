@@ -31,6 +31,7 @@ import {
   atlasDepth,
   dismissAction,
   dismissDepth,
+  baseStackEntry,
   isFilterOverlay,
   resolveStack,
 } from '@/lib/shape'
@@ -283,7 +284,11 @@ export function DrawerStack() {
     [filterOverlay, entries],
   )
 
-  const top = baseEntries.at(-1) ?? null
+  // Through `baseStackEntry` rather than `baseEntries.at(-1)` — the same value either way, but
+  // said in the shared vocabulary, so `top.path` is provably `topViewKey(location.pathname,
+  // hasMap)`. `useFrameOnTop` compares itself against that key to tell whether it is still the
+  // view on top, and the two agreeing is what makes the comparison mean anything.
+  const top = baseStackEntry(entries, hasMap) ?? null
   // The calendar is the one full-width view — it fills the widget (minus the floating
   // margins) instead of the ~22rem left panel (see the Drawer `wide` variant) — EXCEPT in
   // its list (agenda) view, which is a single narrow column and reads better at the regular

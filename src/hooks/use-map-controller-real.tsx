@@ -150,7 +150,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setBoundary(undefined)
         if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
         else if (center) flyTo(center, EVENT_ZOOM)
-        else moveMap({ zoom: 0 })
+        // No bbox and no centre means nothing was searched — so there is nothing to frame, and
+        // the camera stays where the visitor left it. This used to reset to the world, which
+        // made pressing Search from a region throw the map to zoom 0 while SearchView was
+        // simultaneously snapshotting that camera to rank by. Framing the world is a thing only
+        // the root view wants, and it asks for it by name: `reset()`.
       },
       restore(camera) {
         setSelection(camera.selection ?? null)
