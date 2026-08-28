@@ -90,6 +90,45 @@ export const rememberCamera = (key: string): void => {
   useCameraHistory.getState().save(key, { zoom, latitude, longitude, selection, boundary })
 }
 
+// ===== CAMERA SETTLED ===== //
+
+/**
+ * Whether the camera has been commanded yet this session — i.e. whether the map has ARRIVED
+ * anywhere, as opposed to still sitting on the boot-time world view.
+ *
+ * `<ReactMapGL>` is deliberately uncontrolled and takes no `initialViewState`, so it boots at
+ * `[0, 0]` zoom 0 and the first framing has to carry it to wherever the visitor actually asked
+ * for. Two things need to know that this is the first move, and it is the same fact both times:
+ *
+ *  - **the first camera command jumps rather than flies** (`use-mapbox.ts`). A `flyTo` from zoom
+ *    0 to zoom 15 arcs across the whole planet, which on a deep link to a region or an event is
+ *    a long, disorienting animation of somewhere the visitor never asked to see. Every LATER
+ *    transition still flies — that symmetry between drilling in and backing out is deliberate.
+ *  - **the map stays hidden until then** (`Map.tsx`), so the world frame is never painted.
+ *
+ * ⚠ **Not `isEntry`**, which is the obvious-looking alternative and is wrong. `isEntry` is
+ * `atlasDepth(location) === 0`, true both for a fresh deep link AND for a structural climb — so
+ * dismissing an event up to its region an hour into a session would jump, breaking the rule that
+ * every in-app level transition flies one tuned arc. "Has the camera moved yet" is a fact about
+ * the map, and it is exactly the condition under which a fly is disorienting.
+ *
+ * ⚠ **Here rather than beside `usePaddingState` in `use-mapbox.ts`**: that module imports
+ * `react-map-gl`, which does `import('mapbox-gl')` at module scope, so the node lane cannot
+ * import it and a flag living there could not be tested at all.
+ */
+type CameraSettled = {
+  settled: boolean
+  markSettled: () => void
+}
+
+export const useCameraSettled = create<CameraSettled>((set) => ({
+  settled: false,
+  // Idempotent by identity, not just by value: every camera command calls this, and a `set`
+  // that returned a fresh object each time would notify subscribers — re-rendering the map on
+  // every pan and zoom for a boolean that stopped changing after the first one.
+  markSettled: () => set((state) => (state.settled ? state : { settled: true })),
+}))
+
 // ===== CALENDAR POSITION ===== //
 
 // The full-width CalendarView's last view (`month-grid` / `week` / `list`) + focused

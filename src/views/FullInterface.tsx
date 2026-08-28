@@ -2,7 +2,10 @@ import { useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl'
+import { useTranslation } from 'react-i18next'
 
+import { Spinner } from '@/components/atoms/Spinner'
+import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
@@ -79,6 +82,45 @@ function useAnalytics(primaryDomain: string, pathname: string) {
   }, [pathname, enabled, primaryDomain])
 }
 
+/**
+ * The frost over the canvas until the camera has arrived somewhere (issue: deep links used to
+ * fly in from the world view).
+ *
+ * The map is uncontrolled and takes no `initialViewState`, so it necessarily boots at [0, 0]
+ * zoom 0 while the region or event the visitor actually asked for is still being fetched. The
+ * canvas fades itself in on the same flag; this draws what stands in front of it meanwhile.
+ *
+ * ⚠ **`backdrop-blur` on this overlay, never `filter: blur()` on the canvas.** A backdrop filter
+ * is the composited path and leaves the WebGL surface untouched, where filtering the canvas
+ * forces it into a filtered layer every frame.
+ *
+ * The spinner fades in on a delay (`sy-map-curtain-spinner`, styles/globals.css) rather than
+ * appearing at once, so a warm boot reads as a clean frost→reveal instead of flashing a spinner
+ * nobody had time to register. A CSS animation-delay rather than a timer, because there is no
+ * state here to schedule against.
+ *
+ * Module-private and rendered in exactly one place, per the single-use rule in DESIGN_SYSTEM.md.
+ */
+function MapCurtain() {
+  const settled = useCameraSettled((s) => s.settled)
+  const { t } = useTranslation('common', { useSuspense: false })
+
+  if (settled) return null
+
+  return (
+    <div
+      // Not `role="status"`: the drawer's own DrawerLoading already announces the wait, and two
+      // live regions describing one boot is one more than a screen reader should hear.
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-md"
+    >
+      <span className="sy-map-curtain-spinner">
+        <Spinner decorative size="lg" srLabel={t('loading', { defaultValue: 'Loading' })} />
+      </span>
+    </div>
+  )
+}
+
 /** The map (or not) and the drawer stack over it — everything below the form decision. */
 function FullInterface({
   contained,
@@ -148,6 +190,7 @@ function FullInterface({
             independent of Tailwind viewport-unit utility generation. */}
         <div style={{ position: 'fixed', inset: 0 }}>
           <Mapbox />
+          <MapCurtain />
         </div>
         <RealMapControllerProvider>
           <DrawerStack />
