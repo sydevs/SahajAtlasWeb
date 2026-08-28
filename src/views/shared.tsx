@@ -20,26 +20,23 @@ import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { approxBounds } from '@/lib/geo'
-import { geocodeCountryCode } from '@/lib/geocode'
+import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
+  NEARBY_RADIUS_KM,
   hasActivePlaceSearch,
   markGeolocationDismissed,
   readGeolocationDismissed,
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
-  SEARCH_COUNTRY_PARAM,
   activeFilterCount,
   searchPath,
   atlasDepth,
   calendarPath,
-  filtersFromParams,
-  filtersToParams,
   isoCountryCode,
+  placeSearchPath,
   resolvePath,
-  sortFromParams,
-  sortToParams,
   topViewKey,
 } from '@/lib/shape'
 
@@ -233,23 +230,6 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   )
 }
 
-// The URL-only state that survives a new place search — the applied filters and the
-// list sort (both presentation, not location). Re-encoding through the two codecs from
-// an EMPTY base drops the searched location (`q`/`center`/`bbox`/`cc`) by construction;
-// the caller then sets the new one. That's what keeps the previous country's `?cc` from
-// leaking into the next search (it would offer the wrong country's website). Shared by
-// SearchField + GeolocationSuggestion so a re-search never silently clears either
-// slice — and a filter edit, which merges onto the current params
-// (`filtersToParams(…, prev)`), preserves the searched country. The results list's
-// reveal isn't in the URL at all: a new centre changes `revealKey`, so it resets on its
-// own (see `use-reveal`).
-function preserveSearchState(searchParams: URLSearchParams): URLSearchParams {
-  return sortToParams(
-    sortFromParams(searchParams),
-    filtersToParams(filtersFromParams(searchParams)),
-  )
-}
-
 // The geocoder search field used by CountriesView/SearchView headers. Selecting a
 // place navigates to /search with the geocoded bbox + centre (the SearchView
 // ranks events by distance from there). Carries the geocode→search behaviour that
@@ -263,26 +243,20 @@ export function SearchField({
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      // Carry the active filters + sort (both URL-only) across the re-search, resetting
-      // only the searched location below.
-      const params = preserveSearchState(searchParams)
-
-      params.set('q', value.properties.full_address ?? '')
-      if (value.properties.bbox) params.set('bbox', value.properties.bbox.toString())
-      params.set(
-        'center',
-        `${value.properties.coordinates.longitude},${value.properties.coordinates.latitude}`,
+      navigate(
+        // `placeSearchPath` carries the active filters + sort across and resets the searched
+        // location — one builder shared with the IP suggestion and the geolocate control, so
+        // none of the three can forget half of it.
+        placeSearchPath(searchParams, {
+          q: value.properties.full_address ?? '',
+          center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
+          bbox: geocodeBounds(value),
+          // The country the place sits in, so an empty result set can offer that country's own
+          // site (issue #82). Present for a country-level result and for a town within one;
+          // absent for an ocean or a country-less feature.
+          countryCode: geocodeCountryCode(value),
+        }),
       )
-
-      // The country the place sits in, so an empty result set can offer that
-      // country's own site (issue #82). Present for a country-level result and for a
-      // town within one; absent (so simply not written) for an ocean or a
-      // country-less feature.
-      const countryCode = geocodeCountryCode(value)
-
-      if (countryCode) params.set(SEARCH_COUNTRY_PARAM, countryCode)
-
-      navigate(`/search?${params.toString()}`)
     },
     [navigate, searchParams],
   )
@@ -395,10 +369,6 @@ export function EmptyEventList() {
   )
 }
 
-// A city-sized radius (km) so the suggested search frames a neighbourhood, not the
-// pinpoint the IP guess resolves to.
-const NEARBY_RADIUS_KM = 25
-
 // The single shared wiring for the IP-geolocation nearby suggestion, rendered above
 // the list on CountriesView / RegionView / SearchView so the behaviour isn't
 // triplicated. Reads the passive IP location (one lookup per session; fails silently
@@ -444,30 +414,26 @@ export function GeolocationSuggestion({
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
 
-    // Carry the active filters + sort across the re-search (mirrors SearchField),
-    // resetting only the searched location below.
-    const params = preserveSearchState(searchParams)
-
-    params.set('q', `${ipLocation.city}, ${ipLocation.country}`)
-    params.set('center', `${ipLocation.longitude},${ipLocation.latitude}`)
-    params.set(
-      'bbox',
-      approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM).toString(),
-    )
-
-    // Same searched-country marker SearchField writes — the guess already carries the
-    // code (it also orders an event's share targets), so an accepted suggestion that
-    // lands in a program-less country gets the offer too.
-    const countryCode = isoCountryCode(ipLocation.country_code)
-
-    if (countryCode) params.set(SEARCH_COUNTRY_PARAM, countryCode)
-
     // Accepting must NOT persist a dismissal — only the × does (handleDismiss).
     // Zooming to the guess already hides the prompt on its own: the new URL carries
     // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while you're looking at
     // that area. Leaving the area (clearing the search) brings the suggestion back,
     // so it keeps offering until the user actually dismisses it.
-    navigate(`/search?${params.toString()}`)
+    navigate(
+      placeSearchPath(searchParams, {
+        q: `${ipLocation.city}, ${ipLocation.country}`,
+        center: [ipLocation.longitude, ipLocation.latitude],
+        // A synthesized city-sized box, so the search frames a neighbourhood rather than the
+        // pinpoint zoom a bare centre gets. The device fix uses the same floor — see
+        // `nearbyBounds`, which additionally reaches out to the classes themselves, because
+        // there the point is precise enough for that to mean something.
+        bbox: approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM),
+        // Same searched-country marker SearchField writes — the guess already carries the
+        // code (it also orders an event's share targets), so an accepted suggestion that
+        // lands in a program-less country gets the offer too.
+        countryCode: isoCountryCode(ipLocation.country_code),
+      }),
+    )
   }, [ipLocation, navigate, searchParams])
 
   const handleDismiss = useCallback(() => {

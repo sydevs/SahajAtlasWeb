@@ -1,6 +1,7 @@
 import type { Geojson } from '@/types'
+import type { BBox } from 'geojson'
 
-import { distanceKm } from './geo'
+import { approxBounds, boundsOfPoints, distanceKm } from './geo'
 
 // The visibility logic behind the IP-geolocation "nearby classes" suggestion,
 // factored out of the GeolocationSuggestion component so every condition is
@@ -17,6 +18,17 @@ export const NEARBY_MAX_KM = 100
 // Treat a region as the user's own "local" region when its centre sits within this
 // radius (km) of the guess — a metro region's centre is near you, a country's isn't.
 export const LOCAL_REGION_KM = 100
+
+// A city-sized radius (km): the floor on any framed neighbourhood, so a located point is shown
+// with its surroundings rather than as a pinpoint. Shared by the IP suggestion and the device
+// fix — the same question at different precisions, and they should frame at the same scale.
+export const NEARBY_RADIUS_KM = 25
+
+// How many of the nearest classes the frame must contain. Low-stakes by design: in any city the
+// NEARBY_RADIUS_KM floor already contains this many, so it only bites where classes are sparse —
+// and there `NEARBY_MAX_KM` bounds how far it can reach. The map's job on arrival is orientation,
+// not enumeration.
+export const NEARBY_FIT_COUNT = 5
 
 // sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
 // accessors degrade to "not dismissed" rather than crashing the suggestion.
@@ -54,6 +66,51 @@ export const hasClassWithin = (
   geojson.features.some(
     (feature) => feature.geometry != null && distanceKm(point, feature.geometry.coordinates) <= km,
   )
+
+/**
+ * The area to frame around a located visitor: their point, plus the nearest few classes.
+ *
+ * "Find my location" should answer *where are the classes near me*, so the camera has to hold
+ * both the visitor and something to go to. Mapbox's own GeolocateControl instead fits the
+ * accuracy circle at zoom 15 — a street corner, with every class off-screen.
+ *
+ * Two bounds keep the answer useful at both extremes, and both are reused rather than invented:
+ *
+ *  - a FLOOR of `minKm` (`NEARBY_RADIUS_KM`), so a visitor standing on top of the only nearby
+ *    venue gets a neighbourhood rather than a zero-area box — the degenerate case `boundsOfPoints`
+ *    would otherwise hand to `fitBounds`, which would zoom to its maximum.
+ *  - a CAP of `maxKm` (`NEARBY_MAX_KM`), which is already this module's definition of "genuinely
+ *    near": it is what decides whether the IP prompt is offered at all. A class the app declines
+ *    to *suggest* has no business *widening the camera*. Being a radius cap it bounds the box at
+ *    roughly 2·maxKm across however the feed is distributed, so a visitor in a country with no
+ *    classes gets the floor box, never a continent.
+ *
+ * ⚠ Neither `@turf/bbox` nor `@turf/circle` handles the antimeridian, so a visitor at ±179°
+ * longitude gets a box spanning the world. Pre-existing, and shared with every other
+ * `approxBounds` caller; out of scope here.
+ */
+export const nearbyBounds = (
+  point: [number, number],
+  geojson: Geojson | undefined,
+  opts?: { count?: number; minKm?: number; maxKm?: number },
+): BBox => {
+  const count = opts?.count ?? NEARBY_FIT_COUNT
+  const minKm = opts?.minKm ?? NEARBY_RADIUS_KM
+  const maxKm = opts?.maxKm ?? NEARBY_MAX_KM
+
+  const nearest = (geojson?.features ?? [])
+    // Online classes carry no geometry and so have no place in a frame.
+    .flatMap((feature) => (feature.geometry ? [feature.geometry.coordinates] : []))
+    .filter((coordinates) => distanceKm(point, coordinates) <= maxKm)
+    .sort((a, b) => distanceKm(point, a) - distanceKm(point, b))
+    .slice(0, count)
+
+  // The floor arrives as its own corners rather than as a separate union step — `boundsOfPoints`
+  // is already the union, and feeding it a box's extremes keeps every bit of the maths on turf.
+  const floor = approxBounds(point, minKm)
+
+  return boundsOfPoints([...nearest, [floor[0], floor[1]], [floor[2], floor[3]]]) as BBox
+}
 
 /** Whether the viewed region is local to the guess — its centre within `km`. */
 export const isLocalRegion = (

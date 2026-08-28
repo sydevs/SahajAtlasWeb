@@ -31,6 +31,7 @@ import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
 import { useCameraSettled, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -240,6 +241,11 @@ export function Mapbox() {
     queryFn: () => api.getGeojson(),
     staleTime: GEOJSON_STALE_TIME,
   })
+
+  // "Find my location" opens the results centred on the visitor rather than just moving the
+  // camera — see the hook, and the `followUserLocation` note on the control below. The feed is
+  // passed down because it is already held here; the hook frames around the nearest classes in it.
+  const geolocateToSearch = useGeolocateToSearch(data)
 
   // Supply the app's own pin/cluster images; markers.ts owns the why and the
   // theme-switch handling. One subscription per map instance.
@@ -451,7 +457,15 @@ export function Mapbox() {
           longitude={hovered.longitude}
         />
       )}
-      <GeolocateControl />
+      {/* `followUserLocation={false}` stops mapbox moving the camera itself. Its `_updateCamera`
+          fits the accuracy circle at zoom 15 — a street corner — with its own curve and speed,
+          and fires BEFORE the `geolocate` event, so it would race the framing our handler asks
+          for through the URL. The flag is read in `_onSuccess` and gates only that call:
+          `_updateMarker` is separate, so the blue dot, the accuracy circle, the permission flow
+          and the localized labels above all stay.
+          ⚠ Mapbox's own .d.ts claims this option still recentres; its source says otherwise.
+          Verified against the running control rather than either. */}
+      <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
     </ReactMapGL>
   )
 }

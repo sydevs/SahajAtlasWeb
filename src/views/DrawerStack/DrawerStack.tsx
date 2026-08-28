@@ -242,6 +242,9 @@ function PeekStrip({
 // bottom on mobile. Map-less, the single drawer fills the widget container.
 export function DrawerStack() {
   const location = useLocation()
+  // Read off the location rather than through `useSearchParams`, which would add a second
+  // subscription for a value this component already re-renders on.
+  const searchCenter = new URLSearchParams(location.search).get('center')
   const navigate = useNavigate()
   const { hasMap, standalone } = useWidgetMode()
   // `t` comes off `useLocale` rather than a second `useTranslation`: the hook already
@@ -504,6 +507,18 @@ export function DrawerStack() {
   useEffect(() => {
     if (direction === 'bottom') setSnap(top?.kind === 'calendar' ? WIDE_SNAP : OPEN_SNAP)
   }, [direction, top?.kind])
+
+  // A new searched place lifts the sheet out of its peek, so results are never fetched into a
+  // sheet the visitor cannot see. The effect above doesn't cover it: the geolocate control lives
+  // on the MAP, so "drag the sheet down to see the map, then press locate" is the likely gesture
+  // — and it re-searches `/search` without changing `top.kind`.
+  //
+  // `?center` moves only on a real re-search (never on a `?q` keystroke, never on a filter edit),
+  // so this cannot fight a deliberate drag. Raising ONLY out of the peek, rather than setting the
+  // snap outright, leaves a sheet the visitor pulled tall exactly where they put it.
+  useEffect(() => {
+    if (direction === 'bottom') setSnap((current) => (current === PEEK_SNAP ? OPEN_SNAP : current))
+  }, [direction, searchCenter])
 
   // Uniform for every view: dismissing pops to the parent; the one view with no
   // parent (CountriesView) collapses to the peek instead of closing. Wired to both
