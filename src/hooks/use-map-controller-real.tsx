@@ -106,6 +106,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
     () => ({
       hasMap: true,
       frameRegion(region) {
+        // The emphasized point belongs to whatever framed the camera last, so framing a
+        // region drops the event pin — see the note on `frameSearch`.
+        setSelection(null)
         // A venue is a point, not an area — frame it by flying to its derived
         // centre rather than fitting its (degenerate, zero-area) bbox.
         if (region.level === 'venue') {
@@ -147,6 +150,12 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setHover(event ? eventPoint(event) : null)
       },
       frameSearch({ bbox, center }) {
+        // **The framing call owns the emphasized point, not a view's unmount.** EventView used
+        // to clear it from an effect cleanup, which runs 150ms AFTER the incoming view has
+        // already framed — so on a back navigation it wiped the selection and boundary that
+        // `restore` had just reinstated, and because its dep was the controller's identity, a
+        // resize while an event was open cleared the pin with no navigation at all.
+        setSelection(null)
         setBoundary(undefined)
         if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
         else if (center) flyTo(center, EVENT_ZOOM)
@@ -166,10 +175,6 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
       reset() {
         setBoundary(undefined)
         moveMap({ zoom: 0 })
-      },
-      clearSelection() {
-        setSelection(null)
-        setBoundary(undefined)
       },
     }),
     [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],

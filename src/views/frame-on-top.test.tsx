@@ -52,7 +52,6 @@ const controller = (restore = vi.fn()): MapController =>
     highlightEvent: vi.fn(),
     frameSearch: vi.fn(),
     reset: vi.fn(),
-    clearSelection: vi.fn(),
   }) as unknown as MapController
 
 /**

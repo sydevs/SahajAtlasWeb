@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
@@ -48,7 +48,7 @@ const loadEventDetails = () =>
 // inline in the panel order.
 export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { standalone, hasMap } = useWidgetMode()
-  const { frameEvent, clearSelection } = useMapController()
+  const { frameEvent } = useMapController()
   // `t` off `useLocale` rather than a second `useTranslation` — the hook already holds
   // one for the default (`common`) namespace and returns it to avoid the duplicate.
   const { t, locale } = useLocale()
@@ -63,8 +63,6 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const [EventDetails, setEventDetails] = useState(loadEventDetails)
 
   useFrameOnTop(({ isEntry }) => frameEvent(event, { isEntry }), [event, frameEvent])
-
-  useEffect(() => () => clearSelection(), [clearSelection])
 
   // The snap-ladder bottom sheet is the one surface where in-flow content can
   // scroll the CTA away — pin Register there; keep it inline everywhere else.
