@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from 'cmdk'
+import { Check, ChevronDown, Search } from 'lucide-react'
 
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 import { fieldChrome } from '@/components/atoms/Select'
-import { CheckIcon, DownArrowIcon, SearchIcon } from '@/components/atoms/Icons'
 
 // A single-select combobox: the search happens in the field itself (a text input in the
 // popover), results filter as you type, and clicking one selects it. Built on
@@ -95,7 +95,7 @@ export function Combobox({
         <span className={`truncate ${selected ? '' : 'text-gray-11'}`}>
           {selected?.label ?? placeholder}
         </span>
-        <DownArrowIcon className="h-4 w-4 shrink-0 opacity-70" />
+        <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
       </Popover.Trigger>
 
       <Popover.Portal container={overlayContainer()}>
@@ -109,7 +109,7 @@ export function Combobox({
         >
           <Command shouldFilter={false}>
             <div className="flex items-center gap-2 border-b border-gray-4 px-3">
-              <SearchIcon className="h-4 w-4 shrink-0 opacity-70" />
+              <Search className="h-4 w-4 shrink-0 opacity-70" />
               <CommandInput
                 aria-label={searchPlaceholder ?? ariaLabel}
                 className="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-gray-11"
@@ -129,7 +129,7 @@ export function Combobox({
                   value={option.value}
                   onSelect={() => choose(option.value)}
                 >
-                  <CheckIcon
+                  <Check
                     className={`h-4 w-4 shrink-0 ${option.value === value ? 'opacity-100' : 'opacity-0'}`}
                   />
                   <span className="min-w-0 flex-1">

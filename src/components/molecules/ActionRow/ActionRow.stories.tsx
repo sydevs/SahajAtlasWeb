@@ -1,5 +1,7 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
+
 import {
   StoryWrapper,
   StorySection,
@@ -13,8 +15,6 @@ import {
 } from '../../ladle'
 
 import { ActionCircle, ActionRow } from './ActionRow'
-
-import { CallIcon, DirectionsIcon, ShareIcon, WebsiteIcon } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -52,7 +52,7 @@ export const Default: Story = () => (
                 <StoryGridCell key={variant}>
                   <ActionCircle
                     color={color}
-                    icon={<CallIcon />}
+                    icon={<PhoneOutgoing />}
                     label="Contact"
                     variant={variant}
                     onClick={() => {}}
@@ -74,17 +74,12 @@ export const Default: Story = () => (
           <ActionCircle
             isExternal
             href="https://maps.example"
-            icon={<DirectionsIcon />}
+            icon={<Milestone />}
             label="Directions"
           />
-          <ActionCircle
-            isExternal
-            href="https://example.org"
-            icon={<WebsiteIcon />}
-            label="Website"
-          />
-          <ActionCircle href="tel:+441234567890" icon={<CallIcon />} label="Contact" />
-          <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
+          <ActionCircle isExternal href="https://example.org" icon={<Globe />} label="Website" />
+          <ActionCircle href="tel:+441234567890" icon={<PhoneOutgoing />} label="Contact" />
+          <ActionCircle icon={<Share size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
       </div>
     </StorySection>
@@ -97,17 +92,17 @@ export const Default: Story = () => (
         <ActionRow>
           <ActionCircle
             href="tel:+441234567890"
-            icon={<CallIcon />}
+            icon={<PhoneOutgoing />}
             label="Contact"
             variant="solid"
           />
           <ActionCircle
             isExternal
             href="https://maps.example"
-            icon={<DirectionsIcon />}
+            icon={<Milestone />}
             label="Directions"
           />
-          <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
+          <ActionCircle icon={<Share size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
       </div>
     </StorySection>
@@ -121,7 +116,7 @@ export const Default: Story = () => (
           {(['sm', 'md', 'lg'] as const).map((size) => (
             <ActionCircle
               key={size}
-              icon={<CallIcon />}
+              icon={<PhoneOutgoing />}
               label={size}
               size={size}
               onClick={() => {}}
@@ -140,17 +135,12 @@ export const Default: Story = () => (
           <ActionCircle
             isExternal
             href="https://maps.example"
-            icon={<DirectionsIcon />}
+            icon={<Milestone />}
             label="Directions"
           />
-          <ActionCircle
-            isExternal
-            href="https://example.org"
-            icon={<WebsiteIcon />}
-            label="Website"
-          />
-          <ActionCircle href="tel:+441234567890" icon={<CallIcon />} label="Contact" />
-          <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
+          <ActionCircle isExternal href="https://example.org" icon={<Globe />} label="Website" />
+          <ActionCircle href="tel:+441234567890" icon={<PhoneOutgoing />} label="Contact" />
+          <ActionCircle icon={<Share size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
       </div>
     </StorySection>
@@ -164,15 +154,15 @@ export const Default: Story = () => (
           <ActionCircle
             isExternal
             href="https://example.org"
-            icon={<WebsiteIcon />}
+            icon={<Globe />}
             label="Sitio web del organizador"
           />
           <ActionCircle
             href="tel:+4912345"
-            icon={<CallIcon />}
+            icon={<PhoneOutgoing />}
             label="Kontaktaufnahme mit dem Gastgeber"
           />
-          <ActionCircle icon={<ShareIcon size={20} />} label="Share" onClick={() => {}} />
+          <ActionCircle icon={<Share size={20} />} label="Share" onClick={() => {}} />
         </ActionRow>
       </div>
     </StorySection>

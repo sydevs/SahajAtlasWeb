@@ -1,12 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { Funnel } from 'lucide-react'
+
 import { StorySection, StoryWrapper } from '../../ladle'
 import { SortMenu } from '../SortMenu'
 
 import { ListToolbar } from './ListToolbar'
 
 import { Button } from '@/components/atoms/Button'
-import { FilterIcon } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
@@ -14,7 +15,7 @@ export default { title: 'Molecules' } satisfies StoryDefault
 // toolbar only lays its children out, so the story supplies a plain ghost button.
 const FiltersButton = () => (
   <Button size="sm" variant="ghost">
-    <FilterIcon size={18} />
+    <Funnel size={18} />
     Filters
   </Button>
 )

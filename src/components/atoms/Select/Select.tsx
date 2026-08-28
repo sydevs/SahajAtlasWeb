@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react'
 import * as RadixSelect from '@radix-ui/react-select'
 import { tv } from 'tailwind-variants'
+import { ChevronDown } from 'lucide-react'
 
 import { frameCollision, overlayContainer } from '@/lib/overlay'
-import { DownArrowIcon } from '@/components/atoms/Icons'
 
 // Shared chrome for every field-like control: this Select's trigger, the registration
 // inputs/textarea (Input/Textarea atoms), the date bounds, and the Combobox trigger. It was
@@ -79,7 +79,7 @@ export function Select({
       >
         <RadixSelect.Value placeholder={placeholder} />
         <RadixSelect.Icon>
-          <DownArrowIcon className="h-4 w-4 opacity-70" />
+          <ChevronDown className="h-4 w-4 opacity-70" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
 

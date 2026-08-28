@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
+import { CalendarDays } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { CalendarIcon } from '@/components/atoms/Icons'
 import {
   type IcsEventInput,
   buildEventIcs,
@@ -78,7 +78,7 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
         variant="flat"
         onClick={downloadIcs}
       >
-        <CalendarIcon size={16} />
+        <CalendarDays size={16} />
         Apple
       </Button>
 

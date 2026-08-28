@@ -59,17 +59,21 @@ import { annotate, report } from './_ci-output.mjs'
 // it — and comfortably above the ~2.1 KiB a credentialed build adds that CI
 // cannot see (see SLACK_FLOOR_KIB below).
 //
-//   standalone  299.3 KiB  →  310
-//   embed       301.3 KiB  →  310
+//   standalone  297.2 KiB  →  308
+//   embed       299.8 KiB  →  308
 //
-// Ratcheted here by issue #161, which took ~83 KiB off both graphs by moving the
-// whole map-bearing interface behind a lazy `FullInterface` seam. That is what
-// makes a compact embed cheap: a slot too small for the interface now mounts a
-// card and one dialog, and never fetches mapbox-gl at all.
+// Ratcheted here by the Lucide icon swap (#003), which took ~3 KiB off both graphs:
+// the tree-shaken glyphs cost less than the hand-drawn path data they replaced, even
+// after adding a dependency. Note the direction — a swap that ADDS a package can still
+// win space, and the ratchet is what stops that win being quietly re-spent.
 //
-// The previous line was 395/395 against 382.1/383.6 (issue #96, which took 99.7
-// KiB off by lazying the calendar, registration and share drawers); before that
-// 495/495 against 479.5/480.4 (issue #99).
+// The previous line was 310/310 against 299.3/301.3 (issue #161, which took ~83 KiB off
+// both graphs by moving the whole map-bearing interface behind a lazy `FullInterface`
+// seam — that is what makes a compact embed cheap: a slot too small for the interface
+// mounts a card and one dialog, and never fetches mapbox-gl at all). Before that,
+// 395/395 against 382.1/383.6 (issue #96, which took 99.7 KiB off by lazying the
+// calendar, registration and share drawers); before that 495/495 against 479.5/480.4
+// (issue #99).
 //
 // RATCHET THIS DOWN again whenever the payload shrinks, or the budget quietly
 // re-accumulates the slack it just won. `SLACK_RATIO` below enforces that rather
@@ -83,9 +87,9 @@ import { annotate, report } from './_ci-output.mjs'
 // — but it is still budgeted, because "deferred" is not "free" and it is what a visitor who does
 // look at the widget waits for.
 const BUDGET_KIB = {
-  standalone: 310,
+  standalone: 308,
   loader: 3.8,
-  embed: 310,
+  embed: 308,
 }
 
 // A budget far above the real payload is a green check that checks nothing —

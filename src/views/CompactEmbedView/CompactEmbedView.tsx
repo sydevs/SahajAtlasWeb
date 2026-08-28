@@ -4,9 +4,9 @@ import { type ReactNode, useCallback, useEffect, useRef } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { CloseIcon } from '@/components/atoms/Icons'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { useFrame } from '@/hooks/use-frame'
 import { widgetOverlayContainer } from '@/lib/overlay'
@@ -265,7 +265,7 @@ function ExpandedDialog({
                 size="sm"
                 variant="bordered"
               >
-                <CloseIcon size={16} />
+                <X size={16} />
               </Button>
             </Primitive.Close>
           </motion.div>

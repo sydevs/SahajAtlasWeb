@@ -1,13 +1,13 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import { CircleFlag } from 'react-circle-flags'
+import { Monitor } from 'lucide-react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { ListItem } from './ListItem'
 
 import { List } from '@/components/molecules/List'
-import { MonitorIcon } from '@/components/atoms/Icons'
 
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
@@ -50,12 +50,7 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <ListItem
-            count={41}
-            href="#online"
-            icon={<MonitorIcon size={24} />}
-            label="Online Classes"
-          />
+          <ListItem count={41} href="#online" icon={<Monitor size={24} />} label="Online Classes" />
           <ListItem
             count={12}
             href="#country"
@@ -74,12 +69,7 @@ export const Default: Story = () => (
     >
       <div className="max-w-md overflow-hidden rounded-lg border border-divider">
         <List>
-          <ListItem
-            count={41}
-            href="#online"
-            icon={<MonitorIcon size={24} />}
-            label="Online Classes"
-          />
+          <ListItem count={41} href="#online" icon={<Monitor size={24} />} label="Online Classes" />
           <ListItem
             count={128}
             href="#country"

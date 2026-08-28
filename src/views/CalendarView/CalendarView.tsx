@@ -5,12 +5,12 @@ import { DateTime } from 'luxon'
 import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
 import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
+import { ChevronRight } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { RightArrowIcon } from '@/components/atoms/Icons'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import api from '@/config/api'
@@ -159,7 +159,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             variant="ghost"
             onClick={() => step(-1)}
           >
-            <RightArrowIcon className="h-4 w-4 rotate-180" />
+            <ChevronRight className="h-4 w-4 rotate-180 rtl:-scale-x-100" />
           </Button>
 
           {/* The focused date sits between the arrows; clicking opens the browser's native
@@ -191,7 +191,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             variant="ghost"
             onClick={() => step(1)}
           >
-            <RightArrowIcon className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 rtl:-scale-x-100" />
           </Button>
         </div>
 
