@@ -91,9 +91,17 @@ style rather than assuming the class works.
 
 ## Icons & emojis
 
-- Don't use emojis as UI icons. This repo has its own SVG icon components under
-  `src/components/atoms/Icons/` (`actions`, `socials`, `symbols`, …) — reuse those.
-  Radix primitives and our atoms accept icon slots.
+- Don't use emojis as UI icons. Interface glyphs come from **`lucide-react`**, imported
+  directly at the call site — one 24px grid, 2px stroke, round caps and joins, outline
+  only. Radix primitives and our atoms accept icon slots.
+- **`src/components/atoms/Icons/` is brand marks only**: the Sahaja Yoga `Logo` and the
+  three meeting-platform glyphs behind `SocialIcon`. Lucide removed its brand icons and
+  redrawing them is a trademark problem, so those stay hand-drawn on `BaseIcon`. Don't add
+  an interface glyph there.
+- **A directional glyph needs `rtl:-scale-x-100` at its call site.** `BaseIcon`'s `flipRtl`
+  used to carry that centrally and Lucide has no equivalent, so each drill-in chevron and
+  the directions arrow declares it. Symmetric glyphs (globe, calendar, pin, share) never
+  mirror, and neither does the external-link ↗.
 
 ## After code changes
 

@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
+import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
-import { MonitorIcon } from '@/components/atoms/Icons'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -104,7 +104,7 @@ export function RegionView({ slug }: { slug: string }) {
               <ListItem
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
-                icon={<MonitorIcon size={24} />}
+                icon={<Monitor size={24} />}
                 label={tCommon('online_classes')}
               />
             )}

@@ -1,11 +1,11 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { ChevronDown, MapPin } from 'lucide-react'
+
 import { StoryWrapper, StorySection } from '../../ladle'
 import { Checkbox } from '../Checkbox'
 
 import { Dropdown } from './Dropdown'
-
-import { LocationIcon, DownArrowIcon } from '@/components/atoms/Icons'
 
 export default {
   title: 'Atoms',
@@ -37,7 +37,7 @@ export const Default: Story = () => (
               trigger={
                 <span className={triggerClass}>
                   {size}
-                  <DownArrowIcon size={16} />
+                  <ChevronDown size={16} />
                 </span>
               }
             >
@@ -94,7 +94,7 @@ export const Default: Story = () => (
           role="dialog"
           trigger={
             <span className={triggerClass}>
-              <LocationIcon size={18} />
+              <MapPin size={18} />
               All countries
             </span>
           }

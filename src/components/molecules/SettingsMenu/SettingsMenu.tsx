@@ -1,18 +1,9 @@
 import { type ReactNode } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
+import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
-import {
-  CheckIcon,
-  HelpIcon,
-  LanguageIcon,
-  MonitorIcon,
-  MoonFilledIcon,
-  RightArrowIcon,
-  SettingsIcon,
-  SunFilledIcon,
-} from '@/components/atoms/Icons'
 import { supportedLanguages } from '@/config/i18n-options'
 import { useReportModal } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
@@ -30,7 +21,7 @@ function ItemCheck() {
   return (
     <span className="flex w-4 shrink-0 justify-center">
       <DropdownMenu.ItemIndicator>
-        <CheckIcon className="text-primary" size={16} />
+        <Check className="text-primary" size={16} />
       </DropdownMenu.ItemIndicator>
     </span>
   )
@@ -56,9 +47,9 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const container = overlayContainer()
 
   const themes: { value: ThemePreference; label: string; icon: ReactNode }[] = [
-    { value: 'light', label: t('theme.light'), icon: <SunFilledIcon size={18} /> },
-    { value: 'dark', label: t('theme.dark'), icon: <MoonFilledIcon size={18} /> },
-    { value: 'auto', label: t('theme.auto'), icon: <MonitorIcon size={18} /> },
+    { value: 'light', label: t('theme.light'), icon: <Sun size={18} /> },
+    { value: 'dark', label: t('theme.dark'), icon: <Moon size={18} /> },
+    { value: 'auto', label: t('theme.auto'), icon: <Monitor size={18} /> },
   ]
   const currentTheme = themes.find((th) => th.value === preference) ?? themes[0]
 
@@ -70,7 +61,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
           className={`flex h-8 w-8 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
           type="button"
         >
-          <SettingsIcon size={16} />
+          <Settings size={16} />
         </button>
       </DropdownMenu.Trigger>
 
@@ -84,9 +75,9 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
         >
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
-              <LanguageIcon size={18} />
+              <Languages size={18} />
               <span className="flex-1 capitalize">{languageNames.of(locale)}</span>
-              <RightArrowIcon className="text-gray-11" />
+              <ChevronRight className="text-gray-11 rtl:-scale-x-100" size={18} />
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal container={container}>
               <DropdownMenu.SubContent className={menu} sideOffset={4} {...frameCollision()}>
@@ -106,7 +97,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
             <DropdownMenu.SubTrigger className={item}>
               {currentTheme.icon}
               <span className="flex-1">{currentTheme.label}</span>
-              <RightArrowIcon className="text-gray-11" />
+              <ChevronRight className="text-gray-11 rtl:-scale-x-100" size={18} />
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal container={container}>
               <DropdownMenu.SubContent className={menu} sideOffset={4}>
@@ -131,7 +122,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
           {/* A plain row rather than a submenu: it hands off to the report modal, which
               is ephemeral state, not a setting to pick from a list (issue #79). */}
           <DropdownMenu.Item className={item} onSelect={() => openReport()}>
-            <HelpIcon size={18} />
+            <Info size={18} />
             <span>{t('report.title')}</span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>

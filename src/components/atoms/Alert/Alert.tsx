@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
+import { Info, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { CloseIcon } from '@/components/atoms/Icons'
 
 // A status banner replacing NextUI's Alert, on the Radix-semantic tokens. `flat`
 // is a soft tint, `bordered` adds an outline; `color` selects the ramp
@@ -64,20 +64,9 @@ const alert = tv({
   defaultVariants: { color: 'neutral', variant: 'flat', size: 'md', textAlign: 'left' },
 })
 
-// A round info/alert glyph used when no custom icon is supplied.
-const DefaultIcon = () => (
-  <svg
-    aria-hidden="true"
-    className="h-5 w-5"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    viewBox="0 0 24 24"
-  >
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 8h.01M11 12h1v4h1" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
+// A round info/alert glyph used when no custom icon is supplied. Hand-drawn until #003 —
+// it was already the Lucide idiom (stroke, 2px, 24 grid), so it is now the real thing.
+const DefaultIcon = () => <Info className="h-5 w-5" />
 
 /** See `ChipCloseProps` — the dismiss button and its label travel together. */
 type AlertCloseProps =
@@ -142,7 +131,7 @@ export function Alert({
           variant="ghost"
           onClick={onClose}
         >
-          <CloseIcon size={14} />
+          <X size={14} />
         </Button>
       )}
     </div>

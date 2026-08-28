@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tv } from 'tailwind-variants'
+import { Share } from 'lucide-react'
 
 import { PlatformButton } from './platform-buttons'
 
 import { Button } from '@/components/atoms/Button'
-import { ShareIcon } from '@/components/atoms/Icons'
 import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'
 
@@ -103,7 +103,7 @@ export function ShareContent({ label, url, country }: ShareContentProps) {
         </div>
       ) : (
         <Button className="w-full" color="primary" variant="solid" onClick={shareNatively}>
-          <ShareIcon size={18} />
+          <Share size={18} />
           {t('share.native')}
         </Button>
       )}

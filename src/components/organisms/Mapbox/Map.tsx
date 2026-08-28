@@ -14,6 +14,7 @@ import ReactMapGL, {
 } from 'react-map-gl'
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
+import { CalendarDays } from 'lucide-react'
 
 import {
   clusterLayer,
@@ -26,7 +27,6 @@ import {
 } from './layers'
 import { registerMarkerImages } from './markers'
 
-import { CalendarIcon } from '@/components/atoms/Icons'
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
 import { useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -131,7 +131,7 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
 
   return (
     <div className="inline-flex items-center gap-1.5 rounded-lg border border-divider bg-background px-2.5 py-1.5 text-foreground shadow-md">
-      <CalendarIcon className="shrink-0 text-gray-11" size={16} />
+      <CalendarDays className="shrink-0 text-gray-11" size={16} />
       <div className="flex flex-col text-sm font-medium leading-tight">
         <span>{primary}</span>
         {time && <span className="text-xs font-normal text-gray-11">{time}</span>}

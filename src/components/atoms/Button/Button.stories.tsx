@@ -1,5 +1,7 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { Funnel, Menu, X } from 'lucide-react'
+
 import {
   StoryWrapper,
   StorySection,
@@ -13,8 +15,6 @@ import {
 } from '../../ladle'
 
 import { Button } from './Button'
-
-import { CloseIcon, FilterIcon, ListIcon } from '@/components/atoms/Icons'
 
 export default {
   title: 'Atoms',
@@ -89,7 +89,7 @@ export const Default: Story = () => (
                     radius="full"
                     variant={variant}
                   >
-                    <FilterIcon size={20} />
+                    <Funnel size={20} />
                   </Button>
                 </StoryGridCell>
               ))}
@@ -139,7 +139,7 @@ export const Default: Story = () => (
                 size={size}
                 variant="flat"
               >
-                <FilterIcon size={20} />
+                <Funnel size={20} />
               </Button>
             ))}
             {colors.map((color) => (
@@ -151,7 +151,7 @@ export const Default: Story = () => (
                 radius={radius}
                 size="md"
               >
-                <FilterIcon size={20} />
+                <Funnel size={20} />
               </Button>
             ))}
           </div>
@@ -166,13 +166,13 @@ export const Default: Story = () => (
     >
       <div className="flex items-center gap-1 rounded-lg border border-divider p-2">
         <Button isIconOnly aria-label="Filter" size="sm" variant="ghost">
-          <FilterIcon size={20} />
+          <Funnel size={20} />
         </Button>
         <Button isIconOnly aria-label="Explore" size="sm" variant="ghost">
-          <ListIcon size={24} />
+          <Menu size={24} />
         </Button>
         <Button isIconOnly aria-label="Close" size="sm" variant="ghost">
-          <CloseIcon size={20} />
+          <X size={20} />
         </Button>
       </div>
     </StorySection>

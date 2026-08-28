@@ -1,8 +1,8 @@
 import { type ComponentProps, type MouseEvent, type ReactNode, forwardRef } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router'
 import { tv, type VariantProps } from 'tailwind-variants'
+import { ArrowUpRight } from 'lucide-react'
 
-import { AnchorIcon } from '@/components/atoms/Icons'
 import { rememberCamera } from '@/config/store'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
@@ -82,7 +82,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   ref,
 ) {
   const classes = link({ color, className })
-  const icon = showAnchorIcon ? <AnchorIcon className="inline-block h-[1em] w-[1em]" /> : null
+  const icon = showAnchorIcon ? <ArrowUpRight className="inline-block h-[1em] w-[1em]" /> : null
   // One name for "the caller asked for the external treatment", so the three places that
   // consult it can't drift into subtly different spellings.
   const wantsNewTab = isExternal || target === '_blank'

@@ -3,8 +3,7 @@ import clsx from 'clsx'
 import * as RadixCheckbox from '@radix-ui/react-checkbox'
 import * as RadixSwitch from '@radix-ui/react-switch'
 import { tv, type VariantProps } from 'tailwind-variants'
-
-import { CheckIcon } from '@/components/atoms/Icons'
+import { Check } from 'lucide-react'
 
 // A two-in-one boolean control. The default `switch` appearance is the brand
 // track/thumb toggle (unchanged from the former Switch atom, `role="switch"`);
@@ -156,7 +155,7 @@ export function Checkbox({
         onCheckedChange={(value) => onCheckedChange?.(value === true)}
       >
         <RadixCheckbox.Indicator className={indicator()}>
-          <CheckIcon size={size === 'sm' ? 12 : 14} />
+          <Check size={size === 'sm' ? 12 : 14} />
         </RadixCheckbox.Indicator>
       </RadixCheckbox.Root>
     )

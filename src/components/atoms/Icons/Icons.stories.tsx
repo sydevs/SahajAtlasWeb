@@ -1,40 +1,64 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Funnel,
+  Globe,
+  Info,
+  Languages,
+  LoaderCircle,
+  MapPin,
+  Menu,
+  Monitor,
+  Navigation,
+  Pause,
+  PhoneOutgoing,
+  Search,
+  Settings,
+  Share,
+  SquarePlay,
+  Video,
+  X,
+} from 'lucide-react'
+
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import {
-  SearchIcon,
-  CloseIcon,
-  ShareIcon,
-  UpArrowIcon,
-  DownArrowIcon,
-  RightArrowIcon,
-  Logo,
-  CalendarIcon,
-  LocationIcon,
-  CallIcon,
-  LanguageIcon,
-  EventIcon,
-  SocialIcon,
-} from './index'
+import { Logo, SocialIcon } from './index'
 
 export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
+// The interface set, as the app uses it. All Lucide: one 24px grid, 2px stroke, round
+// caps and joins, outline only — which is the point of the swap. Named for the glyph
+// rather than the job, so a second use of the same shape doesn't need a second name.
 const ICONS = [
-  { name: 'SearchIcon', Icon: SearchIcon },
-  { name: 'CloseIcon', Icon: CloseIcon },
-  { name: 'ShareIcon', Icon: ShareIcon },
-  { name: 'UpArrowIcon', Icon: UpArrowIcon },
-  { name: 'DownArrowIcon', Icon: DownArrowIcon },
-  { name: 'RightArrowIcon', Icon: RightArrowIcon },
-  { name: 'Logo', Icon: Logo },
-  { name: 'CalendarIcon', Icon: CalendarIcon },
-  { name: 'LocationIcon', Icon: LocationIcon },
-  { name: 'CallIcon', Icon: CallIcon },
-  { name: 'LanguageIcon', Icon: LanguageIcon },
-  { name: 'EventIcon', Icon: EventIcon },
+  { name: 'Search', Icon: Search },
+  { name: 'X', Icon: X },
+  { name: 'Share', Icon: Share },
+  { name: 'ChevronRight', Icon: ChevronRight },
+  { name: 'ChevronDown', Icon: ChevronDown },
+  { name: 'CalendarDays', Icon: CalendarDays },
+  { name: 'MapPin', Icon: MapPin },
+  { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
+  { name: 'Languages', Icon: Languages },
+  { name: 'Monitor', Icon: Monitor },
+  { name: 'Globe', Icon: Globe },
+  { name: 'Navigation', Icon: Navigation },
+  { name: 'Funnel', Icon: Funnel },
+  { name: 'Menu', Icon: Menu },
+  { name: 'Settings', Icon: Settings },
+  { name: 'Info', Icon: Info },
+  { name: 'Check', Icon: Check },
+  { name: 'ArrowUpRight', Icon: ArrowUpRight },
+  { name: 'Pause', Icon: Pause },
+  { name: 'SquarePlay', Icon: SquarePlay },
+  { name: 'Video', Icon: Video },
+  { name: 'LoaderCircle', Icon: LoaderCircle },
 ] as const
 
 const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
@@ -50,15 +74,18 @@ const PALETTE = [
 ] as const
 
 /**
- * Icons — the app's SVG icon set (actions, symbols, records) plus the
- * platform-keyed SocialIcon. Rendered as a labelled gallery at size 28.
+ * Icons — the Lucide interface set the app draws with, plus the brand marks that stay
+ * ours (Lucide ships no brand icons). Rendered as a labelled gallery at size 28.
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection description="The shared SVG icons used across the app." title="Gallery">
+    <StorySection
+      description="The Lucide glyphs used across the app — one grid, one stroke weight, outline only."
+      title="Gallery"
+    >
       <div className="flex flex-wrap gap-6">
         {ICONS.map(({ name, Icon }) => (
-          <div key={name} className="flex w-20 flex-col items-center gap-2 text-center">
+          <div key={name} className="flex w-24 flex-col items-center gap-2 text-center">
             <Icon size={28} />
             <span className="text-xs text-gray-11">{name}</span>
           </div>
@@ -66,10 +93,17 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
-    <StorySection description="SocialIcon resolves a glyph from its platform key." title="Socials">
+    <StorySection
+      description="Kept hand-drawn: Lucide removed its brand icons, and redrawing them is a trademark problem. SocialIcon resolves a glyph from its platform key."
+      title="Brand marks"
+    >
       <div className="flex flex-wrap gap-6">
+        <div className="flex w-24 flex-col items-center gap-2 text-center">
+          <Logo size={28} />
+          <span className="text-xs text-gray-11">Logo</span>
+        </div>
         {SOCIAL_PLATFORMS.map((platform) => (
-          <div key={platform} className="flex w-20 flex-col items-center gap-2 text-center">
+          <div key={platform} className="flex w-24 flex-col items-center gap-2 text-center">
             <SocialIcon platform={platform} size={28} />
             <span className="text-xs text-gray-11">{platform}</span>
           </div>
@@ -78,35 +112,47 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role."
+      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role. Lucide strokes with it where our own marks fill with it; both inherit."
       inContext={true}
       title="Colour inheritance"
     >
       <div className="flex flex-col gap-3">
         {PALETTE.map(({ name, className }) => (
           <span key={name} className={`flex items-center gap-2 ${className}`}>
-            <CalendarIcon size={18} />
-            <LocationIcon size={18} />
-            <LanguageIcon size={18} />
-            <EventIcon size={18} />
+            <CalendarDays size={18} />
+            <MapPin size={18} />
+            <Languages size={18} />
+            <Logo size={18} />
             <span className="text-sm font-medium">{name}</span>
           </span>
         ))}
       </div>
     </StorySection>
 
+    <StorySection
+      description="Directional glyphs mirror under RTL. Lucide has no equivalent of the old `flipRtl`, so each directional call site carries `rtl:-scale-x-100` itself."
+      inContext={true}
+      title="Direction"
+    >
+      <div className="flex items-center gap-6" dir="rtl">
+        <ChevronRight className="rtl:-scale-x-100" size={24} />
+        <Navigation className="rtl:-scale-x-100" size={24} />
+        <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
+      </div>
+    </StorySection>
+
     <StorySection inContext={true} title="Examples">
       <div className="flex flex-col gap-3">
         <span className="flex items-center gap-2 text-gray-12">
-          <LocationIcon size={18} />
+          <MapPin size={18} />
           London, United Kingdom
         </span>
         <span className="flex items-center gap-2 text-gray-12">
-          <CalendarIcon size={18} />
+          <CalendarDays size={18} />
           Every Tuesday, 7:00 PM
         </span>
         <span className="flex items-center gap-2 text-gray-12">
-          <CallIcon size={18} />
+          <PhoneOutgoing size={18} />
           +44 20 1234 5678
         </span>
       </div>

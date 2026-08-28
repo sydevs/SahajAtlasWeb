@@ -23,6 +23,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The icon set is now [Lucide](https://lucide.dev).** The glyphs previously mixed three
+  sources at different grids and stroke weights, some filled and some outlined; they are now one
+  family — 24px grid, 2px stroke, outline only. Icons still take their colour from surrounding
+  text, so a themed embed is unaffected. The share row's network marks are unchanged.
+
 - **The widget's typeface is now Rethink Sans**, replacing Raleway. It is still self-hosted, so
   nothing changes for your CSP and no visitor IP reaches a font CDN. The `@font-face` family is
   now `Atlas Rethink Sans` (it was `Atlas Raleway`) — still deliberately not the plain typeface

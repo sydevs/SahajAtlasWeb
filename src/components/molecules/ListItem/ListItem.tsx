@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 
+import { ChevronRight } from 'lucide-react'
+
 import { listRow } from '@/components/molecules/List/List'
 import { Link } from '@/components/atoms/Link'
-import { RightArrowIcon } from '@/components/atoms/Icons'
 
 export interface ListItemProps {
   label: string
@@ -44,7 +45,7 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
             the row already does, so it goes one further. The title stays `text-foreground`
             (gray-12) and remains the loudest thing in the row. */}
         <div className="me-1 text-end text-gray-10">{count}</div>
-        <RightArrowIcon className="text-xl text-gray-9" />
+        <ChevronRight className="text-gray-9 rtl:-scale-x-100" size={20} />
       </Link>
     </li>
   )
