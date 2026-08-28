@@ -23,6 +23,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The widget's typeface is now Rethink Sans**, replacing Raleway. It is still self-hosted, so
+  nothing changes for your CSP and no visitor IP reaches a font CDN. The `@font-face` family is
+  now `Atlas Rethink Sans` (it was `Atlas Raleway`) — still deliberately not the plain typeface
+  name, so it cannot override a face your own page self-hosts. Russian and Ukrainian keep Raleway,
+  which the new typeface has no Cyrillic subset for; the two are split by `unicode-range` under
+  the one family name, so no page ever mixes them. If you were keying off the old family name, or
+  overriding it with `--sy-font-sans`, update the name.
+
 - **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
   so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:
   `locale` on the script URL → `?locale=` on the page → **`<html lang>`** → the browser → English.

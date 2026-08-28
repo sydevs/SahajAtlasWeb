@@ -231,13 +231,15 @@ module.exports = {
       ],
     },
     fontFamily: {
-      // 'Atlas Raleway', not 'Raleway' — the face is self-hosted and declared in
-      // src/styles/fonts.ts, and @font-face is document-global: declaring the plain
-      // name would override the font on a host page that ships its own Raleway (#91).
+      // 'Atlas Rethink Sans', not 'Rethink Sans' — the faces are self-hosted and declared
+      // in src/styles/fonts.ts, and @font-face is document-global: declaring the plain
+      // name would override the font on a host page that ships its own copy (#91). The
+      // one family covers two typefaces split by unicode-range (Rethink Sans for latin,
+      // Raleway for Cyrillic, which Rethink Sans does not provide) — see fonts.ts.
       // `--sy-font-sans` lets a tenant name a typeface their page already loads, without a new
       // request and without touching their CSP. Unset — the normal case — it falls through to our
       // self-hosted face, so this changes nothing for anyone who does not use it.
-      sans: ['var(--sy-font-sans, "Atlas Raleway")', ...defaultTheme.fontFamily.sans],
+      sans: ['var(--sy-font-sans, "Atlas Rethink Sans")', ...defaultTheme.fontFamily.sans],
       serif: defaultTheme.fontFamily.serif,
       mono: defaultTheme.fontFamily.mono,
     },

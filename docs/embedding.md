@@ -695,10 +695,10 @@ Three honest exceptions, none of them styling your content:
 - **`@font-face` is the one rule that cannot be scoped**, because it carries no selector.
   The widget registers three of them (one per character-set subset) for its self-hosted
   typeface, and they are document-global by nature. They are declared under the family
-  name **`Atlas Raleway`, deliberately not `Raleway`** — so if your page self-hosts
-  Raleway itself, the widget's faces cannot override yours. That is the whole reason for
-  the odd name. These three are the only `@font-face` rules the widget contributes;
-  Mapbox and Swiper register none.
+  name **`Atlas Rethink Sans`, deliberately not a plain typeface name** — so if your page
+  self-hosts the same typeface, the widget's faces cannot override yours. That is the whole
+  reason for the odd name. These three are the only `@font-face` rules the widget
+  contributes; Mapbox and Swiper register none.
 
 **The reverse direction is now defended, with one documented exception.** The widget resets its
 own subtree before applying its styles, so aggressive global CSS on your page — a blanket
