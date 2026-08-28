@@ -1,5 +1,7 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import { Calendar, Video } from 'lucide-react'
+
 import {
   StoryWrapper,
   StorySection,
@@ -13,8 +15,6 @@ import {
 } from '../../ladle'
 
 import { Chip } from './Chip'
-
-import { EventIcon, OnlineCallIcon } from '@/components/atoms/Icons'
 
 export default {
   title: 'Atoms',
@@ -119,7 +119,7 @@ export const Default: Story = () => (
     <StorySection description="A leading icon slot, across every colour." title="With icon">
       <div className="flex flex-wrap items-center gap-2">
         {colors.map((color) => (
-          <Chip key={color} color={color} icon={<EventIcon size={14} />}>
+          <Chip key={color} color={color} icon={<Calendar size={14} />}>
             {color}
           </Chip>
         ))}
@@ -128,12 +128,12 @@ export const Default: Story = () => (
 
     <StorySection inContext={true} title="Examples">
       <div className="flex flex-wrap items-center gap-1">
-        <Chip color="primary" icon={<EventIcon size={14} />}>
+        <Chip color="primary" icon={<Calendar size={14} />}>
           weekly
         </Chip>
         <Chip color="secondary">Français</Chip>
         <Chip color="contrast">Today</Chip>
-        <Chip color="neutral" icon={<OnlineCallIcon size={14} />}>
+        <Chip color="neutral" icon={<Video size={14} />}>
           online
         </Chip>
       </div>

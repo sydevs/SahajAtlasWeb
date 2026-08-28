@@ -2,16 +2,16 @@ import type { SortOrder } from '@/lib/shape'
 
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
+import { Check, ChevronDown } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
 import { Button } from '@/components/atoms/Button'
-import { CheckIcon, DownArrowIcon } from '@/components/atoms/Icons'
 import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
 import { SORT_ORDERS } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 
 // Dropdown surface + row skins, mirroring the SettingsMenu selectable-menu pattern
-// (Radix RadioGroup + ItemIndicator + CheckIcon). Kept local — the two menus don't
+// (Radix RadioGroup + ItemIndicator + Check). Kept local — the two menus don't
 // share a base component, only the look.
 const menu =
   'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
@@ -24,7 +24,7 @@ function ItemCheck() {
   return (
     <span className="flex w-4 shrink-0 justify-center">
       <DropdownMenu.ItemIndicator>
-        <CheckIcon className="text-primary" size={16} />
+        <Check className="text-primary" size={16} />
       </DropdownMenu.ItemIndicator>
     </span>
   )
@@ -53,7 +53,7 @@ export function SortMenu() {
           <span>
             {t('sort.label')}: {t(`sort.${order}`)}
           </span>
-          <DownArrowIcon size={16} />
+          <ChevronDown size={16} />
         </Button>
       </DropdownMenu.Trigger>
 

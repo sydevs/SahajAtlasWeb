@@ -8,11 +8,11 @@ import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
+import { PhoneOutgoing } from 'lucide-react'
 
 import { Spinner } from '@/components/atoms/Spinner/Spinner'
 import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
-import { CallIcon } from '@/components/atoms/Icons'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
@@ -573,7 +573,7 @@ export function FallbackActions({
           // human reads back.
           href={`tel:${contact.phone.replace(/\s+/g, '')}`}
         >
-          <CallIcon size={18} />
+          <PhoneOutgoing size={18} />
           {contact.phone}
         </Link>
       )}

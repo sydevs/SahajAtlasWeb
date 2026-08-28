@@ -2,10 +2,10 @@ import type { EventDisplay } from '@/lib/shape'
 import type { EventSurfaceProps } from './EventDetails'
 
 import { useTranslation } from 'react-i18next'
+import { ArrowUpRight } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
-import { AnchorIcon } from '@/components/atoms/Icons'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { parentOf, searchPath } from '@/lib/shape'
 import { Event } from '@/types'
@@ -102,7 +102,7 @@ export function EventRegisterBar({ event, basePath }: EventRegisterBarProps) {
           : { disabled: closed, onClick: () => navigate(`${basePath}/register`) })}
       >
         <span className="font-semibold tracking-wider">{registerLabel}</span>
-        {external && <AnchorIcon className="text-primary-foreground" />}
+        {external && <ArrowUpRight className="text-primary-foreground" size={16} />}
       </Button>
       {microcopy.map((line) => (
         <p key={line} className="text-center text-xs text-gray-11">

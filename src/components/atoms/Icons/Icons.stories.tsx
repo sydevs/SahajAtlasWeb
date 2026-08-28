@@ -1,40 +1,77 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Funnel,
+  Globe,
+  Info,
+  Languages,
+  LoaderCircle,
+  MapPin,
+  Menu,
+  Milestone,
+  Monitor,
+  Moon,
+  Pause,
+  PhoneOutgoing,
+  Search,
+  Settings,
+  Share,
+  SquarePlay,
+  Sun,
+  X,
+} from 'lucide-react'
+
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import {
-  SearchIcon,
-  CloseIcon,
-  ShareIcon,
-  UpArrowIcon,
-  DownArrowIcon,
-  RightArrowIcon,
-  Logo,
-  CalendarIcon,
-  LocationIcon,
-  CallIcon,
-  LanguageIcon,
-  EventIcon,
-  SocialIcon,
-} from './index'
+import { Logo, SocialIcon } from './index'
+
+import { Button } from '@/components/atoms/Button'
 
 export default {
   title: 'Atoms',
 } satisfies StoryDefault
 
+/**
+ * The gallery is the icons the app ACTUALLY RENDERS — not a curated subset of Lucide, and
+ * not a wishlist. Adding an icon here without a call site turns this page into a second,
+ * worse copy of the Lucide catalogue: it goes stale the moment Lucide ships anything, and
+ * it invites picking a glyph from our page rather than from the 2,000 upstream. So the
+ * rule is one-way — an icon earns its row by being used, and the button below covers
+ * everything else.
+ *
+ * ⚠ Keep this list in step with the imports in app code (excluding stories and tests).
+ * `Video` and `Calendar` are the ones to watch: both appear in `Chip.stories.tsx` only, so
+ * neither belongs here.
+ */
 const ICONS = [
-  { name: 'SearchIcon', Icon: SearchIcon },
-  { name: 'CloseIcon', Icon: CloseIcon },
-  { name: 'ShareIcon', Icon: ShareIcon },
-  { name: 'UpArrowIcon', Icon: UpArrowIcon },
-  { name: 'DownArrowIcon', Icon: DownArrowIcon },
-  { name: 'RightArrowIcon', Icon: RightArrowIcon },
-  { name: 'Logo', Icon: Logo },
-  { name: 'CalendarIcon', Icon: CalendarIcon },
-  { name: 'LocationIcon', Icon: LocationIcon },
-  { name: 'CallIcon', Icon: CallIcon },
-  { name: 'LanguageIcon', Icon: LanguageIcon },
-  { name: 'EventIcon', Icon: EventIcon },
+  { name: 'ArrowUpRight', Icon: ArrowUpRight },
+  { name: 'CalendarDays', Icon: CalendarDays },
+  { name: 'Check', Icon: Check },
+  { name: 'ChevronDown', Icon: ChevronDown },
+  { name: 'ChevronRight', Icon: ChevronRight },
+  { name: 'Funnel', Icon: Funnel },
+  { name: 'Globe', Icon: Globe },
+  { name: 'Info', Icon: Info },
+  { name: 'Languages', Icon: Languages },
+  { name: 'LoaderCircle', Icon: LoaderCircle },
+  { name: 'MapPin', Icon: MapPin },
+  { name: 'Menu', Icon: Menu },
+  { name: 'Milestone', Icon: Milestone },
+  { name: 'Monitor', Icon: Monitor },
+  { name: 'Moon', Icon: Moon },
+  { name: 'Pause', Icon: Pause },
+  { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
+  { name: 'Search', Icon: Search },
+  { name: 'Settings', Icon: Settings },
+  { name: 'Share', Icon: Share },
+  { name: 'SquarePlay', Icon: SquarePlay },
+  { name: 'Sun', Icon: Sun },
+  { name: 'X', Icon: X },
 ] as const
 
 const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
@@ -50,26 +87,57 @@ const PALETTE = [
 ] as const
 
 /**
- * Icons — the app's SVG icon set (actions, symbols, records) plus the
- * platform-keyed SocialIcon. Rendered as a labelled gallery at size 28.
+ * Icons — the Lucide glyphs the app renders, plus the brand marks that stay ours (Lucide
+ * ships no brand icons). Rendered as a labelled gallery at size 28.
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection description="The shared SVG icons used across the app." title="Gallery">
-      <div className="flex flex-wrap gap-6">
-        {ICONS.map(({ name, Icon }) => (
-          <div key={name} className="flex w-20 flex-col items-center gap-2 text-center">
-            <Icon size={28} />
-            <span className="text-xs text-gray-11">{name}</span>
-          </div>
-        ))}
+    <StorySection
+      description="Every Lucide glyph the app renders today — one grid, one stroke weight, outline only. This list is the app's usage, not a selection: an icon appears here once something imports it."
+      title="Gallery"
+    >
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap gap-6">
+          {ICONS.map(({ name, Icon }) => (
+            <div key={name} className="flex w-24 flex-col items-center gap-2 text-center">
+              <Icon size={28} />
+              <span className="text-xs text-gray-11">{name}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Reaching for a glyph we don't use yet is the common case, and the answer is
+            upstream rather than a longer list here — see the docblock on ICONS. */}
+        <div className="flex flex-col items-start gap-2">
+          <Button
+            href="https://lucide.dev/icons/"
+            rel="noopener noreferrer"
+            size="sm"
+            target="_blank"
+            variant="bordered"
+          >
+            Browse all Lucide icons
+            <ArrowUpRight size={16} />
+          </Button>
+          <p className="text-xs text-gray-11">
+            Need one that isn&apos;t here? Take it from the full catalogue, then add it to this
+            gallery in the same change that first uses it.
+          </p>
+        </div>
       </div>
     </StorySection>
 
-    <StorySection description="SocialIcon resolves a glyph from its platform key." title="Socials">
+    <StorySection
+      description="Kept hand-drawn: Lucide removed its brand icons, and redrawing them is a trademark problem. SocialIcon resolves a glyph from its platform key."
+      title="Brand marks"
+    >
       <div className="flex flex-wrap gap-6">
+        <div className="flex w-24 flex-col items-center gap-2 text-center">
+          <Logo size={28} />
+          <span className="text-xs text-gray-11">Logo</span>
+        </div>
         {SOCIAL_PLATFORMS.map((platform) => (
-          <div key={platform} className="flex w-20 flex-col items-center gap-2 text-center">
+          <div key={platform} className="flex w-24 flex-col items-center gap-2 text-center">
             <SocialIcon platform={platform} size={28} />
             <span className="text-xs text-gray-11">{platform}</span>
           </div>
@@ -78,35 +146,47 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role."
+      description="Icons are drawn with `currentColor`, so they take the text color of whatever they sit in — the same glyph on each palette role. Lucide strokes with it where our own marks fill with it; both inherit."
       inContext={true}
       title="Colour inheritance"
     >
       <div className="flex flex-col gap-3">
         {PALETTE.map(({ name, className }) => (
           <span key={name} className={`flex items-center gap-2 ${className}`}>
-            <CalendarIcon size={18} />
-            <LocationIcon size={18} />
-            <LanguageIcon size={18} />
-            <EventIcon size={18} />
+            <CalendarDays size={18} />
+            <MapPin size={18} />
+            <Languages size={18} />
+            <Logo size={18} />
             <span className="text-sm font-medium">{name}</span>
           </span>
         ))}
       </div>
     </StorySection>
 
+    <StorySection
+      description="Directional glyphs mirror under RTL. Lucide has no equivalent of the old `flipRtl`, so each directional call site carries `rtl:-scale-x-100` itself."
+      inContext={true}
+      title="Direction"
+    >
+      <div className="flex items-center gap-6" dir="rtl">
+        <ChevronRight className="rtl:-scale-x-100" size={24} />
+        <Milestone className="rtl:-scale-x-100" size={24} />
+        <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
+      </div>
+    </StorySection>
+
     <StorySection inContext={true} title="Examples">
       <div className="flex flex-col gap-3">
         <span className="flex items-center gap-2 text-gray-12">
-          <LocationIcon size={18} />
+          <MapPin size={18} />
           London, United Kingdom
         </span>
         <span className="flex items-center gap-2 text-gray-12">
-          <CalendarIcon size={18} />
+          <CalendarDays size={18} />
           Every Tuesday, 7:00 PM
         </span>
         <span className="flex items-center gap-2 text-gray-12">
-          <CallIcon size={18} />
+          <PhoneOutgoing size={18} />
           +44 20 1234 5678
         </span>
       </div>

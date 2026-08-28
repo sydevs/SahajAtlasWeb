@@ -3,10 +3,10 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
+import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { List, ListItem } from '@/components/molecules'
-import { MonitorIcon } from '@/components/atoms/Icons'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -91,7 +91,7 @@ export function CountriesView() {
             <ListItem
               count={onlineCount}
               href={onlineSearch}
-              icon={<MonitorIcon size={24} />}
+              icon={<Monitor size={24} />}
               label={t('online_classes')}
             />
           )}

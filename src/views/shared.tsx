@@ -6,9 +6,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { CalendarIcon, CloseIcon, FilterIcon, ListIcon, SearchIcon } from '@/components/atoms/Icons'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import api from '@/config/api'
@@ -121,7 +121,7 @@ export function CloseButton({ className }: { className?: string }) {
 
   return (
     <Button {...HEADER_CONTROL} aria-label={t('close')} className={className} onClick={dismiss}>
-      <CloseIcon size={20} />
+      <X size={20} />
     </Button>
   )
 }
@@ -143,7 +143,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
       aria-label={t('calendar.title')}
       onClick={() => navigate(calendarPath(regionSlug))}
     >
-      <CalendarIcon size={20} />
+      <CalendarDays size={20} />
     </Button>
   )
 }
@@ -160,7 +160,7 @@ export function SearchButton() {
 
   return (
     <Button {...HEADER_CONTROL} aria-label={t('search')} onClick={() => navigate(searchPath())}>
-      <SearchIcon size={20} />
+      <Search size={20} />
     </Button>
   )
 }
@@ -184,7 +184,7 @@ export function CollapseToggle() {
       aria-label={collapsed ? t('explore') : t('close')}
       onClick={toggle}
     >
-      {collapsed ? <ListIcon size={24} /> : <CloseIcon size={20} />}
+      {collapsed ? <Menu size={24} /> : <X size={20} />}
     </Button>
   )
 }
@@ -211,7 +211,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   if (iconOnly) {
     return (
       <Button {...HEADER_CONTROL} aria-label={label} className="relative" onClick={open}>
-        <FilterIcon size={20} />
+        <Funnel size={20} />
         {count > 0 && (
           <span
             aria-hidden
@@ -226,7 +226,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   return (
     <Button size="sm" variant="ghost" onClick={open}>
-      <FilterIcon size={18} />
+      <Funnel size={18} />
       {label}
     </Button>
   )

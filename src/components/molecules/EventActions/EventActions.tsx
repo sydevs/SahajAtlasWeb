@@ -1,10 +1,10 @@
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import { useTranslation } from 'react-i18next'
+import { Globe, Milestone, PhoneOutgoing, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { ActionCircle, ActionRow } from '@/components/molecules/ActionRow'
 import { CopyField } from '@/components/molecules/ShareContent'
-import { CallIcon, DirectionsIcon, ShareIcon, WebsiteIcon } from '@/components/atoms/Icons'
 import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { usePopover } from '@/hooks/use-popover'
@@ -37,7 +37,7 @@ function ContactPopover({
     <>
       <ActionCircle
         ref={refs.setReference}
-        icon={<CallIcon />}
+        icon={<PhoneOutgoing />}
         label={label}
         variant="bordered"
         {...getReferenceProps()}
@@ -107,7 +107,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 key="directions"
                 isExternal
                 href={mapsUrl}
-                icon={<DirectionsIcon />}
+                icon={<Milestone className="rtl:-scale-x-100" />}
                 label={t('actions.directions')}
                 variant="bordered"
               />,
@@ -120,7 +120,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 key="website"
                 isExternal
                 href={event.website}
-                icon={<WebsiteIcon />}
+                icon={<Globe />}
                 label={t('actions.website')}
                 variant="bordered"
               />,
@@ -136,7 +136,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
             <ActionCircle
               key="contact"
               href={`tel:${event.contactPhone}`}
-              icon={<CallIcon />}
+              icon={<PhoneOutgoing />}
               label={label}
               variant="bordered"
             />,
@@ -156,7 +156,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
         return [
           <ActionCircle
             key="share"
-            icon={<ShareIcon size={20} />}
+            icon={<Share size={20} />}
             label={t('actions.share')}
             variant="bordered"
             onClick={() => navigate(`${basePath}/share`)}

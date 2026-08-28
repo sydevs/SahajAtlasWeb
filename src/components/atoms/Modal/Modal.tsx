@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
-import { CloseIcon } from '@/components/atoms/Icons'
 import { overlayContainer } from '@/lib/overlay'
 
 // A centred, ephemeral dialog on @radix-ui/react-dialog (issue #79). Radix owns the
@@ -99,7 +99,7 @@ export function ModalContent({
           </div>
           <Dialog.Close asChild>
             <Button isIconOnly aria-label={closeLabel} size="sm" variant="ghost">
-              <CloseIcon size={20} />
+              <X size={20} />
             </Button>
           </Dialog.Close>
         </div>

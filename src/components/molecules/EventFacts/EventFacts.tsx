@@ -1,9 +1,9 @@
-import type { IconSvgProps } from '@/types'
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { tv } from 'tailwind-variants'
+import { CalendarDays, MapPin, Monitor } from 'lucide-react'
 
-import { CalendarIcon, LocationIcon, MonitorIcon } from '@/components/atoms/Icons'
 import {
   composeCalendarLine,
   useEventDisplay,
@@ -65,7 +65,7 @@ const ICON_SIZE = { default: 20, compact: 16, card: 20 } as const
 type FactVariant = 'default' | 'compact' | 'card'
 
 type Fact = {
-  icon: React.FC<IconSvgProps>
+  icon: LucideIcon
   text: ReactNode
   subtext?: ReactNode
 }
@@ -128,7 +128,7 @@ export function EventFacts({
 
   const items: Fact[] = [
     {
-      icon: CalendarIcon,
+      icon: CalendarDays,
       // The shared calendar-line composition — the identical string on the list
       // card and the map-pin hover popover (#72). Recurring events lead with the
       // pattern; one-off / terminal ones lead with the when-line (it IS the date
@@ -145,7 +145,7 @@ export function EventFacts({
 
   if (whereLine && display.status !== 'ended') {
     items.push({
-      icon: display.online ? MonitorIcon : LocationIcon,
+      icon: display.online ? Monitor : MapPin,
       text: whereLine,
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
     })

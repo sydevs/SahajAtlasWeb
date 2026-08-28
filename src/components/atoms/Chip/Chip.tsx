@@ -1,7 +1,7 @@
 import React from 'react'
 import { tv, type VariantProps } from 'tailwind-variants'
+import { X } from 'lucide-react'
 
-import { CloseIcon } from '@/components/atoms/Icons'
 import { IconSvgProps } from '@/types'
 
 // A compact, uppercase label — the design system's reference tailwind-variants
@@ -107,7 +107,7 @@ export function Chip({
       <span className={slots.content()}>{children}</span>
       {onClose && (
         <button aria-label={closeLabel} className={slots.close()} type="button" onClick={onClose}>
-          <CloseIcon size={12} />
+          <X size={12} />
         </button>
       )}
     </span>

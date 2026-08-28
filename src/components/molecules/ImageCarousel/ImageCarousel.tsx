@@ -4,8 +4,8 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Autoplay, Pagination, A11y, EffectFade } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
+import { Pause, SquarePlay } from 'lucide-react'
 
-import { PauseIcon, PlayIcon } from '@/components/atoms/Icons'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
 /** One carousel slide; also shown full-screen in the lightbox. */
@@ -150,7 +150,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             type="button"
             onClick={() => setPaused((wasPaused) => !wasPaused)}
           >
-            {paused ? <PlayIcon size={16} /> : <PauseIcon size={16} />}
+            {paused ? <SquarePlay size={16} /> : <Pause size={16} />}
           </button>
         )}
       </div>

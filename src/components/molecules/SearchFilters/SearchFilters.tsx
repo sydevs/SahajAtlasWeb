@@ -2,6 +2,7 @@ import { type ReactNode, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
+import { ChevronDown } from 'lucide-react'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Combobox } from '@/components/atoms/Combobox'
@@ -9,7 +10,6 @@ import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
-import { DownArrowIcon } from '@/components/atoms/Icons'
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
@@ -370,7 +370,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             trigger={
               <span className={fieldChrome({ trigger: true, highlight: languages.length > 0 })}>
                 <span className="truncate">{languageTriggerLabel}</span>
-                <DownArrowIcon className="h-4 w-4 shrink-0 opacity-70" />
+                <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
               </span>
             }
           >

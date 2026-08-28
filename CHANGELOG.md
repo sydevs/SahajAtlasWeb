@@ -23,6 +23,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The icon set is now [Lucide](https://lucide.dev).** The glyphs previously mixed three
+  sources at different grids and stroke weights, some filled and some outlined; they are now one
+  family — 24px grid, 2px stroke, outline only. Icons still take their colour from surrounding
+  text, so a themed embed is unaffected. The share row's network marks are unchanged.
+
 - **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
   so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:
   `locale` on the script URL → `?locale=` on the page → **`<html lang>`** → the browser → English.
