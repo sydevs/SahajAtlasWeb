@@ -18,10 +18,10 @@ import {
   Moon,
   Pause,
   PhoneOutgoing,
+  Play,
   Search,
   Settings,
   Share,
-  SquarePlay,
   Sun,
   X,
 } from 'lucide-react'
@@ -66,10 +66,10 @@ const ICONS = [
   { name: 'Moon', Icon: Moon },
   { name: 'Pause', Icon: Pause },
   { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
+  { name: 'Play', Icon: Play },
   { name: 'Search', Icon: Search },
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
-  { name: 'SquarePlay', Icon: SquarePlay },
   { name: 'Sun', Icon: Sun },
   { name: 'X', Icon: X },
 ] as const
