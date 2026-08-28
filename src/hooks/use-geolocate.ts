@@ -60,7 +60,22 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
 
   return useCallback((position: GeolocationPosition) => {
     const { navigate: go, searchParams: params, geojson: feed, locale: lang } = live.current
-    const point: [number, number] = [position.coords.longitude, position.coords.latitude]
+    // Rounded to ~110m BEFORE anything serialises it, so the visitor's doorstep never reaches a
+    // URL they might copy, or their host page's analytics. Costs nothing the feature can see: the
+    // frame is a neighbourhood (`NEARBY_RADIUS_KM` is 25km) and the list ranks over hundreds of
+    // km, both orders of magnitude coarser than this.
+    //
+    // It is the same judgement `reverseGeocode` below already makes by asking for `place` rather
+    // than a street address — this is the coordinate half of it, which the first version left at
+    // full float precision while the label beside it was being deliberately coarsened.
+    //
+    // Here rather than in `placeSearchPath`: the other two callers pass a typed geocode or an IP
+    // guess, both already public and coarse, and blurring those would only cost accuracy.
+    const round = (n: number) => Math.round(n * 1e3) / 1e3
+    const point: [number, number] = [
+      round(position.coords.longitude),
+      round(position.coords.latitude),
+    ]
     const place = { center: point, bbox: nearbyBounds(point, feed) }
 
     // Navigate FIRST, on the coordinates alone. Getting here has already cost up to Mapbox's
