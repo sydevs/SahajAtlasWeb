@@ -30,7 +30,7 @@ cover everything a host would notice since the widget was first deployed.
 
 - **The widget now follows your page's language.** ([#165]) It reads `<html lang>` and matches it,
   so a Dutch page gets a Dutch atlas whatever the visitor's browser prefers. Full precedence:
-  `locale` on the script URL → `?locale=` on the page → **`<html lang>`** → the browser → English.
+  `?locale=` on the page → `locale` on the script URL → **`<html lang>`** → the browser → English.
   ⚠ **The `locale` field on your client record is no longer read** — a record-level language says
   it once for every page you embed on, where `<html lang>` says it per page and your CMS already
   sets it. If you were relying on that field, set `locale` on the script URL instead, or check that
@@ -38,6 +38,19 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **"Find my location" now opens the classes near the visitor, not just a street corner.**
+  Pressing it used to zoom the map to the visitor's own address and leave the list showing whatever
+  it showed before. It now opens the distance-ranked results centred on them, framed to take in the
+  nearest few classes, with the place named in the search field. ⚠ **`geolocation` must be allowed
+  for this to work at all** — it is already in the iframe snippet's `allow` attribute and in the
+  Permissions Policy table, and it fails silently when it is missing.
+- **A visitor's language choice now appears in your page's URL.** Picking a language from the
+  settings menu adds **`?locale=<code>`** to your address with a `history.replaceState` — so the
+  choice survives a reload and travels in a copied link. Your own query parameters, path and
+  fragment are untouched, and no history entry is added. ⚠ **This reorders the `locale`
+  precedence**: a `?locale=` naming a language the atlas ships now outranks the `locale` on your
+  script URL, so that a shared link opens in the language it was shared in. If you pin `locale` and
+  need it to win unconditionally, say so and we will look at it.
 - **A map embed can now live inside an element on your page, instead of only taking the whole
   window.** ([#170]) **Give `<sahaj-atlas>` a `display: block` and a height and the map stays in
   that box** — your site's header above it, your content below, nothing painting over either.
@@ -148,6 +161,21 @@ cover everything a host would notice since the widget was first deployed.
   custom property. No extra request, no CSP change; unset, it uses the self-hosted face as before.
 
 ### Fixed
+
+- **Tapping a pin from a set of search results no longer zooms out to the whole world first.**
+  The map now goes straight from the search to the class. The outgoing panel was still steering the
+  camera for a moment after the visitor had left it, and reset the view to the whole planet a beat
+  before the class was framed — so the map zoomed all the way out and then flew all the way back in.
+  Pressing Search from inside a region no longer throws the map out to the world either.
+- **Opening a link straight to a region or a class arrives there instead of flying in from space.**
+  The map used to appear showing the whole world and then play a long zoom across it to reach the
+  place the link named. It now loads quietly behind a blurred panel and is simply _there_ when it
+  is ready. Moving between levels inside the atlas still animates, unchanged.
+- **The language menu lists every language in its own language.** It was labelling the options in
+  whatever language was currently on screen — so a French visitor looking for English was offered
+  "anglais", and someone who could not read the current language had no way to find their own. The
+  list now reads: čeština, Deutsch, English, español, français, magyar, Nederlands,
+  português (Brasil), русский, українська.
 
 - **The `theme` storage key is namespaced.** ([#156]) It was the bare string `theme`, so a page
   storing its own light/dark preference under that name had it read and overwritten by the widget —
