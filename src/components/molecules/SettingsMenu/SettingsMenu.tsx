@@ -5,10 +5,12 @@ import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } fr
 
 import { frameCollision } from '@/lib/overlay'
 import { supportedLanguages } from '@/config/i18n-options'
+import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
 import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
+import { publishLocale } from '@/lib/shape'
 
 const menu =
   'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
@@ -43,8 +45,26 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const { t } = useTranslation('common')
   const { locale, setLocale } = useLocale()
   const { preference, setPreference } = useThemePreference()
+  const { linkable } = useWidgetMode()
   const openReport = useReportModal((state) => state.openReport)
   const container = overlayContainer()
+
+  // Publish the pick to the page URL as well as changing the language, so the address bar
+  // describes what the visitor is looking at: the link they copy, and a reload, both keep it.
+  // `?locale=` was already read at boot (`config/i18n-options.ts`) and documented to
+  // integrators — this is the write side that never existed.
+  //
+  // ⚠ Here rather than inside `useLocale().setLocale`: this is the only place a viewer picks a
+  // language, while `useLocale` is called by every card in a list that pages to hundreds of rows.
+  // Putting a context read and a URL write on that hook would put both on the app's hottest path
+  // to serve one menu.
+  //
+  // Skipped in memory routing, where the widget's route deliberately isn't in a URL at all —
+  // `linkable` is that question, already decided once at mount.
+  const chooseLocale = (next: string) => {
+    setLocale(next)
+    if (linkable) publishLocale(next)
+  }
 
   const themes: { value: ThemePreference; label: string; icon: ReactNode }[] = [
     { value: 'light', label: t('theme.light'), icon: <Sun size={18} /> },
@@ -91,7 +111,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
                     language must not label English as "anglais". `capitalize` because Intl
                     returns lowercase endonyms (español, français, русский); it is per-word, so
                     "português (Brasil)" survives it intact. */}
-                <DropdownMenu.RadioGroup value={locale} onValueChange={setLocale}>
+                <DropdownMenu.RadioGroup value={locale} onValueChange={chooseLocale}>
                   {supportedLanguages.map((lng) => (
                     <DropdownMenu.RadioItem key={lng} className={item} lang={lng} value={lng}>
                       <ItemCheck />
