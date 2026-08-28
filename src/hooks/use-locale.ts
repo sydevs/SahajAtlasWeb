@@ -22,6 +22,32 @@ const displayNames = (locale: string, type: 'language' | 'region'): Intl.Display
   return created
 }
 
+/**
+ * A language's name IN ITSELF — "English", "français", "русский" — for the picker that offers it.
+ *
+ * The whole point of the language menu is to be usable by someone who cannot read the language
+ * currently on screen, and a list rendered through the ACTIVE locale defeats exactly that: a
+ * French visitor looking for English was offered "anglais", and a Russian one "английский". The
+ * name has to be in the language it names, so the row is legible to the person who wants it.
+ *
+ * Built with the code as BOTH arguments — the display locale and the subject — which is what
+ * makes the label an endonym. Goes through the same module cache as everything else here, so
+ * offering ten languages costs ten `Intl.DisplayNames` for the widget's lifetime, not ten per
+ * render of the menu.
+ *
+ * ⚠ Not a replacement for `languageLabel` below. That one names an EVENT's language inside a
+ * filter, where the reader is reading the current UI language and "Russian" is the right word;
+ * this one names a language to someone about to switch to it.
+ */
+export const nativeLanguageLabel = (code: string): string => {
+  try {
+    return displayNames(code, 'language').of(code) ?? code
+  } catch {
+    // `Intl.DisplayNames` throws on a malformed code, and both its constructor and `.of` can.
+    return code
+  }
+}
+
 export function useLocale() {
   // `t` is handed back alongside the locale because this hook already holds it: a caller
   // that needs both would otherwise call `useTranslation` a second time on the same

@@ -6,7 +6,7 @@ import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } fr
 import { frameCollision } from '@/lib/overlay'
 import { supportedLanguages } from '@/config/i18n-options'
 import { useReportModal } from '@/config/store'
-import { useLocale } from '@/hooks/use-locale'
+import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
 
@@ -41,7 +41,7 @@ export type SettingsMenuProps = {
 
 export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) {
   const { t } = useTranslation('common')
-  const { locale, setLocale, languageNames } = useLocale()
+  const { locale, setLocale } = useLocale()
   const { preference, setPreference } = useThemePreference()
   const openReport = useReportModal((state) => state.openReport)
   const container = overlayContainer()
@@ -76,16 +76,26 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <Languages size={18} />
-              <span className="flex-1 capitalize">{languageNames.of(locale)}</span>
+              {/* The same endonym the list below shows. It was already one by construction (a
+                  DisplayNames built in `locale`, naming `locale`) — said outright so the row and
+                  its list cannot drift apart. */}
+              <span className="flex-1 capitalize" lang={locale}>
+                {nativeLanguageLabel(locale)}
+              </span>
               <ChevronRight className="text-gray-11 rtl:-scale-x-100" size={18} />
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal container={container}>
               <DropdownMenu.SubContent className={menu} sideOffset={4} {...frameCollision()}>
+                {/* Each row reads in ITS OWN language, not the one currently on screen. A menu
+                    whose whole purpose is to be used by someone who cannot read the current
+                    language must not label English as "anglais". `capitalize` because Intl
+                    returns lowercase endonyms (español, français, русский); it is per-word, so
+                    "português (Brasil)" survives it intact. */}
                 <DropdownMenu.RadioGroup value={locale} onValueChange={setLocale}>
                   {supportedLanguages.map((lng) => (
-                    <DropdownMenu.RadioItem key={lng} className={item} value={lng}>
+                    <DropdownMenu.RadioItem key={lng} className={item} lang={lng} value={lng}>
                       <ItemCheck />
-                      <span className="capitalize">{languageNames.of(lng)}</span>
+                      <span className="capitalize">{nativeLanguageLabel(lng)}</span>
                     </DropdownMenu.RadioItem>
                   ))}
                 </DropdownMenu.RadioGroup>
