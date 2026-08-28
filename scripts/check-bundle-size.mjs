@@ -59,7 +59,7 @@ import { annotate, report } from './_ci-output.mjs'
 // it — and comfortably above the ~2.1 KiB a credentialed build adds that CI
 // cannot see (see SLACK_FLOOR_KIB below).
 //
-//   standalone  297.3 KiB  →  308
+//   standalone  297.2 KiB  →  308
 //   embed       299.8 KiB  →  308
 //
 // Ratcheted here by the Lucide icon swap (#003), which took ~3 KiB off both graphs:
