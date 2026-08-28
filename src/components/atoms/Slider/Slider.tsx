@@ -18,7 +18,7 @@ const slider = tv({
     // range keeps its solid primary) so an in-use field stands out — a colour change only,
     // no wrapper and no padding, so the layout never shifts.
     highlight: {
-      true: { track: 'bg-primary-6', thumb: 'border-primary-7' },
+      true: { track: 'bg-primary-5', thumb: 'border-primary-7' },
     },
     // Validation error: recolour to danger — the unfilled track + thumb border AND the filled
     // range swap their primary for danger (colour change only). The root also sets

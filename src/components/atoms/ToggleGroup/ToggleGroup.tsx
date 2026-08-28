@@ -26,7 +26,7 @@ const toggleGroup = tv({
     // no wrapper and no size change, so the layout never shifts.
     highlight: {
       true: {
-        item: 'border-primary-6 bg-primary-3 text-primary-11 hover:bg-primary-4',
+        item: 'border-primary-6 bg-primary-2 text-primary-12 hover:bg-primary-3',
       },
     },
     // Validation error: recolour to danger — the unselected items get a danger border and the

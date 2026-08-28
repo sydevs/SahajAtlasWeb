@@ -49,7 +49,7 @@ const toggle = tv({
     },
     // Active-filter tint: primary-colour the UNCHECKED track (checked keeps its solid
     // fill above) so an in-use field stands out — a colour change only, no wrapper.
-    highlight: { true: { root: 'bg-primary-6' } },
+    highlight: { true: { root: 'bg-primary-5' } },
     // Validation error: recolour to danger — the CHECKED track swaps its primary fill for the
     // danger solid, plus a danger ring so an unchecked switch still reads as errored (no layout
     // shift). The control also sets `aria-invalid`.
@@ -92,7 +92,7 @@ const box = tv({
     },
     // Active-filter tint: primary-colour the UNCHECKED box (checked keeps its solid fill
     // above) so an in-use field stands out — a colour change only, no wrapper.
-    highlight: { true: { root: 'border-primary-7 bg-primary-3' } },
+    highlight: { true: { root: 'border-primary-7 bg-primary-2' } },
     // Validation error: recolour to danger — the unchecked box border AND the CHECKED box's
     // primary fill/border/check swap for the danger solid (colour change only). The control
     // also sets `aria-invalid`.
