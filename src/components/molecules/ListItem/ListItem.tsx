@@ -39,8 +39,12 @@ export function ListItem({ label, subtitle, count, href, icon }: ListItemProps) 
           <div>{label}</div>
           {subtitle && <div className="mt-0.5 text-md font-light">{subtitle}</div>}
         </div>
-        <div className="me-1 text-end">{count}</div>
-        <RightArrowIcon className="text-xl" />
+        {/* Both step down from the title, but not to the same place: the count is still
+            information, so it keeps a readable step; the chevron only restates what tapping
+            the row already does, so it goes one further. The title stays `text-foreground`
+            (gray-12) and remains the loudest thing in the row. */}
+        <div className="me-1 text-end text-gray-10">{count}</div>
+        <RightArrowIcon className="text-xl text-gray-9" />
       </Link>
     </li>
   )

@@ -79,3 +79,49 @@ describe('ActionCircle — href gate', () => {
     expect(html).toContain('Share')
   })
 })
+
+// The caption used to be pinned to `text-primary-12 dark:text-primary-11` in the slot
+// recipe while the circle beside it took its colour from `controlSurface` — so every
+// non-primary circle wore a primary word, sixteen times over in the story's colour ×
+// variant matrix. Matching on the span that holds the label keeps this off the circle's
+// own classes, which name overlapping steps on the same ramps.
+describe('ActionCircle — the caption follows the colour prop', () => {
+  const captionClasses = (html: string) =>
+    (html.match(/<span class="([^"]*)">Contact<\/span>/)?.[1] ?? '').split(' ')
+
+  it.each([
+    ['primary', 'text-primary-12', 'dark:text-primary-11'],
+    ['secondary', 'text-secondary-12', 'dark:text-secondary-11'],
+    ['contrast', 'text-contrast-12', 'dark:text-contrast-11'],
+    ['neutral', 'text-gray-12', 'dark:text-gray-11'],
+  ] as const)('paints a %s caption on its own ramp', (color, light, dark) => {
+    const classes = captionClasses(
+      renderToStaticMarkup(<ActionCircle color={color} icon={<svg />} label="Contact" />),
+    )
+
+    expect(classes).toContain(light)
+    expect(classes).toContain(dark)
+  })
+
+  // The regression itself: the pinned primary must not survive on another role.
+  it.each(['secondary', 'contrast', 'neutral'] as const)(
+    'leaves no primary step on a %s caption',
+    (color) => {
+      const classes = captionClasses(
+        renderToStaticMarkup(<ActionCircle color={color} icon={<svg />} label="Contact" />),
+      )
+
+      expect(classes).not.toContain('text-primary-12')
+      expect(classes).not.toContain('dark:text-primary-11')
+    },
+  )
+
+  // `color` defaults to primary, so every existing app call site is unmoved by the change.
+  it('defaults to the primary caption when no colour is given', () => {
+    const classes = captionClasses(
+      renderToStaticMarkup(<ActionCircle icon={<svg />} label="Contact" />),
+    )
+
+    expect(classes).toContain('text-primary-12')
+  })
+})

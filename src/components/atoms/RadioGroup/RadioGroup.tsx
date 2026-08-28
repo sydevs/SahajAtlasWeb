@@ -34,7 +34,7 @@ const radioOption = tv({
     {
       checked: false,
       highlight: true,
-      class: 'border-primary-7 bg-primary-3 text-primary-12 hover:bg-primary-4',
+      class: 'border-primary-7 bg-primary-2 text-primary-12 hover:bg-primary-3',
     },
     {
       checked: false,

@@ -33,6 +33,15 @@ import {
 // The Format + Frequency toggles omit the "any" option — a single-select toggle can be
 // left unselected (= any), and the group's "Clear" resets it — so the toggle only shows
 // the real choices.
+//
+// ⚠ Clicking the SELECTED option clears it, and that needs the `|| 'any'` in the two
+// `onValueChange`s below. Radix's single-select already fires `onValueChange('')` on
+// deselect (`onItemDeactivate`), so the capability was always there; a `next && patch(…)`
+// truthiness guard silently swallowed it, leaving these two dimensions the only filters
+// you could set but not un-set from the control itself — the opposite of what the
+// paragraph above says they do. `'any'` is the sentinel the URL codec omits, so a cleared
+// group round-trips as an absent parameter and matches no ToggleGroupItem, which is what
+// renders the group unselected.
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
@@ -59,9 +68,17 @@ function FilterGroup({
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-2">
           <span className="text-sm font-medium text-foreground">{label}</span>
-          {active && onClear && (
+          {/* Clear is HIDDEN, never unmounted, so it cannot change the row's height.
+              The row is `items-baseline` and the two children have different line boxes —
+              the label is `text-sm` (19.5px), this is `text-xs` (~20px) — so mounting the
+              button on selection grew the row and pushed every section below it down.
+              Reserving the space is deterministic where pinning a measured pixel height is
+              not: it survives a font change and a translation that wraps. `visibility:
+              hidden` also takes it out of the tab order and the accessibility tree, so no
+              `aria-hidden`/`tabIndex` is needed to stop a hidden control being reachable. */}
+          {onClear && (
             <button
-              className="text-xs font-medium text-primary-11 hover:underline"
+              className={`text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
               type="button"
               onClick={onClear}
             >
@@ -235,7 +252,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           highlight={format !== 'any'}
           type="single"
           value={format}
-          onValueChange={(next) => next && patch({ format: next as EventFormat })}
+          onValueChange={(next) => patch({ format: (next || 'any') as EventFormat })}
         >
           {FORMAT_OPTIONS.map((option) => (
             <ToggleGroupItem key={option} value={option}>
@@ -256,7 +273,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           highlight={cadence !== 'any'}
           type="single"
           value={cadence}
-          onValueChange={(next) => next && patch({ cadence: next as EventCadence })}
+          onValueChange={(next) => patch({ cadence: (next || 'any') as EventCadence })}
         >
           {CADENCE_OPTIONS.map((option) => (
             <ToggleGroupItem key={option} value={option}>

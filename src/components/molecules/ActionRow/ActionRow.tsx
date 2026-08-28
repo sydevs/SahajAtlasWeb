@@ -24,17 +24,31 @@ import { isSafeHref } from '@/lib/shape'
 // "Directions" on one line at `text-xs`, and enough to afford a gap between columns.
 // Columns share the row equally (`flex-1 basis-0`) so the full set always fits one
 // line, but they're capped so a short set clusters at its natural width rather than
-// stretching to half the panel each. Labels take the primary role's high-contrast
-// step (Radix step 12 — text-grade in both themes) so the row reads as a set of brand
+// stretching to half the panel each. Labels take their OWN role's high-contrast step
+// (Radix step 12 — text-grade in both themes) so the row reads as a set of brand
 // controls rather than captions; two lines and `break-words` are the fallbacks for an
 // oversized translation.
+//
+// The label's colour follows `color` rather than being pinned to primary: the circle
+// already takes the role from `controlSurface`, so a hardcoded caption made every
+// non-primary circle wear a primary word — visible sixteen times over in the story's
+// colour × variant matrix. `neutral` reads off the gray ramp, matching how
+// `controlSurface` spells that role.
 const actionCircle = tv({
   slots: {
     base: 'group flex min-w-0 max-w-[6rem] flex-1 basis-0 flex-col items-center gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
     circle: 'shrink-0 transition-colors group-hover:opacity-90 group-active:scale-95',
-    label:
-      'line-clamp-2 w-full break-words text-center text-xs leading-tight text-primary-12 dark:text-primary-11',
+    label: 'line-clamp-2 w-full break-words text-center text-xs leading-tight',
   },
+  variants: {
+    color: {
+      primary: { label: 'text-primary-12 dark:text-primary-11' },
+      secondary: { label: 'text-secondary-12 dark:text-secondary-11' },
+      contrast: { label: 'text-contrast-12 dark:text-contrast-11' },
+      neutral: { label: 'text-gray-12 dark:text-gray-11' },
+    },
+  },
+  defaultVariants: { color: 'primary' },
 })
 
 type SurfaceVariants = VariantProps<typeof controlSurface>
@@ -71,7 +85,7 @@ export const ActionCircle = forwardRef<HTMLElement, ActionCircleProps>(function 
   },
   ref,
 ) {
-  const styles = actionCircle()
+  const styles = actionCircle({ color })
 
   const content = (
     <>

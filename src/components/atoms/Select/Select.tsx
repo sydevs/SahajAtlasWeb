@@ -19,7 +19,7 @@ export const fieldChrome = tv({
     /** Textareas grow with their content instead of holding the 40px field height. */
     multiline: { true: 'h-auto py-2' },
     /** Active-filter tint — a primary background so an in-use field stands out. */
-    highlight: { true: 'border-primary-7 bg-primary-3' },
+    highlight: { true: 'border-primary-7 bg-primary-2' },
   },
   defaultVariants: { isInvalid: false, trigger: false },
 })
