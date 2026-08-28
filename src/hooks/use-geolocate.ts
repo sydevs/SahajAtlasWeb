@@ -1,13 +1,13 @@
 import type { Geojson } from '@/types'
 
-import { useCallback } from 'react'
-import { useLocation, useSearchParams } from 'react-router'
+import { useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useLocale } from '@/hooks/use-locale'
 import { geocodeCountryCode, reverseGeocode } from '@/lib/geocode'
 import { nearbyBounds } from '@/lib/geolocation'
-import { SEARCH_COUNTRY_PARAM, placeSearchPath } from '@/lib/shape'
+import { placeSearchPath } from '@/lib/shape'
 
 /**
  * What "find my location" does: open the distance-ranked results centred on the visitor, framed
@@ -33,48 +33,50 @@ import { SEARCH_COUNTRY_PARAM, placeSearchPath } from '@/lib/shape'
  */
 export function useGeolocateToSearch(geojson: Geojson | undefined) {
   const navigate = useAtlasNavigate()
-  const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const { locale } = useLocale()
 
-  return useCallback(
-    (position: GeolocationPosition) => {
-      const point: [number, number] = [position.coords.longitude, position.coords.latitude]
+  /**
+   * ⚠ **The handler this returns is bound ONCE, when Mapbox constructs the control**, so it must
+   * not close over router state — the same construction-only behaviour `Map.tsx` documents for
+   * the `locale` prop, and it is not theoretical: the first version of this read `searchParams`
+   * and `setSearchParams` from the closure, and the stale `replace` they carried rewrote
+   * `/search?center=…&bbox=…` back to the route the widget had been on when the map mounted,
+   * dropping the search it had just performed. Measured in a browser; nothing else caught it.
+   *
+   * A ref refreshed every render is the fix: `Mapbox` re-renders on filter and location changes
+   * already, so this is always current by the time anyone can press the control.
+   */
+  const live = useRef({ navigate, searchParams, geojson, locale })
 
-      // Navigate FIRST, on the coordinates alone. Getting here has already cost up to Mapbox's
-      // six-second `positionOptions.timeout`, so nothing else may be waited on before the map
-      // moves and the list re-ranks.
-      navigate(placeSearchPath(searchParams, { center: point, bbox: nearbyBounds(point, geojson) }))
+  live.current = { navigate, searchParams, geojson, locale }
 
-      // Then name the place, if the network obliges. `?q` fills the search field so it says
-      // where the results are from, and `?cc` turns on the country-site offer and the
-      // foreign-distance rule — neither of which a `GeolocationPosition` can supply.
-      //
-      // `replace` so the naming is not a second history entry the back button has to walk
-      // through, and `state` carried explicitly because `setSearchParams` forwards only what it
-      // is given: a bare `{ replace: true }` drops `atlasDepth` and the drawer's X would climb
-      // to the structural parent instead of going back. Same reason `MapSearch.setQuery` does it.
-      void reverseGeocode(point, locale).then((feature) => {
-        if (!feature) return
+  return useCallback((position: GeolocationPosition) => {
+    const { navigate: go, searchParams: params, geojson: feed, locale: lang } = live.current
+    const point: [number, number] = [position.coords.longitude, position.coords.latitude]
+    const place = { center: point, bbox: nearbyBounds(point, feed) }
 
-        const label = feature.properties?.full_address
-        const countryCode = geocodeCountryCode(feature)
+    // Navigate FIRST, on the coordinates alone. Getting here has already cost up to Mapbox's
+    // six-second `positionOptions.timeout`, so nothing else may be waited on before the map
+    // moves and the list re-ranks.
+    go(placeSearchPath(params, place))
 
-        if (!label && !countryCode) return
+    // Then name the place, if the network obliges. `?q` fills the search field so it says where
+    // the results are from, and `?cc` turns on the country-site offer and the foreign-distance
+    // rule — neither of which a `GeolocationPosition` can supply.
+    //
+    // Rebuilt from the same `params` and `place` rather than merged onto whatever the URL says
+    // by then, so the naming cannot disturb the search it is naming. `replace` because this is
+    // the same destination gaining a label, not a second place to press Back through.
+    void reverseGeocode(point, lang).then((feature) => {
+      if (!feature) return
 
-        setSearchParams(
-          (prev) => {
-            const next = new URLSearchParams(prev)
+      const q = feature.properties?.full_address ?? undefined
+      const countryCode = geocodeCountryCode(feature)
 
-            if (label) next.set('q', label)
-            if (countryCode) next.set(SEARCH_COUNTRY_PARAM, countryCode)
+      if (!q && !countryCode) return
 
-            return next
-          },
-          { replace: true, state: location.state },
-        )
-      })
-    },
-    [navigate, searchParams, setSearchParams, geojson, locale, location.state],
-  )
+      go(placeSearchPath(params, { ...place, q, countryCode }), { replace: true })
+    })
+  }, [])
 }
