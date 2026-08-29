@@ -13,6 +13,31 @@ import { resolve } from 'path'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
 
 /**
+ * Give a Cloudflare **preview** deploy its own origin as `VITE_HOST`.
+ *
+ * `VITE_HOST` has exactly one reader — `config/i18n.ts`'s `loadPath`, which composes the absolute
+ * URL the locale JSON is fetched from. It has to be absolute: embedded, the widget runs on the
+ * host's page but its translations live wherever the bundle was served from, so a relative path
+ * would resolve against the host's origin and 404.
+ *
+ * Production sets it in the Pages dashboard and is untouched by this — an explicit value always
+ * wins, which is also why `pnpm dev`, CI and every local build keep `.env`'s `localhost:5174`.
+ * **Preview deploys had nothing**, so they inherited that localhost default and shipped it to a
+ * `pages.dev` origin: every locale fetch was then a cross-origin request to the reviewer's own
+ * machine, blocked as a private-network access. i18next's `init` never resolves, every component
+ * reading a translation suspends forever, and the widget renders **nothing at all** — not a
+ * missing-string problem, a blank preview. It had been that way for every PR.
+ *
+ * `CF_PAGES_URL` is Cloudflare's own answer: the URL of the current deployment, documented for
+ * precisely this ("allowing build tools to know the URL the page will be deployed at"). Reading it
+ * here rather than asking someone to add a dashboard variable also means it cannot be a static
+ * value — each preview gets a distinct per-deployment host — and it works on a fork.
+ */
+if (!process.env.VITE_HOST && process.env.CF_PAGES_URL) {
+  process.env.VITE_HOST = process.env.CF_PAGES_URL
+}
+
+/**
  * Does this command upload source maps to Sentry? (#130)
  *
  * Two conditions, and BOTH are load-bearing.
