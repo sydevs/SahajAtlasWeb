@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Encontre uma aula perto de você"
+  },
+  "feedback": {
+    "confirmed": "Obrigado por confirmar — assim outros buscadores sabem que esta aula é real.",
+    "denied": "Obrigado por avisar — lamentamos que você tenha ido em vão.",
+    "nearby": "Ver outras aulas por perto"
   }
 }

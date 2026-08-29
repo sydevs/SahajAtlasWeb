@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventListItem, List, ListItem } from '@/components/molecules'
+import { EventListItem, FeedbackBanner, List, ListItem } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import { childRoute } from '@/lib/shape'
@@ -37,6 +38,10 @@ export function RegionView({ slug }: { slug: string }) {
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
+  // A reader redirected here by the post-event email said the class did NOT take place (#164).
+  // Only `denied` lands on a region page — `confirmed` goes to the event's own — so a stray
+  // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
+  const feedback = usePostEventFeedback()
 
   const { data: region } = useSuspenseQuery({
     queryKey: ['region', slug, locale],
@@ -93,6 +98,9 @@ export function RegionView({ slug }: { slug: string }) {
         </div>
       </DrawerHeader>
       <DrawerBody>
+        {/* Above the region's own content, which IS the "other classes near them" the
+            acknowledgement hands off to — so the banner carries no onward link. */}
+        {feedback === 'denied' && <FeedbackBanner answer="denied" />}
         <GeolocationSuggestion regionCenter={region.center} />
         {isEmpty ? (
           <EmptyEventList />

@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Vind een les bij jou in de buurt"
+  },
+  "feedback": {
+    "confirmed": "Bedankt voor je bevestiging — zo weten andere zoekers dat deze les echt bestaat.",
+    "denied": "Bedankt voor je melding — vervelend dat je voor niets bent gekomen.",
+    "nearby": "Bekijk andere lessen in de buurt"
   }
 }

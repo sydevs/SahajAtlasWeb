@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Find a class near you"
+  },
+  "feedback": {
+    "confirmed": "Thanks for confirming — this helps other seekers know this class is real.",
+    "denied": "Thanks for letting us know — sorry you had a wasted journey.",
+    "nearby": "See other classes nearby"
   }
 }

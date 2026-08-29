@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Encuentra una clase cerca de ti"
+  },
+  "feedback": {
+    "confirmed": "Gracias por confirmarlo: así otros buscadores saben que esta clase es real.",
+    "denied": "Gracias por avisarnos: sentimos que hayas hecho el viaje en vano.",
+    "nearby": "Ver otras clases cerca"
   }
 }

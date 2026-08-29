@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Találjon egy tanfolyamot a közelében"
+  },
+  "feedback": {
+    "confirmed": "Köszönjük a megerősítést – így mások is tudják, hogy ez az alkalom valóban létezik.",
+    "denied": "Köszönjük a jelzést – sajnáljuk, hogy hiába utazott.",
+    "nearby": "További közeli alkalmak megtekintése"
   }
 }

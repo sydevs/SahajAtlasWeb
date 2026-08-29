@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Najděte kurz ve svém okolí"
+  },
+  "feedback": {
+    "confirmed": "Děkujeme za potvrzení – ostatní hledající tak vědí, že tato lekce opravdu existuje.",
+    "denied": "Děkujeme, že jste nám dali vědět – mrzí nás, že jste cestovali zbytečně.",
+    "nearby": "Zobrazit další lekce v okolí"
   }
 }

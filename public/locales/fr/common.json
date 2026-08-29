@@ -162,5 +162,10 @@
   },
   "compact": {
     "open": "Trouver un cours près de chez vous"
+  },
+  "feedback": {
+    "confirmed": "Merci de votre confirmation — cela aide d'autres chercheurs à savoir que ce cours existe vraiment.",
+    "denied": "Merci de nous l'avoir signalé — désolés pour ce déplacement inutile.",
+    "nearby": "Voir d'autres cours à proximité"
   }
 }
