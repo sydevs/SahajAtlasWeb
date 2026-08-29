@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EventRegisterBar } from './EventRegister'
@@ -27,6 +27,18 @@ export type EventDetailsProps = EventSurfaceProps & {
   /** Render Register inline (panel order slot 4). The mobile map sheet passes
    *  false and mounts EventRegisterBar in the sticky drawer footer instead. */
   registerInline?: boolean
+  /**
+   * Rendered immediately above Register, inside the panel's own flow.
+   *
+   * A slot rather than a prop per caller: what goes here is a view's business, not this
+   * component's, and the alternative was a second boolean beside `registerInline` for every
+   * such addition. EventView passes the post-event feedback acknowledgement (#164).
+   *
+   * ⚠ Where Register is NOT inline (the mobile map sheet mounts `EventRegisterBar` in the
+   * sticky footer instead), this still renders here — after the facts, above everything that
+   * follows — which keeps it above the sticky bar in reading order too.
+   */
+  children?: ReactNode
 }
 
 /**
@@ -35,7 +47,12 @@ export type EventDetailsProps = EventSurfaceProps & {
  * separate component (EventHeader), rendered outside the scrolling drawer body so
  * it stays pinned; the triage chips lead the body.
  */
-export function EventDetails({ event, basePath, registerInline = true }: EventDetailsProps) {
+export function EventDetails({
+  event,
+  basePath,
+  registerInline = true,
+  children,
+}: EventDetailsProps) {
   const { t } = useTranslation('events')
 
   const descriptionHtml = lexicalToHtml(event.description)
@@ -67,6 +84,8 @@ export function EventDetails({ event, basePath, registerInline = true }: EventDe
 
       {/* Extra breathing room around the when/where facts, above the register CTA. */}
       <EventFacts className="my-2" event={event} />
+
+      {children}
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 

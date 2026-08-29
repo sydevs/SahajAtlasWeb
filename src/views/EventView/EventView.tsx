@@ -123,38 +123,39 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               />
             }
           >
-            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
+            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister}>
+              {/* Passed as the panel's slot so it lands immediately above Register, which lives
+                  inside EventDetails when it is inline. The acknowledgement belongs beside the
+                  action it wants them to take, and the panel is the only thing that knows where
+                  that action sits.
+
+                  The onward rung is the event's own region — "other classes near them" — built
+                  from `event.path` rather than `event.region.webPath`, which is a CMS-supplied
+                  route and would need `safePath` before it could reach an href; `parentOf`
+                  derives the same place from a route we already resolved this view from. It is
+                  OPTIONAL: a path with no parent yields nothing, and the acknowledgement then
+                  stands on its own rather than rendering a link to nowhere. */}
+              {feedback === 'confirmed' && (
+                <Alert
+                  closeLabel={t('close')}
+                  color="primary"
+                  description={
+                    onwardHref ? (
+                      <Link className="underline" href={onwardHref}>
+                        {t('feedback.nearby')}
+                      </Link>
+                    ) : undefined
+                  }
+                  icon={<Check size={18} />}
+                  role="status"
+                  size="sm"
+                  title={t('feedback.confirmed')}
+                  onClose={dismissFeedback}
+                />
+              )}
+            </EventDetails>
           </Suspense>
         </ResetErrorBoundary>
-        {/* Below the class they just confirmed rather than above it, so the event itself leads
-            and the acknowledgement sits next to the Register action it wants them to take — the
-            sticky bar directly beneath, or the inline CTA in the details above.
-
-            The onward rung is the event's own region — "other classes near them" — built from
-            `event.path` rather than `event.region.webPath`, which is a CMS-supplied route and
-            would need `safePath` before it could reach an href; `parentOf` derives the same place
-            from a route we already resolved this view from. It is OPTIONAL: a path with no parent
-            yields nothing, and the acknowledgement then stands on its own rather than rendering a
-            link to nowhere. */}
-        {feedback === 'confirmed' && (
-          <Alert
-            className="mt-4"
-            closeLabel={t('close')}
-            color="primary"
-            description={
-              onwardHref ? (
-                <Link className="underline" href={onwardHref}>
-                  {t('feedback.nearby')}
-                </Link>
-              ) : undefined
-            }
-            icon={<Check size={18} />}
-            role="status"
-            size="sm"
-            title={t('feedback.confirmed')}
-            onClose={dismissFeedback}
-          />
-        )}
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter
