@@ -263,12 +263,16 @@ export function Mapbox() {
     () => ({
       width: '100%',
       height: '100%',
-      opacity: settled ? 1 : 0,
-      transition: 'opacity 250ms ease-out',
-      // ⚠ A hidden map must also be an inert one. `opacity: 0` hides the canvas but leaves it
-      // fully interactive, and the curtain over it is `pointer-events-none` — so a click would
-      // land on pins nobody can see and navigate to a class the visitor never chose. Reachable
-      // on any route that does not frame the camera, where the reveal waits out the backstop.
+      // ⚠ **The canvas stays VISIBLE while the camera is still arriving — `MapCurtain` blurs it
+      // rather than hiding it.** An earlier version set `opacity: 0` here as well as frosting,
+      // and the two cancelled out: `backdrop-filter` filters what is BEHIND the element, so with
+      // a transparent canvas there was nothing to blur and the tint painted onto the page's own
+      // white. The result was a blank screen where a soft map should be — the whole point of a
+      // frost being that you can see something is there.
+      //
+      // Not interactive though: a map nobody can read clearly should not take clicks, and the
+      // curtain above it is `pointer-events-none`, so without this a click would land on pins
+      // behind the blur and open a class the visitor never chose.
       pointerEvents: settled ? undefined : ('none' as const),
     }),
     [settled],

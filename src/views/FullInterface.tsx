@@ -87,12 +87,22 @@ function useAnalytics(primaryDomain: string, pathname: string) {
  * fly in from the world view).
  *
  * The map is uncontrolled and takes no `initialViewState`, so it necessarily boots at [0, 0]
- * zoom 0 while the region or event the visitor actually asked for is still being fetched. The
- * canvas fades itself in on the same flag; this draws what stands in front of it meanwhile.
+ * zoom 0 while the region or event the visitor actually asked for is still being fetched. This
+ * softens that view until the camera has arrived somewhere worth looking at.
+ *
+ * ⚠ **It blurs the map; it does not hide it — and the canvas must stay opaque for this to mean
+ * anything.** `backdrop-filter` filters what is BEHIND the element, so pairing it with an
+ * `opacity: 0` canvas (which an earlier version did) leaves nothing to blur and the tint paints
+ * onto the page's own white: a blank screen rather than a soft map. `Map.tsx` carries the other
+ * half of this pairing and says so.
  *
  * ⚠ **`backdrop-blur` on this overlay, never `filter: blur()` on the canvas.** A backdrop filter
  * is the composited path and leaves the WebGL surface untouched, where filtering the canvas
  * forces it into a filtered layer every frame.
+ *
+ * The blur is deliberately light (`sm`, 4px) over a 20% tint. It has one job — say "not ready
+ * yet" — and the moment it stops reading as a map behind glass it has become a loading screen,
+ * which is a worse answer than the world view it was meant to soften.
  *
  * The spinner fades in on a delay (`sy-map-curtain-spinner`, styles/globals.css) rather than
  * appearing at once, so a warm boot reads as a clean frost→reveal instead of flashing a spinner
@@ -112,7 +122,7 @@ function MapCurtain() {
       // Not `role="status"`: the drawer's own DrawerLoading already announces the wait, and two
       // live regions describing one boot is one more than a screen reader should hear.
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-md"
+      className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
     >
       <span className="sy-map-curtain-spinner">
         <Spinner decorative size="lg" srLabel={t('loading', { defaultValue: 'Loading' })} />

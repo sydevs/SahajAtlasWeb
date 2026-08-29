@@ -245,7 +245,11 @@ export function DrawerLoadingBody() {
 
   return (
     <DrawerBody className={CENTERED_BODY}>
-      <Spinner color="secondary" label={t('loading', { defaultValue: 'Loading…' })} />
+      {/* `srLabel`, not `label`: the word is announced, not drawn. A visible "Loading…" under
+          the glyph says nothing a spinner does not already say, and it is what pushed the glyph
+          itself off centre — the column centres, so the label's height sits half of it below the
+          middle. Screen readers still get it through the Spinner's own `role="status"`. */}
+      <Spinner color="secondary" srLabel={t('loading', { defaultValue: 'Loading…' })} />
     </DrawerBody>
   )
 }
