@@ -47,7 +47,7 @@ cover everything a host would notice since the widget was first deployed.
 ### Added
 
 - **A reader answering a post-event feedback email now lands in the atlas, not on a dead-end
-  card.** People who register for a class get a follow-up asking whether it took place;
+  card.** ([#181]) People who register for a class get a follow-up asking whether it took place;
   both answers now redirect to your site — the class's own page for "yes", its region page for
   "no" — carrying **`?feedback=confirmed`** or **`?feedback=denied`**. The widget shows a short
   acknowledgement above the page and then removes that parameter with a `history.replaceState`, so
@@ -454,6 +454,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
+[#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
