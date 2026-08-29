@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Merci d'avoir confirmé que ce cours a toujours lieu — cela aide d'autres chercheurs à le trouver.",
     "denied": "Merci de nous avoir signalé que ce cours n'a pas eu lieu — nous allons vérifier et corriger cette annonce pour les autres.",
-    "nearby": "Voir d'autres cours à proximité"
+    "nearby": "Voir d'autres cours à proximité",
+    "below": "D'autres cours dans cette zone sont listés ci-dessous."
   }
 }

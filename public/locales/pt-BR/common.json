@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Obrigado por confirmar que esta aula continua acontecendo — assim outros buscadores conseguem encontrá-la.",
     "denied": "Obrigado por nos avisar que esta aula não aconteceu — vamos revisar e corrigir este anúncio para os outros.",
-    "nearby": "Ver outras aulas por perto"
+    "nearby": "Ver outras aulas por perto",
+    "below": "Outras aulas nesta região estão listadas abaixo."
   }
 }

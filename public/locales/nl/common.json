@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Bedankt voor je bevestiging dat deze les nog doorgaat — zo kunnen andere zoekers hem vinden.",
     "denied": "Bedankt dat je ons liet weten dat deze les niet doorging — we controleren en corrigeren deze vermelding voor anderen.",
-    "nearby": "Bekijk andere lessen in de buurt"
+    "nearby": "Bekijk andere lessen in de buurt",
+    "below": "Andere lessen in deze omgeving staan hieronder."
   }
 }

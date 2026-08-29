@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Thank you for confirming that this class is still running — this helps other seekers find it.",
     "denied": "Thank you for telling us that this class did not happen — we will review and fix this listing for others.",
-    "nearby": "See other classes nearby"
+    "nearby": "See other classes nearby",
+    "below": "Other classes in this area are listed below."
   }
 }

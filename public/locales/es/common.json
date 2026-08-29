@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Gracias por confirmar que esta clase sigue en marcha: así otros buscadores pueden encontrarla.",
     "denied": "Gracias por avisarnos de que esta clase no se celebró: revisaremos y corregiremos esta información para los demás.",
-    "nearby": "Ver otras clases cerca"
+    "nearby": "Ver otras clases cerca",
+    "below": "Más abajo se muestran otras clases de esta zona."
   }
 }

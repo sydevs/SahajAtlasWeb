@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Danke für die Bestätigung, dass dieser Kurs weiterhin stattfindet – so finden ihn andere Suchende.",
     "denied": "Danke für den Hinweis, dass dieser Kurs nicht stattgefunden hat – wir prüfen und korrigieren den Eintrag für andere.",
-    "nearby": "Andere Kurse in der Nähe ansehen"
+    "nearby": "Andere Kurse in der Nähe ansehen",
+    "below": "Weitere Kurse in dieser Gegend finden Sie unten."
   }
 }

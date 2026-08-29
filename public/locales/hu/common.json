@@ -166,6 +166,7 @@
   "feedback": {
     "confirmed": "Köszönjük a megerősítést, hogy ez az alkalom továbbra is megtartásra kerül – így mások is megtalálják.",
     "denied": "Köszönjük, hogy jelezte, hogy ez az alkalom elmaradt – átnézzük és javítjuk a hirdetést a többiek számára.",
-    "nearby": "További közeli alkalmak megtekintése"
+    "nearby": "További közeli alkalmak megtekintése",
+    "below": "Az ebben a térségben tartott további alkalmakat lentebb találja."
   }
 }

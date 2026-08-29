@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
+import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
 import api from '@/config/api'
@@ -12,7 +13,7 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { childRoute } from '@/lib/shape'
+import { childRoute, searchPath } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CalendarButton,
@@ -109,6 +110,20 @@ export function RegionView({ slug }: { slug: string }) {
             className="mb-4"
             closeLabel={tCommon('close')}
             color="neutral"
+            description={
+              // Normally the onward step is the list directly below, so the banner names it
+              // rather than linking to the page the reader is already on. A region with nothing
+              // left to list is the exception — the fifth denial unpublishes the event, so this
+              // is reachable — and there the sentence would sit above an empty state, so it
+              // becomes a real link into the search instead.
+              isEmpty ? (
+                <Link className="underline" href={searchPath()}>
+                  {tCommon('feedback.nearby')}
+                </Link>
+              ) : (
+                tCommon('feedback.below')
+              )
+            }
             role="status"
             size="sm"
             title={tCommon('feedback.denied')}
