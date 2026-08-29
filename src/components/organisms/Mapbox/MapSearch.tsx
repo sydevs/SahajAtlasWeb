@@ -69,8 +69,28 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   // `atlasDepth` — after ONE keystroke the drawer's dismissal (X / swipe / Esc) would
   // push to the structural parent instead of going chronologically back. The filter
   // and sort setters carry it for the same reason.
+  // Adopt a `?q` that somebody ELSE wrote. The field seeds from the URL once, in the state
+  // initializer above, which is right while typing is the only writer — but the geolocate
+  // control names the place it found AFTER navigating, and `placeSearchPath` clears `?q` on every
+  // re-search. Neither remounts this component when the view on top is unchanged, so without
+  // this the field keeps showing a place the results are no longer about.
+  //
+  // Guarded on the last value we wrote ourselves rather than on equality with the field, so the
+  // per-keystroke mirroring below can never fight it: typing records its own write, sees the URL
+  // agree, and does nothing.
+  const urlQuery = searchParams.get('q') ?? ''
+  const ownWrite = React.useRef(urlQuery)
+
+  React.useEffect(() => {
+    if (urlQuery === ownWrite.current) return
+
+    ownWrite.current = urlQuery
+    setSearchQuery(urlQuery)
+  }, [urlQuery])
+
   const setQuery = (query: string) => {
     setSearchQuery(query)
+    ownWrite.current = query
     if (!syncToUrl) return
 
     setSearchParams(

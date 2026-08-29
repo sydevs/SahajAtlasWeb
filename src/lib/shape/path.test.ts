@@ -7,9 +7,11 @@ import {
   nearestKnownRegion,
   parentOf,
   parseCenter,
+  placeSearchPath,
   resolvePath,
   resolveStack,
   safePath,
+  topViewKey,
 } from './path'
 
 describe('safePath', () => {
@@ -287,5 +289,118 @@ describe('listResetKey', () => {
   it('handles the bare search with no params', () => {
     expect(key('')).toBe('')
     expect(key('q=anything')).toBe('')
+  })
+})
+
+describe('placeSearchPath', () => {
+  const query = (path: string) => new URLSearchParams(path.split('?')[1])
+  const CENTRE: [number, number] = [4.9, 52.37]
+
+  it('writes the searched location', () => {
+    const params = query(placeSearchPath(new URLSearchParams(), { center: CENTRE }))
+
+    expect(params.get('center')).toBe('4.9,52.37')
+  })
+
+  it('carries the active filters and sort across the re-search', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('format=online&sort=soonest'), { center: CENTRE }),
+    )
+
+    expect(params.get('format')).toBe('online')
+    expect(params.get('sort')).toBe('soonest')
+  })
+
+  // The reason this goes through `preserveSearchState` rather than copying the previous params:
+  // a stale `?cc` offers the WRONG country's website on an empty result set, and a stale `?q`
+  // labels the new results with the old place.
+  it('drops the previous searched location rather than merging onto it', () => {
+    const params = query(
+      placeSearchPath(new URLSearchParams('q=Paris&center=2.35,48.85&bbox=1,2,3,4&cc=FR'), {
+        center: CENTRE,
+      }),
+    )
+
+    expect(params.get('center')).toBe('4.9,52.37')
+    expect(params.get('q')).toBeNull()
+    expect(params.get('bbox')).toBeNull()
+    expect(params.get('cc')).toBeNull()
+  })
+
+  it('writes the optional parts only when they are given', () => {
+    const withAll = query(
+      placeSearchPath(new URLSearchParams(), {
+        q: 'Amsterdam, Netherlands',
+        center: CENTRE,
+        bbox: [4.7, 52.2, 5.1, 52.5],
+        countryCode: 'NL',
+      }),
+    )
+
+    expect(withAll.get('q')).toBe('Amsterdam, Netherlands')
+    expect(withAll.get('bbox')).toBe('4.7,52.2,5.1,52.5')
+    expect(withAll.get('cc')).toBe('NL')
+  })
+
+  // The device-fix shape: coordinates and a frame, with no place name and no country yet.
+  it('omits q and cc entirely when the caller has neither', () => {
+    const path = placeSearchPath(new URLSearchParams(), {
+      center: CENTRE,
+      bbox: [4.7, 52.2, 5.1, 52.5],
+    })
+
+    expect(path.startsWith('/search?')).toBe(true)
+    expect(path).not.toContain('q=')
+    expect(path).not.toContain('cc=')
+  })
+
+  // `?bbox` is what stops `frameSearch` falling through to the pinpoint `EVENT_ZOOM` on a bare
+  // centre, so its wire format has to stay the four numbers `parseBounds` accepts.
+  it('writes a bbox as four comma-separated numbers', () => {
+    const bbox = query(
+      placeSearchPath(new URLSearchParams(), { center: CENTRE, bbox: [4.7, 52.2, 5.1, 52.5] }),
+    ).get('bbox')
+
+    expect(bbox?.split(',').map(Number).filter(Number.isFinite)).toHaveLength(4)
+  })
+})
+
+describe('topViewKey', () => {
+  it('is the root for the base view', () => {
+    expect(topViewKey('/')).toBe('/')
+  })
+
+  it('is the deepest entry for an ordinary stack', () => {
+    expect(topViewKey('/india/pune/507')).toBe('/india/pune/507')
+    expect(topViewKey('/search')).toBe('/search')
+  })
+
+  // The whole reason this is not a `location.pathname` comparison: a trailing `filters` over
+  // the calendar is a modal overlay, so the base drawer is still the calendar and its framing
+  // must keep running. Peeling it is `isFilterOverlay`'s rule, reached via `baseStackEntry`.
+  it('peels a filter overlay off the calendar in map mode', () => {
+    expect(topViewKey('/calendar/filters')).toBe('/calendar')
+  })
+
+  // Map-less renders no overlay — there the trailing entry IS the view, so nothing is peeled.
+  it('does not peel it in the map-less build', () => {
+    expect(topViewKey('/calendar/filters', false)).toBe('/calendar/filters')
+  })
+
+  // Filters over anything else is a stacked view, not an overlay, in either build.
+  it('does not peel filters that are not over the calendar', () => {
+    expect(topViewKey('/search/filters')).toBe('/search/filters')
+  })
+
+  // The property the camera guard rests on: leaving a view changes the key, so an exiting
+  // view can tell that it no longer owns the camera.
+  it('changes when the visitor leaves a view', () => {
+    expect(topViewKey('/search')).not.toBe(topViewKey('/india/pune/507'))
+  })
+
+  // ...and a re-search does NOT change it, which is why the guard cannot be "did the location
+  // change": the same SearchView must re-frame when `?center` moves.
+  it('is unchanged by a re-search on the same view', () => {
+    expect(topViewKey('/search')).toBe(topViewKey('/search'))
   })
 })

@@ -43,8 +43,6 @@ export type MapController = {
   restore: (camera: CameraSnapshot) => void
   /** Reset to the world view. */
   reset: () => void
-  /** Clear the selected point + region boundary. */
-  clearSelection: () => void
 }
 
 const NOOP: MapController = {
@@ -55,7 +53,6 @@ const NOOP: MapController = {
   frameSearch: () => {},
   restore: () => {},
   reset: () => {},
-  clearSelection: () => {},
 }
 
 export const MapControllerContext = createContext<MapController>(NOOP)

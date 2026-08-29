@@ -12,7 +12,7 @@ import Providers from './providers'
 import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
-import { safePath } from '@/lib/shape'
+import { pageLocaleOverride, safePath } from '@/lib/shape'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
@@ -35,6 +35,7 @@ import '@/styles/globals.css'
 import '@/styles/fonts'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
+import { supportedLanguages } from '@/config/i18n-options'
 
 // Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
 // the controller land in their own chunk — zero cost to normal standalone/embedded use.
@@ -177,7 +178,11 @@ export default function App({
     <RootBoundary>
       <Providers>
         <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
-          <Suspense fallback={<LoadingFallback />}>
+          {/* `unboxed` is the map form that fills the window: its interface is fixed and
+              inset-0, so a fallback standing in for it has to be, or it collapses to its own
+              content height at the top of the screen. A contained map, a map-less embed and
+              the compact card all have a real box, and there `h-full` is already right. */}
+          <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load, this is the widget failing to boot. Which is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -287,10 +292,23 @@ function AppShell({
   // ⚠ **The client record's `locale` is deliberately NOT read.** The widget's language should match
   // the page it is embedded in, and `<html lang>` says that per page — where a record-level setting
   // says it once for every page a client embeds on, and is then a second thing to keep in step with
-  // the site around it. So the chain is: this parameter → `?locale=` on the page → the host's
+  // the site around it. So the chain is: `?locale=` on the page → this parameter → the host's
   // `<html lang>` → the browser → English, with the viewer's own pick from the settings menu
-  // overriding all of it for the session. `config/i18n-options.ts` owns the middle three.
+  // overriding all of it for the session. `config/i18n-options.ts` owns the last three.
+  //
+  // **`?locale=` outranks this parameter, and that ordering is the point of writing it.** The
+  // settings menu publishes a viewer's pick to the page URL, so the link they then copy — or
+  // reload — has to open in the language they chose. Deferring to the script's `locale=` here
+  // would revert them on the very next load, on exactly the hosts that pin one, and the shared
+  // link would carry a language it does not honour.
+  //
+  // `pageLocaleOverride` insists the parameter names a language we actually ship rather than
+  // merely being present: a junk `?locale=zz` resolves to English through `supportedLngs`, and
+  // letting that suppress a host's `locale=fr` would be a worse answer than either party asked
+  // for. It reads `window.location` directly because this is the HOST's URL, which no router of
+  // ours describes.
   useEffect(() => {
+    if (pageLocaleOverride(window.location.search, supportedLanguages)) return
     if (defaultLocale) i18n.changeLanguage(defaultLocale)
   }, [defaultLocale])
 
@@ -314,7 +332,10 @@ function AppShell({
   // renders inside the dialog, and suspending to `AppShell`'s boundary would replace the card
   // with a loading panel instead of showing one where the interface is about to appear.
   const interfaceElement = (
-    <Suspense fallback={<LoadingFallback />}>
+    // Not `unboxed` when compact: this one renders INSIDE the expanded dialog, which has its
+    // own box and a deliberate margin — taking the viewport would paint over the margin the
+    // dialog keeps precisely so the host's page shows through and can be clicked to close.
+    <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
       <FullInterface
         contained={contained}
         hasMap={hasMap}

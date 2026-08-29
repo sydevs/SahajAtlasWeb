@@ -32,7 +32,7 @@ export function CountriesView() {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
-  const { frameSearch } = useMapController()
+  const { reset } = useMapController()
 
   const { data: countries } = useSuspenseQuery({
     queryKey: ['countries'],
@@ -59,8 +59,10 @@ export function CountriesView() {
   )
   const onlineSearch = `/search?${filtersToParams({ ...DEFAULT_FILTERS, format: 'online' }).toString()}`
 
-  // Frame the world view when this view mounts.
-  useFrameOnTop(() => frameSearch({}), [frameSearch])
+  // Frame the world view when this view mounts. `reset()` rather than an empty `frameSearch`:
+  // the root view is the one place that genuinely wants the whole world, and saying so by name
+  // is what let `frameSearch({})` stop meaning "reset" for every other caller.
+  useFrameOnTop(() => reset(), [reset])
 
   const homeUrl = client.region && typeof client.region === 'object' ? client.region.webUrl : null
   const canonicalUrl = validateWebUrl(homeUrl)

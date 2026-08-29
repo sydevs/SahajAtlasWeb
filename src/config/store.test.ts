@@ -2,7 +2,7 @@ import type { Feature } from 'geojson'
 
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { rememberCamera, useCameraHistory, useViewState } from './store'
+import { rememberCamera, useCameraHistory, useCameraSettled, useViewState } from './store'
 
 // The stores are the single source of truth for map view (+ the registration draft).
 // They're plain zustand vanilla stores, so we drive their actions directly via
@@ -117,5 +117,55 @@ describe('useCameraHistory', () => {
     })
     // The transient hover is intentionally NOT part of a restore snapshot.
     expect(useCameraHistory.getState().read('entry-1')).not.toHaveProperty('hover')
+  })
+})
+
+describe('useCameraSettled', () => {
+  beforeEach(() => {
+    useCameraSettled.setState({ settled: false })
+  })
+
+  it('starts unsettled — the map boots on the world view, having arrived nowhere', () => {
+    expect(useCameraSettled.getState().settled).toBe(false)
+  })
+
+  it('flips once the camera has been commanded', () => {
+    useCameraSettled.getState().markSettled()
+
+    expect(useCameraSettled.getState().settled).toBe(true)
+  })
+
+  // The property that keeps this off the map's hot path. EVERY camera op calls `markSettled`,
+  // so a `set` returning a fresh object each time would notify subscribers on every pan and
+  // zoom — re-rendering the map for a boolean that stopped changing after the first move.
+  it('is idempotent by IDENTITY, so a repeat call notifies nobody', () => {
+    useCameraSettled.getState().markSettled()
+
+    const first = useCameraSettled.getState()
+
+    useCameraSettled.getState().markSettled()
+
+    expect(useCameraSettled.getState()).toBe(first)
+  })
+
+  // The flag describes one map instance, and this store outlives it: a compact embed unmounts
+  // the whole interface when its dialog closes. Without this, the SECOND view meets a stale
+  // `true` — no curtain, and the first framing flies across the planet from [0,0] zoom 0, which
+  // is both of the defects this store exists to fix, back again.
+  it('is forgotten when the map goes, so the next one arrives afresh', () => {
+    useCameraSettled.getState().markSettled()
+    expect(useCameraSettled.getState().settled).toBe(true)
+
+    useCameraSettled.getState().forgetSettled()
+
+    expect(useCameraSettled.getState().settled).toBe(false)
+  })
+
+  it('forgets idempotently too, so a teardown cannot re-render a live map', () => {
+    const before = useCameraSettled.getState()
+
+    useCameraSettled.getState().forgetSettled()
+
+    expect(useCameraSettled.getState()).toBe(before)
   })
 })

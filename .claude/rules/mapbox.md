@@ -83,10 +83,24 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   re-renders when the fields it uses change.
 - **Views never touch the map directly.** Camera framing goes through the
   `MapController` seam (`src/hooks/use-map-controller.tsx`): views call
-  `useMapController().frameRegion/frameEvent/frameSearch/restore/clearSelection`
+  `useMapController().frameRegion/frameEvent/highlightEvent/frameSearch/restore/reset`
   unconditionally. The real provider drives `useMapbox().flyTo/fitBounds/moveMap` + the
   `useViewState` selection/boundary; the **no-op** provider (when `map=false`)
   does nothing — so one place knows whether a map exists and no view branches on it.
+- **The framing call owns the emphasized pin — there is no `clearSelection`, deliberately.**
+  Every member that moves the camera also says what should be highlighted when it lands:
+  `frameEvent` and `restore` set the selection, `frameRegion`/`frameSearch`/`reset` clear it
+  beside the boundary they already cleared. EventView used to clear it from an effect cleanup
+  instead, which runs 150ms AFTER the incoming view has framed (the drawer's exit animation) —
+  so a back navigation wiped the selection `restore` had just reinstated, and because the dep
+  was the controller's identity, a resize while an event was open cleared the pin with no
+  navigation at all. The seam member was removed rather than left uncalled: an unused one is
+  an invitation to write that bug again.
+- **`frameSearch({})` does NOT reset to the world.** No bbox and no centre means nothing was
+  searched, so there is nothing to frame and the camera stays put. Only the root view wants the
+  whole world, and it asks by name via `reset()`. The two were one call until pressing Search
+  from a region threw the map to zoom 0 while SearchView was snapshotting that same camera to
+  rank its results by.
 - **Framing moves only as needed, and flies** (zoom constants live beside
   `LEFT_DRAWER_PX`: `EVENT_ZOOM=15`, `REGION_MAX_ZOOM=13`, `REGION_FIT_PADDING=48`,
   `ONLINE_ZOOM=7`; the fly feel is `FLY_CURVE`/`FLY_SPEED` in `use-mapbox.ts`).
@@ -105,6 +119,21 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   defaults to false) both carry the tuned arc; `moveMap` is the plain `easeTo`, kept
   only for the instant world reset + cluster expansion. Map padding is set from the
   known drawer width per breakpoint by the MapController (no DOM measurement).
+- **The FIRST camera command of a session arrives instead of flying**, and the canvas is held
+  until it does. `<ReactMapGL>` is deliberately uncontrolled and takes no `initialViewState`,
+  so the map boots at `[0,0]` zoom 0 while the deep-linked region or event is still being
+  fetched — and a fly from there to zoom 15 arcs across the planet. `useCameraSettled`
+  (`config/store.ts`) answers "has the camera arrived anywhere yet"; until it has, `flyTo`
+  jumps and `fitBounds` fits without animating, and `MapCurtain` (`views/FullInterface.tsx`)
+  frosts the canvas so the world frame is never painted. Everything after flies unchanged.
+  ⚠ **Not keyed on `isEntry`**, which is `atlasDepth === 0` and therefore true for a structural
+  climb as well as a deep link — that would make dismissing an event up to its region jump.
+  ⚠ Three things are load-bearing and were each measured rather than assumed: the instant point
+  move is `jumpTo` (what `flyTo`'s own reduced-motion branch delegates to, keeping `padding`
+  through its `pick`); an instant bounds fit needs BOTH `linear: true` and `animate: false`,
+  because `_fitInternal` only reaches the `easeTo` that honours `animate` when `linear` is set;
+  and the flag is **forgotten on the map's unmount**, or a compact embed's second expansion
+  meets a stale `true` and both defects return.
 
 ## Reduced motion is the library's job here, not ours
 
@@ -131,6 +160,36 @@ mid-session language switch does not relabel a control. That is the same limitat
 `language` prop carries. Keys not overridden stay English; the full set is `defaultLocale`
 in mapbox-gl.
 
+⚠ **Construction-only applies to a control's HANDLERS too, and that one bites silently.**
+`onGeolocate` is read when Mapbox constructs the control, so a handler that closes over router
+state keeps the values from the render the map mounted in — forever. `use-geolocate.ts` shipped
+that way for one commit and rewrote `/search?center=…` back to the route the widget had booted
+on, dropping the search it had just performed. Every gate stayed green; a browser found it. The
+fix is a ref refreshed each render, which the hook keeps and explains. **Treat anything handed to
+a Mapbox control as bound once.**
+
+## "Find my location" is a NAVIGATION, not a camera move
+
+The control opens the distance-ranked results centred on the visitor — `use-geolocate.ts`
+navigates to `/search?center=…&bbox=…` and lets SearchView's `frameSearch` do the framing, so the
+fit inherits the `REGION_MAX_ZOOM` cap and the list re-ranks. `nearbyBounds`
+(`lib/geolocation.ts`) builds the frame from the visitor plus the nearest few classes, floored at
+`NEARBY_RADIUS_KM` and capped at `NEARBY_MAX_KM` — the same radius that decides whether the IP
+prompt is offered at all, so a class the app declines to suggest cannot widen the camera either.
+
+Two things to know before touching it:
+
+- **`followUserLocation={false}` is what stops Mapbox moving the camera itself.** Its
+  `_updateCamera` fits the accuracy circle at zoom 15 and fires BEFORE the `geolocate` event, so
+  without the flag it races our framing. The flag gates only that call — the blue dot, the
+  accuracy circle and the permission flow all stay. ⚠ mapbox-gl's own `.d.ts` claims the control
+  still recentres with it off; the source says otherwise, and the source is right.
+- **The device fix is rounded to ~110m before anything serialises it**, so a copied link carries
+  a neighbourhood rather than a doorstep — the coordinate half of the judgement `reverseGeocode`
+  already makes by asking for a `place` rather than a street address. Rounding happens in the
+  hook, not in `placeSearchPath`: the typed-geocode and IP callers pass already-coarse public
+  points.
+
 ## The map needs browser PERMISSIONS, and a grep will not find them
 
 `<GeolocateControl />` is our JSX, but `navigator.geolocation` is called **inside mapbox-gl**. So
@@ -141,11 +200,11 @@ The widget is embedded in pages we do not own, and Permissions Policy denies the
 cross-origin frame by default (a host can also deny them to a script embed with a header). All
 three fail **silently**:
 
-| Feature           | Called by                              | Silent failure                  |
-| ----------------- | -------------------------------------- | ------------------------------- |
-| `geolocation`     | mapbox-gl's `GeolocateControl`         | "Find my location" does nothing |
-| `clipboard-write` | `ShareContent` (`navigator.clipboard`) | Copy-link does nothing          |
-| `web-share`       | `use-web-share` (`navigator.share`)    | The share sheet never opens     |
+| Feature           | Called by                              | Silent failure                                         |
+| ----------------- | -------------------------------------- | ------------------------------------------------------ |
+| `geolocation`     | mapbox-gl's `GeolocateControl`         | "Find my location" does nothing — no fix, so no search |
+| `clipboard-write` | `ShareContent` (`navigator.clipboard`) | Copy-link does nothing                                 |
+| `web-share`       | `use-web-share` (`navigator.share`)    | The share sheet never opens                            |
 
 `FullscreenControl` would add `fullscreen`; we do not mount it. **Adding a map control means
 asking what device API it reaches for and whether `docs/embedding.md`'s Permissions Policy table

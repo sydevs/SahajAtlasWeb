@@ -8,6 +8,7 @@ import {
   hasClassWithin,
   isLocalRegion,
   markGeolocationDismissed,
+  nearbyBounds,
   readGeolocationDismissed,
   shouldShowGeolocationPrompt,
 } from './geolocation'
@@ -160,5 +161,58 @@ describe('readGeolocationDismissed / markGeolocationDismissed', () => {
     })
     expect(readGeolocationDismissed()).toBe(false)
     expect(() => markGeolocationDismissed()).not.toThrow()
+  })
+})
+
+describe('nearbyBounds', () => {
+  // A [w, s, e, n] box's width/height in degrees — enough to tell "a neighbourhood" from "a
+  // pinpoint" and from "half a continent" without asserting turf's exact arithmetic.
+  const size = (box: number[]) => ({ width: box[2] - box[0], height: box[3] - box[1] })
+  const floorOnly = () => nearbyBounds(PARIS_POINT, feed())
+
+  it('floors a lone coincident class to a neighbourhood, not a zero-area box', () => {
+    // The visitor is standing on the only class. Without the floor `boundsOfPoints` returns a
+    // degenerate box, and `fitBounds` answers a degenerate box with its maximum zoom — which
+    // is the street-corner framing this whole change exists to remove.
+    const box = nearbyBounds(PARIS_POINT, feed(located(PARIS_POINT)))
+
+    expect(size(box).width).toBeGreaterThan(0.1)
+    expect(size(box).height).toBeGreaterThan(0.1)
+  })
+
+  it('floors an empty feed the same way it floors a missing one', () => {
+    expect(floorOnly()).toEqual(nearbyBounds(PARIS_POINT, undefined))
+  })
+
+  it('does not widen for a class already inside the floor', () => {
+    // NEAR is ~5km east, well inside the 25km floor.
+    expect(nearbyBounds(PARIS_POINT, feed(located(NEAR)))).toEqual(floorOnly())
+  })
+
+  it('caps at NEARBY_MAX_KM, so a distant class cannot widen the frame', () => {
+    // FAR is ~500km south — past the radius that decides whether a class counts as near you at
+    // all. Framing it would zoom the visitor out to reach a class the app declines to suggest.
+    expect(nearbyBounds(PARIS_POINT, feed(located(FAR)))).toEqual(floorOnly())
+  })
+
+  it('reaches out to a class past the floor but inside the cap', () => {
+    // ~55km east: outside the 25km floor, well inside the 100km cap.
+    const mid: [number, number] = [3.1, 48.86]
+    const box = nearbyBounds(PARIS_POINT, feed(located(mid)))
+
+    expect(box[2]).toBeGreaterThanOrEqual(mid[0])
+    expect(size(box).width).toBeGreaterThan(size(floorOnly()).width)
+  })
+
+  it('takes only the nearest `count`, so a sparse tail cannot drag the frame', () => {
+    const near: [number, number] = [2.6, 48.86]
+    const far: [number, number] = [3.2, 48.86]
+    const box = nearbyBounds(PARIS_POINT, feed(located(near), located(far)), { count: 1 })
+
+    expect(box[2]).toBeLessThan(far[0])
+  })
+
+  it('ignores online classes, which carry no geometry', () => {
+    expect(nearbyBounds(PARIS_POINT, feed(online()))).toEqual(floorOnly())
   })
 })

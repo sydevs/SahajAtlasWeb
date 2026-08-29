@@ -138,6 +138,48 @@ every matching `_headers` rule" stops being a doc quote in a comment and becomes
 assertion (it pins the #91 CORS headers against displacement by the #106 `/*` rule).
 A claim about platform behaviour belongs here rather than in a comment.
 
+### A deployed file is not a working one — check the origins the bundle will REQUEST
+
+Every spec above asks whether something was **deployed**. `boot-origins.smoke.test.ts` asks
+whether what was deployed **points anywhere real**, and that is a distinct failure with no
+overlap: for a long time every preview in this repo rendered a completely blank page while all
+of these passed, because `_redirects`, `_headers`, `robots.txt`, `auto.js` and `index.html` were
+each deployed perfectly.
+
+The cause was a build-time origin. `VITE_HOST` is baked into the bundle and composes the URL the
+locale JSON is fetched from; Production set it and the **Preview** environment did not, so
+previews shipped `.env`'s `localhost:5174` to a `pages.dev` origin and every locale fetch became
+a blocked private-network request to the reviewer's own machine.
+
+**The reason it is invisible is that it does not degrade — it hangs.** i18next's `init` never
+resolves, so every component reading a translation suspends forever: no canvas, no content, no
+readiness marker. A spec looking for missing strings would find nothing wrong, because there is
+no page to look at.
+
+So the spec reads the eager graph back off the deploy and checks the two origins the app will
+actually request from — `${VITE_HOST}/locales/` and `${VITE_SAHAJCLOUD_URL}/api` — naming the
+variable, not just the string, since "which env var produced this" is the only useful next
+question. Three things about it are load-bearing:
+
+- **It is targeted, not a sweep.** A first draft flagged any private host anywhere in the graph
+  and produced a false positive on a healthy deploy: react-router carries its own literal
+  `http://localhost` as the `createURL` base for when there is no `window.location`.
+- **Reading the string is the deterministic half; dialling the origin is not.** The companion
+  test fetches whatever origin was baked in, and that one cannot own the localhost case —
+  anyone running `pnpm dev` has something answering on 5174, so against the very deploy that
+  shipped this bug it passed locally and would only have failed on a runner. Measured, not
+  assumed. Each test's docblock says which half it owns.
+- **A missing match is a failure, not an empty pass.** If an origin stops matching — a minifier
+  change, a refactor composing the URL differently — the assertions would go vacuously green,
+  which this lane's own history says is the hardest kind of wrong to notice.
+
+⚠ **This still does not prove the widget renders**, and no fetch-based spec can. Booting a
+browser in CI would, and is deliberately not done here (see the note atop
+`embed.smoke.test.ts`); what makes that acceptable is that this particular defect is a _string
+in the bundle_, so reading it back is a direct observation rather than an inference. A failure
+mode that only appears at runtime still needs a browser, and that still belongs to local
+Playwright verification.
+
 ## Decision: node-only (no jsdom / Testing Library)
 
 Mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, and

@@ -438,3 +438,33 @@
 [data-sy-expanded] .mapboxgl-ctrl-top-right {
   margin-top: 2.5rem;
 }
+
+/* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a delay
+   rather than appearing with the frost, so a warm boot — where the camera arrives almost at
+   once — reads as a clean frost-then-reveal instead of flashing a spinner nobody had time to
+   register. A CSS delay rather than a timer, because there is no state here to schedule
+   against. `forwards` holds it visible for the genuinely slow case this exists to cover.
+
+   The PostCSS scoping pass namespaces the keyframes along with the selector, so this cannot
+   collide with an animation of the same name on the host's page. */
+@keyframes sy-map-curtain-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sy-map-curtain-spinner {
+  opacity: 0;
+  animation: sy-map-curtain-in 200ms ease-out 200ms forwards;
+}
+
+/* Nothing to fade under the preference — show it immediately rather than animating it in. */
+@media (prefers-reduced-motion: reduce) {
+  .sy-map-curtain-spinner {
+    opacity: 1;
+    animation: none;
+  }
+}

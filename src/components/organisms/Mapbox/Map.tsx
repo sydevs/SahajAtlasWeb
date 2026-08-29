@@ -2,7 +2,7 @@ import type { FeatureCollection, Geometry } from 'geojson'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
   GeoJSONSource,
   GeolocateControl,
@@ -28,9 +28,10 @@ import {
 import { registerMarkerImages } from './markers'
 
 import { calendarLineParts, useEventDisplay } from '@/hooks/use-event-display'
-import { useViewState, type MapPoint } from '@/config/store'
+import { useCameraSettled, useViewState, type MapPoint } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useGeolocateToSearch } from '@/hooks/use-geolocate'
 import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import api from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
@@ -43,6 +44,20 @@ const MAP_STYLES = {
   light: 'mapbox://styles/sydevadmin/ck7g6nag70rn11io09f45odkq',
   dark: 'mapbox://styles/sydevadmin/cl4nw934f001j14l8jnof3a7w',
 }
+
+/**
+ * How long after the style loads to reveal the map even though nothing has framed it.
+ *
+ * The canvas is held behind a frosted overlay until the camera arrives (`useCameraSettled`), so
+ * the boot-time world view is never painted on a deep link. Most routes frame promptly, but not
+ * all of them do: CalendarView deliberately never touches the camera, so a `/calendar` deep link
+ * would otherwise hide the map for the whole session.
+ *
+ * The coupling to the flag is a feature rather than a leak — after this long showing the world,
+ * the next camera command flying IS the honest transition, because the visitor has now seen
+ * where it is starting from.
+ */
+const REVEAL_TIMEOUT_MS = 1500
 
 const MAP_WORLDVIEWS: Record<string, string> = {
   zh: 'CN', // Chinese
@@ -227,11 +242,59 @@ export function Mapbox() {
     staleTime: GEOJSON_STALE_TIME,
   })
 
+  // "Find my location" opens the results centred on the visitor rather than just moving the
+  // camera — see the hook, and the `followUserLocation` note on the control below. The feed is
+  // passed down because it is already held here; the hook frames around the nearest classes in it.
+  const geolocateToSearch = useGeolocateToSearch(data)
+
   // Supply the app's own pin/cluster images; markers.ts owns the why and the
   // theme-switch handling. One subscription per map instance.
   useEffect(() => {
     if (mapbox) return registerMarkerImages(mapbox)
   }, [mapbox])
+
+  // Hold the canvas until the camera has arrived somewhere, so a deep link never paints the
+  // boot-time world view before jumping off it. `MapCurtain` draws the frost over the top; this
+  // is the canvas's own half. Fading rather than toggling `visibility` so the arrival reads as
+  // the map resolving, not as a panel being swapped out.
+  const settled = useCameraSettled((s) => s.settled)
+  const reveal = useCameraSettled((s) => s.markSettled)
+  const canvasStyle = useMemo(
+    () => ({
+      width: '100%',
+      height: '100%',
+      // ⚠ **The canvas stays VISIBLE while the camera is still arriving — `MapCurtain` blurs it
+      // rather than hiding it.** An earlier version set `opacity: 0` here as well as frosting,
+      // and the two cancelled out: `backdrop-filter` filters what is BEHIND the element, so with
+      // a transparent canvas there was nothing to blur and the tint painted onto the page's own
+      // white. The result was a blank screen where a soft map should be — the whole point of a
+      // frost being that you can see something is there.
+      //
+      // Not interactive though: a map nobody can read clearly should not take clicks, and the
+      // curtain above it is `pointer-events-none`, so without this a click would land on pins
+      // behind the blur and open a class the visitor never chose.
+      pointerEvents: settled ? undefined : ('none' as const),
+    }),
+    [settled],
+  )
+
+  // Armed on style load and cleared on unmount, so a map torn down inside the timeout can't
+  // mark a camera that no longer exists as arrived.
+  const armReveal = useCallback(() => {
+    revealTimer.current = window.setTimeout(reveal, REVEAL_TIMEOUT_MS)
+  }, [reveal])
+  const revealTimer = useRef<number>()
+
+  // The flag describes THIS map instance, so it dies with it — a compact embed unmounts the
+  // whole interface when its dialog closes, and a stale `true` would meet the next map at the
+  // world view with neither the curtain nor the arrival jump. See `forgetSettled`.
+  useEffect(
+    () => () => {
+      window.clearTimeout(revealTimer.current)
+      useCameraSettled.getState().forgetSettled()
+    },
+    [],
+  )
 
   // The individual event pin (unclustered-point) currently under the pointer, for
   // the timing popover — never a cluster. Cleared when the pointer moves to empty
@@ -341,15 +404,28 @@ export function Mapbox() {
       locale={mapLocale}
       mapStyle={MAP_STYLES[theme]}
       mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESSTOKEN}
-      style={{ width: '100%', height: '100%' }}
+      style={canvasStyle}
       worldview={MAP_WORLDVIEWS[languageCode] || MAP_WORLDVIEWS.default}
       onClick={selectFeature}
+      // The backstop on the reveal: a route that never frames the camera — CalendarView is the
+      // one that deliberately doesn't — must not leave the map hidden for the whole session.
+      onLoad={armReveal}
       onMouseMove={hoverOnFeature}
       // Dismiss the timing popover when the pointer leaves the canvas. `mouseout`
       // (react-map-gl `onMouseOut`) is the canvas-exit event; moving between pins
       // or onto empty map is handled by `hoverOnFeature` above.
       onMouseOut={() => setHoveredId(null)}
-      //{...viewState}
+      // DELIBERATELY UNCONTROLLED — no `viewState`, and no `initialViewState` either.
+      //
+      // The camera is driven imperatively through `useMapbox` (the MapController seam owns every
+      // move) and `onMoveEnd` mirrors the result back into the store, which is what
+      // `rememberCamera` and the search ranking read. A controlled `viewState` would put React
+      // in the middle of every frame of a fly.
+      //
+      // So nothing seeds the initial camera and the map boots at [0, 0] zoom 0. That is why the
+      // session's first framing jumps rather than flies (`use-mapbox.ts`) and why the canvas is
+      // held until it does — seeding it instead would mean resolving a centre before the map may
+      // mount, to save a frame nobody ever sees.
       onMoveEnd={(evt) => setViewState(evt.viewState)}
     >
       {DEBUG_PADDING && (
@@ -399,7 +475,15 @@ export function Mapbox() {
           longitude={hovered.longitude}
         />
       )}
-      <GeolocateControl />
+      {/* `followUserLocation={false}` stops mapbox moving the camera itself. Its `_updateCamera`
+          fits the accuracy circle at zoom 15 — a street corner — with its own curve and speed,
+          and fires BEFORE the `geolocate` event, so it would race the framing our handler asks
+          for through the URL. The flag is read in `_onSuccess` and gates only that call:
+          `_updateMarker` is separate, so the blue dot, the accuracy circle, the permission flow
+          and the localized labels above all stay.
+          ⚠ Mapbox's own .d.ts claims this option still recentres; its source says otherwise.
+          Verified against the running control rather than either. */}
+      <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
     </ReactMapGL>
   )
 }

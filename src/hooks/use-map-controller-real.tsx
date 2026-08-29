@@ -106,6 +106,9 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
     () => ({
       hasMap: true,
       frameRegion(region) {
+        // The emphasized point belongs to whatever framed the camera last, so framing a
+        // region drops the event pin — see the note on `frameSearch`.
+        setSelection(null)
         // A venue is a point, not an area — frame it by flying to its derived
         // centre rather than fitting its (degenerate, zero-area) bbox.
         if (region.level === 'venue') {
@@ -147,10 +150,20 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         setHover(event ? eventPoint(event) : null)
       },
       frameSearch({ bbox, center }) {
+        // **The framing call owns the emphasized point, not a view's unmount.** EventView used
+        // to clear it from an effect cleanup, which runs 150ms AFTER the incoming view has
+        // already framed — so on a back navigation it wiped the selection and boundary that
+        // `restore` had just reinstated, and because its dep was the controller's identity, a
+        // resize while an event was open cleared the pin with no navigation at all.
+        setSelection(null)
         setBoundary(undefined)
         if (bbox) fitBounds(bbox, { maxZoom: REGION_MAX_ZOOM, padding: REGION_FIT_PADDING })
         else if (center) flyTo(center, EVENT_ZOOM)
-        else moveMap({ zoom: 0 })
+        // No bbox and no centre means nothing was searched — so there is nothing to frame, and
+        // the camera stays where the visitor left it. This used to reset to the world, which
+        // made pressing Search from a region throw the map to zoom 0 while SearchView was
+        // simultaneously snapshotting that camera to rank by. Framing the world is a thing only
+        // the root view wants, and it asks for it by name: `reset()`.
       },
       restore(camera) {
         setSelection(camera.selection ?? null)
@@ -160,12 +173,13 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
         flyTo([camera.longitude, camera.latitude], camera.zoom)
       },
       reset() {
-        setBoundary(undefined)
-        moveMap({ zoom: 0 })
-      },
-      clearSelection() {
+        // Like the two framing calls, this owns the emphasized point: the root view shows the
+        // whole world, and a pin for the class you were just looking at has no place on it.
+        // Reached by pressing the root peek strip out of an event, which is a PUSH, not the POP
+        // that `restore` would have reinstated it for.
         setSelection(null)
         setBoundary(undefined)
+        moveMap({ zoom: 0 })
       },
     }),
     [mapbox, moveMap, fitBounds, isPointVisible, flyTo, setSelection, setHover, setBoundary],

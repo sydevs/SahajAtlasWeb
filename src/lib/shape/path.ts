@@ -5,6 +5,10 @@
  * pathname to a region/event (terminal segment) and derives a parent path for
  * back-navigation.
  */
+import type { BBox } from 'geojson'
+
+import { filtersFromParams, filtersToParams } from './filters'
+import { sortFromParams, sortToParams } from './sort'
 
 /** Decode a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
 const safeDecode = (segment: string): string => {
@@ -127,11 +131,57 @@ export const listResetKey = (params: URLSearchParams): string => {
  * website when it lists no programs (issue #82). Named here, beside `searchPath`, so
  * the writers and the reader can't drift on the param.
  *
- * Part of the *searched location*, not preserved state: `preserveSearchState`
- * (views/shared.tsx) rebuilds from an empty base, so a new search replaces it and a
+ * Part of the *searched location*, not preserved state: `preserveSearchState` below
+ * rebuilds from an empty base, so a new search replaces it and a
  * previous country never leaks into the next search.
  */
 export const SEARCH_COUNTRY_PARAM = 'cc'
+
+/**
+ * The URL-only state that survives a new place search — the applied filters and the list sort,
+ * both presentation rather than location.
+ *
+ * Re-encoding through the two codecs from an EMPTY base drops the searched location
+ * (`q`/`center`/`bbox`/`cc`) by construction; the caller then sets the new one. That is what
+ * keeps the previous country's `?cc` out of the next search, where it would offer the wrong
+ * country's website. A filter edit is the other direction and merges onto the current params
+ * (`filtersToParams(…, prev)`), so it preserves the searched country.
+ *
+ * The results list's reveal isn't in the URL at all: a new centre changes `revealKey`, so paging
+ * resets on its own (see `use-reveal`).
+ */
+export const preserveSearchState = (params: URLSearchParams): URLSearchParams =>
+  sortToParams(sortFromParams(params), filtersToParams(filtersFromParams(params)))
+
+/** A searched place, in the terms the URL records it. */
+export type PlaceSearch = {
+  /** The field's text — a resolved place name. Omitted where there is nothing honest to show. */
+  q?: string
+  center: [number, number]
+  /** The area to frame. Without one, framing falls back to a pinpoint zoom on the centre. */
+  bbox?: BBox
+  /** ISO alpha-2, for the country-site offer and the foreign-distance rule. */
+  countryCode?: string
+}
+
+/**
+ * The distance-ranked search route for a place, carrying the current filters and sort across.
+ *
+ * One builder for the three things that can name a searched place — picking one from the
+ * geocoder, accepting the IP suggestion, and pressing "find my location" — because each of them
+ * previously hand-rolled the same four params, and each was one forgotten `preserveSearchState`
+ * away from silently clearing somebody's filters.
+ */
+export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): string => {
+  const next = preserveSearchState(params)
+
+  if (place.q) next.set('q', place.q)
+  next.set('center', `${place.center[0]},${place.center[1]}`)
+  if (place.bbox) next.set('bbox', place.bbox.toString())
+  if (place.countryCode) next.set(SEARCH_COUNTRY_PARAM, place.countryCode)
+
+  return `/search?${next.toString()}`
+}
 
 /**
  * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the
@@ -295,3 +345,22 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
  */
 export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry | undefined =>
   isFilterOverlay(entries, hasMap) ? entries.at(-2) : entries.at(-1)
+
+/**
+ * Which view the base drawer is actually showing, as a stable identity — DrawerStack's
+ * `AnimatePresence` key, and the thing `useFrameOnTop` compares itself against.
+ *
+ * **The camera belongs to the view that is on top, and only that one.** DrawerStack keeps an
+ * outgoing view mounted for its 150ms exit, and router context reaches it — so an exiting view
+ * re-renders under the NEW url, and any framing it derives from the url re-runs against a route
+ * it no longer owns. SearchView did exactly that: leaving `/search` for an event, its
+ * `?center`/`?bbox` read as absent, and `frameSearch({})` reset the camera to the world a beat
+ * before the event framed, which read as a zoom-out followed by a long fly back in.
+ *
+ * ⚠ **Not `location.pathname`.** At `/calendar/filters` the trailing entry is peeled into a modal
+ * overlay, so the base drawer is still the calendar and the key is `/calendar` — a pathname
+ * comparison would call that a view change and mute the calendar's framing. Derived through
+ * `baseStackEntry` so that carve-out has one definition, the same reason `isFilterOverlay` does.
+ */
+export const topViewKey = (pathname: string, hasMap = true): string =>
+  baseStackEntry(resolveStack(pathname), hasMap)?.path ?? '/'

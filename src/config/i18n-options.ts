@@ -16,6 +16,7 @@
 // translated into (its `src/lib/locales/index.ts` is the source of truth, and
 // `activeLocale()` in config/api/client.ts sends the resolved language straight
 // through) — all ten are, since sydevs/SahajCloud#578 added hu + nl.
+import { LOCALE_PARAM } from '@/lib/shape/locale-param'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
 export const supportedLanguages = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt-BR', 'ru', 'uk']
@@ -63,7 +64,7 @@ export const hostHtmlLangDetector = {
 
 export const i18nDetectionOptions = {
   order: ['querystring', 'hostHtmlLang', 'navigator'],
-  lookupQuerystring: 'locale',
+  lookupQuerystring: LOCALE_PARAM,
   caches: [],
   convertDetectedLanguage: (language: string) =>
     /^(cimode|dev)$/i.test(language) ? 'en' : language,
