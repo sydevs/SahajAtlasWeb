@@ -1,6 +1,7 @@
 export * from './calendar'
 export * from './country'
 export * from './event'
+export * from './feedback-param'
 export * from './filters'
 export * from './routing'
 export * from './hierarchy'

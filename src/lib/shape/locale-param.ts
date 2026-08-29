@@ -6,10 +6,15 @@
  * ever WROTE it, so picking a language from the settings menu changed the widget and left the
  * address bar describing the page as it was before — nothing to copy, nothing to reload into.
  *
- * This is the other half. It is the second and last top-level parameter the widget claims on a
- * host's URL, beside `atlas`; both `hrefFor` and `pathHrefFor` preserve parameters they do not
+ * This is the other half. It is the second and last top-level parameter the widget ever WRITES to
+ * a host's URL, beside `atlas`; both `hrefFor` and `pathHrefFor` preserve parameters they do not
  * own, so once written it survives every subsequent in-widget navigation and rides along in
  * anything the visitor copies.
+ *
+ * ⚠ **"Writes" is doing real work in that sentence** — `feedback-param.ts` (#164) added a third
+ * top-level name the widget knows about, and it is the mirror image of this one: read once on
+ * arrival and then REMOVED, never written. Both facts matter to a host, which is why
+ * `docs/embedding.md` documents them together and separately.
  *
  * ⚠ **Imports nothing from `config/`, and `pageLocaleOverride` takes the supported set as an
  * argument for that reason.** `config/i18n-options.ts` imports `LOCALE_PARAM` from here, so
