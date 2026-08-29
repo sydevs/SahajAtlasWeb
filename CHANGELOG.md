@@ -46,6 +46,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **A reader answering a post-event feedback email now lands in the atlas, not on a dead-end
+  card.** People who register for a class get a follow-up asking whether it took place;
+  both answers now redirect to your site — the class's own page for "yes", its region page for
+  "no" — carrying **`?feedback=confirmed`** or **`?feedback=denied`**. The widget shows a short
+  acknowledgement above the page and then removes that parameter with a `history.replaceState`, so
+  it never lingers in a copied link or reappears on a reload. **Nothing is required of you:** the
+  links come from the CMS, your own query parameters come through byte-for-byte unchanged, and the
+  canonical URL the widget emits still has no `feedback` on it, so the two answers cannot be
+  indexed as duplicates of a page you already have. A `feedback` value the widget does not
+  recognise is left alone, on the assumption that it is yours.
+
 - **"Find my location" now opens the classes near the visitor, not just a street corner.**
   Pressing it used to zoom the map to the visitor's own address and leave the list showing whatever
   it showed before. It now opens the distance-ranked results centred on them, framed to take in the

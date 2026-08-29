@@ -173,8 +173,9 @@ that may not be monolingual. `<html lang>` already says it per page, and your CM
 #### The widget writes `?locale=` to your page's URL
 
 When a visitor picks a language from the atlas's settings menu, the widget adds
-**`?locale=<code>`** to your page's address with a `history.replaceState`. That is the second and
-last parameter it claims on your URL, beside `atlas`.
+**`?locale=<code>`** to your page's address with a `history.replaceState`. It is the second and
+last parameter the widget ever _writes_ to your URL, beside `atlas`. (It also _reads and removes_
+a third, `feedback` — see [`?feedback=` on a page the atlas links to](#feedback-on-a-page-the-atlas-links-to).)
 
 Three things worth knowing:
 
@@ -189,6 +190,34 @@ Three things worth knowing:
 
 An unrecognised `?locale=` is ignored rather than honoured — a value the atlas does not ship falls
 through to the rest of the precedence chain instead of forcing English.
+
+#### `?feedback=` on a page the atlas links to
+
+People who register for a class get a follow-up email asking whether it actually took place. Both
+answers are recorded by SahajCloud and then redirect the reader **to your site**, at the canonical
+URL for that class or its region, carrying one extra parameter:
+
+```
+https://your-site.org/classes/gb/london/1204?feedback=confirmed
+https://your-site.org/classes/gb/london?feedback=denied
+```
+
+The widget reads it, shows a short acknowledgement above the page, and then **removes it from the
+address with a `history.replaceState`** — so it does not linger in a copied link or come back as a
+fresh acknowledgement on every reload.
+
+Three things follow from that, and none of them need anything from you:
+
+- **You do not have to add the parameter to anything.** It arrives on links the CMS already sends;
+  your page just has to be reachable at its canonical URL, which it already is.
+- **Your own query parameters are untouched** — including their exact encoding. Only the one pair
+  is removed, byte for byte; everything else on the URL comes through unchanged.
+- **It is never treated as a page of its own.** The canonical URL the widget emits is the CMS's
+  clean one, with no `feedback` on it, so the two answers cannot be indexed as duplicates of a
+  page you already have indexed.
+
+A `feedback` value the widget does not recognise is ignored — no banner, and the parameter is left
+alone rather than removed, since it is then presumably yours.
 
 ### What you configure in the CMS instead
 
