@@ -98,7 +98,7 @@ function fail(message) {
 // the family name IS document-global and last-wins, which is the same property that made
 // bare `@keyframes` a leak. Ours is namespaced; Swiper's icon font is upstream's and is
 // allowed through by name so the exemption is visible rather than silent.
-const ALLOWED_FONT_FAMILIES = new Set(['Atlas Raleway', 'swiper-icons'])
+const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
 
 let sheets = 0
 let rules = 0
