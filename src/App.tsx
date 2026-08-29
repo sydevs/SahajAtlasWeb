@@ -178,7 +178,11 @@ export default function App({
     <RootBoundary>
       <Providers>
         <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
-          <Suspense fallback={<LoadingFallback />}>
+          {/* `unboxed` is the map form that fills the window: its interface is fixed and
+              inset-0, so a fallback standing in for it has to be, or it collapses to its own
+              content height at the top of the screen. A contained map, a map-less embed and
+              the compact card all have a real box, and there `h-full` is already right. */}
+          <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
             {/* `context` names this one in a report: everything below is a drawer failing
                 to load, this is the widget failing to boot. Which is also why it, and the root
                 boundary above, are the only two that take the readiness marker down (#153):
@@ -328,7 +332,10 @@ function AppShell({
   // renders inside the dialog, and suspending to `AppShell`'s boundary would replace the card
   // with a loading panel instead of showing one where the interface is about to appear.
   const interfaceElement = (
-    <Suspense fallback={<LoadingFallback />}>
+    // Not `unboxed` when compact: this one renders INSIDE the expanded dialog, which has its
+    // own box and a deliberate margin — taking the viewport would paint over the margin the
+    // dialog keeps precisely so the host's page shows through and can be clicked to close.
+    <Suspense fallback={<LoadingFallback unboxed={hasMap && !contained && !compact} />}>
       <FullInterface
         contained={contained}
         hasMap={hasMap}

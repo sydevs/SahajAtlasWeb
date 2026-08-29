@@ -33,12 +33,41 @@ import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
  */
 const APP_SURFACE = 'flex-center h-full w-full flex-col gap-3 bg-background p-10'
 
-export function LoadingFallback() {
+/**
+ * The same surface for the form that has no box to fill.
+ *
+ * ⚠ **`h-full` alone silently collapses in map mode, and that is the common case.** An unboxed
+ * map embed deliberately measures zero height — everything the interface draws is
+ * `position: fixed`, so the element itself takes no room in the host's layout — and the
+ * standalone shell's `<html>` is no different. A percentage height against a parent with no
+ * definite height resolves to `auto`, so this surface shrink-wrapped to its own content:
+ * measured at 140px pinned to the TOP of an 800px viewport, with the spinner centred in that
+ * 140px rather than on screen.
+ *
+ * So the fallback mirrors what it is standing in for. The interface it replaces is fixed and
+ * inset-0 in that form; this is too. Where the widget HAS a box — a contained map, a map-less
+ * embed, the compact card — `h-full` is already correct and taking the viewport would paint
+ * over the host's page, so the caller decides rather than this component guessing.
+ */
+const APP_SURFACE_UNBOXED = `${APP_SURFACE} fixed inset-0`
+
+export type LoadingFallbackProps = {
+  /**
+   * Take the viewport rather than the parent's height — true only for the unboxed map form,
+   * whose interface is itself fixed. See `APP_SURFACE_UNBOXED`.
+   */
+  unboxed?: boolean
+}
+
+export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
   const { t } = useTranslation('common')
 
   return (
-    <div className={APP_SURFACE}>
-      <Spinner color="secondary" label={t('loading')} />
+    <div className={unboxed ? APP_SURFACE_UNBOXED : APP_SURFACE}>
+      {/* `srLabel`, not `label`: announced, not drawn — the same call `DrawerLoadingBody`
+          makes. A visible "Loading…" adds nothing a spinner has not already said, and its
+          height is what pushes the glyph itself off centre. */}
+      <Spinner color="secondary" srLabel={t('loading')} />
     </div>
   )
 }
