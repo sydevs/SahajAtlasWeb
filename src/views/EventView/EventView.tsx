@@ -1,8 +1,11 @@
 import { Suspense, lazy, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { Check } from 'lucide-react'
 
+import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
-import { EventMetadata, FeedbackBanner, ResetErrorBoundary } from '@/components/molecules'
+import { Link } from '@/components/atoms/Link'
+import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // Leaf-file imports (not the folder index): the index re-exports EventDetails,
 // and importing it statically here would pull the lazy-loaded panel chunk
 // (DOMPurify + action wiring) back into the main bundle.
@@ -61,7 +64,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // A reader redirected here by the post-event email confirmed the class DID take place (#164).
   // Only `confirmed` lands on an event page — `denied` goes to the region — so a stray `denied`
   // renders nothing here, while the hook still takes the parameter out of the URL.
-  const feedback = usePostEventFeedback()
+  const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
   // The component itself is the state — the boundary's reset swaps in a fresh `lazy`. Held
   // directly rather than as a counter a memo keys off, so the rule ("a retry needs a new
   // lazy") is the code rather than something to reconstruct from a dep array. `useState`
@@ -85,6 +88,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // starts out reading the right thing, not because a narrow embed gains one today.
   const { display } = useEventDisplay(event)
   const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const onwardHref = parentOf(event.path)
 
   return (
     <>
@@ -98,14 +102,6 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           content's own padding, leaving ~176px of blank space under a full-bleed
           carousel to clear a 65px bar. */}
       <DrawerBody className={stickyRegister ? 'pb-20' : undefined}>
-        {/* Above the event, which is the class they just confirmed. The onward rung is the
-            event's own region — "other classes near them" — built from `event.path` rather than
-            `event.region.webPath`, which is a CMS-supplied route and would need `safePath` before
-            it could reach an href; `parentOf` derives the same place from a route we already
-            resolved this view from. */}
-        {feedback === 'confirmed' && (
-          <FeedbackBanner answer="confirmed" onwardHref={parentOf(event.path)} />
-        )}
         {/* The details are a lazy chunk, so they can fail on their own — a dropped
             connection mid-session, or a host CSP blocking the chunk — after the event
             itself resolved. Keeping that local means the title, the close button and the
@@ -130,6 +126,35 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
           </Suspense>
         </ResetErrorBoundary>
+        {/* Below the class they just confirmed rather than above it, so the event itself leads
+            and the acknowledgement sits next to the Register action it wants them to take — the
+            sticky bar directly beneath, or the inline CTA in the details above.
+
+            The onward rung is the event's own region — "other classes near them" — built from
+            `event.path` rather than `event.region.webPath`, which is a CMS-supplied route and
+            would need `safePath` before it could reach an href; `parentOf` derives the same place
+            from a route we already resolved this view from. It is OPTIONAL: a path with no parent
+            yields nothing, and the acknowledgement then stands on its own rather than rendering a
+            link to nowhere. */}
+        {feedback === 'confirmed' && (
+          <Alert
+            className="mt-4"
+            closeLabel={t('close')}
+            color="primary"
+            description={
+              onwardHref ? (
+                <Link className="underline" href={onwardHref}>
+                  {t('feedback.nearby')}
+                </Link>
+              ) : undefined
+            }
+            icon={<Check size={18} />}
+            role="status"
+            size="sm"
+            title={t('feedback.confirmed')}
+            onClose={dismissFeedback}
+          />
+        )}
       </DrawerBody>
       {stickyRegister && (
         <DrawerFooter

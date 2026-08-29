@@ -164,8 +164,8 @@
     "open": "Encontre uma aula perto de você"
   },
   "feedback": {
-    "confirmed": "Obrigado por confirmar — assim outros buscadores sabem que esta aula é real.",
-    "denied": "Obrigado por avisar — lamentamos que você tenha ido em vão.",
+    "confirmed": "Obrigado por confirmar que esta aula continua acontecendo — assim outros buscadores conseguem encontrá-la.",
+    "denied": "Obrigado por nos avisar que esta aula não aconteceu — vamos revisar e corrigir este anúncio para os outros.",
     "nearby": "Ver outras aulas por perto"
   }
 }

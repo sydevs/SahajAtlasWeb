@@ -83,10 +83,7 @@ export type { EventListItemProps } from './EventListItem'
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
 
-// FeedbackBanner — the acknowledgement shown to someone arriving from a post-event
 // feedback email (wired by usePostEventFeedback in EventView / RegionView).
-export { FeedbackBanner } from './FeedbackBanner'
-export type { FeedbackBannerProps } from './FeedbackBanner'
 
 // GeolocationPrompt — the dismissible IP-geolocation "events near you" suggestion
 // shown above the list on the top-level views (wired by GeolocationSuggestion in

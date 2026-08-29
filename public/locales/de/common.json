@@ -164,8 +164,8 @@
     "open": "Kurs in deiner Nähe finden"
   },
   "feedback": {
-    "confirmed": "Danke für die Bestätigung – so wissen andere Suchende, dass es diesen Kurs wirklich gibt.",
-    "denied": "Danke für die Rückmeldung – schade, dass Sie den Weg umsonst gemacht haben.",
+    "confirmed": "Danke für die Bestätigung, dass dieser Kurs weiterhin stattfindet – so finden ihn andere Suchende.",
+    "denied": "Danke für den Hinweis, dass dieser Kurs nicht stattgefunden hat – wir prüfen und korrigieren den Eintrag für andere.",
     "nearby": "Andere Kurse in der Nähe ansehen"
   }
 }

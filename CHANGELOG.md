@@ -50,8 +50,8 @@ cover everything a host would notice since the widget was first deployed.
   card.** ([#181]) People who register for a class get a follow-up asking whether it took place;
   both answers now redirect to your site — the class's own page for "yes", its region page for
   "no" — carrying **`?feedback=confirmed`** or **`?feedback=denied`**. The widget shows a short
-  acknowledgement above the page and then removes that parameter with a `history.replaceState`, so
-  it never lingers in a copied link or reappears on a reload. **Nothing is required of you:** the
+  acknowledgement the reader can dismiss, and then removes that parameter with a
+  `history.replaceState`, so it never lingers in a copied link or reappears on a reload. **Nothing is required of you:** the
   links come from the CMS, your own query parameters come through byte-for-byte unchanged, and the
   canonical URL the widget emits still has no `feedback` on it, so the two answers cannot be
   indexed as duplicates of a page you already have. A `feedback` value the widget does not

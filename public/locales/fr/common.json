@@ -164,8 +164,8 @@
     "open": "Trouver un cours près de chez vous"
   },
   "feedback": {
-    "confirmed": "Merci de votre confirmation — cela aide d'autres chercheurs à savoir que ce cours existe vraiment.",
-    "denied": "Merci de nous l'avoir signalé — désolés pour ce déplacement inutile.",
+    "confirmed": "Merci d'avoir confirmé que ce cours a toujours lieu — cela aide d'autres chercheurs à le trouver.",
+    "denied": "Merci de nous avoir signalé que ce cours n'a pas eu lieu — nous allons vérifier et corriger cette annonce pour les autres.",
     "nearby": "Voir d'autres cours à proximité"
   }
 }

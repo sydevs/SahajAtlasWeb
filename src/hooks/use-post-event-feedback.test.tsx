@@ -22,12 +22,16 @@ const HOST = '/map/gb/london/1204'
 let container: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 
-/** Mount a probe that records what the hook returned on each render. */
-function mountProbe(): string[] {
+/** Mount a probe that records the answer on each render, and exposes the dismisser. */
+function mountProbe(): { seen: string[]; dismiss: () => void } {
   const seen: string[] = []
+  let dismiss = () => {}
 
   function Probe() {
-    seen.push(String(usePostEventFeedback()))
+    const feedback = usePostEventFeedback()
+
+    seen.push(String(feedback.answer))
+    dismiss = feedback.dismiss
 
     return null
   }
@@ -36,7 +40,7 @@ function mountProbe(): string[] {
     root.render(<Probe />)
   })
 
-  return seen
+  return { seen, dismiss: () => act(() => dismiss()) }
 }
 
 beforeEach(() => {
@@ -56,7 +60,7 @@ describe('usePostEventFeedback', () => {
 
     // The FIRST recorded value, not the last: a cold load from an email client has to render the
     // banner immediately, not one commit later.
-    expect(mountProbe()[0]).toBe('confirmed')
+    expect(mountProbe().seen[0]).toBe('confirmed')
   })
 
   it('takes the answer back out of the URL once it has been read', () => {
@@ -104,7 +108,7 @@ describe('usePostEventFeedback', () => {
   it('does nothing at all on a page with no answer on it', () => {
     window.history.replaceState({}, '', `${HOST}?atlas=/gb/london`)
 
-    expect(mountProbe()[0]).toBe('undefined')
+    expect(mountProbe().seen[0]).toBe('undefined')
     expect(window.location.search).toBe('?atlas=/gb/london')
   })
 
@@ -117,7 +121,26 @@ describe('usePostEventFeedback', () => {
   it('ignores a value it cannot render, and leaves that parameter where it found it', () => {
     window.history.replaceState({}, '', `${HOST}?feedback=maybe`)
 
-    expect(mountProbe()[0]).toBe('undefined')
+    expect(mountProbe().seen[0]).toBe('undefined')
     expect(window.location.search).toBe('?feedback=maybe')
+  })
+
+  /**
+   * Dismissal is the reader's, and it must not put the parameter back. The strip has already
+   * happened by the time they can press anything, so closing the banner is purely local state —
+   * asserted alongside the URL so a future implementation that "resets" by re-reading the
+   * location cannot pass.
+   */
+  it('stops reporting an answer once dismissed, without touching the URL', () => {
+    window.history.replaceState({}, '', `${HOST}?feedback=confirmed`)
+
+    const probe = mountProbe()
+
+    expect(probe.seen[0]).toBe('confirmed')
+
+    probe.dismiss()
+
+    expect(probe.seen.at(-1)).toBe('undefined')
+    expect(window.location.search).toBe('')
   })
 })

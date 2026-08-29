@@ -164,8 +164,8 @@
     "open": "Najděte kurz ve svém okolí"
   },
   "feedback": {
-    "confirmed": "Děkujeme za potvrzení – ostatní hledající tak vědí, že tato lekce opravdu existuje.",
-    "denied": "Děkujeme, že jste nám dali vědět – mrzí nás, že jste cestovali zbytečně.",
+    "confirmed": "Děkujeme za potvrzení, že tato lekce stále probíhá – pomáháte tak dalším hledajícím ji najít.",
+    "denied": "Děkujeme, že jste nám dali vědět, že se lekce nekonala – prověříme a opravíme tento záznam pro ostatní.",
     "nearby": "Zobrazit další lekce v okolí"
   }
 }

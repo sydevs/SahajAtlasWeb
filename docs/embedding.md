@@ -202,9 +202,9 @@ https://your-site.org/classes/gb/london/1204?feedback=confirmed
 https://your-site.org/classes/gb/london?feedback=denied
 ```
 
-The widget reads it, shows a short acknowledgement above the page, and then **removes it from the
-address with a `history.replaceState`** — so it does not linger in a copied link or come back as a
-fresh acknowledgement on every reload.
+The widget reads it, shows a short acknowledgement the reader can dismiss, and then **removes it
+from the address with a `history.replaceState`** — so it does not linger in a copied link or come
+back as a fresh acknowledgement on every reload.
 
 Three things follow from that, and none of them need anything from you:
 

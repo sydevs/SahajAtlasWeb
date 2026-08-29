@@ -164,8 +164,8 @@
     "open": "Találjon egy tanfolyamot a közelében"
   },
   "feedback": {
-    "confirmed": "Köszönjük a megerősítést – így mások is tudják, hogy ez az alkalom valóban létezik.",
-    "denied": "Köszönjük a jelzést – sajnáljuk, hogy hiába utazott.",
+    "confirmed": "Köszönjük a megerősítést, hogy ez az alkalom továbbra is megtartásra kerül – így mások is megtalálják.",
+    "denied": "Köszönjük, hogy jelezte, hogy ez az alkalom elmaradt – átnézzük és javítjuk a hirdetést a többiek számára.",
     "nearby": "További közeli alkalmak megtekintése"
   }
 }

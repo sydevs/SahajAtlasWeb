@@ -164,8 +164,8 @@
     "open": "Encuentra una clase cerca de ti"
   },
   "feedback": {
-    "confirmed": "Gracias por confirmarlo: así otros buscadores saben que esta clase es real.",
-    "denied": "Gracias por avisarnos: sentimos que hayas hecho el viaje en vano.",
+    "confirmed": "Gracias por confirmar que esta clase sigue en marcha: así otros buscadores pueden encontrarla.",
+    "denied": "Gracias por avisarnos de que esta clase no se celebró: revisaremos y corregiremos esta información para los demás.",
     "nearby": "Ver otras clases cerca"
   }
 }

@@ -3,8 +3,9 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
+import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventListItem, FeedbackBanner, List, ListItem } from '@/components/molecules'
+import { EventListItem, List, ListItem } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -41,7 +42,7 @@ export function RegionView({ slug }: { slug: string }) {
   // A reader redirected here by the post-event email said the class did NOT take place (#164).
   // Only `denied` lands on a region page — `confirmed` goes to the event's own — so a stray
   // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
-  const feedback = usePostEventFeedback()
+  const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
 
   const { data: region } = useSuspenseQuery({
     queryKey: ['region', slug, locale],
@@ -99,9 +100,25 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         {/* Above the region's own content, which IS the "other classes near them" the
-            acknowledgement hands off to — so the banner carries no onward link. */}
-        {feedback === 'denied' && <FeedbackBanner answer="denied" />}
-        <GeolocationSuggestion regionCenter={region.center} />
+            acknowledgement hands off to — so the banner carries no onward link of its own.
+            Neutral and unticked: a tick would read as "yes, it's gone", and one report is not
+            a verdict (the listing only comes down at five denials with a Wilson upper bound
+            below 0.5). */}
+        {feedback === 'denied' && (
+          <Alert
+            className="mb-4"
+            closeLabel={tCommon('close')}
+            color="neutral"
+            role="status"
+            size="sm"
+            title={tCommon('feedback.denied')}
+            onClose={dismissFeedback}
+          />
+        )}
+        {/* Suppressed while the acknowledgement is up: two stacked prompts above the list is
+            more than the screen can carry, and the reader has just acted once already. It
+            returns as soon as they dismiss the banner. */}
+        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
         {isEmpty ? (
           <EmptyEventList />
         ) : (
