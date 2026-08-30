@@ -108,7 +108,8 @@
     "submit": "Register",
     "thank_you": "Thank you for registering!",
     "error_title": "Something went wrong",
-    "show_more_dates": "Show more dates"
+    "show_more_dates": "Show more dates",
+    "captcha_retry": "The security check needs doing again. Wait for it to refresh, then register once more."
   },
   "timing": {
     "converted_to": "Converted to %{timezone} (%{offset})"

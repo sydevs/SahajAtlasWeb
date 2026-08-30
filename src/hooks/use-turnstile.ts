@@ -8,15 +8,21 @@ import { useTheme } from '@/hooks/use-theme'
 // bundle ships on host pages we don't control, so every dependency is weight we'd rather
 // not add.
 //
-// The script is injected lazily on first use — a viewer who never opens the report form
-// never pays for it — and the widget is removed on unmount, so reopening the modal always
-// gets a fresh challenge rather than a stale/expired token.
+// ⚠ **The script is no longer lazy, and that inverted in issue #182.** Registration is what
+// this widget is for, and registration cannot happen without a token — so a challenge that
+// cannot load is a broken embed, not a form that degrades. `useTurnstileProbe` starts the
+// load as soon as the INTERFACE mounts (never the shell — see `FullInterface`) and fails the
+// widget when it cannot complete, so a host with an out-of-date CSP finds out on their own
+// page rather than from a visitor who could not register.
+//
+// The widget is still removed on unmount, so reopening a form always gets a fresh challenge
+// rather than a stale/expired token.
 
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 
 // A Turnstile SITE key is public by design (the secret half lives in SahajCloud), so it
 // belongs in the committed `.env`. Absent ⇒ the captcha can't render, which is the same
-// degraded state as a blocked script — the form falls back to the mailto route.
+// blocked state as a CSP-refused script.
 const SITE_KEY: string | undefined = import.meta.env.VITE_TURNSTILE_SITE_KEY
 
 type TurnstileRenderOptions = {
@@ -75,6 +81,35 @@ function loadTurnstile(): Promise<void> {
   })
 
   return scriptPromise
+}
+
+/**
+ * Load the Turnstile script without rendering a challenge, and say whether the API arrived.
+ *
+ * The reading half of the eager check (issue #182): it answers "can this page run Turnstile
+ * at all", which is a question about the host's CSP and the network, not about any one form.
+ * Resolves `false` rather than rejecting, because every caller treats a failure as a verdict
+ * rather than an exception.
+ *
+ * ⚠ **It is strictly weaker than a real render, and that gap is deliberate rather than
+ * overlooked.** Three failures are visible from here — no site key, a `script-src` that
+ * refuses `challenges.cloudflare.com`, and a script that loads without defining the API (a
+ * content blocker or an enterprise proxy answering 200 with a stub). Two are not: a
+ * `frame-src` that blocks the challenge *iframe*, and a sitekey the embedding domain is not
+ * registered for, both of which only surface when `turnstile.render` actually runs. So this
+ * is the early warning, and `useTurnstile`'s own `blocked` status remains the backstop —
+ * neither replaces the other.
+ */
+export async function probeTurnstile(): Promise<boolean> {
+  if (!SITE_KEY) return false
+
+  try {
+    await loadTurnstile()
+
+    return Boolean(window.turnstile)
+  } catch {
+    return false
+  }
 }
 
 /**

@@ -76,7 +76,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="When Turnstile can't load — a host page whose CSP omits challenges.cloudflare.com, or a missing site key — the form says so and offers the mailto route rather than leaving a submit button that could never produce a token."
+        description="When Turnstile can't load, the form says so and leaves the submit disabled — there is no token to send, and since #182 no mailto escape either. Rare in practice: the eager probe fails the whole widget before a viewer can reach this, so what remains here are the two failures a probe cannot see — a host's frame-src blocking the challenge iframe, and a sitekey the embedding domain isn't registered for."
         title="Captcha blocked"
       >
         <Panel>
@@ -85,7 +85,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="A send that failed. The message and address stay put so the retry costs nothing to compose, the alert carries the address that still works, and the captcha has been reset underneath — a Turnstile token is single-use and the endpoint redeems it before it mails, so re-sending the old one would be refused."
+        description="A send that failed. The message and address stay put so the retry costs nothing to compose, and the captcha has been reset underneath — a Turnstile token is single-use and the endpoint redeems it before it mails, so re-sending the old one would be refused."
         title="Send failed"
       >
         <Panel>

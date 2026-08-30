@@ -18,12 +18,13 @@ import { ContactRefusedError } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
-/**
- * Where a viewer is directed when the form can't deliver — the captcha never loaded, or
- * the POST failed. The same address the endpoint mails, so the report reaches the same
- * inbox either way.
- */
-const CONTACT_EMAIL = 'contact@sydevelopers.com'
+// ⚠ `CONTACT_EMAIL` used to live here, and its removal is the point of issue #182 rather
+// than a tidy-up. A blocked captcha put `contact@sydevelopers.com` on screen as a `mailto:`
+// on any host page whose CSP omitted challenges.cloudflare.com — publishing the address to
+// every scraper reading those pages, to solve a problem the host had caused and could fix.
+// A blocked captcha now fails the whole widget (`useTurnstileGuard`), so there is no
+// degraded state left for this form to have, and the generic send-failure sentence tells
+// the viewer to try again rather than naming an inbox.
 
 /**
  * Our copy for each refusal the endpoint can name, keyed by its machine-readable code.
@@ -172,7 +173,7 @@ export function ReportIssueForm({
       : t('report.errors.message', { min: REPORT_MESSAGE_MIN })
 
   // A named refusal gets its own sentence; everything else (offline, 5xx, a 502 from the
-  // mailer) gets the generic one, which carries the address that still works. The thrown
+  // mailer) gets the generic one. The thrown
   // message never reaches the screen — it is developer text, and it travels in the report.
   // `hasOwnProperty`, not a bare index: `code` is a cast over a `z.string()`, so at
   // runtime it is whatever the response body said. A bare lookup walks the prototype
@@ -184,9 +185,7 @@ export function ReportIssueForm({
       ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
       : undefined
 
-  const failureMessage = refusalKey
-    ? t(refusalKey)
-    : t('report.errors.send_failed', { email: CONTACT_EMAIL })
+  const failureMessage = refusalKey ? t(refusalKey) : t('report.errors.send_failed')
 
   const failed = initialFailed || mutation.isError
 
@@ -293,27 +292,20 @@ export function ReportIssueForm({
         <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
           {t('report.cancel')}
         </Button>
-        {blocked ? (
-          // No captcha means no token, so the form can never be sent. Offer the route
-          // that still works instead of a button that would only ever be disabled.
-          // The href is a bare literal on purpose. If anyone ever prefills `?subject=` or
-          // `?body=` from the message or the thrown error, every interpolated part needs
-          // `encodeURIComponent` — an unencoded `&` or newline in a report body silently
-          // forges extra mailto fields (commit 368e1f7).
-          <Button color="primary" href={`mailto:${CONTACT_EMAIL}`} variant="flat">
-            {CONTACT_EMAIL}
-          </Button>
-        ) : (
-          <Button
-            color="primary"
-            disabled={!isValid || !token}
-            isLoading={mutation.isPending}
-            type="submit"
-            variant="flat"
-          >
-            {t('report.submit')}
-          </Button>
-        )}
+        {/* One button, in every state. A blocked captcha no longer has a route of its own:
+            it fails the widget at `useTurnstileGuard`, so this form is not reachable in
+            that state and the `mailto:` escape it used to grow here is gone with it
+            (issue #182). `!token` still disables — a solved challenge is what makes the
+            submit sendable, and that was always true. */}
+        <Button
+          color="primary"
+          disabled={!isValid || !token}
+          isLoading={mutation.isPending}
+          type="submit"
+          variant="flat"
+        >
+          {t('report.submit')}
+        </Button>
       </ModalFooter>
     </form>
   )

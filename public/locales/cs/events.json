@@ -104,7 +104,8 @@
     "submit": "Rejstřík",
     "thank_you": "Děkujeme za registraci!",
     "error_title": "Něco se pokazilo",
-    "show_more_dates": "Zobrazit další termíny"
+    "show_more_dates": "Zobrazit další termíny",
+    "captcha_retry": "Bezpečnostní kontrolu je třeba provést znovu. Počkejte na její obnovení a poté se zaregistrujte ještě jednou."
   },
   "timing": {
     "converted_to": "Převedeno na %{timezone} (%{offset})"

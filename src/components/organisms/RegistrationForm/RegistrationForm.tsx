@@ -28,6 +28,7 @@ import preview from '@/config/preview'
 import { useRegistrationDraft } from '@/config/store'
 import { RecurrenceType, Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
+import { useTurnstile } from '@/hooks/use-turnstile'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 /**
@@ -44,6 +45,18 @@ const REFUSAL_MESSAGE_KEYS: Record<EventRegistrationErrorCode, string> = {
   registration_closed: 'display.registration_closed',
   event_full: 'display.event_full',
 }
+
+/**
+ * A refused captcha is the one refusal that is not about the event, so it is deliberately
+ * outside `REFUSAL_MESSAGE_KEYS` above — that Record is a total map over the *state* codes,
+ * and its totality is what makes a `types:cms` re-sync fail the build here. Folding a code
+ * from a different layer into it would break that.
+ *
+ * It is also the one refusal a viewer can act on: the token is spent, so the answer is
+ * "wait for the check to refresh and send again", which is what `report.errors.captcha`
+ * already says on the other Turnstile-gated form.
+ */
+const CAPTCHA_REFUSED = 'captcha_failed'
 
 export type RegistrationFormProps = {
   eventId: number
@@ -139,22 +152,38 @@ export function RegistrationForm({
     return () => sub.unsubscribe()
   }, [watch, eventId])
 
+  // The challenge for this submission. `blocked` is not handled here: `useTurnstileGuard`
+  // has already failed the whole widget by the time a form could render in that state, so a
+  // per-form degradation would be dead code guarding a case its own boundary swallowed
+  // (issue #182).
+  const { containerRef, token, reset: resetChallenge } = useTurnstile()
+
   const mutation = useMutation({
     scope: { id: `registration-for-${eventId}` },
-    mutationFn: (newRegistration: Registration) => {
-      return api.createRegistration(eventId, newRegistration)
+    mutationFn: ({ registration, captcha }: { registration: Registration; captcha: string }) => {
+      return api.createRegistration(eventId, registration, captcha)
     },
     onSuccess: () => {
       setSubmitted(true)
       useRegistrationDraft.getState().clearDraft()
     },
     onError: (error) => {
+      if (!(error instanceof RegistrationRefusedError)) return
+
+      // A Turnstile token is single-use and the server redeems it before doing the work it
+      // gates — so the one in hand is spent whether or not it was the reason for the
+      // refusal, and re-sending it would be refused for the rest of this form's life. Reset
+      // unconditionally rather than only on `captcha_failed`: an `event_full` retry after a
+      // cancelled registration would otherwise fail with a captcha error the viewer has no
+      // way to understand.
+      resetChallenge()
+
       // A state refusal means our cached event disagrees with the server about
       // whether it can be joined (it filled up, ended, or its course started
       // since the read). Refetch it so the surfaces behind this form flip to the
       // real state instead of continuing to offer a Register button. Prefix key
       // — the event is cached per locale (`['event', id, locale]`).
-      if (error instanceof RegistrationRefusedError) {
+      if (error.code !== CAPTCHA_REFUSED) {
         void queryClient.invalidateQueries({ queryKey: ['event', eventId] })
       }
     },
@@ -164,16 +193,22 @@ export function RegistrationForm({
   // English prose. An unrecognized code (a CMS newer than this build) falls back
   // to the generic error title + the server's message.
   const refusalMessage =
-    mutation.error instanceof RegistrationRefusedError &&
-    mutation.error.code in REFUSAL_MESSAGE_KEYS
-      ? t(REFUSAL_MESSAGE_KEYS[mutation.error.code])
+    mutation.error instanceof RegistrationRefusedError
+      ? mutation.error.code === CAPTCHA_REFUSED
+        ? t('registration.captcha_retry')
+        : mutation.error.code in REFUSAL_MESSAGE_KEYS
+          ? t(REFUSAL_MESSAGE_KEYS[mutation.error.code as EventRegistrationErrorCode])
+          : null
       : null
 
   return (
     <form
       className="mx-auto flex w-full max-w-md flex-col gap-3"
       onSubmit={handleSubmit((data) => {
-        if (!isPreview) mutation.mutate(data)
+        // `token` is also what gates the submit button, so this is belt-and-braces for the
+        // Enter-key path — but it is what makes `captcha` a plain string rather than a
+        // nullable one all the way down to the header.
+        if (!isPreview && token) mutation.mutate({ registration: data, captcha: token })
       })}
     >
       {submitted ? (
@@ -189,7 +224,9 @@ export function RegistrationForm({
           {calendar && (
             <>
               <div className="mt-2 font-semibold">{t('actions.add_calendar')}</div>
-              <AddToCalendar event={{ ...calendar, from: mutation.variables?.startingAt }} />
+              <AddToCalendar
+                event={{ ...calendar, from: mutation.variables?.registration.startingAt }}
+              />
             </>
           )}
 
@@ -213,6 +250,11 @@ export function RegistrationForm({
             timeZone={timeZone}
             upcomingDates={upcomingDates}
           />
+
+          {/* The challenge itself. Rendered under the fields and above the error, so the
+              one thing that can silently hold the submit button disabled is visible
+              immediately above it rather than off in the footer. */}
+          <div ref={containerRef} className="mt-4 empty:mt-0" />
 
           {/* A refusal isn't a malfunction — the event simply can't be joined —
               so it states the reason on its own, dropping both the "Something
@@ -250,9 +292,13 @@ export function RegistrationForm({
             <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
               {t('registration.cancel')}
             </Button>
+            {/* No token means no registration the server would accept, so the button is
+                disabled until the challenge is solved — the same contract the report form
+                has always had. A blocked challenge never reaches this: it fails the widget
+                at `useTurnstileGuard` instead. */}
             <Button
               color="primary"
-              disabled={isPreview}
+              disabled={isPreview || !token}
               isLoading={mutation.isPending}
               type="submit"
               variant="flat"

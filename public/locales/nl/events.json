@@ -102,7 +102,8 @@
     "submit": "Register",
     "thank_you": "Bedankt voor uw registratie!",
     "error_title": "Er ging iets mis",
-    "show_more_dates": "Meer data tonen"
+    "show_more_dates": "Meer data tonen",
+    "captcha_retry": "De beveiligingscontrole moet opnieuw worden gedaan. Wacht tot deze is vernieuwd en schrijf je dan nogmaals in."
   },
   "timing": {
     "converted_to": "Omgerekend naar %{timezone} (%{offset})"
