@@ -181,6 +181,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Switching language no longer re-encodes the rest of your page's URL.** ([#181]) When a visitor
+  picked a language, the widget rewrote the whole query string rather than the one parameter it was
+  adding — so a readable `?atlas=/gb/london` came back as `?atlas=%2Fgb%2Flondon`, and a parameter
+  of your own carrying `%20` came back with a `+`. Both forms mean the same thing to any parser, so
+  nothing broke; what suffered was the legibility of a link a visitor copies. The widget now edits
+  only the pair it is writing and leaves every other pair byte for byte as your page had it.
+
 - **Tapping a pin from a set of search results no longer zooms out to the whole world first.**
   The map now goes straight from the search to the class. The outgoing panel was still steering the
   camera for a moment after the visitor had left it, and reset the view to the whole planet a beat

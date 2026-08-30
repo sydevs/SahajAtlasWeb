@@ -1,11 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import {
-  FEEDBACK_PARAM,
-  feedbackAnswer,
-  hrefWithoutFeedback,
-  searchWithoutFeedback,
-} from './feedback-param'
+import { clearFeedback, feedbackAnswer } from './feedback-param'
 
 describe('feedbackAnswer', () => {
   it('reads the two answers SahajCloud actually sends', () => {
@@ -40,71 +35,59 @@ describe('feedbackAnswer', () => {
   })
 })
 
-describe('searchWithoutFeedback', () => {
-  it('removes the parameter', () => {
-    expect(searchWithoutFeedback('?feedback=confirmed')).toBe('')
-    expect(searchWithoutFeedback('?feedback=confirmed&a=1')).toBe('?a=1')
-    expect(searchWithoutFeedback('?a=1&feedback=denied')).toBe('?a=1')
-    expect(searchWithoutFeedback('?a=1&feedback=denied&b=2')).toBe('?a=1&b=2')
-  })
+describe('clearFeedback', () => {
+  const fakeWindow = (href: string, state: unknown = { __sy_atlas: { key: 'abc', idx: 2 } }) => {
+    const replaceState = vi.fn()
 
-  /**
-   * The reason this is a hand-rolled split rather than `URLSearchParams.delete()`.
-   *
-   * `.delete()` re-serializes every surviving pair, which loses BOTH the `/` and `,` that
-   * `routeToParam` deliberately restores — the part of a shared link that has to stay
-   * readable — and a host's own `%20`, rewritten to `+`. Equivalent to a parser; not what the
-   * page had, and the second one is somebody else's parameter.
-   */
-  it('leaves every surviving pair byte-identical, including the route and the host’s own', () => {
-    expect(
-      searchWithoutFeedback('?atlas=/nl/amsterdam?center=4.9,52.3&feedback=confirmed&keep=a%20b'),
-    ).toBe('?atlas=/nl/amsterdam?center=4.9,52.3&keep=a%20b')
-  })
+    return {
+      replaceState,
+      win: { location: { href }, history: { state, replaceState } } as unknown as Window,
+    }
+  }
 
-  it('leaves a query with no answer in it exactly as it was', () => {
-    expect(searchWithoutFeedback('?atlas=/gb/london&keep=a%20b')).toBe(
-      '?atlas=/gb/london&keep=a%20b',
+  // The wiring, not the helper: `query.ts` is tested on its own, and a pure spec of it would keep
+  // passing if this module stopped calling it or reached for the wrong name.
+  it('takes the answer out of the address bar and leaves the route alone', () => {
+    const { win, replaceState } = fakeWindow(
+      'https://host.example/p?atlas=/gb/london&feedback=confirmed&keep=a%20b',
     )
-    expect(searchWithoutFeedback('')).toBe('')
+
+    clearFeedback(win)
+
+    expect(replaceState).toHaveBeenCalledTimes(1)
+    expect(replaceState.mock.calls[0][2]).toBe('https://host.example/p?atlas=/gb/london&keep=a%20b')
   })
 
-  // `feedbackAnswer` reads through URLSearchParams, which decodes the NAME as well as the value.
-  // The remover has to agree, or a link written that way would be read and never cleaned up.
-  it('removes a percent-encoded spelling of the name, as the reader would have read it', () => {
-    expect(feedbackAnswer('?%66eedback=denied')).toBe('denied')
-    expect(searchWithoutFeedback('?%66eedback=denied&a=1')).toBe('?a=1')
+  // The atlas history namespaces its entry key and depth under `history.state`. Dropping them
+  // would make the drawer's next X climb to the structural parent instead of going back.
+  it('passes history.state through untouched', () => {
+    const state = { __sy_atlas: { key: 'abc', idx: 2 }, hostOwn: true }
+    const { win, replaceState } = fakeWindow('https://host.example/p?feedback=denied', state)
+
+    clearFeedback(win)
+
+    expect(replaceState.mock.calls[0][0]).toBe(state)
   })
 
-  it('does not remove a parameter that merely contains the name', () => {
-    expect(searchWithoutFeedback(`?user_${FEEDBACK_PARAM}=1`)).toBe('?user_feedback=1')
-    expect(searchWithoutFeedback('?a=feedback')).toBe('?a=feedback')
-  })
-})
+  it('writes nothing when the page carries no answer', () => {
+    const { win, replaceState } = fakeWindow('https://host.example/p?atlas=/gb/london')
 
-describe('hrefWithoutFeedback', () => {
-  it('rewrites only the query, keeping the path the canonical URL named', () => {
-    expect(hrefWithoutFeedback('https://host.example/map/gb/london/1204?feedback=confirmed')).toBe(
-      'https://host.example/map/gb/london/1204',
-    )
+    clearFeedback(win)
+
+    expect(replaceState).not.toHaveBeenCalled()
   })
 
-  it('keeps the widget route intact beside it', () => {
-    expect(hrefWithoutFeedback('https://host.example/p?atlas=/gb/london&feedback=denied')).toBe(
-      'https://host.example/p?atlas=/gb/london',
-    )
-  })
+  it('does not throw where the document refuses replaceState', () => {
+    const win = {
+      location: { href: 'https://host.example/p?feedback=denied' },
+      history: {
+        state: null,
+        replaceState: () => {
+          throw new Error('blocked')
+        },
+      },
+    } as unknown as Window
 
-  it('preserves the fragment, which belongs to the host', () => {
-    expect(hrefWithoutFeedback('https://host.example/p?feedback=denied#section')).toBe(
-      'https://host.example/p#section',
-    )
-  })
-
-  // '' means "leave the URL alone" for both reasons a caller has to do nothing.
-  it('returns empty when there is nothing to remove or nothing to parse', () => {
-    expect(hrefWithoutFeedback('https://host.example/p?atlas=/gb')).toBe('')
-    expect(hrefWithoutFeedback('https://host.example/p')).toBe('')
-    expect(hrefWithoutFeedback('not a url')).toBe('')
+    expect(() => clearFeedback(win)).not.toThrow()
   })
 })

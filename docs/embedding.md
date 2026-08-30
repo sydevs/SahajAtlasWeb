@@ -179,8 +179,10 @@ a third, `feedback` — see [`?feedback=` on a page the atlas links to](#feedbac
 
 Three things worth knowing:
 
-- **Your own query parameters are preserved**, and no history entry is added — the visitor's Back
-  button behaves exactly as before.
+- **Your own query parameters are preserved byte for byte**, and no history entry is added — the
+  visitor's Back button behaves exactly as before. The widget edits the one pair it is writing and
+  rejoins the rest untouched, so a parameter of yours carrying `%20`, `/` or `,` comes back exactly
+  as your page had it rather than in an equivalent re-encoding.
 - **It makes the choice survive a reload and travel in a copied link**, which is why it outranks
   the script-URL `locale` above. If you pin `locale=fr` and a visitor switches to Dutch, the link
   they share opens in Dutch.

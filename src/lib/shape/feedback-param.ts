@@ -19,7 +19,13 @@
  *
  * This module is pure — no `window` — so the decision is testable in the node lane;
  * `clearFeedback` is the one part that touches `history`.
+ *
+ * **The URL editing itself is not here.** Removing one parameter without disturbing the rest is a
+ * general problem the widget has wherever it writes onto a host's URL, so it lives in `query.ts`;
+ * this module only says which name it claims and what the two answers mean.
  */
+
+import { hrefWithout } from './query'
 
 /**
  * The parameter name, defined once.
@@ -41,19 +47,6 @@ export const FEEDBACK_PARAM = 'feedback'
 export const FEEDBACK_ANSWERS = ['confirmed', 'denied'] as const
 
 export type FeedbackAnswer = (typeof FEEDBACK_ANSWERS)[number]
-
-/** The name half of a raw `a=b` pair, percent-decoded so `%66eedback` compares equal. */
-function pairName(pair: string): string {
-  const raw = pair.split('=')[0]
-
-  try {
-    return decodeURIComponent(raw.replace(/\+/g, ' '))
-  } catch {
-    // A malformed `%` escape is not a name we claim. Compare the raw form instead of throwing:
-    // this runs over a host's query string, which we do not control.
-    return raw
-  }
-}
 
 /**
  * The answer the page URL carries, if it names one we actually render.
@@ -77,61 +70,6 @@ export function feedbackAnswer(search: string | null | undefined): FeedbackAnswe
 }
 
 /**
- * The same query string with `feedback` removed and **every other pair left byte-identical**.
- *
- * ⚠ **`URLSearchParams.delete()` is the obvious way to write this and it is wrong here**, because
- * it re-serializes the whole query rather than editing one pair. Measured, on a URL carrying a
- * route and a host parameter beside the answer:
- *
- * ```
- * in            ?atlas=/nl/amsterdam?center=4.9,52.3&feedback=confirmed&keep=a%20b
- * .delete()     ?atlas=%2Fnl%2Famsterdam%3Fcenter%3D4.9%2C52.3&keep=a+b
- * this          ?atlas=/nl/amsterdam?center=4.9,52.3&keep=a%20b
- * ```
- *
- * Two separate losses in that middle line. It undoes `routeToParam`'s deliberate restoration of
- * `/` and `,` — the one thing that has to stay readable in a link somebody copies — and it rewrites
- * `keep=a%20b` to `keep=a+b`, which is a HOST's parameter that we have no business touching at all.
- * Both are equivalent to a parser and neither is what the page had.
- *
- * So the edit is surgical: split the raw query on `&`, drop the pairs we claim, rejoin. Assigning
- * the result back through `URL.search` is safe where `searchParams` is not — the query
- * percent-encode set covers only C0 controls, space, `"`, `#`, `<`, `>` and `'`, so `/`, `,`, `=`
- * and an already-encoded `%20` all survive verbatim.
- */
-export function searchWithoutFeedback(search: string): string {
-  const raw = search.startsWith('?') ? search.slice(1) : search
-
-  if (raw === '') return ''
-
-  const kept = raw.split('&').filter((pair) => pair !== '' && pairName(pair) !== FEEDBACK_PARAM)
-
-  return kept.length === 0 ? '' : `?${kept.join('&')}`
-}
-
-/**
- * `href` with the answer removed, or `''` when there is nothing to do.
- *
- * `''` covers both "no such parameter" and "will not parse" deliberately: the caller's response to
- * each is the same — leave the URL alone — and collapsing them keeps the one branch at the call
- * site honest rather than inviting a distinction nothing acts on.
- */
-export function hrefWithoutFeedback(href: string): string {
-  try {
-    const url = new URL(href)
-    const next = searchWithoutFeedback(url.search)
-
-    if (next === url.search) return ''
-
-    url.search = next
-
-    return url.toString()
-  } catch {
-    return ''
-  }
-}
-
-/**
  * Take the answer back out of the host's URL, once it has been read.
  *
  * The parameter is a one-shot instruction from an email, not a place. Left in the address bar it
@@ -151,7 +89,7 @@ export function hrefWithoutFeedback(href: string): string {
  *    is untouched, and that is the only parameter the history re-reads.
  */
 export function clearFeedback(win: Window = window): void {
-  const href = hrefWithoutFeedback(win.location.href)
+  const href = hrefWithout(win.location.href, FEEDBACK_PARAM)
 
   if (!href || href === win.location.href) return
 
