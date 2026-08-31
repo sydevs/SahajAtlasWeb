@@ -102,7 +102,8 @@
     "submit": "Continuer",
     "thank_you": "Merci pour votre inscription !",
     "error_title": "Une erreur est survenue",
-    "show_more_dates": "Afficher plus de dates"
+    "show_more_dates": "Afficher plus de dates",
+    "captcha_retry": "La vérification de sécurité doit être refaite. Attendez qu'elle se réactualise, puis inscrivez-vous à nouveau."
   },
   "timing": {
     "converted_to": "Converti en %{timezone} (%{offset})"

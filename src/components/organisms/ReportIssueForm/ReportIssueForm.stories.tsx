@@ -76,7 +76,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="When Turnstile can't load — a host page whose CSP omits challenges.cloudflare.com, or a missing site key — the form says so and offers the mailto route rather than leaving a submit button that could never produce a token."
+        description="When the challenge can't load, the form says so and leaves Send disabled — there is no token to send. Rare in practice, since a widget that cannot run the challenge at all fails before a viewer reaches this form."
         title="Captcha blocked"
       >
         <Panel>
@@ -85,7 +85,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="A send that failed. The message and address stay put so the retry costs nothing to compose, the alert carries the address that still works, and the captcha has been reset underneath — a Turnstile token is single-use and the endpoint redeems it before it mails, so re-sending the old one would be refused."
+        description="A send that failed. The message and address stay put so the retry costs nothing to compose, and the challenge has been reset underneath — a solved challenge is single-use, so a retry needs a fresh one."
         title="Send failed"
       >
         <Panel>

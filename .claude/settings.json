@@ -87,7 +87,14 @@
       "mcp__playwright__*",
       "mcp__cloudflare-docs__*",
       "Edit(.claude/docs/**)",
-      "Write(.claude/docs/**)"
+      "Write(.claude/docs/**)",
+      "Edit(.claude/rules/**)",
+      "Write(.claude/rules/**)",
+      "Edit(.claude/skills/**)",
+      "Write(.claude/skills/**)",
+      "Edit(CLAUDE.md)",
+      "Edit(AGENTS.md)",
+      "Write(AGENTS.md)"
     ]
   },
   "statusLine": {

@@ -113,12 +113,12 @@
     "submit": "Odeslat hlášení",
     "cancel": "Zrušit",
     "sent": "Děkujeme — vaše hlášení je na cestě k týmu.",
-    "blocked": "Bezpečnostní kontrolu se nepodařilo načíst, takže tento formulář nelze odeslat. Napište nám prosím na:",
+    "blocked": "Bezpečnostní kontrolu se nepodařilo načíst, takže tento formulář nelze odeslat.",
     "errors": {
       "email": "Zadejte platnou e-mailovou adresu.",
       "message": "Napište prosím alespoň %{min} znaků.",
       "message_max": "Zkraťte prosím text pod %{max} znaků.",
-      "send_failed": "Vaše hlášení nebylo odesláno. Zkuste to znovu po obnovení bezpečnostní kontroly nebo nám napište na %{email}.",
+      "send_failed": "Vaše hlášení nebylo odesláno. Počkejte na obnovení bezpečnostní kontroly a zkuste to znovu.",
       "captcha": "Bezpečnostní kontrolu je třeba provést znovu. Počkejte na její obnovení a odešlete znovu."
     }
   },
@@ -136,7 +136,8 @@
     "browse_countries": "Procházet všechny země",
     "search_label": "Nebo vyhledejte místo",
     "unavailable": "Tento program teď není možné navštívit.",
-    "share_unavailable": "Pro tuto meditaci zatím není odkaz ke sdílení."
+    "share_unavailable": "Pro tuto meditaci zatím není odkaz ke sdílení.",
+    "captcha_blocked": "Tento Atlas na této stránce nefunguje: jeho bezpečnostní kontrola byla zablokována."
   },
   "country_site": {
     "title": "V %{country} zatím nejsou uvedeny žádné kurzy.",

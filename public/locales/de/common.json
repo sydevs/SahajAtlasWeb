@@ -113,12 +113,12 @@
     "submit": "Bericht senden",
     "cancel": "Abbrechen",
     "sent": "Vielen Dank — Ihr Bericht ist auf dem Weg zum Team.",
-    "blocked": "Die Sicherheitsprüfung konnte nicht geladen werden, daher kann dieses Formular nicht gesendet werden. Bitte schreiben Sie uns stattdessen:",
+    "blocked": "Die Sicherheitsprüfung konnte nicht geladen werden, daher kann dieses Formular nicht gesendet werden.",
     "errors": {
       "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
       "message": "Bitte schreiben Sie mindestens %{min} Zeichen.",
       "message_max": "Bitte bleiben Sie unter %{max} Zeichen.",
-      "send_failed": "Dein Bericht wurde nicht gesendet. Versuche es erneut, sobald die Sicherheitsprüfung aktualisiert ist, oder schreib uns an %{email}.",
+      "send_failed": "Deine Meldung wurde nicht gesendet. Warte, bis sich die Sicherheitsprüfung erneuert, und versuche es erneut.",
       "captcha": "Die Sicherheitsprüfung muss erneut durchgeführt werden. Warte, bis sie aktualisiert ist, und sende dann noch einmal."
     }
   },
@@ -136,7 +136,8 @@
     "browse_countries": "Alle Länder ansehen",
     "search_label": "Oder suche nach einem Ort",
     "unavailable": "Dieses Programm kann derzeit nicht besucht werden.",
-    "share_unavailable": "Für diese Meditation gibt es noch keinen Link zum Teilen."
+    "share_unavailable": "Für diese Meditation gibt es noch keinen Link zum Teilen.",
+    "captcha_blocked": "Dieser Atlas kann auf dieser Seite nicht laufen: Seine Sicherheitsprüfung wurde blockiert."
   },
   "country_site": {
     "title": "Für %{country} sind noch keine Kurse eingetragen.",

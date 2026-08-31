@@ -222,6 +222,38 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     contact: false,
     report: true,
   },
+  // Turnstile could not load, so nothing this widget writes can be sent (issue #182). It is
+  // a `config` failure by cause — a host CSP missing challenges.cloudflare.com is the usual
+  // one — but it earns its own row for a reason `config` has no way to express:
+  //
+  // **it offers no report CTA.** The report form is itself Turnstile-gated, so pointing a
+  // viewer at it would hand them a second form that cannot submit either. Exactly the call
+  // `offline` makes for the network, one layer along, and `REPORTED_KINDS` mirrors it.
+  //
+  // The sentence names the cause without naming the fix: a visitor cannot edit a CSP, and
+  // "add challenges.cloudflare.com to your script-src" on a meditation page is noise to
+  // everyone who is not the site's developer. They get the instruction through
+  // `reportIntegrationWarning`, on the console, where somebody debugging the embed will
+  // actually be looking — and `docs/embedding.md` carries the durable version.
+  //
+  // ⚠ **It DOES retry, which looks wrong beside `config` and isn't.** The probe reports the
+  // same verdict for a CSP that refuses the script and for a script request that simply
+  // failed on the network, and `loadTurnstile` clears its cached promise on failure — so a
+  // second attempt is a real second attempt, and the transient half of that pair genuinely
+  // recovers. A CSP block re-fails identically, which costs the viewer one press. A `config`
+  // failure has no transient half at all, which is why it withholds the retry and this
+  // doesn't.
+  'captcha-blocked': {
+    messageKey: 'error.captcha_blocked',
+    fallbackText: "This Atlas can't run on this page: its security check was blocked.",
+    color: 'danger',
+    retry: true,
+    onward: false,
+    search: false,
+    clearFilters: false,
+    contact: false,
+    report: false,
+  },
   // The catch-all, and where a zod parse failure lands: SahajCloud's shape drifting from
   // ours used to be its own `contract` row, differing only in withholding the retry. It
   // named a CAUSE rather than a recovery — and the cause belongs in the report, which

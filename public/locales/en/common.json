@@ -15,7 +15,8 @@
     "browse_countries": "Browse all countries",
     "search_label": "Or search for a place",
     "unavailable": "This program can’t be joined right now.",
-    "share_unavailable": "There is no link to share for this meditation yet."
+    "share_unavailable": "There is no link to share for this meditation yet.",
+    "captcha_blocked": "This Atlas can't run on this page: its security check was blocked."
   },
   "events": "events",
   "explore": "Explore",
@@ -134,12 +135,12 @@
     "submit": "Send report",
     "cancel": "Cancel",
     "sent": "Thank you — your report is on its way to the team.",
-    "blocked": "The security check couldn't load, so this form can't be sent. Please email us instead:",
+    "blocked": "The security check couldn't load, so this form can't be sent.",
     "errors": {
       "email": "Enter a valid email address.",
       "message": "Please write at least %{min} characters.",
       "message_max": "Please keep it under %{max} characters.",
-      "send_failed": "Your report wasn't sent. Try again once the security check has refreshed, or email us at %{email}.",
+      "send_failed": "Your report wasn't sent. Wait for the security check to refresh, then try again.",
       "captcha": "The security check needs doing again. Wait for it to refresh, then send once more."
     }
   },

@@ -23,6 +23,29 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- ⚠ **`challenges.cloudflare.com` is now REQUIRED in your Content-Security-Policy, not
+  optional.** ([#184]) It was previously a degradation — a page that blocked Cloudflare
+  Turnstile got a working atlas whose report form offered an email address instead of a submit
+  button. It is now fatal: the widget shows an error screen and does not run.
+
+  **This can break a page that used to work, and that is the point.** Every write the widget
+  makes is captcha-gated, registration included — so on a page that blocked the challenge, a
+  visitor could browse classes and then silently fail to sign up for one, while the site's owner
+  had no reason to think anything was wrong. Registration is what the atlas is for, so an embed
+  that cannot take one is broken rather than degraded, and it now says so.
+
+  **What to do:** allow `https://challenges.cloudflare.com` in `script-src`, `frame-src` **and**
+  `connect-src`. If your policy already lists it in all three — which the documented policy has
+  always done — nothing changes for you. The widget also writes the exact directive it needs to
+  the browser console, so a developer on the page gets the answer without reading this file.
+  See [Content-Security-Policy](docs/embedding.md#content-security-policy).
+
+- **The report form no longer shows an email address when its security check fails.** ([#184])
+  It previously published `contact@sydevelopers.com` as a `mailto:` link on any page whose CSP
+  blocked the challenge, which put the address in front of every scraper reading those pages. The
+  form now explains that the check could not load, and the failure above means a viewer will
+  rarely reach that state at all.
+
 - **The icon set is now [Lucide](https://lucide.dev).** The glyphs previously mixed three
   sources at different grids and stroke weights, some filled and some outlined; they are now one
   family — 24px grid, 2px stroke, outline only. Icons still take their colour from surrounding
@@ -462,6 +485,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
 [#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
+[#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small

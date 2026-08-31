@@ -19,13 +19,6 @@ import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
 /**
- * Where a viewer is directed when the form can't deliver — the captcha never loaded, or
- * the POST failed. The same address the endpoint mails, so the report reaches the same
- * inbox either way.
- */
-const CONTACT_EMAIL = 'contact@sydevelopers.com'
-
-/**
  * Our copy for each refusal the endpoint can name, keyed by its machine-readable code.
  * A total `Record` over the synced union — exactly as `RegistrationForm` does — so a
  * `pnpm types:cms` that ADDS a code fails the build here instead of silently routing the
@@ -85,7 +78,7 @@ export function ReportIssueForm({
 }: ReportIssueFormProps) {
   const { t } = useTranslation('common')
   const {
-    containerRef,
+    challengeRef,
     token,
     status,
     reset: resetCaptcha,
@@ -109,8 +102,7 @@ export function ReportIssueForm({
      * have both delivered.
      *
      * `'always'` makes the fetch attempt and fail like any other error, which is what the
-     * failure copy already describes — and it carries the email address, which is a route
-     * that still works when ours doesn't.
+     * failure copy already describes.
      */
     networkMode: 'always',
     // A Turnstile token is single-use and the endpoint redeems it during verification —
@@ -172,7 +164,7 @@ export function ReportIssueForm({
       : t('report.errors.message', { min: REPORT_MESSAGE_MIN })
 
   // A named refusal gets its own sentence; everything else (offline, 5xx, a 502 from the
-  // mailer) gets the generic one, which carries the address that still works. The thrown
+  // mailer) gets the generic one. The thrown
   // message never reaches the screen — it is developer text, and it travels in the report.
   // `hasOwnProperty`, not a bare index: `code` is a cast over a `z.string()`, so at
   // runtime it is whatever the response body said. A bare lookup walks the prototype
@@ -184,9 +176,7 @@ export function ReportIssueForm({
       ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
       : undefined
 
-  const failureMessage = refusalKey
-    ? t(refusalKey)
-    : t('report.errors.send_failed', { email: CONTACT_EMAIL })
+  const failureMessage = refusalKey ? t(refusalKey) : t('report.errors.send_failed')
 
   const failed = initialFailed || mutation.isError
 
@@ -270,7 +260,7 @@ export function ReportIssueForm({
 
           {/* Kept mounted even when blocked: the hook renders the challenge into it
               once Turnstile becomes available, and an empty div costs nothing. */}
-          <div ref={containerRef} />
+          <div ref={challengeRef} />
 
           {blocked && (
             <Alert align="start" color="secondary" description={t('report.blocked')} role="alert" />
@@ -293,27 +283,16 @@ export function ReportIssueForm({
         <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
           {t('report.cancel')}
         </Button>
-        {blocked ? (
-          // No captcha means no token, so the form can never be sent. Offer the route
-          // that still works instead of a button that would only ever be disabled.
-          // The href is a bare literal on purpose. If anyone ever prefills `?subject=` or
-          // `?body=` from the message or the thrown error, every interpolated part needs
-          // `encodeURIComponent` — an unencoded `&` or newline in a report body silently
-          // forges extra mailto fields (commit 368e1f7).
-          <Button color="primary" href={`mailto:${CONTACT_EMAIL}`} variant="flat">
-            {CONTACT_EMAIL}
-          </Button>
-        ) : (
-          <Button
-            color="primary"
-            disabled={!isValid || !token}
-            isLoading={mutation.isPending}
-            type="submit"
-            variant="flat"
-          >
-            {t('report.submit')}
-          </Button>
-        )}
+        {/* `!token` disables: a solved challenge is what makes the submit sendable. */}
+        <Button
+          color="primary"
+          disabled={!isValid || !token}
+          isLoading={mutation.isPending}
+          type="submit"
+          variant="flat"
+        >
+          {t('report.submit')}
+        </Button>
       </ModalFooter>
     </form>
   )

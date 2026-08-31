@@ -50,7 +50,13 @@ export function errorMessage(error: unknown): string | undefined {
  * exist, "See nearby events" is a lie for a dropped connection, and asking a viewer to
  * report their own offline state wastes everyone's time.
  */
-export type ErrorKind = 'offline' | 'server' | 'not-found' | 'config' | 'unknown'
+export type ErrorKind =
+  | 'offline'
+  | 'server'
+  | 'not-found'
+  | 'config'
+  | 'captcha-blocked'
+  | 'unknown'
 
 /**
  * Throw a failure that already knows its own kind.
@@ -74,6 +80,7 @@ const ERROR_KINDS: Record<ErrorKind, true> = {
   server: true,
   'not-found': true,
   config: true,
+  'captcha-blocked': true,
   unknown: true,
 }
 
@@ -188,6 +195,11 @@ const REPORTED_KINDS: Record<ErrorKind, boolean> = {
   'not-found': false,
   server: true,
   config: true,
+  // Withheld for the same reason as `offline`, one layer along: the report POST is itself
+  // Turnstile-gated, so the one channel that would carry this failure is the channel that
+  // just failed. `ERROR_POLICY` makes the same call where a viewer can see it, by offering
+  // no report CTA on this row.
+  'captcha-blocked': false,
   unknown: true,
 }
 

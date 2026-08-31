@@ -102,7 +102,8 @@
     "submit": "Registrieren",
     "thank_you": "Vielen Dank für Ihre Registrierung!",
     "error_title": "Etwas ist schiefgelaufen",
-    "show_more_dates": "Weitere Termine anzeigen"
+    "show_more_dates": "Weitere Termine anzeigen",
+    "captcha_retry": "Die Sicherheitsprüfung muss erneut durchgeführt werden. Warte, bis sie sich erneuert, und melde dich dann noch einmal an."
   },
   "timing": {
     "converted_to": "Konvertiert in %{timezone} (%{offset})"

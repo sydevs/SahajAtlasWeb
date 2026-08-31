@@ -41,7 +41,10 @@ vi.mock('react-i18next', () => ({
         // the node lane renders SSR markup once — `initialFailed` can only stage the
         // generic failure. The branch is a compile-time total Record over the synced code
         // union, and the copy itself is covered by the locale-parity gate.
-        'report.errors.send_failed': `Your report wasn't sent. Try again once the security check has refreshed, or email us at ${opts?.email}.`,
+        // No interpolation any more: this sentence used to end "…or email us at %{email}",
+        // which is the `mailto:` escape issue #182 removed. It now tells the viewer to
+        // retry, and names no inbox.
+        'report.errors.send_failed': `Your report wasn't sent. Wait for the security check to refresh, then try again.`,
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),
@@ -95,14 +98,24 @@ describe('ReportIssueForm', () => {
     expect(html).toContain('disabled=""')
   })
 
-  it('degrades to a mailto route instead of a dead submit when the captcha is blocked', () => {
+  // The degradation this replaces put `contact@sydevelopers.com` on screen as a `mailto:` —
+  // on any host page whose CSP blocked the challenge, which is to say published to every
+  // scraper reading those pages (issue #182). A blocked captcha now fails the whole widget
+  // at `useTurnstileGuard`, so this state is only reachable for the two failures the eager
+  // probe cannot see (a `frame-src` block, an unregistered domain) and the form's job there
+  // is to explain the dead button, not to route around it.
+  it('says why the submit is dead when the captcha is blocked, and names no inbox', () => {
     const html = render(<ReportIssueForm captchaUnavailable context={context} onClose={noop} />)
 
     // SSR escapes the apostrophe, so match the part of the sentence that survives verbatim.
     expect(html).toContain('The security check couldn')
     expect(html).toContain('t load, so this form can')
-    expect(html).toContain('mailto:contact@sydevelopers.com')
-    expect(html).not.toContain('Send report')
+    // The submit stays — disabled, because there is no token — rather than being swapped
+    // for an escape hatch.
+    expect(html).toContain('Send report')
+    expect(html).toContain('disabled=""')
+    expect(html).not.toContain('mailto:')
+    expect(html).not.toContain('sydevelopers.com')
   })
 
   it('replaces the form with the thank-you state once submitted', () => {
@@ -119,10 +132,11 @@ describe('ReportIssueForm', () => {
     // The whole point of issue #103: before this, submit alerted the payload and showed
     // the thank-you screen regardless, so a report that reached nobody read as delivered.
     expect(html).not.toContain('Thank you')
-    expect(html).toContain('t sent. Try again once the security check')
-    // The address the endpoint mails anyway, so a viewer whose POST won't go through
-    // still has a route that works — this form is often reached because the network is.
-    expect(html).toContain('contact@sydevelopers.com')
+    expect(html).toContain('t sent. Wait for the security check to refresh')
+    // No inbox on screen. The sentence used to carry `contact@sydevelopers.com` so a
+    // viewer whose POST failed had a route that still worked; #182 removed it, because
+    // the same string rendered on every host page whose CSP blocked the challenge.
+    expect(html).not.toContain('sydevelopers.com')
     // The typed message survives the failure: the fields are still mounted.
     expect(html).toContain('<textarea')
     expect(html).toContain('Send report')

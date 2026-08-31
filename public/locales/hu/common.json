@@ -113,12 +113,12 @@
     "submit": "Jelentés küldése",
     "cancel": "Mégse",
     "sent": "Köszönjük — a jelentése úton van a csapathoz.",
-    "blocked": "A biztonsági ellenőrzést nem sikerült betölteni, ezért az űrlap nem küldhető el. Kérjük, írjon nekünk inkább ide:",
+    "blocked": "A biztonsági ellenőrzést nem sikerült betölteni, ezért ez az űrlap nem küldhető el.",
     "errors": {
       "email": "Adjon meg érvényes e-mail-címet.",
       "message": "Írjon legalább %{min} karaktert.",
       "message_max": "Kérjük, maradjon %{max} karakter alatt.",
-      "send_failed": "A bejelentésedet nem sikerült elküldeni. Próbáld újra, amint a biztonsági ellenőrzés frissült, vagy írj nekünk a %{email} címre.",
+      "send_failed": "A jelentésed nem lett elküldve. Várd meg, amíg a biztonsági ellenőrzés frissül, majd próbáld újra.",
       "captcha": "A biztonsági ellenőrzést újra el kell végezni. Várd meg, amíg frissül, majd küldd el újra."
     }
   },
@@ -136,7 +136,8 @@
     "browse_countries": "Összes ország megtekintése",
     "search_label": "Vagy keress egy helyet",
     "unavailable": "Ehhez a programhoz jelenleg nem lehet csatlakozni.",
-    "share_unavailable": "Ehhez a meditációhoz még nincs megosztható link."
+    "share_unavailable": "Ehhez a meditációhoz még nincs megosztható link.",
+    "captcha_blocked": "Ez az Atlasz nem tud működni ezen az oldalon: a biztonsági ellenőrzését blokkolták."
   },
   "country_site": {
     "title": "%{country} területén még nincsenek meghirdetett tanfolyamok.",

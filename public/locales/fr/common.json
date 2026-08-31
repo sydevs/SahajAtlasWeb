@@ -113,12 +113,12 @@
     "submit": "Envoyer le signalement",
     "cancel": "Annuler",
     "sent": "Merci — votre signalement est en route vers l’équipe.",
-    "blocked": "La vérification de sécurité n’a pas pu se charger, ce formulaire ne peut donc pas être envoyé. Écrivez-nous plutôt à :",
+    "blocked": "La vérification de sécurité n'a pas pu se charger, ce formulaire ne peut donc pas être envoyé.",
     "errors": {
       "email": "Saisissez une adresse e-mail valide.",
       "message": "Veuillez écrire au moins %{min} caractères.",
       "message_max": "Veuillez rester sous %{max} caractères.",
-      "send_failed": "Votre signalement n'a pas été envoyé. Réessayez une fois la vérification de sécurité actualisée, ou écrivez-nous à %{email}.",
+      "send_failed": "Votre signalement n'a pas été envoyé. Attendez que la vérification de sécurité se réactualise, puis réessayez.",
       "captcha": "La vérification de sécurité doit être refaite. Attendez qu'elle se rafraîchisse, puis renvoyez."
     }
   },
@@ -136,7 +136,8 @@
     "browse_countries": "Voir tous les pays",
     "search_label": "Ou recherchez un lieu",
     "unavailable": "Il n’est pas possible de rejoindre ce programme pour le moment.",
-    "share_unavailable": "Il n'y a pas encore de lien à partager pour cette méditation."
+    "share_unavailable": "Il n'y a pas encore de lien à partager pour cette méditation.",
+    "captcha_blocked": "Cet Atlas ne peut pas fonctionner sur cette page : sa vérification de sécurité a été bloquée."
   },
   "country_site": {
     "title": "Aucun cours n’est encore répertorié en %{country}.",
