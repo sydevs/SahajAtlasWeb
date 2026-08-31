@@ -9,6 +9,7 @@ import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
+import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
 import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
@@ -154,6 +155,12 @@ function FullInterface({
   const didInit = useRef(false)
 
   useAnalytics(primaryDomain, location.pathname)
+
+  // Turnstile is loaded here for the same reason the analytics, the redirect and the cache
+  // warm are: it injects a third-party script into the host's page, so it must not fire for
+  // a collapsed compact card. Nothing waits on it — it fails the widget only if it comes
+  // back blocked (issue #182).
+  useTurnstileGuard()
 
   // The configured home region opens as a RegionView over CountriesView on first load; Back
   // returns to the global list. Runs once — re-visiting `/` shows the list, not a redirect loop.

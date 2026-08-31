@@ -116,7 +116,10 @@ export const MAX_RETRY_DELAY = 4000
  * `classifyError`: `not-found` and `config` are the same "answered, definitively" cases
  * in our own vocabulary — a dead region link and a missing API key both fail identically
  * on attempt two. `offline` is deliberately still retryable; React Query's default
- * `networkMode: 'online'` pauses those rather than burning the attempt.
+ * `networkMode: 'online'` pauses those rather than burning the attempt. `captcha-blocked`
+ * is retryable for the reason its `ERROR_POLICY` row gives — a blocked script and a failed
+ * script request are one verdict here, and the second of those recovers — though it is
+ * thrown during render rather than by a query, so nothing routes it through here today.
  *
  * **The kind list here mirrors the `retry` column of `ERROR_POLICY`**
  * (`components/molecules/Fallbacks`), which decides whether the viewer is offered a

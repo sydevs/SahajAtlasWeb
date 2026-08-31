@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CompactEmbedView } from './CompactEmbedView'
 
+import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
+
 /**
  * The collapsed card does not render the interface (issue #161).
  *
@@ -60,6 +62,24 @@ function mount(children: React.ReactNode) {
 const INTERFACE = 'the-interface-rendered'
 const Sentinel = () => <p>{INTERFACE}</p>
 
+/**
+ * A child that reaches for Turnstile the way `FullInterface` does (issue #182) — the fifth
+ * candidate for the bug this file exists to catch, and the first one that injects a
+ * third-party script into a page we do not own rather than merely fetching or reporting.
+ *
+ * It calls the real hook rather than a stand-in: what is being asserted is that React never
+ * renders this subtree, so anything the subtree would do is equally prevented. A fake would
+ * only prove the fake stayed unrendered.
+ */
+const TURNSTILE_SRC = 'challenges.cloudflare.com'
+const turnstileScripts = () => document.querySelectorAll(`script[src*="${TURNSTILE_SRC}"]`).length
+
+function InterfaceWithTurnstile() {
+  useTurnstileGuard()
+
+  return <Sentinel />
+}
+
 describe('CompactEmbedView — what a collapsed card mounts', () => {
   it('does not render the interface while collapsed', () => {
     mount(<Sentinel />)
@@ -80,5 +100,26 @@ describe('CompactEmbedView — what a collapsed card mounts', () => {
     // The other half of the assertion: without it, a component that never rendered its children
     // at all would pass the test above and take the whole feature with it.
     expect(document.body.textContent).toContain(INTERFACE)
+  })
+
+  // The fifth candidate for the four-bug pattern above, and the one with a cost outside our
+  // own page: a collapsed card is one button in somebody's sidebar, and loading Cloudflare's
+  // challenge for it would put a third-party script into their document — and a request to
+  // Cloudflare from every page view — for an interface nobody opened (issue #182).
+  it('injects no Turnstile script while collapsed, and does once opened', () => {
+    expect(turnstileScripts()).toBe(0)
+
+    mount(<InterfaceWithTurnstile />)
+
+    // Searched from `document`, not the host element: `loadTurnstile` appends to `<head>`.
+    expect(turnstileScripts()).toBe(0)
+
+    const button = document.querySelector('button')
+
+    act(() => button?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+
+    // The paired positive, for the same reason as the case above: without it a guard that
+    // never loaded Turnstile at all would pass, and take the eager check with it.
+    expect(turnstileScripts()).toBe(1)
   })
 })

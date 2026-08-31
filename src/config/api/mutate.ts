@@ -28,10 +28,28 @@ export type RegistrationResponse = z.infer<typeof RegistrationResponseSchema>
  * here: a code this build doesn't know about is a copy problem, not a data
  * problem, and the form falls back to the generic error message for it.
  */
-export class RegistrationRefusedError extends Error {
-  readonly code: EventRegistrationErrorCode
+/**
+ * The codes a registration write can be refused with.
+ *
+ * `captcha_failed` is deliberately NOT in the synced `EventRegistrationErrorCode` union and
+ * is added here instead, because the two come from different places: the endpoint's own
+ * union describes the *state* refusals it raises itself, while `captcha_failed` is thrown
+ * one layer above it by SahajCloud's write-guard plugin, which gates every client-originated
+ * write the same way (sydevs/SahajCloud#629).
+ *
+ * ⚠ **It is also not in that union YET, and the ordering is the reason.** #629 is blocked on
+ * this change landing — the widget has to send the header before the server may start
+ * requiring it — so at the time of writing no SahajCloud build emits this code and a
+ * `pnpm types:cms` would not produce it. Widening here rather than waiting is what lets the
+ * client be ready first. If a later re-sync folds `captcha_failed` into the synced union,
+ * this extra member becomes redundant and can go; nothing breaks either way.
+ */
+export type RegistrationErrorCode = EventRegistrationErrorCode | 'captcha_failed'
 
-  constructor(code: EventRegistrationErrorCode, message: string) {
+export class RegistrationRefusedError extends Error {
+  readonly code: RegistrationErrorCode
+
+  constructor(code: RegistrationErrorCode, message: string) {
     super(message)
     this.name = 'RegistrationRefusedError'
     this.code = code
@@ -72,9 +90,19 @@ const asRefusal = <Code extends string>(
   )
 }
 
+/**
+ * The header every client-originated write carries its solved Turnstile token in.
+ *
+ * A header rather than a body field, and the same name on every endpoint: the write-guard
+ * that reads it is a plugin sitting above the handlers, so it cannot know one endpoint's
+ * body shape from another's. #171 moves the report form onto the same header.
+ */
+export const TURNSTILE_HEADER = 'x-turnstile-token'
+
 const createRegistration = async (
   eventId: number,
   data: Registration,
+  turnstileToken: string,
 ): Promise<RegistrationResponse> => {
   // Only the REQUEST is guarded: a `.parse()` inside this try would hand `asRefusal` a
   // ZodError, whose `.errors` are `{ message, code }` — the very shape a refusal body has
@@ -87,6 +115,10 @@ const createRegistration = async (
     response = await requestJson({
       method: 'POST',
       path: `/events/${eventId}/register`,
+      // `sdk.request` merges these over its `baseInit` headers, and `interceptFetch` then
+      // adds auth and the locale on top — so the token rides alongside them rather than
+      // replacing anything (see `applyRequestContext`).
+      init: { headers: { [TURNSTILE_HEADER]: turnstileToken } },
       json: {
         email: data.email,
         name: data.name,
@@ -103,7 +135,7 @@ const createRegistration = async (
       },
     })
   } catch (error) {
-    throw asRefusal<EventRegistrationErrorCode>(
+    throw asRefusal<RegistrationErrorCode>(
       error,
       (code, message) => new RegistrationRefusedError(code, message),
       'Registration refused',

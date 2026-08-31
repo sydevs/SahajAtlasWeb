@@ -113,12 +113,12 @@
     "submit": "Enviar informe",
     "cancel": "Cancelar",
     "sent": "Gracias: tu informe va camino del equipo.",
-    "blocked": "No se ha podido cargar la verificación de seguridad, así que no se puede enviar este formulario. Escríbenos a:",
+    "blocked": "No se pudo cargar la comprobación de seguridad, por lo que este formulario no puede enviarse.",
     "errors": {
       "email": "Introduce una dirección de correo válida.",
       "message": "Escribe al menos %{min} caracteres.",
       "message_max": "No superes los %{max} caracteres.",
-      "send_failed": "Tu informe no se ha enviado. Vuelve a intentarlo cuando se actualice la comprobación de seguridad, o escríbenos a %{email}.",
+      "send_failed": "Tu informe no se envió. Espera a que se actualice la comprobación de seguridad e inténtalo de nuevo.",
       "captcha": "Hay que repetir la comprobación de seguridad. Espera a que se actualice y vuelve a enviar."
     }
   },
@@ -136,7 +136,8 @@
     "browse_countries": "Ver todos los países",
     "search_label": "O busca un lugar",
     "unavailable": "Ahora mismo no es posible unirse a este programa.",
-    "share_unavailable": "Todavía no hay un enlace para compartir esta meditación."
+    "share_unavailable": "Todavía no hay un enlace para compartir esta meditación.",
+    "captcha_blocked": "Este Atlas no puede funcionar en esta página: su comprobación de seguridad fue bloqueada."
   },
   "country_site": {
     "title": "Todavía no hay clases registradas en %{country}.",

@@ -113,12 +113,12 @@
     "submit": "Melding versturen",
     "cancel": "Annuleren",
     "sent": "Bedankt — je melding is onderweg naar het team.",
-    "blocked": "De beveiligingscontrole kon niet worden geladen, dus dit formulier kan niet worden verzonden. Mail ons in plaats daarvan:",
+    "blocked": "De beveiligingscontrole kon niet worden geladen, dus dit formulier kan niet worden verzonden.",
     "errors": {
       "email": "Voer een geldig e-mailadres in.",
       "message": "Schrijf minstens %{min} tekens.",
       "message_max": "Blijf onder de %{max} tekens.",
-      "send_failed": "Je melding is niet verstuurd. Probeer het opnieuw zodra de veiligheidscontrole is vernieuwd, of mail ons op %{email}.",
+      "send_failed": "Je melding is niet verzonden. Wacht tot de beveiligingscontrole is vernieuwd en probeer het opnieuw.",
       "captcha": "De veiligheidscontrole moet opnieuw. Wacht tot deze is vernieuwd en verstuur het opnieuw."
     }
   },
@@ -136,7 +136,8 @@
     "browse_countries": "Alle landen bekijken",
     "search_label": "Of zoek een plaats",
     "unavailable": "Je kunt op dit moment niet deelnemen aan dit programma.",
-    "share_unavailable": "Er is nog geen link om deze meditatie te delen."
+    "share_unavailable": "Er is nog geen link om deze meditatie te delen.",
+    "captcha_blocked": "Deze Atlas kan niet werken op deze pagina: de beveiligingscontrole is geblokkeerd."
   },
   "country_site": {
     "title": "Er zijn nog geen lessen vermeld in %{country}.",

@@ -32,7 +32,7 @@ const weeklySchedule: EventSchedule = {
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The native form as it renders in the drawer body: date, name and email fields above the privacy note."
+      description="The native form as it renders in the drawer body: date, name and email fields above the privacy note, with the Turnstile challenge between them and the buttons. Register stays disabled until the challenge is solved."
       title="Native"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">

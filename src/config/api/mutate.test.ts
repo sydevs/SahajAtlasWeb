@@ -37,6 +37,9 @@ const registration = {
   startingAt: new Date('2026-08-12T18:30:00Z'),
 }
 
+/** A solved Turnstile token, as the form would hand one over. */
+const CAPTCHA_TOKEN = '0.solved-challenge'
+
 beforeEach(() => {
   sdk.request.mockReset()
 })
@@ -45,7 +48,7 @@ describe('createRegistration', () => {
   it('posts the registrant plus the active locale, and parses the confirmation', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, registration: { id: 7, uuid: 'abc' } }))
 
-    const result = await mutate.createRegistration(42, registration)
+    const result = await mutate.createRegistration(42, registration, CAPTCHA_TOKEN)
 
     expect(result).toEqual({ ok: true, registration: { id: 7, uuid: 'abc' } })
 
@@ -58,15 +61,43 @@ describe('createRegistration', () => {
     expect(options.json.startingAt).toBe('2026-08-12T18:30:00.000Z')
   })
 
+  // The header, not the body — SahajCloud's write-guard is a plugin above the handlers, so
+  // it reads one header name for every endpoint rather than each one's body shape
+  // (sydevs/SahajCloud#629). A token in the body would be a 403 with no way to tell why.
+  it('sends the solved token in the x-turnstile-token header, not the body', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, registration: { id: 7, uuid: 'abc' } }))
+
+    await mutate.createRegistration(42, registration, CAPTCHA_TOKEN)
+
+    const [options] = sdk.request.mock.calls[0]
+
+    expect(new Headers(options.init.headers).get('x-turnstile-token')).toBe(CAPTCHA_TOKEN)
+    expect(JSON.stringify(options.json)).not.toContain(CAPTCHA_TOKEN)
+  })
+
+  // `captcha_failed` is thrown by the write-guard rather than by the endpoint's own state
+  // checks, so it is NOT in the synced `EventRegistrationErrorCode` union — and it has to
+  // survive `asRefusal` regardless, or a spent token would reach the form as a generic
+  // "something went wrong" with no hint that retrying is what to do.
+  it('re-casts a refused captcha as a RegistrationRefusedError, though its code is unsynced', async () => {
+    sdk.request.mockRejectedValue(
+      new FakeSDKError([{ message: 'Captcha verification failed.', code: 'captcha_failed' }], 403),
+    )
+
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toMatchObject({
+      code: 'captcha_failed',
+    })
+  })
+
   it('re-casts a 409 refusal as a RegistrationRefusedError carrying the code', async () => {
     sdk.request.mockRejectedValue(
       new FakeSDKError([{ message: 'This event is full.', code: 'event_full' }], 409),
     )
 
-    await expect(mutate.createRegistration(42, registration)).rejects.toThrowError(
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toThrowError(
       RegistrationRefusedError,
     )
-    await expect(mutate.createRegistration(42, registration)).rejects.toMatchObject({
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toMatchObject({
       code: 'event_full',
       message: 'This event is full.',
     })
@@ -79,7 +110,7 @@ describe('createRegistration', () => {
 
     sdk.request.mockRejectedValue(notFound)
 
-    await expect(mutate.createRegistration(42, registration)).rejects.toBe(notFound)
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toBe(notFound)
   })
 
   it('passes a transport failure (no errors array) through untouched', async () => {
@@ -87,7 +118,7 @@ describe('createRegistration', () => {
 
     sdk.request.mockRejectedValue(offline)
 
-    await expect(mutate.createRegistration(42, registration)).rejects.toBe(offline)
+    await expect(mutate.createRegistration(42, registration, CAPTCHA_TOKEN)).rejects.toBe(offline)
   })
 })
 

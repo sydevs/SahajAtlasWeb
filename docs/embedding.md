@@ -571,7 +571,7 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 | -------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin, and the calendar, registration and share panels only when a viewer first opens them.                                                                  | nothing renders — or worse, it renders and then dies on one of those three presses            |
 |                            | `api.mapbox.com`                              | Mapbox GL's right-to-left text plugin, loaded on demand from inside the map's worker the first time RTL text is encountered. Workers inherit the document's policy, so this lands on `script-src` rather than `worker-src`.                            | Arabic, Hebrew and Persian labels on the map render in the wrong order                        |
-|                            | `challenges.cloudflare.com`                   | Turnstile, loaded lazily when a viewer opens the report-issue form                                                                                                                                                                                     | **degrades**: the form offers a `mailto:` address instead of a submit button                  |
+|                            | `challenges.cloudflare.com`                   | **Turnstile — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. Loaded as soon as the interface mounts, so a policy that omits it fails immediately rather than at the moment somebody registers.    | **the widget shows an error screen and does not run.** Not a degradation — see the note below |
 |                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                        | analytics only                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                          | **the map fails**; the rest of the widget is unaffected                                       |
 | `style-src`                | `'unsafe-inline'`                             | **The hard ask.** The widget has no stylesheet to link — it appends `<style>` elements at runtime, which carry no nonce.                                                                                                                               | the widget renders completely **unstyled**; it does not degrade                               |
@@ -585,10 +585,10 @@ and leaves you believing you allowed something you hadn't. If you load the scrip
 |                            | `api.mapbox.com`                              | tile/style requests, the place-search geocoder, and the reverse lookup that names the visitor's own location for the "find my location" control                                                                                                        | the map and search fail                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                          | **degrades**: the nearby suggestion and localized online times are skipped                    |
-|                            | `challenges.cloudflare.com`                   | Turnstile's own verification calls                                                                                                                                                                                                                     | as `script-src` above                                                                         |
+|                            | `challenges.cloudflare.com`                   | Turnstile's own verification calls                                                                                                                                                                                                                     | **as `script-src` above — the widget does not run**                                           |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                        | analytics only                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting, contacted **only after the widget has already failed** and only on a build with a DSN                                                                                                                                                 | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
-| `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | as `script-src` above                                                                         |
+| `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
 
 Three notes on that table:
 
@@ -605,21 +605,35 @@ one host instead, take the exact one from the DSN rather than deriving it. Leavi
 is a supported choice: you get one blocked request and one violation report, not one per
 error, and the widget latches off after the first refusal rather than retrying per error.
 
-**Five entries are load-bearing; the rest cost only the feature in their own row.** If you
+**Six entries are load-bearing; the rest cost only the feature in their own row.** If you
 allow nothing else, allow these — each one breaks the widget as a whole:
 
-|                                      |                              |
-| ------------------------------------ | ---------------------------- |
-| `script-src` the widget's origin     | nothing renders              |
-| `style-src 'unsafe-inline'`          | renders completely unstyled  |
-| `connect-src cloud.sydevelopers.com` | no data at all               |
-| `worker-src blob:`                   | the map never renders        |
-| `img-src data:`                      | the map renders with no pins |
+|                                            |                                   |
+| ------------------------------------------ | --------------------------------- |
+| `script-src` the widget's origin           | nothing renders                   |
+| `script-src challenges.cloudflare.com`     | the widget shows an error and stops |
+| `style-src 'unsafe-inline'`                | renders completely unstyled       |
+| `connect-src cloud.sydevelopers.com`       | no data at all                    |
+| `worker-src blob:`                         | the map never renders             |
+| `img-src data:`                            | the map renders with no pins      |
+
+⚠ **`challenges.cloudflare.com` moved into that list, and it is the one change here that can
+break a page which used to work.** It was previously a degradation: a host that blocked it got a
+working atlas whose report form offered an email address instead of a submit button. It is now
+fatal, deliberately — **every write the widget makes is captcha-gated, registration included, and
+registration is the thing the atlas exists for.** A blocked challenge therefore meant a visitor
+could browse classes and then silently fail to sign up for one, on a page whose owner had no reason
+to think anything was wrong. Failing loudly is worse for five minutes and better thereafter.
+
+If your atlas has stopped working since this change, this is almost certainly why: add
+`https://challenges.cloudflare.com` to **both** `script-src` and `frame-src`, and to `connect-src`.
+The widget also writes the specific directive it needs to the browser console, so a developer
+looking at the page gets the answer without opening this document.
 
 Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface,
-missing photography, missing flags, no analytics, no telemetry, a `mailto:` instead of the
-report form. Read the row rather than assuming; over-allowing because a summary sounded
-absolute is its own cost on a page that sends a strict policy.
+missing photography, missing flags, no analytics, no telemetry. Read the row rather than assuming;
+over-allowing because a summary sounded absolute is its own cost on a page that sends a strict
+policy.
 
 Two entries are conditional on how the build is configured rather than on anything you
 control: analytics is absent unless the deployed build carries an analytics ID, and Sentry
@@ -888,7 +902,7 @@ Three things to check when you migrate:
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                             |
-| **The report form shows a `mailto:` link instead of a submit button** | Turnstile is blocked — `script-src`/`frame-src`/`connect-src challenges.cloudflare.com`. This is the intended degradation.                                                                                            |
+| **The widget shows "its security check was blocked" and nothing else**    | Turnstile is blocked — add `challenges.cloudflare.com` to `script-src`, `frame-src` and `connect-src`. The browser console carries the exact directive. This used to degrade the report form instead; since the atlas cannot take a registration without it, it now fails outright. |
 | **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                     |
 | **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. Add `allow-popups`, or drop the `sandbox` attribute. Nothing in the console will tell you — the browser blocks it silently. |
 | **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                          |
