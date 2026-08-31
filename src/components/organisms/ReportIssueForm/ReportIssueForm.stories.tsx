@@ -76,7 +76,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="When Turnstile can't load, the form says so and leaves the submit disabled — there is no token to send, and since #182 no mailto escape either. Rare in practice: the eager probe fails the whole widget before a viewer can reach this, so what remains here are the two failures a probe cannot see — a host's frame-src blocking the challenge iframe, and a sitekey the embedding domain isn't registered for."
+        description="When the challenge can't load, the form says so and leaves Send disabled — there is no token to send. Rare in practice, since a widget that cannot run the challenge at all fails before a viewer reaches this form."
         title="Captcha blocked"
       >
         <Panel>
@@ -85,7 +85,7 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="A send that failed. The message and address stay put so the retry costs nothing to compose, and the captcha has been reset underneath — a Turnstile token is single-use and the endpoint redeems it before it mails, so re-sending the old one would be refused."
+        description="A send that failed. The message and address stay put so the retry costs nothing to compose, and the challenge has been reset underneath — a solved challenge is single-use, so a retry needs a fresh one."
         title="Send failed"
       >
         <Panel>

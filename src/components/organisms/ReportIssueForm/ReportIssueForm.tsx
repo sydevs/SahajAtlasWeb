@@ -18,14 +18,6 @@ import { ContactRefusedError } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
-// ⚠ `CONTACT_EMAIL` used to live here, and its removal is the point of issue #182 rather
-// than a tidy-up. A blocked captcha put `contact@sydevelopers.com` on screen as a `mailto:`
-// on any host page whose CSP omitted challenges.cloudflare.com — publishing the address to
-// every scraper reading those pages, to solve a problem the host had caused and could fix.
-// A blocked captcha now fails the whole widget (`useTurnstileGuard`), so there is no
-// degraded state left for this form to have, and the generic send-failure sentence tells
-// the viewer to try again rather than naming an inbox.
-
 /**
  * Our copy for each refusal the endpoint can name, keyed by its machine-readable code.
  * A total `Record` over the synced union — exactly as `RegistrationForm` does — so a
@@ -86,7 +78,7 @@ export function ReportIssueForm({
 }: ReportIssueFormProps) {
   const { t } = useTranslation('common')
   const {
-    containerRef,
+    challengeRef,
     token,
     status,
     reset: resetCaptcha,
@@ -110,8 +102,7 @@ export function ReportIssueForm({
      * have both delivered.
      *
      * `'always'` makes the fetch attempt and fail like any other error, which is what the
-     * failure copy already describes — and it carries the email address, which is a route
-     * that still works when ours doesn't.
+     * failure copy already describes.
      */
     networkMode: 'always',
     // A Turnstile token is single-use and the endpoint redeems it during verification —
@@ -269,7 +260,7 @@ export function ReportIssueForm({
 
           {/* Kept mounted even when blocked: the hook renders the challenge into it
               once Turnstile becomes available, and an empty div costs nothing. */}
-          <div ref={containerRef} />
+          <div ref={challengeRef} />
 
           {blocked && (
             <Alert align="start" color="secondary" description={t('report.blocked')} role="alert" />
@@ -292,11 +283,7 @@ export function ReportIssueForm({
         <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
           {t('report.cancel')}
         </Button>
-        {/* One button, in every state. A blocked captcha no longer has a route of its own:
-            it fails the widget at `useTurnstileGuard`, so this form is not reachable in
-            that state and the `mailto:` escape it used to grow here is gone with it
-            (issue #182). `!token` still disables — a solved challenge is what makes the
-            submit sendable, and that was always true. */}
+        {/* `!token` disables: a solved challenge is what makes the submit sendable. */}
         <Button
           color="primary"
           disabled={!isValid || !token}

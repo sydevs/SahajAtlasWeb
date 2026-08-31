@@ -127,7 +127,7 @@ export type UseTurnstileOptions = {
 
 export type UseTurnstile = {
   /** Attach to the element the challenge renders into. */
-  containerRef: RefObject<HTMLDivElement>
+  challengeRef: RefObject<HTMLDivElement>
   /** The solved token, or null while unsolved/expired. */
   token: string | null
   status: TurnstileStatus
@@ -147,7 +147,7 @@ export type UseTurnstile = {
 }
 
 export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): UseTurnstile {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const challengeRef = useRef<HTMLDivElement>(null)
   // Held in a ref as well as the effect closure, so `reset` can reach the live widget
   // without re-running (and thus re-rendering) the challenge.
   const widgetIdRef = useRef<string | undefined>(undefined)
@@ -177,13 +177,13 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
         // enterprise proxy that answers 200 with a stub does exactly this. Treat a
         // missing API as blocked; returning early would strand `status` on 'loading',
         // leaving a permanently disabled submit and no mailto escape.
-        if (!containerRef.current || !window.turnstile) {
+        if (!challengeRef.current || !window.turnstile) {
           setStatus('blocked')
 
           return
         }
 
-        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        widgetIdRef.current = window.turnstile.render(challengeRef.current, {
           sitekey: SITE_KEY,
           theme,
           language: languageCode,
@@ -230,5 +230,5 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
     window.turnstile?.reset(widgetIdRef.current)
   }, [])
 
-  return { containerRef, token, status, reset }
+  return { challengeRef, token, status, reset }
 }
