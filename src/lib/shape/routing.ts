@@ -23,6 +23,7 @@
  * `atlas-history.ts` is the part that touches `history`.
  */
 import { safePath } from './path'
+import { encodeParamValue, searchWith, searchWithout } from './query'
 
 /**
  * The query parameter the route rides on.
@@ -83,9 +84,12 @@ export type MountDecision = {
  * `?` is deliberately **left** encoded. It is legal too, but a raw `?` inside the value makes it
  * ambiguous at a glance whether a nested query belongs to the widget or to the host, and the two
  * saved characters are not worth that.
+ *
+ * The encoding itself is `encodeParamValue` (`query.ts`) — the same one every other parameter the
+ * widget writes goes through, so `?atlas=` cannot drift from the rest. This name carries the
+ * route-shaped reasoning above; the implementation is shared.
  */
-export const routeToParam = (route: string): string =>
-  encodeURIComponent(route).replace(/%2F/g, '/').replace(/%2C/g, ',')
+export const routeToParam = (route: string): string => encodeParamValue(route)
 
 /**
  * Read a widget route out of a host page's query string.
@@ -257,17 +261,6 @@ export function mountPrefix(
   return rawPath.replace(/\/+$/, '')
 }
 
-/**
- * Restore `/` and `,` after a `URLSearchParams` serialize.
- *
- * Both are explicitly legal in a query value (RFC 3986: `query = *( pchar / "/" / "?" )`) and both
- * appear constantly — every route is slash-separated and `?center=4.9,52.3` is a comma pair — so
- * leaving them encoded turns the one thing that has to stay readable in a shared link into noise.
- * `?` stays encoded deliberately: a raw one makes it ambiguous whether a nested query belongs to
- * the widget or to the host.
- */
-const readable = (query: string): string => query.replace(/%2F/g, '/').replace(/%2C/g, ',')
-
 export function routeFromPathname(
   pathname: string,
   prefix: string,
@@ -347,11 +340,12 @@ export function pathHrefFor(href: string, route: string, prefix: string): string
       return ''
 
     // Exactly one parameter written, exactly as query mode does it — every other name on the
-    // host's URL is none of our business in either mode now.
-    if (routeSearch === '') url.searchParams.delete(ROUTE_PARAM)
-    else url.searchParams.set(ROUTE_PARAM, routeSearch)
-
-    url.search = readable(url.search)
+    // host's URL is none of our business in either mode now, and `query.ts` is what makes that
+    // literally true rather than approximately: it edits our pair and rejoins the rest verbatim.
+    url.search =
+      routeSearch === ''
+        ? searchWithout(url.search, ROUTE_PARAM)
+        : searchWith(url.search, ROUTE_PARAM, routeSearch)
 
     return url.toString()
   } catch {
@@ -382,11 +376,12 @@ export function hrefFor(href: string, route: string): string {
   try {
     const url = new URL(href)
 
-    url.searchParams.set(ROUTE_PARAM, route)
-
-    // Restored rather than built by hand, which would mean re-implementing the host's own
-    // parameter encoding and getting it subtly wrong.
-    url.search = readable(url.search)
+    // ⚠ `searchWith` (the string editor), not `hrefWith` (the URL wrapper), and the difference is
+    // load-bearing: `hrefWith` returns `''` when the value is already there, which is right for
+    // `publishLocale`/`clearFeedback` — both mean "leave the URL alone" — and catastrophic here.
+    // This feeds `createHref` for EVERY `<Link>`, and a link to the route already on screen is the
+    // commonest case in the app, so `''` would blank the href of every self-link on the page.
+    url.search = searchWith(url.search, ROUTE_PARAM, route)
 
     return url.toString()
   } catch {

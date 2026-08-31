@@ -25,11 +25,23 @@
  * percent-encode set covers only C0 controls, space, `"`, `#`, `<`, `>` and `'`, so `/`, `,`, `=`
  * and an already-encoded `%20` all survive verbatim.
  *
- * ⚠ **`routing.ts` does NOT use this yet, deliberately.** `hrefFor` / `pathHrefFor` write `?atlas=`
- * through `searchParams.set` and then repair the damage with a private `readable()` pass over the
- * whole query. That recovers `/` and `,` but not a host's `%20`, so this module is strictly
- * stronger — moving them onto it is a follow-up, kept out of the change that introduced this
- * because those two are the routing core and their round trip is pinned by a suite of its own.
+ * **Every parameter the widget writes to a host's URL goes through here**, which is what makes
+ * "we touch our pair and nothing else" literally true rather than approximately. `hrefFor` and
+ * `pathHrefFor` (`routing.ts`) used to write `?atlas=` with `searchParams.set` and then repair the
+ * damage with a `readable()` pass over the whole query; that recovered `/` and `,` and never
+ * recovered a host's `%20`, which `set` had already turned into `+`. `routeToParam` is the
+ * route-shaped name for {@link encodeParamValue} and delegates to it, so there is one encoder.
+ *
+ * ⚠ **`hrefFor` calls `searchWith`, not `hrefWith`, and that is not interchangeable.** The href
+ * wrappers answer `''` when the value is already present, because their callers — `publishLocale`
+ * and `clearFeedback` — both mean "leave the URL alone" by it. `hrefFor` feeds `createHref` for
+ * every `<Link>`, where a link to the route already on screen is the commonest case in the app, so
+ * `''` there would blank the href of every self-link. Pinned in `routing.test.ts`.
+ *
+ * ⚠ **`src/loader/` must NOT import this.** Its one `searchParams.set` stays hand-rolled: a value
+ * import across that seam makes a module reachable from both entries, and `pnpm size` fails the
+ * build for it (see `src/loader/literals.ts`). The loader writes a probe parameter onto a URL it
+ * throws away, so it has nothing to protect anyway.
  *
  * This module is pure — no `window`, no `history`. The callers that touch the address bar are
  * `clearFeedback` (`feedback-param.ts`) and `publishLocale` (`locale-param.ts`).
@@ -68,11 +80,18 @@ function joinPairs(pairs: string[]): string {
 /**
  * A value encoded for the query, keeping `/` and `,` readable.
  *
- * Both are legal unencoded in a query component and neither can be confused with the `&` and `=`
- * that separate pairs, so restoring them cannot change how the pair parses — it only keeps a
- * shared link legible, which is the same judgement `routeToParam` makes about `?atlas=`.
+ * Both are legal unencoded in a query component (RFC 3986: `query = *( pchar / "/" / "?" )`) and
+ * neither can be confused with the `&` and `=` that separate pairs, so restoring them cannot
+ * change how the pair parses — it only keeps a shared link legible.
+ *
+ * `?` is deliberately **left** encoded. It is legal too, but a raw one inside a value makes it
+ * ambiguous at a glance whether a nested query belongs to the widget or to the host.
+ *
+ * This is the one definition; `routeToParam` (`routing.ts`) is the route-shaped name for it and
+ * delegates here, so the encoding `?atlas=` is written with and the encoding every other parameter
+ * is written with cannot drift apart.
  */
-function encodeValue(value: string): string {
+export function encodeParamValue(value: string): string {
   return encodeURIComponent(value).replace(/%2F/g, '/').replace(/%2C/g, ',')
 }
 
@@ -94,7 +113,7 @@ export function searchWithout(search: string, ...names: string[]): string {
  * the one we wrote, as `URLSearchParams.set` would. Appends at the end where it is new.
  */
 export function searchWith(search: string, name: string, value: string): string {
-  const written = `${encodeValue(name)}=${encodeValue(value)}`
+  const written = `${encodeParamValue(name)}=${encodeParamValue(value)}`
   const pairs = pairsOf(search)
   const at = pairs.findIndex((pair) => pairName(pair) === name)
 
