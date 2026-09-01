@@ -5,7 +5,7 @@ import { ShareContent } from './ShareContent'
 
 // Mock the i18n boundary so aria-labels render as real copy — including the
 // %{platform} interpolation — without booting i18next (see GeolocationPrompt.test).
-// Node lane, no jsdom (CLAUDE.md § Testing). navigator has no `.share` here,
+// Node lane, no jsdom (docs/testing.md). navigator has no `.share` here,
 // so ShareContent renders the grid; the last case stubs it to test the native path.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

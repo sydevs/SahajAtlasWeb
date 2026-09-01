@@ -39,7 +39,7 @@ secret that ends up in the bundle.
   build rather than by a script a developer runs by hand.
 
 (`ACCENT_API_KEY` used to live here for the Accent translation-sync workflows. Those
-were removed in #99 — see CLAUDE.md → Deployment — so the secret is no longer read by
+were removed in #99 — see AGENTS.md → Deployment — so the secret is no longer read by
 anything in this repo and can be revoked.)
 
 ## Runbook — provisioning Sentry source-map upload (issue #130)
@@ -48,7 +48,7 @@ anything in this repo and can be revoked.)
 the maps; everything below is a Sentry/Cloudflare dashboard action, and until it is
 done the build behaves exactly as it did before #130 — no maps, no upload, minified
 frames. Nothing here can be done from this repository: Pages build configuration and
-environment variables live in the Cloudflare dashboard (CLAUDE.md → Deployment).
+environment variables live in the Cloudflare dashboard (AGENTS.md → Deployment).
 
 1. **Provision the Sentry project** (if `VITE_SENTRY_DSN` is not already set — it is
    the precondition for the whole loop, since maps with no events to symbolicate are

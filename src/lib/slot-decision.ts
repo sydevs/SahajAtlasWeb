@@ -5,7 +5,7 @@
  * previous shape had three predicates wired together at the call site, and the wiring — not any
  * predicate — suppressed the map-mode warning in exactly the case where it was real. Every
  * predicate was exhaustively specced and the join was wrong, which is the lesson
- * `CLAUDE.md § Testing` records about `timeoutStatus`. So the join is the exported thing,
+ * `docs/testing.md` records about `timeoutStatus`. So the join is the exported thing,
  * and the spec drives it rather than its parts.
  *
  * The DOM reads live here rather than in `embed-slot.ts`, which stays pure so the node lane can

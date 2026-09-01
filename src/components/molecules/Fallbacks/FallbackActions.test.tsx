@@ -5,7 +5,7 @@ import { ERROR_POLICY, FallbackActions, OnwardLink, visibleActions } from './Fal
 
 // Mock the i18n boundary (react-i18next) so the SSR markup asserts on real copy —
 // including the Ruby-style %{country} interpolation — without booting i18next.
-// Node lane, no jsdom (see CLAUDE.md § Testing).
+// Node lane, no jsdom (see docs/testing.md).
 //
 // `initReactI18next` has to be stubbed alongside `useTranslation`: these components reach
 // the recovery-offer hook's module graph, which pulls in `@/config/api` → `@/config/i18n`,

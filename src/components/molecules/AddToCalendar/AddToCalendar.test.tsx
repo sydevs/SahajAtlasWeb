@@ -7,7 +7,7 @@ import { AddToCalendar } from './AddToCalendar'
 
 // Mock the i18n boundary so the accessible name renders as real copy without
 // booting i18next (the ShareContent/GeolocationPrompt template). Node lane, no
-// jsdom — see CLAUDE.md § Testing.
+// jsdom — see docs/testing.md.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => (key === 'actions.download_ics' ? 'Download .ics file' : key),

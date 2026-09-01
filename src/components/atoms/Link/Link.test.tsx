@@ -6,7 +6,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { Link } from './Link'
 
-// Node-only SSR assertions (see `CLAUDE.md § Testing`). MemoryRouter supplies the
+// Node-only SSR assertions (see `docs/testing.md`). MemoryRouter supplies the
 // router context the internal branch needs; the external branch is a plain <a> and needs
 // none, but wrapping everything keeps the cases comparable.
 const render = (ui: ReactElement) => renderToStaticMarkup(<MemoryRouter>{ui}</MemoryRouter>)

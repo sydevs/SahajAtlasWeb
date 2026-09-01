@@ -7,7 +7,7 @@
  * co-located spec, giving sub-second feedback while editing. Silent on success;
  * surfaces a short failure tail as NON-blocking context when a spec breaks (it
  * informs rather than aborting the edit). Tier 1 of the testing strategy — see
- * `CLAUDE.md § Testing`.
+ * `docs/testing.md`.
  */
 
 import { readFileSync } from 'fs'

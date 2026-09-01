@@ -5,7 +5,7 @@ import { SearchFilters } from './SearchFilters'
 
 import { DEFAULT_FILTERS } from '@/lib/shape'
 
-// Node-only SSR assertions (see `CLAUDE.md § Testing`). The form is fully controlled and
+// Node-only SSR assertions (see `docs/testing.md`). The form is fully controlled and
 // store-free, so the only things it reaches for are copy, the locale, and the two cached
 // reads it derives its option lists from — all mocked at the boundary.
 vi.mock('react-i18next', () => ({

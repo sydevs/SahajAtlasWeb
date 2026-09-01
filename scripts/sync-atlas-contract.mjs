@@ -12,7 +12,7 @@
  * URL rather than re-deriving the rules, and this is that, made one command.
  *
  * **Why a script and not a test.** The unit lane must never touch the network
- * (`CLAUDE.md § Testing`), and a fixture that fetches on every run would couple `pnpm test` to
+ * (`docs/testing.md`), and a fixture that fetches on every run would couple `pnpm test` to
  * GitHub's availability. So the committed copy is what the lane asserts against, and drift from
  * upstream is a separate, deliberate check — the same split `pnpm types:cms` uses for the CMS
  * types, and the same shape as `/sync-workflow`'s audit of `workflow-parity.md`.

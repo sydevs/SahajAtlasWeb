@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// The third spec in the unit lane that boots a DOM (see `CLAUDE.md § Testing`), and the
+// The third spec in the unit lane that boots a DOM (see `docs/testing.md`), and the
 // one case where that is not a judgement call: DOMPurify sanitizes by parsing into a real
 // document and walking it. There is no DOM-free half to extract — the thing under test IS
 // the DOM behaviour, and it is exercised through the module's own configured instance so

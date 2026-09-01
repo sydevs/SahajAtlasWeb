@@ -9,7 +9,7 @@ import { WIDE_MIN_PX } from './responsive'
 // The decision table of issue #107, made executable.
 //
 // The table itself — behaviour by behaviour, container vs viewport vs input, with the
-// reason for each — lives in `src/components/CLAUDE.md`. Prose is where the reasoning
+// reason for each — lives in `src/components/AGENTS.md`. Prose is where the reasoning
 // belongs, but prose does not fail a build: the widget renders in layouts we don't own, and
 // the failure mode of reaching for the viewport where the container was meant is a narrow
 // column embed quietly getting the desktop interaction model. Nothing else notices. Lint,

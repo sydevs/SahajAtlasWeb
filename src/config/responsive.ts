@@ -7,7 +7,7 @@ import { useMediaQuery } from 'react-responsive'
  * This widget is embedded in layouts we don't own, so "how big is the screen" and "how big
  * are WE" are different questions, and most of the app wants the second one (issue #107).
  * Every responsive decision in the app now names which of three signals it reads. The table
- * — behaviour by behaviour, with the reason — is in `src/components/CLAUDE.md`; this is
+ * — behaviour by behaviour, with the reason — is in `src/components/AGENTS.md`; this is
  * the mechanism, and `responsive.test.ts` is what stops a call site drifting off it.
  *
  *  - **container** (`useIsWide` / `useIsWideWidget`) — a fit question. Does a 22rem side

@@ -19,7 +19,7 @@ describe('indexing directives', () => {
   test.skipIf(skipWithoutPreview)('serves robots.txt with a site-wide Disallow', async () => {
     const res = await fetchPreview('/robots.txt')
 
-    // Content type, not status — see `CLAUDE.md § Testing`. `_redirects` is
+    // Content type, not status — see `docs/testing.md`. `_redirects` is
     // `/* /index.html 200`, so a robots.txt missing from the build comes back as
     // the SPA shell with a 200, which is the failure this spec exists to catch.
     expect(res.headers.get('content-type')).toMatch(/text\/plain/i)

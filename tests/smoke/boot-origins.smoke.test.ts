@@ -23,7 +23,7 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // deployed perfectly. "The specs ran" stayed true; it just could not mean "the widget works".
 //
 // **Why this is still fetch-only.** Booting a browser in CI would catch more, and this lane
-// is deliberately fetch-based (`CLAUDE.md § Testing`, and the note at the top of
+// is deliberately fetch-based (`docs/testing.md`, and the note at the top of
 // `embed.smoke.test.ts`). It does not need one: the defect is a STRING IN THE BUNDLE, so
 // reading the bundle back is a direct observation of it rather than an inference. That also
 // makes the test deterministic — it cannot pass because a runner happened to have something

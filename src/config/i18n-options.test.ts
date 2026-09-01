@@ -177,7 +177,7 @@ describe('i18nDetectionOptions', () => {
 
 // `supportedLngs` is where the picker's list becomes a runtime contract, and what it
 // does is i18next's business, not ours — so this asserts the round trip against the
-// library rather than the option's value (see `CLAUDE.md § Testing`). The backend is
+// library rather than the option's value (see `docs/testing.md`). The backend is
 // a stub that answers only for a shipped bundle and records what was asked for, which is
 // exactly what the HTTP backend does over the network.
 const resolveThrough = async (lng: string) => {

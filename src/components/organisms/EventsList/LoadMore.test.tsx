@@ -5,7 +5,7 @@ import { LoadMore } from './LoadMore'
 
 // Mock the i18n boundary (react-i18next) so the SSR markup asserts on real copy —
 // including the Ruby-style `%{}` interpolation — without booting i18next. Node lane,
-// no jsdom (see CLAUDE.md § Testing).
+// no jsdom (see docs/testing.md).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { shown?: number; total?: number }) =>

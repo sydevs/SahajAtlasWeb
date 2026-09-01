@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { FormField, fieldDescribedBy, fieldErrorId, fieldHelpId } from '.'
 
-// Node-only SSR assertions (see `CLAUDE.md § Testing`). What is pinned here is the
+// Node-only SSR assertions (see `docs/testing.md`). What is pinned here is the
 // pair of contracts every form atom in the app leans on: the describedby ids, and —
 // since issue #102 — whether a field error announces itself.
 

@@ -24,7 +24,7 @@ import { useReportModal } from '@/config/store'
  * called Modal and Dialog side by side in the same folder doing what looked like the same job —
  * and the one that looked generic was not: it publishes itself as the app's portal target, it
  * needs `contain: layout` because *this* app's interface is fixed-positioned throughout, and it
- * has exactly one caller. `src/components/CLAUDE.md` covers both halves of that: atoms stay
+ * has exactly one caller. `src/components/AGENTS.md` covers both halves of that: atoms stay
  * primitive and carry no domain logic, and single-use compositions are inlined in their one
  * parent. `Modal` is now unambiguously the dialog atom — small, centred, chrome-ful, generic.
  */
@@ -112,7 +112,7 @@ const closeClass =
  * Measured in Chrome 151: a `fixed; inset: 0` child of a `fixed; inset: 16px` parent lands at
  * 0,0,1440,900 plain and at 16,16,1408,868 under `contain: layout`.
  *
- * ⚠ That is the exact property `src/components/CLAUDE.md` forbids on the SCOPE ROOT, for the
+ * ⚠ That is the exact property `src/components/AGENTS.md` forbids on the SCOPE ROOT, for the
  * same mechanism pointed the other way: there it would re-parent the fixed layer to the host's
  * element and break map mode. Here re-parenting is what we want. Do not move it up the tree.
  *
@@ -240,7 +240,7 @@ function ExpandedDialog({
               `forceMount`, which keeps the content — the Mapbox canvas included — mounted while
               closed, and not mounting it is the entire point of the compact form. framer rather
               than CSS so `MotionConfig` covers it, which keeps reduced motion to three seams
-              instead of four (`src/components/CLAUDE.md`). */}
+              instead of four (`src/components/AGENTS.md`). */}
           <motion.div
             ref={adopt}
             animate={{ opacity: 1 }}

@@ -167,25 +167,28 @@ pnpm ladle:build  # static Ladle build (CI gate)
 
 The unit lane is node-only and co-located (`src/**/*.test.ts(x)`); components are
 asserted through `renderToStaticMarkup` rather than jsdom. See
-the **Testing** section of [`CLAUDE.md`](CLAUDE.md).
+[`docs/testing.md`](docs/testing.md).
 
 ## Documentation
 
 - [`docs/embedding.md`](docs/embedding.md) — **integrator guide**: the host-facing
   reference (snippet, attributes, CSP, sizing, troubleshooting)
 - [`CHANGELOG.md`](CHANGELOG.md) — what changes under an embed, written for host sites
-- [`CLAUDE.md`](CLAUDE.md) — developer guide: layout, conventions, PR workflow
+- [`AGENTS.md`](AGENTS.md) — developer guide: layout, conventions, PR workflow
+  (`CLAUDE.md` is a symlink to it, so Claude Code, Codex and Cursor read one file)
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- nested `CLAUDE.md` files (`src/`, `src/components/`, `src/config/`, …) —
-  path-scoped guidance per subsystem, loaded when Claude reads that directory
-- [`docs/`](docs/) — architecture, environment, MCP setup
+- nested `AGENTS.md` files (`src/`, `src/components/`, `src/config/`, …) —
+  path-scoped guidance per subsystem, loaded when an agent reads that directory;
+  each has a `CLAUDE.md` symlink beside it. Run `find src -name AGENTS.md` for the
+  inventory
+- [`docs/`](docs/) — testing, architecture, environment, MCP setup
 
 ## Deployment
 
 Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app) and
 `sahajatlas-design` (the Ladle playground). See the deployment section of
-[`CLAUDE.md`](CLAUDE.md).
+[`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 

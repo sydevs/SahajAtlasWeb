@@ -5,7 +5,7 @@ after them is optional: parameters, sizing, the Content-Security-Policy contract
 touches on your page, what leaves your visitor's browser, and what to check when something looks
 wrong.
 
-This is the host-facing reference. [`CLAUDE.md`](../CLAUDE.md) is the developer guide and
+This is the host-facing reference. [`AGENTS.md`](../AGENTS.md) is the developer guide and
 [`CHANGELOG.md`](../CHANGELOG.md) records what changes under an embed that updates itself.
 
 ## The two embed codes

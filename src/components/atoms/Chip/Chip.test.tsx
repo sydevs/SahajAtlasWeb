@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { Chip } from '.'
 
-// Node-only SSR assertions (see `CLAUDE.md § Testing`). A focus ring is a class
+// Node-only SSR assertions (see `docs/testing.md`). A focus ring is a class
 // string, so this is exactly the kind of thing the SSR lane can pin — and worth pinning,
 // because the failure mode is invisible: the button still works, it just stops showing
 // keyboard users where they are.
