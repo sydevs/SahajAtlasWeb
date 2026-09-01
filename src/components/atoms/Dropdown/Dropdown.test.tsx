@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { Dropdown } from './Dropdown'
 
-// Node-only SSR assertions (see `.claude/rules/tests.md`). The panel is closed on
+// Node-only SSR assertions (see `docs/testing.md`). The panel is closed on
 // first render (and portaled + positioned by Floating UI on the client), so we
 // assert the trigger contract and that the panel content is absent until opened.
 // Interactive behaviour (open, placement, flip/shift, dismiss) lives in Ladle /

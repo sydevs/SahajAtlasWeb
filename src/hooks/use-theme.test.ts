@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { applyTheme, initTheme, getInitialTheme, setThemeRoot } from './use-theme'
 
-// The unit lane is node-only (no jsdom — see .claude/rules/tests.md), so we stub
+// The unit lane is node-only (no jsdom — see docs/testing.md), so we stub
 // the minimal classList surface and `localStorage` that the theme helpers touch,
 // then assert their DOM-light contracts directly.
 function fakeElement() {

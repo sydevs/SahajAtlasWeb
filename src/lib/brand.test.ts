@@ -32,11 +32,17 @@ const BRAND = /sahaj\s*atlas|we\s?meditate/i
 function localeFiles(): string[] {
   const root = 'public/locales'
 
-  return readdirSync(root).flatMap((lng) =>
-    readdirSync(join(root, lng))
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => join(root, lng, f)),
-  )
+  // Directories only. `public/locales/` is a pure set of locale bundles — the directory
+  // listing IS `supportedLanguages` (`i18n-options.test.ts`) and the whole tree is copied
+  // verbatim into both build outputs — but a stray `.DS_Store` would still make
+  // `readdirSync` throw ENOTDIR here rather than fail an assertion.
+  return readdirSync(root, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .flatMap((lng) =>
+      readdirSync(join(root, lng.name))
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => join(root, lng.name, f)),
+    )
 }
 
 /**

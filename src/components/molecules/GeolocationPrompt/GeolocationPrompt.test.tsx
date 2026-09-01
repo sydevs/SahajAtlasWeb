@@ -5,7 +5,7 @@ import { GeolocationPrompt } from './GeolocationPrompt'
 
 // Mock the i18n boundary (react-i18next) so the SSR markup asserts on real copy —
 // including the Ruby-style %{city} interpolation — without booting i18next. Node
-// lane, no jsdom (see .claude/rules/tests.md).
+// lane, no jsdom (see docs/testing.md).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>

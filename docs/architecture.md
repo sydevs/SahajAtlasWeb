@@ -1,6 +1,7 @@
 # Architecture
 
-High-level map of Sahaj Atlas. For subsystem-specific rules see `.claude/rules/`.
+High-level map of Sahaj Atlas. For subsystem-specific rules see the nested
+`AGENTS.md` files and `docs/rules/*.md` indexed at the bottom of this page.
 
 ## What it is
 
@@ -85,7 +86,7 @@ host's own URL (`src/router.tsx`, `src/lib/atlas-history.ts`). This is the embed
    during a live-preview session. There is no interceptor: the shared
    `PayloadSDK<Config>` is constructed with a wrapped `fetch` (`interceptFetch`)
    that runs `applyRequestContext` on every call, so auth/locale attach in exactly
-   one place and no fetcher re-attaches them. See `.claude/rules/data-layer.md`.
+   one place and no fetcher re-attaches them. See `docs/rules/data-layer.md`.
 
 ## Build & deploy
 
@@ -103,13 +104,13 @@ host's own URL (`src/router.tsx`, `src/lib/atlas-history.ts`). This is the embed
 fallback of ours.
 - **Translations**: there is no sync pipeline. Locale JSON under `public/locales/`
   is hand-maintained (`pnpm i18n:add`) — the two **Accent** translation-sync
-  workflows were removed in #99 (see `CLAUDE.md` → Deployment).
+  workflows were removed in #99 (see `AGENTS.md` → Deployment).
 
 ## Conventions index
 
-- Map: `.claude/rules/mapbox.md`
-- Data layer: `.claude/rules/data-layer.md`
-- i18n + state: `.claude/rules/i18n-and-state.md`
-- Components: `.claude/rules/components.md`
-- Code style: `.claude/rules/code-style.md`
-- Tests: `.claude/rules/tests.md`
+- Map: `docs/rules/mapbox.md`
+- Data layer: `docs/rules/data-layer.md`
+- i18n + state: `docs/rules/i18n-and-state.md`
+- Components: `src/components/AGENTS.md`
+- Code style: `src/AGENTS.md`
+- Tests: `docs/testing.md`

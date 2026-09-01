@@ -1,11 +1,3 @@
----
-description: Global code style — formatting, imports, naming, icons, env access.
-globs:
-  - "src/**/*.ts"
-  - "src/**/*.tsx"
-alwaysApply: false
----
-
 # Code Style
 
 ## Formatting (Prettier)
@@ -87,7 +79,7 @@ style rather than assuming the class works.
   vars reach the bundle** — everything else is build-time only.
 - The bundle is **public**. Never reference a secret (`sk.` Mapbox token, raw
   API secret) in client code. Public defaults go in `.env`; secrets in
-  `.env.local` (gitignored). See `.claude/docs/environment.md`.
+  `.env.local` (gitignored). See `docs/environment.md`.
 
 ## Icons & emojis
 

@@ -53,7 +53,7 @@
       through unmodified — so `pnpm assert:css` keeps working with no change to the pass.
 
    ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further. The
-   measured table in `.claude/rules/components.md` shows both re-parent `position: fixed`
+   measured table in `src/components/AGENTS.md` shows both re-parent `position: fixed`
    descendants to the host element — which would break the map canvas, every drawer, the peek
    strips and the settings cog. `container-type` does not; `contain` and `transform` do.
 

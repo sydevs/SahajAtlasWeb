@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Opted into a DOM per-file (see `.claude/rules/tests.md`) because the property under test is a
+// Opted into a DOM per-file (see `docs/testing.md`) because the property under test is a
 // RE-RENDER under a changed router context, which SSR markup cannot express: `useFrameOnTop`'s
 // effect firing for a view that is no longer the one on top.
 //

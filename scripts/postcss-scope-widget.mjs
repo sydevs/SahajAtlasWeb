@@ -11,7 +11,7 @@ import selectorParser from 'postcss-selector-parser'
  * `.hidden`, `.sr-only`), the `:root`/`.dark` palette blocks, and the whole of
  * mapbox-gl.css / swiper / vaul / Radix Colors, which we inline by `@import`.
  *
- * Hand-scoping every selector was the old rule (`.claude/rules/components.md`) and it
+ * Hand-scoping every selector was the old rule (`src/components/AGENTS.md`) and it
  * had already leaked twice (a bare `main {}`, a `.swiper-pagination-bullet {}`), because
  * a leak is invisible: lint, typecheck and the unit lane all stay green while a host
  * page silently changes. So the invariant is mechanical instead — this runs LAST in

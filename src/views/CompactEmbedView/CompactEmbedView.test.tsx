@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { CompactEmbedView } from './CompactEmbedView'
 
-// Node-only SSR assertions (`.claude/rules/tests.md`). What matters here is what a visitor
+// Node-only SSR assertions (`docs/testing.md`). What matters here is what a visitor
 // reads off it: the one control has to name the TASK rather than the product, both because that
 // is the accessible name and because the atlas has to read as the host's own events feature.
 //

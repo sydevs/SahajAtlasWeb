@@ -15,7 +15,7 @@ import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
  * while the dialog is CLOSED `createPortal` is never called and there is nothing for SSR to
  * serialize. An `expect(html).not.toContain(…)` therefore passes whether or not the interface
  * would have rendered. Written that way first, it stayed green with the regression deliberately
- * reintroduced: a spec covering the door rather than the state (`.claude/rules/tests.md`).
+ * reintroduced: a spec covering the door rather than the state (`docs/testing.md`).
  *
  * The property is worth pinning because THREE separate fixes on this branch rest on it alone, and
  * each has its own spec that would keep passing if this broke:

@@ -147,7 +147,7 @@ pnpm dev          # http://localhost:5174
 
 Copy `.env` to `.env.local` and fill in the secrets you need — at minimum a
 Mapbox token and a SahajCloud API key. See
-[`.claude/docs/environment.md`](.claude/docs/environment.md) for the full list.
+[`docs/environment.md`](docs/environment.md) for the full list.
 
 ## Commands
 
@@ -167,24 +167,32 @@ pnpm ladle:build  # static Ladle build (CI gate)
 
 The unit lane is node-only and co-located (`src/**/*.test.ts(x)`); components are
 asserted through `renderToStaticMarkup` rather than jsdom. See
-[`.claude/rules/tests.md`](.claude/rules/tests.md).
+[`docs/testing.md`](docs/testing.md).
 
 ## Documentation
 
 - [`docs/embedding.md`](docs/embedding.md) — **integrator guide**: the host-facing
   reference (snippet, attributes, CSP, sizing, troubleshooting)
 - [`CHANGELOG.md`](CHANGELOG.md) — what changes under an embed, written for host sites
-- [`CLAUDE.md`](CLAUDE.md) — developer guide: layout, conventions, PR workflow
+- [`AGENTS.md`](AGENTS.md) — developer guide: layout, conventions, PR workflow
+  (`CLAUDE.md` is a symlink to it, so Claude Code, Codex and Cursor read one file)
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- [`.claude/rules/`](.claude/rules/) — path-scoped guidance per subsystem
-- [`.claude/docs/`](.claude/docs/) — architecture, environment, MCP setup
+- nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`) — guidance
+  for a whole directory, loaded when an agent reads a file in it; each has a
+  `CLAUDE.md` symlink beside it. Run `find src -name AGENTS.md` for the inventory
+- [`docs/rules/`](docs/rules/) — guidance whose scope is a set of files no single
+  directory names (i18n + state, the data layer, the map). Each carries a `paths:`
+  front-matter list and is symlinked into `.claude/rules/`, so Claude Code loads it
+  on a glob match while the editable file stays outside the protected `.claude/`
+  tree
+- [`docs/`](docs/) — testing, architecture, environment, MCP setup
 
 ## Deployment
 
 Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app) and
 `sahajatlas-design` (the Ladle playground). See the deployment section of
-[`CLAUDE.md`](CLAUDE.md).
+[`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 
@@ -201,4 +209,4 @@ build if any map, or any `sourceMappingURL` reference, survives into the output.
 With the variables unset — every local build, CI, and every forked PR — **no maps are
 emitted at all** and the output is byte-identical to a build from before this existed.
 The full runbook, including which Pages project gets the variables and which deliberately
-does not, is in [`.claude/docs/environment.md`](.claude/docs/environment.md).
+does not, is in [`docs/environment.md`](docs/environment.md).

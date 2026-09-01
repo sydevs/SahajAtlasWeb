@@ -7,7 +7,7 @@
  *
  * The docs endpoint is HTTP Basic auth'd. The password is read from
  * `SAHAJCLOUD_DOCS_PASSWORD` (the environment, or `.env.local`); any username
- * works. See `.claude/docs/environment.md`.
+ * works. See `docs/environment.md`.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
@@ -43,7 +43,7 @@ const password = await resolvePassword()
 
 if (!password) {
   console.error(
-    'Missing SAHAJCLOUD_DOCS_PASSWORD — set it in .env.local (see .claude/docs/environment.md).',
+    'Missing SAHAJCLOUD_DOCS_PASSWORD — set it in .env.local (see docs/environment.md).',
   )
   process.exit(1)
 }

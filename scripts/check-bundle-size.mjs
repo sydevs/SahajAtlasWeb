@@ -106,7 +106,7 @@ const SLACK_RATIO = 0.15
 // A FLOOR under the slack allowance, in KiB, without which the ratchet rule and the
 // leave-headroom-for-Sentry rule are mathematically unsatisfiable on a small graph.
 //
-// CLAUDE.md records that a credentialed build ships more than CI measures, because
+// `AGENTS.md` records that a credentialed build ships more than CI measures, because
 // `@sentry/vite-plugin` injects a debug-ID snippet per chunk and CI has no token. Measured
 // on this build: +2.1 KiB on `standalone` and `embed`, and **+0.5 KiB on `loader`**. The
 // absolute cost is small; the RATIO is not, because it scales with chunk count rather than

@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { ImageCarousel, type Slide } from './ImageCarousel'
 
-// Node-only SSR assertions (see `.claude/rules/tests.md`). What this pins is the
+// Node-only SSR assertions (see `docs/testing.md`). What this pins is the
 // WCAG 2.2.2 contract from issue #104: a carousel that moves on its own must
 // ship a way to stop it, and a static one must NOT grow a control for motion it
 // never had. Whether pressing it actually halts Swiper is a live-instance

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { Spinner } from '.'
 
-// Node-only SSR assertions (see `.claude/rules/tests.md`). The subject is the atom's
+// Node-only SSR assertions (see `docs/testing.md`). The subject is the atom's
 // screen-reader name, which used to be the string "Loading" hard-coded in the markup —
 // the app's one untranslated SR string (issue #102).
 

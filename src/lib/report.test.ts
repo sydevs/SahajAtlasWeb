@@ -17,7 +17,7 @@ const browser = { pageUrl: 'https://host.example/classes', userAgent: 'TestAgent
 // This file covers the seam's console half. Pin the DSN empty so it stays that way: with
 // one set in the environment, `reportInternalError` would reach the REAL `@sentry/browser`
 // (unmocked here — the Sentry cases live in `report.sentry.test.ts`) and these specs would
-// quietly start exercising a network client. See `.claude/docs/environment.md`.
+// quietly start exercising a network client. See `docs/environment.md`.
 beforeEach(() => vi.stubEnv('VITE_SENTRY_DSN', ''))
 
 afterEach(() => {

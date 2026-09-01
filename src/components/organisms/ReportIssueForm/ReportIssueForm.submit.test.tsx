@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // The second spec in the unit lane to boot a DOM, opted in per-file so the rest stays
-// node-only (see `.claude/rules/tests.md`). It earns that the same way `reset-boundary`
+// node-only (see `docs/testing.md`). It earns that the same way `reset-boundary`
 // does: what it covers is a re-render SSR markup cannot express — the screen you land on
 // AFTER an async submit resolves or rejects.
 //
