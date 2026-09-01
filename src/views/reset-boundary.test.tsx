@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // The ONE spec in the unit lane that boots a DOM, opted in per-file so the rest of the
-// lane stays node-only (see `.claude/rules/tests.md`). It earns that because what it
+// lane stays node-only (see `CLAUDE.md § Testing`). It earns that because what it
 // covers is a re-render behaviour that SSR markup cannot express: a `resetKeys` change
 // clearing an already-thrown boundary.
 //

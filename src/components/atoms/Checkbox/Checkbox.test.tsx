@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { Checkbox } from './Checkbox'
 
-// Node-only SSR-markup assertions (see `.claude/rules/tests.md`). The disabled
+// Node-only SSR-markup assertions (see `CLAUDE.md § Testing`). The disabled
 // styling is pure CSS hanging off Radix's `data-disabled`, so what's worth
 // guarding is that contract: if Radix stopped emitting the attribute, every
 // disabled rule would silently stop matching and the control would go back to

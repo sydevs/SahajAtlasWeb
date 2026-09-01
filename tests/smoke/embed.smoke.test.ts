@@ -14,7 +14,7 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // (issue #99).
 //
 // Fetch-level only, deliberately: this lane is fetch-based by design
-// (`.claude/rules/tests.md`), and booting the widget in a real browser belongs
+// (`CLAUDE.md § Testing`), and booting the widget in a real browser belongs
 // to local Playwright verification, not CI.
 
 /**

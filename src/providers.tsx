@@ -16,7 +16,7 @@ import { usePrefersReducedMotion } from './hooks/use-reduced-motion'
  * updates: a viewer who turns the preference on mid-session would keep the motion
  * for the rest of that session, and — worse — would then disagree with the map and
  * the vaul CSS, which are both live. `always`/`never` is the same switch, thrown by
- * a live read, so all three answers move together (`.claude/rules/components.md`).
+ * a live read, so all three answers move together (`src/components/CLAUDE.md`).
  */
 function ReducedMotion({ children }: { children: React.ReactNode }) {
   const reduce = usePrefersReducedMotion()

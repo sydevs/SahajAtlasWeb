@@ -2,7 +2,7 @@
 
 This document defines how components in the Sahaj Atlas widget are **classified,
 organised, exported, typed, and styled**. It is the contract that
-[`.claude/rules/components.md`](.claude/rules/components.md) points at and that
+[`src/components/CLAUDE.md`](src/components/CLAUDE.md) points at and that
 every new component should follow.
 
 Companion doc: [`STORYBOOK.md`](STORYBOOK.md) — how we preview these components in
@@ -125,7 +125,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 
 | Folder                 | Exports                                                                | Notes                                                                                                                                                                                                                                                                                                |
 | ---------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Mapbox/` (sub-module) | `Mapbox`, `MapSearch` (+ `layers.ts`, `themes.ts` helpers)             | The Mapbox surface; see [`.claude/rules/mapbox.md`](.claude/rules/mapbox.md)                                                                                                                                                                                                                         |
+| `Mapbox/` (sub-module) | `Mapbox`, `MapSearch` (+ `layers.ts`, `themes.ts` helpers)             | The Mapbox surface; see [`src/components/organisms/Mapbox/CLAUDE.md`](src/components/organisms/Mapbox/CLAUDE.md)                                                                                                                                                                                                                         |
 | `EventsList/`          | `DynamicEventsList`                                                    | Distance-sorted fetch; the presentational `EventsList` is module-private (single-use)                                                                                                                                                                                                                |
 | `EventDetails/`        | `EventDetails`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — chips → facts → Register → actions → About → images. Take `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded — **not** in the tier barrel. `EventHeader` is the pinned title ALONE (the chips lead the body); the secondary action row is the `EventActions` molecule |
 | `RegistrationForm/`    | `RegistrationForm`                                                     | Form-only, config-driven registration (field chrome is private); rendered in the RegistrationView drawer body. **Not** in the barrel                                                                                                                                                                 |
@@ -203,7 +203,7 @@ component barrels.
   folder path. See `organisms/index.ts`.
 - Component folders and files are **PascalCase** (`Chip/Chip.tsx`); non-component
   files stay kebab-case (hooks `use-x.ts` exporting `useX`, config, types, pages,
-  layouts); zustand stores are plain `useX` hooks (see [`.claude/rules/code-style.md`](.claude/rules/code-style.md)).
+  layouts); zustand stores are plain `useX` hooks (see [`src/CLAUDE.md`](src/CLAUDE.md)).
 
 ### Props typing
 

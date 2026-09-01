@@ -1,6 +1,7 @@
 # Architecture
 
-High-level map of Sahaj Atlas. For subsystem-specific rules see `.claude/rules/`.
+High-level map of Sahaj Atlas. For subsystem-specific rules see the nested
+`CLAUDE.md` files indexed at the bottom of this page.
 
 ## What it is
 
@@ -85,7 +86,7 @@ host's own URL (`src/router.tsx`, `src/lib/atlas-history.ts`). This is the embed
    during a live-preview session. There is no interceptor: the shared
    `PayloadSDK<Config>` is constructed with a wrapped `fetch` (`interceptFetch`)
    that runs `applyRequestContext` on every call, so auth/locale attach in exactly
-   one place and no fetcher re-attaches them. See `.claude/rules/data-layer.md`.
+   one place and no fetcher re-attaches them. See `src/config/api/CLAUDE.md`.
 
 ## Build & deploy
 
@@ -107,9 +108,9 @@ fallback of ours.
 
 ## Conventions index
 
-- Map: `.claude/rules/mapbox.md`
-- Data layer: `.claude/rules/data-layer.md`
-- i18n + state: `.claude/rules/i18n-and-state.md`
-- Components: `.claude/rules/components.md`
-- Code style: `.claude/rules/code-style.md`
-- Tests: `.claude/rules/tests.md`
+- Map: `src/components/organisms/Mapbox/CLAUDE.md`
+- Data layer: `src/config/api/CLAUDE.md`
+- i18n + state: `src/config/CLAUDE.md`
+- Components: `src/components/CLAUDE.md`
+- Code style: `src/CLAUDE.md`
+- Tests: `CLAUDE.md § Testing`

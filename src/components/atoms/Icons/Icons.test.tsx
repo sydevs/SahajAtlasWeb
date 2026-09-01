@@ -7,7 +7,7 @@ import { Logo, SocialIcon } from '.'
 // Node-only component test (mirrors WeMeditateWeb): no jsdom / Testing Library.
 // Presentational components are asserted via their SSR markup with
 // renderToStaticMarkup — this file is the template for component coverage in
-// this repo (see `.claude/rules/tests.md`). Hover/portal/interaction behaviour
+// this repo (see `CLAUDE.md § Testing`). Hover/portal/interaction behaviour
 // belongs in Ladle and the browser, not here.
 //
 // Since #003 the interface glyphs come from `lucide-react` and only the brand marks are

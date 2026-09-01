@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest'
 
 import { ListItem } from './ListItem'
 
-// Node-only SSR assertions (see `.claude/rules/tests.md`). The row must be a valid
+// Node-only SSR assertions (see `CLAUDE.md § Testing`). The row must be a valid
 // direct child of the List's <ul>: an <li> wrapping the <Link>/<a>, NOT an <a>
 // wrapping an <li> (the pre-#65 nesting). MemoryRouter supplies the router context
 // the internal Link needs.

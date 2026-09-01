@@ -31,7 +31,7 @@ import { reportIntegrationWarning } from '@/lib/report'
  * VIEWPORT coordinate and consumed as `top:`/`bottom:` on fixed children, so `DrawerStack`
  * subtracts the frame's own top (zero when there is no frame).
  *
- * ⚠ **`contain: layout` belongs here and NOWHERE up the tree.** `.claude/rules/components.md`
+ * ⚠ **`contain: layout` belongs here and NOWHERE up the tree.** `src/components/CLAUDE.md`
  * forbids it on the scope root, for this exact mechanism pointed the other way: there it would
  * re-parent the fixed layer onto the host's own element, which is a box a map-less embed shares
  * with the host's page. Here re-parenting is the entire point, and the element is ours.

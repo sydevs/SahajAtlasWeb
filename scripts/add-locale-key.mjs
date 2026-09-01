@@ -14,7 +14,7 @@
  * Locales present in public/locales but absent from the map are left untouched
  * (they fall back to en) and listed. Interpolation uses this repo's Ruby-style
  * `%{var}` — and remember `count` triggers i18next pluralization, so use a
- * different variable name for a plain number (see .claude/rules/i18n-and-state.md).
+ * different variable name for a plain number (see src/config/CLAUDE.md).
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

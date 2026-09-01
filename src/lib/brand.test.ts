@@ -32,11 +32,15 @@ const BRAND = /sahaj\s*atlas|we\s?meditate/i
 function localeFiles(): string[] {
   const root = 'public/locales'
 
-  return readdirSync(root).flatMap((lng) =>
-    readdirSync(join(root, lng))
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => join(root, lng, f)),
-  )
+  // Directories only — `public/locales/` also holds a `CLAUDE.md`, and a stray `.DS_Store`
+  // would otherwise make `readdirSync` throw ENOTDIR rather than fail an assertion.
+  return readdirSync(root, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .flatMap((lng) =>
+      readdirSync(join(root, lng.name))
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => join(root, lng.name, f)),
+    )
 }
 
 /**

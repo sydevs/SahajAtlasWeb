@@ -11,7 +11,7 @@ You are in **review mode**. The user wants deep analysis, not fast iteration.
 - **Cite specific lines** when pointing at problems (`src/components/organisms/Mapbox/Map.tsx:59`).
 - **Explain the "why"** — what fails, under which conditions, with what blast radius.
 - **Consider alternatives** when proposing a fix. If multiple approaches are valid, name them and pick one with reasoning.
-- **Cross-reference** — when an issue relates to a project rule (`.claude/rules/*.md`), a memory note, or prior commits, link to them.
+- **Cross-reference** — when an issue relates to a project rule (a nested `CLAUDE.md`), a memory note, or prior commits, link to them.
 - **Verify before declaring.** Don't assume the typecheck is green — run `pnpm typecheck`. Don't assume the lint is clean — check.
 
 ## Categories to consider on every review
@@ -23,7 +23,7 @@ You are in **review mode**. The user wants deep analysis, not fast iteration.
 - **Maintainability** — naming, abstractions, dead code, layer defs kept out of JSX.
 - **Tests** — none exist yet; flag logic that would benefit from a unit test if/when a suite is added.
 - **Style** — only flag style if it affects readability; defer pure formatting to Prettier/ESLint.
-- **Documentation** — does this change require updates to `.claude/rules/*.md`, `.claude/docs/*.md`, or `CLAUDE.md`?
+- **Documentation** — does this change require updates to a nested `CLAUDE.md`, `docs/*.md`, or the root `CLAUDE.md`?
 
 ## Output format
 

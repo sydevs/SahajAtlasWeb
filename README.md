@@ -147,7 +147,7 @@ pnpm dev          # http://localhost:5174
 
 Copy `.env` to `.env.local` and fill in the secrets you need — at minimum a
 Mapbox token and a SahajCloud API key. See
-[`.claude/docs/environment.md`](.claude/docs/environment.md) for the full list.
+[`docs/environment.md`](docs/environment.md) for the full list.
 
 ## Commands
 
@@ -167,7 +167,7 @@ pnpm ladle:build  # static Ladle build (CI gate)
 
 The unit lane is node-only and co-located (`src/**/*.test.ts(x)`); components are
 asserted through `renderToStaticMarkup` rather than jsdom. See
-[`.claude/rules/tests.md`](.claude/rules/tests.md).
+the **Testing** section of [`CLAUDE.md`](CLAUDE.md).
 
 ## Documentation
 
@@ -177,8 +177,9 @@ asserted through `renderToStaticMarkup` rather than jsdom. See
 - [`CLAUDE.md`](CLAUDE.md) — developer guide: layout, conventions, PR workflow
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- [`.claude/rules/`](.claude/rules/) — path-scoped guidance per subsystem
-- [`.claude/docs/`](.claude/docs/) — architecture, environment, MCP setup
+- nested `CLAUDE.md` files (`src/`, `src/components/`, `src/config/`, …) —
+  path-scoped guidance per subsystem, loaded when Claude reads that directory
+- [`docs/`](docs/) — architecture, environment, MCP setup
 
 ## Deployment
 
@@ -201,4 +202,4 @@ build if any map, or any `sourceMappingURL` reference, survives into the output.
 With the variables unset — every local build, CI, and every forked PR — **no maps are
 emitted at all** and the output is byte-identical to a build from before this existed.
 The full runbook, including which Pages project gets the variables and which deliberately
-does not, is in [`.claude/docs/environment.md`](.claude/docs/environment.md).
+does not, is in [`docs/environment.md`](docs/environment.md).

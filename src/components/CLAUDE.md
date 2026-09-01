@@ -1,12 +1,3 @@
----
-description: React component patterns — Radix primitives, tailwind-variants, widget context.
-globs:
-  - 'src/components/**/*.tsx'
-  - 'src/views/**/*.tsx'
-  - 'src/providers.tsx'
-alwaysApply: false
----
-
 # Components (Radix + Tailwind)
 
 > **Taxonomy & conventions live in [`DESIGN_SYSTEM.md`](../../DESIGN_SYSTEM.md)**
@@ -392,7 +383,7 @@ opens — which is also what keeps mapbox-gl unfetched. Nothing pinned it, and e
 spec that would keep passing if it broke, so it now has one of its own in
 `CompactEmbedView.mount.test.tsx`. It has to be **jsdom**: the dialog's content is a portal, and
 `renderToStaticMarkup` renders none, so the SSR version of that assertion is vacuous (see
-`.claude/rules/tests.md`).
+`CLAUDE.md § Testing`).
 
 Two effects deliberately still fire from a collapsed card — the readiness marker and the embed
 report — because both attest that the widget _booted_, which is true whether or not anyone opened
@@ -510,8 +501,8 @@ either this table or the folklore it corrects.
   inlined in their one parent.
 - Keep components presentational where possible; pull data via hooks
   (`src/hooks/`) and React Query (`src/config/api`), and read shared state from
-  zustand selectors. See `.claude/rules/data-layer.md` and
-  `.claude/rules/i18n-and-state.md`.
+  zustand selectors. See `src/config/api/CLAUDE.md` and
+  `src/config/CLAUDE.md`.
 - **A row in a list that grows should not subscribe to the URL.** `EventListItem` is the
   repo's one `React.memo`, because the search results list pages to hundreds of rows and
   would otherwise re-render all of them per press. `memo` only holds if the card takes
@@ -530,7 +521,7 @@ inventory, so a fourth turns the unit lane red until it is gated.
 
 Why it is a shared predicate and not a check per component — including the two properties that
 were each lost and restored, and why "site-relative" must be `safePath` rather than
-`startsWith('/')` — is in `.claude/rules/data-layer.md` → "Server-provided routes are untrusted
+`startsWith('/')` — is in `src/config/api/CLAUDE.md` → "Server-provided routes are untrusted
 until `safePath`". That rule is path-scoped to the data layer, so it does not auto-load here;
 read it before touching an anchor.
 

@@ -212,7 +212,7 @@ describe('MapFrame, contained', () => {
 /**
  * The JOIN, pinned in source.
  *
- * `.claude/rules/tests.md` records the `timeoutStatus` lesson twice over: a helper can be
+ * `CLAUDE.md § Testing` records the `timeoutStatus` lesson twice over: a helper can be
  * exhaustively specced, return the right answer, and never be wired to its caller — and no pure
  * spec can see that. Everything above proves `MapFrame` works; none of it proves the map is
  * inside one. Rendering `FullInterface` here to close that gap is not an option: it imports

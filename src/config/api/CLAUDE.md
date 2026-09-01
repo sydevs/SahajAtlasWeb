@@ -1,11 +1,3 @@
----
-description: API/data layer — typed PayloadSDK client, zod-validated fetchers, TanStack Query.
-globs:
-  - "src/config/api/**/*.ts"
-  - "src/types/**/*.ts"
-alwaysApply: false
----
-
 # Data layer (@payloadcms/sdk + zod + TanStack Query → SahajCloud)
 
 The widget reads **SahajCloud** (PayloadCMS v3, REST-only) as a third-party,

@@ -53,7 +53,7 @@ describe('on-color', () => {
 })
 
 // A DOM-light stand-in for the root element so the var writes can be asserted
-// in the node-only lane (no jsdom — see .claude/rules/tests.md).
+// in the node-only lane (no jsdom — see CLAUDE.md § Testing).
 function fakeRoot() {
   const props = new Map<string, string>()
   const root = {

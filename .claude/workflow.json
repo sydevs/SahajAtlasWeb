@@ -16,7 +16,7 @@
     "contentPaths": [
       "src"
     ],
-    "rationale": ".claude/docs/security-triggers.md"
+    "rationale": "docs/security-triggers.md"
   },
   "worktreeSetup": [
     "pnpm install"

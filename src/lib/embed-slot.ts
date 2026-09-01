@@ -223,7 +223,7 @@ export function embedLayout(input: { map: MapMode; slot: Box; destination: Desti
   if (destination.kind === 'none') return { layout: fits }
 
   // A `viewport` map requires owning the viewport — a documented requirement rather than a bug
-  // (see `.claude/rules/components.md`). An overlay destination means precisely that it does
+  // (see `src/components/CLAUDE.md`). An overlay destination means precisely that it does
   // not, so the card is the honest answer where the old code warned and then painted over the
   // page.
   if (map === 'viewport' && destination.kind === 'overlay') {

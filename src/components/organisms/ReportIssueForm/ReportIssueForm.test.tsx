@@ -21,7 +21,7 @@ vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 
 // Mock the i18n boundary so the SSR markup asserts on real copy without booting
 // i18next. `i18n` is stubbed too — useLocale (reached through useTurnstile) subscribes
-// to it. Node lane, no jsdom (see .claude/rules/tests.md).
+// to it. Node lane, no jsdom (see CLAUDE.md § Testing).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { min?: number; email?: string }) =>

@@ -13,7 +13,7 @@ import { atlasError } from './report'
 const DSN = 'https://publickey@o0.ingest.sentry.io/0'
 
 /**
- * A stand-in for `@sentry/browser`. Mocked at the boundary, per `.claude/rules/tests.md`:
+ * A stand-in for `@sentry/browser`. Mocked at the boundary, per `CLAUDE.md § Testing`:
  * what is under test is which failures we hand over and what we let travel with them —
  * never the SDK's own envelope building.
  */
@@ -297,7 +297,7 @@ describe('what is allowed to travel with an event', () => {
     // deliberately not done: they are not public API (`@sentry/core`'s `exports` map
     // offers only `.`, `./server` and `./browser`), so reaching them means a deep import
     // into `build/esm/utils/`, which is exactly the library-internals coupling
-    // `.claude/rules/tests.md` rules out. This is the strongest form available at the seam.
+    // `CLAUDE.md § Testing` rules out. This is the strongest form available at the seam.
     const debugMeta: NonNullable<Event['debug_meta']> = {
       images: [
         {

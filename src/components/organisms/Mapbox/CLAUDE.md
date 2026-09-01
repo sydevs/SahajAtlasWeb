@@ -1,12 +1,3 @@
----
-description: Mapbox / react-map-gl patterns — layers, sources, view state, turf.
-globs:
-  - 'src/components/organisms/Mapbox/**/*.ts'
-  - 'src/components/organisms/Mapbox/**/*.tsx'
-  - 'src/hooks/use-mapbox.ts'
-alwaysApply: false
----
-
 # Map (Mapbox GL + react-map-gl)
 
 The map is the heart of the app and its hottest render path. Treat it carefully.
@@ -112,7 +103,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   event, drilling into a region/venue, searching a place, and **`restore(camera)`** on
   a _back_ navigation — so zooming in and out feel symmetric. `restore` reapplies a
   remembered viewport — `useFrameOnTop` reads the per-`location.key` `useCameraHistory`
-  snapshot on a POP (see `.claude/rules/i18n-and-state.md`) instead of re-deriving it.
+  snapshot on a POP (see `src/config/CLAUDE.md`) instead of re-deriving it.
 - `useMapbox().flyTo/fitBounds/moveMap(...)` are the low-level camera ops behind the
   controller — don't drive `map.flyTo`/`easeTo` directly from components. `flyTo`
   (a point) and `fitBounds` (a bbox — Mapbox's fitBounds already flies, `linear`
@@ -306,7 +297,7 @@ port plus a matching `VITE_HOST` under the worktree pattern) against the seeded 
 - **Measure, don't trust class names.** `getComputedStyle` /
   `getBoundingClientRect`, and `scrollWidth` vs `clientWidth` to find overflow (then
   walk descendants for the widest node). A Tailwind class that isn't generated still
-  appears in the DOM with no CSS behind it — see `.claude/rules/code-style.md`.
+  appears in the DOM with no CSS behind it — see `src/CLAUDE.md`.
 
 ## Gotchas
 

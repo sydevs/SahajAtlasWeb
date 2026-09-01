@@ -6,7 +6,7 @@ import { EventListItem } from './EventListItem'
 
 import { mockEventSlim } from '@/mocks/events'
 
-// Node-only SSR assertions (see `.claude/rules/tests.md`). The card must be a valid
+// Node-only SSR assertions (see `CLAUDE.md § Testing`). The card must be a valid
 // direct child of the List's <ul>: an <li> wrapping the <Link>/<a>, not <a><li>
 // (#65). Mock the hooks/child that would otherwise pull in i18next, react-query
 // (the online-event IP lookup) and the map controller — this test exercises the

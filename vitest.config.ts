@@ -4,7 +4,7 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 // Fast local/unit lane: pure, dependency-light specs co-located with the code
 // they cover (`src/**/*.test.ts(x)`). Node-only — component specs assert SSR
 // markup via `renderToStaticMarkup` rather than booting jsdom (mirrors
-// WeMeditateWeb). See `.claude/rules/tests.md`.
+// WeMeditateWeb). See `CLAUDE.md § Testing`.
 //
 // `tsconfigPaths` resolves the `@/…` alias the same way Vite does, so specs and
 // the modules they import can use it. Smoke specs hit a deployed preview over
@@ -29,7 +29,7 @@ export default defineConfig({
     //
     // Nothing here is waiting on a network or a timer, so this timeout was never catching a hang —
     // it was only capping how slow an inherently slow spec may be while the pool is saturated.
-    // Keep the lane itself fast (`.claude/rules/tests.md` wants < ~5 s total) by not adding slow
+    // Keep the lane itself fast (`CLAUDE.md § Testing` wants < ~5 s total) by not adding slow
     // specs; this ceiling exists so the ones that are slow fail for real reasons.
     testTimeout: 20_000,
   },

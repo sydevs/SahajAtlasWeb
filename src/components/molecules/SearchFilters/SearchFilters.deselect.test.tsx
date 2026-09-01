@@ -17,7 +17,7 @@ import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
  * that empty string onto the `'any'` sentinel. A pure test of the handler could only re-assert
  * the mapping we just wrote while ASSUMING the signal that reaches it — and the signal is
  * exactly what the old `next && patch(…)` guard got wrong. Driving the real Radix component is
- * the only thing that proves the round trip (`.claude/rules/tests.md`, the `routing.router`
+ * the only thing that proves the round trip (`CLAUDE.md § Testing`, the `routing.router`
  * precedent).
  */
 

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchIpLocation } from './use-ip-location'
 
 // Mock the network boundary (the bare `fetch`) so these assert our zod parse, not
-// ipwho.is itself. Node lane, no jsdom — see .claude/rules/tests.md.
+// ipwho.is itself. Node lane, no jsdom — see CLAUDE.md § Testing.
 const mockFetch = (body: unknown, ok = true) =>
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok, json: async () => body }))
 

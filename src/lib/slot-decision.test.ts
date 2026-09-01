@@ -7,7 +7,7 @@ import { DEFAULT_FALLBACK_URL } from './fallback-url'
 /**
  * The COMPOSITION, driven end to end — which is the point of this file existing at all.
  *
- * `.claude/rules/tests.md` records the `timeoutStatus` lesson: a helper was specced, returned
+ * `CLAUDE.md § Testing` records the `timeoutStatus` lesson: a helper was specced, returned
  * the right answer, and was then never wired to its caller, so four green assertions covered a
  * branch that could not occur in production. This branch has already made that mistake once —
  * every slot predicate was exhaustively specced and the JOIN suppressed a warning in exactly
