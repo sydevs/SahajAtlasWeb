@@ -1,3 +1,15 @@
+---
+description: i18next localization and zustand state-store conventions.
+paths:
+  - 'src/config/i18n.ts'
+  - 'src/config/store.ts'
+  - 'src/hooks/use-filters.ts'
+  - 'src/hooks/use-locale.ts'
+  - 'src/hooks/use-reveal.ts'
+  - 'src/hooks/use-sort.ts'
+  - 'public/locales/**'
+---
+
 # i18n & State
 
 ## i18next (`src/config/i18n.ts`)

@@ -1,0 +1,1 @@
+../../docs/rules/i18n-and-state.md

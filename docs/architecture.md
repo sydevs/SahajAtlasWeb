@@ -1,7 +1,7 @@
 # Architecture
 
 High-level map of Sahaj Atlas. For subsystem-specific rules see the nested
-`AGENTS.md` files indexed at the bottom of this page.
+`AGENTS.md` files and `docs/rules/*.md` indexed at the bottom of this page.
 
 ## What it is
 
@@ -86,7 +86,7 @@ host's own URL (`src/router.tsx`, `src/lib/atlas-history.ts`). This is the embed
    during a live-preview session. There is no interceptor: the shared
    `PayloadSDK<Config>` is constructed with a wrapped `fetch` (`interceptFetch`)
    that runs `applyRequestContext` on every call, so auth/locale attach in exactly
-   one place and no fetcher re-attaches them. See `src/config/api/AGENTS.md`.
+   one place and no fetcher re-attaches them. See `docs/rules/data-layer.md`.
 
 ## Build & deploy
 
@@ -108,9 +108,9 @@ fallback of ours.
 
 ## Conventions index
 
-- Map: `src/components/organisms/Mapbox/AGENTS.md`
-- Data layer: `src/config/api/AGENTS.md`
-- i18n + state: `src/config/AGENTS.md`
+- Map: `docs/rules/mapbox.md`
+- Data layer: `docs/rules/data-layer.md`
+- i18n + state: `docs/rules/i18n-and-state.md`
 - Components: `src/components/AGENTS.md`
 - Code style: `src/AGENTS.md`
 - Tests: `docs/testing.md`

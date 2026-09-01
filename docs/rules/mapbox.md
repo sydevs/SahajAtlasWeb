@@ -1,3 +1,11 @@
+---
+description: Mapbox / react-map-gl patterns — layers, sources, view state, turf.
+paths:
+  - 'src/components/organisms/Mapbox/**/*.ts'
+  - 'src/components/organisms/Mapbox/**/*.tsx'
+  - 'src/hooks/use-mapbox.ts'
+---
+
 # Map (Mapbox GL + react-map-gl)
 
 The map is the heart of the app and its hottest render path. Treat it carefully.
@@ -103,7 +111,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   event, drilling into a region/venue, searching a place, and **`restore(camera)`** on
   a _back_ navigation — so zooming in and out feel symmetric. `restore` reapplies a
   remembered viewport — `useFrameOnTop` reads the per-`location.key` `useCameraHistory`
-  snapshot on a POP (see `src/config/AGENTS.md`) instead of re-deriving it.
+  snapshot on a POP (see `docs/rules/i18n-and-state.md`) instead of re-deriving it.
 - `useMapbox().flyTo/fitBounds/moveMap(...)` are the low-level camera ops behind the
   controller — don't drive `map.flyTo`/`easeTo` directly from components. `flyTo`
   (a point) and `fitBounds` (a bbox — Mapbox's fitBounds already flies, `linear`

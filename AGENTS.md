@@ -22,15 +22,35 @@ event hierarchy.
   use the **github** MCP for issues/PRs/code search and the **Playwright** MCP
   for driving the running widget in a browser (screenshots, clicks, map
   interaction). See `docs/mcp-setup.md`.
-- **Modular rules & docs.** Path-scoped guidance lives in **nested `AGENTS.md`
-  files** — `src/AGENTS.md`, `src/components/AGENTS.md`,
-  `src/components/organisms/Mapbox/AGENTS.md`, `src/config/AGENTS.md`,
-  `src/config/api/AGENTS.md` — each of which is included when an agent reads
-  files in that directory, so a guide's location _is_ its scope and it carries no
-  globs. Run `find . -name AGENTS.md -not -path './node_modules/*'` for the
-  inventory. Reference docs live in `docs/*.md`; `@docs/testing.md` is imported
-  by this file and therefore loads every session. Skim the nested guide for a
-  subsystem before editing it.
+- **Modular rules & docs — three loaders.** Guidance is split by _how it has to be
+  scoped_, not by subject:
+
+  - **Nested `AGENTS.md`**, for guidance whose scope _is_ a directory:
+    `src/AGENTS.md` (code style) and `src/components/AGENTS.md` (components, which
+    `src/views/AGENTS.md` points at). Each is included when an agent reads a file in
+    that directory, so the guide's location is its scope and it carries no globs.
+    Inventory: `find . -name AGENTS.md -not -path './node_modules/*'`.
+  - **`docs/rules/*.md`, symlinked into `.claude/rules/`**, for guidance whose scope
+    is a set of files no single directory names: `i18n-and-state.md` (scattered
+    `src/config/*.ts`, four `src/hooks/use-*.ts`, `public/locales/**`),
+    `mapbox.md` (the Mapbox directory _plus_ `src/hooks/use-mapbox.ts`) and
+    `data-layer.md` (`src/config/api/**` _plus_ `src/types/**`). Each declares a
+    **`paths:`** front-matter list and loads on a glob match.
+    ⚠ The key is `paths:`. `globs:`/`alwaysApply:` are **Cursor's** keys; Claude Code
+    ignores them, and a rule with no valid `paths:` loads **unconditionally** — which
+    is what these three silently did before. Inventory: `ls -l .claude/rules`.
+  - **`@docs/testing.md`**, imported at the bottom of this file, so it loads every
+    session. Its subject is unscoped by nature: the two lanes apply to any change.
+
+  **The rule bodies live in `docs/rules/` and are only _symlinked_ into
+  `.claude/rules/` — deliberately.** Writes under `.claude/` hit Claude Code's
+  Protected Paths guard, which stalls an unattended run forever; a symlink whose
+  target sits outside `.claude/` stays editable, and the rule still loads (Claude Code
+  cites it by its `docs/rules/…` target). Don't tidy the content back into `.claude/`.
+
+  Other reference docs live in `docs/*.md`. Skim the guide for a subsystem before
+  editing it.
+
 - **Commit messages** end with:
   `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
 
@@ -166,28 +186,28 @@ src/
 public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained). DATA, not source: the
                       # directory listing IS `supportedLanguages`, and `public/` is copied
                       # verbatim into both build outputs — so nothing but locale
-                      # directories belongs here, and no nested guide sits in it. The rules
-                      # that govern the bundles are in `src/config/AGENTS.md`
+                      # directories belongs here. The rules that govern the bundles are in
+                      # `docs/rules/i18n-and-state.md`, whose `paths:` covers this directory
 ```
 
-## Conventions (see the nested `AGENTS.md` files under `src/` for detail)
+## Conventions (see the nested `AGENTS.md` files and `docs/rules/` for detail)
 
 - **Path aliases**: `@/*` → `src/*` (Vite + tsconfig). Prefer `@/…` over deep
   relative imports.
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response
   through a zod schema from `src/types/`. Keep that contract — see
-  `src/config/api/AGENTS.md`.
+  `docs/rules/data-layer.md`.
 - **State**: zustand stores (`src/config/store.ts`) are the single source of truth
   for the map view + registration draft; **search filters and the list sort order
   live in the URL query** (`useEventFilters`/`useSetFilters` in `src/hooks/use-filters.ts`;
   `useSortOrder`/`useSetSortOrder` in `src/hooks/use-sort.ts`). Read stores with
-  `useShallow` selectors in hot paths (the map). See `src/config/AGENTS.md`.
+  `useShallow` selectors in hot paths (the map). See `docs/rules/i18n-and-state.md`.
 - **i18n**: `supportedLanguages` (`src/config/i18n-options.ts`) and the bundles in
   `public/locales/<lng>/` are pinned to each other in both directions by
   `i18n-options.test.ts`, so adding a locale means adding both. Add keys with
   `pnpm i18n:add`, never by hand-editing ten files. Namespaces, key shape and the
-  copy budgets are all in `src/config/AGENTS.md` — the guidance lives with the code
-  that reads the bundles, not in the data directory beside them.
+  copy budgets are all in `docs/rules/i18n-and-state.md`, which loads on a `paths:`
+  match against either half.
 - **Navigation**: the UI is a **URL-driven drawer stack** (`src/views/`).
   `resolveStack` (`src/lib/shape/path.ts`) turns the pathname into the open
   drawers; `DrawerStack` renders CountriesView (base) + one nested vaul drawer per
@@ -196,7 +216,7 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained). DATA, no
   `useAtlasNavigate`), so X / swipe / Esc go chronologically **back**
   (`navigate(-1)`, restoring the prior camera) when in-widget history exists and
   only climb to the structural parent for a fresh deep link (depth 0) — never
-  popping the host page's history. See `src/config/AGENTS.md`.
+  popping the host page's history. See `docs/rules/i18n-and-state.md`.
 - **Map containment**: map mode fills the viewport only when the host gave `<sahaj-atlas>` no
   height. Given one, `MapFrame` (`src/views/MapFrame.tsx`) takes the containing block with
   `contain: layout` and the whole fixed layer — canvas, drawers, peek strips — re-parents onto
@@ -222,7 +242,7 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained). DATA, no
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`;
   never inline layer paint/layout in JSX. Camera control goes through the
   `MapController` seam (`src/hooks/use-map-controller.tsx`) — a no-op when
-  `map=false` — so no view branches on whether a map exists. See `src/components/organisms/Mapbox/AGENTS.md`.
+  `map=false` — so no view branches on whether a map exists. See `docs/rules/mapbox.md`.
 - **Components**: atomic tiers (`atoms/molecules/organisms`), **PascalCase
   folder-per-component** (`Chip/Chip.tsx` + stories + `index.ts`), named exports,
   barrel per tier; prefer the existing atoms + Radix primitives + `tailwind-variants`

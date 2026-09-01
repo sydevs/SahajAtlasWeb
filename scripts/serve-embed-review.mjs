@@ -41,7 +41,7 @@
  * ⚠ **A stubbed `clients/me` must carry `color1`/`color2`/`color3`.** Without them the widget's
  * theme root is never adopted, every portal lands in `document.body` outside `.sy-atlas`, and the
  * drawers and dialogs render with no CSS at all — which reads exactly like a scoping regression.
- * The mechanism, and why production is unaffected, is in `src/components/organisms/Mapbox/AGENTS.md`.
+ * The mechanism, and why production is unaffected, is in `docs/rules/mapbox.md`.
  *
  * The widget reads SahajCloud on boot (`clients/me`), so a rendered *interface* needs a backend and
  * a key that backend accepts. As of 2026-08-20 the seeded local backend answers `403` /
@@ -209,7 +209,7 @@ function pages(src) {
     //
     // It will still fall back to query until a client record carries a matching `canonical.embed`
     // (`localhost:<port>/__review/pathmode`), which the seeded backend does not. To see path mode
-    // actually engage, stub `clients/me` — see `src/components/organisms/Mapbox/AGENTS.md`.
+    // actually engage, stub `clients/me` — see `docs/rules/mapbox.md`.
     'pathmode.html': page(
       'Path routing',
       `<sahaj-atlas></sahaj-atlas>${loader('key=KEY&map=false&routing=path')}`,

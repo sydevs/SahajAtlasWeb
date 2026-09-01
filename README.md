@@ -178,10 +178,14 @@ asserted through `renderToStaticMarkup` rather than jsdom. See
   (`CLAUDE.md` is a symlink to it, so Claude Code, Codex and Cursor read one file)
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- nested `AGENTS.md` files (`src/`, `src/components/`, `src/config/`, …) —
-  path-scoped guidance per subsystem, loaded when an agent reads that directory;
-  each has a `CLAUDE.md` symlink beside it. Run `find src -name AGENTS.md` for the
-  inventory
+- nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`) — guidance
+  for a whole directory, loaded when an agent reads a file in it; each has a
+  `CLAUDE.md` symlink beside it. Run `find src -name AGENTS.md` for the inventory
+- [`docs/rules/`](docs/rules/) — guidance whose scope is a set of files no single
+  directory names (i18n + state, the data layer, the map). Each carries a `paths:`
+  front-matter list and is symlinked into `.claude/rules/`, so Claude Code loads it
+  on a glob match while the editable file stays outside the protected `.claude/`
+  tree
 - [`docs/`](docs/) — testing, architecture, environment, MCP setup
 
 ## Deployment

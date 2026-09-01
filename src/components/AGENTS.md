@@ -501,8 +501,8 @@ either this table or the folklore it corrects.
   inlined in their one parent.
 - Keep components presentational where possible; pull data via hooks
   (`src/hooks/`) and React Query (`src/config/api`), and read shared state from
-  zustand selectors. See `src/config/api/AGENTS.md` and
-  `src/config/AGENTS.md`.
+  zustand selectors. See `docs/rules/data-layer.md` and
+  `docs/rules/i18n-and-state.md`.
 - **A row in a list that grows should not subscribe to the URL.** `EventListItem` is the
   repo's one `React.memo`, because the search results list pages to hundreds of rows and
   would otherwise re-render all of them per press. `memo` only holds if the card takes
@@ -521,7 +521,7 @@ inventory, so a fourth turns the unit lane red until it is gated.
 
 Why it is a shared predicate and not a check per component — including the two properties that
 were each lost and restored, and why "site-relative" must be `safePath` rather than
-`startsWith('/')` — is in `src/config/api/AGENTS.md` → "Server-provided routes are untrusted
+`startsWith('/')` — is in `docs/rules/data-layer.md` → "Server-provided routes are untrusted
 until `safePath`". That rule is path-scoped to the data layer, so it does not auto-load here;
 read it before touching an anchor.
 

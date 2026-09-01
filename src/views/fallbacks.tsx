@@ -32,7 +32,7 @@ import {
  *
  * Read by BOTH the chrome (to render the field) and the body (to suppress its own): a
  * `not-found` at `/` or `/search` is a DEAD_END row, which asks for a geocoder, so without
- * this the screen draws two. `src/config/AGENTS.md` states the invariant —
+ * this the screen draws two. `docs/rules/i18n-and-state.md` states the invariant —
  * "`visibleActions` narrows by surface … a geocoder already in the chrome" — and this is
  * what implements it.
  */

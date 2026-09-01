@@ -2,7 +2,7 @@
 // Public import surface: `import { DynamicEventsList } from '@/components/organisms'`.
 // See DESIGN_SYSTEM.md. Explicit named exports only. The Mapbox sub-module's
 // layer/theme helpers are internal and not re-exported here (see
-// src/components/organisms/Mapbox/AGENTS.md).
+// docs/rules/mapbox.md).
 export { Mapbox, MapSearch } from './Mapbox'
 export type { MapSearchProps } from './Mapbox'
 
