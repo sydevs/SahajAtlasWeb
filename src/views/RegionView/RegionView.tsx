@@ -112,21 +112,26 @@ export function RegionView({ slug }: { slug: string }) {
             color="neutral"
             description={
               // Normally the onward step is the list directly below, so the banner names it
-              // rather than linking to the page the reader is already on. A region with nothing
-              // left to list is the exception — the fifth denial unpublishes the event, so this
-              // is reachable — and there the sentence would sit above an empty state, so it
-              // becomes a real link into the search instead.
-              isEmpty ? (
-                <Link className="underline" href={searchPath()}>
-                  {tCommon('feedback.nearby')}
-                </Link>
-              ) : (
-                tCommon('feedback.below')
-              )
+              // rather than linking to the page the reader is already on — `below` joins onto
+              // `body` as the one paragraph the copy was written as. A region with nothing left
+              // to list is the exception — the fifth denial unpublishes the event, so this is
+              // reachable — and there that clause would be a claim standing above an empty
+              // state, so it becomes a real link into the search instead. The joining space
+              // belongs to the clause, not to the body: the link is a block and wants none.
+              <>
+                {tCommon('feedback.denied.body')}
+                {isEmpty ? (
+                  <Link className="mt-1 block underline" href={searchPath()}>
+                    {tCommon('feedback.nearby')}
+                  </Link>
+                ) : (
+                  ` ${tCommon('feedback.below')}`
+                )}
+              </>
             }
             role="status"
             size="sm"
-            title={tCommon('feedback.denied')}
+            title={tCommon('feedback.denied.title')}
             onClose={dismissFeedback}
           />
         )}

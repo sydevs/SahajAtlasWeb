@@ -165,9 +165,15 @@
     "open": "Találjon egy tanfolyamot a közelében"
   },
   "feedback": {
-    "confirmed": "Köszönjük a megerősítést, hogy ez az alkalom továbbra is megtartásra kerül – így mások is megtalálják.",
-    "denied": "Köszönjük, hogy jelezte, hogy ez az alkalom elmaradt – átnézzük és javítjuk a hirdetést a többiek számára.",
+    "confirmed": {
+      "title": "Köszönjük a megerősítést",
+      "body": "Jelezzük másoknak, hogy ez az alkalom továbbra is megtartásra kerül."
+    },
+    "denied": {
+      "title": "Köszönjük a jelzést",
+      "body": "Átnézzük és frissítjük ezt a hirdetést. Elnézést a hibáért."
+    },
     "nearby": "További közeli alkalmak megtekintése",
-    "below": "Az ebben a térségben tartott további alkalmakat lentebb találja."
+    "below": "További közeli alkalmakat lentebb talál."
   }
 }

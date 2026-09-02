@@ -165,9 +165,15 @@
     "open": "Find a class near you"
   },
   "feedback": {
-    "confirmed": "Thank you for confirming that this class is still running — this helps other seekers find it.",
-    "denied": "Thank you for telling us that this class did not happen — we will review and fix this listing for others.",
+    "confirmed": {
+      "title": "Thank you for confirming",
+      "body": "We will let other users know this class is still running."
+    },
+    "denied": {
+      "title": "Thank you for telling us",
+      "body": "We will review this listing and update it. Sorry for the mistake."
+    },
     "nearby": "See other classes nearby",
-    "below": "Other classes in this area are listed below."
+    "below": "You can find other nearby classes below."
   }
 }

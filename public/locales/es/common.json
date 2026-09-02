@@ -165,9 +165,15 @@
     "open": "Encuentra una clase cerca de ti"
   },
   "feedback": {
-    "confirmed": "Gracias por confirmar que esta clase sigue en marcha: así otros buscadores pueden encontrarla.",
-    "denied": "Gracias por avisarnos de que esta clase no se celebró: revisaremos y corregiremos esta información para los demás.",
+    "confirmed": {
+      "title": "Gracias por confirmar",
+      "body": "Avisaremos a otros usuarios de que esta clase sigue en marcha."
+    },
+    "denied": {
+      "title": "Gracias por avisarnos",
+      "body": "Revisaremos esta información y la actualizaremos. Sentimos el error."
+    },
     "nearby": "Ver otras clases cerca",
-    "below": "Más abajo se muestran otras clases de esta zona."
+    "below": "Más abajo se muestran otras clases cercanas."
   }
 }

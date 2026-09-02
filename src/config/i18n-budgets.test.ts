@@ -46,12 +46,39 @@ const HELPER_BUDGETS: Record<string, number> = {
   contact_to_join_full: 40,
 }
 
+/**
+ * SOFT budget — the post-event acknowledgement's TITLE line (#164, tightened in #181 review).
+ *
+ * `Alert` renders `title` as its own `font-medium` line above `description`, in a `size="sm"`
+ * banner inside a drawer no wider than 22rem. The acknowledgement originally spent its whole
+ * sentence in that slot ("Thank you for confirming that this class is still running — this
+ * helps other seekers find it.", ~90 chars), which wrapped to three bold lines and read as a
+ * paragraph rather than a heading. Splitting it into a title plus a body is the review's fix;
+ * this ceiling is what keeps a retranslation from quietly undoing it.
+ *
+ * Nothing truncates, so an overflow costs a wrapped line rather than lost text. 40 clears the
+ * longest current rendering (fr's "Merci de nous avoir prévenus", 28) with room for a locale
+ * that needs a longer greeting, and is less than half what the one-sentence titles spent.
+ *
+ * A BLANK title would pass this length check; it is the `common`-namespace parity test in
+ * `i18n-options.test.ts` that rejects one, and that test is where the two answers' keys are
+ * required to exist in every locale at all.
+ */
+const FEEDBACK_TITLE_BUDGET = 40
+
+/** The two answers `?feedback=` can carry, each rendering its own banner. */
+const FEEDBACK_ANSWERS = ['confirmed', 'denied']
+
 const locales = readdirSync(LOCALES_DIR, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
 
 const displayStrings = (locale: string): Record<string, string> =>
   JSON.parse(readFileSync(join(LOCALES_DIR, locale, 'events.json'), 'utf8')).display
+
+const feedbackTitle = (locale: string, answer: string): unknown =>
+  JSON.parse(readFileSync(join(LOCALES_DIR, locale, 'common.json'), 'utf8')).feedback?.[answer]
+    ?.title
 
 describe('locale copy budgets (issue #52)', () => {
   it('finds every locale bundle', () => {
@@ -85,6 +112,21 @@ describe('locale copy budgets (issue #52)', () => {
         value.length,
         `${locale} display.${key} is ${value.length} chars (ceiling ${budget}): "${value}"`,
       ).toBeLessThanOrEqual(budget)
+    }
+  })
+
+  it.each(locales)('%s: feedback banner titles stay a phrase, not a sentence', (locale) => {
+    for (const answer of FEEDBACK_ANSWERS) {
+      const value = feedbackTitle(locale, answer)
+
+      expect(value, `${locale} feedback.${answer}.title is missing`).toBeTypeOf('string')
+
+      const title = value as string
+
+      expect(
+        title.length,
+        `${locale} feedback.${answer}.title is ${title.length} chars (ceiling ${FEEDBACK_TITLE_BUDGET}): "${title}"`,
+      ).toBeLessThanOrEqual(FEEDBACK_TITLE_BUDGET)
     }
   })
 })

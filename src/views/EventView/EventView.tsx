@@ -140,16 +140,19 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
                   closeLabel={t('close')}
                   color="primary"
                   description={
-                    onwardHref ? (
-                      <Link className="underline" href={onwardHref}>
-                        {t('feedback.nearby')}
-                      </Link>
-                    ) : undefined
+                    <>
+                      {t('feedback.confirmed.body')}
+                      {onwardHref && (
+                        <Link className="mt-1 block underline" href={onwardHref}>
+                          {t('feedback.nearby')}
+                        </Link>
+                      )}
+                    </>
                   }
                   icon={<Check size={18} />}
                   role="status"
                   size="sm"
-                  title={t('feedback.confirmed')}
+                  title={t('feedback.confirmed.title')}
                   onClose={dismissFeedback}
                 />
               )}
