@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Kurs in deiner Nähe finden"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Danke für die Bestätigung",
+      "body": "Wir teilen anderen mit, dass dieser Kurs weiterhin stattfindet."
+    },
+    "denied": {
+      "title": "Danke für den Hinweis",
+      "body": "Wir prüfen diesen Eintrag und aktualisieren ihn. Entschuldigen Sie den Fehler."
+    },
+    "nearby": "Andere Kurse in der Nähe ansehen",
+    "below": "Weitere Kurse in der Nähe finden Sie unten."
   }
 }

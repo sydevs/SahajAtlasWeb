@@ -69,6 +69,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **A reader answering a post-event feedback email now lands in the atlas, not on a dead-end
+  card.** ([#181]) People who register for a class get a follow-up asking whether it took place;
+  both answers now redirect to your site — the class's own page for "yes", its region page for
+  "no" — carrying **`?feedback=confirmed`** or **`?feedback=denied`**. The widget shows a short
+  acknowledgement the reader can dismiss, and then removes that parameter with a
+  `history.replaceState`, so it never lingers in a copied link or reappears on a reload. **Nothing is required of you:** the
+  links come from the CMS, your own query parameters come through byte-for-byte unchanged, and the
+  canonical URL the widget emits still has no `feedback` on it, so the two answers cannot be
+  indexed as duplicates of a page you already have. A `feedback` value the widget does not
+  recognise is left alone, on the assumption that it is yours.
+
 - **"Find my location" now opens the classes near the visitor, not just a street corner.**
   Pressing it used to zoom the map to the visitor's own address and leave the list showing whatever
   it showed before. It now opens the distance-ranked results centred on them, framed to take in the
@@ -192,6 +203,13 @@ cover everything a host would notice since the widget was first deployed.
   custom property. No extra request, no CSP change; unset, it uses the self-hosted face as before.
 
 ### Fixed
+
+- **Switching language no longer re-encodes the rest of your page's URL.** ([#181]) When a visitor
+  picked a language, the widget rewrote the whole query string rather than the one parameter it was
+  adding — so a readable `?atlas=/gb/london` came back as `?atlas=%2Fgb%2Flondon`, and a parameter
+  of your own carrying `%20` came back with a `+`. Both forms mean the same thing to any parser, so
+  nothing broke; what suffered was the legibility of a link a visitor copies. The widget now edits
+  only the pair it is writing and leaves every other pair byte for byte as your page had it.
 
 - **Tapping a pin from a set of search results no longer zooms out to the whole world first.**
   The map now goes straight from the search to the class. The outgoing panel was still steering the
@@ -466,6 +484,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
+[#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element

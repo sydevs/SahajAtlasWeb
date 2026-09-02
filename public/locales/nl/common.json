@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Vind een les bij jou in de buurt"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Bedankt voor je bevestiging",
+      "body": "We laten anderen weten dat deze les nog doorgaat."
+    },
+    "denied": {
+      "title": "Bedankt voor het doorgeven",
+      "body": "We controleren deze vermelding en werken hem bij. Excuses voor de fout."
+    },
+    "nearby": "Bekijk andere lessen in de buurt",
+    "below": "Andere lessen in de buurt staan hieronder."
   }
 }

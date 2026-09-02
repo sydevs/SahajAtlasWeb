@@ -30,6 +30,19 @@ describe('localeHref', () => {
     expect(url.searchParams.get('locale')).toBe('fr')
   })
 
+  /**
+   * ⚠ The assertion above passed throughout the defect this fixes, because it hands in an ALREADY
+   * percent-encoded `%2Fgb%2Flondon` and reads back through `searchParams.get`, which decodes
+   * either way. The mangling was only ever visible in the raw string: `searchParams.set` +
+   * `toString()` re-serialized every surviving pair, re-encoding a readable route and rewriting a
+   * host's `%20` to `+`. Compare bytes, not parsed values.
+   */
+  it('leaves the surviving pairs byte-identical, readable route and all', () => {
+    expect(localeHref(`${HOST}?p=123&atlas=/gb/london&keep=a%20b`, 'fr')).toBe(
+      `${HOST}?p=123&atlas=/gb/london&keep=a%20b&locale=fr`,
+    )
+  })
+
   it('replaces an existing locale rather than appending a second', () => {
     const url = new URL(localeHref(`${HOST}?locale=fr`, 'ru'))
 

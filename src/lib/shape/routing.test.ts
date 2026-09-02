@@ -367,6 +367,41 @@ describe('routeFromPathname', () => {
   })
 })
 
+// Both of these went in when `hrefFor`/`pathHrefFor` moved onto `query.ts`, and both were checked
+// by reintroducing their defect against the suite as it stood: the whole 457-test lane stayed
+// green for each, so neither property was covered before.
+describe('hrefFor and pathHrefFor on the shared query editor', () => {
+  /**
+   * ⚠ The trap the move had to avoid, and the reason `hrefFor` calls `searchWith` (the string
+   * editor) rather than `hrefWith` (the URL wrapper).
+   *
+   * `hrefWith` answers `''` when the value is already there, because its two callers —
+   * `publishLocale` and `clearFeedback` — both mean "leave the URL alone" by it. `hrefFor` feeds
+   * `createHref` for every `<Link>`, and a link to the route already on screen is the commonest
+   * case in the whole app, so `''` there blanks the href of every self-link on the page.
+   */
+  it('still returns a URL when the route is already the current one', () => {
+    const href = 'https://host.example/p?atlas=/gb/london'
+
+    expect(hrefFor(href, '/gb/london')).toBe(href)
+    expect(pathHrefFor('https://host.example/m/gb', '/gb', '/m')).toBe('https://host.example/m/gb')
+  })
+
+  /**
+   * The improvement the move buys. The old `readable()` pass ran `%2F`→`/` and `%2C`→`,` over the
+   * WHOLE query to repair `searchParams.set`'s re-serialization, which also rewrote a host's own
+   * pairs — and never recovered their `%20`, which `set` had already turned into `+`.
+   */
+  it('leaves the host’s own encoding byte-identical, `%20` and `%2F` alike', () => {
+    expect(hrefFor('https://host.example/p?keep=a%20b&path=x%2Fy', '/gb/london')).toBe(
+      'https://host.example/p?keep=a%20b&path=x%2Fy&atlas=/gb/london',
+    )
+    expect(pathHrefFor('https://host.example/m/gb?keep=a%20b', '/nl?sort=soonest', '/m')).toBe(
+      'https://host.example/m/nl?keep=a%20b&atlas=sort%3Dsoonest',
+    )
+  })
+})
+
 describe('pathHrefFor', () => {
   const PAGE = 'https://wemeditate.com/map/gb?utm_source=news'
 

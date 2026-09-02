@@ -3,14 +3,17 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
+import { Alert } from '@/components/atoms/Alert'
+import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
 import api from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { childRoute } from '@/lib/shape'
+import { childRoute, searchPath } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CalendarButton,
@@ -37,6 +40,10 @@ export function RegionView({ slug }: { slug: string }) {
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
+  // A reader redirected here by the post-event email said the class did NOT take place (#164).
+  // Only `denied` lands on a region page — `confirmed` goes to the event's own — so a stray
+  // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
+  const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
 
   const { data: region } = useSuspenseQuery({
     queryKey: ['region', slug, locale],
@@ -93,7 +100,45 @@ export function RegionView({ slug }: { slug: string }) {
         </div>
       </DrawerHeader>
       <DrawerBody>
-        <GeolocationSuggestion regionCenter={region.center} />
+        {/* Above the region's own content, which IS the "other classes near them" the
+            acknowledgement hands off to — so the banner carries no onward link of its own.
+            Neutral and unticked: a tick would read as "yes, it's gone", and one report is not
+            a verdict (the listing only comes down at five denials with a Wilson upper bound
+            below 0.5). */}
+        {feedback === 'denied' && (
+          <Alert
+            className="mb-4"
+            closeLabel={tCommon('close')}
+            color="neutral"
+            description={
+              // Normally the onward step is the list directly below, so the banner names it
+              // rather than linking to the page the reader is already on — `below` joins onto
+              // `body` as the one paragraph the copy was written as. A region with nothing left
+              // to list is the exception — the fifth denial unpublishes the event, so this is
+              // reachable — and there that clause would be a claim standing above an empty
+              // state, so it becomes a real link into the search instead. The joining space
+              // belongs to the clause, not to the body: the link is a block and wants none.
+              <>
+                {tCommon('feedback.denied.body')}
+                {isEmpty ? (
+                  <Link className="mt-1 block underline" href={searchPath()}>
+                    {tCommon('feedback.nearby')}
+                  </Link>
+                ) : (
+                  ` ${tCommon('feedback.below')}`
+                )}
+              </>
+            }
+            role="status"
+            size="sm"
+            title={tCommon('feedback.denied.title')}
+            onClose={dismissFeedback}
+          />
+        )}
+        {/* Suppressed while the acknowledgement is up: two stacked prompts above the list is
+            more than the screen can carry, and the reader has just acted once already. It
+            returns as soon as they dismiss the banner. */}
+        {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
         {isEmpty ? (
           <EmptyEventList />
         ) : (

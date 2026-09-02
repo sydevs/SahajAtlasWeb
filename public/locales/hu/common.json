@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Találjon egy tanfolyamot a közelében"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Köszönjük a megerősítést",
+      "body": "Jelezzük másoknak, hogy ez az alkalom továbbra is megtartásra kerül."
+    },
+    "denied": {
+      "title": "Köszönjük a jelzést",
+      "body": "Átnézzük és frissítjük ezt a hirdetést. Elnézést a hibáért."
+    },
+    "nearby": "További közeli alkalmak megtekintése",
+    "below": "További közeli alkalmakat lentebb talál."
   }
 }

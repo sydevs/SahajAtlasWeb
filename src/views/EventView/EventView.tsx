@@ -1,7 +1,10 @@
 import { Suspense, lazy, useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { Check } from 'lucide-react'
 
+import { Alert } from '@/components/atoms/Alert'
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
+import { Link } from '@/components/atoms/Link'
 import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // Leaf-file imports (not the folder index): the index re-exports EventDetails,
 // and importing it statically here would pull the lazy-loaded panel chunk
@@ -17,7 +20,9 @@ import { eventQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
+import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { useWidgetMode } from '@/config/mode'
+import { parentOf } from '@/lib/shape'
 import { CloseButton, useDrawerControl, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
@@ -56,6 +61,10 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   const { collapsed } = useDrawerControl()
 
   const { data: event } = useSuspenseQuery(eventQuery(id, locale))
+  // A reader redirected here by the post-event email confirmed the class DID take place (#164).
+  // Only `confirmed` lands on an event page — `denied` goes to the region — so a stray `denied`
+  // renders nothing here, while the hook still takes the parameter out of the URL.
+  const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
   // The component itself is the state — the boundary's reset swaps in a fresh `lazy`. Held
   // directly rather than as a counter a memo keys off, so the rule ("a retry needs a new
   // lazy") is the code rather than something to reconstruct from a dep array. `useState`
@@ -79,6 +88,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // starts out reading the right thing, not because a narrow embed gains one today.
   const { display } = useEventDisplay(event)
   const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const onwardHref = parentOf(event.path)
 
   return (
     <>
@@ -113,7 +123,40 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
               />
             }
           >
-            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister} />
+            <EventDetails basePath={basePath} event={event} registerInline={!stickyRegister}>
+              {/* Passed as the panel's slot so it lands immediately above Register, which lives
+                  inside EventDetails when it is inline. The acknowledgement belongs beside the
+                  action it wants them to take, and the panel is the only thing that knows where
+                  that action sits.
+
+                  The onward rung is the event's own region — "other classes near them" — built
+                  from `event.path` rather than `event.region.webPath`, which is a CMS-supplied
+                  route and would need `safePath` before it could reach an href; `parentOf`
+                  derives the same place from a route we already resolved this view from. It is
+                  OPTIONAL: a path with no parent yields nothing, and the acknowledgement then
+                  stands on its own rather than rendering a link to nowhere. */}
+              {feedback === 'confirmed' && (
+                <Alert
+                  closeLabel={t('close')}
+                  color="primary"
+                  description={
+                    <>
+                      {t('feedback.confirmed.body')}
+                      {onwardHref && (
+                        <Link className="mt-1 block underline" href={onwardHref}>
+                          {t('feedback.nearby')}
+                        </Link>
+                      )}
+                    </>
+                  }
+                  icon={<Check size={18} />}
+                  role="status"
+                  size="sm"
+                  title={t('feedback.confirmed.title')}
+                  onClose={dismissFeedback}
+                />
+              )}
+            </EventDetails>
           </Suspense>
         </ResetErrorBoundary>
       </DrawerBody>

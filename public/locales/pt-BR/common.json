@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Encontre uma aula perto de você"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Obrigado por confirmar",
+      "body": "Vamos avisar outras pessoas de que esta aula continua acontecendo."
+    },
+    "denied": {
+      "title": "Obrigado por nos avisar",
+      "body": "Vamos revisar este anúncio e atualizá-lo. Desculpe pelo erro."
+    },
+    "nearby": "Ver outras aulas por perto",
+    "below": "Outras aulas por perto estão listadas abaixo."
   }
 }

@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Encuentra una clase cerca de ti"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Gracias por confirmar",
+      "body": "Avisaremos a otros usuarios de que esta clase sigue en marcha."
+    },
+    "denied": {
+      "title": "Gracias por avisarnos",
+      "body": "Revisaremos esta información y la actualizaremos. Sentimos el error."
+    },
+    "nearby": "Ver otras clases cerca",
+    "below": "Más abajo se muestran otras clases cercanas."
   }
 }

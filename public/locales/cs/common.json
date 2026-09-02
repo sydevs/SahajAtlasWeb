@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Najděte kurz ve svém okolí"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Děkujeme za potvrzení",
+      "body": "Dáme ostatním vědět, že tato lekce stále probíhá."
+    },
+    "denied": {
+      "title": "Děkujeme za upozornění",
+      "body": "Tento záznam prověříme a upravíme. Omlouváme se za chybu."
+    },
+    "nearby": "Zobrazit další lekce v okolí",
+    "below": "Další lekce v okolí najdete níže."
   }
 }

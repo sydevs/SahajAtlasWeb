@@ -163,5 +163,17 @@
   },
   "compact": {
     "open": "Trouver un cours près de chez vous"
+  },
+  "feedback": {
+    "confirmed": {
+      "title": "Merci de votre confirmation",
+      "body": "Nous informerons les autres que ce cours a toujours lieu."
+    },
+    "denied": {
+      "title": "Merci de nous avoir prévenus",
+      "body": "Nous allons vérifier cette annonce et la mettre à jour. Désolés pour l'erreur."
+    },
+    "nearby": "Voir d'autres cours à proximité",
+    "below": "D'autres cours à proximité sont listés ci-dessous."
   }
 }

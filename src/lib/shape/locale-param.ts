@@ -6,10 +6,15 @@
  * ever WROTE it, so picking a language from the settings menu changed the widget and left the
  * address bar describing the page as it was before — nothing to copy, nothing to reload into.
  *
- * This is the other half. It is the second and last top-level parameter the widget claims on a
- * host's URL, beside `atlas`; both `hrefFor` and `pathHrefFor` preserve parameters they do not
+ * This is the other half. It is the second and last top-level parameter the widget ever WRITES to
+ * a host's URL, beside `atlas`; both `hrefFor` and `pathHrefFor` preserve parameters they do not
  * own, so once written it survives every subsequent in-widget navigation and rides along in
  * anything the visitor copies.
+ *
+ * ⚠ **"Writes" is doing real work in that sentence** — `feedback-param.ts` (#164) added a third
+ * top-level name the widget knows about, and it is the mirror image of this one: read once on
+ * arrival and then REMOVED, never written. Both facts matter to a host, which is why
+ * `docs/embedding.md` documents them together and separately.
  *
  * ⚠ **Imports nothing from `config/`, and `pageLocaleOverride` takes the supported set as an
  * argument for that reason.** `config/i18n-options.ts` imports `LOCALE_PARAM` from here, so
@@ -17,6 +22,8 @@
  * see: it would surface as a TDZ `ReferenceError` at boot, and only in whichever load order the
  * bundler happened to pick. Every other module in `lib/shape` is pure for the same reason.
  */
+
+import { hrefWith } from './query'
 
 /**
  * The parameter name, defined once.
@@ -27,19 +34,18 @@
  */
 export const LOCALE_PARAM = 'locale'
 
-/** The absolute URL for `href` carrying `locale`, or `''` if it will not parse. */
+/**
+ * The absolute URL for `href` carrying `locale`, or `''` if it will not parse or already says so.
+ *
+ * ⚠ **Written through `hrefWith`, not `searchParams.set`.** That setter re-serializes the whole
+ * query, so publishing a language used to re-encode a readable `?atlas=/gb/london` into
+ * `%2Fgb%2Flondon` and rewrite a host's own `keep=a%20b` into `keep=a+b` — on every switch, for a
+ * parameter the widget does not own. Nothing broke (the readers percent-decode either way), which
+ * is exactly why it went unnoticed: the cost was the legibility `routeToParam` exists to protect.
+ * `query.ts` carries the argument and the measurement.
+ */
 export function localeHref(href: string, locale: string): string {
-  try {
-    const url = new URL(href)
-
-    url.searchParams.set(LOCALE_PARAM, locale)
-
-    return url.toString()
-  } catch {
-    // A page whose URL will not parse cannot be written back to. The caller does nothing, which
-    // costs the reload-persistence and no more — the same degradation `hrefFor` produces.
-    return ''
-  }
+  return hrefWith(href, LOCALE_PARAM, locale)
 }
 
 /**

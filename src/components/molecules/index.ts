@@ -83,6 +83,8 @@ export type { EventListItemProps } from './EventListItem'
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
 
+// feedback email (wired by usePostEventFeedback in EventView / RegionView).
+
 // GeolocationPrompt — the dismissible IP-geolocation "events near you" suggestion
 // shown above the list on the top-level views (wired by GeolocationSuggestion in
 // views/shared).
