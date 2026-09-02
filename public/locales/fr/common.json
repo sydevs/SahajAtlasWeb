@@ -119,7 +119,9 @@
       "message": "Veuillez écrire au moins %{min} caractères.",
       "message_max": "Veuillez rester sous %{max} caractères.",
       "send_failed": "Votre signalement n'a pas été envoyé. Attendez que la vérification de sécurité se réactualise, puis réessayez.",
-      "captcha": "La vérification de sécurité doit être refaite. Attendez qu'elle se rafraîchisse, puis renvoyez."
+      "captcha": "La vérification de sécurité doit être refaite. Attendez qu'elle se rafraîchisse, puis renvoyez.",
+      "disposable_email": "Ce fournisseur d’e-mail n’est pas accepté. Utilisez une adresse à laquelle nous pouvons répondre, ou laissez le champ vide.",
+      "urls_not_allowed": "Les liens ne sont pas autorisés dans le message. Supprimez-les et renvoyez-le."
     }
   },
   "error": {

@@ -119,7 +119,9 @@
       "message": "Schrijf minstens %{min} tekens.",
       "message_max": "Blijf onder de %{max} tekens.",
       "send_failed": "Je melding is niet verzonden. Wacht tot de beveiligingscontrole is vernieuwd en probeer het opnieuw.",
-      "captcha": "De veiligheidscontrole moet opnieuw. Wacht tot deze is vernieuwd en verstuur het opnieuw."
+      "captcha": "De veiligheidscontrole moet opnieuw. Wacht tot deze is vernieuwd en verstuur het opnieuw.",
+      "disposable_email": "Die e-mailprovider wordt niet geaccepteerd. Gebruik een adres waarop we kunnen antwoorden, of laat het leeg.",
+      "urls_not_allowed": "Links zijn niet toegestaan in het bericht. Verwijder ze en verstuur het opnieuw."
     }
   },
   "error": {

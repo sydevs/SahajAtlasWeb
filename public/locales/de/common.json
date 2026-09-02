@@ -119,7 +119,9 @@
       "message": "Bitte schreiben Sie mindestens %{min} Zeichen.",
       "message_max": "Bitte bleiben Sie unter %{max} Zeichen.",
       "send_failed": "Deine Meldung wurde nicht gesendet. Warte, bis sich die Sicherheitsprüfung erneuert, und versuche es erneut.",
-      "captcha": "Die Sicherheitsprüfung muss erneut durchgeführt werden. Warte, bis sie aktualisiert ist, und sende dann noch einmal."
+      "captcha": "Die Sicherheitsprüfung muss erneut durchgeführt werden. Warte, bis sie aktualisiert ist, und sende dann noch einmal.",
+      "disposable_email": "Dieser E-Mail-Anbieter wird nicht akzeptiert. Verwende eine Adresse, unter der wir dich erreichen können, oder lass das Feld leer.",
+      "urls_not_allowed": "Links sind in der Nachricht nicht erlaubt. Bitte entferne sie und sende erneut."
     }
   },
   "error": {

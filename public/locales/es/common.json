@@ -119,7 +119,9 @@
       "message": "Escribe al menos %{min} caracteres.",
       "message_max": "No superes los %{max} caracteres.",
       "send_failed": "Tu informe no se envió. Espera a que se actualice la comprobación de seguridad e inténtalo de nuevo.",
-      "captcha": "Hay que repetir la comprobación de seguridad. Espera a que se actualice y vuelve a enviar."
+      "captcha": "Hay que repetir la comprobación de seguridad. Espera a que se actualice y vuelve a enviar.",
+      "disposable_email": "Ese proveedor de correo no se acepta. Usa una dirección a la que podamos responder, o déjala en blanco.",
+      "urls_not_allowed": "No se permiten enlaces en el mensaje. Quítalos y envíalo de nuevo."
     }
   },
   "error": {

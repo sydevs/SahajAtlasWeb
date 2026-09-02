@@ -12,12 +12,18 @@ API-key client. We talk to it through **`@payloadcms/sdk`** (`PayloadSDK<Config>
 fetch-based client typed against our synced `payload-types.ts`) + **`zod`**. The SDK's
 `payload` dependency is **types-only** — its dist imports only `qs-esm` at runtime — so
 only the SDK + `qs-esm` reach the public bundle (this replaced `axios` + `qs`; see #41).
-`src/types/payload/` holds the synced `payload-types.ts` plus the two endpoint contract
-files (run `pnpm types:cms`) — the SDK's compile-time source of truth; keep the zod schemas
-aligned with them. The contract files are separate because they are separate **upstream**:
-`response-types.ts` comes from the Events collection's endpoints folder, `contact-types.ts`
-from SahajCloud's root `src/endpoints/` (the only root-registered endpoint). Each is its own
-curl in `types:cms`, so a new root endpoint needs a new line rather than appearing by magic.
+`src/types/payload/` holds the synced `payload-types.ts` plus `response-types.ts`, the Events
+collection's endpoint contract (run `pnpm types:cms`) — the SDK's compile-time source of
+truth; keep the zod schemas aligned with them. Each is its own curl in `types:cms`, so a new
+endpoint contract needs a new line rather than appearing by magic.
+
+There used to be a third, `contact-types.ts`, curled from SahajCloud's root
+`src/endpoints/responseTypes.ts` for `POST /api/contact-admin`. **That endpoint is deleted**
+(SahajCloud#632/#653) and the file is gone with it — a `user-messages` row's shape comes from
+the generated `Config` like any other collection. ⚠ The upstream path still resolves, so the
+curl did not fail: it now serves the Atlas **SEO and sitemap** types, which nothing here
+consumes, and kept overwriting a file named after contact with unrelated content. Its line is
+removed from `types:cms`.
 
 ## The shared SDK client (`src/config/api/client.ts`)
 
@@ -179,13 +185,24 @@ correct for its one call site.
 - `createRegistration` → `POST /api/events/:id/register` with
   `{ email, name, startingAt?, questions? }`; the confirmation is parsed through
   `RegistrationResponseSchema`.
-- `contactAdmin` → `POST /api/contact-admin` (sydevs/SahajCloud#602), the shared
-  captcha-gated channel behind the report-issue form. The Turnstile token rides in the
-  **body** — the endpoint verifies it server-side — and each `context` value is clamped to
-  that endpoint's own bound, because an over-long one is a 400 for the whole message.
-  **The email is the deliverable**: a failed send is a 502, never a false 200, so a
-  resolved promise is the only thing that means delivered and the form derives its
-  thank-you screen from nothing else (issue #103).
+- `sendUserMessage` → `POST /api/user-messages` (sydevs/SahajCloud#632, issue #171), the
+  shared captcha-gated intake behind the report-issue form. The Turnstile token rides in the
+  **`x-turnstile-token` header**, the same one `createRegistration` sends: the write-guard
+  that reads it is a plugin above every collection, so it cannot know one body shape from
+  another. Each `context` value is clamped to the collection's own bound (2000 per key),
+  because an over-long one is a 400 for the whole message.
+  ⚠ **A 201 means ACCEPTED, not delivered**, and that is a narrowing from the root endpoint
+  it replaced, which sent the email inline and answered 502 rather than a false 200. Delivery
+  is now a background job; a failed send reaches SahajCloud admins as a `failed` row and can
+  never reach the sender. The form still derives its thank-you from a resolved promise and
+  nothing else (issue #103) — but the copy promises receipt, not arrival.
+
+  **A refusal's code arrives at `errors[].data.code`, not `errors[].code`** — Payload's own
+  `formatErrors` nests the `APIError` payload under `data` on every collection-backed route,
+  while the hand-written register endpoint still builds the flat shape itself. `asRefusal`
+  therefore reads **both** positions. Switching it to `data.code` alone would silently stop
+  recognising every registration refusal: each would fall through as a generic error and the
+  form would show "try again" in place of the copy written for that case.
 
 - `reportEmbed` → `POST /api/clients/report` (sydevs/SahajCloud#633, issue #153) — the one
   mutation no viewer asked for: what the widget observed about the host page it is mounted

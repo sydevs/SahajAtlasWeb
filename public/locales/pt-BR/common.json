@@ -119,7 +119,9 @@
       "message": "Escreva pelo menos %{min} caracteres.",
       "message_max": "Use menos de %{max} caracteres.",
       "send_failed": "Seu relato não foi enviado. Aguarde a atualização da verificação de segurança e tente novamente.",
-      "captcha": "A verificação de segurança precisa ser refeita. Aguarde a atualização e envie novamente."
+      "captcha": "A verificação de segurança precisa ser refeita. Aguarde a atualização e envie novamente.",
+      "disposable_email": "Esse provedor de e-mail não é aceito. Use um endereço para o qual possamos responder, ou deixe em branco.",
+      "urls_not_allowed": "Não são permitidos links na mensagem. Remova-os e envie novamente."
     }
   },
   "error": {

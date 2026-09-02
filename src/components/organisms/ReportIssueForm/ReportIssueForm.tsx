@@ -1,4 +1,4 @@
-import type { ContactAdminErrorCode } from '@/types/payload/contact-types'
+import type { UserMessageErrorCode } from '@/config/api/mutate'
 import type { ReportContext, ReportPayload } from '@/lib/report'
 
 import { useEffect } from 'react'
@@ -14,22 +14,36 @@ import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 import api from '@/config/api'
-import { ContactRefusedError } from '@/config/api/mutate'
+import { UserMessageRefusedError } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
 /**
- * Our copy for each refusal the endpoint can name, keyed by its machine-readable code.
- * A total `Record` over the synced union — exactly as `RegistrationForm` does — so a
- * `pnpm types:cms` that ADDS a code fails the build here instead of silently routing the
- * new case to the generic "try again" sentence.
+ * Our copy for each refusal the intake can name, keyed by its machine-readable code.
+ * A total `Record` over the union — exactly as `RegistrationForm` does — so ADDING a code
+ * to `UserMessageErrorCode` fails the build here instead of silently routing the new case
+ * to the generic "try again" sentence.
  *
- * `captcha_failed` is the token being forged, expired, or already redeemed. The challenge
- * has been reset underneath the viewer by then, so the copy tells them to wait for it and
- * re-send rather than offering the email escape.
+ * Two of these five are actionable by the sender and two are not, which is what decides
+ * the copy rather than the HTTP status:
+ *
+ * - `captcha_failed` — the token was forged, expired, or already redeemed. The challenge
+ *   has been reset underneath the viewer by then, so the copy tells them to wait for it
+ *   and re-send rather than offering the email escape.
+ * - `captcha_unavailable` — Cloudflare is unreachable on OUR side. Nothing the sender can
+ *   fix, and re-sending is the only move, so it takes the generic sentence.
+ * - `invalid_email` / `disposable_email` — the address. Both name the field, because the
+ *   sender can change it (or clear it — the address is optional).
+ * - `urls_not_allowed` — a link in the message body. Actionable, and worth saying
+ *   precisely: the generic "wait for the security check" is actively misleading here,
+ *   since waiting will never help.
  */
-const REFUSAL_MESSAGE_KEYS: Record<ContactAdminErrorCode, string> = {
+const REFUSAL_MESSAGE_KEYS: Record<UserMessageErrorCode, string> = {
   captcha_failed: 'report.errors.captcha',
+  captcha_unavailable: 'report.errors.send_failed',
+  invalid_email: 'report.errors.email',
+  disposable_email: 'report.errors.disposable_email',
+  urls_not_allowed: 'report.errors.urls_not_allowed',
 }
 
 export type ReportIssueFormProps = {
@@ -58,8 +72,9 @@ export type ReportIssueFormProps = {
  * The report-issue form (issues #79/#103): an optional reply address, the message, and a
  * Turnstile challenge, over the auto-attached `context` the viewer never types.
  *
- * Submit POSTs to SahajCloud's shared `/api/contact-admin` (sydevs/SahajCloud#602), which
- * verifies the token and emails the team. **The thank-you screen is derived from the
+ * Submit POSTs to SahajCloud's shared `/api/user-messages` (sydevs/SahajCloud#632), which
+ * verifies the token, screens for spam and hands the message to a delivery job.
+ * **The thank-you screen is derived from the
  * mutation's own success and nothing else** — it used to be set beside a `window.alert`,
  * so every report "sent" successfully and none of them went anywhere. This form is
  * reached BECAUSE something already failed, often the network, so its failure state has
@@ -87,7 +102,7 @@ export function ReportIssueForm({
   })
 
   const mutation = useMutation({
-    mutationFn: api.contactAdmin,
+    mutationFn: api.sendUserMessage,
     /**
      * React Query's default `networkMode: 'online'` **pauses** a mutation fired while the
      * browser reports itself offline: no request, no throw, no `onError` — it sits
@@ -105,8 +120,8 @@ export function ReportIssueForm({
      * failure copy already describes.
      */
     networkMode: 'always',
-    // A Turnstile token is single-use and the endpoint redeems it during verification —
-    // BEFORE it tries to send the email. So after a 502 (mail provider down) the token is
+    // A Turnstile token is single-use and the write-guard redeems it during verification —
+    // BEFORE the collection accepts the row. So after any later failure the token is
     // already spent, and re-submitting it would be refused as a replay for as long as the
     // form stays open. Reset on every failure, not just the 403: the one case where the
     // token survives is a request that never reached the server, where a fresh challenge
@@ -114,9 +129,14 @@ export function ReportIssueForm({
     onError: resetCaptcha,
   })
 
-  // Nothing else may set this. `mutation.isSuccess` means a resolved, zod-parsed
-  // `{ ok: true }` — the endpoint answers 502 rather than a false 200 when the mail
-  // itself fails, so a resolved promise really does mean the message was delivered.
+  // Nothing else may set this. `mutation.isSuccess` means a resolved, zod-parsed create
+  // envelope — the message is stored and queued.
+  //
+  // ⚠ It no longer means DELIVERED, and that is a real narrowing (#171). The old endpoint
+  // sent the email inline and answered 502 rather than a false 200, so a resolved promise
+  // meant the team had it. Delivery is now a background job minutes later, and a send that
+  // fails surfaces to SahajCloud admins as a `failed` row — the sender cannot be told. So
+  // the thank-you copy promises receipt, not arrival.
   const submitted = initialSubmitted || mutation.isSuccess
 
   const {
@@ -171,7 +191,7 @@ export function ReportIssueForm({
   // chain, and a code of `constructor` / `toString` would hand `t()` a truthy non-string
   // in place of the failure sentence. Same spelling `isErrorKind` uses in lib/report.ts.
   const refusalKey =
-    mutation.error instanceof ContactRefusedError &&
+    mutation.error instanceof UserMessageRefusedError &&
     Object.prototype.hasOwnProperty.call(REFUSAL_MESSAGE_KEYS, mutation.error.code)
       ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
       : undefined
