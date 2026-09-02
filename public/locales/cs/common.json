@@ -119,7 +119,9 @@
       "message": "Napište prosím alespoň %{min} znaků.",
       "message_max": "Zkraťte prosím text pod %{max} znaků.",
       "send_failed": "Vaše hlášení nebylo odesláno. Počkejte na obnovení bezpečnostní kontroly a zkuste to znovu.",
-      "captcha": "Bezpečnostní kontrolu je třeba provést znovu. Počkejte na její obnovení a odešlete znovu."
+      "captcha": "Bezpečnostní kontrolu je třeba provést znovu. Počkejte na její obnovení a odešlete znovu.",
+      "disposable_email": "Tento poskytovatel e-mailu není přijímán. Použijte adresu, na kterou vám můžeme odpovědět, nebo ji nechte prázdnou.",
+      "urls_not_allowed": "Ve zprávě nejsou povoleny odkazy. Odeberte je prosím a odešlete znovu."
     }
   },
   "error": {

@@ -67,6 +67,17 @@ cover everything a host would notice since the widget was first deployed.
   the one family name, so no page ever mixes them. If you were keying off the old family name, or
   overriding it with `--sy-font-sans`, update the name.
 
+- **"Report an issue" sends again, and its thank-you now means *received* rather than
+  *delivered*.** ([#187]) The intake it posted to was replaced on the CMS side, so for two days
+  the form failed for every visitor who used it; it now posts to the replacement. **Nothing
+  changes for your CSP** — it is the same origin (`cloud.sydevelopers.com`) on a different path.
+
+  Two things a visitor can see. Messages are screened for spam and delivered a few minutes
+  later by a background job rather than emailed on the spot, so the confirmation says the
+  report has been received; if delivery then fails, we see it and they do not. And two refusals
+  now get their own sentence instead of the generic "try again": a disposable email address,
+  and links in the message body. Both are translated in all ten languages.
+
 ### Added
 
 - **A reader answering a post-event feedback email now lands in the atlas, not on a dead-end
@@ -460,6 +471,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#187]: https://github.com/sydevs/SahajAtlasWeb/pull/187
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148
 [#156]: https://github.com/sydevs/SahajAtlasWeb/pull/156

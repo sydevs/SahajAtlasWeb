@@ -141,7 +141,9 @@
       "message": "Please write at least %{min} characters.",
       "message_max": "Please keep it under %{max} characters.",
       "send_failed": "Your report wasn't sent. Wait for the security check to refresh, then try again.",
-      "captcha": "The security check needs doing again. Wait for it to refresh, then send once more."
+      "captcha": "The security check needs doing again. Wait for it to refresh, then send once more.",
+      "disposable_email": "That email provider is not accepted. Use an address we can reply to, or leave it blank.",
+      "urls_not_allowed": "Links are not allowed in the message. Please remove them and send again."
     }
   },
   "country_site": {

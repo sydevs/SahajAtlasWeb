@@ -21,7 +21,7 @@ import { ReportIssueForm } from './ReportIssueForm'
 import { type ReportContext } from '@/lib/report'
 
 // Mocked at the SDK boundary, not at our own `api` module: that keeps the real
-// `contactAdmin` — its body mapping, its zod parse, its refusal re-cast — inside the
+// `sendUserMessage` — its body mapping, its zod parse, its refusal re-cast — inside the
 // system under test, so this spec covers the JOIN between the endpoint and the screen.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
@@ -133,7 +133,7 @@ const MESSAGE = 'The venue address on this class is wrong.'
 
 describe('ReportIssueForm submit', () => {
   it('shows the thank-you screen only after the POST actually resolves', async () => {
-    sdk.request.mockResolvedValue({ json: async () => ({ ok: true }) })
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 42 } }) })
 
     const root = await mountForm()
 
@@ -145,7 +145,7 @@ describe('ReportIssueForm submit', () => {
     await submit()
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
-    expect(sdk.request.mock.calls[0][0].path).toBe('/contact-admin')
+    expect(sdk.request.mock.calls[0][0].path).toBe('/user-messages')
     expect(sdk.request.mock.calls[0][0].json.message).toBe(MESSAGE)
     expect(container.textContent).toContain('THANKYOU')
 

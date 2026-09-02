@@ -119,7 +119,9 @@
       "message": "Írjon legalább %{min} karaktert.",
       "message_max": "Kérjük, maradjon %{max} karakter alatt.",
       "send_failed": "A jelentésed nem lett elküldve. Várd meg, amíg a biztonsági ellenőrzés frissül, majd próbáld újra.",
-      "captcha": "A biztonsági ellenőrzést újra el kell végezni. Várd meg, amíg frissül, majd küldd el újra."
+      "captcha": "A biztonsági ellenőrzést újra el kell végezni. Várd meg, amíg frissül, majd küldd el újra.",
+      "disposable_email": "Ezt az e-mail-szolgáltatót nem fogadjuk el. Adj meg olyan címet, amelyre válaszolhatunk, vagy hagyd üresen.",
+      "urls_not_allowed": "Az üzenetben nem engedélyezettek a linkek. Távolítsd el őket, és küldd el újra."
     }
   },
   "error": {
