@@ -215,6 +215,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Registration forms ask the event's questions again.** ([#192]) A class whose organiser had
+  enabled questions like "How did you hear about this event?" showed a form with none of them for
+  roughly four weeks — the visitor was asked only for a name and an email, and the organiser
+  received a registration with the answers missing. Every enabled question is back on the form, in
+  the order the organiser sees them. Nothing about the snippet, the origins the widget contacts or
+  your CSP changes.
+
 - **Switching language no longer re-encodes the rest of your page's URL.** ([#181]) When a visitor
   picked a language, the widget rewrote the whole query string rather than the one parameter it was
   adding — so a readable `?atlas=/gb/london` came back as `?atlas=%2Fgb%2Flondon`, and a parameter
@@ -471,6 +478,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
 [#187]: https://github.com/sydevs/SahajAtlasWeb/pull/187
 [#159]: https://github.com/sydevs/SahajAtlasWeb/pull/159
 [#148]: https://github.com/sydevs/SahajAtlasWeb/pull/148

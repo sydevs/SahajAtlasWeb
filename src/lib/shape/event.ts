@@ -1,6 +1,13 @@
-import type { EventSchedule, EventType } from '@/types'
+import type {
+  EventSchedule,
+  EventType,
+  RegistrationQuestionName,
+  RegistrationQuestions,
+} from '@/types'
 
 import { DateTime, IANAZone } from 'luxon'
+
+import { REGISTRATION_QUESTION_NAMES } from '@/types'
 
 /**
  * Derivations shared by the event components, so the raw SahajCloud field shapes
@@ -20,6 +27,26 @@ export type DisplayEventLike = EventLike & {
 }
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
+
+/**
+ * The registration questions enabled on an event (each `true` boolean → one field),
+ * in `REGISTRATION_QUESTION_NAMES` order — the CMS names, so the form registers
+ * `questions.<name>` field paths and labels them from `events:questions.<name>`.
+ *
+ * Lives here rather than inside RegistrationView because it is the second half of
+ * the #191 seam: the schema parse drops a question the CMS renamed, and this filter
+ * is what turns that into an empty form. A spec that re-implements the filter cannot
+ * see either half break, so the view calls this and so does the test.
+ */
+export const enabledQuestions = (event: {
+  registrationQuestions?: RegistrationQuestions | null
+}): RegistrationQuestionName[] => {
+  const questions = event.registrationQuestions
+
+  if (!questions) return []
+
+  return REGISTRATION_QUESTION_NAMES.filter((name) => questions[name])
+}
 
 /** The next upcoming occurrence (SahajCloud precomputes `upcomingDates`), if any. */
 export const nextOccurrence = (event: EventLike): Date | undefined =>

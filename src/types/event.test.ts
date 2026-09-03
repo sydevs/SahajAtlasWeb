@@ -15,6 +15,7 @@ import {
   RegistrationQuestionsSchema,
 } from './event'
 
+import { enabledQuestions } from '@/lib/shape'
 import { mockEvent, mockEventSlim, mockEventSlimList } from '@/mocks/events'
 
 // The fetchers parse every response through these schemas (src/config/api/fetch.ts),
@@ -161,16 +162,26 @@ describe('registration question names', () => {
     expect(parsed.experience).toBe(false)
   })
 
-  // The whole chain RegistrationView walks: parse the CMS payload, then filter the
-  // derived name list by it. This is the assertion that reads `[]` when the schema
-  // and the CMS disagree, whatever the disagreement is.
+  // The whole chain RegistrationView walks: parse the CMS payload, then hand it to
+  // the SAME `enabledQuestions` the view calls. Re-implementing that filter here
+  // instead would leave the view's own half uncovered — it would stay green with the
+  // real one broken, which is the shape `docs/testing.md` warns about.
   it('resolves the questions a CMS payload enables, in schema order', () => {
-    const questions = RegistrationQuestionsSchema.parse({ questions: true, referral: true })
+    const registrationQuestions = RegistrationQuestionsSchema.parse({
+      questions: true,
+      referral: true,
+    })
 
-    expect(REGISTRATION_QUESTION_NAMES.filter((name) => questions[name])).toEqual([
-      'referral',
-      'questions',
-    ])
+    expect(enabledQuestions({ registrationQuestions })).toEqual(['referral', 'questions'])
+  })
+
+  // The stale-schema case end to end, which is what #191 actually looked like: the
+  // CMS enables a question the schema does not declare, zod strips it, and the view
+  // resolves an empty form. Asserting the parse alone would not reach the view's half.
+  it('resolves nothing when the schema and the CMS payload disagree', () => {
+    const registrationQuestions = RegistrationQuestionsSchema.parse({ priorExperience: true })
+
+    expect(enabledQuestions({ registrationQuestions })).toEqual([])
   })
 
   // Every question renders its label from `events:questions.<name>`, so a bundle key
