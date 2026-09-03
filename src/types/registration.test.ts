@@ -33,18 +33,18 @@ describe('RegistrationSchema questions', () => {
   it('accepts answers keyed by enabled question names', () => {
     const parsed = RegistrationSchema.parse({
       ...base,
-      questions: { priorExperience: 'A little', guests: '2' },
+      questions: { experience: 'A little', referral: 'A friend' },
     })
 
-    expect(parsed.questions).toEqual({ priorExperience: 'A little', guests: '2' })
+    expect(parsed.questions).toEqual({ experience: 'A little', referral: 'A friend' })
   })
 
   it('accepts an empty-string answer for an enabled-but-unanswered question', () => {
     // The form submits '' for enabled-but-blank fields; SahajCloud accepts it and
     // drops the blank from the notification email.
-    expect(RegistrationSchema.parse({ ...base, questions: { healthInfo: '' } }).questions).toEqual({
-      healthInfo: '',
-    })
+    expect(RegistrationSchema.parse({ ...base, questions: { aspirations: '' } }).questions).toEqual(
+      { aspirations: '' },
+    )
   })
 
   it('omits questions entirely when the event enables none', () => {
@@ -53,11 +53,11 @@ describe('RegistrationSchema questions', () => {
 
   it('rejects a key outside EVENT_REGISTRATION_QUESTIONS', () => {
     expect(() =>
-      RegistrationSchema.parse({ ...base, questions: { aspirations: 'peace' } }),
+      RegistrationSchema.parse({ ...base, questions: { priorExperience: 'A little' } }),
     ).toThrow()
   })
 
   it('rejects a non-string answer value', () => {
-    expect(() => RegistrationSchema.parse({ ...base, questions: { guests: 2 } })).toThrow()
+    expect(() => RegistrationSchema.parse({ ...base, questions: { questions: 2 } })).toThrow()
   })
 })

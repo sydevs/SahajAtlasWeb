@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { describe, it, expect } from 'vitest'
 
 import {
@@ -9,6 +12,7 @@ import {
   FeedEventSchema,
   REGISTRATION_QUESTION_NAMES,
   RegistrationQuestionNameSchema,
+  RegistrationQuestionsSchema,
 } from './event'
 
 import { mockEvent, mockEventSlim, mockEventSlimList } from '@/mocks/events'
@@ -132,16 +136,66 @@ describe('registration question names', () => {
   // surfaces here (alongside the compile-time `satisfies` guard on the schema).
   it('exposes the EVENT_REGISTRATION_QUESTIONS key set, in schema order', () => {
     expect(REGISTRATION_QUESTION_NAMES).toEqual([
-      'priorExperience',
-      'referralSource',
-      'healthInfo',
-      'accessibility',
-      'guests',
+      'experience',
+      'referral',
+      'aspirations',
+      'questions',
     ])
   })
 
   it('validates a known question name and rejects an unknown one', () => {
-    expect(RegistrationQuestionNameSchema.parse('guests')).toBe('guests')
-    expect(() => RegistrationQuestionNameSchema.parse('aspirations')).toThrow()
+    expect(RegistrationQuestionNameSchema.parse('aspirations')).toBe('aspirations')
+    expect(() => RegistrationQuestionNameSchema.parse('priorExperience')).toThrow()
+  })
+
+  // The #191 regression, at the seam that hid it. `RegistrationQuestionsSchema` is a
+  // plain `z.object`, so zod STRIPS a key it does not declare rather than raising —
+  // a schema naming the pre-rename questions parsed `{aspirations: true}` to `{}`,
+  // and every event rendered an empty form with nothing anywhere reporting a problem.
+  // Assert the enabled key SURVIVES the parse, not merely that the parse succeeds:
+  // a `.toBeDefined()` on the result would pass against the stale schema too.
+  it('keeps an enabled CMS question through the parse, rather than stripping it', () => {
+    const parsed = RegistrationQuestionsSchema.parse({ aspirations: true, experience: false })
+
+    expect(parsed.aspirations).toBe(true)
+    expect(parsed.experience).toBe(false)
+  })
+
+  // The whole chain RegistrationView walks: parse the CMS payload, then filter the
+  // derived name list by it. This is the assertion that reads `[]` when the schema
+  // and the CMS disagree, whatever the disagreement is.
+  it('resolves the questions a CMS payload enables, in schema order', () => {
+    const questions = RegistrationQuestionsSchema.parse({ questions: true, referral: true })
+
+    expect(REGISTRATION_QUESTION_NAMES.filter((name) => questions[name])).toEqual([
+      'referral',
+      'questions',
+    ])
+  })
+
+  // Every question renders its label from `events:questions.<name>`, so a bundle key
+  // outside the CMS set is copy nothing can reach and a missing one is a raw key on
+  // screen. Both directions, over every locale — `en` carried five unreachable keys
+  // for the whole of #191, which is what made the rename look already-adopted.
+  it('gives every locale bundle exactly the CMS question keys', () => {
+    const localesDir = fileURLToPath(new URL('../../public/locales', import.meta.url))
+    const expected = [...REGISTRATION_QUESTION_NAMES].sort()
+
+    const languages = readdirSync(localesDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+
+    expect(languages.length).toBeGreaterThan(0)
+
+    for (const language of languages) {
+      const bundle = JSON.parse(
+        readFileSync(`${localesDir}/${language}/events.json`, 'utf8'),
+      ) as Record<string, Record<string, string>>
+
+      expect(
+        Object.keys(bundle.questions).sort(),
+        `public/locales/${language}/events.json`,
+      ).toEqual(expected)
+    }
   })
 })

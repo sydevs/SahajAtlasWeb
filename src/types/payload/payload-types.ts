@@ -640,8 +640,10 @@ export interface Config {
     'app-cards': AppCard;
     regions: Region;
     events: Event;
+    'event-submissions': EventSubmission;
     registrations: Registration;
     users: User;
+    'user-messages': UserMessage;
     forms: Form;
     'form-submissions': FormSubmission;
     'payload-kv': PayloadKv;
@@ -692,6 +694,7 @@ export interface Config {
     };
     users: {
       registrations: 'registrations';
+      submittedEvents: 'events';
     };
   };
   collectionsSelect: {
@@ -716,8 +719,10 @@ export interface Config {
     'app-cards': AppCardsSelect<false> | AppCardsSelect<true>;
     regions: RegionsSelect<false> | RegionsSelect<true>;
     events: EventsSelect<false> | EventsSelect<true>;
+    'event-submissions': EventSubmissionsSelect<false> | EventSubmissionsSelect<true>;
     registrations: RegistrationsSelect<false> | RegistrationsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'user-messages': UserMessagesSelect<false> | UserMessagesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -823,9 +828,14 @@ export interface Config {
     tasks: {
       cleanupOrphanedMedia: TaskCleanupOrphanedMedia;
       expireEvents: TaskExpireEvents;
+      purgeUserMessages: TaskPurgeUserMessages;
+      screenEventSubmission: TaskScreenEventSubmission;
+      screenUserMessage: TaskScreenUserMessage;
+      sendPostEventFollowUps: TaskSendPostEventFollowUps;
       sendRegistrationDigests: TaskSendRegistrationDigests;
       sendSessionReminders: TaskSendSessionReminders;
       syncLectureMetadata: TaskSyncLectureMetadata;
+      verifyEmbeds: TaskVerifyEmbeds;
       resetUsage: TaskResetUsage;
       schedulePublish: TaskSchedulePublish;
       inline: {
@@ -1457,7 +1467,7 @@ export interface Region {
 export interface Event {
   id: number;
   /**
-   * Event name. Leave blank to auto-fill from the address (e.g. "Meditation at Beethovenstraße 12").
+   * Up to 100 characters. Leave blank to fill in from the venue — "Evening Meditation at Broadstairs Friends Meeting House" — which also translates itself into every language.
    */
   title: string;
   /**
@@ -1653,13 +1663,13 @@ export interface Event {
    */
   contactPhone?: string | null;
   /**
-   * The name of the person they are calling
-   */
-  contactName?: string | null;
-  /**
    * An email address seekers can write to for more information about the program.
    */
   contactEmail?: string | null;
+  /**
+   * The name of the person seekers will reach
+   */
+  contactName?: string | null;
   description?: {
     root: {
       type: string;
@@ -1680,9 +1690,36 @@ export interface Event {
    */
   website?: string | null;
   /**
-   * Photos for this event.
+   * Photos for this event (up to 7).
    */
   images?: (number | Image)[] | null;
+  webPath?: string | null;
+  webUrl?: string | null;
+  appUrl?: string | null;
+  /**
+   * The city or venue this event belongs to.
+   */
+  region: number | Region;
+  eventType: 'offline' | 'online';
+  /**
+   * Link attendees join the online event through.
+   */
+  onlineUrl?: string | null;
+  address?: {
+    mapboxId?: string | null;
+    /**
+     * The building's own name, where it has one. Shown in place of the street when a listing has no title of its own.
+     */
+    venueName?: string | null;
+    street?: string | null;
+    room?: string | null;
+    postCode?: string | null;
+    country?: string | null;
+    region?: string | null;
+    city?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
   /**
    * Mark this event dormant — it has no active schedule. With no schedule to show, you must provide contact info (phone + name) so seekers can reach out and find out more. Inactive events still need verification but never auto-finish.
    */
@@ -1736,30 +1773,6 @@ export interface Event {
       | boolean
       | null;
   };
-  /**
-   * The city or venue this event belongs to.
-   */
-  region: number | Region;
-  eventType: 'offline' | 'online';
-  /**
-   * Link attendees join the online event through.
-   */
-  onlineUrl?: string | null;
-  address?: {
-    mapboxId?: string | null;
-    /**
-     * The building's own name, where it has one. Shown in place of the street when a listing has no title of its own.
-     */
-    venueName?: string | null;
-    street?: string | null;
-    room?: string | null;
-    postCode?: string | null;
-    country?: string | null;
-    region?: string | null;
-    city?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-  };
   registrationMode: 'sahaj-atlas' | 'external';
   externalRegistrationUrl?: string | null;
   /**
@@ -1775,28 +1788,33 @@ export interface Event {
    * Optional questions to ask registrants — each enabled question appears on the registration form.
    */
   registrationQuestions?: {
-    priorExperience?: boolean | null;
-    referralSource?: boolean | null;
-    healthInfo?: boolean | null;
-    accessibility?: boolean | null;
-    guests?: boolean | null;
+    experience?: boolean | null;
+    referral?: boolean | null;
+    aspirations?: boolean | null;
+    questions?: boolean | null;
   };
   registrations?: {
     docs?: (number | Registration)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
-  registrationsFull?: boolean | null;
   /**
-   * Manager responsible for verifying this event.
+   * Manager responsible for verifying this event. Assigning one to an unverified event adopts it into the verification cycle.
    */
-  manager: number | Manager;
-  verificationStage: 'verified' | 'reminded' | 'escalated' | 'urgent' | 'expired' | 'finished';
-  nextCheckAt?: string | null;
+  manager?: (number | null) | Manager;
+  verificationStage:
+    | 'unverified'
+    | 'denied'
+    | 'verified'
+    | 'reminded'
+    | 'escalated'
+    | 'urgent'
+    | 'expired'
+    | 'finished';
   /**
-   * Current verification cycle — the verification that opened it plus each reminder sent. Reset on every verification.
+   * Current verification cycle — the verification that opened it plus each reminder sent. Reset on every verification. Keeps the most recent 50 entries.
    */
-  notificationLog?:
+  activityLog?:
     | {
         [k: string]: unknown;
       }
@@ -1805,9 +1823,40 @@ export interface Event {
     | number
     | boolean
     | null;
-  webPath?: string | null;
-  webUrl?: string | null;
-  appUrl?: string | null;
+  /**
+   * How strongly attendees confirm this event is real (0–1). Rises with confirmations, falls with denials, and stays cautious while there are few votes — the Atlas map ranks unverified listings by it. Blank until the first vote.
+   */
+  confidenceScore?: number | null;
+  qualityReport?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Who submitted this listing (record-keeping only).
+   */
+  submitter?: (number | null) | User;
+  /**
+   * When the nightly job will next act on this event.
+   */
+  nextCheckAt?: string | null;
+  /**
+   * Registrations have reached the limit.
+   */
+  registrationsFull?: boolean | null;
+  /**
+   * Open listing-quality recommendations.
+   */
+  qualityOpenCount?: number | null;
+  /**
+   * Check-set version the count was stamped from.
+   */
+  qualityCheckVersion?: number | null;
+  systemMeta?: HttpsSahajcloudDevSchemasEventSystemMetaJson;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -1873,28 +1922,27 @@ export interface Registration {
     /**
      * Have you practised Sahaja Yoga meditation before?
      */
-    priorExperience?: string;
+    experience?: string;
     /**
      * How did you hear about this event?
      */
-    referralSource?: string;
+    referral?: string;
     /**
-     * Is there anything about your health we should know?
+     * What are you hoping to get out of this?
      */
-    healthInfo?: string;
+    aspirations?: string;
     /**
-     * Do you have any accessibility requirements?
+     * Do you have any questions for us?
      */
-    accessibility?: string;
-    /**
-     * Will you be bringing any guests?
-     */
-    guests?: string;
+    questions?: string;
   };
   uuid: string;
   mailingListSubscribedAt?: string | null;
   remindersUnsubscribedAt?: string | null;
-  reminderLog?:
+  /**
+   * Everything recorded about this registration, newest first. Keeps the most recent 50 entries.
+   */
+  activityLog?:
     | {
         [k: string]: unknown;
       }
@@ -1903,6 +1951,11 @@ export interface Registration {
     | number
     | boolean
     | null;
+  /**
+   * Registrant’s verdict on an unverified event.
+   */
+  eventFeedback?: ('confirmed' | 'denied') | null;
+  followUpSentAt?: string | null;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -1929,6 +1982,11 @@ export interface User {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  submittedEvents?: {
+    docs?: (number | Event)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   legacyId?: number | null;
   legacyData?:
     | {
@@ -1952,22 +2010,6 @@ export interface Client {
    * Client organization or application name
    */
   name: string;
-  /**
-   * Purpose and usage notes for this client
-   */
-  notes?: string | null;
-  /**
-   * Assign API client roles. Roles apply to all locales.
-   */
-  roles?: ('wemeditate-web-client' | 'wemeditate-app-client' | 'sahaj-atlas-client')[] | null;
-  /**
-   * Users who can manage this client
-   */
-  managers: (number | Manager)[];
-  /**
-   * Primary user contact for this client. Only needed when more than one manager is assigned.
-   */
-  primaryContact?: (number | null) | Manager;
   /**
    * What domains are associated with this client. Put each domain on a new line.
    */
@@ -2191,17 +2233,37 @@ export interface Client {
    */
   region?: (number | null) | Region;
   /**
-   * Deprecated Atlas config (routing_type, embed_type, default_view).
+   * Declares that this service owns the canonical Atlas URLs for its region. Off by default, and nothing resolves differently until it is switched on.
    */
-  legacyConfig?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  canonical?: {
+    /**
+     * At most one service per region may own them. Requires a region and one of the embeds this service has reported — the CMS then loads that page itself to confirm the widget is really there, and only a verified embed ever yields a canonical URL.
+     */
+    enabled?: boolean | null;
+    /**
+     * Which of the embeds this service reported owns the canonical URLs. Domain, mount and routing all come from this one choice.
+     */
+    embed?: string | null;
+    verification?: HttpsSahajcloudDevSchemasClientCanonicalVerificationJson;
+    nextVerifyAt?: string | null;
+  };
+  embedMetadata?: HttpsSahajcloudDevSchemasClientEmbedMetadataJson;
+  /**
+   * Purpose and usage notes for this client
+   */
+  notes?: string | null;
+  /**
+   * Assign API client roles. Roles apply to all locales.
+   */
+  roles?: ('wemeditate-web-client' | 'wemeditate-app-client' | 'sahaj-atlas-client')[] | null;
+  /**
+   * Users who can manage this client
+   */
+  managers: (number | Manager)[];
+  /**
+   * Primary user contact for this client. Only needed when more than one manager is assigned.
+   */
+  primaryContact?: (number | null) | Manager;
   /**
    * Public identifier for this service. Auto-generated, or the Atlas public key for imported services.
    */
@@ -2269,6 +2331,47 @@ export interface Client {
   apiKey?: string | null;
   apiKeyIndex?: string | null;
   collection: 'clients';
+}
+export interface HttpsSahajcloudDevSchemasClientCanonicalVerificationJson {
+  verified: {
+    domain: string;
+    mount: string;
+    routing: 'query' | 'path';
+    widgetVersion: number;
+    at: string;
+  } | null;
+  failureCount: number;
+  attempts: {
+    at: string;
+    status: 'verified' | 'failed' | 'inconclusive';
+    reason?: 'dns' | 'http' | 'marker-absent' | 'not-configured' | 'provider-error' | 'quota' | 'bot-challenge';
+  }[];
+}
+export interface HttpsSahajcloudDevSchemasClientEmbedMetadataJson {
+  [k: string]: {
+    mode: 'inline' | 'iframe';
+    topLevel: boolean;
+    urlWritable: boolean;
+    paramPersisted: boolean;
+    routing: 'query' | 'path';
+    lastSeen: string;
+  };
+}
+export interface HttpsSahajcloudDevSchemasEventSystemMetaJson {
+  communityFeedback?: {
+    /**
+     * Registrants who confirmed the event exists.
+     */
+    confirmations?: number;
+    /**
+     * Registrants who denied it.
+     */
+    denials?: number;
+    /**
+     * ISO timestamp of the last vote applied.
+     */
+    updatedAt?: string;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3427,6 +3530,156 @@ export interface Frame {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-submissions".
+ */
+export interface EventSubmission {
+  id: number;
+  screeningResult?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  submitterInfo?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  proposedChanges?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  previewEvent?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * The event this submission proposes changes to. After acceptance it links the created event.
+   */
+  event?: (number | null) | Event;
+  /**
+   * Optional. The manager who will look after this event. Assign one to publish it as verified; leave blank and it goes on the map as unverified until a manager takes it on.
+   */
+  manager?: (number | null) | Manager;
+  /**
+   * The city or venue this event belongs to. Resolved by screening — correct it here if it came back empty or wrong.
+   */
+  region?: (number | null) | Region;
+  /**
+   * Generated from the proposal when the submission arrives.
+   */
+  title?: string | null;
+  /**
+   * The proposed Events field patch, exactly as submitted.
+   */
+  proposed?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'screening' | 'pending' | 'spam' | 'created' | 'updated' | 'rejected';
+  submitter?: (number | null) | User;
+  /**
+   * Region targeting as submitted (country / state / anchor).
+   */
+  regionHint?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reviewedBy?: (number | null) | Manager;
+  reviewedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-messages".
+ */
+export interface UserMessage {
+  id: number;
+  screeningResult?: {
+    /**
+     * `ok`, or why the message was classified spam.
+     */
+    verdict: 'ok' | 'disposable_email' | 'invalid_email' | 'no_mx_records' | 'repeat_sender' | 'duplicate_body';
+    /**
+     * Everything an admin needs, as complete sentences. Each says what happened and what follows from it. A delivered message normally has none.
+     */
+    notes?: string[];
+    /**
+     * A technical detail kept for triage and NOT rendered — an MX lookup that came back inconclusive, or the mail transport’s own error string. Discarding it would leave nothing to look at when delivery goes wrong.
+     */
+    diagnostic?: string;
+    /**
+     * When screening reached this verdict (ISO 8601).
+     */
+    screenedAt: string;
+  };
+  subject?: string | null;
+  message: string;
+  /**
+   * Optional. Becomes the Reply-To of the message we email out.
+   */
+  senderEmail?: string | null;
+  context?: {
+    /**
+     * Route the sender was on, e.g. `/events/london-meetup`.
+     */
+    path?: string;
+    /**
+     * Absolute URL of the host page embedding the widget.
+     */
+    hostUrl?: string;
+    /**
+     * Locale the sender was browsing in.
+     */
+    locale?: string;
+    /**
+     * Error text/stack the sender was reporting, when the message is a crash report.
+     */
+    error?: string;
+    /**
+     * The sender's user-agent string.
+     */
+    userAgent?: string;
+    [k: string]: unknown;
+  };
+  client?: (number | null) | Client;
+  user?: (number | null) | User;
+  status: 'screening' | 'delivered' | 'spam' | 'failed';
+  bodyHash?: string | null;
+  deliveredAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms".
  */
 export interface Form {
@@ -3680,9 +3933,14 @@ export interface PayloadJob {
           | 'inline'
           | 'cleanupOrphanedMedia'
           | 'expireEvents'
+          | 'purgeUserMessages'
+          | 'screenEventSubmission'
+          | 'screenUserMessage'
+          | 'sendPostEventFollowUps'
           | 'sendRegistrationDigests'
           | 'sendSessionReminders'
           | 'syncLectureMetadata'
+          | 'verifyEmbeds'
           | 'resetUsage'
           | 'schedulePublish';
         taskID: string;
@@ -3722,9 +3980,14 @@ export interface PayloadJob {
         | 'inline'
         | 'cleanupOrphanedMedia'
         | 'expireEvents'
+        | 'purgeUserMessages'
+        | 'screenEventSubmission'
+        | 'screenUserMessage'
+        | 'sendPostEventFollowUps'
         | 'sendRegistrationDigests'
         | 'sendSessionReminders'
         | 'syncLectureMetadata'
+        | 'verifyEmbeds'
         | 'resetUsage'
         | 'schedulePublish'
       )
@@ -3840,12 +4103,20 @@ export interface PayloadLockedDocument {
         value: number | Event;
       } | null)
     | ({
+        relationTo: 'event-submissions';
+        value: number | EventSubmission;
+      } | null)
+    | ({
         relationTo: 'registrations';
         value: number | Registration;
       } | null)
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'user-messages';
+        value: number | UserMessage;
       } | null)
     | ({
         relationTo: 'forms';
@@ -4343,10 +4614,6 @@ export interface ManagersSelect<T extends boolean = true> {
  */
 export interface ClientsSelect<T extends boolean = true> {
   name?: T;
-  notes?: T;
-  roles?: T;
-  managers?: T;
-  primaryContact?: T;
   allowedDomains?: T;
   color1?: T;
   color2?: T;
@@ -4356,7 +4623,19 @@ export interface ClientsSelect<T extends boolean = true> {
   supportEmail?: T;
   locale?: T;
   region?: T;
-  legacyConfig?: T;
+  canonical?:
+    | T
+    | {
+        enabled?: T;
+        embed?: T;
+        verification?: T;
+        nextVerifyAt?: T;
+      };
+  embedMetadata?: T;
+  notes?: T;
+  roles?: T;
+  managers?: T;
+  primaryContact?: T;
   clientId?: T;
   keyGeneratedAt?: T;
   usage?:
@@ -4523,11 +4802,31 @@ export interface EventsSelect<T extends boolean = true> {
   title?: T;
   languages?: T;
   contactPhone?: T;
-  contactName?: T;
   contactEmail?: T;
+  contactName?: T;
   description?: T;
   website?: T;
   images?: T;
+  webPath?: T;
+  webUrl?: T;
+  appUrl?: T;
+  region?: T;
+  eventType?: T;
+  onlineUrl?: T;
+  address?:
+    | T
+    | {
+        mapboxId?: T;
+        venueName?: T;
+        street?: T;
+        room?: T;
+        postCode?: T;
+        country?: T;
+        region?: T;
+        city?: T;
+        latitude?: T;
+        longitude?: T;
+      };
   inactive?: T;
   schedule?:
     | T
@@ -4557,23 +4856,6 @@ export interface EventsSelect<T extends boolean = true> {
         icalRule?: T;
         upcomingDates?: T;
       };
-  region?: T;
-  eventType?: T;
-  onlineUrl?: T;
-  address?:
-    | T
-    | {
-        mapboxId?: T;
-        venueName?: T;
-        street?: T;
-        room?: T;
-        postCode?: T;
-        country?: T;
-        region?: T;
-        city?: T;
-        latitude?: T;
-        longitude?: T;
-      };
   registrationMode?: T;
   externalRegistrationUrl?: T;
   registrationLimit?: T;
@@ -4582,27 +4864,51 @@ export interface EventsSelect<T extends boolean = true> {
   registrationQuestions?:
     | T
     | {
-        priorExperience?: T;
-        referralSource?: T;
-        healthInfo?: T;
-        accessibility?: T;
-        guests?: T;
+        experience?: T;
+        referral?: T;
+        aspirations?: T;
+        questions?: T;
       };
   registrations?: T;
-  registrationsFull?: T;
   manager?: T;
   verificationStage?: T;
+  activityLog?: T;
+  confidenceScore?: T;
+  qualityReport?: T;
+  submitter?: T;
   nextCheckAt?: T;
-  notificationLog?: T;
-  webPath?: T;
-  webUrl?: T;
-  appUrl?: T;
+  registrationsFull?: T;
+  qualityOpenCount?: T;
+  qualityCheckVersion?: T;
+  systemMeta?: T;
   legacyId?: T;
   legacyData?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-submissions_select".
+ */
+export interface EventSubmissionsSelect<T extends boolean = true> {
+  screeningResult?: T;
+  submitterInfo?: T;
+  proposedChanges?: T;
+  previewEvent?: T;
+  event?: T;
+  manager?: T;
+  region?: T;
+  title?: T;
+  proposed?: T;
+  status?: T;
+  submitter?: T;
+  regionHint?: T;
+  reviewedBy?: T;
+  reviewedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4619,7 +4925,9 @@ export interface RegistrationsSelect<T extends boolean = true> {
   uuid?: T;
   mailingListSubscribedAt?: T;
   remindersUnsubscribedAt?: T;
-  reminderLog?: T;
+  activityLog?: T;
+  eventFeedback?: T;
+  followUpSentAt?: T;
   legacyId?: T;
   legacyData?: T;
   updatedAt?: T;
@@ -4633,8 +4941,27 @@ export interface UsersSelect<T extends boolean = true> {
   name?: T;
   email?: T;
   registrations?: T;
+  submittedEvents?: T;
   legacyId?: T;
   legacyData?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-messages_select".
+ */
+export interface UserMessagesSelect<T extends boolean = true> {
+  screeningResult?: T;
+  subject?: T;
+  message?: T;
+  senderEmail?: T;
+  context?: T;
+  client?: T;
+  user?: T;
+  status?: T;
+  bodyHash?: T;
+  deliveredAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -5970,6 +6297,32 @@ export interface WmAppStatus {
  */
 export interface SyAtlasConfig {
   id: number;
+  /**
+   * Languages the atlas is offered in. Drives the widget’s language picker and the hreflang links on every atlas page, so removing one tells search engines that language is gone. Adding one needs a matching translation bundle in the widget — check with a developer first.
+   */
+  languages: {
+    code:
+      | 'en'
+      | 'es'
+      | 'de'
+      | 'it'
+      | 'fr'
+      | 'ru'
+      | 'ro'
+      | 'cs'
+      | 'uk'
+      | 'el'
+      | 'hy'
+      | 'pl'
+      | 'pt-BR'
+      | 'fa'
+      | 'bg'
+      | 'tr'
+      | 'en-AU'
+      | 'hu'
+      | 'nl';
+    id?: string | null;
+  }[];
   defaultMapCenter: {
     latitude: number;
     longitude: number;
@@ -6298,6 +6651,12 @@ export interface WmAppStatusSelect<T extends boolean = true> {
  * via the `definition` "sy-atlas-config_select".
  */
 export interface SyAtlasConfigSelect<T extends boolean = true> {
+  languages?:
+    | T
+    | {
+        code?: T;
+        id?: T;
+      };
   defaultMapCenter?:
     | T
     | {
@@ -6406,6 +6765,55 @@ export interface TaskExpireEvents {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPurgeUserMessages".
+ */
+export interface TaskPurgeUserMessages {
+  input: {
+    now?: string | null;
+  };
+  output: {
+    deletedDelivered: number;
+    deletedSpam: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskScreenEventSubmission".
+ */
+export interface TaskScreenEventSubmission {
+  input: {
+    submissionId: number;
+  };
+  output: {
+    status: string;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskScreenUserMessage".
+ */
+export interface TaskScreenUserMessage {
+  input: {
+    messageId: number;
+  };
+  output: {
+    status: string;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendPostEventFollowUps".
+ */
+export interface TaskSendPostEventFollowUps {
+  input?: unknown;
+  output: {
+    scanned: number;
+    sent: number;
+    failed: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSendRegistrationDigests".
  */
 export interface TaskSendRegistrationDigests {
@@ -6451,6 +6859,20 @@ export interface TaskSyncLectureMetadata {
     synced: number;
     failed: number;
     skippedNoVimeoId: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskVerifyEmbeds".
+ */
+export interface TaskVerifyEmbeds {
+  input?: unknown;
+  output: {
+    processed: number;
+    verified: number;
+    failed: number;
+    inconclusive: number;
+    disabled: number;
   };
 }
 /**

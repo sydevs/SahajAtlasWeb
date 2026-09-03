@@ -70,7 +70,7 @@ export const Default: Story = () => (
           eventTitle="Beginners Course"
           eventUrl="https://atlas.example/e/3"
           isOnline={false}
-          questions={['referralSource', 'priorExperience']}
+          questions={['referral', 'experience']}
           upcomingDates={upcomingDates}
         />
       </div>
