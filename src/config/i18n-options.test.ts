@@ -108,15 +108,7 @@ const offeredButNotEnglish = supportedLanguages.filter((lng) => lng !== 'en')
  * reviewable list naming what is missing — and the second test ratchets it: translate
  * one everywhere and the gate tells you to delete the line.
  */
-const UNTRANSLATED_EVENT_KEYS = [
-  'details.share_meditation',
-  'questions.accessibility',
-  'questions.guests',
-  'questions.healthInfo',
-  'questions.priorExperience',
-  'questions.referralSource',
-  'registration.register_meditation',
-]
+const UNTRANSLATED_EVENT_KEYS = ['details.share_meditation', 'registration.register_meditation']
 
 describe('locale key parity', () => {
   it.each(offeredButNotEnglish)('%s: answers every common-namespace key', (lng) => {
@@ -128,7 +120,7 @@ describe('locale key parity', () => {
 
   it.each(offeredButNotEnglish)('%s: answers every event key but the known gaps', (lng) => {
     // A SUPERSET check, deliberately: translations land one language at a time, and a
-    // gate that goes red when German fills in one of the seven would punish the fix.
+    // gate that goes red when German fills one of them in would punish the fix.
     // Shrinking the list is the ratchet's job, below.
     const unexpected = untranslated(lng, 'events').filter(
       (key) => !UNTRANSLATED_EVENT_KEYS.includes(key),

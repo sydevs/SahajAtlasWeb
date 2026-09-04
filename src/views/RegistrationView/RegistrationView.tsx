@@ -7,8 +7,7 @@ import { RegistrationForm } from '@/components/organisms/RegistrationForm'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useShareUrl } from '@/hooks/use-share-url'
-import { eventTimeZone, isOnline } from '@/lib/shape'
-import { Event, REGISTRATION_QUESTION_NAMES, RegistrationQuestionName } from '@/types'
+import { enabledQuestions, eventTimeZone, isOnline } from '@/lib/shape'
 import {
   CloseButton,
   DrawerTitle,
@@ -16,16 +15,6 @@ import {
   useEventFromPath,
   useFrameOnTop,
 } from '@/views/shared'
-
-// The registration questions enabled on this event (each `true` boolean → a field),
-// as the CMS question names so the form registers `questions.<name>` field paths.
-function enabledQuestions(event: Event): RegistrationQuestionName[] {
-  const questions = event.registrationQuestions
-
-  if (!questions) return []
-
-  return REGISTRATION_QUESTION_NAMES.filter((name) => questions[name])
-}
 
 // The registration form for an event (route `<event-path>/register`). Reached by
 // the event's Register CTA and deep-linkable — so the resolver gates it: a

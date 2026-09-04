@@ -67,10 +67,10 @@
     "starting_at": "Sélectionnez votre date de début"
   },
   "questions": {
-    "aspirations": "Que recherchez-vous dans la méditation ?",
-    "experience": "Avez-vous déjà expérimenté cette méditation ?",
-    "questions": "Avez-vous des questions?",
-    "referral": "Comment avez-vous entendu parler de nous ?"
+    "aspirations": "Qu'espérez-vous en retirer ?",
+    "experience": "Avez-vous déjà pratiqué la méditation Sahaja Yoga ?",
+    "questions": "Avez-vous des questions à nous poser ?",
+    "referral": "Comment avez-vous entendu parler de cet événement ?"
   },
   "recurrence": {
     "daily": "Tous les jours",

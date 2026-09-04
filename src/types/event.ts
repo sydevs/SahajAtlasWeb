@@ -86,12 +86,16 @@ export type RegistrationQuestionName = keyof NonNullable<CmsEvent['registrationQ
 // `satisfies Record<RegistrationQuestionName, …>` pins these keys to the CMS field: a
 // `types:cms` resync that adds or drops a question fails the build here until the
 // schema (and the form) are updated to match.
+//
+// ⚠ **The guard only fires once `pnpm types:cms` has been RUN** — the `contractStep`
+// in `.claude/workflow.json`. `src/types/payload/` is a checked-in copy, so between
+// resyncs this compares the schema against a snapshot of its own past agreement, and
+// zod strips an unknown key silently when it is wrong (#191).
 export const RegistrationQuestionsSchema = z.object({
-  priorExperience: z.boolean().nullish(),
-  referralSource: z.boolean().nullish(),
-  healthInfo: z.boolean().nullish(),
-  accessibility: z.boolean().nullish(),
-  guests: z.boolean().nullish(),
+  experience: z.boolean().nullish(),
+  referral: z.boolean().nullish(),
+  aspirations: z.boolean().nullish(),
+  questions: z.boolean().nullish(),
 } satisfies Record<RegistrationQuestionName, z.ZodTypeAny>)
 export type RegistrationQuestions = z.infer<typeof RegistrationQuestionsSchema>
 
