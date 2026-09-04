@@ -222,6 +222,12 @@ cover everything a host would notice since the widget was first deployed.
   the order the organiser sees them. Nothing about the snippet, the origins the widget contacts or
   your CSP changes.
 
+  **The four questions are also worded as the organiser wrote them**, in every language the widget
+  offers. The form used to ask "Have you experienced this meditation before?" while the organiser's
+  notification email printed the answer under "Have you practised Sahaja Yoga meditation before?" —
+  two different questions, one answer. The wording a visitor reads now matches the wording the
+  organiser set up and reads back.
+
 - **Switching language no longer re-encodes the rest of your page's URL.** ([#181]) When a visitor
   picked a language, the widget rewrote the whole query string rather than the one parameter it was
   adding — so a readable `?atlas=/gb/london` came back as `?atlas=%2Fgb%2Flondon`, and a parameter

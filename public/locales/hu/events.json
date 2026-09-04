@@ -67,10 +67,10 @@
     "starting_at": "Select your starting date"
   },
   "questions": {
-    "aspirations": "What are you looking for from meditation?",
-    "experience": "Have you experienced this meditation before?",
-    "questions": "Do you have any questions?",
-    "referral": "How did you hear about us?"
+    "aspirations": "Mit remél ettől?",
+    "experience": "Gyakorolt már Sahaja Yoga meditációt?",
+    "questions": "Van kérdése hozzánk?",
+    "referral": "Honnan hallott erről az eseményről?"
   },
   "recurrence": {
     "daily": "Every Day",
