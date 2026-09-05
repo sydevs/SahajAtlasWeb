@@ -4,17 +4,18 @@
  * restyles somebody else's site. `scripts/postcss-scope-widget.mjs` runs last in the
  * PostCSS chain and confines the whole emitted sheet — Tailwind's Preflight and
  * utilities, the imports below, and everything written here — under `.sy-atlas`, the
- * class on the widget's theme root. So write plain selectors here; the pass handles
+ * class on the widget's theme root. So write plain selectors here. The pass handles
  * them, and `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
  *
- * The one thing to know: a selector you write against `.sy-atlas` yourself is passed
+ * One thing to know: a selector you write against `.sy-atlas` yourself passes
  * through untouched. That is the escape hatch for rules that must address the theme
- * ROOT (which is also where the light/dark class lives) rather than something inside
- * it — the pass can't tell those apart on its own.
+ * ROOT (which is also where the light/dark class lives), rather than something
+ * inside it — the pass cannot tell those apart on its own.
  */
-/* Raleway used to be `@import`ed from fonts.googleapis.com here. It is self-hosted
- * now and registered from `src/styles/fonts.ts` — a CSS url() would resolve against
- * the HOST page's origin, so the face has to be declared with a runtime-resolved URL.
+/* Raleway used to be `@import`ed from fonts.googleapis.com here. It is
+ * self-hosted now and registered from `src/styles/fonts.ts` — a CSS url()
+ * would resolve against the HOST page's origin, so the face has to be
+ * declared with a runtime-resolved URL.
  */
 @import 'mapbox-gl/dist/mapbox-gl.css';
 @import 'swiper/css';
@@ -26,90 +27,101 @@
 /* Radix Colors — the neutral (gray) and status (danger=red) ramps. Each file
    scopes its scale to `:root, .light` (light) / `.dark` (dark), which matches the
    theme root's light/dark class, so the steps cascade into the widget wrapper.
-   The brand ramps (primary/secondary) are NOT from here — they're the runtime
-   engine's vars (src/config/theme/palette.ts), defaulted below. */
+   The brand ramps (primary/secondary) are NOT from here — they come from the
+   runtime engine's vars (src/config/theme/palette.ts), defaulted below. */
 @import '@radix-ui/colors/gray.css';
 @import '@radix-ui/colors/gray-dark.css';
 @import '@radix-ui/colors/red.css';
 @import '@radix-ui/colors/red-dark.css';
 
 /* ── The defensive reset: keep the HOST's CSS out of the widget (#156) ──────────────────
-   The PostCSS scoping pass (#91) stops OUR rules escaping into their page. This is the other
-   direction, which nothing covered and which has broken embeds in the field: a host's global
-   `button { … }` or `a { color: … !important }` reaches straight into our subtree.
+   The PostCSS scoping pass (#91) stops OUR rules escaping into their page. This is the
+   other direction, which nothing covered and which has broken embeds in the field: a
+   host's global `button { … }` or `a { color: … !important }` reaches straight into our
+   subtree.
 
    Four things about this rule are load-bearing, and three of them are counter-intuitive.
 
-   1. **It is UNLAYERED, and must stay so.** The obvious version — put our sheet in `@layer` —
-      makes the problem WORSE: unlayered author styles outrank every author layer, so layering
-      hands the host's rules an automatic win over ours.
-   2. **`:where()` gives it zero specificity**, so it can never outrank anything of ours: a
-      Tailwind utility is (0,1,0) and a Preflight element rule is (0,0,1), both above (0,0,0). It
-      only takes effect where nothing of ours speaks — which is exactly the set a host can leak
-      into. It also has to come BEFORE our sheet, so equal-specificity ties go to us.
-   3. **`all` deliberately excludes custom properties**, so `--primary-*` and the whole brand
-      palette survive it untouched. That is a property of the `all` shorthand, not an accident.
-   4. **It is hand-written against `.sy-atlas`**, which `scripts/postcss-scope-widget.mjs` passes
-      through unmodified — so `pnpm assert:css` keeps working with no change to the pass.
+   1. **It is UNLAYERED, and must stay so.** The obvious version — put our sheet in
+      `@layer` — makes the problem WORSE: unlayered author styles outrank every author
+      layer, so layering hands the host's rules an automatic win over ours.
+   2. **`:where()` gives it zero specificity**, so it can never outrank anything of ours:
+      a Tailwind utility is (0,1,0) and a Preflight element rule is (0,0,1), both above
+      (0,0,0). It only takes effect where nothing of ours speaks — which is exactly the
+      set a host can leak into. It also has to come BEFORE our sheet, so equal-specificity
+      ties go to us.
+   3. **`all` deliberately excludes custom properties**, so `--primary-*` and the whole
+      brand palette survive it untouched. That is a property of the `all` shorthand, not
+      an accident.
+   4. **It is hand-written against `.sy-atlas`**, which `scripts/postcss-scope-widget.mjs`
+      passes through unmodified — so `pnpm assert:css` keeps working with no change to the
+      pass.
 
-   ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further. The
-   measured table in `src/components/AGENTS.md` shows both re-parent `position: fixed`
-   descendants to the host element — which would break the map canvas, every drawer, the peek
-   strips and the settings cog. `container-type` does not; `contain` and `transform` do.
+   ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further.
+   The measured table in `src/components/AGENTS.md` shows both re-parent `position: fixed`
+   descendants to the host element — which would break the map canvas, every drawer, the
+   peek strips, and the settings cog. `container-type` does not. `contain` and `transform`
+   do.
 
-   **What this does NOT stop, measured rather than assumed: a host rule carrying `!important`.**
-   An important author declaration beats a non-important one whatever its specificity, so
-   `div { font-family: … !important }` on the host page still reaches our copy. The only defence
-   would be `all: revert !important`, which would equally beat every rule of OURS and leave the
-   widget unstyled — strictly worse than the problem. A real boundary against `!important` needs
-   shadow DOM, which is why that evaluation is a ticket rather than a maybe. Verified in a browser
-   both ways: without `!important` the host's `button`, `a`, `div`, `letter-spacing` and
-   `line-height` rules are fully blocked; with it they are not.
+   **What this does NOT stop, measured rather than assumed: a host rule carrying
+   `!important`.** An important author declaration beats a non-important one whatever its
+   specificity, so `div { font-family: … !important }` on the host page still reaches our
+   copy. The only defence would be `all: revert !important`, which would equally beat every
+   rule of OURS and leave the widget unstyled — strictly worse than the problem. A real
+   boundary against `!important` needs shadow DOM, which is why that evaluation is a
+   ticket rather than a maybe. Verified in a browser both ways: without `!important` the
+   host's `button`, `a`, `div`, `letter-spacing`, and `line-height` rules are fully
+   blocked. With it they are not.
 
-   **Cost, measured:** a forced style recalc over 3,200 nodes inside the scope took ~2× one
-   outside it (41ms vs 20ms across five recalcs, Chrome 151). Full recalcs are rare — a theme
-   toggle, not a scroll — and the results list is bounded by `MAX_REVEAL`, so this is priced and
-   accepted rather than unknown. Re-measure if that ceiling ever rises.
+   **Cost, measured:** a forced style recalc over 3,200 nodes inside the scope took about
+   2x one outside it (41ms vs 20ms across five recalcs, Chrome 151). Full recalcs are
+   rare — a theme toggle, not a scroll — and the results list is bounded by `MAX_REVEAL`,
+   so this cost is priced and accepted rather than unknown. Re-measure if that ceiling
+   ever rises.
 
-   ⚠ **SVG IS EXCLUDED, and that is a bug fix rather than a nicety — never simplify it back to a
-   bare `*`.** In SVG 2 the geometry is CSS: `d`, `fill`, `stroke`, `cx`, `r`, `x`, `y`, `width`
-   and `height` are all properties, and a presentation attribute is only an author rule of zero
-   specificity — so `all: revert` beat every `d="…"` in the app and rolled it to `none`. The
-   effect is total and silent: the `<path>` stays in the DOM at full size with a computed fill,
-   `getBBox()` reports 0×0, and **every icon in the widget renders as nothing**. Measured in a
-   production build (53/53 paths, Chrome 151) after it had shipped, because no gate can see it —
-   lint, typecheck, the unit lane and `assert:css` are all green with every glyph invisible. The
-   reset exists to keep a HOST's CSS out of our HTML; SVG internals are not a surface a host
-   styles, so excluding them costs nothing it was there to buy.
+   ⚠ **SVG IS EXCLUDED, and that is a bug fix rather than a nicety — never simplify it back
+   to a bare `*`.** In SVG 2 the geometry is CSS: `d`, `fill`, `stroke`, `cx`, `r`, `x`, `y`,
+   `width`, and `height` are all properties, and a presentation attribute is only an author
+   rule of zero specificity — so `all: revert` beat every `d="…"` in the app and rolled it
+   to `none`. The effect is total and silent: the `<path>` stays in the DOM at full size
+   with a computed fill, `getBBox()` reports 0×0, and **every icon in the widget renders as
+   nothing**. Measured in a production build (53/53 paths, Chrome 151) after it had
+   shipped, because no gate can see it — lint, typecheck, the unit lane, and `assert:css`
+   are all green with every glyph invisible. The reset exists to keep a HOST's CSS out of
+   our HTML. SVG internals are not a surface a host styles, so excluding them costs nothing
+   it was there to buy.
    `postcss-scope-widget.test.ts` pins the exclusion. */
 :where(.sy-atlas),
 :where(.sy-atlas) :where(*:not(svg, svg *)) {
   all: revert;
 }
 
-/* The second half, and it is not optional: `all: revert` rolls each element back to the UA
-   default, but INHERITED properties still cross the boundary from the host element the scope root
-   sits inside, so a host's `font-family`, `color` or `letter-spacing` still reaches every line of
-   our copy. Restating them is what makes the widget the root of its own world.
+/* This is the second half, and it is not optional: `all: revert` rolls each element back
+   to the UA default, but INHERITED properties still cross the boundary from the host
+   element the scope root sits inside, so a host's `font-family`, `color`, or
+   `letter-spacing` still reaches every line of our copy. Restating them is what makes the
+   widget the root of its own world.
 
-   ⚠ **Unlayered, and it has to be** — this is the `@layer` trap above, aimed at ourselves. Written
-   inside `@layer base` (where it started) it lost to the unlayered reset directly above it, and
-   the widget rendered in the host's font with the host's letter-spacing. Verified in a browser;
-   the symptom is subtle enough to ship unnoticed.
+   ⚠ **Unlayered, and it has to be** — this is the `@layer` trap above, aimed at ourselves.
+   Written inside `@layer base` (where it started), it lost to the unlayered reset directly
+   above it, and the widget rendered in the host's font with the host's letter-spacing.
+   Verified in a browser. The symptom is subtle enough to ship unnoticed.
 
-   Specificity (0,1,0) rather than `:where()`, so it beats the reset but still loses to every
-   Tailwind utility — a component that sets its own `text-*` or `font-*` keeps winning. */
+   Specificity (0,1,0) rather than `:where()`, so it beats the reset but still loses to
+   every Tailwind utility — a component that sets its own `text-*` or `font-*` keeps
+   winning. */
 .sy-atlas {
-  /* The height of the box the widget's FIXED layer resolves against — the viewport normally,
-     a frame when one has taken the containing block.
+  /* The height of the box the widget's FIXED layer resolves against — the viewport
+     normally, a frame when one has taken the containing block.
 
-     Every drawer, peek strip and sheet is `position: fixed`, so `100dvh` is correct only while
-     nothing has taken that block. Two elements deliberately do, both with `contain: layout`:
-     `CompactEmbedView`'s dialog, which keeps a margin — so inside it `100dvh` overshoots by
-     16–32px and the sheet, its peek strips and the sticky Register bar all overrun the clip
-     edge — and `MapFrame` (#169), which is however tall the host made their element. `100%` on
-     a fixed child resolves against its containing block, which is the frame there and the
-     viewport everywhere else, so one token is right in all three places. */
+     Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is correct
+     only while nothing has taken that block. Two elements deliberately do, both with
+     `contain: layout`: `CompactEmbedView`'s dialog, which keeps a margin — so inside it
+     `100dvh` overshoots by 16-32px and the sheet, its peek strips, and the sticky
+     Register bar all overrun the clip edge — and `MapFrame` (#169), which is however
+     tall the host made their element. `100%` on a fixed child resolves against its
+     containing block, which is the frame there and the viewport everywhere else, so one
+     token is right in all three places. */
   --sy-frame-h: 100dvh;
   color: hsl(var(--foreground));
   font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);
@@ -127,7 +139,7 @@
    secondary blue #A1C3D7, contrast orange #e08e79) as a 12-step ramp each, in the
    same channel format the runtime engine writes. `--{role}-on` is the readable
    on-color for the solid (step 9). A tenant palette overrides these by setting the
-   vars inline on the theme root (inline beats these selectors); when none is set,
+   vars inline on the theme root (inline beats these selectors). When none is set,
    these stand. Generated to match palette.ts buildScale() from DEFAULT_SEEDS —
    the palette.defaults.test gate keeps them in sync. */
 :root,
@@ -221,22 +233,23 @@
 
 /* vaul disables text selection on the drawer for pointer devices (to keep drag
    gestures clean — see vaul.css `@media (hover:hover) and (pointer:fine)`). Desktop
-   drag is already disabled (handleOnly on the left panel), so re-enable selection
-   there: event/venue copy should be selectable. Mobile is untouched — vaul only
-   sets user-select:none under hover+fine, so touch drawers stay selectable already. */
+   drag is already disabled (handleOnly on the left panel), so this re-enables
+   selection there: event/venue copy should be selectable. Mobile is untouched — vaul
+   only sets user-select:none under hover+fine, so touch drawers stay selectable
+   already. */
 @media (hover: hover) and (pointer: fine) {
   [data-vaul-drawer] {
     user-select: text;
   }
 }
 
-/* The event-pin hover popover (#72). Strip Mapbox's default popup chrome — the
+/* The event-pin hover popover (#72). This strips Mapbox's default popup chrome — the
    white content box, its padding/radius/shadow, and the little tip — so the inner
    Tailwind card is the whole surface and themes light/dark with the widget. The
-   content sets `pointer-events:auto` by default; force it off (the container is
-   already `none`) so the popover never steals hover from the pin beneath it or
-   blocks tap-to-open — it is a purely visual affordance. Plain CSS (not a Tailwind
-   layer) so it reliably overrides the imported mapbox-gl.css. */
+   content sets `pointer-events:auto` by default. This forces it off (the container is
+   already `none`), so the popover never steals hover from the pin beneath it or
+   blocks tap-to-open — it is a purely visual affordance. This is plain CSS, not a
+   Tailwind layer, so it reliably overrides the imported mapbox-gl.css. */
 .event-pin-popover .mapboxgl-popup-content {
   padding: 0;
   background: none;
@@ -250,16 +263,13 @@
 }
 
 @layer base {
-  /* Preflight sets `line-height: 1.5` on `html` and then `line-height: inherit` on
-     `body`. Inside the widget both of those ARE the theme root, so the second one
-     lands on the same element as the first and wins — and inherits the HOST page's
-     line-height into every line of our copy. Restate the intended value; the widget
-     is the root of its own world. (`body { margin: 0 }` collapses the same way and is
-     harmless: the wrapper is `display: contents` and has no box to give a margin to.) */
-  /* `line-height` restated because Preflight sets it on `html` and then `inherit` on `body`, and
-     inside the widget both of those ARE the theme root — so the second lands on the same element
-     as the first and inherits the HOST's value. The rest of the inherited baseline is NOT here;
-     it sits unlayered beside the reset, for the reason given there. */
+  /* `line-height` is restated because Preflight sets it on `html` and then
+     `inherit` on `body`, and inside the widget both of those ARE the theme
+     root — so the second lands on the same element as the first and
+     inherits the HOST's value. The rest of the inherited baseline is NOT
+     here. It sits unlayered beside the reset, for the reason given there.
+     (`body { margin: 0 }` collapses the same way and is harmless: the
+     wrapper is `display: contents` and has no box to give a margin to.) */
   .sy-atlas {
     line-height: 1.5;
   }
@@ -268,7 +278,7 @@
      STANDALONE build, where the scope sits on <html> and there is a real <body> below it
      that the collapsed rule no longer reaches — it kept the UA's 8px, which pushed a
      `100dvh` map-less page 16px past the viewport and grew a scrollbar. Written against
-     `.sy-atlas` so the pass leaves it alone; inert in the embed, where nothing inside the
+     `.sy-atlas` so the pass leaves it alone. It is inert in the embed, where nothing inside the
      wrapper is a <body>. */
   .sy-atlas body {
     margin: 0;
@@ -281,12 +291,12 @@
      a host's pagination invisible on a light background, which is a worse outcome
      than the wrong-but-visible tint this used to leak.
 
-     Inset the pagination INTO the bottom of the image; bullet size/shape are
-     Swiper's own defaults (round, clickable) — no custom bar styling. The bullets
-     sit ON the photo (the carousel is full-bleed and ends flush with the view), so
-     they can't be themed off the widget's palette — they have to survive whatever
-     image is under them. Hence white rather than brand primary, plus the halo: a
-     white wall or a bright sky is exactly where a tinted bullet disappears. */
+     This insets the pagination INTO the bottom of the image. Bullet size and shape
+     are Swiper's own defaults (round, clickable) — no custom bar styling. The
+     bullets sit ON the photo (the carousel is full-bleed and ends flush with the
+     view), so they cannot be themed off the widget's palette — they have to survive
+     whatever image is under them. Hence white, rather than brand primary, plus the
+     halo: a white wall or a bright sky is exactly where a tinted bullet disappears. */
   .sy-carousel {
     --swiper-pagination-bottom: 0.75rem;
     --swiper-theme-color: #fff;
@@ -302,9 +312,9 @@
 
   /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host
      page — repainting its <main> to a hardcoded grey and forcing `color: inherit
-     !important` onto every anchor on the page. We render no <main> at all, and
-     every <a> we render sets its own colour (see the Link atom's variants), so
-     neither rule bought us anything it wasn't already getting locally. */
+     !important` onto every anchor on the page. This app renders no <main> at all, and
+     every <a> it renders sets its own colour (see the Link atom's variants), so
+     neither rule bought this app anything it was not already getting locally. */
 }
 
 @layer components {
@@ -334,11 +344,12 @@
     @apply flex items-center;
   }
 
-  /* Applied wherever we render host-authored rich text. Wrapping is a property of
-     THAT — not of the panel it happens to sit in — so it lives here and the next
-     prose surface inherits it: one unbreakable run (a pasted URL, or the strings of
-     U+2800 braille blanks authors use as spacing) otherwise widens the scroll
-     container and gives the whole drawer a horizontal scrollbar. */
+  /* Applied wherever this app renders host-authored rich text. Wrapping is a
+     property of THAT — not of the panel it happens to sit in — so it lives
+     here, and the next prose surface inherits it: one unbreakable run (a
+     pasted URL, or the strings of U+2800 braille blanks authors use as
+     spacing) otherwise widens the scroll container and gives the whole
+     drawer a horizontal scrollbar. */
   .colored-links {
     @apply break-words;
   }
@@ -348,11 +359,12 @@
   }
 }
 
-/* Schedule-X (CalendarView) theming. Map its Material-style `--sx-*` tokens onto our
-   theme-aware Radix tokens, set on the `.sx-calendar` wrapper so they INHERIT into
+/* Schedule-X (CalendarView) theming. This maps its Material-style `--sx-*` tokens onto
+   our theme-aware Radix tokens, set on the `.sx-calendar` wrapper so they INHERIT into
    Schedule-X's DOM — overriding its own `:root`/`.is-dark` values. Because our tokens
-   already flip with light/dark + the tenant accent, the calendar follows the theme
-   with no second palette. Outside a Tailwind layer so the overrides always win. */
+   already flip with light/dark plus the tenant accent, the calendar follows the theme
+   with no second palette. This sits outside a Tailwind layer, so the overrides always
+   win. */
 .sx-calendar {
   --sx-color-primary: hsl(var(--primary-9));
   /* The on-primary/secondary colours are the theme-adaptive `--*-on` tokens (light: white,
@@ -391,31 +403,35 @@
   min-height: 0;
 }
 
-/* Fill the drawer body: the wrapper + the calendar root take the available height,
-   so the month grid isn't clipped and the week/day views scroll internally. */
+/* Fills the drawer body: the wrapper and the calendar root take the available
+   height, so the month grid is not clipped and the week/day views scroll
+   internally. */
 .sx-calendar .sx-react-calendar-wrapper,
 .sx-calendar .sx__calendar {
   height: 100%;
   width: 100%;
 }
 
-/* Drop Schedule-X's own border on the calendar body — the DrawerBody's `p-4` already frames
-   it, and the outline (more visible in dark mode) broke the look of that padding. */
+/* Drops Schedule-X's own border on the calendar body — the DrawerBody's `p-4`
+   already frames it, and the outline (more visible in dark mode) broke the
+   look of that padding. */
 .sx-calendar .sx__calendar {
   border: none;
 }
 
-/* Hide Schedule-X's built-in header bar entirely — we drive the calendar from our own header
-   (CalendarControls) via the calendar-controls plugin, so SX's Today / nav / date-picker /
-   view-selector are unused. Keeps us out of the CSS-override battle with its chrome. */
+/* Hides Schedule-X's built-in header bar entirely — this app drives the calendar from
+   its own header (CalendarControls) via the calendar-controls plugin, so SX's Today,
+   nav, date-picker, and view-selector controls are unused. This keeps the app out of
+   the CSS-override battle with its chrome. */
 .sx-calendar .sx__calendar-header {
   display: none;
 }
 
-/* Suppress Schedule-X's per-event "grow in" animation (`sx-grow-event` on `.is-event-new`).
-   The CalendarGrid remounts when the filters change (to refresh events + dayBoundaries),
-   which otherwise replays this grow on every entry — a distracting reanimation on each
-   filter apply. Month-page/week slide transitions are left intact. */
+/* Suppresses Schedule-X's per-event "grow in" animation (`sx-grow-event` on
+   `.is-event-new`). The CalendarGrid remounts when the filters change (to
+   refresh events and dayBoundaries), which otherwise replays this grow on
+   every entry — a distracting reanimation on each filter apply. Month-page
+   and week slide transitions are left intact. */
 .sx-calendar .sx__month-grid-event.is-event-new,
 .sx-calendar .sx__month-agenda-event.is-event-new,
 .sx-calendar .sx__time-grid-event.is-event-new,
@@ -423,30 +439,33 @@
   animation: none;
 }
 
-/* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill. Carried by
-   `CompactEmbedView`'s expanded dialog and by `MapFrame`; see `lib/overlay.ts` for why there is
-   only ever one. `data-sy-expanded` below is the narrower, dialog-only marker. */
+/* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.
+   Carried by `CompactEmbedView`'s expanded dialog and by `MapFrame`. See
+   `lib/overlay.ts` for why there is only ever one. `data-sy-expanded` below is the
+   narrower, dialog-only marker. */
 [data-sy-frame] {
   --sy-frame-h: 100%;
 }
 
-/* Keep Mapbox's own control column clear of the expanded surface's collapse control. Both sit in
-   the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and the geolocate button is
-   the one thing map mode renders there. Unconditional rather than direction-aware: under RTL the
-   collapse control moves to the other corner and this nudge is merely unnecessary, which is a
-   better failure than two round buttons on top of each other. */
+/* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
+   Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and the
+   geolocate button is the one thing map mode renders there. This is unconditional,
+   rather than direction-aware: under RTL the collapse control moves to the other corner
+   and this nudge is merely unnecessary, which is a better failure than two round buttons
+   on top of each other. */
 [data-sy-expanded] .mapboxgl-ctrl-top-right {
   margin-top: 2.5rem;
 }
 
-/* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a delay
-   rather than appearing with the frost, so a warm boot — where the camera arrives almost at
-   once — reads as a clean frost-then-reveal instead of flashing a spinner nobody had time to
-   register. A CSS delay rather than a timer, because there is no state here to schedule
-   against. `forwards` holds it visible for the genuinely slow case this exists to cover.
+/* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
+   delay, rather than appearing with the frost, so a warm boot — where the camera
+   arrives almost at once — reads as a clean frost-then-reveal instead of flashing a
+   spinner nobody had time to register. This uses a CSS delay, rather than a timer,
+   because there is no state here to schedule against. `forwards` holds it visible for
+   the genuinely slow case this exists to cover.
 
-   The PostCSS scoping pass namespaces the keyframes along with the selector, so this cannot
-   collide with an animation of the same name on the host's page. */
+   The PostCSS scoping pass namespaces the keyframes along with the selector, so this
+   cannot collide with an animation of the same name on the host's page. */
 @keyframes sy-map-curtain-in {
   from {
     opacity: 0;
@@ -461,7 +480,8 @@
   animation: sy-map-curtain-in 200ms ease-out 200ms forwards;
 }
 
-/* Nothing to fade under the preference — show it immediately rather than animating it in. */
+/* Nothing to fade under the preference — this shows it immediately rather than
+   animating it in. */
 @media (prefers-reduced-motion: reduce) {
   .sy-map-curtain-spinner {
     opacity: 1;

@@ -1,12 +1,14 @@
 {
-  // Type-checks the code the app tsconfig ("include": ["src", ".ladle"]) leaves
-  // out: the smoke specs and the build/CI scripts. Co-located unit specs live
-  // under src/ and are already covered by the app project. Run via the second
-  // half of `pnpm typecheck` (see package.json).
+  // This file type-checks the files the app tsconfig excludes.
+  // The app tsconfig includes only "src" and ".ladle".
+  // This file covers the smoke specs and the build and CI scripts.
+  // Co-located unit specs live under src/. The app project already checks them.
+  // `pnpm typecheck` runs this file as its second step. See package.json.
   //
-  // allowJs + checkJs so the .mjs scripts are checked too; noImplicitAny is
-  // relaxed because those node utilities are intentionally untyped (annotating
-  // every callback param adds noise without catching real bugs).
+  // allowJs and checkJs also check the .mjs scripts.
+  // noImplicitAny is off because these node utilities are untyped on purpose.
+  // A type annotation on every callback parameter adds noise. It does not
+  // catch real bugs.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,

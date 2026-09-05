@@ -10,7 +10,7 @@ import type { BBox } from 'geojson'
 import { filtersFromParams, filtersToParams } from './filters'
 import { sortFromParams, sortToParams } from './sort'
 
-/** Decode a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
+/** Decodes a URL segment, tolerating a malformed `%` escape (returns it unchanged). */
 const safeDecode = (segment: string): string => {
   try {
     return decodeURIComponent(segment)
@@ -20,9 +20,9 @@ const safeDecode = (segment: string): string => {
 }
 
 /**
- * Parent of a nested path — drop the last segment. `undefined` for a single-segment
- * (top-level) path. Works for both a region path (→ its parent region) and an event
- * path (→ its region page, dropping the numeric id).
+ * The parent of a nested path — drops the last segment. Returns `undefined` for a
+ * single-segment (top-level) path. Works for both a region path (to its parent
+ * region) and an event path (to its region page, dropping the numeric id).
  */
 export const parentOf = (path: string): string | undefined => {
   const segments = path.split('/').filter(Boolean)
@@ -31,47 +31,51 @@ export const parentOf = (path: string): string | undefined => {
 }
 
 /**
- * Nest a child (an event id, or a slug) under a parent route. The inverse of
- * `parentOf`: `childRoute('/india/pune', 507)` → `/india/pune/507`. Region events
- * use this so navigating to an event keeps the region ancestry in the URL (an
- * event's own `webPath` is flat / often null), rather than composing the path inline.
+ * Nests a child (an event id, or a slug) under a parent route. This is the inverse of
+ * `parentOf`: `childRoute('/india/pune', 507)` returns `/india/pune/507`. Region
+ * events use this, so navigating to an event keeps the region ancestry in the URL (an
+ * event's own `webPath` is flat, and often null), rather than composing the path
+ * inline.
  */
 export const childRoute = (parentPath: string, child: string | number): string =>
   `${parentPath}/${child}`
 
 /**
- * A server-provided route (`webPath`) is only trusted as a same-origin route if
- * it's a site-relative path: a leading `/` that isn't protocol-relative (`//host`).
- * Rejects `javascript:`, `https:`, `//evil`, etc. so a hostile/misconfigured CMS
- * `webPath` can never reach an `<a href>` — the widget builds a safe `/slug`·`/id`
- * fallback instead. Returns `undefined` for anything else.
+ * A server-provided route (`webPath`) is only trusted as a same-origin route when it
+ * is a site-relative path: a leading `/` that is not protocol-relative (`//host`).
+ * This rejects `javascript:`, `https:`, `//evil`, and similar values, so a
+ * hostile or misconfigured CMS `webPath` can never reach an `<a href>` — the widget
+ * builds a safe `/slug` or `/id` fallback instead. It returns `undefined` for
+ * anything else.
  *
  * `/\evil.com` is rejected alongside `//evil.com`: browsers normalise a leading
  * backslash to a slash, so the standalone BrowserRouter build would render
- * `<a href="/\evil.com">` and Chrome would resolve it to `https://evil.com` on a
- * middle-click or "copy link address". Live in every mode since #154 — the widget's hrefs are
- * absolute host-origin URLs now, so a raw `webPath` reaching one is a real off-origin link. The
- * guard is one character and this string can reach an href.
+ * `<a href="/\evil.com">`, and Chrome would resolve it to `https://evil.com` on a
+ * middle-click or "copy link address". This has been live in every mode since #154 —
+ * the widget's hrefs are absolute host-origin URLs now, so a raw `webPath` reaching
+ * one is a real off-origin link. The guard is one character, and this string can
+ * reach an href.
  *
- * TAB, LF and CR are rejected in that same position for the same reason, and it is not
- * obvious: the WHATWG URL parser **strips** them before parsing, so `/<TAB>/evil.com`
- * and `/<LF>\evil.com` are read as `//evil.com` and resolve off-origin — they would walk
- * straight through a check that only looked at the character after the leading slash.
+ * TAB, LF, and CR are rejected in that same position for the same reason, and it is
+ * not obvious why: the WHATWG URL parser **strips** them before parsing, so
+ * `/<TAB>/evil.com` and `/<LF>\evil.com` are read as `//evil.com` and resolve
+ * off-origin. They would walk straight through a check that only looked at the
+ * character after the leading slash.
  */
 export const safePath = (path: string | null | undefined): string | undefined =>
   path && path.startsWith('/') && !/^[/\\\t\n\r]/.test(path.slice(1)) ? path : undefined
 
 /**
- * True when `pathname` already is the canonical `target`, ignoring percent-
- * encoding. The address bar stores non-ASCII slugs encoded (`/li%C3%A8ge`) while
- * `webPath` is decoded (`/liège`), so a raw `!==` would loop the canonicalize
+ * True when `pathname` already is the canonical `target`, ignoring percent
+ * encoding. The address bar stores non-ASCII slugs encoded (`/li%C3%A8ge`), while
+ * `webPath` is decoded (`/liège`), so a raw `!==` check would loop the canonicalize
  * redirect forever on accented slugs.
  */
 export const isCanonicalPath = (pathname: string, target: string): boolean =>
   safeDecode(pathname) === target
 
 /**
- * The distance-ranked search route, optionally centred on a point. Owns the
+ * The distance-ranked search route, optionally centred on a point. This owns the
  * `?center=lng,lat` wire format together with `parseCenter` below (its inverse) and
  * the filter serializers, so producers never hand-roll it.
  */
@@ -79,16 +83,17 @@ export const searchPath = (center?: [number, number]): string =>
   center ? `/search?center=${center[0]},${center[1]}` : '/search'
 
 /**
- * Decode a `?center=lng,lat` value to `[longitude, latitude]`, or `undefined` when
- * it's absent or not two finite numbers IN RANGE — so a malformed hand-typed value
- * falls back to the map centre rather than feeding NaNs into Mapbox. The inverse of
- * `searchPath`'s encoding, kept beside it: SearchView (framing + distance ranking)
- * and the SearchView story (deriving the seeded query key) both read it, and a third
- * private copy is how the two would silently disagree.
+ * Decodes a `?center=lng,lat` value to `[longitude, latitude]`, or `undefined` when
+ * it is absent, or not two finite numbers IN RANGE — so a malformed hand-typed value
+ * falls back to the map centre, rather than feeding NaNs into Mapbox. This is the
+ * inverse of `searchPath`'s encoding, kept beside it: SearchView (framing and distance
+ * ranking) and the SearchView story (deriving the seeded query key) both read it, and
+ * a third private copy is how the two would silently disagree.
  *
  * The range check matters as much as the finite one: Mapbox's `LngLat` throws outside
- * ±90 latitude, and this value reaches `flyTo` straight from the URL — so `?center=0,1000`
- * would take the whole widget down to the error boundary inside somebody else's page.
+ * plus or minus 90 latitude, and this value reaches `flyTo` straight from the URL —
+ * so `?center=0,1000` would take the whole widget down to the error boundary inside
+ * somebody else's page.
  */
 export const parseCenter = (value: string | null): [number, number] | undefined => {
   if (!value) return undefined
@@ -103,18 +108,19 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
 }
 
 /**
- * The part of a search URL that decides WHAT the results query asks for — everything
- * except `?q`.
+ * The part of a search URL that decides WHAT the results query asks for —
+ * everything except `?q`.
  *
- * SearchView's results boundary resets on this (issue #89). It can't reset on the whole
- * query string: the geocoder mirrors every keystroke into `?q`, so a failing query would
- * be retried once per character typed. And it can't reset on the pathname, which is what
- * the drawer boundary already keys on — every re-search and filter change moves only the
- * query string, so without a reset a single failure would pin its error over every later
- * attempt, turning a transient failure into a permanent dead end.
+ * SearchView's results boundary resets on this (issue #89). It cannot reset on the
+ * whole query string: the geocoder mirrors every keystroke into `?q`, so a failing
+ * query would be retried once per character typed. And it cannot reset on the
+ * pathname, which the drawer boundary already keys on — every re-search and filter
+ * change moves only the query string, so without a reset a single failure would pin
+ * its error over every later attempt, turning a transient failure into a permanent
+ * dead end.
  *
- * `?q` is safe to drop because nothing downstream reads it: it pre-fills the field's text
- * and suppresses the IP prompt, and neither is part of the events query.
+ * `?q` is safe to drop, because nothing downstream reads it: it pre-fills the field's
+ * text and suppresses the IP prompt, and neither is part of the events query.
  */
 export const listResetKey = (params: URLSearchParams): string => {
   const rest = new URLSearchParams(params)
@@ -126,29 +132,30 @@ export const listResetKey = (params: URLSearchParams): string => {
 }
 
 /**
- * The searched country's ISO alpha-2 code (`?cc=IS`) — written by the geocoder field
- * and the accepted IP suggestion, read by `useCountrySite` to offer that country's own
- * website when it lists no programs (issue #82). Named here, beside `searchPath`, so
- * the writers and the reader can't drift on the param.
+ * The searched country's ISO alpha-2 code (`?cc=IS`), written by the geocoder field
+ * and the accepted IP suggestion, and read by `useCountrySite` to offer that
+ * country's own website when it lists no programs (issue #82). This is named here,
+ * beside `searchPath`, so the writers and the reader cannot drift on the parameter.
  *
- * Part of the *searched location*, not preserved state: `preserveSearchState` below
- * rebuilds from an empty base, so a new search replaces it and a
- * previous country never leaks into the next search.
+ * This is part of the *searched location*, not preserved state: `preserveSearchState`
+ * below rebuilds from an empty base, so a new search replaces it, and a previous
+ * country never leaks into the next search.
  */
 export const SEARCH_COUNTRY_PARAM = 'cc'
 
 /**
- * The URL-only state that survives a new place search — the applied filters and the list sort,
- * both presentation rather than location.
+ * The URL-only state that survives a new place search: the applied filters and the
+ * list sort, both presentation rather than location.
  *
  * Re-encoding through the two codecs from an EMPTY base drops the searched location
- * (`q`/`center`/`bbox`/`cc`) by construction; the caller then sets the new one. That is what
- * keeps the previous country's `?cc` out of the next search, where it would offer the wrong
- * country's website. A filter edit is the other direction and merges onto the current params
- * (`filtersToParams(…, prev)`), so it preserves the searched country.
+ * (`q`/`center`/`bbox`/`cc`) by construction. The caller then sets the new one. That
+ * is what keeps the previous country's `?cc` out of the next search, where it would
+ * offer the wrong country's website. A filter edit runs the other direction and
+ * merges onto the current params (`filtersToParams(…, prev)`), so it preserves the
+ * searched country.
  *
- * The results list's reveal isn't in the URL at all: a new centre changes `revealKey`, so paging
- * resets on its own (see `use-reveal`).
+ * The results list's reveal is not in the URL at all: a new centre changes
+ * `revealKey`, so paging resets on its own (see `use-reveal`).
  */
 export const preserveSearchState = (params: URLSearchParams): URLSearchParams =>
   sortToParams(sortFromParams(params), filtersToParams(filtersFromParams(params)))
@@ -165,12 +172,14 @@ export type PlaceSearch = {
 }
 
 /**
- * The distance-ranked search route for a place, carrying the current filters and sort across.
+ * The distance-ranked search route for a place, carrying the current filters and
+ * sort across.
  *
- * One builder for the three things that can name a searched place — picking one from the
- * geocoder, accepting the IP suggestion, and pressing "find my location" — because each of them
- * previously hand-rolled the same four params, and each was one forgotten `preserveSearchState`
- * away from silently clearing somebody's filters.
+ * This is one builder for the three things that can name a searched place — picking
+ * one from the geocoder, accepting the IP suggestion, and pressing "find my
+ * location" — because each of them previously hand-rolled the same four params, and
+ * each was one forgotten `preserveSearchState` away from silently clearing
+ * somebody's filters.
  */
 export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): string => {
   const next = preserveSearchState(params)
@@ -185,8 +194,8 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
 
 /**
  * The calendar route, optionally pre-scoped to a region (`?region=<slug>`) — owns the
- * wire format together with the region filter codec so producers (the RegionView entry
- * button) never hand-roll it.
+ * wire format together with the region filter codec, so producers (the RegionView
+ * entry button) never hand-roll it.
  */
 export const calendarPath = (regionSlug?: string): string =>
   regionSlug ? `/calendar?region=${encodeURIComponent(regionSlug)}` : '/calendar'
@@ -195,16 +204,18 @@ export const calendarPath = (regionSlug?: string): string =>
 export type ResolvedPath = { kind: 'region'; slug: string } | { kind: 'event'; id: number } | null
 
 /**
- * Resolve a pathname by its **terminal segment only**: an all-digits tail is an
- * event id; any other tail is a (globally unique) region slug. Depth-independent,
- * so every nested shape and the legacy flat URLs resolve identically. Returns null
- * for the root (no region/event segment) so the caller can fall back to the home view.
+ * Resolves a pathname by its **terminal segment only**: an all-digits tail is an
+ * event id, and any other tail is a (globally unique) region slug. This is
+ * depth-independent, so every nested shape and the legacy flat URLs resolve
+ * identically. It returns null for the root (no region/event segment), so the caller
+ * can fall back to the home view.
  *
- * Unlike `resolveStack`, this has no `RESERVED_SLUGS` carve-out — `resolvePath('/search')`
- * resolves to a (non-existent) region slug `'search'`, not the search view. That's fine
- * today because every caller passes an already-derived entity path (e.g. `useEventFromPath`'s
- * `eventPath`), never a bare top-level route — but don't reuse this on a raw pathname that
- * might be `/search`, `/register`, or `/share` without adding the same guard.
+ * Unlike `resolveStack`, this has no `RESERVED_SLUGS` carve-out —
+ * `resolvePath('/search')` resolves to a (non-existent) region slug `'search'`, not
+ * the search view. That is fine today, because every caller passes an
+ * already-derived entity path (for example, `useEventFromPath`'s `eventPath`), never
+ * a bare top-level route — but do not reuse this on a raw pathname that might be
+ * `/search`, `/register`, or `/share` without adding the same guard.
  */
 export const resolvePath = (pathname: string): ResolvedPath => {
   const segments = pathname.split('/').filter(Boolean)
@@ -217,12 +228,12 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 }
 
 /**
- * Words that are never a region slug. `search` / `calendar` / `filters` / `register` /
- * `share` / `online` are our own routed views (a CMS region slug can never silently shadow them
- * — the guard); `preview` is the live-preview boot route (issue #40 — captured in
- * `main.tsx`, carries no drawer of its own); `events` / `areas` / `regions` / `venues`
- * are legacy URL prefixes that carry no drawer of their own. Kept lowercase; matched
- * case-insensitively.
+ * Words that are never a region slug. `search` / `calendar` / `filters` / `register`
+ * / `share` / `online` are our own routed views (a CMS region slug can never
+ * silently shadow them — this guard prevents that). `preview` is the live-preview
+ * boot route (issue #40 — captured in `main.tsx`, and carries no drawer of its own).
+ * `events` / `areas` / `regions` / `venues` are legacy URL prefixes that carry no
+ * drawer of their own. Kept lowercase. Matched case-insensitively.
  */
 export const RESERVED_SLUGS = new Set([
   'search',
@@ -252,12 +263,12 @@ export type StackEntry =
 /**
  * The full ancestor chain for a pathname — one entry per meaningful segment, in
  * order — so the drawer stack is a pure function of the URL. `/india/pune/507`
- * → [region india, region pune, event 507]; `/…/507/register` appends a register
- * entry over that event. Each entry's `path` is the site-relative route to it
- * (encoded as in the address bar); region slugs are decoded for querying. Legacy
- * prefixes (`events`, `areas`, …) resolve no drawer, so `/events/507` is just the
- * event — matching resolvePath's terminal rule but for every ancestor. CountriesView is
- * always the implicit base, so `/` yields an empty chain.
+ * resolves to [region india, region pune, event 507]. `/…/507/register` appends a
+ * register entry over that event. Each entry's `path` is the site-relative route to
+ * it (encoded as in the address bar). Region slugs are decoded for querying. Legacy
+ * prefixes (`events`, `areas`, and similar) resolve no drawer, so `/events/507` is
+ * just the event — matching resolvePath's terminal rule, but for every ancestor.
+ * CountriesView is always the implicit base, so `/` yields an empty chain.
  */
 export const resolveStack = (pathname: string): StackEntry[] => {
   const segments = pathname.split('/').filter(Boolean)
@@ -285,22 +296,23 @@ export const resolveStack = (pathname: string): StackEntry[] => {
 }
 
 /**
- * The nearest region in a dead URL's ancestry that still exists — where to send someone
- * whose link 404'd (issue #89).
+ * The nearest region in a dead URL's ancestry that still exists — where to send
+ * someone whose link 404'd (issue #89).
  *
- * Drops the LAST entry before walking, because that entry *is* what failed: the top of the
- * stack is the view that threw. Then takes the first ancestor whose slug the caller's set
- * confirms. One rule covers every shape with no special-casing — it steps over the
- * `register`/`share` segment, over a dead event id, and over a renamed venue slug the
- * region tree no longer carries.
+ * This drops the LAST entry before walking, because that entry *is* what failed: the
+ * top of the stack is the view that threw. It then takes the first ancestor whose
+ * slug the caller's set checks. One rule covers every shape with no
+ * special-casing — it steps over the `register`/`share` segment, over a dead event
+ * id, and over a renamed venue slug the region tree no longer carries.
  *
- * Deliberately NOT `parentOf`: the parent of `<event>/register` is the event path, which
- * 404s identically, so `parentOf` would offer a second dead link as the escape from the
- * first. Returns the ancestor's SLUG; the caller resolves it to a canonical `webPath`,
- * since the URL prefix may be a legacy chain.
+ * Deliberately NOT `parentOf`: the parent of `<event>/register` is the event path,
+ * which 404s identically, so `parentOf` would offer a second dead link as the escape
+ * from the first. This returns the ancestor's SLUG. The caller resolves it to a
+ * canonical `webPath`, since the URL prefix may be a legacy chain.
  *
- * Pure and total — an unparseable path yields `undefined`, never a throw. It runs inside an
- * error fallback, where a throw would blank the widget on someone else's page.
+ * Pure and total — an unparseable path yields `undefined`, never a throw. This runs
+ * inside an error fallback, where a throw would blank the widget on someone else's
+ * page.
  */
 export const nearestKnownRegion = (pathname: string, known: Set<string>): string | undefined => {
   try {
@@ -319,48 +331,53 @@ export const nearestKnownRegion = (pathname: string, known: Set<string>): string
 }
 
 /**
- * Whether the stack ends in a filter overlay rather than a stacked view.
+ * Whether the stack ends in a filter overlay, rather than a stacked view.
  *
- * A trailing `filters` over a `calendar` isn't a nested drawer: DrawerStack renders it as a
- * separate modal drawer OVER the still-mounted calendar, so the base drawer is still the
- * calendar. The map-less build keeps the plain replace-stack behaviour, where the trailing
- * entry IS the view — hence `hasMap`, which DrawerStack passes and the fallback chrome
- * doesn't need (a chrome with no map is a map-less build by definition).
+ * A trailing `filters` over a `calendar` is not a nested drawer: DrawerStack renders
+ * it as a separate modal drawer OVER the still-mounted calendar, so the base drawer
+ * is still the calendar. The map-less build keeps the plain replace-stack behaviour,
+ * where the trailing entry IS the view — hence `hasMap`, which DrawerStack passes and
+ * the fallback chrome does not need (a chrome with no map is a map-less build by
+ * definition).
  *
- * The one definition of the rule. It was briefly two — this predicate and an inline copy in
- * DrawerStack — and they had already drifted on the `hasMap` gate.
+ * This is the one definition of the rule. It was briefly two — this predicate and an
+ * inline copy in DrawerStack — and they had already drifted on the `hasMap` gate.
  */
 export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =>
   hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
 
 /**
- * The entry the BASE drawer is showing — the stack's last, unless that's a filter overlay.
+ * The entry the BASE drawer is showing — the stack's last entry, unless that is a
+ * filter overlay.
  *
- * Used by `DrawerChrome`, which would otherwise title the base drawer "Filters" whenever
- * the calendar fails underneath an open overlay (issue #89).
+ * Used by `DrawerChrome`, which would otherwise title the base drawer "Filters"
+ * whenever the calendar fails underneath an open overlay (issue #89).
  *
- * `hasMap` must be threaded through, not defaulted at the call site: the map-less build
- * doesn't render an overlay at all, so at `/calendar/filters` the trailing entry IS the
- * view and peeling it would title the Filters drawer "Calendar".
+ * `hasMap` must be threaded through, not defaulted at the call site: the map-less
+ * build does not render an overlay at all, so at `/calendar/filters` the trailing
+ * entry IS the view, and peeling it would title the Filters drawer "Calendar".
  */
 export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry | undefined =>
   isFilterOverlay(entries, hasMap) ? entries.at(-2) : entries.at(-1)
 
 /**
- * Which view the base drawer is actually showing, as a stable identity — DrawerStack's
- * `AnimatePresence` key, and the thing `useFrameOnTop` compares itself against.
+ * Which view the base drawer is actually showing, as a stable identity —
+ * DrawerStack's `AnimatePresence` key, and the thing `useFrameOnTop` compares itself
+ * against.
  *
- * **The camera belongs to the view that is on top, and only that one.** DrawerStack keeps an
- * outgoing view mounted for its 150ms exit, and router context reaches it — so an exiting view
- * re-renders under the NEW url, and any framing it derives from the url re-runs against a route
- * it no longer owns. SearchView did exactly that: leaving `/search` for an event, its
- * `?center`/`?bbox` read as absent, and `frameSearch({})` reset the camera to the world a beat
- * before the event framed, which read as a zoom-out followed by a long fly back in.
+ * **The camera belongs to the view that is on top, and only that one.** DrawerStack
+ * keeps an outgoing view mounted for its 150ms exit, and router context reaches it —
+ * so an exiting view re-renders under the NEW url, and any framing it derives from the
+ * url re-runs against a route it no longer owns. SearchView did exactly that: leaving
+ * `/search` for an event, its `?center`/`?bbox` read as absent, and `frameSearch({})`
+ * reset the camera to the world a beat before the event framed, which read as a
+ * zoom-out followed by a long fly back in.
  *
- * ⚠ **Not `location.pathname`.** At `/calendar/filters` the trailing entry is peeled into a modal
- * overlay, so the base drawer is still the calendar and the key is `/calendar` — a pathname
- * comparison would call that a view change and mute the calendar's framing. Derived through
- * `baseStackEntry` so that carve-out has one definition, the same reason `isFilterOverlay` does.
+ * ⚠ **Not `location.pathname`.** At `/calendar/filters` the trailing entry is peeled
+ * into a modal overlay, so the base drawer is still the calendar and the key is
+ * `/calendar` — a pathname comparison would call that a view change and mute the
+ * calendar's framing. This is derived through `baseStackEntry`, so that carve-out has
+ * one definition, the same reason `isFilterOverlay` does.
  */
 export const topViewKey = (pathname: string, hasMap = true): string =>
   baseStackEntry(resolveStack(pathname), hasMap)?.path ?? '/'

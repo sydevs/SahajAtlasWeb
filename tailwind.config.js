@@ -1,9 +1,10 @@
 import defaultTheme from 'tailwindcss/defaultTheme'
 
-// Brand roles (primary/secondary) read the runtime engine's 12-step channel vars
-// (src/config/theme/palette.ts; defaulted in globals.css). `DEFAULT` is the solid
-// (step 9) and `foreground` its on-color, so `bg-primary` / `text-primary` keep
-// working alongside the full `primary-1…12` ramp.
+// Brand roles (primary, secondary) read 12-step channel vars from the runtime
+// engine (src/config/theme/palette.ts). globals.css sets their defaults.
+// `DEFAULT` maps to the solid step, step 9. `foreground` maps to its
+// on-color. `bg-primary` and `text-primary` still work, alongside the full
+// `primary-1` through `primary-12` ramp.
 const brandScale = (name) => ({
   ...Object.fromEntries(
     Array.from({ length: 12 }, (_, i) => [i + 1, `hsl(var(--${name}-${i + 1}) / <alpha-value>)`]),
@@ -12,8 +13,9 @@ const brandScale = (name) => ({
   foreground: `hsl(var(--${name}-on) / <alpha-value>)`,
 })
 
-// Radix Colors neutral/status ramps come in as solid hex vars (globals.css imports
-// the Radix CSS), so they're referenced directly — no alpha channel.
+// Radix Colors' neutral and status ramps arrive as solid hex vars.
+// globals.css imports the Radix CSS. This config references them directly,
+// with no alpha channel.
 const radixScale = (name) =>
   Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, `var(--${name}-${i + 1})`]))
 
@@ -152,27 +154,29 @@ const TAILWIND_REM_TO_PX = {
 module.exports = {
   content: [
     './index.html',
-    // Scan all of src so a directory rename can't silently drop utilities the way the
-    // removed pages/ + layouts/ globs did — the drawer rework moved views into src/views/
-    // and any class used *only* in a view (e.g. the RootView flag sizing) went ungenerated.
+    // Scan all of src. A directory rename must never silently drop
+    // utilities. The old pages/ and layouts/ globs did exactly that: the
+    // drawer rework moved views into src/views/, and any class used only
+    // in a view (for example, the RootView flag sizing) stopped generating.
     './src/**/*.{js,ts,jsx,tsx,mdx}',
     './.ladle/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     ...TAILWIND_REM_TO_PX,
     extend: {
-      // Semantic color tokens. Brand roles (primary/secondary) repaint at runtime
-      // via the engine's CSS vars; neutral (gray) + status (danger) are fixed
-      // Radix Colors ramps. `danger` is intentionally independent of the brand's
-      // `secondary` — a fixed status hue, never tenant-overridden.
+      // Semantic color tokens. Brand roles (primary, secondary) repaint at
+      // runtime through the engine's CSS vars. Neutral (gray) and status
+      // (danger) use fixed Radix Colors ramps. `danger` stays independent
+      // of the brand's `secondary` on purpose: a fixed status hue, never
+      // overridden per tenant.
       colors: {
         gray: radixScale('gray'),
         primary: brandScale('primary'),
         secondary: brandScale('secondary'),
         // The third themeable brand role (default: orange). `neutral` is `gray`.
         contrast: brandScale('contrast'),
-        // `danger` stays a FIXED red status ramp (never tenant-themed) for genuine
-        // error / destructive states — independent of the brand roles above.
+        // `danger` is a fixed red status ramp for real error and
+        // destructive states. It stays independent of the brand roles above.
         danger: {
           ...radixScale('red'),
           DEFAULT: 'var(--red-9)',
@@ -184,8 +188,8 @@ module.exports = {
         divider: 'var(--gray-6)',
         focus: 'hsl(var(--primary-9))',
       },
-      // NextUI's `opacity-hover` (0.8) / `opacity-disabled` (0.5) tokens, kept so
-      // the existing hover/disabled utilities still resolve.
+      // Legacy `opacity-hover` (0.8) and `opacity-disabled` (0.5) tokens.
+      // Kept so existing hover and disabled utilities still resolve.
       opacity: {
         hover: '0.8',
         disabled: '0.5',
@@ -231,14 +235,16 @@ module.exports = {
       ],
     },
     fontFamily: {
-      // 'Atlas Rethink Sans', not 'Rethink Sans' — the faces are self-hosted and declared
-      // in src/styles/fonts.ts, and @font-face is document-global: declaring the plain
-      // name would override the font on a host page that ships its own copy (#91). The
-      // one family covers two typefaces split by unicode-range (Rethink Sans for latin,
-      // Raleway for Cyrillic, which Rethink Sans does not provide) — see fonts.ts.
-      // `--sy-font-sans` lets a tenant name a typeface their page already loads, without a new
-      // request and without touching their CSP. Unset — the normal case — it falls through to our
-      // self-hosted face, so this changes nothing for anyone who does not use it.
+      // The name is 'Atlas Rethink Sans', not 'Rethink Sans'. The faces are
+      // self-hosted, declared in src/styles/fonts.ts. `@font-face` is
+      // document-global. The plain name would override a host page's own
+      // copy of the font (#91). This one family name covers two typefaces,
+      // split by unicode range: Rethink Sans for Latin, Raleway for
+      // Cyrillic (Rethink Sans has no Cyrillic glyphs). See fonts.ts.
+      // `--sy-font-sans` lets a tenant name a typeface their page already
+      // loads. This adds no new request and touches no CSP rule. Left
+      // unset, the normal case, it falls through to our self-hosted face.
+      // Nothing changes for a tenant who does not set it.
       sans: ['var(--sy-font-sans, "Atlas Rethink Sans")', ...defaultTheme.fontFamily.sans],
       serif: defaultTheme.fontFamily.serif,
       mono: defaultTheme.fontFamily.mono,

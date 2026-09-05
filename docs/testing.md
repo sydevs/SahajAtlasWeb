@@ -2,332 +2,265 @@
 
 Two lanes, kept separate so the fast one never touches the network:
 
-| Lane      | Config                   | Command                  | Runs                                   |
-| --------- | ------------------------ | ------------------------ | -------------------------------------- |
-| **Unit**  | `vitest.config.ts`       | `pnpm test` / `test:run` | Co-located `src/**/*.test.ts(x)`, node |
-| **Smoke** | `vitest.smoke.config.ts` | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs CF preview  |
+| Lane      | Config                   | Command                  | Runs                                    |
+| --------- | ------------------------ | ------------------------ | ---------------------------------------- |
+| **Unit**  | `vitest.config.ts`       | `pnpm test` / `test:run` | Co-located `src/**/*.test.ts(x)`, node  |
+| **Smoke** | `vitest.smoke.config.ts` | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs CF preview   |
 
-- `pnpm test` — watch (inner loop). `pnpm test:run` — one-shot (CI + the pre-PR
-  gate + the PostToolUse hook). `pnpm test:smoke` — needs `PREVIEW_URL`; skips
-  gracefully without it.
-- CI gate runs `lint + typecheck + test:run + build + size + ladle:build`. A
-  Dependency Audit job and the smoke job run separately; the smoke job targets
-  the deployed Cloudflare preview.
+- `pnpm test` runs watch mode, for the inner loop. `pnpm test:run` runs once — for CI, the
+  pre-PR gate, and the PostToolUse hook.
+- `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
+- CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, and `ladle:build`. A Dependency
+  Audit job and the smoke job run separately. The smoke job targets the deployed Cloudflare
+  preview.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
-- **A green Smoke check means the specs ran.** Discovery emits an empty URL and
-  exits 0 when no preview turns up, and the specs then `skipIf` themselves — so
-  the workflow annotates that state and **fails** it on same-repo PRs, where a
-  preview was expected. Forks and local runs keep the graceful skip. If you add a
-  spec, guard it with `test.skipIf(skipWithoutPreview)` like its siblings; the
+- **A green Smoke check means the specs ran — nothing more.** Discovery emits an empty URL and
+  exits 0 when no preview turns up, so the specs then skip themselves
+  (`test.skipIf(skipWithoutPreview)`). The workflow **fails** that state on a same-repo PR, where
+  a preview was expected, and only annotates it elsewhere. Forks and local runs keep the graceful
+  skip. If you add a spec, guard it with `test.skipIf(skipWithoutPreview)` like its siblings — the
   loudness belongs to the job, not the spec.
-- **Status is not a result.** `public/_redirects` is `/* /index.html 200`, so
-  Cloudflare answers **200 `text/html`** for any path that isn't a built asset.
-  A spec asserting `res.status === 200` therefore passes for a missing file —
-  `embed.smoke.test.ts` learned this the hard way. Assert on the body or the
-  content type.
-- **A green Smoke check means the specs ran against this commit wherever Cloudflare
-  attests one — and never against a commit it explicitly names as a different one**
-  (issue #138). The hedge is honest, not decorative: the `alias` floor below can
-  still pick a host that serves another build, and a headline promising more than
-  the tiers deliver is how the next reader stops checking.
-  Cloudflare publishes two hosts per project — the per-deployment alias
-  (`a73c3b0c.sahajatlas.pages.dev`, one commit forever) and a stable **branch**
-  alias (`fix-report-form-delivery.sahajatlas.pages.dev`, whatever deployed to that
-  branch most recently) — and `pick()`'s host gate accepts both, because whose host
-  it is and whose build it serves are different questions. So discovery **ranks
-  candidates by provenance** instead of taking the first match: the deployment
-  named by our own check run for the head SHA wins (that run's `details_url` ends
-  in the deployment UUID, whose first 8 characters _are_ the alias — an unbroken
-  chain from commit to host), then a deploy-shaped URL from a per-SHA source, then
-  one from a Cloudflare comment naming the head, then a branch alias; a comment
-  naming some **other** commit is refused outright, and so is the bare project
-  host, which is production rather than any preview. The weak tiers exist so a
-  change in Cloudflare's output degrades discovery rather than reddening every
-  same-repo PR under invariant one.
-  **Deploy-shape is read at every tier, not only the per-SHA ones.** Reading it
-  only for per-SHA sources left a single comment's two URLs indistinguishable, so
-  which won came down to the order Cloudflare printed its table in — reproducing
-  the very "source order decided it" defect the invariant exists to remove, one
-  level down. A refused URL is also **named in the step summary**: without that,
-  `absent` ("no check run, no deployment, no bot comment") flatly contradicts the
-  poll line printed seconds earlier naming the URL that was declined.
+- **A 200 status is not proof of anything.** `public/_redirects` is `/* /index.html 200`, so
+  Cloudflare answers **200 `text/html`** for any path that is not a built asset. A spec asserting
+  `res.status === 200` therefore passes for a missing file too — `embed.smoke.test.ts` learned
+  this the hard way. Assert on the body or the content type instead.
+- **A green Smoke check proves the specs ran against this commit, wherever Cloudflare names one —
+  and never against a commit it names as a different one** (issue #138). Cloudflare publishes two
+  hosts per project: a per-deployment alias (one commit forever) and a stable branch alias
+  (whatever last deployed to that branch). Both pass `pick()`'s host gate, because whose host it
+  is and whose build it serves are separate questions. So discovery **ranks candidates by
+  provenance**, not by the first match: our own check run for the head SHA wins first, then a
+  deploy-shaped URL from a per-SHA source, then a Cloudflare comment naming the head commit, then
+  the branch alias. A comment naming a different commit is refused outright, and so is the bare
+  project host — that is production, not a preview.
+  **This ranking is a security property, not just a mechanism.** `pages.dev` subdomains are
+  first-come-first-served, and one discovery source scrapes URLs out of bot comments — so a plain
+  substring match would let any installed GitHub App's bot comment redirect the smoke lane to a
+  host somebody else controls, and collect a green check that verified nothing.
+  `pick()`'s hostname-boundary match and the ranked sources are both pinned by
+  `scripts/get-cloudflare-preview-url.test.ts`. A refused URL is also **named in the step
+  summary** — otherwise `absent` ("no check run, no deployment, no bot comment") would flatly
+  contradict the poll line that just named the URL it declined.
 
 ### Why a red Smoke check now says which kind of red (issue #132)
 
-The first invariant is about what GREEN means, so it says nothing about whose
-fault red is — and "no preview" is not one thing.
-`scripts/get-cloudflare-preview-url.mjs` therefore emits a second output beside
-`preview_url`: **`preview_status`**, which ci.yml branches its message on.
+The first invariant says what GREEN means. It says nothing about whose fault RED is, and "no
+preview" is not one thing. `scripts/get-cloudflare-preview-url.mjs` emits a second output beside
+`preview_url`: **`preview_status`**, and `ci.yml` branches its message on it.
 
-| status                    | what it saw                                      | what it tells the reader                                   |
-| ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| `pending` / `unreachable` | a deploy demonstrably exists; we stopped waiting | **re-run**                                                 |
-| `failed`                  | our project's run finished and did NOT succeed   | **read the Cloudflare log** — re-running fails identically |
-| `absent`                  | no Cloudflare signal of any kind for the SHA     | **investigate** — the deploy never happened                |
-| `error`                   | discovery itself broke (missing env, a throw)    | read the discovery step                                    |
+| status                    | what it saw                                       | what it tells the reader                                    |
+| ------------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
+| `pending` / `unreachable` | a deploy demonstrably exists, but we stopped waiting | **re-run**                                                  |
+| `failed`                  | our project's run finished and did NOT succeed    | **read the Cloudflare log** — re-running fails identically    |
+| `absent`                  | no Cloudflare signal of any kind for the SHA      | **investigate** — the deploy never happened                    |
+| `error`                   | discovery itself broke (missing env, a throw)     | read the discovery step                                        |
 
-All of them still fail a same-repo PR, and an **unrecognised** status takes the
-loud branch on purpose. The step summary carries the elapsed wait and the last
-observed state, so a slow deploy is legible without opening the raw log.
+All of them still fail a same-repo PR. An **unrecognised** status also takes the loud branch, on
+purpose. The step summary carries the elapsed wait and the last observed state, so a slow deploy
+stays legible without opening the raw log.
 
-**`failed` is the row that has to exist.** A failed Cloudflare build still posts a
-check run, so folding it into "a deploy exists" would tell the reader to re-run a
-job that fails identically — training exactly the habit the ticket set out to
-break. It is also why evidence is read from the run matching `CF_PROJECT`'s own
-slug rather than whichever run GitHub lists first: the `-design` sibling
-succeeding says nothing about the app's build, and its "(success)" would otherwise
-be the only thing the summary showed.
+**`failed` is the row that has to exist.** A failed Cloudflare build still posts a check run, so
+folding it into "a deploy exists" would send the reader to re-run a job that fails identically —
+training the exact habit this ticket set out to break. Evidence must come from the run matching
+`CF_PROJECT`'s own slug, not whichever run GitHub lists first — the `-design` sibling succeeding
+says nothing about the app's build.
 
-Two findings behind that script, so they aren't re-derived:
+Two findings sit behind that script, worth keeping so nobody re-derives them:
 
-- **A "Cloudflare is building" state IS observable — and a retrospective API
-  query will tell you it isn't.** The check run carries `status: in_progress` for
-  the whole build (watch the discovery step's log on any PR). But Cloudflare sets
-  `started_at` when it _completes_ the run, so a finished run always reads
-  `started_at == completed_at` — and sampling historical commits, which is what
-  #124's evidence and a 230-run sweep of this repo both did, cannot see the
-  in-progress window at all and concludes it never existed. **#132 was written on
-  that wrong answer, and it survived a full review pass; only the live CI run
-  caught it.** If you are asking "what does this integration publish while it
-  works?", watch a live build — a query over completed objects cannot answer it.
-  (The check _suite_ is genuinely useless: GitHub pre-creates one per installed
-  app on every push, so Cloudflare's is indistinguishable from the vercel /
-  railway / sentry suites of apps that post nothing.)
-  The deadline is nonetheless **flat**, and that choice outlived the correction:
-  it is justified in the script's header against 86 measured builds
-  (p50 99s · p95 373s · max 453s) and clears the slowest by ~1.3×, so extending
-  adaptively would only change cases a long-enough deadline already covers. The
-  6-minute deadline it replaced sat _below_ the 95th percentile, which is how
-  #124 went red on a healthy commit. Override with `PREVIEW_TIMEOUT_MS` (it is in
-  milliseconds, and capped), don't edit the constant.
-- **The discovery _sources_ (#122) and `pick()`'s hostname-boundary match are
-  load-bearing.** The latter is a security property: `pages.dev` subdomains are
-  first-come-first-served and source 4 scrapes URLs out of bot comments, so a
-  substring match would let a bot belonging to any installed GitHub App aim the
-  smoke lane at a host somebody else controls and collect a green check that
-  verified nothing. (The Bot-author gate means this is _not_ "anyone who can
-  comment" — `user.type` is GitHub's word, not self-declared.) Both are pinned by
-  `scripts/get-cloudflare-preview-url.test.ts`.
+- **A "Cloudflare is building" state IS observable — and a retrospective query will tell you it
+  is not.** The check run carries `status: in_progress` for the whole build. But Cloudflare sets
+  `started_at` only when the run **completes**, so a finished run always shows
+  `started_at == completed_at`. Sampling historical commits — what #124's evidence and a 230-run
+  sweep of this repo both did — cannot see the in-progress window at all, and concludes it never
+  existed. **#132 was written on that wrong conclusion, survived a full review pass, and only a
+  live CI run caught it.** To ask what an integration publishes while it works, watch a live
+  build — a query over completed objects cannot answer it. (The check *suite* is useless alone:
+  GitHub pre-creates one per installed app on every push, so Cloudflare's looks like any silent
+  app's.)
+  The deadline stays **flat** on purpose, justified against 86 measured builds (p50 99s, p95
+  373s, max 453s) — about 1.3× the slowest. The 6-minute deadline it replaced sat *below* the
+  95th percentile, which is how #124 went red on a healthy commit. Override with
+  `PREVIEW_TIMEOUT_MS` (milliseconds, capped). Do not edit the constant.
+- **The discovery sources (#122) and `pick()`'s hostname-boundary match are load-bearing** — see
+  the security property under invariant three above.
+- **A passing unit spec is not evidence that the thing it tests is reachable.** #132 added the
+  `failed` status, spec'd `timeoutStatus` returning it, then never destructured `failure` in
+  `main()` — so `timeoutStatus` ran without it, and `failed` could never occur in production while
+  its four assertions stayed green. Both reviews and CI missed it, because the defect was in the
+  wiring, which no pure test can see. When a helper's output feeds a caller, make sure something
+  exercises the caller — a live run of the script against a real SHA is what caught this one.
 
-  **That gap is closed (#138)** — see invariant three above. The check first
-  demanded before tightening it has been made: our check run's summary carries the
-  per-deployment URL on every one of PRs #133–#137, so the strongest tier is the
-  one that fires and the fallbacks are genuinely fallbacks. The refusal is logged
-  by name (`Ignoring <url> — not attributable to <sha>`), because a correct refusal
-  that reads as an oversight is one someone eventually "fixes".
+The lane also covers `embed.js`, not only the standalone page — the embed is what a host
+installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-- **A passing unit spec is not evidence that the thing it tests is reachable.**
-  #132 added the `failed` status, spec'd `timeoutStatus` returning it, and then
-  never destructured `failure` in `main()` — so `timeoutStatus` was called without
-  it and `failed` could not occur in production for as long as its four assertions
-  stayed green. Both reviews and CI missed it, because the defect was in the
-  _wiring_, which no pure test can see. When a helper's output feeds a caller, be
-  sure something exercises the caller — a live run of the script against a real SHA
-  is what caught this one.
-
-The lane covers `embed.js` as well as the standalone page: the embed is what a
-host installs, so a deploy that breaks it while `index.html` stays healthy must
-not be a green check.
-
-It also covers the three files in `public/` that only Cloudflare Pages executes —
-`_redirects`, `_headers`, `robots.txt`. Those are inert text in the repo, so no
-local gate can tell you they work; `robots.smoke.test.ts` is where "Pages applies
-every matching `_headers` rule" stops being a doc quote in a comment and becomes an
-assertion (it pins the #91 CORS headers against displacement by the #106 `/*` rule).
-A claim about platform behaviour belongs here rather than in a comment.
+It also covers the three `public/` files that only Cloudflare Pages executes — `_redirects`,
+`_headers`, `robots.txt`. Those are inert text in the repo, so no local gate can prove they work.
+`robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
+claim about platform behaviour, asserted rather than left as a comment.
 
 ### A deployed file is not a working one — check the origins the bundle will REQUEST
 
 Every spec above asks whether something was **deployed**. `boot-origins.smoke.test.ts` asks
-whether what was deployed **points anywhere real**, and that is a distinct failure with no
-overlap: for a long time every preview in this repo rendered a completely blank page while all
-of these passed, because `_redirects`, `_headers`, `robots.txt`, `auto.js` and `index.html` were
-each deployed perfectly.
+whether what was deployed **points anywhere real** — a different failure, with no overlap. For a
+long time, every preview in this repo rendered a blank page while all of the above passed, because
+`_redirects`, `_headers`, `robots.txt`, `auto.js`, and `index.html` were each deployed perfectly.
 
 The cause was a build-time origin. `VITE_HOST` is baked into the bundle and composes the URL the
-locale JSON is fetched from; Production set it and the **Preview** environment did not, so
-previews shipped `.env`'s `localhost:5174` to a `pages.dev` origin and every locale fetch became
-a blocked private-network request to the reviewer's own machine.
+locale JSON fetches from. Production set it. The **Preview** environment did not. So previews
+shipped `.env`'s `localhost:5174` to a `pages.dev` origin, and every locale fetch became a blocked
+private-network request to the reviewer's own machine.
 
-**The reason it is invisible is that it does not degrade — it hangs.** i18next's `init` never
-resolves, so every component reading a translation suspends forever: no canvas, no content, no
-readiness marker. A spec looking for missing strings would find nothing wrong, because there is
-no page to look at.
+**It is invisible because it does not degrade — it hangs.** i18next's `init` never resolves, so
+every component reading a translation suspends forever: no canvas, no content, no readiness
+marker. A spec looking for missing strings would find nothing wrong, because there was no page to
+look at.
 
 So the spec reads the eager graph back off the deploy and checks the two origins the app will
-actually request from — `${VITE_HOST}/locales/` and `${VITE_SAHAJCLOUD_URL}/api` — naming the
-variable, not just the string, since "which env var produced this" is the only useful next
-question. Three things about it are load-bearing:
+actually request — `${VITE_HOST}/locales/` and `${VITE_SAHAJCLOUD_URL}/api` — naming the
+variable, not just the string, since "which env var produced this" is the useful next question.
 
 - **It is targeted, not a sweep.** A first draft flagged any private host anywhere in the graph
   and produced a false positive on a healthy deploy: react-router carries its own literal
   `http://localhost` as the `createURL` base for when there is no `window.location`.
-- **Reading the string is the deterministic half; dialling the origin is not.** The companion
-  test fetches whatever origin was baked in, and that one cannot own the localhost case —
-  anyone running `pnpm dev` has something answering on 5174, so against the very deploy that
-  shipped this bug it passed locally and would only have failed on a runner. Measured, not
-  assumed. Each test's docblock says which half it owns.
+- **Reading the string is deterministic. Dialling the origin is not.** Anyone running `pnpm dev`
+  has something answering on 5174, so against the very deploy that shipped this bug, fetching the
+  origin passed locally and would only have failed on a runner.
 - **A missing match is a failure, not an empty pass.** If an origin stops matching — a minifier
-  change, a refactor composing the URL differently — the assertions would go vacuously green,
-  which this lane's own history says is the hardest kind of wrong to notice.
+  change, a URL composed differently — the assertions would go vacuously green, the hardest kind
+  of wrong to notice.
 
-⚠ **This still does not prove the widget renders**, and no fetch-based spec can. Booting a
-browser in CI would, and is deliberately not done here (see the note atop
-`embed.smoke.test.ts`); what makes that acceptable is that this particular defect is a _string
-in the bundle_, so reading it back is a direct observation rather than an inference. A failure
-mode that only appears at runtime still needs a browser, and that still belongs to local
-Playwright verification.
+⚠ **This still does not prove the widget renders**, and no fetch-based spec can — reading a
+string back is a direct observation only because this particular defect *is* a string in the
+bundle. A failure that only appears at runtime still needs a browser, which belongs to local
+Playwright verification (see the note atop `embed.smoke.test.ts`).
 
 ## Decision: node-only (no jsdom / Testing Library)
 
-Mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, and
-there is **no `@testing-library/react`**. Cover:
+This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, with **no
+`@testing-library/react`**. It covers:
 
-- **Logic & contracts** — zod schemas (`src/types/`), zustand stores
-  (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the
-  per-request context the SDK client attaches (`applyRequestContext` /
-  `interceptFetch`, `src/config/api/client.ts` — specced from `fetch.test.ts`,
-  which is why there is no `client.test.ts`), and the fetchers that parse their
-  responses through zod (`src/config/api/fetch.ts`).
-- **Presentational components** — assert the SSR output with
-  `renderToStaticMarkup` from `react-dom/server` (see
-  `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover, portals,
-  focus, and map interaction belong in Ladle / the browser, not here.
+- **Logic and contracts** — zod schemas (`src/types/`), zustand stores
+  (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the per-request context
+  the SDK client attaches (`applyRequestContext` / `interceptFetch`, `src/config/api/client.ts` —
+  spec'd from `fetch.test.ts`, which is why there is no `client.test.ts`), and the fetchers that
+  parse responses through zod (`src/config/api/fetch.ts`).
+- **Presentational components** — assert the SSR output with `renderToStaticMarkup` from
+  `react-dom/server` (see `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover,
+  portals, focus, and map interaction belong in Ladle or the browser, not here.
 
 ### The jsdom exception (issue #89)
 
-`jsdom` **is** a devDependency (pinned to the `27.x` line — 28+ raise their engine floor
-above this repo's `engines.node`, so a contributor on Node 20 could not install it), but
-the lane's default environment is still `node`.
-A spec opts in per-file with a `// @vitest-environment jsdom` docblock on line 1, so
-the fast path stays fast — booting a DOM costs ~1s against the whole lane's ~1.5s.
+`jsdom` **is** a devDependency, pinned to the `27.x` line (28+ raises the engine floor above this
+repo's `engines.node`, locking out a contributor on Node 20). The lane's default environment
+stays `node` regardless.
 
-**Reach for it only when the behaviour under test is a re-render that SSR markup cannot
-express, an agreement with a router/DOM API that a pure test can only assume, or a library
-whose whole job IS the DOM.** Seven specs qualify today:
+A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
+path fast — booting a DOM costs about 1s against the whole lane's ~1.5s.
 
-- `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an
-  already-thrown ErrorBoundary. Load-bearing because the body-level boundaries in
-  SearchView/CalendarView reset on the query string while the drawer boundary keys on the
-  pathname, and a boundary that never resets turns a transient failure into a permanent
-  dead end.
+**Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
+with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**
+Seven specs qualify today:
+
+- `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an already-thrown
+  ErrorBoundary. Load-bearing because body-level boundaries reset on the query string while the
+  drawer boundary keys on the pathname, so a boundary that never resets turns a transient failure
+  permanent.
 - `src/lib/shape/routing.router.test.tsx` — mounts the real `Router` over our own `History` to
-  prove they agree (#154). This one is the cautionary tale for the rule below, inherited from the
-  `hash.router.test.tsx` it replaces: the pure spec covered the mount decision exhaustively and
-  still missed that **react-router wrote `#/!/gb/london`, not `#!/gb/london`** — it normalised the
-  basename. A pure spec can only pin what our function decides, never whether the library it is
-  modelling agrees. A custom `History` is a far larger foreign contract than a basename was:
-  `Router` calls `navigator.createHref` for every `<Link>` and defaults `location.key` to a
-  constant unless we mint one, and each of those is only assertable by driving the real router.
-  When a helper exists to feed a third-party API, assert the round trip against that API.
-- `src/components/organisms/EventDetails/sanitize.test.ts` — the least optional of the
-  four: DOMPurify sanitizes by parsing into a real document and walking it, so there is
-  no pure half to extract. It asserts that the CMS-prose allowlist is load-bearing, which
-  it silently was not for as long as `USE_PROFILES` sat beside it overriding it (issue
-  #101). It also round-trips `lexicalToHtml`'s own output through the sanitizer, because
-  the two files have to agree on a tag set and the first draft of the tightened list
-  deleted five heading levels without failing anything — a stripped tag keeps its text, so
-  the loss reads as prose.
-- `src/components/organisms/ReportIssueForm/ReportIssueForm.submit.test.tsx` — drives a
-  real submit and asserts the thank-you screen appears only for a RESOLVED post (issue
-  #103). It is the third cautionary tale: the SSR sibling spec renders that screen through
-  a story prop (`initialSubmitted`), and the prop short-circuits the derivation — so with
-  that spec alone, restoring the bug it was written for keeps the lane green. **A spec
-  that can only reach a state through the door the story uses is not covering the state,
-  it is covering the door.**
-- `src/lib/slot-decision.test.ts` — the composed slot decision, which is DOM by definition: its
-  whole job is reading `window.innerWidth`, `outerWidth`, `screen.avail*` and an element's box,
-  and whether we are framed. A pure spec could only assert against a fake of the thing under
-  test; the pure halves are already table-driven with no DOM in `embed-slot.test.ts`.
-- `src/views/MapFrame.test.tsx` — the frame a contained map lives in (#169). The property worth
-  the DOM is a TIMING one: the frame publishes itself in a callback ref and holds its children
-  back until it has, because `overlayContainer()` is read in render bodies — so a ref alone would
-  be one commit late and the first drawer would portal outside the frame it is meant to live in.
-  `renderToStaticMarkup` runs no refs and no effects, so an SSR spec would assert the markup and
-  skip the entire contract. It also pins the JOIN in source (`FullInterface` wraps the map and the
-  stack in one), because that file imports `react-map-gl` and cannot be rendered in this lane.
-- `src/lib/overlay.test.ts` — the portal target, and the one piece of module state it carries
-  (#161). Every branch is a question about a real document: which element is the theme root,
-  whether the expanded surface is still connected to it, and what `document.body` is, so a pure
-  spec could only re-assert the branch structure it was reading off the source. The
-  `isConnected` case is the one worth having — a detached target swallows every portal in the
-  app in silence, and releasing it is somebody else's effect cleanup.
+  prove they agree (#154). The cautionary tale for the rule above: a pure spec covered the mount
+  decision exhaustively and still missed that **react-router wrote `#/!/gb/london`, not
+  `#!/gb/london`** — it normalised the basename. When a helper feeds a third-party API, assert the
+  round trip against that API.
+- `src/components/organisms/EventDetails/sanitize.test.ts` — DOMPurify sanitizes by parsing a
+  real document, so there is no pure half to extract. It asserts the CMS-prose allowlist is
+  load-bearing, which it silently was not while `USE_PROFILES` sat beside it overriding it
+  (#101), and round-trips `lexicalToHtml`'s own output through the sanitizer.
+- `src/components/organisms/ReportIssueForm/ReportIssueForm.submit.test.tsx` — drives a real
+  submit and asserts the thank-you screen appears only for a RESOLVED post (#103). The SSR
+  sibling spec reaches that screen through a story prop instead, which short-circuits the check —
+  **a spec that can only reach a state through the door the story uses is not covering the
+  state, it is covering the door.**
+- `src/lib/slot-decision.test.ts` — the composed slot decision reads `window.innerWidth`,
+  `outerWidth`, `screen.avail*`, and an element's box, so it is DOM by definition. The pure halves
+  stay table-driven with no DOM, in `embed-slot.test.ts`.
+- `src/views/MapFrame.test.tsx` — the frame a contained map lives in (#169). It tests a **timing**
+  property: the frame publishes itself in a callback ref and holds children back until it has,
+  because `overlayContainer()` reads in render bodies, and `renderToStaticMarkup` runs no refs or
+  effects.
+- `src/lib/overlay.test.ts` — the portal target, and its one piece of module state (#161). It
+  tests whether the expanded surface stays connected to the theme root — a detached target
+  silently swallows every portal in the app.
 
-### A CLOSED portal renders nothing under SSR, so asserting its contents are absent proves nothing
+### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 
 This app is portal-dense — every vaul drawer, every Radix overlay, `CompactEmbedView`'s expanded
-dialog — and the node lane relates to them in two opposite ways depending on one bit:
+dialog — and the node lane relates to them in two opposite ways, depending on one bit:
 
-| under `renderToStaticMarkup`       | what happens                                                                                               |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **closed** portal (`open={false}`) | Radix wraps the child in `<Presence>`, so `createPortal` is never called. Nothing renders, nothing throws. |
-| **open** portal                    | React **throws** — _"Portals are not currently supported by the server renderer."_                         |
+| under `renderToStaticMarkup`       | what happens                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| **closed** portal (`open={false}`) | Radix wraps the child in `<Presence>`, so `createPortal` never runs. Nothing renders, nothing throws. |
+| **open** portal                    | React **throws** — *"Portals are not currently supported by the server renderer."*          |
 
-So the trap is narrow and specific: an **absence** assertion about a closed portal's contents
-passes for a reason that has nothing to do with the property under test. Issue #161 wrote exactly
-that spec for "a collapsed card does not render the interface", watched it pass, and it kept
-passing with the regression reintroduced — the dialog was closed either way, so there was never
-any markup for `not.toContain` to find. `CompactEmbedView.mount.test.tsx` is the jsdom version that
-actually holds.
+So the trap is narrow: an **absence** assertion about a closed portal's contents passes for a
+reason that has nothing to do with the property under test. Issue #161 wrote exactly that spec —
+"a collapsed card does not render the interface" — watched it pass, and it kept passing with the
+regression reintroduced, because the dialog was closed either way and there was never any markup
+for `not.toContain` to find. `CompactEmbedView.mount.test.tsx` is the jsdom version that actually
+holds.
 
-⚠ **Do not over-generalize this into "the node lane can never assert a portal".** It can, and it
-does so loudly: a portal that renders when it should not makes SSR throw rather than pass quietly.
+⚠ **Do not over-generalize this into "the node lane can never assert a portal."** It does so
+loudly: a portal that renders when it should not makes SSR **throw** rather than pass quietly.
 That asymmetry is the useful part — the node lane is blind to a closed portal and deafening about
 an open one.
 
 (An earlier version of this section said `renderToStaticMarkup` "renders NO portals" and drew the
-broad conclusion. That was inferred rather than measured, and it is wrong: it throws. Which is the
-point of the section immediately below.)
+broad conclusion. That was inferred, not measured, and it is wrong: it throws — the point of the
+section above.)
 
 ### A regression spec is not finished until it has FAILED
 
-Write the spec, then **reintroduce the defect and watch it go red**, then restore. A green new test
-proves nothing on its own: twice in the #161 session a freshly written spec passed against the very
-bug it was written for.
+Write the spec, then reintroduce the defect and watch it go red, then restore. A green new test
+proves nothing on its own — twice in the #161 session, a freshly written spec passed against the
+very bug it was written for.
 
-**This is not only for regression specs.** Any new assertion earns the same treatment, and #165 is
-why: three specs written for a brand-new feature were vacuous, because the rule was read as covering
-regressions only.
+**This applies to any new assertion, not only regression specs** — #165 is why: three specs
+written for a brand-new feature were vacuous, because the rule was read as covering regressions
+only.
 
-⚠ **`read() ?? fallback` is the local shape of this.** The history and the loader are full of it, so
-a spec that asserts the same value it passed as the fallback proves nothing — it passes with the
-code under test returning `undefined`. Pass a distinguishable fallback (`'/fallback'`), as the query
-suite does and the path suite did not.
+⚠ **`read() ?? fallback` is the local shape of this trap.** The history and the loader are full
+of it, so a spec asserting the same value it passed as the fallback proves nothing — it passes
+even if the code under test returns `undefined`. Pass a distinguishable fallback (`'/fallback'`),
+as the query suite does and the path suite once did not.
 
-Reintroduce it **at the site that actually caused it**. The second miss came from flipping a nearby
-gate (`{node && children}` → `{children}`) that Radix already made unreachable while the dialog was
-closed — a simulation that could not fail, validating nothing. The regression has to take the shape
-it would really take, which there was the interface mounting _alongside_ the card.
+Reintroduce the defect **at the site that actually caused it**. A second miss came from flipping
+a nearby gate (`{node && children}` → `{children}`) that Radix already made unreachable while the
+dialog was closed — a simulation that could not fail, so it checked nothing.
 
-Use `createRoot` + React 18.3's exported `act`; **don't** add Testing Library for it. And
-prefer extracting the pure part first — `reset-boundary`'s companion `listResetKey`
-(`src/lib/shape/path.ts`) carries most of that logic and is tested in the node lane with
-no DOM at all. Extracting first is still right; it just isn't sufficient on its own where
-the pure part encodes a foreign contract.
+Use `createRoot` and React 18.3's exported `act` — **don't** add Testing Library for it. Prefer
+extracting the pure part first, as `reset-boundary`'s companion `listResetKey`
+(`src/lib/shape/path.ts`) does — tested in the node lane with no DOM at all. Extracting first is
+still right. It just is not enough on its own when the pure part encodes a foreign contract.
 
 ## Conventions
 
-- **Co-locate** specs next to the code they cover: `Foo.tsx` → `Foo.test.tsx`,
-  `store.ts` → `store.test.ts`. Smoke specs are the only ones under `tests/`.
-- **Import explicitly** from `vitest` (`import { describe, it, expect, vi }`) and
-  use `it` in the unit lane (the smoke specs keep `test`/`test.skipIf`).
-  `globals: true` is set, but explicit imports keep the files honest under the
-  type-checker.
-- **Fixtures**: reuse the schema-typed Ladle mocks (`src/mocks/`) and inline
-  small factory objects in the spec. Don't add a `tests/fixtures/` dump — keep
-  fixtures next to the assertions that use them.
-- **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see
-  `src/config/api/fetch.test.ts`): mock `@payloadcms/sdk` / `@/config/i18n`, not
-  our own logic. Don't test Radix / react-map-gl / library internals — only _our_
-  contracts.
+- **Co-locate** specs next to the code they cover: `Foo.tsx` → `Foo.test.tsx`, `store.ts` →
+  `store.test.ts`. Smoke specs are the only ones under `tests/`.
+- **Import explicitly** from `vitest` (`import { describe, it, expect, vi }`), and use `it` in
+  the unit lane (smoke specs keep `test` / `test.skipIf`). `globals: true` is set, but explicit
+  imports keep the files honest under the type-checker.
+- **Fixtures**: reuse the schema-typed Ladle mocks (`src/mocks/`) and inline small factory
+  objects in the spec. Do not add a `tests/fixtures/` dump — keep fixtures next to the assertions
+  that use them.
+- **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see `src/config/api/fetch.test.ts`):
+  mock `@payloadcms/sdk` and `@/config/i18n`, not our own logic. Do not test Radix, react-map-gl,
+  or library internals — only *our* contracts.
 
 ## Type-checking & the edit-loop hook
 
-- Co-located specs are under `src/`, so the app project (`tsconfig.json`) already
-  type-checks them. `tests/**` and `scripts/**` are checked by
-  `tsconfig.test.json` (the second half of `pnpm typecheck`).
-- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs `pnpm test:run` after
-  editing a `src/**/*.{ts,tsx}` file and reports failures as non-blocking
-  context. Keep the lane fast (< ~5s) so this stays painless.
+- Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks
+  them. `tests/**` and `scripts/**` are checked by `tsconfig.test.json` — the second half of
+  `pnpm typecheck`.
+- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs `pnpm test:run` after editing a
+  `src/**/*.{ts,tsx}` file, and reports failures as non-blocking context. Keep the lane fast
+  (under ~5s) so this stays painless.

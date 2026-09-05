@@ -1,144 +1,135 @@
 # Sahaj Atlas
 
-A map-based atlas of Sahaja Yoga events and venues, shipped as an embeddable web
-component. Host pages drop in one script tag with an API key and get a full
-Mapbox experience with a country → region → area → venue → event hierarchy.
+A map-based atlas of Sahaja Yoga events and venues, shipped as an embeddable
+web component. A host page adds one script tag with an API key and gets a
+full Mapbox experience: country → region → area → venue → event.
 
 ```html
 <script type="module" src="https://sahajatlas.com/auto.js?key=…"></script>
 ```
 
-That is the whole snippet — no element, no attributes. `auto.js` is a ~3 KiB loader
-(`src/loader/`) that reads its configuration off its own URL, creates the element where you put
-the tag, and fetches the widget itself (`embed.js`, from `src/Widget.tsx`) only once the embed is
-near the viewport.
+That is the whole snippet — no element, no attribute. `auto.js` is a ~3 KiB
+loader (`src/loader/`). It reads its settings from its own URL, creates the
+element where you place the tag, and loads the widget itself (`embed.js`,
+built from `src/Widget.tsx`) only when the embed is about to enter the
+viewport.
 
-The same build also runs standalone in dev (`index.html` → `src/main.tsx`), and the widget is
-demoed in `demo.html`.
+The same build also runs standalone in dev (`index.html` → `src/main.tsx`).
+The widget has its own demo page, `demo.html`.
 
 ### Embedding in a host site
 
-**[`docs/embedding.md`](docs/embedding.md) is the integrator guide** — the complete,
-host-facing reference, and the place to send anyone installing the widget. It covers the
-snippet and which origin to load it from, all six script-URL parameters, sizing in
-both map and map-less modes, the URL shape and what happens on a page that already uses
-its own `#anchor`, the full Content-Security-Policy contract with the failure mode for
-each directive, the browser floor, what the widget does (and does not do) to your page,
-and a troubleshooting table.
+**[`docs/embedding.md`](docs/embedding.md) is the integrator guide** — the
+complete, host-facing reference. Send anyone installing the widget there. It
+covers the snippet and origin, all six script-URL parameters, sizing in map
+and map-less modes, the URL shape, the full Content-Security-Policy contract
+with each directive's failure mode, the browser floor, what the widget does
+and does not do to your page, and a troubleshooting table.
 
-Three things from it are worth knowing before you read any further:
+Three points from it matter before you read further:
 
-- **Your CSP needs `style-src 'unsafe-inline'`.** The widget has no stylesheet to link; it
-  appends `<style>` elements, which carry no nonce. Without it the widget renders
-  completely unstyled rather than degrading. The guide has the rest of the contract —
-  including `worker-src blob:` and the SahajCloud and locale-JSON origins, all three of
-  which are load-bearing and none of which are obvious.
-- **One `<sahaj-atlas>` per page.** A second element is refused at connection and never
-  mounts; a second copy of the script is a no-op. Both say so in the console.
-- **Three attributes switch off the third-party flows** described below —
-  described below, and none of them has a script-URL opt-out.
+- **Your CSP needs `style-src 'unsafe-inline'`.** The widget has no
+  stylesheet to link — it appends `<style>` elements, which carry no nonce.
+  Without this rule the widget renders completely unstyled. The guide lists
+  the rest of the contract, including `worker-src blob:` and the SahajCloud
+  and locale-JSON origins.
+- **One `<sahaj-atlas>` per page.** A second element never mounts. A second
+  copy of the script does nothing. Both log a message to the console.
+- **None of the third-party flows below has a script-URL opt-out.** A host
+  with a compliance need gets a setting on its client record instead.
 
 ### Privacy, storage and third-party requests
 
-Everything the widget does happens in your visitor's browser, on your origin — so your
-privacy notice, not ours, is the one that has to describe it. This section lists every
-request it makes to somebody other than you and SahajCloud, and every key it stores.
+Everything the widget does happens in your visitor's browser, on your
+origin. So your privacy notice, not ours, has to describe it. This section
+lists every request the widget makes to a party other than you and
+SahajCloud, and every key it stores.
 
-**It sets no cookies.** It stores four keys under your origin — two of its own, written
-inside a `try`/`catch` so a sandboxed iframe or a privacy mode that refuses storage
-degrades the setting rather than breaking the widget, and two written by Mapbox GL:
+**It sets no cookies.** It stores four keys under your origin. Two are its
+own, written inside a `try`/`catch` so a sandboxed iframe, or a privacy mode
+that refuses storage, degrades gracefully. Two are written by Mapbox GL:
 
 | Key                                | Store            | Holds                                                 | Lifetime            |
-| ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
+| ----------------------------------- | ---------------- | ------------------------------------------------------ | -------------------- |
 | `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
 | `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
 | `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
 | `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
 
-Two caveats worth knowing about that table. The `theme` key is **not namespaced**: if
-your page stores its own `theme` preference under that name, the widget will read and
-overwrite it — namespacing it is a known fix, not yet made. And the two `mapbox.*` keys
-appear only when the map renders, so `map=false` removes them along with everything
-else in the Mapbox bullet below.
+Two notes. **`theme` used to carry no namespace** — the bare string `theme`
+— so a page storing its own light/dark preference under that name had it
+read and overwritten. That is fixed: the key is now `atlas.theme`, and the
+widget reads the old bare key once and never writes it, so nobody loses an
+existing choice. The two `mapbox.*` keys appear only when the map renders,
+so `map=false` removes them.
 
-The language picker deliberately persists **nothing**: i18next's language detector would
-by default cache `i18nextLng` on your origin, and that write is switched off. The
-language comes from the `locale` attribute, the API client's configured locale, or a
-`?locale=` query param, per page load.
+The language picker persists **nothing** — i18next's detector would cache
+`i18nextLng` on your origin by default, and that write is off. The language
+comes from the `locale` attribute, the API client's configured locale, or a
+`?locale=` query parameter, per page load.
 
-Requests leave the browser for these hosts, none of them yours or SahajCloud's. Each has
-an attribute that turns it off:
+Requests leave the browser for these hosts, none of them yours or
+SahajCloud's:
 
-- **`https://ipwho.is` — IP geolocation.** Once per session, the widget asks a free,
-  keyless service to turn the visitor's IP into a city, so it can offer "classes near
-  you" before they type anything and show an online class's start time in their own
-  place. The request carries `referrer-policy: no-referrer` (your page's URL is never
-  disclosed), no API key, no cookies, and no identifier of ours; it times out after five
-  seconds and every failure is silent. It is skipped entirely when neither feature could
-  show — the suggestion already dismissed, a search already active, an in-person event.
-  An IP is personal data in the EU; it is used to pick a city and then discarded, never
-  stored and never sent anywhere else. What the lookup buys is the nearby suggestion and
-  the localized online-event times, and nothing else depends on it.
-- **`https://cdn.usefathom.com` — Fathom analytics.** Cookieless, aggregate pageview
-  counting for the atlas's own pages, loaded into your page only when all three hold: the
-  bundle was built with an analytics ID, your client record names a real (non-localhost)
-  primary domain. Its auto-tracking is
-  switched off, so it reports the widget's own route under that primary domain — **your
-  page's real URL and query string are never sent** — alongside the coarse, cookieless
-  referrer and device breakdown Fathom collects for any pageview. It sets no cookie or
-  persistent identifier and records no form value. `DNT` is honoured in the sense Fathom
-  implements — a visitor sending the header is not counted — but the script itself is
-  still fetched, so their IP does reach Fathom.
-- **`*.sentry.io` — crash reporting.** Sent **only when the widget has already
-  broken**, so a healthy page never contacts it, and only on a build configured with a
-  DSN. An event carries the error and its stack from our own code, which of the widget's
-  screens failed, and **your page as origin and path only — never its query string or
-  fragment**, which on your site can carry a reset token, an OAuth `#access_token` or an
-  email address. Nothing else is collected: the reporter runs with every default
-  integration switched off, so it installs no global error handler on your page (your own
-  scripts' exceptions are never captured), records no breadcrumbs of your console output,
-  clicks or network requests, and reads no form value, cookie or storage key. There is no
-  session replay. As with any request, your visitor's IP reaches Sentry in transit. Two
-  failures are deliberately never reported at all: a visitor who is simply offline, and a
-  dead link. With no DSN configured nothing is fetched or sent; what you lose is our
-  ability to find out that the widget is broken on your site before somebody emails us a
-  screenshot.
-- **`api.mapbox.com` and `events.mapbox.com` — the map.** Unavoidable if you render one:
-  tiles, styles and fonts come from `api.mapbox.com`, the place search sends the
-  visitor's **typed query** and the current map centre there, and Mapbox GL posts a
-  map-load telemetry event to `events.mapbox.com` carrying the anonymous id from the
-  table above. This is Mapbox's own behaviour, not ours, and the only switch is
-  **`map=false`**, which drops the whole Mapbox subtree — the widget then renders as
-  lists and event pages with no map at all.
-- **`react-circle-flags.pages.dev`** serves the country flag SVGs (`referrer-policy:
-no-referrer`), and **`challenges.cloudflare.com`** loads the Turnstile captcha, but
-  only if a visitor opens the report-issue form. Both are in the CSP contract in
-  [`docs/embedding.md`](docs/embedding.md#content-security-policy); neither carries an
-  identifier.
+- **`https://ipwho.is` — IP geolocation.** Once per session, a free, keyless
+  service turns the visitor's IP into a city, so the widget can offer
+  "classes near you" and localize an online class's start time. No referrer,
+  key, or cookie. A five-second timeout. Silent on failure. Skipped when
+  neither feature could show. An IP is personal data in the EU — the widget
+  picks a city with it, then discards it.
+- **`https://cdn.usefathom.com` — Fathom analytics.** Cookieless, aggregate
+  pageview counting, loaded only when the build carries an analytics ID and
+  your client record names a real (non-localhost) primary domain.
+  Auto-tracking is off, so only the widget's own route under that domain is
+  reported — your page's real URL and query string are never sent. It sets
+  no cookie or identifier and honors `DNT` (a `DNT` visitor is not counted,
+  though the script still loads).
+- **`*.sentry.io` — crash reporting.** Sent only after the widget has
+  already broken, on a build with a DSN. A report carries the error, its
+  stack, and your page as **origin and path only** — never its query string
+  or fragment, which can carry a reset token or an email address. Every
+  default integration is off: no error handler on your page, no breadcrumbs,
+  no session replay, no form/cookie/storage read. An offline visitor and a
+  dead link are never reported.
+- **`api.mapbox.com` and `events.mapbox.com` — the map.** Unavoidable if you
+  render one: tiles, styles, and fonts come from `api.mapbox.com`. Place
+  search sends the visitor's typed query and the map centre there. Mapbox GL
+  posts load telemetry to `events.mapbox.com`. `map=false` drops the whole
+  subtree.
+- **`react-circle-flags.pages.dev`** serves the country flag SVGs
+  (`referrer-policy: no-referrer`). **`challenges.cloudflare.com`** loads
+  Turnstile, only when a visitor opens the report-issue form. Both are in
+  the CSP table in
+  [`docs/embedding.md`](docs/embedding.md#content-security-policy).
 
-None of these has a script-URL opt-out (#149). Each is designed so that it does not need one, and
-a host with a compliance requirement we have not anticipated gets a setting on their client record
-— not a parameter any page editor can flip.
+None of these has a script-URL opt-out (#149) — each is built so it does not
+need one. A compliance requirement we have not anticipated becomes a setting
+on the client record, not a parameter a page editor can flip.
 
-Two things a visitor can send us on purpose, both on submit and never in the background:
-a **class registration** (their name, email and any organiser questions) and a **report
-about an issue** (their message, and the page they were on with its query string and
-fragment stripped). Both go over HTTPS to SahajCloud; neither is stored in the browser.
+Two things a visitor can send us on purpose, only on submit: a **class
+registration** (name, email, organiser questions) and a **report about an
+issue** (a message, and the visitor's page with its query string and
+fragment stripped). Both go over HTTPS to SahajCloud. Neither is stored in
+the browser.
 
 ## Stack
 
-- [Vite](https://vitejs.dev/guide/) (rolldown) + React 18 + TypeScript (strict)
-- [Radix UI](https://www.radix-ui.com) primitives + [Tailwind CSS](https://tailwindcss.com)
-  and [Tailwind Variants](https://tailwind-variants.org) for the component layer
-- [Mapbox GL](https://docs.mapbox.com/mapbox-gl-js/) via `react-map-gl`, with `@turf/*` for geometry
+- [Vite](https://vitejs.dev/guide/) (rolldown) + React 18 + TypeScript
+  (strict)
+- [Radix UI](https://www.radix-ui.com) + [Tailwind CSS](https://tailwindcss.com)
+  and [Tailwind Variants](https://tailwind-variants.org)
+- [Mapbox GL](https://docs.mapbox.com/mapbox-gl-js/) via `react-map-gl`, with
+  `@turf/*` for geometry
 - [TanStack Query](https://tanstack.com/query) + [zod](https://zod.dev) over
   [`@payloadcms/sdk`](https://payloadcms.com) against SahajCloud
-- [vaul](https://vaul.emilkowal.ski) for the drawer stack, `react-router` over a hand-written query-param history for routing
-- [i18next](https://www.i18next.com) with locale JSON served from `public/locales/`
+- [vaul](https://vaul.emilkowal.ski) for the drawer stack, and `react-router`
+  over a hand-written query-param history for routing
+- [i18next](https://www.i18next.com), with locale JSON from
+  `public/locales/`
 
 ## Getting started
 
-The package manager is **pnpm** (a repo hook blocks npm/yarn):
+The package manager is **pnpm** (a repo hook blocks npm and yarn):
 
 ```bash
 pnpm install
@@ -165,48 +156,50 @@ pnpm ladle        # component previews → http://localhost:61000
 pnpm ladle:build  # static Ladle build (CI gate)
 ```
 
-The unit lane is node-only and co-located (`src/**/*.test.ts(x)`); components are
-asserted through `renderToStaticMarkup` rather than jsdom. See
+The unit lane is node-only and co-located (`src/**/*.test.ts(x)`). It tests
+components through `renderToStaticMarkup`, not jsdom. See
 [`docs/testing.md`](docs/testing.md).
 
 ## Documentation
 
-- [`docs/embedding.md`](docs/embedding.md) — **integrator guide**: the host-facing
-  reference (snippet, attributes, CSP, sizing, troubleshooting)
-- [`CHANGELOG.md`](CHANGELOG.md) — what changes under an embed, written for host sites
-- [`AGENTS.md`](AGENTS.md) — developer guide: layout, conventions, PR workflow
-  (`CLAUDE.md` is a symlink to it, so Claude Code, Codex and Cursor read one file)
-- [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports, styling
+- [`docs/embedding.md`](docs/embedding.md) — **integrator guide**: the
+  host-facing reference (snippet, attributes, CSP, sizing, troubleshooting)
+- [`CHANGELOG.md`](CHANGELOG.md) — what changes under an embed, for host
+  sites
+- [`AGENTS.md`](AGENTS.md) — developer guide: layout, conventions, PR
+  workflow (`CLAUDE.md` is a symlink, so every agent reads one file)
+- [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports,
+  styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`) — guidance
-  for a whole directory, loaded when an agent reads a file in it; each has a
-  `CLAUDE.md` symlink beside it. Run `find src -name AGENTS.md` for the inventory
-- [`docs/rules/`](docs/rules/) — guidance whose scope is a set of files no single
-  directory names (i18n + state, the data layer, the map). Each carries a `paths:`
-  front-matter list and is symlinked into `.claude/rules/`, so Claude Code loads it
-  on a glob match while the editable file stays outside the protected `.claude/`
-  tree
+- nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`) —
+  directory-scoped guidance. Run `find src -name AGENTS.md` for the inventory
+- [`docs/rules/`](docs/rules/) — guidance scoped to files no single
+  directory names (i18n and state, the data layer, the map), symlinked into
+  `.claude/rules/`
 - [`docs/`](docs/) — testing, architecture, environment, MCP setup
 
 ## Deployment
 
-Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app) and
-`sahajatlas-design` (the Ladle playground). See the deployment section of
+Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app)
+and `sahajatlas-design` (the Ladle playground). See the deployment section of
 [`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 
-Three **build-time** variables — `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` —
-control whether a build uploads its source maps to Sentry. They carry no `VITE_` prefix,
-so they cannot reach the bundle; the token is a real secret and lives in the Cloudflare
-Pages dashboard, never in the repo.
+Three **build-time** variables — `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
+`SENTRY_PROJECT` — control whether a build uploads its source maps to
+Sentry. They carry no `VITE_` prefix, so they cannot reach the bundle. The
+token is a real secret and lives in the Cloudflare Pages dashboard, never in
+the repo.
 
-**Maps are uploaded and then deleted — they are never deployed.** `/assets/*` is served
-CORS-open with a one-year immutable cache, so a shipped `.map` would publish this repo's
-source irrevocably. `pnpm build` therefore ends in `pnpm assert:maps`, which fails the
-build if any map, or any `sourceMappingURL` reference, survives into the output.
+**Maps are uploaded, then removed — never deployed.** `/assets/*` is served
+CORS-open with a one-year immutable cache, so a shipped `.map` would publish
+this repo's source irrevocably. `pnpm build` ends in `pnpm assert:maps`,
+which fails the build if any map, or any `sourceMappingURL` reference,
+survives into the output.
 
-With the variables unset — every local build, CI, and every forked PR — **no maps are
-emitted at all** and the output is byte-identical to a build from before this existed.
-The full runbook, including which Pages project gets the variables and which deliberately
-does not, is in [`docs/environment.md`](docs/environment.md).
+With the variables unset — every local build, CI run, and forked PR — no
+maps are emitted, and the output is byte-identical to a build from before
+this existed. The full runbook, including which Pages project gets the
+variables and which does not, is in
+[`docs/environment.md`](docs/environment.md).

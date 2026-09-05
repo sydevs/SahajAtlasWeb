@@ -1,13 +1,14 @@
 /**
  * Fetches the SahajCloud OpenAPI spec (the REST API contract) to
- * src/types/payload/openapi.json for local reference. The file is **gitignored**
- * — it's a large, frequently-changing artifact used to check request/response
- * shapes and keep our zod schemas + `select`/`populate` objects honest, not a
- * committed source (`types:cms` fetches the committed TS types alongside it).
+ * src/types/payload/openapi.json for local reference. The file is
+ * **gitignored** — it is a large, frequently-changing artifact used to check
+ * request/response shapes and keep our zod schemas and
+ * `select`/`populate` objects honest, not a committed source (`types:cms`
+ * fetches the committed TS types alongside it).
  *
  * The docs endpoint is HTTP Basic auth'd. The password is read from
- * `SAHAJCLOUD_DOCS_PASSWORD` (the environment, or `.env.local`); any username
- * works. See `docs/environment.md`.
+ * `SAHAJCLOUD_DOCS_PASSWORD` (the environment, or `.env.local`). Any
+ * username works. See `docs/environment.md`.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
@@ -15,7 +16,7 @@ const ENDPOINT = 'https://cloud.sydevelopers.com/api/openapi.json'
 const OUT_DIR = new URL('../src/types/payload/', import.meta.url)
 const OUT_FILE = new URL('openapi.json', OUT_DIR)
 
-// Prefer the environment; fall back to parsing .env.local so the script works
+// This prefers the environment, and falls back to parsing .env.local, so the script works
 // out of the box without exporting the var. Never hardcode the password here —
 // package.json is committed.
 async function resolvePassword() {
@@ -26,9 +27,10 @@ async function resolvePassword() {
     const line = env.match(/^\s*SAHAJCLOUD_DOCS_PASSWORD\s*=\s*(.*)$/m)
     if (line) {
       const raw = line[1].trim()
-      // Quoted value: take what's inside the quotes (a trailing ` # comment` is
-      // ignored, matching the other .env.local vars). Unquoted: the value verbatim,
-      // so a `#` in the password is preserved rather than truncating on it.
+      // A quoted value: this takes what is inside the quotes (a trailing
+      // ` # comment` is ignored, matching the other .env.local vars). An
+      // unquoted value: the value verbatim, so a `#` in the password is
+      // preserved rather than truncating on it.
       const quoted = raw.match(/^(["'])(.*?)\1/)
       return quoted ? quoted[2] : raw
     }

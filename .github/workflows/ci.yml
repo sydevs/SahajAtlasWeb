@@ -31,29 +31,25 @@ jobs:
       - run: pnpm test:run # unit lane — smoke specs are excluded in vitest.config.ts
       - run: pnpm build
       - name: Bundle-size budget
-        # Measures the EAGER first-load payload — the standalone shell's entry +
-        # modulepreload closure, and embed.js's static import graph — gzipped,
-        # against a committed budget. Per-chunk sizes are meaningless here (the
-        # build re-chunks freely), which is why nothing caught the payload
-        # growing to ~477 KiB gz unnoticed. Budget + rationale live in the script.
+        # Measures the eager first-load payload, gzipped: the standalone
+        # shell's entry plus its modulepreload closure, and embed.js's
+        # static import graph. Never budget one chunk alone — the build
+        # re-chunks freely. Full rationale: AGENTS.md and the script itself.
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
 
-      # Exercise the CREDENTIALED source-map path (#130) without a network or a secret.
+      # Exercises the credentialed source-map path (#130), with no network
+      # call and no real secret. See AGENTS.md's "Deployment" section for
+      # the full rationale.
       #
-      # Every step above runs the uncredentialed path, because CI has no token — so until
-      # this job existed, the first machine ever to execute map emission, deletion and the
-      # gate together was Cloudflare, on a production deploy. That is the wrong place to
-      # discover a broken option name.
+      # `SENTRY_URL` points at a closed port, so the upload fails at once
+      # and nothing leaves the runner. This step still proves that maps are
+      # emitted under a token, that `errorHandler` keeps a failed upload
+      # non-fatal, that deletion still runs, and that `assert:maps` finds
+      # `dist/` clean afterward.
       #
-      # `SENTRY_URL` points at a closed port, so the upload fails immediately and nothing
-      # leaves the runner. What is being asserted is everything around it: maps ARE emitted
-      # under a token, `errorHandler` keeps a failed upload non-fatal, deletion still runs
-      # in `writeBundle`'s `finally`, and `assert:maps` (which `pnpm build` ends in) proves
-      # `dist/` is clean afterwards. A regression in any of those turns this red.
-      #
-      # The token value is a literal, not a secret: this must keep working on forked PRs,
-      # where secrets are unavailable and where a leak would matter most.
+      # The token below is a literal, not a secret, so this step also runs
+      # on forked PRs, where real secrets are unavailable.
       - name: Source-map upload chain (offline dry run)
         env:
           SENTRY_AUTH_TOKEN: ci-dry-run-not-a-secret
@@ -62,31 +58,16 @@ jobs:
           SENTRY_URL: http://127.0.0.1:1/
         run: pnpm build
 
-  # Dependency-vulnerability gate.
+  # Dependency-vulnerability gate. Fails only on a high or critical advisory
+  # that scripts/audit-baseline.json does not already pin (each pinned entry
+  # names the ticket that owns it). See audit.yml for the full tradeoff
+  # behind a hard-but-scoped gate, and for the weekly ratchet that prunes
+  # fixed baseline entries.
   #
-  # THE TRADEOFF, since this is the decision reviewers will want justified:
-  # a plain `pnpm audit --audit-level high` as a hard gate is red on the day it
-  # lands (1 critical + 24 high are already in the lockfile) and would block every
-  # unrelated PR until the dependency-update tickets land; a purely scheduled
-  # report, meanwhile, cannot stop a regression from merging and is exactly the
-  # kind of check that goes unread — which is how 64 advisories accumulated with
-  # every gate green.
-  #
-  # So the gate is hard, but scoped: known findings are pinned in
-  # scripts/audit-baseline.json (each named with the ticket that owns it) and the
-  # job fails only on a high/critical advisory that ISN'T pinned. Green today,
-  # red the day a genuinely new one appears. Waiving one costs a reviewable line
-  # in that file rather than a silent pass.
-  #
-  # The complementary ratchet — nagging when a baselined advisory has been fixed
-  # but not pruned — lives in the weekly `audit.yml`, where it can't block a PR.
-  #
-  # SCOPE: `--prod` only, matching how the readiness report measured. Advisories
-  # in the build toolchain (vite, vitest, eslint, jsdom, …) are NOT covered by
-  # this job — see the note in audit.yml.
-  #
-  # No `pnpm install`: `pnpm audit` resolves from the lockfile alone, so no
-  # dependency lifecycle scripts run here.
+  # Scope is `--prod` only, so the build toolchain (vite, vitest, eslint,
+  # jsdom, and so on) is not covered here. This job skips `pnpm install`:
+  # `pnpm audit` resolves from the lockfile alone, so no lifecycle scripts
+  # need to run.
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
@@ -101,12 +82,13 @@ jobs:
           node-version-file: .node-version
       - run: pnpm audit:check
 
-  # Smoke specs run against the Cloudflare Pages PR preview. We discover the
-  # preview URL from the GitHub API (Cloudflare posts it on the PR) and wait
-  # until it's reachable, then fetch the root page. A missing preview is a
-  # graceful skip only on FORKS (no secrets, no preview by design); on a
-  # same-repo PR it fails the job — see "Report a missing preview" below, which
-  # also decides what the failure tells you to do about it.
+  # Smoke specs run against the Cloudflare Pages PR preview. This job finds
+  # the preview URL through the GitHub API, since Cloudflare posts it on the
+  # PR. It waits until the preview is reachable, then fetches the root page.
+  # A missing preview is a graceful skip only on forks: forks have no
+  # secrets and no preview by design. On a same-repo PR, a missing preview
+  # fails the job. See "Report a missing preview" below for what the
+  # failure tells you to do next.
   smoke:
     name: Smoke
     runs-on: ubuntu-latest
@@ -119,12 +101,13 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Emits `preview_url` and `preview_status`. It waits 10 minutes by default —
-      # a number measured against 86 real Cloudflare builds, see the script's
-      # header — and never fails the job itself. Set PREVIEW_TIMEOUT_MS here to
-      # wait longer; it is in MILLISECONDS, and the script caps it, because an
-      # override past this job's `timeout-minutes` gets the job CANCELLED, which
-      # skips the reporting step below and leaves a red check with no message.
+      # Emits `preview_url` and `preview_status`. It waits 10 minutes by
+      # default, a number measured against 86 real Cloudflare builds (see
+      # the script's header for the full data). It never fails the job
+      # itself. Set PREVIEW_TIMEOUT_MS here to wait longer. The value is in
+      # milliseconds, and the script caps it: an override past this job's
+      # `timeout-minutes` gets the job cancelled, which skips the reporting
+      # step below and leaves a red check with no message.
       - name: Discover Cloudflare Pages preview URL
         id: preview
         env:
@@ -145,24 +128,22 @@ jobs:
             echo "✅ Smoke specs ran against \`$PREVIEW_URL\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # A skip must never look like a pass. Discovery exits 0 with an empty URL
-      # when no preview turns up, and the specs then skip themselves — so before
-      # this step, a green "Smoke" check could equally mean "nothing ran". Now
-      # the invariant holds: green implies the specs executed.
+      # A skip must never look like a pass. Discovery exits 0 with an empty
+      # URL when no preview turns up, and the specs then skip themselves. So
+      # this step keeps the invariant: a green "Smoke" check always means
+      # the specs ran. See docs/testing.md for the full history (issue #132).
       #
-      # Same-repo PRs have the secrets and the Cloudflare integration, so a
-      # missing preview is a real failure — the deploy did not happen — and fails
-      # the job. Forked PRs get no preview by design, so they stay a graceful
-      # (but annotated) skip, as do local `pnpm test:smoke` runs.
+      # Same-repo PRs carry the secrets and the Cloudflare integration. So a
+      # missing preview there is a real failure: the deploy did not happen.
+      # This fails the job. Forked PRs get no preview by design, so they
+      # stay a graceful, annotated skip, and so do local `pnpm test:smoke`
+      # runs.
       #
-      # BOTH branches below stay red on a same-repo PR — that is the invariant,
-      # and a slow deploy is still a run that verified nothing. What differs is
-      # what we ask the reader to DO, because only one of them is a defect
-      # (issue #132). `preview_status` carries the distinction the script can
-      # honestly draw: `absent` means Cloudflare posted nothing at all for this
-      # commit, while `pending`/`unreachable` mean a deploy demonstrably exists
-      # and we stopped waiting on it. The old single message asked the reader to
-      # work out which — from a script that had already discarded it.
+      # Both branches below fail a same-repo PR. Only the message differs,
+      # because only one of the two is a defect. `preview_status` carries
+      # that distinction: `absent` means Cloudflare posted nothing at all
+      # for this commit. `pending` or `unreachable` means a deploy
+      # demonstrably exists and this step stopped waiting on it.
       - name: Report a missing preview
         if: ${{ steps.preview.outputs.preview_url == '' }}
         env:
@@ -182,9 +163,9 @@ jobs:
               MSG="Preview discovery could not run — NO smoke specs ran."
               HINT="This is a fault in the discovery step itself, not in Cloudflare: read the 'Discover Cloudflare Pages preview URL' step, which prints why (usually a missing GITHUB_TOKEN / PR_HEAD_SHA)."
               ;;
-            # `absent`, and anything unrecognised — an unknown status is treated as
-            # the loud case on purpose, so a future status can't quietly inherit
-            # the softer "just re-run it" advice.
+            # `absent`, and any unrecognized status. An unknown status gets
+            # the loud message on purpose. This stops a future status from
+            # quietly inheriting the softer "just re-run it" advice.
             *)
               MSG="No Cloudflare Pages preview was found for this commit — NO smoke specs ran."
               HINT="Nothing from Cloudflare turned up for this commit at all, so the deploy did not happen: INVESTIGATE, don't re-run. If the Pages build failed in 0s with a clean log, that is a transient rate-limit — retry the deployment itself."

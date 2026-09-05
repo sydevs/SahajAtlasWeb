@@ -6,21 +6,21 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 //
 // This is a deploy-time fact the unit lane cannot reach twice over. `public/_headers` is an
 // inert text file in the repo until Cloudflare Pages reads it out of the build output, and the
-// thing being asserted is a platform behaviour rather than code we wrote.
+// thing being asserted is a platform behaviour, rather than code we wrote.
 //
-// It is also a REGRESSION test for a defect that shipped, and shipped invisibly. `_headers` said
-// in a comment that `embed.js` "must stay revalidated", and nothing enforced it — so the platform
-// default applied, and the default is per-host: `sahajatlas.com` served `max-age=14400` while
-// `*.pages.dev` served `max-age=0`. Every check anyone had run was against the second, so a
-// four-hour staleness window on the production domain went unnoticed. A comment stating an
-// intention is not a mechanism; this is the mechanism.
+// It is also a REGRESSION test for a defect that shipped, and shipped invisibly. `_headers`
+// said in a comment that `embed.js` "must stay revalidated", and nothing enforced it — so the
+// platform default applied, and the default is per-host: `sahajatlas.com` served
+// `max-age=14400`, while `*.pages.dev` served `max-age=0`. Every check anyone had run was
+// against the second, so a four-hour staleness window on the production domain went
+// unnoticed. A comment stating an intention is not a mechanism. This is the mechanism.
 //
-// Why four hours matters: these files are unhashed and mutable, and they import content-hashed
-// chunks by name. A browser holding a stale copy asks for chunk names the deploy no longer
-// serves, and `docs/embedding.md` states the consequence plainly — those 404s kill the widget
-// with no fallback.
+// Why four hours matters: these files are unhashed and mutable, and they import
+// content-hashed chunks by name. A browser holding a stale copy asks for chunk names the
+// deploy no longer serves, and `docs/embedding.md` states the consequence plainly — those
+// 404s kill the widget with no fallback.
 
-/** The unhashed files at the dist root. Hosts hardcode the first; the loader fetches the second. */
+/** The unhashed files at the dist root. Hosts hardcode the first. The loader fetches the second. */
 const ENTRY_FILES = ['/auto.js', '/embed.js']
 
 /** Seconds a cached copy may be reused without asking. Anything above this is the #148 defect. */
@@ -32,26 +32,27 @@ describe('entry-file caching', () => {
     async (path) => {
       const res = await fetchPreview(path)
 
-      // Content type, not status. `_redirects` is `/* /index.html 200`, so a file missing from
-      // the build comes back as the SPA shell with a 200 and every header assertion below would
-      // then be describing an HTML page. This is the lane's second invariant.
+      // Content type, not status. `_redirects` is `/* /index.html 200`, so a file
+      // missing from the build comes back as the SPA shell with a 200, and every header
+      // assertion below would then describe an HTML page. This is the lane's second
+      // invariant.
       expect(res.headers.get('content-type')).toMatch(/javascript|ecmascript/i)
 
       const cacheControl = res.headers.get('cache-control') ?? ''
 
       expect(cacheControl).toBeTruthy()
 
-      // The assertion is on the NUMBER, not on the exact header string: what matters is that a
-      // browser cannot reuse a copy for long without asking, and a future rule might reasonably
-      // say `no-cache` or add `s-maxage`. Parsing the value is what keeps this honest about the
-      // property rather than the spelling.
+      // The assertion is on the NUMBER, not on the exact header string: what matters is
+      // that a browser cannot reuse a copy for long without asking, and a future rule
+      // might reasonably say `no-cache` or add `s-maxage`. Parsing the value is what
+      // keeps this honest about the property, rather than the spelling.
       const maxAge = /max-age=(\d+)/i.exec(cacheControl)
 
       expect(maxAge, `no max-age in "${cacheControl}"`).not.toBeNull()
       expect(Number(maxAge?.[1])).toBeLessThanOrEqual(MAX_FRESHNESS_SECONDS)
 
-      // The rule these files are deliberately NOT under. If one ever picks up the `/assets/*`
-      // immutable cache, a host's browser would hold it for a year.
+      // This is the rule these files are deliberately NOT under. If one ever picks up
+      // the `/assets/*` immutable cache, a host's browser would hold it for a year.
       expect(cacheControl).not.toMatch(/immutable/i)
     },
   )
@@ -59,9 +60,10 @@ describe('entry-file caching', () => {
   test.skipIf(skipWithoutPreview).each(ENTRY_FILES)('%s is readable cross-origin', async (path) => {
     const res = await fetchPreview(path)
 
-    // A `type="module"` script is fetched in CORS mode, so this is a rendering requirement
-    // and not a nicety — the same argument the font and locale rules already make. Pages
-    // supplies it by default today; pinning it means the widget does not depend on that.
+    // A `type="module"` script is fetched in CORS mode, so this is a rendering
+    // requirement, not a nicety — the same argument the font and locale rules already
+    // make. Pages supplies it by default today. Pinning it means the widget does not
+    // depend on that.
     expect(res.headers.get('access-control-allow-origin')).toBe('*')
   })
 
