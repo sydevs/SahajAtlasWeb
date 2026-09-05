@@ -4,29 +4,30 @@ import { X } from 'lucide-react'
 
 import { IconSvgProps } from '@/types'
 
-// A compact, uppercase label — the design system's reference tailwind-variants
-// component (see DESIGN_SYSTEM.md), built directly on the Radix-semantic 12-step
-// tokens. Variants: `flat` is a soft tint (bold), `subtle` is that same tint with
-// a lighter content weight, `ghost` is text-only (matching Button's `ghost`).
-// `radius` picks square (`sm`) or pill (`full`) corners. Pass `onClose` to render
-// a trailing remove button (e.g. the active-filter pills).
+// A compact, uppercase label. It is the design system's reference
+// tailwind-variants component (see DESIGN_SYSTEM.md), built directly on
+// the Radix-semantic 12-step tokens. `flat` is a soft, bold tint. `subtle`
+// is that same tint at a lighter content weight. `ghost` is text-only,
+// matching Button's `ghost`. `radius` picks square (`sm`) or pill (`full`)
+// corners. Pass `onClose` to render a trailing remove button, as the
+// active-filter pills do.
 const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',
     content: 'min-w-0 truncate uppercase leading-none',
-    // The close button carries the app's standard focus ring, not just the opacity
-    // lift it used to have on its own (issue #102): opacity is also what HOVER does,
-    // so on a chip the pointer happens to be over, a keyboard user got no signal at
-    // all that focus had landed there. The ring is the same
-    // `focus-visible:ring-2 ring-focus` every other control draws.
+    // The close button carries the app's standard focus ring, not only the
+    // opacity lift it used to have on its own (issue #102). Opacity is also
+    // what HOVER does. So on a chip the pointer happens to rest on, a
+    // keyboard user got no signal that focus had landed there. The ring is
+    // the same `focus-visible:ring-2 ring-focus` every other control draws.
     close:
       'shrink-0 rounded-full opacity-60 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },
-    // The surface treatment carries the content weight: `flat`/`ghost` are bold,
-    // `subtle` is the flat tint at a lighter weight (the tint itself is shared in
-    // compoundVariants below).
+    // The surface treatment carries the content weight. `flat` and `ghost`
+    // are bold. `subtle` is the flat tint at a lighter weight. The tint
+    // itself is shared in compoundVariants below.
     variant: {
       flat: { content: 'font-bold' },
       subtle: { content: 'font-medium' },
@@ -42,7 +43,7 @@ const chip = tv({
     },
   },
   compoundVariants: [
-    // `flat` and `subtle` share the soft tint — they differ only in weight (above).
+    // `flat` and `subtle` share the soft tint. They differ only in weight (above).
     {
       color: 'primary',
       variant: ['flat', 'subtle'],
@@ -73,10 +74,11 @@ const chip = tv({
 })
 
 /**
- * The close button and its accessible label travel together: an icon-only button
- * with no label is invisible to a screen reader, and `jsx-a11y` can't catch it
- * (the `aria-label` attribute is present, just `undefined`). Modelling the pair
- * as a union makes the compiler enforce what a doc-comment can only assert.
+ * The close button and its accessible label travel together. An icon-only
+ * button with no label is invisible to a screen reader, and `jsx-a11y`
+ * cannot catch it, since the `aria-label` attribute is present, just
+ * `undefined`. Modelling the pair as a union makes the compiler enforce
+ * what a doc-comment can only assert.
  */
 type ChipCloseProps =
   | { onClose: () => void; closeLabel: string }

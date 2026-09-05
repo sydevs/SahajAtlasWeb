@@ -14,9 +14,10 @@ const noWebsite: Event = { ...mockEvent, id: 202, website: null }
 const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactName: null }
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
 
-// The drawer panel is ~352px wide with a 24px gutter, so its content box is
-// ~304px — preview at exactly that, the real case. The row must fit its full
-// action set on one line there without wrapping or scrolling.
+// The drawer panel is about 352px wide, with a 24px gutter. So its content
+// box is about 304px. This previews at exactly that width, the real case.
+// The row must fit its full action set on one line there, without wrapping
+// or scrolling.
 function Panel({ event }: { event: Event }) {
   return (
     <div className="w-[304px] rounded-lg border border-divider py-3">
@@ -27,9 +28,10 @@ function Panel({ event }: { event: Event }) {
 
 /**
  * EventActions — the secondary action row under an event's Register CTA. The
- * set is chosen by the display resolver per state; Contact and Website only
- * appear when the CMS carries them, and Directions only for a physical venue.
- * Contact is a `tel:` link on touch and a number + copy popover on desktop.
+ * display resolver chooses the set per state. Contact and Website appear only
+ * when the CMS carries them. Directions appears only for a physical venue.
+ * Contact is a `tel:` link on touch, and a number-and-copy popover on
+ * desktop.
  */
 export const Default: Story = () => (
   <StoryWrapper>

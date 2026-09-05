@@ -73,10 +73,10 @@ const MAX_PATHNAME = 512
  * Returns `undefined` for a URL that will not parse, which the caller treats as "nothing to
  * report" — a report is a diagnostic, and no diagnostic is worth a throw in someone else's page.
  *
- * ⚠ **Not the same function as `hostPageUrl()` (`src/lib/report.ts`), and they must not be merged**
- * even though both reduce a URL to origin + path in a `try`. That one builds the context on an
- * issue report a human reads and forwards; giving it this carve-out would put a host's `?p=` into
- * an email, and giving this one its stricter rule would re-break every WordPress mount.
+ * ⚠ **This is not the same function as `hostPageUrl()` (`src/lib/report.ts`), and they must not be
+ * merged**, even though both reduce a URL to origin + path in a `try`. That one builds the context
+ * on an issue report a human reads and forwards. Giving it this carve-out would put a host's `?p=`
+ * into an email, and giving this one its stricter rule would re-break every WordPress mount.
  */
 export function mountParts(href: string | null | undefined): MountParts | undefined {
   try {

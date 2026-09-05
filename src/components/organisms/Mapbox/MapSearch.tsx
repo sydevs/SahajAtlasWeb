@@ -13,29 +13,32 @@ export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
   /**
-   * Mirror what's typed into `?q` on the current URL (default `true`), so a reload or a
-   * shared link keeps the query. Pass `false` where the current URL is known-bad — the
-   * error screen for a dead link (issue #89) — since writing state into a URL we've just
-   * told the viewer is broken only spreads it: embedded, that URL lives in the host page's
-   * `#!` fragment and rides along in anything the visitor copies.
+   * This mirrors what is typed into `?q` on the current URL (default `true`),
+   * so a reload or a shared link keeps the query. Pass `false` where the
+   * current URL is known-bad — the error screen for a dead link (issue #89).
+   * Writing state into a URL already flagged as broken only spreads the
+   * problem: embedded, that URL lives in the host page's `#!` fragment and
+   * travels with anything the visitor copies.
    */
   syncToUrl?: boolean
   /**
-   * Accessible name and placeholder. Defaults to the "search for events near…" phrasing,
-   * which is right in a header where position already says what the field is for — but
-   * reads as a promise of nearby events when the field is dropped into an error body.
+   * This is the accessible name and placeholder. It defaults to the "search
+   * for events near…" phrasing, which is right in a header, where position
+   * already says what the field is for. But it reads as a promise of nearby
+   * events when the field sits in an error body instead.
    */
   label?: string
 }
 
-// The geocoder is a custom element from @mapbox/search-js-web. It fails to mount
-// where its element definition isn't in the current document's registry — most
-// notably inside an iframe that never received the definition (Ladle's width /
-// preview frames), where its mount effect throws "node.bindMap is not a function",
-// and in principle under a restrictive host CSP. Rather than let that tear the
-// whole widget down through the nearest error boundary, contain it here and fall
-// back to a plain text field. In production (same-document registry, valid token)
-// the real geocoder always mounts, so this never triggers.
+// The geocoder is a custom element from @mapbox/search-js-web. It fails to
+// mount where its element definition is not in the current document's
+// registry. This happens most notably inside an iframe that never received
+// the definition (Ladle's width and preview frames), where its mount effect
+// throws "node.bindMap is not a function." It can also happen under a
+// restrictive host CSP. Rather than let that failure crash the whole widget
+// through the nearest error boundary, this boundary contains it and renders
+// a plain text field instead. In production — same-document registry, valid
+// token — the real geocoder always mounts, so this never triggers.
 class GeocoderBoundary extends Component<
   { fallback: ReactNode; children: ReactNode },
   { failed: boolean }
@@ -60,24 +63,28 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   const { t } = useTranslation('common')
   const fieldLabel = label ?? t('search_placeholder')
 
-  // Merge `q` into the existing query so the active filters (and bbox/center)
-  // survive typing — they live only in the URL now. `replace` so per-keystroke
-  // edits don't stack history. Shared by the geocoder and the plain fallback.
+  // This merges `q` into the existing query, so the active filters (and
+  // bbox and center) survive typing — they live only in the URL now.
+  // `replace` means per-keystroke edits do not stack history. Both the
+  // geocoder and the plain fallback share this function.
   //
-  // `state` is carried explicitly: `setSearchParams` forwards only what it's given, so
-  // a bare `{ replace: true }` replaces the entry with a state-less one and drops its
-  // `atlasDepth` — after ONE keystroke the drawer's dismissal (X / swipe / Esc) would
-  // push to the structural parent instead of going chronologically back. The filter
-  // and sort setters carry it for the same reason.
-  // Adopt a `?q` that somebody ELSE wrote. The field seeds from the URL once, in the state
-  // initializer above, which is right while typing is the only writer — but the geolocate
-  // control names the place it found AFTER navigating, and `placeSearchPath` clears `?q` on every
-  // re-search. Neither remounts this component when the view on top is unchanged, so without
-  // this the field keeps showing a place the results are no longer about.
+  // `state` is carried explicitly. `setSearchParams` forwards only what it is
+  // given, so a bare `{ replace: true }` replaces the entry with a
+  // state-less one and drops its `atlasDepth`. After ONE keystroke, the
+  // drawer's dismissal (X, swipe, or Esc) would then push to the structural
+  // parent, instead of going chronologically back. The filter and sort
+  // setters carry it for the same reason.
+  // This adopts a `?q` that somebody ELSE wrote. The field seeds from the URL
+  // once, in the state initializer above, which is right while typing is the
+  // only writer. But the geolocate control names the place it found AFTER
+  // navigating, and `placeSearchPath` clears `?q` on every re-search. Neither
+  // one remounts this component when the view on top is unchanged. So
+  // without this effect, the field keeps showing a place the results are no
+  // longer about.
   //
-  // Guarded on the last value we wrote ourselves rather than on equality with the field, so the
-  // per-keystroke mirroring below can never fight it: typing records its own write, sees the URL
-  // agree, and does nothing.
+  // This guards on the last value written here, rather than on equality with
+  // the field. So the per-keystroke mirroring below can never fight it:
+  // typing records its own write, sees the URL agree, and does nothing.
   const urlQuery = searchParams.get('q') ?? ''
   const ownWrite = React.useRef(urlQuery)
 
@@ -106,13 +113,14 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   }
 
   return (
-    // The Geocoder permanently reserves ~40px of right padding for its "action"
-    // slot, but the only thing that ever occupies it is the Clear (×) button —
-    // which Mapbox itself hides (`display: none`) while the field is empty. Give
-    // that space back to the placeholder whenever the field is empty;
-    // `:placeholder-shown` stops matching the moment the user types and the ×
-    // appears, so the text never runs under it. (The generated `mbx…--Input`
-    // class carries a per-build hash, so this targets the element, not the class.)
+    // The Geocoder permanently reserves ~40px of right padding for its
+    // "action" slot. The only thing that ever occupies it is the Clear (×)
+    // button, which Mapbox itself hides (`display: none`) while the field is
+    // empty. This returns that space to the placeholder whenever the field
+    // is empty. `:placeholder-shown` stops matching the moment the user
+    // types and the × appears, so the text never runs under it. (The
+    // generated `mbx…--Input` class carries a per-build hash, so this
+    // targets the element, not the class.)
     <div className="[&_input:placeholder-shown]:!pe-3">
       <GeocoderBoundary
         fallback={
@@ -132,7 +140,7 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
           // @ts-ignore: Type 'Map$1' is not assignable to type 'Map'.
           map={mapbox?.getMap()}
           options={{
-            language: locale, // TOOD: Make sure this switches when locale changes
+            language: locale, // TODO: Make sure this switches when locale changes
             proximity: mapbox?.getCenter(),
           }}
           placeholder={fieldLabel}

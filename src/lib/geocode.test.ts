@@ -6,9 +6,9 @@ import { geocodeCountryCode } from './geocode'
 
 // A geocoder result reduced to what the reader touches: its `feature_type` (only to
 // distinguish the cases below — the read itself is level-independent by design) and
-// its country context. Cast at the boundary: the real GeocodingFeature carries a dozen
-// fields the reader never looks at, and `country_code` isn't on the SDK's context type
-// at all (see geocode.ts).
+// its country context. This is cast at the boundary. The real GeocodingFeature
+// carries a dozen fields the reader never looks at, and `country_code` is not on
+// the SDK's context type at all (see geocode.ts).
 const feature = (featureType: string, country?: Record<string, unknown>): GeocodingFeature =>
   ({
     properties: { feature_type: featureType, context: country ? { country } : {} },
@@ -36,8 +36,9 @@ describe('geocodeCountryCode', () => {
   })
 
   it('yields nothing when the result carries no country context', () => {
-    // An ocean or other country-less feature; and a shape with no `properties` at all,
-    // which the vendor types say can't happen but the optional chaining survives.
+    // An ocean or other country-less feature, and a shape with no
+    // `properties` at all, which the vendor types say cannot happen, but
+    // the optional chaining survives.
     expect(geocodeCountryCode(feature('region'))).toBeUndefined()
     expect(geocodeCountryCode({} as GeocodingFeature)).toBeUndefined()
   })

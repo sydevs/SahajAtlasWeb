@@ -17,12 +17,12 @@
  * so the router's `location.search` never contains it. It is read off `window.location` at the call
  * site, exactly as `pageLocaleOverride` is and for the same reason.
  *
- * This module is pure — no `window` — so the decision is testable in the node lane;
+ * This module is pure — no `window` — so the decision is testable in the node lane.
  * `clearFeedback` is the one part that touches `history`.
  *
  * **The URL editing itself is not here.** Removing one parameter without disturbing the rest is a
- * general problem the widget has wherever it writes onto a host's URL, so it lives in `query.ts`;
- * this module only says which name it claims and what the two answers mean.
+ * general problem the widget has wherever it writes onto a host's URL, so it lives in `query.ts`.
+ * This module only says which name it claims and what the two answers mean.
  */
 
 import { hrefWithout } from './query'
@@ -31,7 +31,7 @@ import { hrefWithout } from './query'
  * The parameter name, defined once.
  *
  * ⚠ **The widget does not own this name the way it owns `atlas` and `locale`.** Those two it
- * WRITES; this one it only ever reads and then removes. It is spelled here so the reader and the
+ * writes. This one it only ever reads and then removes. It is spelled here so the reader and the
  * remover cannot drift — the failure mode of a drift is silent in both directions: a banner that
  * never shows, or a parameter that rides along in every link the visitor copies afterwards.
  */

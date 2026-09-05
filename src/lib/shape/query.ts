@@ -28,7 +28,7 @@
  * **Every parameter the widget writes to a host's URL goes through here**, which is what makes
  * "we touch our pair and nothing else" literally true rather than approximately. `hrefFor` and
  * `pathHrefFor` (`routing.ts`) used to write `?atlas=` with `searchParams.set` and then repair the
- * damage with a `readable()` pass over the whole query; that recovered `/` and `,` and never
+ * damage with a `readable()` pass over the whole query. That recovered `/` and `,`, and never
  * recovered a host's `%20`, which `set` had already turned into `+`. `routeToParam` is the
  * route-shaped name for {@link encodeParamValue} and delegates to it, so there is one encoder.
  *
@@ -87,7 +87,7 @@ function joinPairs(pairs: string[]): string {
  * `?` is deliberately **left** encoded. It is legal too, but a raw one inside a value makes it
  * ambiguous at a glance whether a nested query belongs to the widget or to the host.
  *
- * This is the one definition; `routeToParam` (`routing.ts`) is the route-shaped name for it and
+ * This is the one definition. `routeToParam` (`routing.ts`) is the route-shaped name for it, and
  * delegates here, so the encoding `?atlas=` is written with and the encoding every other parameter
  * is written with cannot drift apart.
  */
@@ -109,7 +109,7 @@ export function searchWithout(search: string, ...names: string[]): string {
  * `search` with `name` set to `value`, and **every other pair left byte-identical**.
  *
  * Replaces the parameter **in place** where it already exists, so a repeated write (a viewer
- * switching language twice) does not shuffle the host's URL; a repeat of the same name collapses to
+ * switching language twice) does not shuffle the host's URL. A repeat of the same name collapses to
  * the one we wrote, as `URLSearchParams.set` would. Appends at the end where it is new.
  */
 export function searchWith(search: string, name: string, value: string): string {

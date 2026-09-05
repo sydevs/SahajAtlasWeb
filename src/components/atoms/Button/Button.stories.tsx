@@ -27,12 +27,12 @@ const radii = ['sm', 'full'] as const
 
 /**
  * Button — the app's one control component, on the Radix-semantic 12-step
- * tokens. It absorbed what used to be a separate IconButton via two orthogonal
- * props: `radius` (`sm` / `full`, matching Chip) sets the corner on any button,
- * and `isIconOnly` squares the width against the size scale. The colour ×
- * variant matrix lives in the exported `controlSurface` recipe, which
- * ActionCircle also skins its circle with, so `color` / `variant` / `size` /
- * `radius` mean the same thing across every control.
+ * tokens. It absorbed the former IconButton through two orthogonal props.
+ * `radius` (`sm` or `full`, matching Chip) sets the corner on any button.
+ * `isIconOnly` squares the width against the size scale. The colour × variant
+ * matrix lives in the exported `controlSurface` recipe. ActionCircle skins its
+ * circle with the same recipe. So `color`, `variant`, `size`, and `radius` mean
+ * the same thing across every control.
  */
 export const Default: Story = () => (
   <StoryWrapper>

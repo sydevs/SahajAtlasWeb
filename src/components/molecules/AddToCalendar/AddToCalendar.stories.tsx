@@ -1,15 +1,16 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { EventSchedule } from '@/types'
 
-// Not in the molecules barrel (it would go eager) — import from the co-located file.
+// This is not in the molecules barrel, since it would go eager. Import it
+// from the co-located file.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { AddToCalendar } from './AddToCalendar'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
-// Wednesdays 19:30–20:45 in Prague, with a cancelled week — the shape that
-// exercises RRULE + EXDATE + TZID in the downloaded file.
+// A weekly Wednesday 19:30-20:45 class in Prague, with a cancelled week.
+// This shape exercises RRULE, EXDATE, and TZID in the downloaded file.
 const weekly: EventSchedule = {
   firstDate: new Date('2026-07-01T17:30:00Z'),
   firstDate_tz: 'Europe/Prague',
@@ -30,12 +31,13 @@ const oneOff: EventSchedule = {
 
 /**
  * AddToCalendar — the five export targets offered on the registration
- * confirmation. Apple is the `.ics` download (a real file, so it is a button);
- * the other four are ordinary link-outs, so middle-click and long-press behave.
+ * confirmation. Apple is the `.ics` download, a real file, so it is a
+ * button. The other four are ordinary link-outs, so middle-click and
+ * long-press behave correctly.
  *
- * Press Apple to download and open the file in a real calendar app — that is the
- * only way to see the recurrence, the timezone and the cancelled week land
- * correctly, and it is what the unit lane cannot assert.
+ * Press Apple to download and open the file in a real calendar app. That is
+ * the only way to see the recurrence, the timezone, and the cancelled week
+ * land correctly, and it is what the unit lane cannot assert.
  */
 export const Default: Story = () => (
   <StoryWrapper>

@@ -96,7 +96,7 @@ describe('zoneCity', () => {
 
 describe('reconciledViewerPlace', () => {
   // The clock is quoted in `at`'s own zone (the viewer's OS zone). A non-null
-  // return is the region label ("… in <region>"); null is the SAFE bare-time form.
+  // return is the region label ("… in <region>"). Null is the safe bare-time form.
   const at = DateTime.fromISO('2026-07-20T10:00', { zone: 'America/Vancouver' }) // PDT, -07:00
 
   it('names the region when the IP zone shares the OS clock (same zone id)', () => {
@@ -106,14 +106,16 @@ describe('reconciledViewerPlace', () => {
   })
 
   it('names the region for a distinct IP zone that shares the offset right now', () => {
-    // America/Los_Angeles is also -07:00 in July — the offset agrees, so labelling
-    // the region is still honest (offset, not zone id, is what's compared).
+    // America/Los_Angeles is also -07:00 in July. The offset agrees, so
+    // labelling the region is still honest (offset, not zone id, is what
+    // gets compared).
     expect(reconciledViewerPlace('California', 'America/Los_Angeles', at)).toBe('California')
   })
 
   it('drops the place (safe form) when the IP zone disagrees with the OS clock', () => {
-    // Europe/London is +01:00 in July: naming it beside a -07:00 clock would assert
-    // a place whose local time isn't the one shown — the mislabelling #64 fixes.
+    // Europe/London is +01:00 in July. Naming it beside a -07:00 clock
+    // would assert a place whose local time is not the one shown, the
+    // mislabelling #64 fixes.
     expect(reconciledViewerPlace('England', 'Europe/London', at)).toBeNull()
   })
 

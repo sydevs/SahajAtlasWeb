@@ -23,7 +23,7 @@ import { fallbackUrl } from './fallback-url'
  *
  * One object rather than a flag and three satellites, so the impossible combinations cannot be
  * expressed: a `link` card has no `autoOpen` because there is no surface to open, and an
- * `overlay` card has no href because it never leaves the page. Both entries build this; `App`
+ * `overlay` card has no href because it never leaves the page. Both entries build this. `App`
  * only reads it.
  */
 export type CompactAction = { kind: 'overlay' } | { kind: 'link'; href: string }

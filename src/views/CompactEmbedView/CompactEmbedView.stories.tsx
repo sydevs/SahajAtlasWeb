@@ -25,9 +25,9 @@ const INTERFACES = ['Countries', 'Search', 'Region', 'Event', 'Calendar'] as con
 type InterfaceKey = (typeof INTERFACES)[number]
 
 // SearchView with no `?center` snapshots `useViewState.getState()`, whose defaults are 0/0
-// (`config/store.ts`). Seeding any other centre produces a DIFFERENT `eventsQuery` key, and a
-// divergent key does not error — it silently misses and the story hits the absent backend, which
-// is the failure `eventsQuery`'s own docblock warns about. An earlier version of this file used
+// (`config/store.ts`). Seeding any other centre produces a DIFFERENT `eventsQuery` key. A
+// divergent key does not error. It silently misses, and the story hits the absent backend —
+// the failure `eventsQuery`'s own docblock warns about. An earlier version of this file used
 // [0, 20] under a comment claiming it matched.
 const DEFAULT_CENTER: [number, number] = [0, 0]
 

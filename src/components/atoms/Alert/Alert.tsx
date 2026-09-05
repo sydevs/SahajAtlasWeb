@@ -4,9 +4,9 @@ import { Info, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 
-// A status banner replacing NextUI's Alert, on the Radix-semantic tokens. `flat`
-// is a soft tint, `bordered` adds an outline; `color` selects the ramp
-// (danger stays the fixed status red, never brand-tinted).
+// A status banner. It replaces NextUI's Alert and uses the Radix-semantic tokens.
+// `flat` applies a soft tint. `bordered` adds an outline. `color` selects the ramp.
+// `danger` always keeps the fixed status red, never the brand tint.
 const alert = tv({
   slots: {
     base: 'flex gap-3 rounded p-3',
@@ -19,22 +19,24 @@ const alert = tv({
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '', danger: '' },
     variant: { flat: '', bordered: 'border' },
-    // Top-align a two-line alert; vertically centre a single line of text.
+    // Top-align a two-line alert. Centre a single line of text vertically.
     align: { start: { base: 'items-start' }, center: { base: 'items-center' } },
     // `sm` is a slimmer banner (tighter padding + gap) for compact inline prompts.
     size: { md: '', sm: { base: 'gap-2 p-2' } },
     /**
-     * Where the content sits, and with it the whole layout. `left` (the default) is the
-     * banner shape: icon in a column beside the text.
+     * Where the content sits. This also sets the whole layout.
      *
-     * `center` stacks instead — icon ABOVE the text, everything centred — because an icon
-     * pinned to the left of centred text reads as a misaligned banner rather than a
-     * centred one.
+     * `left` is the default. It renders the banner shape: an icon in a column beside the text.
      *
-     * `left` emits `text-start` rather than nothing: these render inside containers that
-     * centre their own text (the fallback panel does), and an unset alignment would
-     * inherit it. Declared LAST so its classes win the merge against `align` above, which
-     * sets the cross-axis for the row layout this replaces.
+     * `center` stacks the content instead. The icon sits above the text, and everything
+     * centres. An icon pinned to the left of centred text would look like a misaligned
+     * banner, not a centred one.
+     *
+     * `left` emits `text-start` instead of nothing. These alerts can render inside
+     * containers that centre their own text, such as the fallback panel. An unset
+     * alignment would inherit that centring. `textAlign` is declared LAST, so its classes
+     * win the merge against `align` above. `align` sets the cross-axis for the row layout
+     * that `textAlign` replaces.
      */
     textAlign: {
       left: { base: 'text-start' },
@@ -64,11 +66,12 @@ const alert = tv({
   defaultVariants: { color: 'neutral', variant: 'flat', size: 'md', textAlign: 'left' },
 })
 
-// A round info/alert glyph used when no custom icon is supplied. Hand-drawn until #003 —
-// it was already the Lucide idiom (stroke, 2px, 24 grid), so it is now the real thing.
+// A round info/alert glyph. It renders only when the caller gives no custom icon.
+// It was hand-drawn until #003. It already matched the Lucide style: a 2px stroke
+// on a 24-unit grid. It now uses the real Lucide icon.
 const DefaultIcon = () => <Info className="h-5 w-5" />
 
-/** See `ChipCloseProps` — the dismiss button and its label travel together. */
+/** See `ChipCloseProps`. The dismiss button and its label travel together. */
 type AlertCloseProps =
   | { onClose: () => void; closeLabel: string }
   | { onClose?: never; closeLabel?: never }
@@ -79,10 +82,10 @@ export type AlertProps = VariantProps<typeof alert> & {
   /** Custom leading icon, or `false` to render none. */
   icon?: ReactNode | false
   /**
-   * Live-region role: `'status'` (polite — the default) or `'alert'` (assertive).
-   * Most alerts are passive — empty-result notices, suggestions — and assertive
-   * announcements interrupt a screen reader mid-sentence, so `'alert'` is opt-in
-   * for genuine errors.
+   * Live-region role. `'status'` is polite and is the default. `'alert'` is assertive.
+   * Most alerts are passive, such as empty-result notices and suggestions. An assertive
+   * announcement interrupts a screen reader mid-sentence. So `'alert'` is opt-in, for
+   * genuine errors only.
    */
   role?: 'alert' | 'status'
   children?: ReactNode
@@ -104,13 +107,14 @@ export function Alert({
   children,
   className,
 }: AlertProps) {
-  // Default to vertically centring the icon (and dismiss button) when the alert is a
-  // single line of text — exactly one of title/description and no extra children; a
-  // taller two-line alert top-aligns. A caller can override via `align`.
+  // This centres the icon and the dismiss button vertically by default, when the alert
+  // shows one line of text. That means exactly one of `title` or `description`, and no
+  // extra children. A taller two-line alert aligns to the top instead. A caller can
+  // override this with `align`.
   //
-  // Moot under `textAlign="center"`, whose column layout centres everything on the
-  // cross-axis anyway; passing it on keeps the two variants independent rather than
-  // making one silently condition the other.
+  // This choice does not matter under `textAlign="center"`. That layout already centres
+  // everything on the cross-axis. The code still passes `align` on, so the two variants
+  // stay independent. Otherwise one variant would silently control the other.
   const autoAlign = !children && Boolean(title) !== Boolean(description) ? 'center' : 'start'
   const slots = alert({ color, variant, size, textAlign, align: align ?? autoAlign })
 

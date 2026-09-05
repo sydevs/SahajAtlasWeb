@@ -1,16 +1,19 @@
 // @vitest-environment jsdom
 //
-// The second spec in the unit lane to boot a DOM, opted in per-file so the rest stays
-// node-only (see `docs/testing.md`). It earns that the same way `reset-boundary`
-// does: what it covers is a re-render SSR markup cannot express — the screen you land on
-// AFTER an async submit resolves or rejects.
+// This is the second spec in the unit lane to boot a DOM. It opts in
+// per-file, so the rest stays node-only (see `docs/testing.md`). It earns
+// that the same way `reset-boundary` does. What it covers is a re-render
+// that SSR markup cannot express — the screen you land on AFTER an async
+// submit resolves or rejects.
 //
-// And it is the one assertion issue #103 is actually about. The old form called
-// `window.alert(JSON.stringify(payload))` and then `setSubmitted(true)`, so every report
-// showed the thank-you screen and none of them reached a server. Its sibling spec can
-// only drive the story props (`initialSubmitted` / `initialFailed`), both of which
-// short-circuit the derivation — so with that spec alone, restoring the bug keeps the
-// lane green. Here the ONLY way to the thank-you screen is a resolved POST.
+// This is the one assertion issue #103 is actually about. The old form
+// called `window.alert(JSON.stringify(payload))` and then
+// `setSubmitted(true)`, so every report showed the thank-you screen, and
+// none of them reached a server. Its sibling spec can only drive the story
+// props (`initialSubmitted` or `initialFailed`), and both short-circuit
+// the derivation. So with that spec alone, restoring the bug keeps the
+// lane green. Here the ONLY way to the thank-you screen is a resolved
+// POST.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -20,9 +23,10 @@ import { ReportIssueForm } from './ReportIssueForm'
 
 import { type ReportContext } from '@/lib/report'
 
-// Mocked at the SDK boundary, not at our own `api` module: that keeps the real
-// `sendUserMessage` — its body mapping, its zod parse, its refusal re-cast — inside the
-// system under test, so this spec covers the JOIN between the endpoint and the screen.
+// This mocks at the SDK boundary, not at our own `api` module. That keeps
+// the real `sendUserMessage` — its body mapping, its zod parse, its
+// refusal re-cast — inside the system under test. So this spec covers the
+// JOIN between the endpoint and the screen.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
 vi.mock('@payloadcms/sdk', () => ({
@@ -61,10 +65,11 @@ beforeEach(() => {
   sdk.request.mockReset()
   resetCalls = 0
 
-  // Stand in for the Turnstile script rather than for OUR hook: `loadTurnstile` short-
-  // circuits when `window.turnstile` already exists, so the real `useTurnstile` runs and
-  // solves through its own callback — which is what gives the form a token and enables
-  // Send. Mocking the hook instead would skip the very wiring under test.
+  // This stands in for the Turnstile script, rather than for OUR hook.
+  // `loadTurnstile` short-circuits when `window.turnstile` already exists,
+  // so the real `useTurnstile` runs and solves through its own callback.
+  // That callback is what gives the form a token and enables Send. Mocking
+  // the hook instead would skip the very wiring under test.
   window.turnstile = {
     render: (_el, options) => {
       options.callback?.('tok-live')
@@ -103,9 +108,10 @@ async function mountForm() {
 }
 
 /**
- * Type into a control the way React sees it. Assigning `.value` directly is invisible to
- * React's value tracker, so the change never reaches react-hook-form and the form stays
- * invalid — the native setter is what makes the input event count.
+ * Type into a control the way React sees it. Assigning `.value` directly
+ * is invisible to React's value tracker, so the change never reaches
+ * react-hook-form, and the form stays invalid. The native setter is what
+ * makes the input event count.
  */
 async function type(selector: string, value: string) {
   const field = container.querySelector<HTMLTextAreaElement>(selector)
@@ -177,9 +183,10 @@ describe('ReportIssueForm submit', () => {
   })
 
   it('resets the captcha after a failure, because the token may already be spent', async () => {
-    // The endpoint redeems a single-use token during verification, BEFORE it mails. So on
-    // a 502 the token in hand is spent and re-sending it would be refused as a replay —
-    // the retry the failure copy offers only works if the challenge is re-run.
+    // The endpoint redeems a single-use token during verification, BEFORE it
+    // mails. So on a 502, the token in hand is spent, and re-sending it
+    // would be refused as a replay. The retry the failure copy offers only
+    // works if the challenge is re-run.
     sdk.request.mockRejectedValue(
       Object.assign(new Error('Could not deliver your message.'), { status: 502 }),
     )

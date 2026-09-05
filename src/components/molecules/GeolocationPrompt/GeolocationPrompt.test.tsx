@@ -3,9 +3,9 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { GeolocationPrompt } from './GeolocationPrompt'
 
-// Mock the i18n boundary (react-i18next) so the SSR markup asserts on real copy —
-// including the Ruby-style %{city} interpolation — without booting i18next. Node
-// lane, no jsdom (see docs/testing.md).
+// This mocks the i18n boundary (react-i18next), so the SSR markup
+// asserts on real copy, including the Ruby-style %{city} interpolation,
+// without booting i18next. This is the node lane, with no jsdom (see docs/testing.md).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>
@@ -43,7 +43,7 @@ describe('GeolocationPrompt', () => {
     )
 
     expect(html).toContain('aria-label="Dismiss"')
-    // A passive suggestion shouldn't interrupt a screen reader.
+    // A passive suggestion should not interrupt a screen reader.
     expect(html).toContain('role="status"')
     expect(html).not.toContain('role="alert"')
   })
@@ -55,7 +55,7 @@ describe('GeolocationPrompt', () => {
 
     expect(html).toContain('bg-secondary-3')
     expect(html).toContain('items-center')
-    // Horizontal padding brought in line with the drawer header (px-4).
+    // This aligns the horizontal padding with the drawer header (px-4).
     expect(html).toContain('px-4')
   })
 })

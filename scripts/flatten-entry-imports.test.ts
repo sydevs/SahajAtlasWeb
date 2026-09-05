@@ -3,17 +3,19 @@ import { describe, expect, it } from 'vitest'
 import { flattenedImports, importClosure } from './flatten-entry-imports.mjs'
 
 /**
- * The plugin exists so `embed.js` declares its whole eager graph, the way Vite's
- * modulepreload list does for `index.html`. What can silently go wrong is the graph walk
- * (missing a chunk means it stays a round trip late, with byte-identical output, so
- * `pnpm size` cannot see it) and the specifier math (only exercised if `entryFileNames`
- * ever moves the entry out of the output root). Both are pinned here — see issue #96.
+ * The plugin exists so `embed.js` declares its whole eager graph, the same
+ * way Vite's modulepreload list does for `index.html`. Two things can
+ * silently go wrong. The graph walk can miss a chunk — that chunk stays a
+ * round trip late, with byte-identical output, so `pnpm size` cannot see
+ * the regression. The specifier math can break, but only when
+ * `entryFileNames` moves the entry out of the output root. This spec pins
+ * both cases. See issue #96.
  */
 const chunk = (imports: string[] = []) => ({ type: 'chunk', imports })
 
-// This is the real shape as of this writing: the entry imports most chunks directly, but
-// `shared` and `fallbacks` hang off `App` — and `shared` is the largest chunk in the
-// payload.
+// This matches the real bundle shape as of this writing. The entry
+// imports most chunks directly, but `shared` and `fallbacks` hang off
+// `App`. `shared` is the largest chunk in the payload.
 const bundle = {
   'assets/App.js': chunk(['assets/shared.js', 'assets/fallbacks.js', 'assets/runtime.js']),
   'assets/shared.js': chunk(['assets/runtime.js']),
@@ -65,8 +67,9 @@ describe('flattenedImports', () => {
     expect(flattenedImports(bundle, entry).missing).toEqual([])
   })
 
-  // The entry sits at the output root today. `entryFileNames` is free to move it, and a
-  // specifier that is wrong by one directory is a 404 for a third of the payload.
+  // The entry sits at the output root today. `entryFileNames` is free to
+  // move it. A specifier that is wrong by one directory would 404 for a
+  // third of the payload.
   it('writes specifiers relative to the entry, not the output root', () => {
     const entry = { fileName: 'nested/embed.js', imports: ['assets/App.js'] }
 

@@ -28,19 +28,21 @@ import { i18nSharedOptions } from '@/config/i18n-options'
 //
 // The app loads locale JSON over HTTP (VITE_HOST) through
 // i18next-http-backend. Ladle has no backend. So this file bundles every
-// shipped locale's namespaces as static resources instead, all ten of them.
-// SettingsMenu builds its language picker from `supportedLanguages`. A
-// language with no resources here becomes a menu row that does nothing when
-// a reviewer clicks it.
+// shipped locale's namespaces as static resources instead, all ten of
+// them. SettingsMenu builds its language picker from
+// `supportedLanguages`. A language with no resources here becomes a menu
+// row that does nothing when a reviewer clicks it.
 //
 // Stories render this instance through <I18nextProvider> (see
-// components.tsx). Both `useTranslation()` and `useLocale()` read from it,
-// so story text resolves offline. The app's HTTP-backed singleton may still
-// initialize in the background, through imported components or api calls.
-// It renders nothing here, and its background locale fetch fails harmlessly.
+// components.tsx). Both `useTranslation()` and `useLocale()` read from
+// it, so story text resolves offline. The app's HTTP-backed singleton may
+// still initialize in the background, through imported components or api
+// calls. It renders nothing here, and its background locale fetch fails
+// harmlessly.
 //
 // Namespaces and the Ruby-style %{...} delimiters come from the shared
-// options (src/config/i18n-options.ts). This keeps them in step with the app.
+// options (src/config/i18n-options.ts). This keeps them in step with the
+// app.
 const storyI18n = i18n.createInstance()
 
 storyI18n.use(initReactI18next).init({

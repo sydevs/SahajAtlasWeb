@@ -7,18 +7,21 @@ import { LoadMore } from './LoadMore'
 export default { title: 'Organisms' } satisfies StoryDefault
 
 /**
- * LoadMore — the foot of the search results list: the reveal control plus the polite
- * live region that reports the new total. Its sibling DynamicEventsList decides WHICH
- * reveal is on offer (`revealRows`); this only renders it, so it stories offline.
+ * LoadMore is the foot of the search results list: the reveal control, plus
+ * the polite live region that reports the new total. Its sibling
+ * DynamicEventsList decides WHICH reveal is on offer (`revealRows`). This
+ * component only renders it, so it stories offline.
  *
- * `auto` is deliberately off in every case here: armed, the observer would fire the
- * moment the control scrolled into view and the story would re-reveal itself on sight.
- * The button is identical either way — auto-reveal only adds an IntersectionObserver
- * beside it, never a different control — so these cases cover its whole visual surface.
+ * `auto` is deliberately off in every case here. Armed, the observer would
+ * fire the moment the control scrolled into view, and the story would
+ * re-reveal itself on sight. The button looks identical either way —
+ * auto-reveal only adds an IntersectionObserver beside it, never a different
+ * control — so these cases cover its whole visual surface.
  *
- * The live region is `sr-only` in all three states; the "Fully revealed" case is here
- * to show that the row collapses to nothing visible once the last press has unmounted
- * the button, rather than leaving a blank strip under the list.
+ * The live region is `sr-only` in all three states. The "Fully revealed" case
+ * is here to show that the row collapses to nothing visible, once the last
+ * press has unmounted the button. It never leaves a blank strip under the
+ * list.
  */
 export const Default: Story = () => (
   <StoryWrapper>

@@ -6,15 +6,15 @@ import { atlasError, reportInternalError } from '@/lib/report'
 import { isSafeHref } from '@/lib/shape'
 
 /**
- * The shared control surface: the colour × variant matrix, the size scale, the
- * corner radius, and the icon-only sizing. Exported because it skins more than
- * one component — Button applies it to its own root, while ActionCircle applies
- * it to the tinted circle inside its column (see the note in ActionRow). Sharing
- * the recipe is what keeps `color` / `variant` / `size` / `radius` meaning the
- * same thing everywhere.
+ * The shared control surface. It holds the colour × variant matrix, the size
+ * scale, the corner radius, and the icon-only sizing. It is exported because it
+ * skins more than one component: Button applies it to its own root, and
+ * ActionCircle applies it to the tinted circle inside its column (see the note
+ * in ActionRow). Sharing one recipe keeps `color`, `variant`, `size`, and
+ * `radius` meaning the same thing everywhere.
  *
- * The matrix is spelled out as literal classes so Tailwind's scanner sees every
- * utility — it can't resolve a class built at runtime.
+ * The matrix uses literal classes, not classes built at runtime. Tailwind's
+ * scanner can only see literal classes.
  */
 export const controlSurface = tv({
   base: 'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[background,color,opacity]',
@@ -24,7 +24,7 @@ export const controlSurface = tv({
       solid: '',
       flat: '',
       bordered: 'border bg-transparent',
-      /** No surface until hovered — toolbar//header controls that must recede. */
+      /** No surface shows until hovered. Toolbar and header controls must recede. */
       ghost: 'bg-transparent',
     },
     size: {
@@ -33,29 +33,29 @@ export const controlSurface = tv({
       lg: 'h-12 px-6 text-base',
     },
     /**
-     * Corner radius, matching the Chip atom's vocabulary: `sm` is the control's
-     * standard corner, `full` is fully round. Independent of what's inside, so a
-     * label button can be a pill and an icon-only one a circle.
+     * Corner radius. It matches the Chip atom's vocabulary. `sm` is the control's
+     * standard corner. `full` is fully round. This is independent of the content,
+     * so a label button can be a pill, and an icon-only button can be a circle.
      */
     radius: {
       sm: 'rounded',
       full: 'rounded-full',
     },
     /**
-     * Drop the horizontal padding and square the width against the size scale —
-     * for a control whose entire content is a glyph. `shrink-0` because the
-     * square is the whole point: these sit in flex header rows next to long
-     * titles, and default flex-shrink would squash the width (and the hover
-     * square with it). Orthogonal to `radius`: square icon buttons are `sm`,
-     * the action row's circles are `full`.
+     * Drops the horizontal padding and squares the width against the size
+     * scale, for a control whose entire content is a glyph. It sets `shrink-0`
+     * because the square shape is the whole point. These controls sit in flex
+     * header rows next to long titles. The default flex-shrink would squash the
+     * width, and the hover square with it. This is independent of `radius`.
+     * Square icon buttons use `sm`. The action row's circles use `full`.
      */
     isIconOnly: { true: 'shrink-0 px-0', false: '' },
   },
   compoundVariants: [
-    // solid — a dark brand bg + WHITE text in light mode, so even a light brand
-    // seed (e.g. a pale secondary) reads with white; dark mode keeps the ramp's
-    // light solid (step 9) + its adaptive on-color. `neutral` uses the fixed gray
-    // solid (gray-9 pairs with gray-1/white in both modes).
+    // solid: a dark brand background with WHITE text in light mode. Even a light
+    // brand seed, such as a pale secondary, still reads with white. Dark mode
+    // keeps the ramp's light solid (step 9) and its adaptive on-color. `neutral`
+    // uses the fixed gray solid. Gray-9 pairs with gray-1 or white in both modes.
     {
       color: 'primary',
       variant: 'solid',
@@ -96,8 +96,8 @@ export const controlSurface = tv({
       variant: 'flat',
       class: 'bg-gray-3 text-gray-12 hover:bg-gray-4 active:bg-gray-5',
     },
-    // bordered (outline) — the border matches the icon/text colour (its ramp's
-    // readable step), not a lighter divider tint.
+    // bordered (outline): the border matches the icon and text colour, at its
+    // ramp's readable step. It is not a lighter divider tint.
     {
       color: 'primary',
       variant: 'bordered',
@@ -118,21 +118,21 @@ export const controlSurface = tv({
     { color: 'primary', variant: 'ghost', class: 'text-primary-11 hover:bg-primary-3' },
     { color: 'secondary', variant: 'ghost', class: 'text-secondary-11 hover:bg-secondary-3' },
     { color: 'contrast', variant: 'ghost', class: 'text-contrast-11 hover:bg-contrast-3' },
-    // The drawer header's controls: subtle until hovered, then full contrast, so
-    // close / list-toggle / filter read as one set.
+    // The drawer header's controls stay subtle until hovered, then reach full
+    // contrast. This makes close, list-toggle, and filter read as one set.
     {
       color: 'neutral',
       variant: 'ghost',
       class: 'text-gray-11 hover:bg-primary-3 hover:text-foreground',
     },
-    // Icon-only controls are square: the width tracks the height from the size
-    // scale, so the control stays square (and the circle round) at every size.
+    // Icon-only controls are square. The width tracks the height from the size
+    // scale. So the control stays square, and the circle stays round, at every size.
     { isIconOnly: true, size: 'sm', class: 'w-8' },
     { isIconOnly: true, size: 'md', class: 'w-10' },
     { isIconOnly: true, size: 'lg', class: 'w-12' },
-    // Icon-only bordered controls keep a slightly heavier 1.5px outline (a 1px
-    // hairline reads as an artifact around a small circle); labelled bordered
-    // buttons stay at 1px.
+    // Icon-only bordered controls keep a slightly heavier 1.5px outline. A 1px
+    // hairline looks like a rendering artifact around a small circle. Labelled
+    // bordered buttons stay at 1px.
     { isIconOnly: true, variant: 'bordered', class: 'border-[1.5px]' },
   ],
   defaultVariants: {
@@ -159,25 +159,28 @@ type ButtonOwnProps = VariantProps<typeof button> & {
   className?: string
 }
 
-// Renders a real <button> by default, or an <a> when given an `href`. Each arm
-// carries its own element props + keyboard semantics. `disabled` is omitted from
-// the anchor arm on purpose: an <a> has no disabled state, so accepting it would
-// typecheck while shipping a fully clickable link (the attribute is inert on an
-// anchor). A disabled link-button should render as a <button> instead.
+// This renders a real <button> by default, or an <a> when given an `href`. Each
+// arm carries its own element props and keyboard semantics. `disabled` is
+// omitted from the anchor arm on purpose. An <a> has no disabled state.
+// Accepting the prop would still typecheck, but it would ship a fully clickable
+// link, since the attribute is inert on an anchor. A disabled link-button should
+// render as a <button> instead.
 export type ButtonProps =
   | (ButtonOwnProps & Omit<ComponentProps<'button'>, 'color'>)
   | (ButtonOwnProps & { href: string } & Omit<ComponentProps<'a'>, 'color' | 'disabled'>)
 
 const SPINNER_SIZE = { sm: 'sm', md: 'sm', lg: 'md' } as const
 
-// forwardRef so Radix `asChild` slots (Dialog.Trigger / Dialog.Close) and
-// floating-ui popover triggers can attach their ref to the underlying element.
+// This uses forwardRef so Radix `asChild` slots (Dialog.Trigger / Dialog.Close)
+// and floating-ui popover triggers can attach their ref to the underlying
+// element.
 //
-// `data-vaul-no-drag` on every button: these sit on the vaul bottom sheet, which
-// is draggable across its whole surface. Without it vaul treats a tap carrying
-// any micro-movement as a drag and swallows the click, so controls fire only
-// intermittently. Inert outside vaul, so it costs nothing to apply universally
-// rather than leaving each control to remember it.
+// Every button carries `data-vaul-no-drag`. Buttons can sit on the vaul bottom
+// sheet, which is draggable across its whole surface. Without this attribute,
+// vaul reads any tap with a little movement as a drag, and swallows the click.
+// So controls would fire only sometimes. The attribute does nothing outside
+// vaul. So applying it everywhere costs nothing, and no control has to
+// remember it itself.
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
   function Button(
     { color, variant, size, radius, isIconOnly, isLoading = false, children, className, ...props },
@@ -194,20 +197,24 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
     if ('href' in props && props.href != null) {
       const { href, target, rel, ...anchorProps } = props as { href: string } & ComponentProps<'a'>
 
-      // The shared gate (`lib/shape/href.ts`), and the same failure mode as the `Link` atom
-      // rather than a second one: report, then degrade to the same content on a
-      // non-interactive `<span>` carrying the control's classes.
+      // This uses the shared gate (`lib/shape/href.ts`). It shares the same failure
+      // mode as the `Link` atom, not a second one of its own: report the failure,
+      // then degrade to the same content on a non-interactive `<span>` that
+      // carries the control's classes.
       //
-      // Like `Link`'s span it takes NO props, and that is a real loss, not a free one:
-      // `target`/`download`/`rel` are meaningless on a span, but `aria-label`, `id` and
-      // `onClick` are dropped too — so an `isIconOnly` Button whose only accessible name was
-      // an `aria-label` degrades to unnamed content. Accepted because this path is
-      // unreachable by design and a refusal is a developer error to be found in the report,
-      // not a state to design for; spelled out so nobody reads the span as lossless.
+      // Like `Link`'s span, this span takes NO props. That is a real loss, not a
+      // free one. `target`, `download`, and `rel` mean nothing on a span, but
+      // `aria-label`, `id`, and `onClick` are dropped too. So an `isIconOnly`
+      // Button whose only accessible name came from `aria-label` degrades to
+      // unnamed content. This is accepted, because the path is unreachable by
+      // design. A refusal is a developer error, found in the report, not a state
+      // the app must design around. This note spells that out so nobody reads the
+      // span as free of cost.
       //
-      // Site-specific: the `.ics` download does NOT come through here. It builds a `blob:`
-      // URL on a detached anchor of its own (see `downloadIcs` in `AddToCalendar`), so
-      // `blob:` staying out of the allowed set costs it nothing.
+      // This is specific to this site: the `.ics` download does NOT come through
+      // here. It builds its own `blob:` URL on a detached anchor (see
+      // `downloadIcs` in `AddToCalendar`). So keeping `blob:` out of the allowed
+      // set costs it nothing.
       if (!isSafeHref(href)) {
         reportInternalError(atlasError('unknown', `Refusing to link to ${href}`), 'Button')
 

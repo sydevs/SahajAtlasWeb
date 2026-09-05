@@ -11,10 +11,11 @@ import { Alert } from '@/components/atoms/Alert'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
-// Both surfaces are thin skins over Mapbox GL — the map itself and the geocoder
-// search box are Mapbox services. They need VITE_MAPBOX_ACCESSTOKEN and (for the
-// map) live GeoJSON from the Atlas API, so coverage here is intentionally light:
-// render the real thing when a token is present, otherwise a "needs token" notice.
+// Both surfaces are thin skins over Mapbox GL. The map itself and the
+// geocoder search box are Mapbox services. They need VITE_MAPBOX_ACCESSTOKEN,
+// and the map also needs live GeoJSON from the Atlas API. So coverage here
+// is intentionally light: it renders the real thing when a token is present,
+// otherwise a "needs token" notice.
 const hasToken = Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
 
 const NeedsToken = ({ what }: { what: string }) => (
@@ -24,10 +25,10 @@ const NeedsToken = ({ what }: { what: string }) => (
 )
 
 /**
- * Mapbox — the app's map surfaces: the full interactive map (clustered event
- * points, selection, camera) and the geocoder search box that recenters it. Both
- * are powered by Mapbox GL + `@mapbox/search-js-react`, so they need a token and
- * live data; the story stays light.
+ * Mapbox is the app's map surfaces: the full interactive map (clustered
+ * event points, selection, camera), and the geocoder search box that
+ * recenters it. Both are powered by Mapbox GL and `@mapbox/search-js-react`,
+ * so they need a token and live data. This story stays light.
  */
 export const Default: Story = () => (
   <StoryWrapper>

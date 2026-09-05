@@ -6,8 +6,8 @@ import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
 
 /**
  * A Google Maps directions link from an event's coordinates (preferred) or its
- * address text; undefined when there is nothing to point at. Pure — shared by
- * the panel's Directions action and any future card affordance.
+ * address text. This is undefined when there is nothing to point at. Pure —
+ * shared by the panel's Directions action and any future card affordance.
  */
 export function directionsUrl(address: EventAddress | null | undefined): string | undefined {
   const { latitude, longitude, street, city, country } = address ?? {}

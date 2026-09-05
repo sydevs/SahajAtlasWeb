@@ -8,7 +8,7 @@ export const EventTypeSchema = z.enum(['offline', 'online'])
 export type EventType = z.infer<typeof EventTypeSchema>
 
 // SahajCloud recurrence basis. Occurrence *instants* are pre-computed server-side
-// into `upcomingDates` (exclusions applied); the structured pattern fields below
+// into `upcomingDates` (exclusions applied). The structured pattern fields below
 // drive the derived event type, the recurrence label, and the calendar grid.
 export const RecurrenceTypeSchema = z.enum(['DAILY', 'WEEKLY', 'MONTHLY'])
 export type RecurrenceType = z.infer<typeof RecurrenceTypeSchema>
@@ -24,7 +24,7 @@ export const ScheduleExclusionSchema = z.object({
 })
 export type ScheduleExclusion = z.infer<typeof ScheduleExclusionSchema>
 
-// Offline event location (`event.address` group). All fields are nullable; the
+// Offline event location (`event.address` group). All fields are nullable. The
 // geojson geometry comes from latitude/longitude when present.
 export const EventAddressSchema = z.object({
   mapboxId: z.string().nullish(),
@@ -40,7 +40,7 @@ export const EventAddressSchema = z.object({
 export type EventAddress = z.infer<typeof EventAddressSchema>
 
 // `event.schedule` group. `upcomingDates` is a virtual field of ISO date strings
-// pre-computed by SahajCloud; `upcomingDates[0]` is the next occurrence.
+// pre-computed by SahajCloud. `upcomingDates[0]` is the next occurrence.
 // NB: the CMS form leaves stale values in sub-fields its discriminators no longer
 // select (e.g. `count` populated while `endingType` is 'until', or monthly fields
 // on a weekly event) — consumers must only read the fields the discriminators
@@ -53,7 +53,7 @@ export const EventScheduleSchema = z.object({
   endTime: z.string().nullish(), // "HH:MM", same day
   recurrenceType: RecurrenceTypeSchema.nullish(),
   interval: z.number().nullish(), // repeat every N days/weeks/months
-  weekdays: z.array(WeekdaySchema).nullish(), // WEEKLY only; multi-day is authorable
+  weekdays: z.array(WeekdaySchema).nullish(), // WEEKLY only. Multi-day is authorable
   monthlyMode: z.enum(['date', 'weekday']).nullish(),
   monthDay: z.number().nullish(), // MONTHLY 'date' mode: day of month (1-31)
   weekNumber: z.enum(['1', '2', '3', '4', '-1']).nullish(), // MONTHLY 'weekday' mode
@@ -68,8 +68,8 @@ export const EventScheduleSchema = z.object({
 export type EventSchedule = z.infer<typeof EventScheduleSchema>
 
 // Populated `images` upload (the SahajCloud `Image` collection). `url` is a
-// virtual field derived from `filename` (which `getEvent` selects); it is nullish
-// so a single file-less image can't fail the whole event read — consumers skip
+// virtual field derived from `filename` (which `getEvent` selects). It is nullish,
+// so a single file-less image cannot fail the whole event read. Consumers skip
 // images without a url (mirrors the `SafeUrlSchema` / `firstDate_tz` tolerance).
 export const EventImageSchema = z.object({
   url: z.string().nullish(),
@@ -79,7 +79,7 @@ export type EventImage = z.infer<typeof EventImageSchema>
 
 // The registration questions a manager can enable per event — SahajCloud's
 // EVENT_REGISTRATION_QUESTIONS contract. The key set is DERIVED from the synced CMS
-// types (`pnpm types:cms`) rather than hardcoded, so it can't drift from the backend.
+// types (`pnpm types:cms`) rather than hardcoded, so it cannot drift from the backend.
 export type RegistrationQuestionName = keyof NonNullable<CmsEvent['registrationQuestions']>
 
 // `event.registrationQuestions` — each enabled boolean adds a question to the form.
@@ -110,8 +110,8 @@ export const REGISTRATION_QUESTION_NAMES = Object.keys(RegistrationQuestionsSche
 
 export const RegistrationQuestionNameSchema = z.enum(REGISTRATION_QUESTION_NAMES)
 
-// Lexical richText document (`event.description`). Validated structurally; the
-// minimal serializer in src/lib/shape/lexical.ts renders/flattens it.
+// Lexical richText document (`event.description`). Validated structurally. The
+// minimal serializer in src/lib/shape/lexical.ts renders and flattens it.
 export const LexicalDocumentSchema = z
   .object({ root: z.object({ children: z.array(z.unknown()) }).passthrough() })
   .passthrough()
@@ -119,7 +119,7 @@ export type LexicalDocument = z.infer<typeof LexicalDocumentSchema>
 
 // CMS-authored URLs that get rendered into an `<a href>` (our Link atom, outside
 // the DOMPurify path). Reject non-http(s) schemes so a `javascript:`/`data:`
-// value can't reach an href; drop the offending value rather than failing the
+// value cannot reach an href. Drop the offending value rather than failing the
 // whole event read.
 const SafeUrlSchema = z
   .string()
@@ -133,12 +133,12 @@ const SafeUrlSchema = z
 // route — is identical in every locale, so the feed is fetched + cached once
 // (`['geojson']`, no locale) and the localized `title` is joined back in by id from
 // a per-locale titles sliver (`EventTitleSchema`). Map points build from this
-// directly; list items add the joined title (see `EventSlimSchema`).
+// directly. List items add the joined title (see `EventSlimSchema`).
 export const AgnosticFeedEventSchema = z.object({
   id: z.number(),
   eventType: EventTypeSchema,
   languages: z.array(z.string()),
-  // Dormant event (no active schedule; CMS requires contact info on it). In the
+  // Dormant event (no active schedule. CMS requires contact info on it). In the
   // feed so cards resolve the same inactive state as the panel.
   inactive: z.boolean().nullish(),
   address: EventAddressSchema.nullish(),
@@ -149,7 +149,7 @@ export const AgnosticFeedEventSchema = z.object({
   // migration backfills `DEFAULT false` and rows only recompute on a
   // registration change or capacity edit, so absent/false both mean not-full.
   registrationsFull: z.boolean().nullish(),
-  // Server-computed canonical route (region chain + `/<id>`); the list/map
+  // Server-computed canonical route (region chain + `/<id>`). The list/map
   // navigate to it directly.
   webPath: z.string().nullish(),
 })

@@ -9,7 +9,7 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * we inject into the HOST page. That disclosed every visitor's IP to a third party
  * with no consent — the exposure LG München I ruled on in 3 O 17493/20 — and forced
  * every embedding host to allow fonts.googleapis.com (style-src) and fonts.gstatic.com
- * (font-src) in its CSP. Both are gone; a host now allows OUR origin for `font-src`,
+ * (font-src) in its CSP. Both requirements are gone. A host now allows OUR origin for `font-src`,
  * which it is already fetching the widget itself from.
  *
  * ── Why this is TypeScript and not a `@font-face` block in globals.css ──
@@ -19,7 +19,7 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * url() resolves against the DOCUMENT's base URL — the host page's. `/assets/raleway…`
  * would resolve to wordpress-site.example/assets/raleway… and 404 on every embed.
  *
- * There is no build-time answer to that (the deploy origin isn't known to a stylesheet)
+ * There is no build-time answer to that (the deploy origin is not known to a stylesheet)
  * but there is a runtime one: `import.meta.url` is this chunk's own URL, so resolving
  * the asset path against it always lands on the origin the widget was served from —
  * dev server, `pnpm preview`, a Cloudflare preview deploy or production, with nothing
@@ -27,8 +27,8 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * of their own.
  *
  * The alternative was inlining the woff2 as base64 in the CSS, which needs no origin at
- * all. Measured, it cost +216 KB gzipped on the eager payload — the font bytes don't
- * compress (they're already woff2) and the injector emits the whole stylesheet TWICE
+ * all. Measured, it cost +216 KB gzipped on the eager payload — the font bytes do not
+ * compress (they are already woff2) and the injector emits the whole stylesheet TWICE
  * into the shared App chunk, once per build entry. Against an eager payload the
  * release review already calls 3–5× too big for a third-party embed, that was the wrong
  * trade for a file the browser can cache separately, immutably (the URL is hashed), and
@@ -42,7 +42,7 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * ── What ships ──
  *
  * One variable face per subset, limited to what `public/locales` needs — latin,
- * latin-ext (cs/hu diacritics) and cyrillic (ru/uk); cyrillic-ext and vietnamese are
+ * latin-ext (cs/hu diacritics) and cyrillic (ru/uk). Cyrillic-ext and vietnamese are
  * dropped. NORMAL ONLY: italic would double the download for the one `<em>` a CMS
  * author can put in an event description, so those render as synthetic oblique.
  *
@@ -54,7 +54,7 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * the two faces cannot meet inside a word: no script is served by both.
  *
  * ⚠ Hence `weight` is PER SUBSET rather than one constant. Rethink Sans's variable
- * axis is `400 800`; Raleway's is `100 900`. Declaring a range the file does not have
+ * axis is `400 800`. Raleway's is `100 900`. Declaring a range the file does not have
  * makes the browser synthesise the weight instead of interpolating the axis.
  *
  * The family is 'Atlas Rethink Sans', not 'Rethink Sans', because @font-face is
@@ -67,7 +67,7 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * The face's family name. Exported because it is referenced from more than one place —
  * `fontFamily.sans` in tailwind.config.js and the Mapbox geocoder's own theme
  * (`src/components/organisms/Mapbox/themes.ts`), which builds its font stack from CSS-in-JS
- * we don't control and so can't inherit ours. A renamed family that one of those misses
+ * we do not control and so cannot inherit ours. A renamed family that one of those misses
  * fails silently: the text just falls back to the system sans.
  */
 export const FONT_FAMILY = 'Atlas Rethink Sans'
@@ -113,7 +113,7 @@ unicode-range:${range}}`,
 }
 
 /**
- * Register the faces on the document. Idempotent (a second widget on the page, or a
+ * Registers the faces on the document. Idempotent (a second widget on the page, or a
  * remount, must not append a second copy) and a no-op without a DOM, so the node test
  * lane can import anything that pulls this in. Runs on import — this module is consumed
  * as a side-effect import beside `globals.css`, which is the thing it is part of.

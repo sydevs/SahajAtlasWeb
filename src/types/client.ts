@@ -5,11 +5,11 @@ import { RegionRefSchema } from './region-ref'
 // `GET /api/clients/me` — the widget's own SahajCloud service document, used to
 // bootstrap its theme colors and home region.
 //
-// ⚠ **`locale` is deliberately absent.** SahajCloud still has the field; the widget stopped
+// ⚠ **`locale` is deliberately absent.** SahajCloud still has the field. The widget stopped
 // reading it, because the language should follow the PAGE (`<html lang>`) rather than a
 // record-level setting that says it once for every page a client embeds on. Removing it from the
 // schema as well as the `select` is what stops it quietly coming back. `region` resolves to a
-// RegionRef at depth=1; `allowedDomains` is a newline-separated list.
+// RegionRef at depth=1. `allowedDomains` is a newline-separated list.
 //
 // `legacyConfig` is gone (#153). SahajCloud removed the field rather than promoting
 // it: a hand-maintained `routing_type`/`embed_type` beside what the widget now

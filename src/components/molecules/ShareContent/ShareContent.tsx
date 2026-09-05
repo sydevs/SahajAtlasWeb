@@ -15,9 +15,9 @@ const copyField = tv({
   defaultVariants: { copied: false },
 })
 
-// Click-to-copy value field. Copies on click
-// with a brief tint flash; the text stays selectable as a fallback. Exported
-// for the event panel's desktop contact popover (issue #52).
+// A click-to-copy value field. It copies on click, with a brief tint
+// flash. The text stays selectable as a fallback. This is exported for
+// the event panel's desktop contact popover (issue #52).
 export function CopyField({ value }: { value: string }) {
   const { t } = useTranslation('common')
   const [copied, setCopied] = useState(false)
@@ -43,10 +43,11 @@ export function CopyField({ value }: { value: string }) {
       >
         {value}
       </button>
-      {/* Success was previously signalled ONLY by a secondary-3 → secondary-5
-          tint — a ~1.15:1 shift that a screen reader can't see at all and that
-          low-vision/monochrome users won't perceive either. The live region
-          announces it and the text confirms it. */}
+      {/* Success was previously signalled ONLY by a secondary-3 to
+          secondary-5 tint, a roughly 1.15:1 shift. A screen reader cannot
+          see that at all, and low-vision or monochrome users would not
+          perceive it either. The live region announces success, and the
+          text confirms it. */}
       <span aria-live="polite" className="h-4 text-xs text-secondary-11">
         {copied ? t('share.copied') : ''}
       </span>
@@ -58,30 +59,34 @@ export type ShareContentProps = {
   label: string
   url: string
   /**
-   * The viewer's country (ISO alpha-2) — orders the share grid to their region
-   * (`platformsForCountry`). Resolved by the consumer (via `useViewerCountry`) so
-   * this molecule stays pure and SSR-testable. Absent → the default platform set.
+   * The viewer's country (ISO alpha-2). It orders the share grid to their
+   * region (`platformsForCountry`). The consumer resolves it, through
+   * `useViewerCountry`, so this molecule stays pure and SSR-testable. When
+   * absent, this uses the default platform set.
    */
   country?: string
 }
 
 /**
- * The shareable block: a click-to-copy URL field plus regionally-ordered share
- * targets. On a device that supports the Web Share API it leads with a single
- * "Share…" button opening the native OS sheet (which surfaces the viewer's own
- * installed apps — the ultimate region filter); everywhere else, or if that
- * native call is blocked, it falls back to a grid of `react-share` buttons
- * ordered by `country`. Generic (label + url + optional country): used by the
- * event share drawer (ShareView) and the registration "thank you" screen.
+ * The shareable block: a click-to-copy URL field, plus regionally-ordered
+ * share targets. On a device that supports the Web Share API, it leads
+ * with a single "Share…" button, opening the native OS sheet, which
+ * surfaces the viewer's own installed apps, the ultimate region filter.
+ * Everywhere else, or if that native call is blocked, it falls back to a
+ * grid of `react-share` buttons ordered by `country`. This is generic
+ * (label, url, and optional country). The event share drawer (ShareView)
+ * and the registration "thank you" screen both use it.
  *
- * `label`/`url` are passed through raw — react-share and the native sheet encode
- * their own parameters, so the old `encodeURI` here would have double-encoded.
+ * `label` and `url` pass through raw. react-share and the native sheet
+ * encode their own parameters, so the old `encodeURI` here would have
+ * double-encoded them.
  */
 export function ShareContent({ label, url, country }: ShareContentProps) {
   const { t } = useTranslation()
   const { canShare, share } = useWebShare()
-  // Reveal the grid when there's no native sheet, or after a native attempt is
-  // blocked (host Permissions-Policy) or dismissed — the viewer is never stranded.
+  // This reveals the grid when there is no native sheet, or after a
+  // native attempt is blocked (host Permissions-Policy) or dismissed. So
+  // the viewer is never stranded.
   const [gridRevealed, setGridRevealed] = useState(false)
   const showGrid = !canShare || gridRevealed
 

@@ -5,13 +5,14 @@ import { useLocation, useSearchParams } from 'react-router'
 
 import { sortFromParams, sortToParams } from '@/lib/shape'
 
-// The list sort order lives in the URL (`?sort=`) like the filters — the single source
-// of truth, so a sorted view is linkable/shareable. Read with `useSortOrder`; change it
-// with `useSetSortOrder`. Kept apart from `use-filters` because sort is presentation (it
-// reorders the fetched list, never refetches) while filters are predicates (they change
-// which events are fetched). See `@/lib/shape/sort`.
+// The list sort order lives in the URL, `?sort=`, like the filters, the single source of truth.
+// So a sorted view is linkable and shareable.
+// Read it with `useSortOrder`. Change it with `useSetSortOrder`.
+// This stays apart from `use-filters`.
+// Sort is presentation: it reorders the fetched list, and never refetches.
+// Filters are predicates: they change which events get fetched. See `@/lib/shape/sort`.
 
-/** The applied sort order parsed from the URL query (defaults to `recommended`). */
+/** This is the applied sort order, parsed from the URL query. It defaults to `recommended`. */
 export const useSortOrder = (): SortOrder => {
   const [searchParams] = useSearchParams()
 
@@ -19,20 +20,20 @@ export const useSortOrder = (): SortOrder => {
 }
 
 /**
- * Setter that rewrites `?sort=` while preserving every other param (mirrors
- * `useSetFilters`). `replace` so changing the sort doesn't stack a history entry; the
- * default order is omitted from the URL.
+ * This is a setter that rewrites `?sort=`, while preserving every other param. It mirrors `useSetFilters`.
+ * This uses `replace`, so changing the sort does not stack a history entry.
+ * The default order is omitted from the URL.
  *
- * The results list's reveal resets with it, without anything here saying so: the sort
- * is part of `revealKey`, so a new order simply isn't the result set the stored count
- * belongs to. That's the point of deriving the key rather than resetting imperatively.
+ * The results list's reveal resets with this, with no reset call here.
+ * The sort is part of `revealKey`, so a new order simply is not the result set the stored count belongs to.
+ * That is the point of deriving the key, instead of resetting imperatively.
  */
 export const useSetSortOrder = () => {
   const [, setSearchParams] = useSearchParams()
   const location = useLocation()
 
-  // `state` is carried explicitly so the `replace` keeps the entry's `atlasDepth` —
-  // without it the drawer's history-aware dismissal turns into a structural climb.
+  // This carries `state` explicitly, so the `replace` keeps the entry's `atlasDepth`.
+  // Without it, the drawer's history-aware dismissal turns into a structural climb.
   return (order: SortOrder) =>
     setSearchParams((prev) => sortToParams(order, new URLSearchParams(prev)), {
       replace: true,

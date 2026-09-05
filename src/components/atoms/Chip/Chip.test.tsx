@@ -3,15 +3,15 @@ import { describe, it, expect } from 'vitest'
 
 import { Chip } from '.'
 
-// Node-only SSR assertions (see `docs/testing.md`). A focus ring is a class
-// string, so this is exactly the kind of thing the SSR lane can pin — and worth pinning,
-// because the failure mode is invisible: the button still works, it just stops showing
-// keyboard users where they are.
+// Node-only SSR assertions (see `docs/testing.md`). A focus ring is a
+// class string, so this is exactly the kind of thing the SSR lane can pin.
+// It is worth pinning, because the failure mode is invisible. The button
+// still works. It just stops showing keyboard users where they are.
 
 describe('Chip close button focus', () => {
   it('draws the app-standard focus ring, not only an opacity change', () => {
-    // Opacity is also what hover does, so on a chip the pointer happens to be resting on,
-    // the opacity lift told a keyboard user nothing (issue #102).
+    // Opacity is also what hover does. So on a chip the pointer happens to
+    // rest on, the opacity lift told a keyboard user nothing (issue #102).
     const html = renderToStaticMarkup(
       <Chip closeLabel="Remove filter" onClose={() => {}}>
         Weekly

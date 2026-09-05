@@ -27,27 +27,30 @@ import {
   isTimeRestricted,
 } from '@/lib/shape'
 
-// The Format + Frequency toggle options, in display order. The i18n leaf key for
-// each is just the lowercased value (`recurrenceType` is upper-case on the wire),
-// so no lookup map is needed.
-// The Format + Frequency toggles omit the "any" option — a single-select toggle can be
-// left unselected (= any), and the group's "Clear" resets it — so the toggle only shows
-// the real choices.
+// The Format and Frequency toggle options, in display order. The i18n leaf
+// key for each is just the lowercased value (`recurrenceType` is
+// upper-case on the wire), so no lookup map is needed.
 //
-// ⚠ Clicking the SELECTED option clears it, and that needs the `|| 'any'` in the two
-// `onValueChange`s below. Radix's single-select already fires `onValueChange('')` on
-// deselect (`onItemDeactivate`), so the capability was always there; a `next && patch(…)`
-// truthiness guard silently swallowed it, leaving these two dimensions the only filters
-// you could set but not un-set from the control itself — the opposite of what the
-// paragraph above says they do. `'any'` is the sentinel the URL codec omits, so a cleared
-// group round-trips as an absent parameter and matches no ToggleGroupItem, which is what
-// renders the group unselected.
+// The Format and Frequency toggles omit the "any" option. A single-select
+// toggle can be left unselected, meaning any, and the group's "Clear"
+// resets it. So the toggle only shows the real choices.
+//
+// ⚠ Clicking the SELECTED option clears it. That needs the `|| 'any'` in
+// the two `onValueChange`s below. Radix's single-select already fires
+// `onValueChange('')` on deselect (`onItemDeactivate`), so the capability
+// was always there. A `next && patch(…)` truthiness guard silently
+// swallowed it. That left these two dimensions the only filters a user
+// could set but not un-set from the control itself, the opposite of what
+// the paragraph above says they do. `'any'` is the sentinel the URL codec
+// omits, so a cleared group round-trips as an absent parameter and
+// matches no ToggleGroupItem, which is what renders the group unselected.
 const FORMAT_OPTIONS: EventFormat[] = ['offline', 'online']
 const CADENCE_OPTIONS: EventCadence[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'once']
 
-// A labelled filter group — a heading (with an optional right-aligned hint, e.g.
-// the time readout) above its control. When the filter is `active`, a small
-// "Clear" link after the label resets just that filter via `onClear`.
+// A labelled filter group: a heading, with an optional right-aligned
+// hint, such as the time readout, above its control. When the filter is
+// `active`, a small "Clear" link after the label resets just that filter,
+// through `onClear`.
 function FilterGroup({
   label,
   hint,
@@ -68,14 +71,16 @@ function FilterGroup({
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-2">
           <span className="text-sm font-medium text-foreground">{label}</span>
-          {/* Clear is HIDDEN, never unmounted, so it cannot change the row's height.
-              The row is `items-baseline` and the two children have different line boxes —
-              the label is `text-sm` (19.5px), this is `text-xs` (~20px) — so mounting the
-              button on selection grew the row and pushed every section below it down.
-              Reserving the space is deterministic where pinning a measured pixel height is
-              not: it survives a font change and a translation that wraps. `visibility:
-              hidden` also takes it out of the tab order and the accessibility tree, so no
-              `aria-hidden`/`tabIndex` is needed to stop a hidden control being reachable. */}
+          {/* Clear is HIDDEN, never unmounted, so it cannot change the row's
+              height. The row is `items-baseline`, and the two children have
+              different line boxes: the label is `text-sm` (19.5px), this is
+              `text-xs` (about 20px). So mounting the button on selection
+              grew the row and pushed every section below it down. Reserving
+              the space is deterministic, where pinning a measured pixel
+              height is not. It survives a font change and a translation
+              that wraps. `visibility: hidden` also takes it out of the tab
+              order and the accessibility tree, so no `aria-hidden` or
+              `tabIndex` is needed to stop a hidden control being reachable. */}
           {onClear && (
             <button
               className={`text-xs font-medium text-primary-11 hover:underline ${active ? '' : 'invisible'}`}
@@ -93,10 +98,11 @@ function FilterGroup({
   )
 }
 
-// Clamp a typed date into [min, max]. A native date input enforces min/max in its
-// calendar UI but not for keyboard entry, so clamp on change — this keeps the draft
-// (and its live "Apply (N)" count) in step with what the URL codec accepts, and
-// keeps the From/To pair from being typed into a reversed range.
+// Clamp a typed date into [min, max]. A native date input enforces min
+// and max in its calendar UI, but not for keyboard entry. So this clamps
+// on change. That keeps the draft, and its live "Apply (N)" count, in
+// step with what the URL codec accepts, and keeps the From/To pair from
+// being typed into a reversed range.
 const clampDate = (value: string, min: string, max: string): string => {
   if (value < min) return min
   if (value > max) return max
@@ -104,9 +110,9 @@ const clampDate = (value: string, min: string, max: string): string => {
   return value
 }
 
-// One labelled date bound (From / To) — a native date input scoped to the picker
-// window. Module-private like `FilterGroup`; both bounds share it so the input
-// styling lives in one place.
+// One labelled date bound, From or To: a native date input scoped to the
+// picker window. This is module-private, like `FilterGroup`. Both bounds
+// share it, so the input styling lives in one place.
 function DateBound({
   label,
   value,
@@ -143,17 +149,18 @@ function DateBound({
 export type SearchFiltersProps = {
   /** The (draft) filter values the form edits. */
   value: EventFilters
-  /** Called with the next draft on every change; the host applies it on demand. */
+  /** Called with the next draft on every change. The host applies it on demand. */
   onChange: (filters: EventFilters) => void
 }
 
 /**
- * The event-filters form: the Format / Frequency / Day / Time / Language controls.
- * Fully controlled — it edits `value` and reports the next draft via `onChange`; it
- * does not touch the store, so the host (FilterView) can defer applying until the
- * user clicks Apply. Language uses a multi-select dropdown so it scales as more
- * languages appear in the feed; the options are the distinct codes in the cached
- * geojson feed, labelled per locale.
+ * The event-filters form: the Format, Frequency, Day, Time, and Language
+ * controls. This is fully controlled. It edits `value` and reports the
+ * next draft through `onChange`. It does not touch the store, so the host
+ * (FilterView) can defer applying until the user clicks Apply. Language
+ * uses a multi-select dropdown, so it scales as more languages appear in
+ * the feed. The options are the distinct codes in the cached geojson
+ * feed, labelled per locale.
  */
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation('common')
@@ -171,15 +178,16 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
 
   const { data: regions } = useQuery(regionsQuery())
 
-  // Region options: every region present in the feed (any level with events under
-  // it), labelled with a breadcrumb hint so same-named places are distinguishable.
-  // The region cut itself (self + descendants) lives in `buildRegionMatcher`.
+  // Region options: every region present in the feed, at any level with
+  // events under it, labelled with a breadcrumb hint, so same-named places
+  // are distinguishable. The region cut itself, self plus descendants,
+  // lives in `buildRegionMatcher`.
   const regionOptions = useMemo(() => {
     if (!regions?.length || !geojson) return []
 
     const index = indexRegions(regions)
-    // Many features share a region, so expand ancestry once per DISTINCT region id
-    // rather than once per feature.
+    // Many features share a region. So this expands ancestry once per
+    // DISTINCT region id, instead of once per feature.
     const directRegionIds = new Set(geojson.features.map((f) => f.properties.region.id))
     const present = new Set<number>()
 
@@ -203,10 +211,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       .sort((a, b) => a.label.localeCompare(b.label, locale))
   }, [regions, geojson, locale])
 
-  // Mon-first weekday pills; luxon's `Info.weekdays` is 1 (Mon)–7 (Sun), matching
-  // the store's day encoding, so the value is the index + 1. `short` (3-char)
-  // labels fit one line at the reduced pill size; the full name is the accessible
-  // label.
+  // Mon-first weekday pills. luxon's `Info.weekdays` is 1 (Mon) through 7
+  // (Sun), matching the store's day encoding. So the value is the index
+  // plus 1. `short` (3-char) labels fit one line at the reduced pill
+  // size. The full name is the accessible label.
   const weekdays = useMemo(() => {
     const short = Info.weekdays('short', { locale })
     const long = Info.weekdays('long', { locale })
@@ -214,7 +222,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     return short.map((label, index) => ({ value: String(index + 1), label, full: long[index] }))
   }, [locale])
 
-  // The distinct language codes present in the feed, labelled + sorted per locale.
+  // The distinct language codes present in the feed, labelled and sorted per locale.
   const languageOptions = useMemo(() => {
     const codes = new Set<string>()
 
@@ -228,15 +236,16 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   }, [geojson, languageLabel, locale])
 
   const timeActive = isTimeRestricted(timeOfDay)
-  // Show the selected language names in the trigger (truncated) so the selection is
-  // visible at a glance, rather than an opaque count.
+  // This shows the selected language names in the trigger, truncated, so
+  // the selection is visible at a glance, instead of an opaque count.
   const selectedLanguages = languages.map(
     (code) => languageOptions.find((option) => option.code === code)?.label ?? code,
   )
   const languageTriggerLabel =
     selectedLanguages.length === 0 ? t('filters.language.all') : selectedLanguages.join(', ')
-  // The date picker is bounded to today … today + 12 months (the same window the URL
-  // codec clamps to). Computed once per render — cheap and always current.
+  // The date picker is bounded to today through today plus 12 months, the
+  // same window the URL codec clamps to. This computes once per render,
+  // cheap and always current.
   const { min: dateMin, max: dateMax } = dateWindow()
 
   return (
@@ -322,8 +331,9 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          {/* The times the selection covers — the same string the active-filter pill shows.
-              Hidden when nothing is selected (no "any time" placeholder). */}
+          {/* The times the selection covers. This is the same string the
+              active-filter pill shows. It stays hidden when nothing is
+              selected, so there is no "any time" placeholder. */}
           {timeOfDay.length > 0 && (
             <p className="text-xs text-gray-11">{formatTimePeriods(locale, timeOfDay)}</p>
           )}
@@ -397,8 +407,9 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         )}
       </FilterGroup>
 
-      {/* Region is a combobox: you type in the field to filter the CMS regions present in
-          the feed (by name or breadcrumb) and click one. Clearing is the group's "Clear". */}
+      {/* Region is a combobox. Type in the field to filter the CMS regions
+          present in the feed, by name or breadcrumb, then click one.
+          Clearing uses the group's "Clear". */}
       {regionOptions.length > 0 && (
         <FilterGroup
           active={region !== null}

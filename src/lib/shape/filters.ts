@@ -42,8 +42,8 @@ export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, n
   ],
 }
 
-// Selected periods in canonical day order (morning to night), de-duped — keeps
-// the URL param and the query key stable regardless of selection order.
+// Selected periods in canonical day order (morning to night), de-duped. This
+// keeps the URL param and the query key stable, regardless of selection order.
 const sortPeriods = (periods: readonly TimePeriod[]): TimePeriod[] =>
   TIME_PERIODS.filter((period) => periods.includes(period))
 
@@ -86,8 +86,8 @@ export const DEFAULT_FILTERS: EventFilters = {
   region: null,
 }
 
-// Freezes the singleton and its arrays, so the store can safely seed or clear by
-// aliasing these references — nothing can mutate the shared default in place.
+// This freezes the singleton and its arrays, so the store can safely seed or
+// clear by aliasing these references. Nothing can mutate the shared default in place.
 Object.freeze(DEFAULT_FILTERS.timeOfDay)
 Object.freeze(DEFAULT_FILTERS.daysOfWeek)
 Object.freeze(DEFAULT_FILTERS.languages)
@@ -98,11 +98,11 @@ Object.freeze(DEFAULT_FILTERS)
 export const isTimeRestricted = (timeOfDay: readonly TimePeriod[]): boolean => timeOfDay.length > 0
 
 /**
- * The selected periods as coalesced `[start, end)` hour ranges for display —
- * adjacent or overlapping intervals are fused, and a pair spanning midnight
- * (…-24 and 0-…) displays as one wrapping range (for example, night alone becomes
- * `[21, 6]`). This is empty when nothing is selected. Shared by the filter
- * form's readout and the active pill.
+ * The selected periods as coalesced `[start, end)` hour ranges for display.
+ * Adjacent or overlapping intervals are fused. A pair spanning midnight
+ * (…-24 and 0-…) displays as one wrapping range — for example, night alone
+ * becomes `[21, 6]`. This is empty when nothing is selected. The filter form's
+ * readout and the active pill both use it.
  */
 export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, number][] => {
   const intervals = sortPeriods(periods)
@@ -126,7 +126,7 @@ export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, numbe
     merged[merged.length - 1] = [merged[merged.length - 1][0], head[1]]
   }
 
-  // Every period selected covers the whole day — there is no meaningful window
+  // Every period selected covers the whole day. There is no meaningful window
   // to display, so callers default to their "any time" copy.
   if (merged.length === 1 && merged[0][0] === 0 && merged[0][1] === 24) return []
 
@@ -241,22 +241,23 @@ export const occurrenceMatchesFilters = (
  * - **Day, time, and date range are evaluated together, per occurrence.** An
  *   event matches only if some `schedule.upcomingDates` occurrence falls on a
  *   selected weekday *and* starts within the time range *and* lands in the
- *   date window — a Monday-morning and a Wednesday-evening occurrence do not
- *   combine to satisfy "Wednesday morning", nor do a Jul-20 and a Jul-27
- *   occurrence combine to satisfy a single-day range.
- * - The date range floors at `today` (the passed-in day, else the viewer's):
- *   no upcoming occurrence predates today, so an open-ended "until Y" cannot
- *   surface a stale or timezone-shifted past occurrence, and a set start is
- *   already clamped to at or after today by the codec.
- * - Each occurrence is read in the **event's own frame** via `eventTimeZone`
- *   (the viewer's zone for online events, UTC when `firstDate_tz` is null —
- *   the same fallback the display path uses, so a null-tz occurrence is read
- *   as UTC wall-clock here too).
+ *   date window. A Monday-morning occurrence and a Wednesday-evening
+ *   occurrence do not combine to satisfy "Wednesday morning". A Jul-20
+ *   occurrence and a Jul-27 occurrence do not combine to satisfy a single-day
+ *   range either.
+ * - The date range floors at `today` (the passed-in day, or the viewer's day
+ *   otherwise). No upcoming occurrence predates today, so an open-ended
+ *   "until Y" cannot surface a stale or timezone-shifted past occurrence. A
+ *   set start is already clamped to at or after today by the codec.
+ * - Each occurrence is read in the **event's own frame** via `eventTimeZone`:
+ *   the viewer's zone for online events, and UTC when `firstDate_tz` is null.
+ *   This is the same fallback the display path uses, so a null-tz occurrence
+ *   is read as UTC wall-clock here too.
  * - When a day, time, or date filter is active, an event with no
  *   `upcomingDates` is excluded (its occurrences cannot be verified).
  * - The region cut (selected region plus descendants) is applied via the
- *   optional `matchesRegion` resolver, so region stays the single predicate
- *   the list, map, and filter count share, rather than a separate pass that
+ *   optional `matchesRegion` resolver. This keeps region the single predicate
+ *   the list, map, and filter count share, instead of a separate pass that
  *   could drift.
  */
 export function matchesFilters(
@@ -362,9 +363,10 @@ export const filtersKey = (filters: EventFilters): string =>
 /**
  * Every query-parameter name the filters own.
  *
- * Exported because `routing=path` has to know which of the HOST page's parameters are the widget's
- * to read and rewrite (`WIDGET_PARAMS`, `./routing`) — a hand-copied list there silently dropped
- * every filter on navigation before this was shared.
+ * This is exported because `routing=path` has to know which of the host page's
+ * parameters are the widget's, to read and rewrite (`WIDGET_PARAMS`,
+ * `./routing`). A hand-copied list there silently dropped every filter on
+ * navigation, before this was shared.
  */
 export const FILTER_PARAM_KEYS = [
   'format',
@@ -397,10 +399,10 @@ const parsePeriods = (value: string | null): TimePeriod[] =>
 
 /**
  * Decodes the `dates` param (`start,end`, either side blank for an open bound)
- * into a `DateRange`. This is defensive like `parsePeriods`/`parseDays`: each
- * side must be a strict `yyyy-MM-dd`, it is clamped into
+ * into a `DateRange`. This is defensive like `parsePeriods`/`parseDays`. Each
+ * side must be a strict `yyyy-MM-dd`. Each side is also clamped into
  * `[today, today + DATE_WINDOW_MONTHS]`, and a reversed range collapses to no
- * restriction — so a hand-crafted URL cannot escape the window.
+ * restriction. So a hand-crafted URL cannot escape the window.
  */
 const parseDates = (value: string | null): DateRange => {
   if (!value) return { start: null, end: null }
@@ -441,8 +443,8 @@ export const filtersFromParams = (params: URLSearchParams): EventFilters => {
     cadence: CADENCES.includes(cadence ?? '') ? (cadence as EventCadence) : 'any',
     daysOfWeek: parseDays(params.get('days')),
     timeOfDay: parsePeriods(params.get('time')),
-    // Caps the list like the other groups are bounded — a hand-crafted URL
-    // cannot balloon it (values only feed `matchesFilters` includes and
+    // This caps the list, like the other groups are bounded. A hand-crafted
+    // URL cannot balloon it (values only feed `matchesFilters` includes and
     // re-serialization).
     languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort().slice(0, 50) : [],
     dateRange: parseDates(params.get('dates')),

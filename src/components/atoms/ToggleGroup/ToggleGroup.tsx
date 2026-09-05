@@ -2,11 +2,13 @@ import { type ReactNode, createContext, useContext } from 'react'
 import * as RadixToggleGroup from '@radix-ui/react-toggle-group'
 import { tv } from 'tailwind-variants'
 
-// A single- or multi-select on the brand tokens, wrapping @radix-ui/react-toggle-group.
-// Compose it with ToggleGroupItem (mirrors Select/SelectItem). Roving focus + keyboard
-// selection come from Radix; the selected item fills with the primary ramp via
-// `data-[state=on]`. `joined` renders the items as one segmented control (flush,
-// shared borders, rounded outer corners) rather than separate pills.
+// A single- or multi-select on the brand tokens, wrapping
+// @radix-ui/react-toggle-group. Compose it with ToggleGroupItem (this
+// mirrors Select/SelectItem). Roving focus and keyboard selection come from
+// Radix. The selected item fills with the primary ramp, through
+// `data-[state=on]`. `joined` renders the items as one segmented control,
+// flush with shared borders and rounded outer corners, instead of separate
+// pills.
 const toggleGroup = tv({
   slots: {
     root: 'inline-flex items-center',
@@ -21,17 +23,19 @@ const toggleGroup = tv({
         item: '-ms-px rounded-none first:ms-0 first:rounded-s last:rounded-e',
       },
     },
-    // Active-filter tint: primary-colour the UNSELECTED items (the selected item keeps its
-    // solid `data-[state=on]` fill) so an in-use field stands out — a colour change only,
-    // no wrapper and no size change, so the layout never shifts.
+    // Active-filter tint. This colours the UNSELECTED items primary. The
+    // selected item keeps its solid `data-[state=on]` fill. This makes an
+    // in-use field stand out, changing colour only, with no wrapper and no
+    // size change, so the layout never shifts.
     highlight: {
       true: {
         item: 'border-primary-6 bg-primary-2 text-primary-12 hover:bg-primary-3',
       },
     },
-    // Validation error: recolour to danger — the unselected items get a danger border and the
-    // SELECTED item swaps its primary fill for the danger solid (colour change only, no layout
-    // shift). The root also sets `aria-invalid`.
+    // Validation error: this recolours to danger. The unselected items get
+    // a danger border. The SELECTED item swaps its primary fill for the
+    // danger solid. This changes colour only, with no layout shift. The
+    // root also sets `aria-invalid`.
     isInvalid: {
       true: {
         item: 'border-danger-7 data-[state=on]:border-danger-9 data-[state=on]:bg-danger-9 data-[state=on]:text-danger-foreground',
@@ -41,8 +45,9 @@ const toggleGroup = tv({
   defaultVariants: { joined: false },
 })
 
-// Lets ToggleGroupItem pick up the parent's `joined` + `highlight` + `isInvalid` styling
-// without threading them through every item (mirrors the Drawer atom's slot context).
+// This lets ToggleGroupItem pick up the parent's `joined`, `highlight`, and
+// `isInvalid` styling, without threading them through every item. It
+// mirrors the Drawer atom's slot context.
 const ToggleGroupContext = createContext<{
   joined: boolean
   highlight: boolean
@@ -58,18 +63,19 @@ type ToggleGroupBaseProps = {
   'aria-label'?: string
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
-  /** Primary-tint the group to flag an active/in-use field. */
+  /** Primary-tint the group to flag an active field. */
   highlight?: boolean
-  /** Danger-border the items + set `aria-invalid` to flag a validation error. */
+  /** Danger-border the items and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
-  /** Id of the group's error/description text, forwarded for screen readers. */
+  /** Id of the group's error or description text. It is forwarded for screen readers. */
   'aria-describedby'?: string
   className?: string
   children: ReactNode
 }
 
-// Discriminated on `type` so `value`/`onValueChange` are a string (single-select)
-// or a string[] (multi-select), matching Radix's own overloads.
+// This discriminates on `type`, so `value` and `onValueChange` are a
+// string for single-select, or a string array for multi-select, matching
+// Radix's own overloads.
 export type ToggleGroupProps = ToggleGroupBaseProps &
   (
     | {
@@ -97,16 +103,18 @@ export function ToggleGroup({
   children,
   ...props
 }: ToggleGroupProps) {
-  // The tint + error border live on the items (see the `highlight`/`isInvalid` variants), so
-  // the root itself is unstyled by them — pass both down through context for the items to read.
+  // The tint and error border live on the items (see the `highlight` and
+  // `isInvalid` variants). So the root itself stays unstyled by them. This
+  // passes both down through context, for the items to read.
   const { root } = toggleGroup({ joined })
 
   return (
     <ToggleGroupContext.Provider
       value={{ joined, highlight: highlight ?? false, isInvalid: isInvalid ?? false }}
     >
-      {/* `props` is the discriminated (type/value/onValueChange) union, which is
-          assignable to Radix's own overload union — so one Root, no per-type arms. */}
+      {/* `props` is the discriminated (type, value, onValueChange) union.
+          It is assignable to Radix's own overload union. So this needs one
+          Root, with no per-type arms. */}
       <RadixToggleGroup.Root
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}

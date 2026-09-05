@@ -38,7 +38,7 @@ describe('createPrefetchIntent — dwell', () => {
     vi.advanceTimersByTime(1)
     expect(warmed).toEqual([7])
 
-    // Still resting: the warm doesn't repeat on its own.
+    // Still resting: the warm does not repeat on its own.
     vi.advanceTimersByTime(HOVER_DWELL_MS * 10)
     expect(warmed).toEqual([7])
   })

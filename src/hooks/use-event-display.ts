@@ -11,8 +11,8 @@ import { useLocale } from './use-locale'
 import { isOnline, resolveEventDisplay } from '@/lib/shape'
 import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity } from '@/lib/time'
 
-/** What the formatting layer reads on top of the resolver input — the address /
- *  region refs that feed the where/origin strings, when the surface has them. */
+/** This is what the formatting layer reads on top of the resolver input: the address and
+ *  region refs that feed the where and origin strings, when the surface has them. */
 export type DisplayableEvent = DisplayEventLike & {
   address?: EventAddress | null
   region?: RegionRef
@@ -23,33 +23,33 @@ export type EventDisplayStrings = {
   display: EventDisplay
   /** "Weekly class" / "Course · 8 sessions" / "One-off event" */
   typeLabel: string
-  /** True for a plain weekly class — the default shape, whose `typeLabel` adds
-   *  nothing on a compact surface (the list card skips its type pill). */
+  /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
+   *  nothing on a compact surface, so the list card skips its type pill. */
   isDefaultType: boolean
   /** Status chip text, or null when the state shows no chip. */
   statusChip: string | null
-  /** Templated recurrence pattern ("Every Wednesday") — approximate, secondary. */
+  /** This is the templated recurrence pattern, such as "Every Wednesday." It is approximate and secondary. */
   recurrenceLine: string | null
-  /** The authoritative next/first-session (or terminal) line. */
+  /** This is the authoritative next-session, first-session, or terminal line. */
   whenLine: string
-  /** The next occurrence's start–end in the EVENT's own local time, unlabelled
-   *  ("7:30 PM – 8:30 PM"). Null in terminal states. */
+  /** This is the next occurrence's start and end time, in the EVENT's own local time,
+   *  with no label, such as "7:30 PM – 8:30 PM." This is null in terminal states. */
   eventTimeRange: string | null
-  /** The next occurrence's start only, event-local ("7:30 PM") — compact card. */
+  /** This is the next occurrence's start time only, in event-local time, such as "7:30 PM." The compact card uses this. */
   eventStartTime: string | null
-  /** One-line location: hosted-from for online, street + city for physical. */
+  /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
-  /** Online only: the next occurrence in the VIEWER's local time, faded below the
-   *  where line ("Thu, 4:00 AM"). Null for physical events. */
+  /** For an online event only, this shows the next occurrence in the VIEWER's local
+   *  time, faded below the where line, such as "Thu, 4:00 AM." This is null for a physical event. */
   whereSubtext: string | null
   registerLabel: string
-  /** Under-button microcopy, in render order (closed set — issue #52). */
+  /** This is under-button microcopy, in render order. It is a closed set. See issue #52. */
   microcopy: string[]
-  /** Contact-dependent helper for closed/full states, or null. */
+  /** This is a contact-dependent helper for closed or full states, or null. */
   contactHelper: string | null
-  /** The one message for a non-open registration (full/ended/closed/inactive),
-   *  or null when registration is open — deep-linked register routes and the
-   *  register slot read this instead of re-deriving state→copy. */
+  /** This is the one message for a non-open registration: full, ended, closed, or inactive.
+   *  It is null when registration is open. Deep-linked register routes and the
+   *  register slot both read this, instead of re-deriving state into copy. */
   blockedMessage: string | null
 }
 
@@ -69,17 +69,16 @@ type CalendarLineArgs = {
 }
 
 /**
- * The decomposed calendar fact — the lead line (`primary`) and the time that
- * accompanies it (`null` when a one-off / terminal line has no upcoming time).
- * The single place the recurrence-vs-when-line and `hasNext` gates live, so the
- * one-line list card (via `composeCalendarLine`) and the two-line map-pin popover
- * (`EventPinCard`, which stacks the parts instead of joining them) can never
- * drift (#72).
+ * This is the decomposed calendar fact: the lead line, `primary`, and the time that accompanies it.
+ * That time is `null` when a one-off or terminal line has no upcoming time.
+ * This is the single place the recurrence-versus-when-line choice and the `hasNext` gate live.
+ * So the one-line list card, through `composeCalendarLine`, and the two-line map-pin popover,
+ * `EventPinCard`, which stacks the parts instead of joining them, can never drift. See #72.
  *
- * `time` is the surface's chosen time string — the start only (compact card /
- * popover) or the full start–end range (panel). `hasNext` gates the time onto a
- * one-off / terminal line, whose when-line already carries the date or message
- * and which may have no upcoming occurrence to time.
+ * `time` is the surface's chosen time string: the start only, for the compact card or popover,
+ * or the full start-to-end range, for the panel.
+ * `hasNext` gates the time onto a one-off or terminal line.
+ * That line's when-line already carries the date or a message, and it may have no upcoming occurrence to time.
  */
 export function calendarLineParts({ recurrenceLine, whenLine, time, hasNext }: CalendarLineArgs): {
   primary: string
@@ -91,11 +90,11 @@ export function calendarLineParts({ recurrenceLine, whenLine, time, hasNext }: C
 }
 
 /**
- * Compose the compact calendar fact — the repeat pattern (or, for a one-off /
- * terminal event, the authoritative when-line) joined to the occurrence time
- * with a middot. Delegates the gating to {@link calendarLineParts} so it shares a
- * single source of truth with the map-pin popover (#72). Used by the list card
- * (`EventFacts`).
+ * This composes the compact calendar fact.
+ * It joins the repeat pattern, or for a one-off or terminal event the authoritative when-line,
+ * to the occurrence time with a middot.
+ * It delegates the gating to {@link calendarLineParts}, so it shares a single source of truth with the map-pin popover. See #72.
+ * The list card, `EventFacts`, uses this.
  */
 export function composeCalendarLine(args: CalendarLineArgs): string {
   const { primary, time } = calendarLineParts(args)
@@ -104,24 +103,24 @@ export function composeCalendarLine(args: CalendarLineArgs): string {
 }
 
 /**
- * The one formatting layer over `resolveEventDisplay` — every surface that
- * renders event strings (panel, card, form/share headers) reads them from here,
- * so type/status/time copy can never diverge between surfaces (issue #52).
+ * This is the one formatting layer over `resolveEventDisplay`.
+ * Every surface that renders event strings, the panel, the card, the form and share headers, reads them from here.
+ * So type, status, and time copy can never diverge between surfaces. See issue #52.
  */
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation('events')
   const { locale } = useLocale()
-  // Only ONLINE events name the viewer's place in their converted time, so the
-  // third-party IP lookup is gated on that — a list of in-person events never
-  // pings it. The query is session-cached, so many cards share one lookup. The
-  // whole guess is kept (not just `region`) so the label can reconcile the region
-  // name — state/province, not the often-neighbourhood-level `city` — against the
-  // IP's own `timezone` before trusting it (see the where-subtext block below).
+  // Only ONLINE events name the viewer's place in their converted time.
+  // So the third-party IP lookup gates on that. A list of in-person events never pings it.
+  // The query is session-cached, so many cards share one lookup.
+  // This keeps the whole guess, not only `region`.
+  // So the label can reconcile the region name, state or province, not the often-neighborhood-level `city`,
+  // against the IP's own `timezone` before trusting it. See the where-subtext block below.
   const viewerIp = useIpLocation(isOnline(event))
-  // The resolver reads the wall clock; a stable event identity (TanStack
-  // structural sharing) would otherwise freeze "Today"/open-vs-closed for as
-  // long as a surface stays mounted. A minute bucket in the deps lets any
-  // re-render past a minute boundary pick up fresh state without a ticker.
+  // The resolver reads the wall clock.
+  // A stable event identity, through TanStack's structural sharing, would otherwise freeze
+  // "Today" and open-versus-closed for as long as a surface stays mounted.
+  // A minute bucket in the dependency list lets any re-render past a minute boundary pick up fresh state, with no ticker.
   const minute = Math.floor(Date.now() / 60_000)
 
   return useMemo(() => {
@@ -157,8 +156,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       else typeLabel = t('display.type_class')
     }
 
-    // The plain weekly class is the default shape — naming it on a compact
-    // surface (the list card's pill) adds nothing, so cards skip it.
+    // The plain weekly class is the default shape.
+    // Naming it on a compact surface, the list card's pill, adds nothing, so cards skip it.
     const isDefaultType =
       kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
 
@@ -168,8 +167,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (full) statusChip = t('display.chip_full')
     else if (status === 'today') statusChip = t('display.chip_today')
-    // Upcoming announces the occurrence that's actually coming (`next`) — under
-    // firstDate/upcomingDates drift, firstSession can be a stale past instant.
+    // The upcoming state announces the occurrence that is actually coming, `next`.
+    // Under `firstDate` and `upcomingDates` drift, `firstSession` can be a stale past instant.
     else if (status === 'upcoming' && next)
       statusChip = t('display.chip_starts', { date: shortDate(next) })
     else if (status === 'started' && chipDate)
@@ -228,9 +227,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         .join(' · ')
     else whenLine = t('display.next_session', { date: next ? date(next) : '' })
 
-    // ── Times: ALWAYS the event's own local time, unlabelled (issue #52 drops
-    // the local-vs-your-time labels). For online, `origin` is the event-local
-    // instant; `next` is the viewer-local one (used for the where-line hint). ──
+    // ── Times ──
+    // These are ALWAYS the event's own local time, with no label. Issue #52 dropped the local-versus-your-time labels.
+    // For an online event, `origin` is the event-local instant. `next` is the viewer-local instant, used for the where-line hint.
     const eventStart = display.online ? origin : next
     const eventEnd =
       eventStart && nextEnd ? nextEnd.setZone(eventStart.zoneName ?? undefined) : null
@@ -241,8 +240,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
 
-    // ── Where ── An inactive venue has no precise location: show only the
-    // municipality (city / region name), never the street address.
+    // ── Where ──
+    // An inactive venue has no precise location.
+    // This shows only the municipality, city or region name, never the street address.
     const whereLine = display.online
       ? `${t('display.online')} • ${t('display.hosted_from', { city: originCity })}`
       : display.status === 'inactive'
@@ -250,15 +250,15 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
           event.region?.name ||
           ''
-    // Online only: the viewer's local time, faded under the where line, named
-    // with their region ("10 AM in British Columbia") so the conversion says
-    // whose clock it is without a "(your time)" label. The weekday is carried
-    // ONLY when the conversion lands on a different day; otherwise it's noise.
+    // For an online event only, this shows the viewer's local time, faded under the where line,
+    // named with their region, such as "10 AM in British Columbia."
+    // So the conversion says whose clock it is, with no "(your time)" label.
+    // This carries the weekday ONLY when the conversion lands on a different day. Otherwise it is noise.
     //
-    // Skipped entirely when the viewer shares the event's offset: the converted
-    // time would just restate the time already shown above it. Comparing the
-    // OFFSET (not the zone id) also catches distinct zones that happen to agree
-    // right now, e.g. Europe/London and Europe/Lisbon in winter.
+    // This is skipped entirely when the viewer shares the event's offset.
+    // The converted time would just restate the time already shown above it.
+    // Comparing the OFFSET, not the zone id, also catches distinct zones that happen to agree right now,
+    // such as Europe/London and Europe/Lisbon in winter.
     let whereSubtext: string | null = null
 
     if (display.online && next && !sameWallClock(origin, next)) {
@@ -270,10 +270,11 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         .filter(Boolean)
         .join(' ')
 
-      // The clock is quoted in the viewer's OS zone (`next`); the region name is an
-      // independent guess (IP geolocation). Name the region ONLY when the IP's own
-      // zone shares that offset — otherwise drop it and show the bare time, so the
-      // label can never assert a place whose local clock isn't the one shown (#64).
+      // The clock is quoted in the viewer's OS zone, `next`.
+      // The region name is an independent guess, from IP geolocation.
+      // This names the region ONLY when the IP's own zone shares that offset.
+      // Otherwise it drops the region and shows the bare time.
+      // So the label can never assert a place whose local clock is not the one shown. See #64.
       const viewerPlace = reconciledViewerPlace(viewerIp?.region, viewerIp?.timezone?.id, next)
 
       whereSubtext = viewerPlace
@@ -291,7 +292,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (full) microcopy.push(t('display.event_full'))
     else if (display.registration === 'open') {
-      // The course note leads; the online mechanics note renders second (issue #52).
+      // The course note leads. The online mechanics note renders second. See issue #52.
       if (kind === 'course') microcopy.push(t('display.registration_required'))
       if (display.online) microcopy.push(t('display.online_joining_note'))
     }
@@ -304,7 +305,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
           ? t('display.contact_to_join_late')
           : null
 
-    // One state→copy mapping for every surface that blocks registration.
+    // This is one state-to-copy mapping for every surface that blocks registration.
     const blockedMessage = full
       ? t('display.event_full')
       : display.status === 'ended'

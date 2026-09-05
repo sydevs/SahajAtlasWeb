@@ -64,11 +64,11 @@ const IDLE_DEADLINE_MS = 500
  * all four go to one origin from one mount. So the POST yields rather than competes, the same call
  * the loader already makes before it runs detection at all (`src/loader/index.ts`).
  *
- * **The timer is not a fallback for a missing API; it runs on both paths**, because the failure
- * this guards is a host that *patched* `requestIdleCallback` — consent managers and performance
- * shims do — into something that throws or never calls back. Either would otherwise leave this
- * promise pending forever, and since the flag above is already spent, nothing would retry. `resolve`
- * is idempotent, so whichever arrives first wins.
+ * **The timer is not a fallback for a missing API. It runs on both paths**, because the failure
+ * this guards is a host that *patched* `requestIdleCallback`. Consent managers and performance
+ * shims do this, turning it into something that throws or never calls back. Either would otherwise
+ * leave this promise pending forever, and since the flag above is already spent, nothing would
+ * retry. `resolve` is idempotent, so whichever arrives first wins.
  */
 const whenIdle = (): Promise<void> =>
   new Promise((resolve) => {
@@ -89,7 +89,7 @@ const whenIdle = (): Promise<void> =>
  * **Resolves whatever happens.** This runs in a page we do not own, purely to produce a record for
  * an admin panel, so there is no failure here worth surfacing to a viewer — and an unhandled
  * rejection in a host's page is their bug report, not ours. The returned promise exists so a test
- * can wait for the send; the caller fires it and forgets.
+ * can wait for the send. The caller fires it and forgets.
  *
  * A refusal is still worth saying out loud, because both kinds name something a person has to fix:
  * **403** is an origin outside the client's `allowedDomains` — or no allowlist at all, which this

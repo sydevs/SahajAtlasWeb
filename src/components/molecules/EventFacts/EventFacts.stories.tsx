@@ -25,9 +25,10 @@ const ended: Event = {
 }
 
 /**
- * EventFacts — the shared calendar/location fact block: the repeat pattern +
- * time on the first line, the next date muted below, then the address (a screen
- * icon for online events). Ended events drop the location line entirely.
+ * EventFacts — the shared calendar/location fact block. The repeat pattern
+ * and time sit on the first line. The next date sits muted below. Then the
+ * address follows, with a screen icon for online events. Ended events drop
+ * the location line entirely.
  */
 export const Default: Story = () => (
   <StoryWrapper>

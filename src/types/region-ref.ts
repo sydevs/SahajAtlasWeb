@@ -7,7 +7,7 @@ import z from 'zod'
 // region-ref → event → region.
 
 // SahajCloud region taxonomy. The backend `level` values the widget routes on.
-// SahajCloud#605 renamed the leaf level `center` → `venue`; no environment still
+// SahajCloud#605 renamed the leaf level `center` → `venue`. No environment still
 // serves the old spelling, so this tracks the new one only.
 //
 // (Unrelated to the `center` FIELD on RegionSchema — that one is a lat/lng point.)
@@ -16,7 +16,7 @@ export type RegionLevel = z.infer<typeof RegionLevelSchema>
 
 // Populated region reference — the subset selected in the geojson feed's
 // `populate[regions]` and on raw region reads. `webPath` is the server-computed
-// canonical route (ancestor slug chain incl. self); `webUrl` is its absolute form.
+// canonical route (ancestor slug chain incl. self). `webUrl` is its absolute form.
 // Ancestry comes from the wholesale regions dict (parent links), not breadcrumbs.
 export const RegionRefSchema = z.object({
   id: z.number(),

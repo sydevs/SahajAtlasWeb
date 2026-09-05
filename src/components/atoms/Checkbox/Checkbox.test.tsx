@@ -4,17 +4,17 @@ import { describe, it, expect } from 'vitest'
 import { Checkbox } from './Checkbox'
 
 // Node-only SSR-markup assertions (see `docs/testing.md`). The disabled
-// styling is pure CSS hanging off Radix's `data-disabled`, so what's worth
-// guarding is that contract: if Radix stopped emitting the attribute, every
-// disabled rule would silently stop matching and the control would go back to
-// rendering a faded brand fill. Which of the two colours actually wins is CSS
-// specificity, which SSR markup can't express — that's a Ladle/browser check.
+// styling is pure CSS, hung off Radix's `data-disabled` attribute. So this spec
+// guards that contract. If Radix stopped emitting the attribute, every disabled
+// rule would silently stop matching. The control would go back to rendering a
+// faded brand fill. Which of the two colours actually wins is CSS specificity,
+// which SSR markup cannot express. That check belongs in Ladle or the browser.
 
 describe('Checkbox', () => {
   it('marks the disabled switch and its thumb with the attribute the styling keys off', () => {
     const html = renderToStaticMarkup(<Checkbox checked disabled color="primary" />)
 
-    // Root (the track) and the thumb both need it — they carry separate overrides.
+    // The root (the track) and the thumb both need it. They carry separate overrides.
     expect(html.match(/data-disabled=""/g)).toHaveLength(2)
     expect(html).toContain('data-[disabled]:data-[state=checked]:bg-gray-9')
     expect(html).toContain('data-[disabled]:bg-gray-5')
@@ -25,7 +25,7 @@ describe('Checkbox', () => {
 
     expect(html).toContain('data-disabled=""')
     expect(html).toContain('data-[disabled]:data-[state=checked]:bg-gray-9')
-    // Filled when unchecked, so "off and disabled" isn't a fainter plain box.
+    // The box fills when unchecked. So "off and disabled" is not a fainter plain box.
     expect(html).toContain('data-[disabled]:bg-gray-4')
   })
 

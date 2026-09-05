@@ -9,8 +9,8 @@ export default {
 } satisfies StoryDefault
 
 /**
- * Link — a styled link. Internal targets route through react-router; external
- * ones render a plain anchor with a safe rel and an optional new-tab glyph.
+ * Link — a styled link. Internal targets route through react-router. External
+ * ones render a plain anchor, with a safe rel and an optional new-tab glyph.
  */
 export const Default: Story = () => (
   <StoryWrapper>

@@ -1,24 +1,24 @@
 // @vitest-environment jsdom
 //
-// Opted into a DOM per-file (see `docs/testing.md`) because the property under test is a
+// This opts into a DOM per file (see `docs/testing.md`), because the property under test is a
 // RE-RENDER under a changed router context, which SSR markup cannot express: `useFrameOnTop`'s
 // effect firing for a view that is no longer the one on top.
 //
 // That situation is not hypothetical, and it is why this spec exists. `DrawerStack` renders the
 // active view inside `<AnimatePresence mode="popLayout">`, which keeps the OUTGOING view mounted
-// for its 150ms exit — so for that window two views are mounted at once, and React propagates the
+// for its 150ms exit. So for that window two views are mounted at once, and React propagates the
 // router's context change into both. A view whose framing deps come from the URL therefore
-// re-renders under the NEXT route and re-runs its effect for a level it no longer shows.
+// re-renders under the NEXT route, and re-runs its effect for a level it no longer shows.
 //
 // Concretely: leaving `/search?center=…` for an event, the exiting SearchView read its
-// `?center`/`?bbox` as absent and called `frameSearch({})`, which reset the camera to the world a
-// beat before the event framed. The visitor saw the map zoom out to the whole planet and then fly
+// `?center`/`?bbox` as absent and called `frameSearch({})`. That reset the camera to the world a
+// beat before the event framed. The visitor saw the map zoom out to the whole planet, then fly
 // back in.
 //
 // The harness below IS that shape — a view mounted at `/search` that stays mounted across the
 // navigation — rather than a mock of AnimatePresence, which could not fail.
 //
-// Deliberately no @testing-library/react: React 18.3 exports `act` and `createRoot` is enough.
+// Deliberately no @testing-library/react. React 18.3 exports `act`, and `createRoot` is enough.
 import type { MapController } from '@/hooks/use-map-controller'
 
 import { act } from 'react'

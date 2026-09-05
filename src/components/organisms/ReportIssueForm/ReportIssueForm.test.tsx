@@ -9,9 +9,10 @@ import { ReportIssueForm } from './ReportIssueForm'
 
 import { REPORT_MESSAGE_MAX } from '@/types/report'
 
-// The SDK is stubbed at the boundary so importing the form's `api` module can't reach a
-// network client (the submit path itself is covered in `config/api/mutate.test.ts`), and
-// `@/config/i18n` so that import doesn't boot the real HTTP backend.
+// The SDK is stubbed at the boundary, so importing the form's `api` module
+// cannot reach a network client. The submit path itself is covered in
+// `config/api/mutate.test.ts`. `@/config/i18n` is also stubbed, so that
+// import does not boot the real HTTP backend.
 vi.mock('@payloadcms/sdk', () => ({
   PayloadSDK: class {
     request = vi.fn()
@@ -19,9 +20,10 @@ vi.mock('@payloadcms/sdk', () => ({
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 
-// Mock the i18n boundary so the SSR markup asserts on real copy without booting
-// i18next. `i18n` is stubbed too — useLocale (reached through useTurnstile) subscribes
-// to it. Node lane, no jsdom (see docs/testing.md).
+// This mocks the i18n boundary, so the SSR markup asserts on real copy
+// without booting i18next. `i18n` is stubbed too, since useLocale (reached
+// through useTurnstile) subscribes to it. This runs in the node lane, with
+// no jsdom (see docs/testing.md).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { min?: number; email?: string }) =>
@@ -37,13 +39,15 @@ vi.mock('react-i18next', () => ({
         'report.sent': 'Thank you — your report is on its way to the team.',
         'report.blocked': "The security check couldn't load, so this form can't be sent.",
         'report.errors.message': `Please write at least ${opts?.min} characters.`,
-        // No `report.errors.captcha`: reaching that branch needs a REJECTED mutation, and
-        // the node lane renders SSR markup once — `initialFailed` can only stage the
-        // generic failure. The branch is a compile-time total Record over the synced code
-        // union, and the copy itself is covered by the locale-parity gate.
-        // No interpolation any more: this sentence used to end "…or email us at %{email}",
-        // which is the `mailto:` escape issue #182 removed. It now tells the viewer to
-        // retry, and names no inbox.
+        // This has no `report.errors.captcha` entry. Reaching that branch
+        // needs a REJECTED mutation, and the node lane renders SSR markup
+        // once, so `initialFailed` can only stage the generic failure. The
+        // branch is a compile-time total Record over the synced code union,
+        // and the copy itself is covered by the locale-parity gate.
+        // This has no interpolation any more. This sentence used to end
+        // "…or email us at %{email}," which is the `mailto:` escape issue
+        // #182 removed. It now tells the viewer to retry, and names no
+        // inbox.
         'report.errors.send_failed': `Your report wasn't sent. Wait for the security check to refresh, then try again.`,
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
@@ -69,7 +73,7 @@ describe('ReportIssueForm', () => {
     const html = render(<ReportIssueForm context={context} onClose={noop} />)
 
     expect(html).toContain('What went wrong?')
-    // The message carries the required marker; the email deliberately does not.
+    // The message carries the required marker. The email deliberately does not.
     expect(html).toContain('What went wrong? *')
     expect(html).toContain('Email')
     expect(html).not.toContain('Email *')
@@ -82,10 +86,11 @@ describe('ReportIssueForm', () => {
     // The help line is addressable, not just visible — an SR user hears the caveat.
     expect(html).toContain('id="report-email-help"')
     expect(html).toContain('aria-describedby="report-email-help"')
-    // A hard stop, so pasting a long stack trace can't leave submit silently disabled
-    // under a "write at least 10 characters" message.
-    // Case-insensitive: react-dom/server emits the prop name verbatim (`maxLength`),
-    // while the browser parses it as the lowercase `maxlength` attribute.
+    // This is a hard stop, so pasting a long stack trace cannot leave
+    // submit silently disabled under a "write at least 10 characters"
+    // message. This check is case-insensitive: react-dom/server emits the
+    // prop name verbatim (`maxLength`), while the browser parses it as the
+    // lowercase `maxlength` attribute.
     expect(html).toMatch(new RegExp(`maxlength="${REPORT_MESSAGE_MAX}"`, 'i'))
     expect(html).toContain('aria-required="true"')
   })
@@ -98,12 +103,14 @@ describe('ReportIssueForm', () => {
     expect(html).toContain('disabled=""')
   })
 
-  // The degradation this replaces put `contact@sydevelopers.com` on screen as a `mailto:` —
-  // on any host page whose CSP blocked the challenge, which is to say published to every
-  // scraper reading those pages (issue #182). A blocked captcha now fails the whole widget
-  // at `useTurnstileGuard`, so this state is only reachable for the two failures the eager
-  // probe cannot see (a `frame-src` block, an unregistered domain) and the form's job there
-  // is to explain the dead button, not to route around it.
+  // The degradation this replaces put `contact@sydevelopers.com` on screen
+  // as a `mailto:` link, on any host page whose CSP blocked the challenge.
+  // That published the address to every scraper reading those pages
+  // (issue #182). A blocked captcha now fails the whole widget at
+  // `useTurnstileGuard`. So this state is only reachable for the two
+  // failures the eager probe cannot see — a `frame-src` block, or an
+  // unregistered domain. The form's job there is to explain the dead
+  // button, not to offer another way to send the report.
   it('says why the submit is dead when the captcha is blocked, and names no inbox', () => {
     const html = render(<ReportIssueForm captchaUnavailable context={context} onClose={noop} />)
 
@@ -133,9 +140,10 @@ describe('ReportIssueForm', () => {
     // the thank-you screen regardless, so a report that reached nobody read as delivered.
     expect(html).not.toContain('Thank you')
     expect(html).toContain('t sent. Wait for the security check to refresh')
-    // No inbox on screen. The sentence used to carry `contact@sydevelopers.com` so a
-    // viewer whose POST failed had a route that still worked; #182 removed it, because
-    // the same string rendered on every host page whose CSP blocked the challenge.
+    // No inbox appears on screen. The sentence used to carry
+    // `contact@sydevelopers.com`, so a viewer whose POST failed had a route
+    // that still worked. #182 removed it, because the same string rendered
+    // on every host page whose CSP blocked the challenge.
     expect(html).not.toContain('sydevelopers.com')
     // The typed message survives the failure: the fields are still mounted.
     expect(html).toContain('<textarea')
@@ -145,9 +153,10 @@ describe('ReportIssueForm', () => {
   it('renders the failure as an assertive alert', () => {
     const html = render(<ReportIssueForm initialFailed context={context} onClose={noop} />)
 
-    // Tie the role to THIS sentence: a bare `role="alert"` is also satisfied by the
-    // captcha-blocked banner and by FormField's own error span, so the loose assertion
-    // would pass with the failure alert deleted.
+    // This ties the role to THIS sentence. A bare `role="alert"` is also
+    // satisfied by the captcha-blocked banner and by FormField's own error
+    // span. So the loose assertion would pass even with the failure alert
+    // deleted.
     expect(html).toMatch(/role="alert"[^>]*>(?:(?!<\/div>).)*?wasn(?:&#x27;|')t sent/s)
   })
 })

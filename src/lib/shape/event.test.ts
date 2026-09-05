@@ -276,9 +276,10 @@ describe('resolveEventDisplay: status table', () => {
     ).toBe('open')
   })
 
-  // `full` must be true only when it is THE reason registration is blocked, so
-  // the surfaces that read it first can't mislabel a stronger refusal. The order
-  // mirrors the server gate (ended → started course → full, SahajCloud#601).
+  // `full` must be true only when it is the reason registration is blocked,
+  // so the surfaces that read it first cannot mislabel a stronger refusal.
+  // The order mirrors the server gate (ended, then started course, then
+  // full, SahajCloud#601).
   it('Full — an ended event reports not-full, so "Ended" wins over "Full"', () => {
     const endedAndFull = {
       eventType: 'offline' as const,
@@ -323,8 +324,9 @@ describe('resolveEventDisplay: status table', () => {
 
 describe('resolveEventDisplay: external-mode invariance', () => {
   it('produces identical display state regardless of registration mode', () => {
-    // The resolver never reads registrationMode — microcopy/status/state are
-    // identical; only the open-state Register target differs (in the panel).
+    // The resolver never reads registrationMode. Microcopy, status, and
+    // state are identical. Only the open-state Register target differs (in
+    // the panel).
     const native = resolveEventDisplay(weeklyClass, at('2026-07-17T12:00:00'))
     const external = resolveEventDisplay(
       { ...weeklyClass, registrationMode: 'external' } as typeof weeklyClass,

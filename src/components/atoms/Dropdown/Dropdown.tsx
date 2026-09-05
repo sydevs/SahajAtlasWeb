@@ -9,17 +9,14 @@ import { usePopover } from '@/hooks/use-popover'
 export type DropdownSide = 'top' | 'bottom' | 'left' | 'right'
 
 /**
- * Alignment of the panel along the chosen side. `'left'`/`'right'` are kept as
- * aliases for `'start'`/`'end'` so existing callers don't have to change.
+ * Alignment of the panel along the chosen side. `'left'` and `'right'` stay
+ * as aliases for `'start'` and `'end'`, so existing callers do not need to change.
  */
 export type DropdownAlign = 'start' | 'center' | 'end' | 'left' | 'right'
 
 /** ARIA role applied to the panel (and wired into the trigger). */
 export type DropdownRole = 'menu' | 'dialog' | 'listbox'
 
-/**
- * Props for the Dropdown component
- */
 export interface DropdownProps {
   /** The trigger element that opens/closes the dropdown */
   trigger: ReactNode
@@ -32,20 +29,20 @@ export interface DropdownProps {
    */
   side?: DropdownSide
   /**
-   * Alignment of the panel along `side`. `'left'`/`'right'` are accepted as
-   * aliases for `'start'`/`'end'`.
+   * Alignment of the panel along `side`. `'left'` and `'right'` are accepted
+   * as aliases for `'start'` and `'end'`.
    * @default 'start'
    */
   align?: DropdownAlign
   /**
-   * ARIA role for the panel — `'menu'` for action lists, `'listbox'` for
-   * autocomplete results, `'dialog'` for rich content panels.
+   * ARIA role for the panel. Use `'menu'` for action lists, `'listbox'` for
+   * autocomplete results, and `'dialog'` for rich content panels.
    * @default 'menu'
    */
   role?: DropdownRole
   /**
-   * Accessible name for the panel. Recommended for `role="dialog"` panels so the
-   * popover is announced (e.g. "Audio settings").
+   * Accessible name for the panel. This is recommended for `role="dialog"`
+   * panels, so the popover is announced, for example "Audio settings".
    */
   'aria-label'?: string
   /** Size variant controlling the panel's minimum width */
@@ -76,7 +73,7 @@ const dropdownPanel = tv({
   },
 })
 
-/** Map the friendly `side` + `align` props to a Floating UI placement. */
+/** Map the friendly `side` and `align` props to a Floating UI placement. */
 function toPlacement(side: DropdownSide, align: DropdownAlign): Placement {
   const alignment = align === 'left' ? 'start' : align === 'right' ? 'end' : align
 
@@ -84,20 +81,21 @@ function toPlacement(side: DropdownSide, align: DropdownAlign): Placement {
 }
 
 /**
- * A generic popover/dropdown with viewport-aware placement, keyboard
- * accessibility, and click-outside / Escape dismissal.
+ * A generic popover or dropdown, with viewport-aware placement, keyboard
+ * accessibility, and click-outside or Escape dismissal.
  *
- * Positioning is handled by Floating UI: the panel opens on `side`, automatically
- * **flips** to the opposite side when there isn't room, and **shifts** along the
- * cross-axis to stay on screen. The panel is rendered in a portal, so it is never
- * clipped by an ancestor's `overflow` or `@container`/transform context (e.g. the
- * map). Panel chrome uses the Radix semantic tokens, so it follows light/dark +
- * the accent theme.
+ * Floating UI handles positioning. The panel opens on `side`. It
+ * automatically **flips** to the opposite side when there is no room, and
+ * **shifts** along the cross-axis to stay on screen. The panel renders in a
+ * portal, so an ancestor's `overflow` or `@container` or transform context,
+ * such as the map, never clips it. Panel chrome uses the Radix semantic
+ * tokens, so it follows light and dark mode and the accent theme.
  *
- * This is a **popover shell**, not a menu: it frames arbitrary content and takes
- * its ARIA role from `role`. Menus with submenus/radio groups are built on
- * `@radix-ui/react-dropdown-menu` instead (see the SettingsMenu molecule), which
- * models roving focus and typeahead that this shell deliberately doesn't.
+ * This is a **popover shell**, not a menu. It frames arbitrary content and
+ * takes its ARIA role from `role`. Menus with submenus or radio groups are
+ * built on `@radix-ui/react-dropdown-menu` instead (see the SettingsMenu
+ * molecule). That library models roving focus and typeahead, which this
+ * shell deliberately does not.
  *
  * @example
  * <Dropdown aria-label={t('filters.title')} role="dialog" trigger={<FilterButton />}>
@@ -139,9 +137,10 @@ export function Dropdown({
         <FloatingPortal root={overlayContainer()}>
           <FloatingFocusManager
             context={context}
-            // Non-modal so the background stays interactive, and initialFocus={-1}
-            // so opening never pulls focus into the panel — the panel's own
-            // controls (e.g. the filter checkboxes) are reached by tabbing.
+            // This is non-modal, so the background stays interactive.
+            // `initialFocus={-1}` means opening never pulls focus into the panel.
+            // The panel's own controls, such as the filter checkboxes, are
+            // reached by tabbing instead.
             initialFocus={-1}
             modal={false}
             returnFocus={true}

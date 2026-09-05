@@ -205,7 +205,7 @@ describe('the query router, against the real react-router', () => {
     })
 
     expect(read('path')).toBe('/gb')
-    // Memory mode still renders; it simply never writes the URL.
+    // Memory mode still renders. It simply never writes the URL.
     expect(window.location.search).toBe('?p=123')
   })
 })
@@ -214,9 +214,9 @@ describe('the query router, against the real react-router', () => {
  * Path mode against the real router.
  *
  * Same justification as the query suite above, and one addition specific to this mode: react-router
- * has its own `basename` feature that does what this looks like, and we deliberately do not use it
- * — because `Router` renders `null` on a basename miss, silently, which is #92's blank widget. Our
- * guard lives in `mountDecision` and is asserted in the node lane; what can only be asserted here
+ * has its own `basename` feature that does what this looks like, and we deliberately do not use it,
+ * because `Router` renders `null` on a basename miss, silently, which is #92's blank widget. Our
+ * guard lives in `mountDecision`, and is asserted in the node lane. What can only be asserted here
  * is that the library agrees with the URLs our history composes.
  */
 describe('the path router, against the real react-router', () => {

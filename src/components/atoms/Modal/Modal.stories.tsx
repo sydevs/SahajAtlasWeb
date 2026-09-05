@@ -13,13 +13,15 @@ export default {
 } satisfies StoryDefault
 
 /**
- * Modal — a centred, ephemeral dialog on @radix-ui/react-dialog. Radix owns the focus
- * trap, Esc and scroll lock; the skin reuses the Drawer atom's tokens. It portals into
- * the themed widget root (`overlayContainer()`), so an embedded modal keeps the brand
- * palette — switch the palette control to see it follow.
+ * Modal — a centred, ephemeral dialog on @radix-ui/react-dialog. Radix owns
+ * the focus trap, Esc, and scroll lock. The skin reuses the Drawer atom's
+ * tokens. It portals into the themed widget root (`overlayContainer()`), so
+ * an embedded modal keeps the brand palette. Switch the palette control to
+ * see it follow.
  *
- * Unlike the Drawer it is NOT part of the URL-driven drawer stack: nothing about it
- * touches the URL or history. Reach for the Drawer for anything that is a place.
+ * Unlike the Drawer, it is NOT part of the URL-driven drawer stack. Nothing
+ * about it touches the URL or history. Reach for the Drawer for anything
+ * that is a place.
  */
 export const Default: Story = () => {
   const [open, setOpen] = useState(false)

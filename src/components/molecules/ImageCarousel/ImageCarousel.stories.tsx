@@ -26,8 +26,8 @@ const slides: Slide[] = [
 
 /**
  * ImageCarousel — an autoplaying Swiper carousel of images that opens a lazy
- * lightbox on tap. With a single slide the swiper is disabled; with none it
- * renders nothing.
+ * lightbox on tap. With a single slide, the swiper is disabled. With none,
+ * it renders nothing.
  */
 export const Default: Story = () => (
   <StoryWrapper>

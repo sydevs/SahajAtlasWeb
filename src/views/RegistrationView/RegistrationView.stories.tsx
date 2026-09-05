@@ -16,14 +16,14 @@ export default { title: 'Views' } satisfies StoryDefault
 const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
   'Native form': { event: mockEvent },
   Confirmation: { event: { ...mockEvent, id: 313 }, initialSubmitted: true },
-  // The route is deep-linkable, so a full event must render its state message here rather
-  // than an operative form (the CMS refuses it server-side too). It goes through the shared
-  // `FallbackPanel`, whose next step is a PERSON: this one carries `contactPhone`, so it
+  // The route is deep-linkable, so a full event must render its state message here, not an
+  // operative form — the CMS refuses it server-side too. It goes through the shared
+  // `FallbackPanel`, whose next step is a PERSON. This event carries `contactPhone`, so it
   // leads with the organiser's number.
   Full: { event: mockEventFull },
-  // The same state with nobody to call — the branch that proves the fallback: with no
-  // contact on the event, `visibleActions` swaps the number for the recovery ladder, so a
-  // viewer who can't join THIS class is still pointed at another one nearby.
+  // The same state with nobody to call — the branch that proves the fallback. With no
+  // contact on the event, `visibleActions` swaps the number for the recovery ladder. So a
+  // viewer who cannot join THIS class is still pointed at another one nearby.
   'Full · no contact': { event: { ...mockEventFull, id: 314, contactPhone: null } },
   'External registration': {
     event: {
@@ -43,22 +43,22 @@ type ExampleKey = keyof typeof EXAMPLES
 const EVENT_PARENT = mockEvent.path.slice(0, mockEvent.path.lastIndexOf('/'))
 
 /**
- * RegistrationView — the registration drawer screen: the event summary card over
- * the form (or the link-out CTA for an externally-registered event), plus the
- * post-submit confirmation.
+ * RegistrationView — the registration drawer screen. It shows the event summary card over the
+ * form, or the link-out CTA for an externally-registered event, plus the post-submit
+ * confirmation.
  *
- * **Not found · event** is the dead link this route can produce: a registration path over
- * an event the CMS no longer serves. It is the load-bearing recovery case — `parentOf`
- * would answer it with the event path that just 404'd, making the recovery from a dead
- * link the same dead link, so the ladder drops the failing entry and walks on to offer
- * **Cambridge** instead.
+ * **Not found · event** is the dead link this route can produce: a registration path over an
+ * event the CMS no longer serves. It is the load-bearing recovery case. `parentOf` would
+ * otherwise answer with the event path that just 404'd, making the recovery from a dead link
+ * the same dead link. So the ladder drops the failing entry and walks on to offer **Cambridge**
+ * instead.
  *
- * There is deliberately no second dead-link option. This route dies two ways — that 404,
- * and `useEventFromPath` throwing on a hand-typed `/register` whose parent is a region
- * rather than an event — but they reach the boundary as the same kind, at the same path,
- * and render the same screen. The story had both, and a reviewer flipping between them saw
- * nothing change. What actually differs is which branch of `classifyError` runs (our own
- * tag vs. an HTTP status), and `report.test.ts` covers both directly.
+ * There is deliberately no second dead-link option. This route dies two ways: that 404, and
+ * `useEventFromPath` throwing on a hand-typed `/register` whose parent is a region, not an
+ * event. Both reach the boundary as the same kind, at the same path, and render the same
+ * screen. An earlier story had both cases, and a reviewer flipping between them saw nothing
+ * change. What actually differs is which branch of `classifyError` runs — this project's own
+ * tag, or an HTTP status — and `report.test.ts` covers both directly.
  */
 export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,

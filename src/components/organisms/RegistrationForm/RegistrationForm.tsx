@@ -32,12 +32,13 @@ import { useTurnstile } from '@/hooks/use-turnstile'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 
 /**
- * Our copy for each **state** refusal SahajCloud can return (409 + `code`,
- * SahajCloud#601) — the endpoint's own messages are English-only prose.
- * Typed as a total Record over the synced union, so a `pnpm types:cms` that adds
- * or renames a code fails the build here instead of silently degrading to the
- * generic error. Three of the four reuse the display copy the panel already
- * shows for the same state, so the form and the panel can't word it differently.
+ * This is our copy for each **state** refusal SahajCloud can return (409 and
+ * `code`, SahajCloud#601). The endpoint's own messages are English-only
+ * prose. This is typed as a total Record over the synced union, so a
+ * `pnpm types:cms` that adds or renames a code fails the build here,
+ * instead of silently degrading to the generic error. Three of the four
+ * reuse the display copy the panel already shows for the same state, so the
+ * form and the panel cannot word it differently.
  */
 const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, string> = {
   external_registration: 'display.registration_external',
@@ -47,13 +48,15 @@ const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, string> = {
 }
 
 /**
- * Every code a `RegistrationRefusedError` can carry — the state refusals plus the captcha
- * one — so a caller looks a refusal's copy up once rather than special-casing a kind.
+ * This holds every code a `RegistrationRefusedError` can carry — the state
+ * refusals plus the captcha one. This way, a caller finds a refusal's copy
+ * once, rather than treating one kind as a special case.
  *
- * Split in two only so the half above stays total over the SYNCED union: that totality is
- * what makes a `types:cms` re-sync fail the build here rather than silently routing a new
- * code to the generic sentence, and folding a code from a different layer into it would
- * lose the check. `captcha_failed` is thrown one layer up, by SahajCloud's write guard.
+ * This splits in two only so the half above stays total over the SYNCED
+ * union. That totality is what makes a `types:cms` re-sync fail the build
+ * here, rather than silently routing a new code to the generic sentence.
+ * Folding a code from a different layer into it would lose that check.
+ * SahajCloud's write guard throws `captcha_failed` one layer up.
  */
 const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, string> = {
   ...STATE_MESSAGE_KEYS,
@@ -61,8 +64,9 @@ const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, string> = {
 }
 
 /**
- * The one refusal that is not about the event, and so the one that must not invalidate the
- * cached event below. It is an ordinary `RegistrationRefusedError` code like any other.
+ * This is the one refusal that is not about the event. So it is also the
+ * one that must not invalidate the cached event below. It is an ordinary
+ * `RegistrationRefusedError` code, like any other.
  */
 const CAPTCHA_REFUSED: RegistrationErrorCode = 'captcha_failed'
 
@@ -73,30 +77,36 @@ export type RegistrationFormProps = {
   isOnline: boolean
   eventTitle: string
   /**
-   * The event's link, for the confirmation screen's invite-a-friend block. **Optional**,
-   * and the block is dropped without it (issue #115): an event with no canonical page,
-   * viewed on a host page the widget routes off-URL on, has no URL that identifies it —
-   * and the only string in reach is the host page's own address, which would send the
-   * friend to somebody's article. `ShareContent` keeps its `url` REQUIRED for the same
-   * reason: a share block is a URL plus ways to send it, so there is no such thing as one
-   * without a URL. The caller that has no link renders no block.
+   * This is the event's link, for the confirmation screen's
+   * invite-a-friend block. It is **optional**, and the block drops without
+   * it (issue #115). An event with no canonical page, viewed on a host page
+   * the widget routes off-URL on, has no URL that identifies it. The only
+   * string in reach is then the host page's own address, which would send
+   * the friend to somebody's article instead. `ShareContent` keeps its
+   * `url` REQUIRED for the same reason: a share block is a URL plus ways to
+   * send it, so there is no such thing as one without a URL. The caller
+   * with no link renders no block.
    */
   eventUrl?: string
   /**
-   * Export primitives for the confirmation screen's add-to-calendar block
-   * (issue #105). Optional, and deliberately NOT an `Event`: the form stays
-   * config-driven, so RegistrationView builds this from the full event doc —
-   * which is also the only place that HAS the exclusion/untilDate fields the
-   * trimmed feed omits. Absent → the block doesn't render.
+   * These are export primitives for the confirmation screen's
+   * add-to-calendar block (issue #105). This is optional, and deliberately
+   * NOT an `Event`: the form stays config-driven, so RegistrationView builds
+   * this from the full event doc. That doc is also the only place that HAS
+   * the exclusion and untilDate fields the trimmed feed omits. When this
+   * prop is absent, the block does not render.
    */
   calendar?: Omit<IcsEventInput, 'from'>
-  /** Zone the starting-date options render in — the event's own zone for
-   *  physical events, the viewer's for online (issue #52 time contract). */
+  /** This is the zone the starting-date options render in — the event's
+   *  own zone for physical events, the viewer's zone for online events
+   *  (issue #52 time contract). */
   timeZone?: string
-  /** The event's recurrence (DAILY/WEEKLY/MONTHLY) so the starting-date labels
-   *  read in the class's own cadence ("Next week" vs "Next month"). */
+  /** This is the event's recurrence (DAILY, WEEKLY, or MONTHLY), so the
+   *  starting-date labels read in the class's own cadence ("Next week" and
+   *  "Next month," for example). */
   recurrenceType?: RecurrenceType | null
-  /** Optional close callback; the footer also closes the enclosing Modal via ModalClose. */
+  /** This is an optional close callback. The footer also closes the
+   *  enclosing Modal via ModalClose. */
   onClose?: () => void
   /** Start in the post-submit confirmation state — for previewing that screen in a
    *  story without a real submission. Defaults to false (the live form). */
@@ -104,13 +114,14 @@ export type RegistrationFormProps = {
 }
 
 /**
- * The event registration form — generic and config-driven (no Event coupling).
- * It owns the form state, the createRegistration mutation, and the thank-you /
- * error / online-notice states, rendered as plain content in the RegistrationView
- * drawer body (the drawer supplies the chrome). `onClose` returns to the event.
+ * This is the event registration form: generic and config-driven, with no
+ * Event coupling. It owns the form state, the createRegistration mutation,
+ * and the thank-you, error, and online-notice states. It renders as plain
+ * content in the RegistrationView drawer body — the drawer supplies the
+ * chrome. `onClose` returns to the event.
  *
- * The drawer unmounts its content on close, so this remounts fresh on each reopen
- * — no manual reset-on-close needed.
+ * The drawer unmounts its content on close, so this remounts fresh on each
+ * reopen. It needs no manual reset-on-close.
  */
 export function RegistrationForm({
   eventId,
@@ -131,12 +142,14 @@ export function RegistrationForm({
   // The viewer's region orders the share targets on the thank-you screen (resolved
   // here so ShareContent stays a pure, prop-driven molecule).
   const country = useViewerCountry()
-  // In live preview the event is a draft — previewing must never create a real
-  // registration, so the submit is disabled and mutate() is short-circuited.
+  // In live preview, the event is a draft. Previewing must never create a
+  // real registration, so this disables the submit and short-circuits
+  // `mutate()`.
   const isPreview = preview.active
 
-  // Restore any in-progress values for this event once, so a drawer remount (e.g.
-  // the md-crossing direction remount) can't drop a half-filled form.
+  // This restores any in-progress values for this event once, so a drawer
+  // remount (for example, the md-crossing direction remount) cannot drop a
+  // half-filled form.
   const [defaultValues] = useState<Partial<Registration>>(() => {
     const draft = useRegistrationDraft.getState()
 
@@ -151,7 +164,7 @@ export function RegistrationForm({
     formState: { errors },
   } = useForm<Registration>({ resolver: zodResolver(RegistrationSchema), defaultValues })
 
-  // Persist edits to the hoisted draft (via getState() so this never re-renders).
+  // This persists edits to the hoisted draft, via getState() so it never re-renders.
   useEffect(() => {
     const sub = watch((values) =>
       useRegistrationDraft.getState().setDraft(eventId, values as Record<string, unknown>),
@@ -160,10 +173,11 @@ export function RegistrationForm({
     return () => sub.unsubscribe()
   }, [watch, eventId])
 
-  // The challenge for this submission. `blocked` is not handled here: `useTurnstileGuard`
-  // has already failed the whole widget by the time a form could render in that state, so a
-  // per-form degradation would be dead code guarding a case its own boundary swallowed
-  // (issue #182).
+  // This is the challenge for this submission. `blocked` is not handled
+  // here. `useTurnstileGuard` has already failed the whole widget by the
+  // time a form could render in that state. So a per-form degradation would
+  // be dead code, guarding a case its own boundary already swallowed (issue
+  // #182).
   const { challengeRef, token, reset: resetChallenge } = useTurnstile()
 
   const mutation = useMutation({
@@ -178,29 +192,32 @@ export function RegistrationForm({
     onError: (error) => {
       if (!(error instanceof RegistrationRefusedError)) return
 
-      // A Turnstile token is single-use and the server redeems it before doing the work it
-      // gates — so the one in hand is spent whether or not it was the reason for the
-      // refusal, and re-sending it would be refused for the rest of this form's life. Reset
-      // unconditionally rather than only on `captcha_failed`: an `event_full` retry after a
-      // cancelled registration would otherwise fail with a captcha error the viewer has no
-      // way to understand.
+      // A Turnstile token is single-use, and the server redeems it before
+      // doing the work it gates. So the one in hand is spent, whether or not
+      // it was the reason for the refusal, and re-sending it would be
+      // refused for the rest of this form's life. This resets
+      // unconditionally, rather than only on `captcha_failed`. Otherwise,
+      // an `event_full` retry after a cancelled registration would fail
+      // with a captcha error the viewer has no way to understand.
       resetChallenge()
 
-      // A state refusal means our cached event disagrees with the server about
-      // whether it can be joined (it filled up, ended, or its course started
-      // since the read). Refetch it so the surfaces behind this form flip to the
-      // real state instead of continuing to offer a Register button. Prefix key
-      // — the event is cached per locale (`['event', id, locale]`).
+      // A state refusal means our cached event disagrees with the server
+      // about whether it can be joined — it filled up, ended, or its course
+      // started since the read. This refetches it, so the surfaces behind
+      // this form flip to the real state, instead of continuing to offer a
+      // Register button. This uses a prefix key, since the event is cached
+      // per locale (`['event', id, locale]`).
       if (error.code !== CAPTCHA_REFUSED) {
         void queryClient.invalidateQueries({ queryKey: ['event', eventId] })
       }
     },
   })
 
-  // A refused registration renders OUR copy for the reason, not the endpoint's
-  // English prose. An unrecognized code (a CMS newer than this build) falls back
-  // to the generic error title + the server's message — `code` is a cast over a
-  // `z.string()`, so at runtime it is whatever the response body said.
+  // A refused registration renders OUR copy for the reason, not the
+  // endpoint's English prose. An unrecognized code — a CMS newer than this
+  // build — uses the generic error title and the server's message instead.
+  // `code` is a cast over a `z.string()`, so at runtime it is whatever the
+  // response body said.
   const refusalKey =
     mutation.error instanceof RegistrationRefusedError &&
     mutation.error.code in REFUSAL_MESSAGE_KEYS
@@ -213,9 +230,10 @@ export function RegistrationForm({
     <form
       className="mx-auto flex w-full max-w-md flex-col gap-3"
       onSubmit={handleSubmit((data) => {
-        // `token` is also what gates the submit button, so this is belt-and-braces for the
-        // Enter-key path — but it is what makes `captcha` a plain string rather than a
-        // nullable one all the way down to the header.
+        // `token` is also what gates the submit button, so this check is an
+        // extra safeguard for the Enter-key path. It is also what makes
+        // `captcha` a plain string, rather than a nullable one, all the way
+        // down to the header.
         if (!isPreview && token) mutation.mutate({ registration: data, captcha: token })
       })}
     >
@@ -223,12 +241,13 @@ export function RegistrationForm({
         <div className="flex flex-col gap-3 text-center">
           <p>{t('registration.followup')}</p>
 
-          {/* The moment calendar export is most wanted (issue #105). `calendar`
-              is optional so the form stays generic: it takes export primitives
-              from RegistrationView, never an Event. Anchored on the session that
-              was actually submitted — `mutation.variables` holds it, so no extra
-              state — falling back to the next occurrence when the confirmation
-              is being previewed rather than earned. */}
+          {/* This is the moment calendar export is most wanted (issue #105).
+              `calendar` is optional, so the form stays generic: it takes
+              export primitives from RegistrationView, never an Event. This
+              anchors on the session that was actually submitted —
+              `mutation.variables` holds it, so this needs no extra state.
+              It uses the next occurrence instead, when the confirmation is
+              being previewed rather than earned. */}
           {calendar && (
             <>
               <div className="mt-2 font-semibold">{t('actions.add_calendar')}</div>
@@ -238,8 +257,9 @@ export function RegistrationForm({
             </>
           )}
 
-          {/* Heading and block together, or neither: "Invite a friend" over nothing to
-              press is a worse confirmation screen than one that simply doesn't offer it. */}
+          {/* This shows the heading and block together, or neither. "Invite a
+              friend" over nothing to press is a worse confirmation screen
+              than one that simply does not offer it. */}
           {eventUrl && (
             <>
               <div className="mt-2 font-semibold">{t('registration.invite_friend')}</div>
@@ -259,14 +279,16 @@ export function RegistrationForm({
             upcomingDates={upcomingDates}
           />
 
-          {/* The challenge itself. Rendered under the fields and above the error, so the
-              one thing that can silently hold the submit button disabled is visible
-              immediately above it rather than off in the footer. */}
+          {/* This is the challenge itself. It renders under the fields and
+              above the error, so the one thing that can silently hold the
+              submit button disabled stays visible immediately above it,
+              rather than down in the footer. */}
           <div ref={challengeRef} className="mt-4 empty:mt-0" />
 
-          {/* A refusal isn't a malfunction — the event simply can't be joined —
-              so it states the reason on its own, dropping both the "Something
-              went wrong" framing and the endpoint's English message. */}
+          {/* A refusal is not a malfunction — the event simply cannot be
+              joined — so it states the reason on its own. This drops both
+              the "Something went wrong" framing and the endpoint's English
+              message. */}
           {mutation.isError && (
             <Alert
               className="mt-4"
@@ -300,10 +322,11 @@ export function RegistrationForm({
             <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
               {t('registration.cancel')}
             </Button>
-            {/* No token means no registration the server would accept, so the button is
-                disabled until the challenge is solved — the same contract the report form
-                has always had. A blocked challenge never reaches this: it fails the widget
-                at `useTurnstileGuard` instead. */}
+            {/* No token means no registration the server would accept. So the
+                button stays disabled until the challenge is solved — the
+                same contract the report form has always had. A blocked
+                challenge never reaches this: it fails the widget at
+                `useTurnstileGuard` instead. */}
             <Button
               color="primary"
               disabled={isPreview || !token}
@@ -320,10 +343,11 @@ export function RegistrationForm({
   )
 }
 
-// The label + control + error shell is the shared `FormField` molecule (also used by the
-// report-issue form), so the required marker and the aria-describedby id convention are
-// defined once. The control's chrome comes from the shared `fieldChrome` recipe, so
-// these inputs match the Select and the filter date bounds.
+// The label, control, and error shell is the shared `FormField` molecule,
+// also used by the report-issue form. So the required marker and the
+// aria-describedby id convention are defined once. The control's chrome
+// comes from the shared `fieldChrome` recipe, so these inputs match the
+// Select and the filter date bounds.
 
 function LabeledInput({
   label,
@@ -404,9 +428,10 @@ function RegistrationFields({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The form value is the ISO string; RegistrationSchema's z.coerce.date()
-          turns it into a Date on submit, so the radio list's onChange stores the
-          ISO string and we cast across that string↔Date coercion seam. */}
+      {/* The form value is the ISO string. RegistrationSchema's z.coerce.date()
+          turns it into a Date on submit, so the radio list's onChange stores
+          the ISO string, and this casts across that string-to-Date coercion
+          seam. */}
       <Controller
         control={control}
         defaultValue={upcomingDates[0]?.toISOString() as unknown as Date}
@@ -418,16 +443,17 @@ function RegistrationFields({
             label={t('registration.starting_date')}
           >
             {/* `field.ref` is what makes a failed submit MOVE (issue #102).
-                react-hook-form focuses the first invalid field itself — that is
-                `shouldFocusError`, on by default — but it can only focus a field it
-                was handed a ref for, and it walks them in registration order, which
-                here is the order they are rendered in.
+                react-hook-form focuses the first invalid field itself. That
+                is `shouldFocusError`, on by default. But it can only focus a
+                field it was handed a ref for, and it walks them in
+                registration order, which here is the order they render in.
 
-                This is the first field, and until RadioGroup forwarded a ref it was
-                the one field RHF had to skip: a submit with no date chosen moved
-                focus nowhere and said nothing, so a screen-reader user was left on
-                the Register button with no indication of why it hadn't worked. The
-                other two are plain `register`ed inputs and were always covered. */}
+                This is the first field. Until RadioGroup forwarded a ref, it
+                was the one field RHF had to skip. A submit with no date
+                chosen moved focus nowhere and said nothing. So a
+                screen-reader user was left on the Register button, with no
+                sign of why it had not worked. The other two are plain
+                `register`ed inputs, and were always covered. */}
             <RadioGroup
               ref={field.ref}
               aria-label={t('registration.starting_date')}
@@ -475,15 +501,16 @@ function RegistrationFields({
   )
 }
 
-// The starting-date picker shows the next `VISIBLE_DATES` occurrences up front;
-// the RadioGroup atom collapses the rest behind a "show more" link.
+// The starting-date picker shows the next `VISIBLE_DATES` occurrences up
+// front. The RadioGroup atom collapses the rest behind a "show more" link.
 const VISIBLE_DATES = 3
 
-// Relative-label unit per recurrence, so the options read in the class's own
-// cadence — weekly: "This week / Next week / In 2 weeks", daily: "Today /
-// Tomorrow / In 2 days", monthly: "This month / Next month / …" — rather than
-// Luxon's auto unit, which drifts ("in 6 days", then "next month"). A one-off /
-// course (no recurrence) keeps the auto unit.
+// This sets the relative-label unit per recurrence, so the options read in
+// the class's own cadence. For weekly: "This week," "Next week," "In 2
+// weeks." For daily: "Today," "Tomorrow," "In 2 days." For monthly: "This
+// month," "Next month," and so on. This replaces Luxon's auto unit, which
+// drifts ("in 6 days," then "next month"). A one-off or course, with no
+// recurrence, keeps the auto unit.
 const RELATIVE_UNIT: Record<RecurrenceType, 'days' | 'weeks' | 'months'> = {
   DAILY: 'days',
   WEEKLY: 'weeks',

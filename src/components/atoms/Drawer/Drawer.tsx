@@ -4,17 +4,19 @@ import { tv, type VariantProps } from 'tailwind-variants'
 
 import { overlayContainer } from '@/lib/overlay'
 
-// A drawer built on vaul (see issue #30). A tailwind-variants slot set portaled
-// into the themed widget root via `overlayContainer()`. Non-modal by default, so
-// the map/content behind stays interactive. The pinned `vaul@1.1.2` patch
-// (patches/) forwards `modal` to Radix, so non-modal is *truly* non-modal (no
-// background aria-hidden or focus trap).
+// A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
+// portaled into the themed widget root through `overlayContainer()`. It is
+// non-modal by default, so the map and content behind it stay interactive. The
+// pinned `vaul@1.1.2` patch (see `patches/`) forwards `modal` to Radix. So
+// non-modal is *truly* non-modal: no background `aria-hidden`, and no focus
+// trap.
 //
-// DrawerStack renders a SINGLE drawer holding the active (top) view. Parent views
-// are simulated as static peek cards behind it, not real nested drawers. Direction
-// is left at ≥md, bottom on mobile. `snapPoints` are the mobile peek/third/full
-// ladder. Map-less, the drawer is `mode="filled"` — absolute and filling the
-// widget container, rather than fixed to the viewport.
+// `DrawerStack` renders a SINGLE drawer, holding the active (top) view. Parent
+// views appear as static peek cards behind it, not real nested drawers.
+// Direction is left at ≥md, and bottom on mobile. `snapPoints` are the mobile
+// peek, third, and full ladder. Map-less, the drawer uses `mode="filled"`. It
+// is then absolute and fills the widget container, instead of fixed to the
+// viewport.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
@@ -23,53 +25,58 @@ const drawer = tv({
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 32rem) and
-    // centred, so on a wide surface — a map-less embed, a large-mobile bottom
-    // sheet — the views read as a centred column, rather than stretching edge
-    // to edge. This is a no-op on the roughly 22rem anchored panel, which is
-    // already narrower.
+    // centred. So on a wide surface, such as a map-less embed or a large-mobile
+    // bottom sheet, the views read as a centred column, instead of stretching
+    // edge to edge. This has no effect on the roughly 22rem anchored panel,
+    // which is already narrower.
     header:
       'mx-auto flex w-full max-w-[var(--sy-content-max,32rem)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
     // A second fixed band under the header, for controls that act on the
-    // scrolling content below (SearchView's Filters and Sort). Same width cap
-    // and `shrink-0` as the header: it sits OUTSIDE the body, so a long list
-    // scrolls under it instead of carrying it away — which is exactly when
-    // those controls become useful.
+    // scrolling content below, such as SearchView's Filters and Sort. It
+    // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
+    // so a long list scrolls under it instead of carrying it away. That is
+    // exactly when those controls become useful.
     toolbar: 'mx-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0',
-    // `overflow-x-hidden` is a backstop, not the fix: a drawer is a
-    // fixed-width panel and must never scroll sideways, but it renders
+    // `overflow-x-hidden` is a backstop, not the fix. A drawer is a
+    // fixed-width panel and must never scroll sideways. But it renders
     // host-authored prose, so one unbreakable string could always overflow
-    // it. Content wraps at the source (see EventDetails' `break-words`). This
-    // class just means the next such string degrades to a clipped edge,
-    // instead of a horizontal scrollbar across the view. It is safe for the
-    // full-bleed carousel, which is exactly the body's width, and for
-    // popovers, which portal out of the body entirely.
+    // it. Content wraps at the source instead (see EventDetails'
+    // `break-words`). This class only means the next such string degrades to
+    // a clipped edge, instead of a horizontal scrollbar across the view. It
+    // is safe for the full-bleed carousel, which is exactly the body's width,
+    // and for popovers, which portal out of the body entirely.
     body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,32rem)] flex-1 overflow-y-auto overflow-x-hidden',
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0 border-t border-gray-4',
-    // Themes the vaul drag handle (its vendored CSS hardcodes a light grey),
-    // gives it breathing room from the sheet's rounded top edge but sits it
-    // close to the header below, and adds a grab cursor so the drag
-    // affordance reads on pointer devices.
+    // This themes the vaul drag handle. Its vendored CSS hardcodes a light
+    // grey. This gives the handle breathing room from the sheet's rounded top
+    // edge, but keeps it close to the header below. It also adds a grab
+    // cursor, so the drag affordance reads on pointer devices.
     handle: 'mb-1 mt-2.5 cursor-grab !bg-gray-7 active:cursor-grabbing',
   },
   variants: {
     direction: {
-      // Flush to the edge on tablet (md-lg). At ≥lg it floats with a margin so the
-      // map shows around it, rounded to match the stacked ancestor panels. The
-      // divider border matches those panels too (`full` cancels the float map-less).
+      // Flush to the edge on tablet (md–lg). At ≥lg it floats with a margin, so
+      // the map shows around it, rounded to match the stacked ancestor panels.
+      // The divider border matches those panels too. (`full` cancels the
+      // float map-less.)
+      //
       // TODO(rtl, #52 WS8): the remaining RTL gap is vaul's own `direction`
-      // prop, which is physically left/right and drives both the drag axis
-      // and the enter animation. These inset classes cannot fix that alone.
-      // DrawerStack picks the direction, so the flip belongs there and here
-      // together, deferred until an RTL locale actually ships. Everything
-      // else is already logical: the stack's panel/cog positioning uses
-      // `start-*`, and directional icons mirror via BaseIcon's `flipRtl`.
+      // prop. That prop is physically left or right, and it drives both the
+      // drag axis and the enter animation. These inset classes cannot fix
+      // that alone. DrawerStack picks the direction, so the flip belongs
+      // there and here together. This is deferred until an RTL locale
+      // actually ships. Everything else here is already logical: the stack's
+      // panel and cog positioning use `start-*`, and directional icons mirror
+      // through BaseIcon's `flipRtl`.
+      //
       // **The `22rem` in both variants below is paired with `DRAWER_W_REM` in
-      // `hooks/use-map-controller.tsx`** — that constant becomes the map's left camera
-      // padding, so the map knows how much of itself this panel covers. Tailwind needs a
-      // literal here and can't read the constant, so changing this width means changing
-      // that one in the same edit. Otherwise the map keeps framing around the old width
-      // and nothing anywhere fails to tell you.
+      // `hooks/use-map-controller.tsx`.** That constant becomes the map's
+      // left camera padding, so the map knows how much of itself this panel
+      // covers. Tailwind needs a literal here, and it cannot read the
+      // constant. So changing this width means changing that one in the same
+      // edit. Otherwise the map keeps framing around the old width, and
+      // nothing anywhere reports the drift.
       left: {
         content:
           'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
@@ -78,11 +85,11 @@ const drawer = tv({
         content:
           'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
-      // Snap-point sheets must be full viewport height: vaul computes its
-      // snap translate from the window height, so a content-sized sheet gets
-      // pushed off-screen. The 3dvh bottom padding keeps the footer above
-      // the fold at the 0.97 top snap (the last 3% is hidden). `full`
-      // cancels it for map-less.
+      // Snap-point sheets must use the full viewport height. Vaul computes
+      // its snap translate from the window height, so a content-sized sheet
+      // would get pushed off-screen. The 3dvh bottom padding keeps the
+      // footer above the fold at the 0.97 top snap, since the last 3% stays
+      // hidden. `full` cancels this map-less.
       bottom: {
         content:
           'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[calc(var(--sy-frame-h)*0.03)]',
@@ -91,39 +98,40 @@ const drawer = tv({
         content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
       },
     },
-    // How the panel relates to its container. These used to be two
-    // independent booleans (`contained` + `full`), but only two of the four
-    // states were ever representable in practice — DrawerStack always set
-    // both together, and `filled`'s class list is entirely `!important`
-    // overrides cancelling the other one, which is the signature of a
-    // variant that wanted to be a mode.
+    // How the panel relates to its container. This used to be two
+    // independent booleans, `contained` and `full`. But only two of the four
+    // possible states ever occurred in practice. DrawerStack always set both
+    // together, and `filled`'s class list is entirely `!important` overrides
+    // that cancel the other one. That pattern is the signature of a variant
+    // that wanted to be a mode.
     mode: {
-      /** Fixed to the viewport, anchored to the `direction` edge (the map layout). */
+      /** Fixed to the viewport, anchored to the `direction` edge. This is the map layout. */
       anchored: {},
       /**
-       * Absolute within the widget container and filling it — the map-less single
-       * panel. Still a real vaul root, so the header close button keeps working.
+       * Absolute within the widget container, filling it. This is the
+       * map-less single panel. It is still a real vaul root, so the header
+       * close button keeps working.
        */
       filled: {
         content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
       },
     },
-    // A full-width surface (CalendarView), instead of the roughly 22rem left
-    // panel, so a month grid stays legible. Only meaningful with the
-    // anchored `left` panel (map mode ≥md). The bottom sheet is already
-    // full-width, and `filled` (map-less) already fills the container, so
-    // both ignore it (see the compound below).
+    // A full-width surface, such as CalendarView, instead of the roughly
+    // 22rem left panel, so a month grid stays legible. This only matters with
+    // the anchored `left` panel, in map mode at ≥md. The bottom sheet is
+    // already full-width, and `filled` (map-less) already fills the
+    // container. So both ignore this variant (see the compound below).
     wide: { true: {}, false: {} },
   },
   compoundVariants: [
     // The bottom sheet shows a drag handle that already spaces the header
-    // from the sheet's top edge, so this relaxes the header's top padding
-    // for a balanced handle-to-header gap. Not when `filled` hides the
-    // handle (map-less), where the header owns the top.
+    // from the sheet's top edge. So this relaxes the header's top padding,
+    // for a balanced handle-to-header gap. This does not apply when `filled`
+    // hides the handle, map-less, where the header owns the top instead.
     { direction: 'bottom', mode: 'anchored', class: { header: 'pt-2' } },
-    // Wide plus the anchored left panel: fills the container (flush at md,
-    // floating at lg), rather than the narrow left panel. `!important`
-    // overrides the left variant's fixed width and edge insets, mirroring
+    // Wide, plus the anchored left panel: this fills the container, flush at
+    // md and floating at lg, instead of the narrow left panel. `!important`
+    // overrides the left variant's fixed width and edge insets. This mirrors
     // how `filled` overrides them map-less.
     {
       direction: 'left',
@@ -140,9 +148,9 @@ type DrawerSlots = ReturnType<typeof drawer>
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // A `filled` drawer (map-less) hides the drag handle — nothing to drag.
+  // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
   mode: 'anchored' | 'filled'
-  // The portal target for a real drawer (map-less passes the widget container).
+  // The portal target for a real drawer. Map-less mode passes the widget container.
   container?: HTMLElement | null
 }
 
@@ -158,12 +166,12 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   /** Controlled open state. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  /** Non-modal by default — the map/content behind stays interactive. */
+  /** Non-modal by default. The map and content behind it stay interactive. */
   modal?: boolean
   /** When false, the drawer cannot be closed by swipe, Esc, or clicking outside (map-less root). */
   dismissible?: boolean
-  /** Restricts dragging to the handle. With no handle rendered (the left panel), this
-   *  makes the drawer undraggable while the close button still dismisses it. */
+  /** Restricts dragging to the handle. When no handle renders (the left panel),
+   *  this makes the drawer undraggable, but the close button still dismisses it. */
   handleOnly?: boolean
   /** Mobile snap points, e.g. `['96px', '336px', 0.97]`. */
   snapPoints?: (number | string)[]
@@ -172,10 +180,10 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   /** The portal target. Map-less passes the widget container. The default is the theme root. */
   container?: HTMLElement | null
   /**
-   * The box vaul measures snap points against. **This is not the same question as
-   * `container`**, and conflating them inverts the sheet — see the note on `rootProps` below.
-   * Omit it to measure the window, which is right for every mount except inside the expanded
-   * dialog.
+   * The box vaul measures snap points against. **This is not the same
+   * question as `container`.** Conflating the two inverts the sheet. See the
+   * note on `rootProps` below. Omit this prop to measure the window instead.
+   * That is right for every mount except inside the expanded dialog.
    */
   measureAgainst?: HTMLElement | null
   children: ReactNode
@@ -200,27 +208,35 @@ export function Drawer({
 }: DrawerProps) {
   const slots = drawer({ direction, mode, wide })
 
-  // Passes the snap props unconditionally (undefined means no snap points),
-  // so the WithFadeFrom/WithoutFadeFrom discriminated union resolves cleanly.
+  // This passes the snap props unconditionally. `undefined` means no snap
+  // points. This lets the WithFadeFrom/WithoutFadeFrom discriminated union
+  // resolve cleanly.
   const rootProps = {
-    // ⚠ vaul measures the CONTAINER when given one, and `window.innerHeight` otherwise
-    // (`snapPointsOffset`, vaul dist). Passing one is what makes a fractional snap point correct
-    // inside `CompactEmbedView`'s dialog, which keeps a margin and so is 16-32px shorter than the
-    // window — without it, the near-full snap sat that far out and the sheet overran the clip edge.
+    // ⚠ Vaul measures the CONTAINER when given one, and `window.innerHeight`
+    // otherwise (`snapPointsOffset`, vaul dist). Passing one is what makes a
+    // fractional snap point correct inside `CompactEmbedView`'s dialog. That
+    // dialog keeps a margin, so it is 16-32px shorter than the window.
+    // Without this prop, the near-full snap sat that far out, and the sheet
+    // overran the clip edge.
     //
-    // ⚠ **But it must be a box, and the portal target is not always one.** This briefly passed
-    // `container` — the element we portal into — on the reasoning that measuring the box we render
-    // in cannot be wrong. Embedded, that element is the theme root, which is `display: contents`
-    // (`Widget.tsx`) and therefore measures **0×0**. Standalone it is `<html>`, which in map mode
-    // holds nothing but `position: fixed` children and measured **195px against an 844px
-    // viewport**. Every snap offset is `containerSize.height - height`, so at zero the ladder
-    // `['80px','300px',0.97]` becomes `[-80,-300,0]` instead of `[764,544,25]` — the sheet
-    // translates UP off the bottom and covers the top of the screen. That is the default phone
-    // experience of a map embed, and lint, typecheck and all 1263 unit specs stay green through it.
+    // ⚠ **But it must be a box, and the portal target is not always one.**
+    // This code briefly passed `container`, the element this drawer portals
+    // into, on the reasoning that measuring the box it renders in cannot be
+    // wrong. Embedded, that element is the theme root, which is `display:
+    // contents` (`Widget.tsx`) and therefore measures **0×0**. Standalone, it
+    // is `<html>`, which in map mode holds nothing but `position: fixed`
+    // children, and measured **195px against an 844px viewport**. Every snap
+    // offset is `containerSize.height - height`. So at zero, the ladder
+    // `['80px','300px',0.97]` becomes `[-80,-300,0]` instead of
+    // `[764,544,25]`. The sheet then translates UP off the bottom and covers
+    // the top of the screen. That is the default phone experience of a map
+    // embed, and lint, typecheck, and all 1263 unit specs stayed green
+    // through it.
     //
-    // So the measurement box is its own prop. `DrawerStack` supplies `frameElement()` — the
-    // compact card's expanded dialog, or a contained map's `MapFrame` (#169) — and `undefined`
-    // wherever there is no frame, which is where vaul's own `window.innerHeight` is correct.
+    // So the measurement box is its own prop. `DrawerStack` supplies
+    // `frameElement()`: the compact card's expanded dialog, or a contained
+    // map's `MapFrame` (#169). It supplies `undefined` wherever there is no
+    // frame, and that is where vaul's own `window.innerHeight` is correct.
     container: measureAgainst ?? undefined,
     direction,
     dismissible,
@@ -305,8 +321,8 @@ export function DrawerContent({
         className={slots.content({ className })}
         onEscapeKeyDown={onEscapeKeyDown}
       >
-        {/* One Radix title, sr-only — the visible header (if any) is a separate
-            child, so this never renders two <Dialog.Title>s. */}
+        {/* One Radix title, sr-only. The visible header, if any, is a separate
+            child. So this never renders two <Dialog.Title>s. */}
         <Vaul.Title className="sr-only">{ariaLabel}</Vaul.Title>
         {showHandle && <Vaul.Handle className={slots.handle()} />}
         {children}
@@ -322,10 +338,10 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
 }
 
 /**
- * A fixed controls band between the header and the scrolling body, for controls
- * that act on the content below, rather than on the drawer itself. This sits
- * outside the scroll container on purpose: put inside, a toolbar scrolls away
- * exactly when a long list makes it useful.
+ * A fixed controls band between the header and the scrolling body, for
+ * controls that act on the content below, not on the drawer itself. This sits
+ * outside the scroll container on purpose. Placed inside, a toolbar would
+ * scroll away exactly when a long list makes it useful.
  */
 export function DrawerToolbar({
   children,
@@ -341,14 +357,14 @@ export function DrawerToolbar({
 
 export function DrawerBody({ children, className }: { children: ReactNode; className?: string }) {
   const { slots } = useDrawerSlots()
-  // Once the body scrolls, its content slides under the (opaque) header, and
+  // Once the body scrolls, its content slides under the opaque header, and
   // the two blend into one another. A soft inset shadow along the body's top
-  // edge — shown only when there IS something above the fold — reads as
-  // "content continues up there" without adding a permanent rule. Inset
-  // shadows paint against the scroll container's own box, so this stays
-  // pinned to the seam while the content moves. This is preferred over a
-  // hard border: it appears progressively, and it works on both themes
-  // without a second colour token.
+  // edge reads as "content continues up there". It shows only when something
+  // IS above the fold, and it adds no permanent rule. Inset shadows paint
+  // against the scroll container's own box, so this stays pinned to the seam
+  // while the content moves. This is preferred over a hard border. It
+  // appears progressively, and it works on both themes without a second
+  // colour token.
   const [scrolled, setScrolled] = useState(false)
 
   return (
@@ -373,9 +389,9 @@ export function DrawerFooter({
   /**
    * Pins the footer to the VIEWPORT bottom edge of a snap-point bottom sheet.
    * The sheet is a full-height translated panel, so `fixed` would resolve
-   * against it — instead, the footer offsets by the sheet's live top,
-   * mirrored every frame onto `--sy-sheet-top` by DrawerStack. Content
-   * scrolls under it. Give the body matching bottom padding.
+   * against it instead. So the footer offsets by the sheet's live top. That
+   * value is mirrored every frame onto `--sy-sheet-top` by DrawerStack.
+   * Content scrolls under the footer. Give the body matching bottom padding.
    */
   sticky?: boolean
 }) {

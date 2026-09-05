@@ -17,15 +17,17 @@ export type ReportIssueModalProps = {
 }
 
 /**
- * The single mounted host for the report-issue modal (issue #79). It owns the chrome
- * and resolves the auto-attached context — widget route, locale, client, host page,
- * user agent — so the form itself stays presentational.
+ * This is the single mounted host for the report-issue modal (issue #79).
+ * It owns the chrome and resolves the auto-attached context — widget
+ * route, locale, client, host page, user agent — so the form itself stays
+ * presentational.
  *
- * App mounts this OUTSIDE the ErrorBoundary, so the error CTAs can still open it while
- * the boundary is rendering ErrorFallback. For the same reason the client name is read
- * from the query CACHE rather than fetched: when the boundary caught a failed
- * `clients/me`, there simply is no client, and the report goes out without that field
- * instead of suspending or throwing a second time.
+ * The app mounts this OUTSIDE the ErrorBoundary, so the error CTAs can
+ * still open it while the boundary is rendering ErrorFallback. For the
+ * same reason, the client name is read from the query CACHE, rather than
+ * fetched. When the boundary caught a failed `clients/me`, there simply is
+ * no client, and the report goes out without that field, instead of
+ * suspending or throwing a second time.
  */
 export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
   const { t } = useTranslation('common')
@@ -38,11 +40,13 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
   const closeReport = useReportModal((state) => state.closeReport)
 
   return (
-    // Everything inside is built only while the modal is open. This host is mounted for
-    // the app's whole life and calls useLocation(), so it re-renders on every navigation,
-    // filter and sort change — and JSX children are ordinary evaluated arguments, so an
-    // ungated `buildReportContext(...)` would read the browser globals and allocate a
-    // context on each of those, to be thrown away unopened.
+    // Everything inside is built only while the modal is open. This host is
+    // mounted for the app's whole life and calls useLocation(). So it
+    // re-renders on every navigation, filter change, and sort change. JSX
+    // children are ordinary evaluated arguments. So an ungated
+    // `buildReportContext(...)` would read the browser globals and
+    // allocate a context on each of those renders, only to be thrown away
+    // unopened.
     <Modal open={open} onOpenChange={(next) => !next && closeReport()}>
       {open && (
         <ModalContent

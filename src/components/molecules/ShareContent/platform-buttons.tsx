@@ -33,12 +33,13 @@ const ICON_SIZE = 40
 
 type RenderArgs = { url: string; title: string; ariaLabel: string }
 
-// Each platform → its display name (for the aria-label) and a render that wires
-// the matching react-share button + round icon. Rendered per-entry rather than
-// through one generic component because the networks' props differ: Facebook
-// carries no share text (it reads the shared page's Open Graph tags), Email maps
-// the event title to the mail subject (its body defaults to the URL), and every
-// other network takes the title as the composer's prefilled text.
+// Each platform maps to its display name, for the aria-label, and a
+// render that wires the matching react-share button and round icon. This
+// renders per-entry, instead of through one generic component, because
+// the networks' props differ. Facebook carries no share text, since it
+// reads the shared page's Open Graph tags. Email maps the event title to
+// the mail subject, and its body defaults to the URL. Every other
+// network takes the title as the composer's prefilled text.
 const PLATFORMS: Record<PlatformKey, { name: string; render: (args: RenderArgs) => ReactNode }> = {
   whatsapp: {
     name: 'WhatsApp',
@@ -142,14 +143,15 @@ export type PlatformButtonProps = {
   platform: PlatformKey
   /** The canonical event URL to share. */
   url: string
-  /** The event title — the composer's prefilled text (mail subject for Email). */
+  /** The event title. This is the composer's prefilled text, and the mail subject for Email. */
   title: string
 }
 
 /**
- * One region-appropriate share target: the react-share button + round icon for
- * `platform`, labelled "Share on <platform>" for screen readers. The parent
- * `ShareContent` lays these out in a grid ordered by `platformsForCountry`.
+ * One region-appropriate share target: the react-share button and round
+ * icon for `platform`, labelled "Share on <platform>" for screen
+ * readers. The parent `ShareContent` lays these out in a grid, ordered
+ * by `platformsForCountry`.
  */
 export function PlatformButton({ platform, url, title }: PlatformButtonProps) {
   const { t } = useTranslation()

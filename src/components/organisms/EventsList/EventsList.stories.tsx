@@ -9,9 +9,9 @@ import { mockEventSlim, mockEventSlimList } from '@/mocks/events'
 export default { title: 'Organisms' } satisfies StoryDefault
 
 /**
- * EventsList — the presentational list of events (events passed in via props).
- * Its sibling DynamicEventsList fetches by coordinates over the network, so it
- * isn't storied here; these stories stay offline.
+ * EventsList is the presentational list of events: events pass in via props.
+ * Its sibling DynamicEventsList fetches by coordinates over the network, so
+ * this file does not story that part. These stories stay offline.
  */
 export const Default: Story = () => (
   <StoryWrapper>

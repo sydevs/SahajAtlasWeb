@@ -8,8 +8,8 @@ import { fileURLToPath } from 'url'
  */
 export default {
   stories: 'src/**/*.stories.{ts,tsx}',
-  // Point Ladle at its own dedicated Vite config. Without this line, Ladle
-  // auto-discovers the root vite.config.ts instead. That config's
+  // Point Ladle at its own dedicated Vite config. Without this line,
+  // Ladle auto-discovers the root vite.config.ts instead. That config's
   // multi-entry `rollupOptions.input` (index.html and Widget.tsx) and its
   // css-injected-by-js plugin would break the isolated build.
   viteConfig: fileURLToPath(new URL('./vite.config.ts', import.meta.url)),
@@ -19,9 +19,9 @@ export default {
   hmr: true,
   base: '/',
   addons: {
-    // Light/dark toggle. The decorator maps this control onto the `dark`
-    // class. Tailwind (darkMode: 'class') reads that class. Stories should
-    // look right in both states.
+    // Light/dark toggle. The decorator maps this control onto the
+    // `dark` class. Tailwind (darkMode: 'class') reads that class.
+    // Stories should look right in both states.
     theme: {
       enabled: true,
       defaultState: 'light',

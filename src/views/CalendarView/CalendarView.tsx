@@ -28,10 +28,11 @@ import {
 import { CloseButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
-// Schedule-X validates `locale` against its own supported BCP-47 set and THROWS
-// (`InvalidLocaleError`) on an unknown code — our short `en`/`de`/… crash it. Map our
-// locales to the closest one SX 2.36 ships; anything unmapped (incl. Hungarian, which
-// SX lacks) falls back to en-US chrome — our own header is fully localized via i18n.
+// Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
+// (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
+// maps this project's locales to the closest one SX 2.36 ships. Anything unmapped, including
+// Hungarian, which SX lacks, falls back to en-US chrome. This project's own header stays fully
+// localized via i18n.
 const SX_LOCALES: Record<string, string> = {
   en: 'en-US',
   de: 'de-DE',
@@ -46,10 +47,11 @@ const SX_LOCALES: Record<string, string> = {
 
 const toScheduleXLocale = (locale: string): string => SX_LOCALES[locale] ?? 'en-US'
 
-// Online programs get their own colour (the secondary ramp) so they stand out from in-person
-// events on the grid; entries built with `calendarId: 'online'` (see eventsToCalendarEntries)
-// pick it up. Light + dark share the same token strings — our `--secondary-*` CSS vars adapt
-// to the theme on the `.sx-calendar` wrapper, so SX's own isDark colour switch isn't needed.
+// Online programs get their own colour, the secondary ramp, so they stand out from
+// in-person events on the grid. Entries built with `calendarId: 'online'` (see
+// eventsToCalendarEntries) pick it up. Light and dark share the same token strings — the
+// `--secondary-*` CSS vars adapt to the theme on the `.sx-calendar` wrapper, so SX's own
+// isDark colour switch is not needed.
 const ONLINE_COLORS = {
   main: 'hsl(var(--secondary-9))',
   container: 'hsl(var(--secondary-4))',
@@ -59,19 +61,21 @@ const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
 
-// The registered Schedule-X view names — the picker's values and what we persist/restore.
+// The registered Schedule-X view names — the picker's values and what this app persists and
+// restores.
 const VIEW_MONTH = 'month-grid'
 const VIEW_WEEK = 'week'
 const VIEW_LIST = 'list'
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
-// The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are live
-// before the grid mounts (the header sits above the Suspense). So each action updates the store
-// FIRST — that's what re-renders the header (label + active view) and what the grid seeds from
-// when it (re)mounts — then best-effort calls the plugin to move the *mounted* calendar. Wrapped
-// because a plugin call before its `onRender` throws a TypeError (no `$app` yet); the store write
-// above already recorded the intent, and the seed applies it on mount.
+// The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are
+// live before the grid mounts — the header sits above the Suspense. So each action updates the
+// store FIRST. That is what re-renders the header — label and active view — and what the grid
+// seeds from when it (re)mounts. It then best-effort calls the plugin to move the *mounted*
+// calendar. This call is wrapped because a plugin call before its `onRender` throws a
+// TypeError, since there is no `$app` yet. The store write above already recorded the intent,
+// and the seed applies it on mount.
 const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin) => void) => {
   try {
     fn(controls)
@@ -80,10 +84,10 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
   }
 }
 
-// We DRIVE Schedule-X from our own header rather than styling its built-in one (whose date
-// picker / view dropdown / nav we kept fighting): the `calendar-controls` plugin is a public
-// API (`setView`/`setDate`/`getRange`/…), so the header is our own atoms — one consistent
-// drawer header — and SX's header bar is hidden in globals.css.
+// This drives Schedule-X from this project's own header, rather than styling its built-in
+// one, whose date picker, view dropdown, and nav kept causing conflicts. The `calendar-controls`
+// plugin is a public API (`setView`/`setDate`/`getRange`/…), so the header uses this project's
+// own atoms — one consistent drawer header — and SX's header bar stays hidden in globals.css.
 function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { t } = useTranslation('common')
   const { locale } = useLocale()
@@ -162,9 +166,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <ChevronRight className="h-4 w-4 rotate-180 rtl:-scale-x-100" />
           </Button>
 
-          {/* The focused date sits between the arrows; clicking opens the browser's native
-              picker (which has its own Today button, so we don't need a separate one). The
-              input overlays the button so the picker anchors to it, but stays click-through. */}
+          {/* The focused date sits between the arrows. Clicking it opens the browser's native
+              picker, which has its own Today button, so this needs no separate one. The input
+              overlays the button so the picker anchors to it, but stays click-through. */}
           <div className="relative">
             <button
               className="inline-flex items-center rounded px-1.5 py-1 text-sm font-medium hover:bg-primary-3"
@@ -205,20 +209,22 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   )
 }
 
-// The full-width calendar (route `/calendar`, optionally `?region=<slug>`). Its entries
-// are the filtered feed (`getCalendarEvents`) expanded into one per upcoming occurrence
-// — timezone-correct, online events included — on a Schedule-X month / week / list(agenda)
-// grid whose `--sx-*` tokens are mapped to our theme (see globals.css). Placeless, so it
-// never frames the map; clicking an entry opens its EventView. The Filter button opens
-// FilterView as a right/bottom overlay over this (still-mounted) view (see DrawerStack).
+// The full-width calendar, at route `/calendar`, optionally with `?region=<slug>`. Its
+// entries are the filtered feed (`getCalendarEvents`) expanded into one per upcoming
+// occurrence — timezone-correct, online events included — on a Schedule-X month, week, or
+// list (agenda) grid whose `--sx-*` tokens are mapped to this project's theme (see
+// globals.css). This view is placeless, so it never frames the map. Clicking an entry opens
+// its EventView. The Filter button opens FilterView as a right or bottom overlay over this
+// still-mounted view (see DrawerStack).
 //
-// Our own header (CalendarControls) drives the calendar via the calendar-controls plugin, so
-// SX's built-in header is hidden — one consistent drawer header for every width. The plugin is
-// created here and shared with the header, and the grid is KEYED by the applied filters so it
-// captures Schedule-X's config once and remounts with fresh events + dayBoundaries on apply
-// (the shared plugin re-binds to the new instance). A local Suspense keeps the header + pills
-// visible while the (cache-once) source resolves; across a remount (and returning from an event)
-// the view + focused date are restored from `useCalendarPosition`.
+// This project's own header (CalendarControls) drives the calendar via the calendar-controls
+// plugin, so SX's built-in header stays hidden — one consistent drawer header for every width.
+// The plugin is created here and shared with the header. The grid is KEYED by the applied
+// filters, so it captures Schedule-X's config once and remounts with fresh events and
+// dayBoundaries on apply — the shared plugin re-binds to the new instance. A local Suspense
+// keeps the header and pills visible while the cache-once source resolves. Across a remount,
+// and when returning from an event, the view and focused date restore from
+// `useCalendarPosition`.
 export function CalendarView() {
   const filters = useEventFilters()
   // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
@@ -231,12 +237,12 @@ export function CalendarView() {
         <CalendarControls controls={controls} />
       </DrawerHeader>
       <ActiveFilterPills />
-      {/* The grid owns the `['calendar', …]` read; the header above (month nav, view
-          picker, filters, close) and the pills read none of it. So a failed grid is
-          survivable in place: escalating it to the drawer boundary would replace all that
-          working chrome to show the identical alert (issue #89).
-          `resetKeys` is load-bearing, not decoration; `listResetKey` (lib/shape/path.ts)
-          explains why the pathname alone isn't enough. */}
+      {/* The grid owns the `['calendar', …]` read. The header above — month nav, view picker,
+          filters, close — and the pills read none of it. So a failed grid is survivable in
+          place. Escalating it to the drawer boundary would replace all that working chrome to
+          show the identical alert (issue #89).
+          `resetKeys` is load-bearing, not decoration. `listResetKey` (lib/shape/path.ts)
+          explains why the pathname alone is not enough. */}
       <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
         {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
             above, so the chrome-ful one drew a second header (and a second close button)
@@ -281,9 +287,10 @@ function CalendarGrid({
     [events, filters.timeOfDay],
   )
 
-  // Seed from the last position (view + focused date). Read once, non-reactively, for the
-  // capture-config-once hook; kept current by the header + the callback below, so at the next
-  // remount (a filter apply captures config during *render*) the seed is already up to date.
+  // Seed from the last position — view and focused date. This reads once, non-reactively, for
+  // the capture-config-once hook. The header and the callback below keep it current, so at the
+  // next remount — a filter apply captures config during *render* — the seed is already up to
+  // date.
   const position = useCalendarPosition.getState()
 
   const calendar = useNextCalendarApp(
@@ -298,12 +305,13 @@ function CalendarGrid({
       // Undefined leaves Schedule-X's default grid (whole day).
       dayBoundaries,
       isDark: theme === 'dark',
-      // SX needs a supported BCP-47 code (see SX_LOCALES) or it throws; our token overrides
-      // (globals.css) carry the light/dark + accent theming regardless of `isDark`.
+      // SX needs a supported BCP-47 code (see SX_LOCALES), or it throws. This project's token
+      // overrides (globals.css) carry the light/dark and accent theming regardless of
+      // `isDark`.
       locale: toScheduleXLocale(locale),
       callbacks: {
-        // Each entry carries its event's route; open the matching EventView (the atlas
-        // navigate stamps camera/depth like every other in-widget push).
+        // Each entry carries its event's route. This opens the matching EventView — the atlas
+        // navigate stamps camera and depth like every other in-widget push.
         onEventClick: (event) => {
           if (typeof event.path === 'string') navigate(event.path)
         },

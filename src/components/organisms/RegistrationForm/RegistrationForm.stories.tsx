@@ -1,8 +1,8 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { EventSchedule } from '@/types'
 
-// Not in the organisms barrel (reached only via the RegistrationView drawer);
-// import from the co-located file.
+// This is not in the organisms barrel — it is reached only via the
+// RegistrationView drawer. Import from the co-located file instead.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { RegistrationForm } from './RegistrationForm'
@@ -11,8 +11,8 @@ export default { title: 'Organisms' } satisfies StoryDefault
 
 const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
 
-// A real weekly recurrence, so the Confirmation story's calendar links carry an
-// actual RRULE + TZID rather than a degenerate one-off.
+// This is a real weekly recurrence, so the Confirmation story's calendar
+// links carry an actual RRULE and TZID, rather than a degenerate one-off.
 const weeklySchedule: EventSchedule = {
   firstDate: new Date('2026-07-01T17:30:00Z'),
   firstDate_tz: 'Europe/Prague',
@@ -24,10 +24,10 @@ const weeklySchedule: EventSchedule = {
 }
 
 /**
- * RegistrationForm — the form-only registration component, rendered in the
- * RegistrationView drawer body. It carries the date/name/email fields, the
- * privacy note, and the thank-you/share screen on success. External
- * registration (a link out) is handled by EventDetails, not the form.
+ * RegistrationForm is the form-only registration component, rendered in
+ * the RegistrationView drawer body. It carries the date, name, and email
+ * fields, the privacy note, and the thank-you and share screen on success.
+ * EventDetails handles external registration (a link out), not this form.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -138,9 +138,9 @@ export const Default: Story = () => (
       </div>
     </StorySection>
 
-    {/* The external-registration CTA is EventRegisterBar's, not the form's — see
-        the "External" section of the Event Details story, which renders the real
-        component rather than a stand-in button. */}
+    {/* The external-registration CTA belongs to EventRegisterBar, not to this
+        form. See the "External" section of the Event Details story, which
+        renders the real component, rather than a stand-in button. */}
 
     <div />
   </StoryWrapper>

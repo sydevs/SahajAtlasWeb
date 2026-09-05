@@ -6,10 +6,9 @@ import { hostHtmlLangDetector, i18nDetectionOptions } from './i18n-options'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
 /**
- * `<html lang>` as a language signal — and the one document it must refuse to read.
+ * This tests `<html lang>` as a language signal, and the one document it must refuse to read.
  *
- * jsdom, because every branch is a question about a real `document.documentElement`: what its
- * `lang` says and whether it is OUR shell or a host's page.
+ * This uses jsdom, because every branch is a question about a real `document.documentElement`: what its `lang` says, and whether it is OUR shell or a host's page.
  */
 afterEach(() => {
   document.documentElement.removeAttribute('lang')
@@ -34,12 +33,11 @@ describe('hostHtmlLangDetector', () => {
   })
 
   /**
-   * ⚠ **The whole reason this is not i18next's built-in `htmlTag` detector.**
+   * ⚠ **This is the whole reason this is not i18next's built-in `htmlTag` detector.**
    *
-   * Our standalone shell is `<html class="sy-atlas" lang="en">` — a hard-coded placeholder that
-   * describes nothing. The built-in would read it and pin every standalone visitor to English,
-   * silently undoing the browser detection that works today. The scope class marks a document as
-   * ours; a host's page never carries it on `<html>`.
+   * Our standalone shell is `<html class="sy-atlas" lang="en">`, a hard-coded placeholder that describes nothing.
+   * The built-in detector would read it and pin every standalone visitor to English, silently undoing the browser detection that works today.
+   * The scope class marks a document as ours. A host's page never carries it on `<html>`.
    */
   it('refuses to read our OWN shell, which declares a placeholder', () => {
     document.documentElement.classList.add(WIDGET_SCOPE_CLASS)
@@ -50,8 +48,8 @@ describe('hostHtmlLangDetector', () => {
 })
 
 describe('the detection order', () => {
-  // ⚠ A name in `order` that no registered detector answers to is skipped in SILENCE. So the two
-  // have to be asserted together, or a rename leaves the entry inert with everything green.
+  // ⚠ A name in `order` that no registered detector answers to is skipped in SILENCE.
+  // So this test asserts the two together. Otherwise a rename leaves the entry inert with everything green.
   it('names the detector that is actually registered', () => {
     expect(i18nDetectionOptions.order).toContain(hostHtmlLangDetector.name)
   })

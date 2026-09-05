@@ -12,14 +12,15 @@ import { lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
- * The pair every surface in this folder takes: the event, plus the route it was
- * reached at. Declared once here (EventDetails, EventActions and EventRegisterBar
- * all render from the same two values and are always passed them together) so a
- * change to the contract can't land on only two of the three.
+ * Every surface in this folder takes the same pair: the event, and the route
+ * that reached it. This type declares the pair once, here. EventDetails,
+ * EventActions, and EventRegisterBar all render from these same two values.
+ * Callers always pass both together. This way, a change to the contract
+ * cannot land on only two of the three.
  */
 export type EventSurfaceProps = {
   event: Event
-  /** The event's current route; register/share drawers open at `${basePath}/register|share`. */
+  /** The event's current route. Register and share drawers open at `${basePath}/register|share`. */
   basePath: string
 }
 
@@ -28,24 +29,26 @@ export type EventDetailsProps = EventSurfaceProps & {
    *  false and mounts EventRegisterBar in the sticky drawer footer instead. */
   registerInline?: boolean
   /**
-   * Rendered immediately above Register, inside the panel's own flow.
+   * This slot renders immediately above Register, inside the panel's own flow.
    *
-   * A slot rather than a prop per caller: what goes here is a view's business, not this
-   * component's, and the alternative was a second boolean beside `registerInline` for every
-   * such addition. EventView passes the post-event feedback acknowledgement (#164).
+   * This uses a slot, not a prop, because each caller decides what goes here.
+   * It is a view's job, not this component's job. The alternative was a second
+   * boolean beside `registerInline` for every new addition. EventView passes
+   * the post-event feedback acknowledgement (#164).
    *
-   * ⚠ Where Register is NOT inline (the mobile map sheet mounts `EventRegisterBar` in the
-   * sticky footer instead), this still renders here — after the facts, above everything that
-   * follows — which keeps it above the sticky bar in reading order too.
+   * ⚠ Register is sometimes not inline. Then the mobile map sheet mounts
+   * `EventRegisterBar` in the sticky footer instead. This slot still renders
+   * here, after the facts and above everything that follows. This position
+   * keeps it above the sticky bar in reading order too.
    */
   children?: ReactNode
 }
 
 /**
- * The event panel body, in the issue #52 order: chips → facts (plain text) →
- * Register → microcopy → secondary actions → images → About. Only the title is a
- * separate component (EventHeader), rendered outside the scrolling drawer body so
- * it stays pinned; the triage chips lead the body.
+ * This is the event panel body. It follows the order from issue #52: chips,
+ * facts (plain text), Register, microcopy, secondary actions, images, then
+ * About. The title is a separate component (EventHeader). It renders outside
+ * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
  */
 export function EventDetails({
   event,
@@ -57,9 +60,10 @@ export function EventDetails({
 
   const descriptionHtml = lexicalToHtml(event.description)
 
-  // The image alt doubles as the lightbox caption. Memoized so a stable slides
-  // array is threaded to the carousel/lightbox across re-renders. URLs are
-  // already origin-resolved by getEvent; skip any image that has none.
+  // The image alt text doubles as the lightbox caption. This value is memoized,
+  // so the carousel and lightbox receive the same stable slides array across
+  // re-renders. getEvent already resolves each URL to its origin. Skip any
+  // image with no URL.
   const slides = useMemo(
     () =>
       event.images.flatMap((image) =>
@@ -73,16 +77,17 @@ export function EventDetails({
   const hasImages = slides.length > 0
 
   return (
-    // The carousel is full-bleed and always last, so it takes the container's
-    // bottom padding away with it: the images sit flush against the end of the
-    // view rather than floating 40px above it. Everything else keeps the padding.
+    // The carousel is full-bleed and always last. It removes the container's
+    // bottom padding, so the images sit flush against the end of the view
+    // instead of floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-6 pt-2 ${hasImages ? '' : 'pb-10'}`}>
-      {/* The triage chips open the body rather than riding under the title in the
-          pinned header. `-mb-2` pulls the facts back up: the chips are a short row
-          and the container's `gap-4` plus the facts' own `my-2` left them floating. */}
+      {/* The triage chips open the body. They do not sit under the title in the
+          pinned header. The chips are a short row. The container's `gap-4` and
+          the facts' own `my-2` add extra space before the facts. The `-mb-2`
+          class removes that extra space. */}
       <EventChips className="-mb-2" event={event} />
 
-      {/* Extra breathing room around the when/where facts, above the register CTA. */}
+      {/* Extra space appears around the date and location facts, above the Register button. */}
       <EventFacts className="my-2" event={event} />
 
       {children}
@@ -91,7 +96,7 @@ export function EventDetails({
 
       <EventActions basePath={basePath} event={event} />
 
-      {/* About — host-authored prose sits BELOW facts and actions, always. */}
+      {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
         <div className="flex flex-col gap-2">
           <h2 className="text-md font-semibold">{t('display.about')}</h2>
@@ -104,8 +109,9 @@ export function EventDetails({
       )}
 
       {hasImages && (
-        // Full-bleed below the description: cancel the container's px-6 so the
-        // carousel spans the full drawer width (the slides carry no padding now).
+        // This section sits full-bleed below the description. It cancels the
+        // container's `px-6` padding, so the carousel spans the full drawer
+        // width. The slides now carry no padding of their own.
         <div className="-mx-6">
           <ImageCarousel slides={slides} />
         </div>

@@ -19,7 +19,7 @@ const events: GeoEvent[] = [
   { point: null, ancestorIds: [28, 470], online: true }, // online event under Brussels
 ]
 
-// Belgium(28) → Antwerpen(473); Belgium(28) → Brussels(470) → venue(513).
+// Belgium(28) → Antwerpen(473), and Belgium(28) → Brussels(470) → venue(513).
 const regionTree = [
   { id: 28, slug: 'belgium', parent: null },
   { id: 473, slug: 'antwerpen', parent: 28 },
@@ -127,7 +127,7 @@ describe('partitionUnder', () => {
     const { byChild, direct, online } = partitionUnder(subtree, belgium, [antwerpen, brussels])
     const kept = [...byChild.values()].flat().length + direct.length + online.length
 
-    // Five of six events fall under Belgium; the France event is dropped entirely.
+    // Five of six events fall under Belgium. The France event is dropped entirely.
     expect(kept).toBe(5)
   })
 

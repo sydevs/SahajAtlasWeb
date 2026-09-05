@@ -6,8 +6,8 @@
  * ever WROTE it, so picking a language from the settings menu changed the widget and left the
  * address bar describing the page as it was before — nothing to copy, nothing to reload into.
  *
- * This is the other half. It is the second and last top-level parameter the widget ever WRITES to
- * a host's URL, beside `atlas`; both `hrefFor` and `pathHrefFor` preserve parameters they do not
+ * This is the other half. It is the second and last top-level parameter the widget ever writes to
+ * a host's URL, beside `atlas`. Both `hrefFor` and `pathHrefFor` preserve parameters they do not
  * own, so once written it survives every subsequent in-widget navigation and rides along in
  * anything the visitor copies.
  *
@@ -73,8 +73,9 @@ export function publishLocale(locale: string, win: Window = window): void {
   try {
     win.history.replaceState(win.history.state, '', href)
   } catch {
-    // A document that refuses replaceState keeps the language for this session and simply
-    // doesn't persist it — the same posture the atlas history takes on a refused write.
+    // A document that refuses replaceState keeps the language for this
+    // session, and simply does not persist it. This is the same posture the
+    // atlas history takes on a refused write.
   }
 }
 

@@ -6,22 +6,24 @@ import { Check, ChevronDown, Search } from 'lucide-react'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 import { fieldChrome } from '@/components/atoms/Select'
 
-// A single-select combobox: the search happens in the field itself (a text input in the
-// popover), results filter as you type, and clicking one selects it. Built on
-// @radix-ui/react-popover + cmdk (the shadcn Combobox pattern) rather than our Select atom
-// because a Select's trigger mirrors the whole chosen item and its search is trapped inside
-// the open list. Radix's portal keeps the popover interactive inside a modal vaul drawer
-// (the calendar's filter sheet), where a Floating-UI popover would be pointer-locked out.
+// A single-select combobox. The search happens in the field itself, in a text
+// input inside the popover. Results filter as you type. Clicking one selects
+// it. This uses @radix-ui/react-popover and cmdk, the shadcn Combobox pattern,
+// instead of our Select atom. A Select's trigger mirrors the whole chosen item,
+// and its search stays trapped inside the open list. Radix's portal keeps the
+// popover interactive inside a modal vaul drawer, such as the calendar's
+// filter sheet. A Floating-UI popover would be pointer-locked out there.
 //
-// We drive cmdk with `shouldFilter={false}` and filter ourselves so a match tests both the
-// label AND the `hint` (e.g. typing "Alberta" finds "Calgary") and `onSelect` closes over the
-// real option value — sidestepping cmdk's habit of lower-casing the value it passes back.
+// This drives cmdk with `shouldFilter={false}` and filters the options itself.
+// A match tests both the label AND the `hint`, so typing "Alberta" finds
+// "Calgary". `onSelect` closes over the real option value. This sidesteps
+// cmdk's habit of lower-casing the value it passes back.
 export type ComboboxOption = {
   /** The stable value committed on select (e.g. a region slug). */
   value: string
   /** The primary line shown in the list and in the trigger once selected. */
   label: string
-  /** A secondary line under the label (e.g. a breadcrumb); also searchable. */
+  /** A secondary line under the label, such as a breadcrumb. It is also searchable. */
   hint?: string
 }
 
@@ -35,13 +37,13 @@ export type ComboboxProps = {
   searchPlaceholder?: string
   /** Shown when the query matches no option. */
   emptyLabel?: string
-  /** Danger-border the trigger + set `aria-invalid` to flag a validation error. */
+  /** Danger-border the trigger and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
-  /** Primary-tint the trigger to flag an active/in-use field. */
+  /** Primary-tint the trigger to flag an active field. */
   highlight?: boolean
   disabled?: boolean
   'aria-label'?: string
-  /** Id of the field's error/description text, forwarded to the trigger for screen readers. */
+  /** Id of the field's error or description text. It is forwarded to the trigger for screen readers. */
   'aria-describedby'?: string
   className?: string
 }
@@ -83,8 +85,9 @@ export function Combobox({
         if (!next) setQuery('')
       }}
     >
-      {/* A disclosure button (Radix supplies aria-expanded/aria-haspopup) — the actual combobox
-          is cmdk's CommandInput inside, so role="combobox" doesn't belong on the trigger too. */}
+      {/* A disclosure button. Radix supplies aria-expanded and aria-haspopup. The
+          actual combobox is cmdk's CommandInput inside, so role="combobox" does not
+          belong on the trigger too. */}
       <Popover.Trigger
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
@@ -99,8 +102,8 @@ export function Combobox({
       </Popover.Trigger>
 
       <Popover.Portal container={overlayContainer()}>
-        {/* popper position exposes `--radix-popover-trigger-width`, so the panel matches the
-            trigger rather than sizing to its longest option. */}
+        {/* The popper position exposes `--radix-popover-trigger-width`. So the panel
+            matches the trigger, instead of sizing to its longest option. */}
         <Popover.Content
           align="start"
           className="z-50 w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-lg border border-gray-6 bg-background shadow-xl"

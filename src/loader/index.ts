@@ -5,29 +5,28 @@
  * <script src="https://atlas.example/auto.js?key=…"></script>
  * ```
  *
- * That is the entire snippet. There is no `<sahaj-atlas>` element in host markup and no
- * attribute to misspell: the loader creates the element, and every parameter rides on this
- * script's own URL (`./config.ts` argues why).
+ * That is the entire snippet. There is no `<sahaj-atlas>` element in host markup, and no
+ * attribute to misspell. The loader creates the element. Every parameter rides on this script's
+ * own URL (`./config.ts` explains why).
  *
- * **What it buys.** The widget's eager payload is about 370 KiB gz. Loading it on every
- * page view of every embed — including the ones nobody scrolls to — spends that on the
- * host's LCP and INP, which are ranking signals for the very pages this program is
- * trying to get indexed. The loader is about 3 KiB and fetches the rest only when the
- * widget is about to be seen, so the cost becomes proportional to whether anyone looks
- * at it.
+ * **What this buys.** The widget's eager payload is about 370 KiB gz. Loading it on every page
+ * view of every embed — including the ones nobody scrolls to — spends that budget on the host's
+ * LCP and INP. Those are ranking signals for the very pages this program tries to get indexed.
+ * The loader is about 3 KiB, and fetches the rest only when the widget is about to become
+ * visible. So the cost stays proportional to whether anyone looks at it.
  *
- * **Three things it must never do**, because it runs first, in a page we do not own,
- * before anything of ours is on screen:
+ * **Three things it must never do.** It runs first, in a page this project does not own, before
+ * anything of the widget's own is on screen:
  *
- * 1. **Throw.** Every DOM read here is a read of somebody else's document. A host may
- *    have patched `getBoundingClientRect`, frozen `history`, or be serving a `file://`
- *    document. An uncaught throw in a top-level script is the host's problem to debug,
- *    and it is ours to prevent — the same argument `Widget.tsx` already makes around its
- *    slot-measurement probe.
- * 2. **Block.** No synchronous work beyond parsing a URL, and no network before idle.
- * 3. **Write the host's URL.** The probes below are no-ops by construction (`replaceState`
- *    to the current href, plus a param written and immediately removed). The widget's own
- *    routing writes the URL later, deliberately. The loader must leave it exactly as it
+ * 1. **Throw.** Every DOM read here reads somebody else's document. A host may have patched
+ *    `getBoundingClientRect`, frozen `history`, or be serving a `file://` document. An uncaught
+ *    throw in a top-level script is the host's problem to debug, and this code's job to prevent —
+ *    the same argument `Widget.tsx` already makes around its slot-measurement probe.
+ * 2. **Block.** Do no synchronous work beyond parsing a URL, and start no network request before
+ *    idle.
+ * 3. **Write the host's URL.** The probes below are no-ops by construction (`replaceState` to
+ *    the current href, plus a parameter written and immediately removed). The widget's own
+ *    routing writes the URL later, deliberately. The loader must leave the URL exactly as it
  *    found it.
  */
 import type { LoaderConfig } from './config'
@@ -50,7 +49,7 @@ const warn = (message: string) => {
   try {
     console.warn(`${LOG_PREFIX} ${message}`)
   } catch {
-    // A host that broke `console` does not get to break the widget.
+    // A host that broke `console` must not also break the widget.
   }
 }
 
@@ -58,21 +57,21 @@ const error = (message: string) => {
   try {
     console.error(`${LOG_PREFIX} ${message}`)
   } catch {
-    // As above.
+    // Same reason as above.
   }
 }
 
 /**
- * Does a query param survive this host's router?
+ * Does a query parameter survive this host's router?
  *
- * This is measured rather than assumed: a host SPA that rewrites the URL on boot would
- * swallow the widget's route silently, and the failure would look like the widget
- * forgetting where it was. This writes and removes the param in the same call, both as
- * `replaceState`, so the host's URL stays unchanged whichever way the answer comes out.
+ * This code measures the answer, rather than assuming it. A host SPA that rewrites the URL on
+ * boot would swallow the widget's route silently. The failure would then look like the widget
+ * forgetting where it was. This function writes and removes the parameter in the same call, both
+ * as `replaceState`. So the host's URL stays unchanged whichever way the answer comes out.
  *
- * ⚠ This is a *synchronous* check, and a host router that reverts asynchronously will
- * pass it. That is why `boot()` runs detection on idle, rather than at mount — by then
- * the host's own router has had a turn.
+ * ⚠ This is a *synchronous* check, and a host router that reverts asynchronously will pass it
+ * anyway. That is why `boot()` runs detection on idle, rather than at mount. By then the host's
+ * own router has had a turn.
  */
 function probeParamPersisted(): boolean {
   try {
@@ -95,21 +94,21 @@ function probeParamPersisted(): boolean {
 /**
  * Can this document write its own URL?
  *
- * This is a genuine no-op — `replaceState` to the href we are already on — so it cannot
- * disturb the host or add a history entry. It feeds the embed report's
- * `canonicalViable`: a page whose URL we cannot write cannot carry a shareable route, so
- * it cannot be a region's canonical page.
+ * This is a genuine no-op — `replaceState` to the href this code is already on. So it cannot
+ * disturb the host or add a history entry. It feeds the embed report's `canonicalViable` value.
+ * A page whose URL this code cannot write cannot carry a shareable route, so it cannot be a
+ * region's canonical page.
  *
- * ⚠ **That is not its only reader, and treating it as one is how the field gets removed
- * with the report.** `urlWritable` also decides `mountDecision`'s router
- * (`lib/shape/routing.ts`) — false puts the WHOLE widget into memory routing — and rides
- * in the readiness marker that SahajCloud's verifier reads (`lib/embed-announce.ts`,
- * #153). Change any of the three and check the other two.
+ * ⚠ **This value has more than one reader. Treating it as having only one is how a field gets
+ * removed along with the report.** `urlWritable` also decides `mountDecision`'s router
+ * (`lib/shape/routing.ts`) — a `false` value puts the WHOLE widget into memory routing. It also
+ * rides in the readiness marker that SahajCloud's verifier reads (`lib/embed-announce.ts`,
+ * #153). Change any of the three, and check the other two.
  *
- * ⚠ **It is not a sandbox detector**, though it reads like one, and this repo believed
- * it was until #161 measured it. In Chrome 151 a real `sandbox="allow-scripts"` frame
- * has an opaque origin (`localStorage` throws) and still permits `replaceState` and
- * `pushState`. What a sandbox actually blocks is `window.open`.
+ * ⚠ **This is not a sandbox detector**, though it reads like one. This repo believed it was,
+ * until #161 measured it. In Chrome 151, a real `sandbox="allow-scripts"` frame has an opaque
+ * origin (`localStorage` throws), and still permits `replaceState` and `pushState`. What a
+ * sandbox actually blocks is `window.open`.
  */
 function probeUrlWritable(): boolean {
   try {
@@ -123,9 +122,9 @@ function probeUrlWritable(): boolean {
 
 function detect(config: LoaderConfig): EmbedFingerprint {
   const signals: DetectionSignals = {
-    // A cross-origin parent makes `window.top` throw on access, rather than return a
-    // foreign window, so the comparison has to be guarded — and a throw here means we
-    // are framed.
+    // A cross-origin parent makes `window.top` throw on access, instead of returning a
+    // foreign window. So this comparison needs a guard. A throw here means the widget is
+    // framed.
     topLevel: (() => {
       try {
         return window.self === window.top
@@ -143,35 +142,32 @@ function detect(config: LoaderConfig): EmbedFingerprint {
 /**
  * Marks the element a loader has taken responsibility for.
  *
- * Needed because two loaders on one page cannot see each other any other way: loaded
- * from two different URLs they are two module instances with two sets of module state,
- * and the browser's module map only dedupes identical `src`s. The DOM is the one thing
- * they share.
+ * Two loaders on one page cannot see each other any other way. Loaded from two different URLs,
+ * they are two module instances with two sets of module state, and the browser's module map only
+ * deduplicates identical `src` values. The DOM is the one thing they share.
  */
 const CLAIMED_ATTR = 'data-sy-atlas-loaded'
 
 /**
- * The element to render into: the host's, if a platform made one, otherwise ours — or
- * `null` if somebody else already has one.
+ * The element to render into: the host's, if a platform made one, otherwise this loader's own —
+ * or `null` if somebody else already has one.
  *
- * Three cases, all real. The documented install is a bare `<script>`, so normally there
- * is no element, and the loader inserts one where the script sits. **Wix creates the
- * element itself** — its Custom Element takes a tag name and a script URL — so there
- * one already exists, and making a second would mean two widgets, which
- * `Widget.tsx`'s one-per-page rule would refuse the second of anyway.
+ * Three cases, all real. The documented install is a bare `<script>`, so normally there is no
+ * element, and the loader inserts one where the script sits. **Wix creates the element itself.**
+ * Its Custom Element takes a tag name and a script URL, so one already exists there. Making a
+ * second would mean two widgets, and `Widget.tsx`'s one-per-page rule would refuse the second one
+ * anyway.
  *
- * The third case is why the claim marker exists. Adopting *any* pre-existing element is
- * right for Wix and wrong for a page carrying the snippet twice: the second loader
- * would silently adopt the first one's widget, its configuration would be discarded,
- * and the page would look like it had one working embed rather than one embed and one
- * mistake. Adopting an unclaimed element and refusing a claimed one distinguishes the
- * two.
+ * The third case is why the claim marker exists. Adopting *any* pre-existing element is right for
+ * Wix, and wrong for a page carrying the snippet twice. There, the second loader would silently
+ * adopt the first one's widget. Its own configuration would be discarded, and the page would look
+ * like it had one working embed, instead of one embed and one mistake. Adopting an unclaimed
+ * element, and refusing a claimed one, tells the two cases apart.
  *
- * ⚠ **This is a refusal, not a limitation this code could lift here.** Two widgets on a
- * page are blocked by the URL, not by this: both would mount routers writing the same
- * `?atlas=` parameter and fight over it every time either navigated. Whatever makes
- * multiple embeds possible has to answer that first — which is the routing work, not
- * the loader.
+ * ⚠ **This is a refusal, not a limitation this code could lift.** Two widgets on a page are
+ * blocked by the URL, not by this check. Both would mount routers that write the same `?atlas=`
+ * parameter, and fight over it every time either one navigated. Whatever makes multiple embeds
+ * possible must answer that problem first — that is routing work, not loader work.
  */
 function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   const existing = document.querySelector(ELEMENT_NAME)
@@ -197,25 +193,24 @@ function resolveElement(script: HTMLScriptElement | null): HTMLElement | null {
   element.setAttribute(CLAIMED_ATTR, '')
   const parent = script?.parentNode
 
-  // `<head>` is never where the widget goes, and it is reachable two ways: a host who
-  // put the snippet there, and the classic shim, which bridges to this module by
-  // appending a module script to `<head>`. Inserting there yields an element that is
-  // in the document, upgrades normally, and paints nothing — the worst kind of
-  // failure. On the shim's path an element already exists (Wix creates it), so this
-  // branch only fires when something is genuinely wrong.
+  // `<head>` is never where the widget goes. Two paths can put the script there: a host that
+  // put the snippet there, and the classic shim. The shim bridges to this module by appending a
+  // module script to `<head>`. Inserting the element there would leave it in the document, let
+  // it upgrade normally, but paint nothing — the worst kind of failure. On the shim's path, an
+  // element already exists (Wix creates it), so this branch fires only when something is
+  // genuinely wrong.
   if (parent && parent.nodeName !== 'HEAD') {
-    // Immediately before the script tag, so the widget appears where the host put
-    // the snippet. No wrapper for them to add, and no selector for them to get
-    // wrong.
+    // This places the element immediately before the script tag, so the widget appears where
+    // the host put the snippet. The host needs no wrapper, and has no selector to set wrong.
     parent.insertBefore(element, script)
 
     return element
   }
 
-  // `async`/`defer` nulls `document.currentScript`, the fallback lookup can miss, and
-  // a snippet in `<head>` has nowhere sensible to render. Rather than guess at a
-  // position, this reports it — a widget in the wrong place is harder to diagnose
-  // than one that explains its absence.
+  // `async` and `defer` both null `document.currentScript`. The fallback lookup can miss, and
+  // a snippet in `<head>` has nowhere sensible to render. This code reports the problem instead
+  // of guessing at a position. A widget in the wrong place is harder to diagnose than one that
+  // explains why it is absent.
   error(
     'could not find a place to render. Load auto.js from the page body, without `async` or ' +
       `\`defer\`, or put an empty <${ELEMENT_NAME}></${ELEMENT_NAME}> where the widget should appear.`,
@@ -245,15 +240,16 @@ function whenVisible(element: HTMLElement, run: () => void): void {
 
     observer.observe(element)
   } catch {
-    // An observer this code could not construct is not a reason to withhold the
-    // widget.
+    // A failed IntersectionObserver is not a reason to withhold the widget.
     run()
   }
 }
 
 /**
- * Boots from a script element — exported so the classic shim can hand over its own
- * `document.currentScript`, which it must capture before the dynamic import loses it.
+ * Boots from a script element.
+ *
+ * This is exported so the classic shim can hand over its own `document.currentScript`, which it
+ * must capture before the dynamic import loses it.
  */
 export function start(script: HTMLScriptElement | null): void {
   const config = parseConfig(script?.getAttribute('src'), window.location.search)
@@ -266,27 +262,26 @@ export function start(script: HTMLScriptElement | null): void {
 
   if (!element) return
 
-  // A route on the PAGE's URL is a visitor who followed a link, and the route is why
-  // they clicked — so waiting for them to scroll to the embed is wrong on its own
-  // terms, before auto-open enters into it. It also removes the hazard that gate
-  // would otherwise create: a lazily-mounted widget can mount MID-SCROLL, where
-  // auto-opening would slam a modal over the page and lock its scroll. Eager-loading
-  // the deep link removes the situation, rather than detecting it. A route from the
-  // SCRIPT url is the host's default view and stays lazy.
+  // A route on the PAGE's URL means a visitor followed a link, and the route is why they
+  // clicked. So waiting for them to scroll to the embed is wrong on its own terms, before
+  // auto-open even enters into it. It also removes a hazard: a lazily-mounted widget can mount
+  // MID-SCROLL, where auto-opening would slam a modal over the page and lock its scroll.
+  // Eager-loading the deep link removes that situation, rather than detecting it. A route from
+  // the SCRIPT url is the host's default view, and stays lazy.
   const mount = () => {
-    // Resolves to `src/Widget.tsx`, which is its own build entry — so this is the seam that keeps
-    // the widget out of the loader's graph, and `pnpm size` asserts the two closures are disjoint.
+    // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
+    // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.
     void import('../Widget').then(({ boot }) => {
-      // Detection runs on idle rather than here: `paramPersisted` is only meaningful
-      // once the host's own router has had a turn, and a host SPA that rewrites the
-      // URL during boot would otherwise be measured mid-flight.
+      // Detection runs on idle, not here. `paramPersisted` is only meaningful once the host's
+      // own router has had a turn. A host SPA that rewrites the URL during boot would otherwise
+      // get measured mid-flight.
       //
-      // **What is handed over is the observation and nothing else.** The loader used
-      // to compose a report here too — the observation joined to the page's URL —
-      // which meant capturing the URL at this moment and carrying it, on the boot
-      // singleton, until the widget mounted and sent it. The mount is now read by
-      // the send site itself (`lib/mount.ts`), so the loader has no business with the
-      // host's URL at all, and there is one observation rather than two copies.
+      // **This hands over the observation, and nothing else.** The loader used to compose a
+      // report here too — the observation joined to the page's URL. That meant capturing the
+      // URL at this moment, and carrying it on the boot singleton until the widget mounted and
+      // sent it. The mount is now read by the send site itself (`lib/mount.ts`), so the loader
+      // has no business with the host's URL at all. There is one observation now, not two
+      // copies.
       const observe = () => boot(config, detect(config))
 
       if (typeof requestIdleCallback === 'function') {
@@ -304,11 +299,11 @@ export function start(script: HTMLScriptElement | null): void {
   }
 }
 
-// Captured at module top level, because `document.currentScript` is only valid while
-// the script is executing — it is null inside any later callback, and null outright
-// under `async`/`defer`. The fallback covers the deferred case without guessing: it
-// looks for a script whose src is this bundle's own filename, which is the one thing
-// this code can recognise about itself.
+// This capture happens at module top level, because `document.currentScript` is only valid
+// while the script executes. It is null inside any later callback, and null outright under
+// `async` or `defer`. The fallback covers the deferred case without guessing. It looks for a
+// script whose src is this bundle's own filename — the one thing this code can recognise about
+// itself.
 const currentScript =
   (document.currentScript as HTMLScriptElement | null) ??
   document.querySelector<HTMLScriptElement>('script[src*="auto.js"]')

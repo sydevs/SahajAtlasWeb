@@ -7,10 +7,11 @@ import { READY_ATTR } from './readiness'
 
 import { fingerprint } from '@/loader/detect'
 
-// The same boundary mock as `config/api/mutate.test.ts`: the SDK is stubbed so the real
-// `reportEmbed` runs against a controlled Response, and i18n is stubbed so importing the client
-// doesn't boot the real HTTP backend. Mocking our own `api` instead would defeat the point —
-// what this file exists to prove is that the send is WIRED, not that a spy can be called.
+// The same boundary mock as `config/api/mutate.test.ts`: the SDK is stubbed
+// so the real `reportEmbed` runs against a controlled Response, and i18n is
+// stubbed so importing the client does not boot the real HTTP backend.
+// Mocking our own `api` instead would defeat the point. What this file
+// exists to prove is that the send is wired, not that a spy can be called.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
 vi.mock('@payloadcms/sdk', () => ({

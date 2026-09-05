@@ -21,7 +21,7 @@ describe('buildScale', () => {
   })
 
   it('makes step 9 the brand solid: respects seed hue + lightness, caps saturation', () => {
-    // Dark maroon stays dark; its ≈94% saturation is capped to the muted register.
+    // Dark maroon stays dark. Its saturation, about 94%, is capped to the muted register.
     const maroon = parse(buildScale('#64032e', 'light')[9])
 
     expect(maroon.h).toBe(333)
@@ -52,8 +52,8 @@ describe('on-color', () => {
   })
 })
 
-// A DOM-light stand-in for the root element so the var writes can be asserted
-// in the node-only lane (no jsdom — see docs/testing.md).
+// This is a DOM-light stand-in for the root element.
+// It lets the var writes be asserted in the node-only lane, with no jsdom. See `docs/testing.md`.
 function fakeRoot() {
   const props = new Map<string, string>()
   const root = {
@@ -76,7 +76,7 @@ describe('applyPalette', () => {
     expect(props.get('--primary-on')).toBe('0 0% 100%')
     expect(props.get('--primary-1')).toBeDefined()
     expect(props.get('--primary-12')).toBeDefined()
-    // All 12 steps present.
+    // All 12 steps are present.
     for (let step = 1; step <= 12; step++) {
       expect(props.has(`--primary-${step}`)).toBe(true)
     }
@@ -106,8 +106,8 @@ describe('applyPalette', () => {
   it('derives the background surface from the ladder app-bg step (both modes)', () => {
     const light = fakeRoot()
 
-    // Hue + capped saturation are honored, but the shade is the ladder's
-    // near-white app-background step — not the seed's own 91% lightness.
+    // Hue and capped saturation are honored.
+    // The shade is the ladder's near-white app-background step, not the seed's own 91% lightness.
     applyPalette(light.root, { background: '#f0ece2' }, 'light')
     expect(light.props.get('--background')).toBe('43 32% 99%')
 
@@ -121,8 +121,8 @@ describe('applyPalette', () => {
   it('lifts a near-black background seed to a readable light surface (no black panel)', () => {
     const { root, props } = fakeRoot()
 
-    // A #000000 seed (e.g. an unset client default) must not blacken the panel:
-    // the shade snaps to the near-white app-bg step, keeping the dark text legible.
+    // A `#000000` seed, such as an unset client default, must not blacken the panel.
+    // The shade snaps to the near-white app-background step, keeping the dark text legible.
     applyPalette(root, { background: '#000000' }, 'light')
     expect(props.get('--background')).toBe('0 0% 99%')
   })
@@ -138,10 +138,10 @@ describe('applyPalette', () => {
   it('ignores an achromatic seed so the default brand theme stands', () => {
     const { root, props } = fakeRoot()
 
-    // The local client record defaults color1–3 to #000000. An achromatic primary /
-    // secondary must NOT paint a grey ramp — the roles fall back to the globals.css
-    // default (the built-in teal / orange). Background still snaps to the readable
-    // near-white app-bg step, as it does for any near-black seed.
+    // The local client record defaults `color1` through `color3` to `#000000`.
+    // An achromatic primary or secondary must NOT paint a grey ramp.
+    // Those roles fall back to the `globals.css` default, the built-in teal or orange.
+    // Background still snaps to the readable near-white app-background step, as it does for any near-black seed.
     applyPalette(root, { primary: '#000000', secondary: '#000000', background: '#000000' }, 'light')
 
     expect([...props.keys()].some((k) => k.startsWith('--primary'))).toBe(false)
@@ -156,7 +156,7 @@ describe('applyPalette', () => {
     expect(props.has('--secondary-9')).toBe(true)
     expect(props.has('--background')).toBe(true)
 
-    // Re-apply with only primary → secondary + background revert to the default.
+    // This re-applies with only primary. Secondary and background revert to the default.
     applyPalette(root, { primary: '#64032e' }, 'light')
     expect(props.has('--secondary-9')).toBe(false)
     expect(props.has('--secondary-1')).toBe(false)

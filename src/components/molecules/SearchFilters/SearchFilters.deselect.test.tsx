@@ -8,17 +8,19 @@ import { SearchFilters } from './SearchFilters'
 import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 
 /**
- * Clicking the SELECTED option in Format / Frequency clears that filter (issue: the four
- * toggle groups were set-only).
+ * Clicking the SELECTED option in Format or Frequency clears that filter
+ * (issue: the four toggle groups were set-only).
  *
- * **jsdom, and a pure spec genuinely cannot do this job.** The whole assertion is an agreement
- * with a third party: Radix's single-select `ToggleGroup` fires `onValueChange('')` from
- * `onItemDeactivate` when you press the item that is already on. Our handler's job is to map
- * that empty string onto the `'any'` sentinel. A pure test of the handler could only re-assert
- * the mapping we just wrote while ASSUMING the signal that reaches it — and the signal is
- * exactly what the old `next && patch(…)` guard got wrong. Driving the real Radix component is
- * the only thing that proves the round trip (`docs/testing.md`, the `routing.router`
- * precedent).
+ * **This uses jsdom, since a pure spec genuinely cannot do this job.** The
+ * whole assertion is an agreement with a third party. Radix's
+ * single-select `ToggleGroup` fires `onValueChange('')` from
+ * `onItemDeactivate` when you press the item that is already on. This
+ * component's handler maps that empty string onto the `'any'` sentinel. A
+ * pure test of the handler could only re-assert the mapping just written,
+ * while ASSUMING the signal that reaches it, and the signal is exactly
+ * what the old `next && patch(…)` guard got wrong. Driving the real Radix
+ * component is the only thing that proves the round trip
+ * (`docs/testing.md`, the `routing.router` precedent).
  */
 
 vi.mock('react-i18next', () => ({
@@ -81,8 +83,8 @@ describe('SearchFilters — pressing the selected option clears the filter', () 
     const { drafts, host } = mount({ ...DEFAULT_FILTERS, format: 'online' })
     const selected = itemIn(host, 'filters.format.label', 'filters.format.online')
 
-    // Sanity: Radix really does consider this one on, so the press below is a DESELECT and
-    // not just a click on an inert item.
+    // Sanity check: Radix really does consider this one on. So the press
+    // below is a DESELECT, not just a click on an inert item.
     expect(selected.getAttribute('data-state')).toBe('on')
 
     act(() => selected.click())
@@ -103,8 +105,8 @@ describe('SearchFilters — pressing the selected option clears the filter', () 
     expect(drafts[0].cadence).toBe('any')
   })
 
-  // Selecting a DIFFERENT option must still select it — the clearing path must not swallow
-  // an ordinary change.
+  // Selecting a DIFFERENT option must still select it. The clearing path
+  // must not swallow an ordinary change.
   it('still selects a different option normally', () => {
     const { drafts, host } = mount({ ...DEFAULT_FILTERS, format: 'online' })
 

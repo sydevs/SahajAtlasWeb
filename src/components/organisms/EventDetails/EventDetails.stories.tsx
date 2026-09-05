@@ -1,8 +1,8 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { Event } from '@/types'
 
-// EventDetails is intentionally not in the organisms barrel (lazy-loaded; see
-// organisms/index.ts), so import it from its co-located files.
+// The organisms barrel does not include EventDetails on purpose. It loads lazily
+// (see organisms/index.ts). Import it from its co-located files instead.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventDetails } from './EventDetails'
@@ -20,8 +20,8 @@ import {
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
-// Full panel anatomy: header (the title) over the body (chips → facts → Register
-// → actions → About → images), as EventView composes them.
+// This shows the full panel anatomy. The header (title) sits above the body,
+// which EventView orders as chips, facts, Register, actions, About, then images.
 function Panel({ event }: { event: Event }) {
   return (
     <div className="max-w-md border border-divider">
@@ -40,9 +40,10 @@ const external: Event = {
 }
 
 /**
- * EventDetails — the redesigned event panel (issue #52): facts are plain text,
- * Register is the single filled CTA, secondary actions are labelled tonal
- * circles, and host prose sits below the fold under "About".
+ * EventDetails is the redesigned event panel from issue #52. Facts appear as
+ * plain text. Register is the only filled call-to-action. Secondary actions
+ * appear as labeled tonal circles. Host-authored prose sits below the fold,
+ * under "About".
  */
 export const Default: Story = () => (
   <StoryWrapper>

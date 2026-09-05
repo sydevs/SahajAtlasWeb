@@ -48,7 +48,7 @@ describe('safePath', () => {
       expect(safePath(`/${ws}\\evil.example`)).toBeUndefined()
     }
 
-    // Deeper in the path they're just characters, like the backslash above.
+    // Deeper in the path these are just characters, like the backslash above.
     expect(safePath('/be/anna\tmaria')).toBe('/be/anna\tmaria')
   })
 })
@@ -228,8 +228,8 @@ describe('nearestKnownRegion', () => {
   const known = new Set(['gb', 'cambridgeshire', 'india', 'fr', 'nouvelle-aquitaine'])
 
   it('drops the failing terminal before walking — that entry IS what threw', () => {
-    // /gb/cambridgeshire/atlantis 404s on `atlantis`; offering it back would repeat the
-    // failure, so the walk starts one above it.
+    // /gb/cambridgeshire/atlantis 404s on `atlantis`. Offering it back would
+    // repeat the failure, so the walk starts one above it.
     expect(nearestKnownRegion('/gb/cambridgeshire/atlantis', known)).toBe('cambridgeshire')
   })
 
@@ -311,9 +311,10 @@ describe('placeSearchPath', () => {
     expect(params.get('sort')).toBe('soonest')
   })
 
-  // The reason this goes through `preserveSearchState` rather than copying the previous params:
-  // a stale `?cc` offers the WRONG country's website on an empty result set, and a stale `?q`
-  // labels the new results with the old place.
+  // This goes through `preserveSearchState`, instead of copying the
+  // previous params, because a stale `?cc` offers the wrong country's
+  // website on an empty result set, and a stale `?q` labels the new results
+  // with the old place.
   it('drops the previous searched location rather than merging onto it', () => {
     const params = query(
       placeSearchPath(new URLSearchParams('q=Paris&center=2.35,48.85&bbox=1,2,3,4&cc=FR'), {

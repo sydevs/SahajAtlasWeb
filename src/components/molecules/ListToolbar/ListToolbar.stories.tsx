@@ -11,8 +11,9 @@ import { Button } from '@/components/atoms/Button'
 
 export default { title: 'Molecules' } satisfies StoryDefault
 
-// A stand-in for the view-level FilterButton (which drives the drawer stack). The
-// toolbar only lays its children out, so the story supplies a plain ghost button.
+// A stand-in for the view-level FilterButton, which drives the drawer
+// stack. The toolbar only lays its children out, so the story supplies a
+// plain ghost button.
 const FiltersButton = () => (
   <Button size="sm" variant="ghost">
     <Funnel size={18} />
@@ -21,10 +22,11 @@ const FiltersButton = () => (
 )
 
 /**
- * ListToolbar — the controls row above a results list. A `justify-between` flex row:
- * the Filters button sits at the start, the optional SortMenu at the end. On the root
- * Countries list only the Filters button shows (sorting a country index has no
- * meaning); the search results add the SortMenu.
+ * ListToolbar — the controls row above a results list. It is a
+ * `justify-between` flex row. The Filters button sits at the start, and the
+ * optional SortMenu sits at the end. On the root Countries list, only the
+ * Filters button shows, since sorting a country index has no meaning. The
+ * search results add the SortMenu.
  */
 export const Default: Story = () => (
   <StoryWrapper>

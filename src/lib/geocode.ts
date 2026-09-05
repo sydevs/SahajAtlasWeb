@@ -20,9 +20,9 @@ import { isoCountryCode } from '@/lib/shape'
  * even though the API documents (and returns) `country_code`/`country_code_alpha_3`
  * on the country component. It has to be an *intersection* rather than a bare
  * `{ country_code?: string }` — the two share no declared property, so TS rejects the
- * assignment outright. Optional-chained because this is remote data: the vendor types
- * mark `properties`/`context` required, but a shape change shouldn't throw out of a
- * search callback, and `isoCountryCode` validates whatever does come back.
+ * assignment outright. This is optional-chained because it is remote data. The vendor
+ * types mark `properties`/`context` required, but a shape change should not throw out
+ * of a search callback, and `isoCountryCode` validates whatever does come back.
  */
 type CountryContext = GeocodingFeatureContextComponent & { country_code?: string }
 

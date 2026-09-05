@@ -3,8 +3,8 @@ import type { ReportContext } from '@/lib/report'
 
 import { type ReactNode, useState } from 'react'
 
-// Not in the organisms barrel (only the ReportIssueModal host is); import from the
-// co-located file.
+// This is not in the organisms barrel — only the ReportIssueModal host is.
+// Import from the co-located file instead.
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { ReportIssueForm } from './ReportIssueForm'
@@ -14,8 +14,9 @@ import { Modal, ModalContent } from '@/components/atoms/Modal'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
-// What the ReportIssueModal host would have assembled — the fields a viewer never
-// types, shown here so the story previews the real payload's shape.
+// This is what the ReportIssueModal host would have assembled — the fields
+// a viewer never types. It appears here, so the story previews the real
+// payload's shape.
 const context: ReportContext = {
   path: '/india/pune/e/42',
   pageUrl: 'https://sahajayoga.example/find-a-class',
@@ -26,8 +27,9 @@ const context: ReportContext = {
 
 const noop = () => {}
 
-// The panel the modal supplies in the app, so the inline sections below show the form
-// at the width and on the surface it actually renders against.
+// This is the panel the modal supplies in the app, so the inline sections
+// below show the form at the width and on the surface it actually renders
+// against.
 function Panel({ children }: { children: ReactNode }) {
   return (
     <div className="flex max-w-md flex-col overflow-hidden rounded-2xl border border-divider bg-background">
@@ -37,16 +39,17 @@ function Panel({ children }: { children: ReactNode }) {
 }
 
 /**
- * ReportIssueForm — the report-issue form rendered inside the Modal atom (issues
- * #79/#103). An optional reply address, the message, and a Cloudflare Turnstile
- * challenge, over the auto-attached context the viewer never types.
+ * ReportIssueForm is the report-issue form, rendered inside the Modal atom
+ * (issues #79 and #103). It has an optional reply address, the message, and
+ * a Cloudflare Turnstile challenge, over the auto-attached context the
+ * viewer never types.
  *
- * The live sections render a REAL Turnstile widget against Cloudflare's always-passes
- * test site key, so submit becomes enabled once the message is long enough. Submitting
- * now performs a real `POST /api/contact-admin`; Ladle carries no API key, so it comes
- * back refused and you land on the failure state — which is the honest outcome, and the
- * point of the ticket: the thank-you screen is shown for a delivered message and nothing
- * else.
+ * The live sections render a REAL Turnstile widget against Cloudflare's
+ * always-passes test site key, so submit becomes enabled once the message
+ * is long enough. Submitting now performs a real `POST /api/contact-admin`.
+ * Ladle carries no API key, so it comes back refused, and you land on the
+ * failure state. That is the honest outcome, and the point of the ticket:
+ * the thank-you screen shows only for a delivered message.
  */
 export const Default: Story = () => {
   const [open, setOpen] = useState(false)

@@ -29,11 +29,12 @@ function ItemCheck() {
   )
 }
 
-// A floating cog that opens a settings dropdown: language + colour mode, each a row
-// showing the current choice (icon + label) that opens a submenu to change it. Built
-// on Radix DropdownMenu (Sub / RadioGroup) — one clean menu with submenu flow —
-// replacing the old footer's LanguageSelector + ThemeSwitch. `className` positions
-// the trigger button.
+// A floating cog that opens a settings dropdown: language and colour
+// mode, each a row showing the current choice, icon and label, that
+// opens a submenu to change it. This is built on Radix DropdownMenu (Sub
+// and RadioGroup), one clean menu with submenu flow, replacing the old
+// footer's LanguageSelector and ThemeSwitch. `className` positions the
+// trigger button.
 export type SettingsMenuProps = {
   /** Positions the trigger button (the cog floats over the map or the panel). */
   className?: string
@@ -49,18 +50,21 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const openReport = useReportModal((state) => state.openReport)
   const container = overlayContainer()
 
-  // Publish the pick to the page URL as well as changing the language, so the address bar
-  // describes what the visitor is looking at: the link they copy, and a reload, both keep it.
-  // `?locale=` was already read at boot (`config/i18n-options.ts`) and documented to
-  // integrators — this is the write side that never existed.
+  // This publishes the pick to the page URL, as well as changing the
+  // language. So the address bar describes what the visitor is looking
+  // at. The link they copy, and a reload, both keep it. `?locale=` was
+  // already read at boot (`config/i18n-options.ts`) and documented to
+  // integrators. This is the write side that never existed.
   //
-  // ⚠ Here rather than inside `useLocale().setLocale`: this is the only place a viewer picks a
-  // language, while `useLocale` is called by every card in a list that pages to hundreds of rows.
-  // Putting a context read and a URL write on that hook would put both on the app's hottest path
-  // to serve one menu.
+  // ⚠ This lives here, not inside `useLocale().setLocale`. This is the
+  // only place a viewer picks a language, while `useLocale` is called by
+  // every card in a list that pages to hundreds of rows. Putting a
+  // context read and a URL write on that hook would put both on the
+  // app's hottest path, to serve one menu.
   //
-  // Skipped in memory routing, where the widget's route deliberately isn't in a URL at all —
-  // `linkable` is that question, already decided once at mount.
+  // This is skipped in memory routing, where the widget's route
+  // deliberately is not in a URL at all. `linkable` is that question,
+  // already decided once at mount.
   const chooseLocale = (next: string) => {
     setLocale(next)
     if (linkable) publishLocale(next)
@@ -96,9 +100,10 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
           <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger className={item}>
               <Languages size={18} />
-              {/* The same endonym the list below shows. It was already one by construction (a
-                  DisplayNames built in `locale`, naming `locale`) — said outright so the row and
-                  its list cannot drift apart. */}
+              {/* The same endonym the list below shows. It was already one
+                  by construction: a DisplayNames built in `locale`, naming
+                  `locale`. This states it outright, so the row and its list
+                  cannot drift apart. */}
               <span className="flex-1 capitalize" lang={locale}>
                 {nativeLanguageLabel(locale)}
               </span>
@@ -106,11 +111,13 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
             </DropdownMenu.SubTrigger>
             <DropdownMenu.Portal container={container}>
               <DropdownMenu.SubContent className={menu} sideOffset={4} {...frameCollision()}>
-                {/* Each row reads in ITS OWN language, not the one currently on screen. A menu
-                    whose whole purpose is to be used by someone who cannot read the current
-                    language must not label English as "anglais". `capitalize` because Intl
-                    returns lowercase endonyms (español, français, русский); it is per-word, so
-                    "português (Brasil)" survives it intact. */}
+                {/* Each row reads in ITS OWN language, not the one currently
+                    on screen. A menu whose whole purpose is to be used by
+                    someone who cannot read the current language must not
+                    label English as "anglais". This uses `capitalize`,
+                    because Intl returns lowercase endonyms (español,
+                    français, русский). It applies per word, so "português
+                    (Brasil)" survives it intact. */}
                 <DropdownMenu.RadioGroup value={locale} onValueChange={chooseLocale}>
                   {supportedLanguages.map((lng) => (
                     <DropdownMenu.RadioItem key={lng} className={item} lang={lng} value={lng}>
@@ -149,8 +156,9 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
 
           <DropdownMenu.Separator className="my-1 h-px bg-divider" />
 
-          {/* A plain row rather than a submenu: it hands off to the report modal, which
-              is ephemeral state, not a setting to pick from a list (issue #79). */}
+          {/* This is a plain row, not a submenu. It hands off to the report
+              modal, which is ephemeral state, not a setting to pick from a
+              list (issue #79). */}
           <DropdownMenu.Item className={item} onSelect={() => openReport()}>
             <Info size={18} />
             <span>{t('report.title')}</span>

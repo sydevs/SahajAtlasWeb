@@ -1,15 +1,16 @@
 // Region-aware share-target ordering.
 //
-// A meditation event is shared globally: a viewer in Russia reaches for VK or
-// Telegram, one in Japan for LINE, one in India for WhatsApp — so the share grid
-// is ordered to the *viewer's* country rather than showing everyone the same
-// Western five. No npm package ships per-country platform preferences, so this
-// map is hand-maintained: an ISO alpha-2 code → the platforms that country
-// actually uses, most-popular first, seeded from DataReportal's "Digital 2026".
-// `platformsForCountry` falls back to a broad default for any unseeded/unknown
-// code. Only platforms react-share can compose a web-share URL for appear here;
-// native-only apps (KakaoTalk, WeChat, Zalo, SMS) are reached through the OS
-// share sheet (see `useWebShare`), which is the ultimate per-device filter.
+// A meditation event is shared globally. A viewer in Russia reaches for VK
+// or Telegram, one in Japan for LINE, one in India for WhatsApp. So the
+// share grid is ordered to the *viewer's* country, instead of showing
+// everyone the same Western five. No npm package ships per-country platform
+// preferences, so this map is hand-maintained: an ISO alpha-2 code to the
+// platforms that country actually uses, most-popular first, seeded from
+// DataReportal's "Digital 2026". `platformsForCountry` falls back to a
+// broad default for any unseeded or unknown code. Only platforms
+// react-share can compose a web-share URL for appear here. Native-only apps
+// (KakaoTalk, WeChat, Zalo, SMS) are reached through the OS share sheet
+// (see `useWebShare`), which is the ultimate per-device filter.
 
 export type PlatformKey =
   | 'whatsapp'
@@ -25,11 +26,11 @@ export type PlatformKey =
   | 'viber'
   | 'weibo'
 
-// The universal fallback for an unknown/unseeded region: five broadly-used
-// targets for a global audience. Reddit is anglophone-skewed, so it's left to the
-// country lists that want it. Email is NOT listed here — `platformsForCountry`
-// appends it to every result — and five keeps the resulting grid a single
-// balanced row of six.
+// The universal fallback for an unknown or unseeded region: five
+// broadly-used targets for a global audience. Reddit is anglophone-skewed,
+// so it is left to the country lists that want it. Email is not listed
+// here. `platformsForCountry` appends it to every result, and five keeps
+// the resulting grid a single balanced row of six.
 export const DEFAULT_PLATFORMS: PlatformKey[] = [
   'whatsapp',
   'facebook',
@@ -38,32 +39,32 @@ export const DEFAULT_PLATFORMS: PlatformKey[] = [
   'linkedin',
 ]
 
-// ISO alpha-2 (uppercase) → ordered platforms, most-popular first. Lookups
-// uppercase the input first, so casing at the call site doesn't matter. Two
-// invariants: `email` is NOT listed here (`platformsForCountry` appends it to
-// every result, so it's always the last option and appears exactly once), and
-// each list is kept to five or fewer so the grid stays a single balanced row of
-// six once email is appended.
+// ISO alpha-2 (uppercase) to ordered platforms, most-popular first. Lookups
+// uppercase the input first, so casing at the call site does not matter.
+// Two invariants hold: `email` is not listed here (`platformsForCountry`
+// appends it to every result, so it is always the last option and appears
+// exactly once), and each list is kept to five or fewer, so the grid stays
+// a single balanced row of six once email is appended.
 export const PLATFORMS_BY_COUNTRY: Record<string, PlatformKey[]> = {
-  // Russia & CIS — VK and OK.ru dominate; Telegram and Viber heavily used.
+  // Russia and CIS: VK and OK.ru dominate. Telegram and Viber are heavily used.
   RU: ['vk', 'ok', 'telegram', 'whatsapp', 'viber'],
   BY: ['vk', 'ok', 'telegram', 'viber', 'whatsapp'],
   KZ: ['vk', 'whatsapp', 'telegram', 'ok', 'x'],
   UA: ['telegram', 'viber', 'facebook', 'whatsapp', 'x'],
-  // East Asia — LINE across Japan/Taiwan/Thailand; Weibo in China (WeChat is
-  // native-only, so it isn't in this web grid).
+  // East Asia: LINE across Japan, Taiwan, and Thailand. Weibo in China
+  // (WeChat is native-only, so it is not in this web grid).
   JP: ['line', 'x', 'facebook', 'whatsapp'],
   TW: ['line', 'facebook', 'x', 'whatsapp', 'telegram'],
   TH: ['line', 'facebook', 'whatsapp', 'x', 'telegram'],
   KR: ['line', 'x', 'facebook', 'whatsapp'],
   CN: ['weibo', 'whatsapp', 'telegram', 'line'],
-  // South & Southeast Asia — WhatsApp-first.
+  // South and Southeast Asia: WhatsApp-first.
   IN: ['whatsapp', 'telegram', 'facebook', 'x', 'linkedin'],
   ID: ['whatsapp', 'facebook', 'telegram', 'line', 'x'],
   PK: ['whatsapp', 'facebook', 'telegram', 'x'],
   BD: ['whatsapp', 'facebook', 'telegram', 'x'],
   VN: ['facebook', 'whatsapp', 'telegram', 'x'],
-  // Middle East — WhatsApp plus Telegram; X strong in the Gulf.
+  // Middle East: WhatsApp plus Telegram. X is strong in the Gulf.
   TR: ['whatsapp', 'telegram', 'x', 'facebook'],
   SA: ['whatsapp', 'x', 'telegram', 'facebook'],
   AE: ['whatsapp', 'x', 'telegram', 'facebook'],
@@ -96,10 +97,11 @@ export const PLATFORMS_BY_COUNTRY: Record<string, PlatformKey[]> = {
 
 /**
  * The ordered share platforms for a viewer's country (ISO alpha-2,
- * case-insensitive), with `email` always appended as the final option — so it's
- * available everywhere and appears exactly once. Returns the seeded list for a
- * known country, otherwise `DEFAULT_PLATFORMS` — including for an unknown, empty,
- * or absent code, so callers can pass a maybe-undefined code straight through.
+ * case-insensitive), with `email` always appended as the final option, so it
+ * is available everywhere and appears exactly once. This returns the seeded
+ * list for a known country, or `DEFAULT_PLATFORMS` otherwise, including for
+ * an unknown, empty, or absent code, so callers can pass a maybe-undefined
+ * code straight through.
  */
 export function platformsForCountry(code?: string | null): PlatformKey[] {
   // Every country list is a non-empty array, so `||` covers all three fallbacks in

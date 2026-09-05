@@ -147,13 +147,13 @@ describe('eventsToCalendarEntries', () => {
       onlineLabel: 'Online',
     })
 
-    // The title is the place; "Online" rides the location field (the colour distinguishes it
-    // in the month/list views, which don't render location).
+    // The title is the place. "Online" rides the location field (the colour
+    // distinguishes it in the month/list views, which do not render location).
     expect(entry.title).toBe('London')
     expect(entry.location).toBe('Online')
     expect(entry.calendarId).toBe('online')
 
-    // Placeless online → the title falls back to the event title; the location still flags it.
+    // Placeless online → the title falls back to the event title. The location still flags it.
     const placeless = makeEvent({
       eventType: 'online',
       title: 'Weekly meditation',
@@ -177,8 +177,8 @@ describe('eventsToCalendarEntries', () => {
   })
 
   it('builds the online end time from the event-local endTime (converted, not applied in the viewer zone)', () => {
-    // Online event in New York (18:00–19:00 local); viewed from the runner's own zone. The
-    // span must stay the event's 1 hour — the endTime is applied in the EVENT zone and then
+    // Online event in New York (18:00–19:00 local), viewed from the runner's own zone. The
+    // span must stay the event's 1 hour. The endTime is applied in the event zone and then
     // converted, not read as `19:00` in the viewer zone (the pre-fix bug).
     const evt = makeEvent({
       eventType: 'online',
@@ -194,7 +194,7 @@ describe('eventsToCalendarEntries', () => {
   })
 
   it('falls back through region → locality → title when a source is missing', () => {
-    // Region-scoped but no locality → the region name; neither present → the title.
+    // Region-scoped but no locality → the region name. Neither present → the title.
     const noLocality = makeEvent({
       regionName: 'London',
       occurrences: [at('UTC', '2026-07-06T09:30')],
@@ -210,7 +210,7 @@ describe('eventsToCalendarEntries', () => {
   })
 
   it('trims occurrences to the active day filter (not just event-level match)', () => {
-    // A weekly event with a Monday and a Wednesday occurrence; filter to Mondays only.
+    // A weekly event with a Monday and a Wednesday occurrence. Filter to Mondays only.
     // The event matches at the event level, but only its Monday occurrence should show.
     const evt = makeEvent({
       zone: 'Asia/Kolkata',

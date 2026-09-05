@@ -23,11 +23,11 @@ import {
   useFrameOnTop,
 } from '@/views/shared'
 
-// The base view (route `/`): a leading "Online Classes" entry (into the
-// online-filtered search) then the global country list, with the geocoder + a
-// stacked-list toggle in its header. Rendered as inner content of the persistent
-// drawer (DrawerStack owns the sheet). Handled like every other view — it's simply
-// the one with no parent, so dismissing it collapses the sheet to its peek.
+// The base view, at route `/`. It shows a leading "Online Classes" entry into the
+// online-filtered search, then the global country list, with the geocoder and a stacked-list
+// toggle in its header. It renders as inner content of the persistent drawer — DrawerStack owns
+// the sheet. This view is handled like every other one. It is simply the one with no parent, so
+// dismissing it collapses the sheet to its peek.
 export function CountriesView() {
   const { t } = useTranslation('common')
   const { regionNames } = useLocale()
@@ -38,16 +38,16 @@ export function CountriesView() {
     queryKey: ['countries'],
     queryFn: () => api.getCountries(),
   })
-  // Busiest countries first — the list's display order, owned here so it holds
-  // whatever the source (the live feed, or a seeded story) hands us.
+  // Busiest countries first. This component owns the list's display order, so it holds
+  // whatever the source — the live feed, or a seeded story — provides.
   const sortedCountries = useMemo(
     () => [...countries].sort((a, b) => b.eventCount - a.eventCount),
     [countries],
   )
   const { data: client } = useSuspenseQuery(clientQuery(atlasAuth.apiKey))
 
-  // The "Online Classes" entry links to the online-filtered search; its count is
-  // the number of placeless online events in the (already-cached) feed.
+  // The "Online Classes" entry links to the online-filtered search. Its count is the number
+  // of placeless online events in the already-cached feed.
   const { data: geojson } = useQuery({
     queryKey: ['geojson'],
     queryFn: () => api.getGeojson(),
@@ -59,9 +59,10 @@ export function CountriesView() {
   )
   const onlineSearch = `/search?${filtersToParams({ ...DEFAULT_FILTERS, format: 'online' }).toString()}`
 
-  // Frame the world view when this view mounts. `reset()` rather than an empty `frameSearch`:
-  // the root view is the one place that genuinely wants the whole world, and saying so by name
-  // is what let `frameSearch({})` stop meaning "reset" for every other caller.
+  // Frame the world view when this view mounts. This uses `reset()`, not an empty
+  // `frameSearch`. The root view is the one place that genuinely wants the whole world, and
+  // naming that intent directly is what let `frameSearch({})` stop meaning "reset" for every
+  // other caller.
   useFrameOnTop(() => reset(), [reset])
 
   const homeUrl = client.region && typeof client.region === 'object' ? client.region.webUrl : null
@@ -76,9 +77,9 @@ export function CountriesView() {
           {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
         </Helmet>
       )}
-      {/* The country list is a browse index, not a filterable results list, so its
-          filter access lives as an icon control in the header (not a list toolbar);
-          sorting a country index is meaningless, so there's no sort menu here. */}
+      {/* The country list is a browse index, not a filterable results list. So its filter
+          access lives as an icon control in the header, not a list toolbar. Sorting a country
+          index is meaningless, so there is no sort menu here. */}
       <DrawerHeader>
         <SearchField />
         <FilterButton iconOnly />
@@ -107,9 +108,9 @@ export function CountriesView() {
                   <CircleFlag
                     className="h-full w-full rounded-full border border-divider bg-divider"
                     countryCode={country.countryCode.toLocaleLowerCase()}
-                    // Matches the country-site recovery rung (molecules/Fallbacks): the
-                    // flag SVG comes from react-circle-flags' CDN, and the host page's
-                    // URL shouldn't.
+                    // Matches the country-site recovery rung (molecules/Fallbacks). The flag SVG
+                    // comes from react-circle-flags' CDN, and this request must not send the
+                    // host page's URL as a referrer.
                     referrerPolicy="no-referrer"
                   />
                 ) : undefined

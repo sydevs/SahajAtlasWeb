@@ -107,7 +107,7 @@ describe('EventSchema', () => {
 describe('EventDocSchema images', () => {
   // The real wire shape: `getEvent` selects `filename` (so SahajCloud's virtual
   // `url` resolves) and the dev backend returns a relative `url`. `filename` is
-  // not part of the schema — it's dropped — and `url` is retained as-is.
+  // not part of the schema — it is dropped — and `url` is retained as-is.
   it('parses an image with filename + relative url, keeping url and dropping filename', () => {
     const parsed = EventDocSchema.parse({
       ...mockEvent,
@@ -132,7 +132,7 @@ describe('EventDocSchema images', () => {
 })
 
 describe('registration question names', () => {
-  // The key set is derived from the synced CMS types; this pins the concrete list so
+  // The key set is derived from the synced CMS types. This pins the concrete list so
   // a `pnpm types:cms` resync that changes SahajCloud's EVENT_REGISTRATION_QUESTIONS
   // surfaces here (alongside the compile-time `satisfies` guard on the schema).
   it('exposes the EVENT_REGISTRATION_QUESTIONS key set, in schema order', () => {

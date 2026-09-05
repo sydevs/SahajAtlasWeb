@@ -1,44 +1,47 @@
 // National Sahaja Yoga websites, offered when a search lands in a country that
-// lists no programs at all (issue #82). A hand-maintained ISO alpha-2 → URL table
-// with a case-normalizing accessor, mirroring `PLATFORMS_BY_COUNTRY` /
-// `platformsForCountry` in `./share/platforms.ts` — the same shape of static,
-// country-keyed data this app already carries.
+// lists no programs at all (issue #82). This is a hand-maintained ISO alpha-2
+// to URL table with a case-normalizing accessor, mirroring
+// `PLATFORMS_BY_COUNTRY` / `platformsForCountry` in `./share/platforms.ts`: the
+// same shape of static, country-keyed data this app already carries.
 //
-// Source: https://shrimataji.org/map/world.html — scraped 2026-07-29 (96 rows →
-// 95 countries; the continent-level "Africa" row isn't a country and is dropped).
-// English names were resolved to canonical alpha-2 via `Intl.DisplayNames`, legacy
-// aliases excluded (`GB`≠`UK`, `RS`≠`CS`/`YU`, `DE`≠`DD`, `FR`≠`FX`, `RU`≠`SU`),
-// with overrides for the page's own typos ("Switerland" → `CH`, "Tajikestan" → `TJ`).
+// Source: https://shrimataji.org/map/world.html, scraped 2026-07-29 (96 rows
+// became 95 countries: the continent-level "Africa" row is not a country, and
+// is dropped). English names were resolved to canonical alpha-2 via
+// `Intl.DisplayNames`, with legacy aliases excluded (`GB`≠`UK`, `RS`≠`CS`/`YU`,
+// `DE`≠`DD`, `FR`≠`FX`, `RU`≠`SU`), and overrides for the page's own typos
+// ("Switerland" → `CH`, "Tajikestan" → `TJ`).
 
 /**
- * ISO alpha-2 (**uppercase**) → the country's own site. Exported for its spec and
- * for story fixtures; read it through `countrySite` so the casing is handled.
- * Typed with `| undefined` because a miss is the common case — most of the world
- * isn't in here, and `noUncheckedIndexedAccess` is off, so a bare index would
- * otherwise type as `string` and hand a consumer an `undefined` href.
+ * ISO alpha-2 (**uppercase**) to the country's own site. This is exported for
+ * its spec and for story fixtures. Read it through `countrySite` so the
+ * casing is handled. It is typed with `| undefined`, because a miss is the
+ * common case: most of the world is not in here. `noUncheckedIndexedAccess`
+ * is off, so a bare index would otherwise type as `string` and hand a
+ * consumer an `undefined` href.
  *
- * ~4 KB of static strings: no fetch, no CMS round trip. Notes on the data, so a
- * refresh doesn't "fix" them by mistake:
+ * This is about 4 KB of static strings: no fetch, no CMS round trip. Notes on
+ * the data follow, so a refresh does not "fix" them by mistake:
  *
- * - The source page publishes 57 of these as plain `http://`. Each was probed over
- *   HTTPS and the 43 that answer 200 without downgrading are stored as `https://`,
- *   so the widget never hands a viewer a MITM-able hop to a site it just vouched
- *   for. The **14** with no working HTTPS today — `AR CL CN EE GH GR HR KE KZ LV MT
- *   MX NZ TR` — stay `http://` as published rather than becoming dead links; re-probe
- *   them on the next refresh instead of assuming either way.
- * - ~20 point at a Facebook / Blogspot / WordPress page rather than a domain —
- *   that IS the country's presence.
+ * - The source page publishes 57 of these as plain `http://`. Each was probed
+ *   over HTTPS, and the 43 that answer 200 without downgrading are stored as
+ *   `https://`, so the widget never hands a viewer a MITM-able hop to a site
+ *   it just vouched for. The **14** with no working HTTPS today — `AR CL CN EE
+ *   GH GR HR KE KZ LV MT MX NZ TR` — stay `http://` as published, instead of
+ *   becoming dead links. Re-probe them on the next refresh, instead of
+ *   assuming either way.
+ * - About 20 point at a Facebook, Blogspot, or WordPress page, instead of a
+ *   domain. That is the country's presence.
  * - One site can cover several countries: `farsimeditation.com` serves
  *   `AF`/`IR`/`TJ`/`TM`/`UZ`, `sahajayogameditationafrica.com` serves `MG`/`MZ`/`TG`/`ZA`.
  * - `AW`/`HK`/`NC`/`PF`/`TW` are non-sovereign territories, kept because Mapbox's
  *   geocoder still reports them as a `country_code`.
  * - A handful sit on free-tier subdomains (`*.weebly.com`, `*.blogspot.com`,
- *   `freeservers.com`): those names are re-registrable if the account lapses, and
- *   this table is compile-time, so replacing one needs a rebuild + a redeploy of
- *   every host. Moving the mapping into SahajCloud (issue #82, out of scope) is what
- *   would make it editable.
+ *   `freeservers.com`). Those names are re-registrable if the account lapses,
+ *   and this table is compile-time, so replacing one needs a rebuild and a
+ *   redeploy of every host. Moving the mapping into SahajCloud (issue #82, out
+ *   of scope) is what would make it editable.
  *
- * It's a snapshot — link rot is expected and out of scope (see issue #82).
+ * This is a snapshot. Link rot is expected and out of scope (see issue #82).
  */
 export const COUNTRY_SITES: Record<string, string | undefined> = {
   AD: 'https://sahajayogaandorra.org',
@@ -139,10 +142,10 @@ export const COUNTRY_SITES: Record<string, string | undefined> = {
 }
 
 /**
- * The country's own site, or `undefined` when it isn't one of the 95 (most of the
- * world isn't). Case-insensitive by construction — like `platformsForCountry`, so
- * neither a lowercase region slug nor an uppercase `?cc` has to be normalized at
- * the call site.
+ * The country's own site, or `undefined` when it is not one of the 95 (most
+ * of the world is not). This is case-insensitive by construction, like
+ * `platformsForCountry`, so neither a lowercase region slug nor an uppercase
+ * `?cc` has to be normalized at the call site.
  */
 export const countrySite = (code?: string | null): string | undefined =>
   (code && COUNTRY_SITES[code.toUpperCase()]) || undefined

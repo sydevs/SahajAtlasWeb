@@ -5,9 +5,9 @@ import z from 'zod'
 
 import mutate, { UserMessageRefusedError, RegistrationRefusedError } from './mutate'
 
-// Same boundary mock as fetch.test.ts: the SDK is stubbed so `requestJson` runs
-// against a controlled Response, and i18n is stubbed so importing the client
-// doesn't boot the real HTTP backend.
+// This uses the same boundary mock as `fetch.test.ts`.
+// It stubs the SDK, so `requestJson` runs against a controlled Response.
+// It also stubs i18n, so importing the client does not boot the real HTTP backend.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
 vi.mock('@payloadcms/sdk', () => ({
@@ -21,7 +21,7 @@ vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 
 const jsonResponse = (data: unknown) => ({ json: async () => data })
 
-/** What the SDK throws on a non-2xx: the response body's `errors` array verbatim. */
+/** This is what the SDK throws on a non-2xx: the response body's `errors` array, verbatim. */
 class FakeSDKError extends Error {
   constructor(
     readonly errors: { message?: string; code?: string; data?: { code?: string } }[],
@@ -37,7 +37,7 @@ const registration = {
   startingAt: new Date('2026-08-12T18:30:00Z'),
 }
 
-/** A solved Turnstile token, as the form would hand one over. */
+/** This is a solved Turnstile token, as the form would hand one over. */
 const CAPTCHA_TOKEN = '0.solved-challenge'
 
 beforeEach(() => {
@@ -55,15 +55,14 @@ describe('createRegistration', () => {
     const [options] = sdk.request.mock.calls[0]
 
     expect(options.path).toBe('/events/42/register')
-    // Without this the CMS falls back to its own default and every registrant
-    // gets an English confirmation email.
+    // Without this value, the CMS falls back to its own default, and every registrant gets an English confirmation email.
     expect(options.json.locale).toBe('fr')
     expect(options.json.startingAt).toBe('2026-08-12T18:30:00.000Z')
   })
 
-  // The header, not the body — SahajCloud's write-guard is a plugin above the handlers, so
-  // it reads one header name for every endpoint rather than each one's body shape
-  // (sydevs/SahajCloud#629). A token in the body would be a 403 with no way to tell why.
+  // This checks the header, not the body.
+  // SahajCloud's write-guard is a plugin above the handlers, so it reads one header name for every endpoint, not each one's body shape. See sydevs/SahajCloud#629.
+  // A token in the body would produce a 403 with no way to tell why.
   it('sends the solved token in the x-turnstile-token header, not the body', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, registration: { id: 7, uuid: 'abc' } }))
 
@@ -75,10 +74,10 @@ describe('createRegistration', () => {
     expect(JSON.stringify(options.json)).not.toContain(CAPTCHA_TOKEN)
   })
 
-  // `captcha_failed` is thrown by the write-guard rather than by the endpoint's own state
-  // checks, so it is NOT in the synced `EventRegistrationErrorCode` union — and it has to
-  // survive `asRefusal` regardless, or a spent token would reach the form as a generic
-  // "something went wrong" with no hint that retrying is what to do.
+  // The write-guard throws `captcha_failed`, not the endpoint's own state checks.
+  // So this code is NOT in the synced `EventRegistrationErrorCode` union.
+  // It must still survive `asRefusal` regardless.
+  // Otherwise a spent token would reach the form as a generic "something went wrong," with no hint that retrying is what to do.
   it('re-casts a refused captcha as a RegistrationRefusedError, though its code is unsynced', async () => {
     sdk.request.mockRejectedValue(
       new FakeSDKError([{ message: 'Captcha verification failed.', code: 'captcha_failed' }], 403),
@@ -104,8 +103,8 @@ describe('createRegistration', () => {
   })
 
   it('passes non-refusal failures through untouched', async () => {
-    // A 404 carries no `code` — it must stay a plain error so the form shows the
-    // generic "something went wrong" treatment rather than a state message.
+    // A 404 carries no `code`.
+    // It must stay a plain error, so the form shows the generic "something went wrong" treatment, not a state message.
     const notFound = new FakeSDKError([{ message: 'Not Found' }], 404)
 
     sdk.request.mockRejectedValue(notFound)
@@ -147,11 +146,11 @@ describe('sendUserMessage', () => {
     expect(options.method).toBe('POST')
     expect(options.path).toBe('/user-messages')
     expect(options.json.message).toBe('The venue address is wrong.')
-    // The endpoint's field is `senderEmail`; ours is `email`. A rename dropped here
-    // would silently strip the Reply-To from every report that carries one.
+    // The endpoint's field is `senderEmail`. Ours is `email`.
+    // A dropped rename here would silently strip the Reply-To from every report that carries one.
     expect(options.json.senderEmail).toBe('ada@example.org')
     expect(options.json).not.toHaveProperty('email')
-    // The intake is general-purpose; the Atlas framing is this caller's subject.
+    // The intake is general-purpose. The Atlas framing is this caller's subject.
     expect(options.json.subject).toBe('Issue report')
   })
 
@@ -162,9 +161,9 @@ describe('sendUserMessage', () => {
 
     const [options] = sdk.request.mock.calls[0]
 
-    // The write-guard is a plugin above every collection, so it reads one header rather
-    // than knowing each body shape. A token left in the body is not read at all: the
-    // create would be refused as `captcha_failed` with the token sitting right there.
+    // The write-guard is a plugin above every collection, so it reads one header, not each body shape.
+    // A token left in the body is not read at all.
+    // The create would be refused as `captcha_failed`, with the token sitting right there.
     expect(options.init.headers['x-turnstile-token']).toBe('tok-1')
     expect(options.json).not.toHaveProperty('turnstileToken')
   })
@@ -176,16 +175,16 @@ describe('sendUserMessage', () => {
 
     const [options] = sdk.request.mock.calls[0]
 
-    // Ours is `pageUrl`, theirs is `hostUrl`. A silent rename here would drop the host
-    // page from every report while every gate stayed green.
+    // Ours is `pageUrl`. Theirs is `hostUrl`.
+    // A silent rename here would drop the host page from every report, while every gate stayed green.
     expect(options.json.context).toEqual({
       path: '/india/pune/e/42',
       hostUrl: 'https://host.example/find-a-class',
       locale: 'en',
       userAgent: 'Mozilla/5.0 (Macintosh)',
     })
-    // The client comes from the authenticated API key server-side; sending our cached
-    // copy would be a second, forgeable source for the same row.
+    // The server derives the client from the authenticated API key.
+    // Sending our cached copy would be a second, forgeable source for the same row.
     expect(options.json.context).not.toHaveProperty('client')
   })
 
@@ -205,9 +204,9 @@ describe('sendUserMessage', () => {
       context: { ...context, userAgent: 'U'.repeat(2500), error: 'E'.repeat(2500) },
     })
 
-    // Over-bound context is a 400 for the WHOLE message — losing a bug report to a long
-    // browser string would be the worst possible trade. Every key is bounded at 2000 by
-    // the `context` JSON schema in SahajCloud's UserMessages collection.
+    // An over-bound context produces a 400 for the WHOLE message.
+    // Losing a bug report to a long browser string would be the worst possible trade.
+    // The `context` JSON schema in SahajCloud's UserMessages collection bounds every key at 2000.
     const sent = sdk.request.mock.calls[0][0].json.context
 
     expect(sent.userAgent).toHaveLength(2000)
@@ -227,9 +226,8 @@ describe('sendUserMessage', () => {
       ),
     )
 
-    // Collection-backed routes go through Payload's `formatErrors`, which nests the
-    // APIError payload under `data` — so a client reading only `errors[].code` sees an
-    // uncoded failure and shows the generic sentence in place of the captcha copy.
+    // Collection-backed routes go through Payload's `formatErrors`, which nests the APIError payload under `data`.
+    // So a client reading only `errors[].code` sees an uncoded failure, and shows the generic sentence instead of the captcha copy.
     await expect(mutate.sendUserMessage(report)).rejects.toBeInstanceOf(UserMessageRefusedError)
     await expect(mutate.sendUserMessage(report)).rejects.toMatchObject({ code: 'captcha_failed' })
   })
@@ -241,7 +239,7 @@ describe('sendUserMessage', () => {
         new FakeSDKError([{ message: 'Refused.', data: { code } }], 400),
       )
 
-      // Each of these routes to its own copy in ReportIssueForm's REFUSAL_MESSAGE_KEYS.
+      // Each of these codes routes to its own copy in `ReportIssueForm`'s `REFUSAL_MESSAGE_KEYS`.
       // Losing the code loses the sentence, not the failure.
       await expect(mutate.sendUserMessage(report)).rejects.toMatchObject({ code })
     },
@@ -256,14 +254,14 @@ describe('sendUserMessage', () => {
   })
 
   it('rejects a success body that is not a create envelope, as a parse failure', async () => {
-    // The old endpoint's receipt was `{ ok: true }`. Accepting anything 2xx would put the
-    // thank-you screen in front of a sender whose message went nowhere.
+    // The old endpoint's receipt was `{ ok: true }`.
+    // Accepting any 2xx response would put the thank-you screen in front of a sender whose message went nowhere.
     sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
 
-    // NOT a UserMessageRefusedError. A ZodError's `.errors` are `{ message, code }` — the
-    // very shape a refusal body has — so a `.parse()` inside the request's catch would be
-    // re-cast as a server refusal carrying a zod issue code. A bare `.rejects.toThrow()`
-    // passes either way and would have certified that bug.
+    // This must NOT be a `UserMessageRefusedError`.
+    // A `ZodError`'s `.errors` field is `{ message, code }`, the very shape a refusal body has.
+    // So a `.parse()` call inside the request's catch would get re-cast as a server refusal carrying a zod issue code.
+    // A bare `.rejects.toThrow()` would pass either way, and would have certified that bug.
     await expect(mutate.sendUserMessage(report)).rejects.toBeInstanceOf(z.ZodError)
     await expect(mutate.sendUserMessage(report)).rejects.not.toBeInstanceOf(UserMessageRefusedError)
   })
@@ -295,10 +293,10 @@ describe('reportEmbed', () => {
   })
 
   /**
-   * `ok` is the whole receipt. The endpoint also returns `mount` and `stored`, and neither is in
-   * the schema on purpose — nothing consumes them, so pinning them would turn a harmless rename
-   * on the CMS side into a console warning on every host page. What must still fail is a response
-   * that does not say the report was accepted.
+   * `ok` is the whole receipt this schema checks.
+   * The endpoint also returns `mount` and `stored`. Neither is in the schema, on purpose.
+   * Nothing consumes them, so pinning them would turn a harmless rename on the CMS side into a console warning on every host page.
+   * What must still fail is a response that does not say the report was accepted.
    */
   it('accepts the receipt while ignoring the fields nothing reads', async () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'renamed-away' }))

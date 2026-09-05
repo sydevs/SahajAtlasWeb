@@ -11,15 +11,17 @@ import { formatTimePeriods } from '@/lib'
 import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
- * The active filters, as a row of removable pills at the top of the search results.
- * One pill per filter type — the day-of-week and language selections are each
- * collapsed into a single pill. Each pill's X clears that filter immediately (a
- * quick-edit on the applied filters). Renders nothing when no filter is active.
+ * The active filters, as a row of removable pills at the top of the search
+ * results. It shows one pill per filter type. The day-of-week and language
+ * selections each collapse into a single pill. Each pill's X clears that
+ * filter immediately, as a quick edit on the applied filters. This renders
+ * nothing when no filter is active.
  *
- * Every pill here is one of the USER's own filters. The results list's automatic
- * distance cut used to ride along as one more pill, which read as a filter someone
- * had chosen; it's now a segment boundary the list pages across, signposted by its own
- * control at the foot of the list (see `revealRows` in `@/lib/shape/reveal`).
+ * Every pill here is one of the USER's own filters. The results list's
+ * automatic distance cut used to ride along as one more pill, which read as
+ * a filter someone had chosen. It is now a segment boundary the list pages
+ * across instead, signposted by its own control at the foot of the list
+ * (see `revealRows` in `@/lib/shape/reveal`).
  */
 export function ActiveFilterPills() {
   const { t } = useTranslation('common')
@@ -43,8 +45,9 @@ export function ActiveFilterPills() {
   const pills: { key: string; label: string; onRemove: () => void }[] = []
 
   if (region) {
-    // Show the region's name (falling back to the slug until the tree loads / for an
-    // unknown slug), resolved where it's used so there's no null-typed intermediate.
+    // This shows the region's name, falling back to the slug until the
+    // tree loads, or for an unknown slug. It resolves where the app uses
+    // it, so there is no null-typed intermediate.
     const name = regions?.find((node) => node.slug === region)?.name ?? region
 
     pills.push({ key: 'region', label: name, onRemove: () => setRegion(null) })
@@ -73,7 +76,7 @@ export function ActiveFilterPills() {
   if (isTimeRestricted(timeOfDay)) {
     pills.push({
       key: 'time',
-      // Empty when every period is selected (a whole-day cover) — read as "any time".
+      // This is empty when every period is selected, a whole-day cover. It then reads as "any time".
       label: formatTimePeriods(locale, timeOfDay) || t('filters.any_time'),
       onRemove: () => setTimeOfDay([]),
     })

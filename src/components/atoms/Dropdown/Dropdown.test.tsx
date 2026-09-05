@@ -4,10 +4,10 @@ import { describe, it, expect } from 'vitest'
 import { Dropdown } from './Dropdown'
 
 // Node-only SSR assertions (see `docs/testing.md`). The panel is closed on
-// first render (and portaled + positioned by Floating UI on the client), so we
-// assert the trigger contract and that the panel content is absent until opened.
-// Interactive behaviour (open, placement, flip/shift, dismiss) lives in Ladle /
-// the browser.
+// first render. Floating UI portals and positions it only on the client. So
+// this spec asserts the trigger contract, and that the panel content stays
+// absent until opened. Interactive behaviour, such as open, placement, flip,
+// shift, and dismiss, belongs in Ladle or the browser.
 
 describe('Dropdown', () => {
   it('renders the trigger as a focusable button and keeps the panel closed', () => {
@@ -22,7 +22,7 @@ describe('Dropdown', () => {
     expect(html).toContain('aria-expanded="false"')
     expect(html).toContain('tabindex="0"')
     expect(html).toContain('Open')
-    // Closed by default → the portaled panel (and its content) is not in the SSR output.
+    // Closed by default: the portaled panel, and its content, is not in the SSR output.
     expect(html).not.toContain('Panel content')
   })
 

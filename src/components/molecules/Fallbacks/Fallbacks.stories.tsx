@@ -7,10 +7,11 @@ import { LoadingFallback, ErrorFallback, FallbackPanel } from './Fallbacks'
 
 import { countrySite } from '@/lib/country-sites'
 import { mockErrorKinds, mockErrorNotes, mockErrors } from '@/mocks/errors'
-// The real geocoder, not a stand-in: `search` is one of the five policy flags, and a story
-// that mocked the field would prove nothing about the one thing worth seeing (that it fits
-// the column, and that its placeholder names itself without a prompt line). Views are
-// leaves — nothing imports a story — so this doesn't invert the component layering.
+// This uses the real geocoder, not a stand-in. `search` is one of the
+// five policy flags. A story that mocked the field would prove nothing
+// about the one thing worth seeing: that it fits the column, and that its
+// placeholder names itself without a prompt line. Views are leaves, since
+// nothing imports a story, so this does not invert the component layering.
 import { SearchField } from '@/views/shared'
 
 export default {
@@ -18,14 +19,16 @@ export default {
 } satisfies StoryDefault
 
 /**
- * One case per row of `ERROR_POLICY` that a drawer body or an empty list can reach, with
- * the actions each is meant to exercise named — so a reviewer checks the CONTROLS against
- * the table rather than reading five near-identical sentences.
+ * One case per row of `ERROR_POLICY` that a drawer body or an empty list
+ * can reach, with the actions each is meant to exercise named. So a
+ * reviewer checks the CONTROLS against the table, instead of reading five
+ * near-identical sentences.
  *
- * The five flags are covered as follows: `onward` by every dead-end row, `search` by the
- * two that pass a geocoder, `clearFilters` by `no-results`, `retry`/`report` by the failure
- * kinds in the section above (no dead end offers either — retrying a URL that doesn't exist
- * fails identically, and a wrong link isn't ours to fix).
+ * The five flags are covered as follows. Every dead-end row covers
+ * `onward`. The two rows that pass a geocoder cover `search`. `no-results`
+ * covers `clearFilters`. The failure kinds in the section above cover
+ * `retry` and `report`. No dead end offers either: retrying a URL that
+ * does not exist fails identically, and a wrong link is not ours to fix.
  */
 const BODY_CASES: {
   kind: FallbackKind
@@ -102,20 +105,24 @@ const BODY_CASES: {
 ]
 
 /**
- * Fallbacks — every state that leaves a viewer with no content, rendered from one policy
- * table (issue #89): the five classified failures, plus the ways a list can legitimately
- * come back empty. What each one says and offers is `ERROR_POLICY`, not a branch.
+ * Fallbacks — every state that leaves a viewer with no content, rendered
+ * from one policy table (issue #89): the five classified failures, plus
+ * the ways a list can legitimately end up empty. `ERROR_POLICY` decides
+ * what each one says and offers, not a branch.
  *
- * `ErrorFallback` is the whole-widget screen (what shows when the app fails to boot at
- * all, e.g. an embed with no API key). `FallbackPanel` is the body every drawer and every
- * empty list renders — including the dead-link cases, which reach it through the same
- * `not-found` classification. Both draw from the same policy and the same `FallbackActions`
- * row, so the surfaces can differ in chrome without ever drifting on what a state permits.
+ * `ErrorFallback` is the whole-widget screen. It shows when the app fails
+ * to boot at all, for example an embed with no API key. `FallbackPanel` is
+ * the body every drawer and every empty list renders, including the
+ * dead-link cases, which reach it through the same `not-found`
+ * classification. Both draw from the same policy and the same
+ * `FallbackActions` row, so the surfaces can differ in chrome without ever
+ * drifting on what a state permits.
  *
- * Two things read differently here than in the app: the recovery ladder needs a warm region
- * cache, so every onward rung falls to its floor ("Browse all countries") rather than
- * naming a real ancestor; and there is no drawer chrome around the body. See the per-view
- * stories for both in place.
+ * Two things read differently here than in the app. The recovery ladder
+ * needs a warm region cache, so every onward rung falls to its floor,
+ * "Browse all countries", instead of naming a real ancestor. There is also
+ * no drawer chrome around the body. See the per-view stories for both in
+ * place.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -147,8 +154,8 @@ export const Default: Story = () => (
       description="The same table on the body surface used by every drawer and every empty list. Only the first is a throw — the rest are data states wearing the same clothes."
       title="Dead ends & empty lists · drawer body"
     >
-      {/* Keyed on kind + actions, not kind alone: `unavailable` appears twice, once per
-          branch of its contact/onward either-or. */}
+      {/* Keyed on kind and actions, not kind alone. `unavailable` appears
+          twice, once per branch of its contact-or-onward choice. */}
       {BODY_CASES.map(({ kind, actions, note, props, field }) => (
         <StorySection
           key={`${kind}-${actions}`}

@@ -10,8 +10,8 @@ export default {
   title: 'Molecules',
 } satisfies StoryDefault
 
-// A mix of active filters, seeded into the URL query — the filters' source of truth,
-// which the pills read via useEventFilters.
+// A mix of active filters, seeded into the URL query, the filters' source of
+// truth. The pills read it through useEventFilters.
 const seededParams = filtersToParams({
   format: 'online',
   cadence: 'WEEKLY',

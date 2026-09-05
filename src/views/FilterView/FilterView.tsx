@@ -22,23 +22,24 @@ import {
 } from '@/lib/shape'
 import { CloseButton, DrawerTitle } from '@/views/shared'
 
-// The event-filters drawer (route `/filters`, or `/search/filters` when stacked
-// over a search). A normal drawer view — standard header + close chrome and the
-// usual stacking. Filters are NOT applied live: the form edits a local draft.
-// "Apply (N)" (shown only when the draft differs from what's applied) commits the
-// draft into the /search query — the single source of truth that drives the list +
-// map — and closes the drawer, showing how many events the draft matches. "Clear
-// all" resets everything AND applies + closes. The per-filter clears inside the
-// form stay draft-only.
-// `initialDraft` seeds the form's draft for previews/tests (so a story can open in a filled,
-// unapplied "dirty" state); the app renders `<FilterView />`, starting from the applied filters.
+// The event-filters drawer, at route `/filters`, or `/search/filters` when stacked over a
+// search. This is a normal drawer view, with standard header and close chrome, and the usual
+// stacking. Filters are NOT applied live — the form edits a local draft. "Apply (N)" shows
+// only when the draft differs from what is applied. It commits the draft into the /search
+// query — the single source of truth that drives the list and the map — and closes the
+// drawer, showing how many events the draft matches. "Clear all" resets everything, applies,
+// and closes. The per-filter clears inside the form stay draft-only.
+// `initialDraft` seeds the form's draft for previews and tests, so a story can open in a
+// filled, unapplied "dirty" state. The app itself renders `<FilterView />` starting from the
+// applied filters.
 export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {}) {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const location = useLocation()
   const applied = useEventFilters()
 
-  // Start from the applied filters; discarded on close unless the user applies.
+  // Start from the applied filters. This draft is discarded on close, unless the user
+  // applies it.
   const [draft, setDraft] = useState(initialDraft ?? applied)
   // Region cut for the live count, from the draft's selected region (see matchesFilters).
   const matchesRegion = useRegionMatcher(draft.region)
@@ -64,14 +65,14 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   const hasChanges = filtersKey(draft) !== filtersKey(applied)
   const draftActive = hasActiveFilters(draft)
 
-  // Applying/clearing returns to the ORIGIN view (the drawer beneath the filters),
-  // with the filters written into its query — so filtering from the calendar returns
-  // to the calendar and from search back to search, each still framed by its own
-  // q/center/bbox/region. Opened over a view that doesn't itself reflect the filters
-  // (the country list or a region), apply instead jumps to /search to show the filtered
-  // events — there's no filtered surface to return to. Either way it REPLACES the
-  // filter-drawer entry (carrying its depth over) rather than stacking a new one, so the
-  // drawer doesn't linger in history and a chronological back lands on the pre-filter view.
+  // Applying or clearing returns to the ORIGIN view — the drawer beneath the filters — with
+  // the filters written into its query. So filtering from the calendar returns to the
+  // calendar, and filtering from search returns to search, each still framed by its own
+  // q/center/bbox/region. When opened over a view that does not itself reflect the filters,
+  // such as the country list or a region, apply instead jumps to /search to show the filtered
+  // events. There is no filtered surface to return to in that case. Either way, this REPLACES
+  // the filter-drawer entry, carrying its depth over, rather than stacking a new one. So the
+  // drawer does not linger in history, and a chronological back lands on the pre-filter view.
   const commit = (filters: typeof draft) => {
     // Nothing here resets the results list's reveal, and nothing needs to: the filters
     // are part of `revealKey`, so a new set is a new result set and the list is back at

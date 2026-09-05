@@ -10,9 +10,9 @@ import { useSetSortOrder, useSortOrder } from '@/hooks/use-sort'
 import { SORT_ORDERS } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
 
-// Dropdown surface + row skins, mirroring the SettingsMenu selectable-menu pattern
-// (Radix RadioGroup + ItemIndicator + Check). Kept local — the two menus don't
-// share a base component, only the look.
+// Dropdown surface and row skins, mirroring the SettingsMenu
+// selectable-menu pattern (Radix RadioGroup, ItemIndicator, Check). This
+// stays local. The two menus share only the look, not a base component.
 const menu =
   'z-50 min-w-44 rounded-xl border border-divider bg-background p-1 text-foreground shadow-xl'
 const item =
@@ -31,12 +31,14 @@ function ItemCheck() {
 }
 
 /**
- * The results-list sort selector: a ghost trigger showing `Sort: <current>` with a
- * caret, opening a radio menu of the orderings (Recommended / Closest / Soonest) with a
- * checkmark on the active one. Reads/writes `?sort=` — presentation only, so picking an
- * order re-sorts the visible list without refetching (see `EventsList`). Built directly
- * on Radix DropdownMenu (RadioGroup + ItemIndicator) rather than the Dropdown/Select
- * atoms, which don't model a checked selection — the same choice SettingsMenu makes.
+ * The results-list sort selector: a ghost trigger showing `Sort:
+ * <current>` with a caret, opening a radio menu of the orderings
+ * (Recommended, Closest, Soonest) with a checkmark on the active one. It
+ * reads and writes `?sort=`. This is presentation only, so picking an
+ * order re-sorts the visible list without refetching (see `EventsList`).
+ * This is built directly on Radix DropdownMenu (RadioGroup and
+ * ItemIndicator), instead of the Dropdown or Select atoms, which do not
+ * model a checked selection. SettingsMenu makes the same choice.
  */
 export function SortMenu() {
   const { t } = useTranslation('common')
@@ -44,8 +46,9 @@ export function SortMenu() {
   const setOrder = useSetSortOrder()
   const container = overlayContainer()
 
-  // modal={false}: this menu opens inside the draggable vaul drawer; Radix's default
-  // modal scroll-lock + body pointer-events trap fights the sheet's own drag/scroll.
+  // `modal={false}`: this menu opens inside the draggable vaul drawer.
+  // Radix's default modal scroll-lock and body pointer-events trap fight
+  // the sheet's own drag and scroll.
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>

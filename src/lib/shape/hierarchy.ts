@@ -88,11 +88,12 @@ export const ancestorIds = <T extends RegionTreeNode>(
 }
 
 /**
- * Every region id at or below `regionId` — the region itself plus all descendants
- * (self-inclusive; a leaf yields just `{regionId}`). Drives the region *filter*: an
- * event is "under" the selection when its own region id is in this set. Descends the
- * tree from `regionId` (via a one-pass parent→children index) rather than re-walking
- * every node's ancestry, so it's O(regions), not O(regions·depth).
+ * Every region id at or below `regionId`: the region itself plus all descendants
+ * (self-inclusive, so a leaf yields just `{regionId}`). This drives the region
+ * *filter*. An event is "under" the selection when its own region id is in this
+ * set. It descends the tree from `regionId` (via a one-pass parent→children index),
+ * instead of re-walking every node's ancestry, so it runs in O(regions), not
+ * O(regions·depth).
  */
 export const subtreeIds = <T extends RegionTreeNode>(
   index: RegionIndex<T>,

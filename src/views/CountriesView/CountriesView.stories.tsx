@@ -17,15 +17,15 @@ const EXAMPLES = {
 type ExampleKey = keyof typeof EXAMPLES
 
 /**
- * CountriesView — the root screen: the geocoder search + filter, an "Online
- * Classes" entry (its count read from the feed), then the global country list
- * (busiest first — the view sorts by event count).
+ * CountriesView — the root screen. It shows the geocoder search and filter, an "Online
+ * Classes" entry with its count read from the feed, then the global country list, busiest
+ * first (the view sorts by event count).
  *
- * The State control carries no not-found flavour: there is no slug to get wrong at the
- * root, so no dead link reaches it. What a viewer meets here is the first fetch of the
- * session failing — and unlike the app-level fallback, the drawer stack IS mounted, so it
- * renders in the root's own chrome (geocoder, filters, collapse) with the panel top-left,
- * where the country list would have been.
+ * The State control carries no not-found flavour. There is no slug to get wrong at the root, so
+ * no dead link reaches it. What a viewer meets here is the first fetch of the session failing.
+ * Unlike the app-level fallback, the drawer stack IS mounted here, so it renders in the root's
+ * own chrome — geocoder, filters, collapse — with the panel top-left, where the country list
+ * would have been.
  */
 export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,

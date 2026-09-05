@@ -2,15 +2,15 @@
  * Reporting helpers shared by the CI gate scripts (`check-audit.mjs`,
  * `check-bundle-size.mjs`).
  *
- * Both write the same two kinds of output, and the point of sharing them is
- * that both gates surface a failure the same way. The first draft
- * copy-pasted this and immediately drifted: the audit gate raised an
- * annotation on failure, while the size gate only wrote to stderr, so one
- * breach was visible on the run and the other was only findable by
- * unfolding the log.
+ * Both scripts write the same two kinds of output. This keeps both gates
+ * consistent when they report a failure. An early draft copied this code
+ * instead of sharing it, and the two gates drifted apart: the audit gate
+ * raised an annotation on failure, while the size gate only wrote to
+ * stderr. A reader could see the audit failure on the run itself, but the
+ * size failure stayed hidden until someone opened the log.
  *
- * This is underscore-prefixed, so it reads as a helper rather than a
- * runnable script, the same convention `tests/smoke/_helpers/` uses.
+ * The underscore prefix marks this file as a helper, not a runnable
+ * script. `tests/smoke/_helpers/` uses the same convention.
  */
 
 import { appendFileSync } from 'node:fs'
@@ -22,10 +22,10 @@ import { appendFileSync } from 'node:fs'
 export function report(lines) {
   const text = lines.join('\n')
 
-  // Actions parses stdout for `::command::` lines, and some of what we
-  // print is registry-sourced (advisory titles). This defangs a line that
-  // starts with `::`, so a hostile or merely unlucky title cannot forge a
-  // workflow command.
+  // GitHub Actions parses stdout for `::command::` lines. Some printed text
+  // comes from the registry, such as advisory titles. This defangs any
+  // line that starts with `::`, so a hostile or unlucky title cannot forge
+  // a workflow command.
   console.log(text.replace(/^::/gm, '​::'))
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`)
@@ -33,16 +33,18 @@ export function report(lines) {
 }
 
 /**
- * Emits a GitHub Actions annotation — surfaced on the run itself, so the
- * reason a gate failed does not depend on anyone expanding the log. Outside
- * Actions it is still a readable line, so local runs lose nothing.
+ * Emits a GitHub Actions annotation. The annotation appears on the run
+ * itself, so a reader does not need to expand the log to see why a gate
+ * failed. Outside Actions, this still prints a readable line, so local
+ * runs lose no information.
  * @param {'error' | 'warning' | 'notice'} level
  * @param {string} message
  */
 export function annotate(level, message) {
-  // Annotations are single-line, and `%`, CR, and LF are the command
-  // format's own escapes — left raw, a message containing one is truncated
-  // or mangled, with the remainder spilling out as stray log output.
+  // Annotations are single-line. The command format reserves `%`, CR, and
+  // LF as its own escape characters. A raw message containing one of these
+  // gets truncated or mangled, and the remaining text spills out as stray
+  // log output.
   const escaped = message
     .replace(/\s*\n\s*/g, ' ')
     .replace(/%/g, '%25')

@@ -27,9 +27,9 @@ describe('fingerprint', () => {
       expect(fingerprint(ideal, 'path').canonicalViable).toBe(true)
     })
 
-    // The distinction the whole field exists for: a cross-origin frame renders perfectly well
-    // and is still worthless as a canonical, because the indexable document is the host's, we
-    // cannot write its head, and the `?atlas=` on its URL never reaches us.
+    // The distinction the whole field exists for. A cross-origin frame renders perfectly well,
+    // and is still worthless as a canonical. The indexable document is the host's. This code
+    // cannot write its head, and the `?atlas=` on its URL never reaches this widget.
     it('is false in a frame even when everything else works', () => {
       expect(fingerprint({ ...ideal, topLevel: false }, 'query').canonicalViable).toBe(false)
     })
@@ -43,11 +43,12 @@ describe('fingerprint', () => {
     })
 
     /**
-     * `routing` arrives on the host's own script URL, so exempting `path` from the
-     * `paramPersisted` requirement made the one judgement in this payload settable by the page
-     * being judged — and for a mount that query-routes anyway, since `mountDecision` does not
-     * honour `path`. Nothing server-side could contradict it either: the endpoint stores no
-     * `canonicalViable`. Every input to this field is now something the widget measured.
+     * `routing` arrives on the host's own script URL. Exempting `path` from the
+     * `paramPersisted` requirement let the page set the one judgement in this payload, about
+     * itself. This happens even for a mount that query-routes anyway, since `mountDecision`
+     * does not honour `path`. Nothing server-side could contradict it either, because the
+     * endpoint stores no `canonicalViable` value. Every input to this field is now something
+     * the widget measured.
      */
     it('cannot be turned on by asking for a routing mode', () => {
       const eaten = { ...ideal, paramPersisted: false }

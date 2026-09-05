@@ -23,8 +23,8 @@ const EXAMPLES: Record<string, Region> = {
 type ExampleKey = keyof typeof EXAMPLES
 
 /** Whatever region is selected, with nothing left to list — a region whose programs have
- *  all ended. Derived rather than a fixture of its own, so `Empty` is a state ANY example
- *  can be seen in, and so the header keeps naming the region the reader chose. */
+ *  all ended. This is derived, not a fixture of its own, so `Empty` is a state ANY example
+ *  can appear in, and the header still names the region the reader chose. */
 const emptied = (region: Region): Region => ({
   ...region,
   subregions: [],
@@ -33,30 +33,29 @@ const emptied = (region: Region): Region => ({
 })
 
 /**
- * RegionView — the drawer screen for a region at any level. "Country" is a large
- * parent whose events all sit under its child regions; "City" lists only its own
- * events with online ones inline; "City with Centers" is a city whose children are
- * SY Centers (venues), led by an "Online Classes" roll-up.
+ * RegionView — the drawer screen for a region at any level. "Country" is a large parent
+ * whose events all sit under its child regions. "City" lists only its own events, with
+ * online ones inline. "City with Centers" is a city whose children are SY Centers (venues),
+ * led by an "Online Classes" roll-up.
  *
  * **The two axes multiply, and both fall out of the example.** `Empty` empties whichever
- * region is selected — it is a state of a region, not a region of its own, so the header
- * still names the place the reader chose and every example can be seen barren. And each
- * case renders at its own `region.path`, so "Not found · place" shows what that URL can
- * offer, with nothing configured per fallback:
+ * region is selected. It is a state of a region, not a region of its own, so the header still
+ * names the place the reader chose, and every example can appear barren. Each case also
+ * renders at its own `region.path`, so "Not found · place" shows what that URL can offer,
+ * with nothing configured per fallback:
  *
  *  - **City** (`/united-kingdom/cambridgeshire/cambridge`) → the ladder drops the failing
  *    terminal and finds **Cambridgeshire** in the region tree: the under-a-region variant.
  *  - **City with Centers** (`…/greater-london/london`) → **Greater London**, the same rung
  *    one level up.
- *  - **Country** (`/united-kingdom`) → nothing above it, so the ladder falls past rung 1
- *    to the cached IP guess: **"See events near Cambridge"**. That IS the top-level
- *    variant — the bare "Browse all countries" floor only appears when even the guess is
- *    absent (Molecules › Fallbacks shows it).
+ *  - **Country** (`/united-kingdom`) → nothing sits above it, so the ladder falls past rung 1
+ *    to the cached IP guess: **"See events near Cambridge"**. That IS the top-level variant.
+ *    The bare "Browse all countries" floor only appears when even the guess is absent
+ *    (Molecules › Fallbacks shows it).
  *
- * `Empty` and the not-found cases render the very same `FallbackPanel`, one policy row
- * apart — which is the point: a barren region gets the same way out as a URL that never
- * existed (issue #89). Put them side by side and the only difference should be the
- * sentence.
+ * `Empty` and the not-found cases render the very same `FallbackPanel`, one policy row apart —
+ * which is the point. A barren region gets the same way out as a URL that never existed
+ * (issue #89). Put them side by side, and the only difference should be the sentence.
  */
 export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,
@@ -90,7 +89,7 @@ Default.argTypes = {
     control: { type: 'radio' },
     defaultValue: 'Country',
   },
-  // A slug the region tree doesn't carry — a renamed CMS slug in an old bookmark, or a
+  // A slug the region tree does not carry — a renamed CMS slug in an old bookmark, or a
   // typo. The one dead link this view's routes can produce.
   state: stateControl(EMPTY, 'Not found · place'),
 }

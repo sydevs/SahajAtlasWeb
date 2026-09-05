@@ -1,26 +1,31 @@
 #!/usr/bin/env node
 
 /**
- * Syncs — or just checks — the shared canonical-URL contract against SahajCloud's copy.
+ * Syncs, or just checks, the shared canonical-URL contract against
+ * SahajCloud's copy.
  *
  *   pnpm sync:atlas-contract          # report drift, exit 1 if there is any
  *   pnpm sync:atlas-contract --write  # overwrite our copy with theirs
  *
- * `atlas-url-contract.json` is byte-identical in SahajCloud, SahajAtlasWeb, and WeMeditateWeb.
- * SahajCloud composes canonical Atlas URLs from it. We take them apart again
- * (`src/lib/shape/atlas-url-contract.test.ts`). The file's own `$comment` says to sync it by raw
- * URL, rather than re-deriving the rules, and this is that, made one command.
+ * `atlas-url-contract.json` is byte-identical in SahajCloud, SahajAtlasWeb,
+ * and WeMeditateWeb. SahajCloud composes canonical Atlas URLs from it. We
+ * take them apart again (`src/lib/shape/atlas-url-contract.test.ts`). The
+ * file's own `$comment` says to sync it by raw URL, rather than
+ * re-deriving the rules. This script does exactly that, as one command.
  *
- * **Why a script and not a test.** The unit lane must never touch the network
- * (`docs/testing.md`), and a fixture that fetches on every run would couple `pnpm test` to
- * GitHub's availability. So the committed copy is what the lane asserts against, and drift from
- * upstream is a separate, deliberate check — the same split `pnpm types:cms` uses for the CMS
- * types, and the same shape as `/sync-workflow`'s audit of `workflow-parity.md`.
+ * **Why a script, and not a test.** The unit lane must never touch the
+ * network (`docs/testing.md`). A fixture that fetches on every run would
+ * couple `pnpm test` to GitHub's availability. So the committed copy is
+ * what the lane asserts against, and drift from upstream is a separate,
+ * deliberate check. `pnpm types:cms` uses the same split for the CMS
+ * types, and `/sync-workflow`'s audit of `workflow-parity.md` uses the
+ * same shape.
  *
- * ⚠ **A drift is not a merge conflict to resolve — it is a behaviour change to read.** If the
- * `version` moved, SahajCloud changed the shape of a canonical URL, and our parser may no longer
- * restore the view it names. Read their diff before taking `--write`, and expect the spec to go
- * red afterwards: that redness is the point.
+ * ⚠ **A drift is not a merge conflict to resolve. It is a behavior change
+ * to read.** If the `version` moved, SahajCloud changed the shape of a
+ * canonical URL, and our parser may no longer restore the view it names.
+ * Read their diff before taking `--write`, and expect the spec to go red
+ * afterwards. That redness is the point.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -50,9 +55,9 @@ if (upstream === local) {
   process.exit(0)
 }
 
-// This is not a diff library — the interesting question is almost always "did the version
-// move, and did cases appear or vanish", which is answerable from the parsed forms in
-// three lines.
+// This is not a diff library. The interesting question is almost always
+// "did the version move, and did cases appear or vanish", which these
+// three lines can answer from the parsed forms.
 const summarize = (text, label) => {
   try {
     const { version, cases = [] } = JSON.parse(text)

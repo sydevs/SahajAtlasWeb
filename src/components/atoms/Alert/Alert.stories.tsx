@@ -22,10 +22,10 @@ const colors = ['primary', 'secondary', 'contrast', 'neutral', 'danger'] as cons
 const variants = ['flat', 'bordered'] as const
 
 /**
- * Alert — a status banner on the Radix-semantic tokens (danger stays the fixed
- * status red). Supports `size` (`sm`), a dismiss button (`onClose`), single-line
- * auto-centring with an `align` override, and a `role` (assertive `alert` / polite
- * `status`).
+ * Alert — a status banner on the Radix-semantic tokens. Danger always keeps the
+ * fixed status red. It supports a `size` of `sm`, a dismiss button (`onClose`),
+ * single-line auto-centring with an `align` override, and a `role`: assertive
+ * `alert` or polite `status`.
  */
 export const Default: Story = () => (
   <StoryWrapper>

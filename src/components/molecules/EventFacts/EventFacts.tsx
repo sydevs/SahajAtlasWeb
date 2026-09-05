@@ -10,21 +10,22 @@ import {
   type DisplayableEvent,
 } from '@/hooks/use-event-display'
 
-// The when/where fact list. `default` is the panel treatment (brand-tinted icons,
-// roomy spacing); `compact` is the list-card treatment — tighter spacing, icons
-// that inherit the text colour and shrink to the text height, reading as inline
-// text with a leading glyph rather than a labelled block; `card` is the boxed
-// event-details card (a `title` over the default facts on a tinted rounded surface),
-// the object being acted on above the registration / share forms. Each fact is a
-// required primary line (`text`) with an optional faded second line (`subtext`).
+// The when/where fact list. `default` is the panel treatment: brand-tinted
+// icons, roomy spacing. `compact` is the list-card treatment: tighter
+// spacing, and icons that inherit the text colour and shrink to the text
+// height, reading as inline text with a leading glyph, not a labelled
+// block. `card` is the boxed event-details card: a `title` over the
+// default facts on a tinted rounded surface, the object being acted on
+// above the registration and share forms. Each fact has a required primary
+// line (`text`) and an optional faded second line (`subtext`).
 //
-// Presentation + composition live together here: this is the only place that
-// builds event facts and the only thing that renders them, so a generic
-// presenter (previously a separate `Summary` molecule) was public surface with a
-// single internal consumer — folded in.
+// Presentation and composition live together here. This is the only place
+// that builds event facts, and the only thing that renders them. So a
+// generic presenter, previously a separate `Summary` molecule, was public
+// surface with a single internal consumer. It is folded in here instead.
 const facts = tv({
   slots: {
-    // `wrapper`/`title` are used only by the `card` variant (empty otherwise).
+    // `wrapper` and `title` are used only by the `card` variant. They stay empty otherwise.
     wrapper: '',
     title: '',
     base: 'flex flex-col',
@@ -45,7 +46,7 @@ const facts = tv({
         icon: 'text-primary',
       },
     },
-    // A two-line fact hangs its icon beside the FIRST line; a lone line centres.
+    // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
     stacked: {
       true: { item: 'items-start' },
       false: { item: 'items-center' },
@@ -59,7 +60,7 @@ const facts = tv({
   defaultVariants: { variant: 'default', stacked: false },
 })
 
-// Icon pixel size per variant — matched to the text height in the compact card.
+// Icon pixel size per variant. It matches the text height in the compact card.
 const ICON_SIZE = { default: 20, compact: 16, card: 20 } as const
 
 type FactVariant = 'default' | 'compact' | 'card'
@@ -74,25 +75,27 @@ export type EventFactsProps = {
   event: DisplayableEvent
   /** `default` (panel), `compact` (list card), or `card` (boxed details card). */
   variant?: FactVariant
-  /** The heading rendered above the facts — `card` variant only. */
+  /** The heading rendered above the facts. `card` variant only. */
   title?: ReactNode
   /** Extra content inside the `card` box, below the facts (e.g. a backlink). */
   children?: ReactNode
-  /** Distance from the searched location, shown faded under the address (list
-   *  cards only — the panel has no search origin to measure from). */
+  /** Distance from the searched location, shown faded under the address. List
+   *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
   className?: string
 }
 
 /**
- * The shared event when/where fact block: a calendar line (the repeat pattern +
- * event-local time, with a muted detail below) and a location line (the address
- * with its distance faded below, or "Online • Hosted from …" with the viewer's
- * local time). One place so the panel, list card, and share/registration
- * summaries never diverge (issue #52). Ended events drop the location.
+ * The shared event when/where fact block. It shows a calendar line, the
+ * repeat pattern and event-local time, with a muted detail below, and a
+ * location line, the address with its distance faded below, or "Online •
+ * Hosted from …" with the viewer's local time. One place builds this, so
+ * the panel, list card, and share/registration summaries never diverge
+ * (issue #52). Ended events drop the location.
  *
- * The compact (card) variant is deliberately quieter: the start time only, and
- * no "Next session" line — a card is for triage, the panel carries the detail.
+ * The compact (card) variant is deliberately quieter. It shows the start
+ * time only, with no "Next session" line. A card is for triage. The panel
+ * carries the detail.
  */
 export function EventFacts({
   event,
@@ -115,8 +118,8 @@ export function EventFacts({
   const compact = variant === 'compact'
   const time = compact ? eventStartTime : eventTimeRange
 
-  // The muted detail under the timing. "Started …" is only meaningful for a
-  // course (a run with an end); the "Next session" line is panel-only.
+  // The muted detail under the timing. "Started …" is only meaningful for
+  // a course, a run with an end. The "Next session" line is panel-only.
   let timingDetail: string | undefined
 
   if (display.next && recurrenceLine) {
@@ -129,10 +132,11 @@ export function EventFacts({
   const items: Fact[] = [
     {
       icon: CalendarDays,
-      // The shared calendar-line composition — the identical string on the list
-      // card and the map-pin hover popover (#72). Recurring events lead with the
-      // pattern; one-off / terminal ones lead with the when-line (it IS the date
-      // or message). The muted `timingDetail` beneath it stays card/panel-only.
+      // The shared calendar-line composition. It is the identical string
+      // on the list card and the map-pin hover popover (#72). Recurring
+      // events lead with the pattern. One-off or terminal events lead with
+      // the when-line, since it IS the date or message. The muted
+      // `timingDetail` beneath it stays card and panel only.
       text: composeCalendarLine({
         recurrenceLine,
         whenLine,
@@ -155,14 +159,14 @@ export function EventFacts({
   const card = variant === 'card'
   const slots = facts({ variant })
 
-  // The card variant owns the outer box (so `className` styles that box), a title
-  // above the facts, and a slot below them; the other variants render just the
-  // fact column and take `className` on it.
+  // The card variant owns the outer box, so `className` styles that box.
+  // It also owns a title above the facts, and a slot below them. The other
+  // variants render just the fact column, and take `className` on it.
   const body = (
     <div className={card ? slots.base() : slots.base({ className })}>
       {items.map(({ icon: Icon, text, subtext }, index) => {
-        // Alignment is per-fact: only a stacked (text + subtext) one hangs its
-        // icon from the first line.
+        // Alignment is per-fact. Only a stacked fact, one with text and
+        // subtext, hangs its icon from the first line.
         const styles = facts({ variant, stacked: Boolean(subtext) })
 
         return (

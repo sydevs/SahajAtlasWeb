@@ -8,20 +8,25 @@ import { Drawer, DrawerContent } from './Drawer'
 /**
  * Which box vaul measures snap points against (issue #161).
  *
- * **jsdom, because the defect is an agreement with a library and nothing pure can see it.**
- * `Drawer` briefly handed `Vaul.Root` the element it portals into, on the reasoning that the box
- * we render in cannot be the wrong box to measure. It is: embedded that element is the theme
- * root, which is `display: contents` and measures 0×0, and standalone it is `<html>`, which in
- * map mode holds nothing but fixed children and measured 195px against an 844px viewport. Every
- * snap offset in vaul is `containerSize.height - height`, so at zero the ladder
- * `['80px','300px',0.97]` becomes `[-80,-300,0]` instead of `[764,544,25]` and the bottom sheet
- * translates UP, covering the top of the screen instead of sitting at the bottom of it.
+ * **This uses jsdom, because the defect is an agreement with a library, and no
+ * pure test can see it.** `Drawer` briefly handed `Vaul.Root` the element it
+ * portals into, on the reasoning that the box it renders in cannot be the
+ * wrong box to measure. It is wrong. Embedded, that element is the theme
+ * root, which is `display: contents` and measures 0×0. Standalone, it is
+ * `<html>`, which in map mode holds nothing but fixed children, and measured
+ * 195px against an 844px viewport. Every snap offset in vaul is
+ * `containerSize.height - height`. So at zero, the ladder
+ * `['80px','300px',0.97]` becomes `[-80,-300,0]` instead of `[764,544,25]`,
+ * and the bottom sheet translates UP. It covers the top of the screen,
+ * instead of sitting at the bottom of it.
  *
- * It shipped through lint, typecheck and 1263 green unit specs, so the assertion is the point.
- * jsdom reports 0 for every rect, so we cannot assert the offsets themselves — we assert vaul's
- * own record of whether it was given a container at all (`data-vaul-custom-container`, set from
- * `container ? 'true' : 'false'` in its dist). That is precisely the input the arithmetic reads,
- * and it is the same flag that governs the `::after` background extension.
+ * This defect shipped through lint, typecheck, and 1263 green unit specs. So
+ * the assertion below is the point. jsdom reports 0 for every rect, so this
+ * spec cannot assert the offsets themselves. It asserts vaul's own record of
+ * whether it was given a container at all: `data-vaul-custom-container`, set
+ * from `container ? 'true' : 'false'` in its dist. That is precisely the
+ * input the arithmetic reads, and it is the same flag that governs the
+ * `::after` background extension.
  */
 
 let cleanup: (() => void) | null = null
@@ -54,8 +59,8 @@ describe('Drawer — the box vaul measures', () => {
       </Drawer>,
     )
 
-    // 'false' is vaul recording that it fell through to `window.innerHeight` — the correct
-    // reference for every mount except inside the expanded dialog.
+    // 'false' is vaul recording that it fell through to `window.innerHeight`.
+    // That is the correct reference for every mount except inside the expanded dialog.
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('false')
   })
 
@@ -72,8 +77,9 @@ describe('Drawer — the box vaul measures', () => {
       </Drawer>,
     )
 
-    // Portalling into an element must not make it the measurement reference. If this flips to
-    // 'true', a phone-width map embed's sheet is inverted and nothing else in the lane will say so.
+    // Portalling into an element must not make it the measurement reference. If
+    // this flips to 'true', a phone-width map embed's sheet inverts, and nothing
+    // else in the lane reports it.
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('false')
   })
 
@@ -89,9 +95,10 @@ describe('Drawer — the box vaul measures', () => {
       </Drawer>,
     )
 
-    // The case that needs a container: a frame is shorter than the window — by its margin for
-    // the compact card's dialog, by however tall the host made their element for a contained
-    // map (#169) — so a fractional snap measured against the window overruns its clip.
+    // The case that needs a container: a frame is shorter than the window. The
+    // margin does this for the compact card's dialog. The host's chosen height
+    // does this for a contained map (#169). So a fractional snap measured
+    // against the window overruns its clip.
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('true')
   })
 })

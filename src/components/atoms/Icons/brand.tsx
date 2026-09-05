@@ -2,8 +2,9 @@ import { BaseIcon } from './base'
 
 import { IconSvgProps } from '@/types'
 
-// The Sahaja Yoga mark. Kept hand-drawn rather than swapped for Lucide with the rest of
-// the set (#003): it is a brand mark, not an interface glyph, and Lucide ships none.
+// The Sahaja Yoga mark. It stays hand-drawn, unlike the rest of the set,
+// which swapped to Lucide (#003). It is a brand mark, not an interface
+// glyph, and Lucide ships no brand marks.
 export const Logo: React.FC<IconSvgProps> = ({ ...props }) => (
   <BaseIcon
     paths={[

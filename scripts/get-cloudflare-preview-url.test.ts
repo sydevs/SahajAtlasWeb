@@ -17,9 +17,10 @@ import {
 
 const HOST = 'sahajatlas.pages.dev'
 
-// This is PR #135, verbatim, because it is the case the ranking exists for. The head was
-// 56c6b0d and deployed to a73c3b0c. The Cloudflare comment for this project was last edited
-// naming 9326e3b and still linked THAT commit's deploy, 6b78e192.
+// This is PR #135, verbatim, because it is the case the ranking exists
+// for. The head was 56c6b0d and deployed to a73c3b0c. The Cloudflare
+// comment for this project was last edited naming 9326e3b, and it still
+// linked THAT commit's deploy, 6b78e192.
 const DEPLOY = `https://a73c3b0c.${HOST}`
 const BRANCH = `https://fix-report-form-delivery.${HOST}`
 const STALE = `https://6b78e192.${HOST}`
@@ -39,12 +40,12 @@ describe('pick', () => {
   })
 
   it('refuses a host that merely CONTAINS the project name', () => {
-    // This pins the security property: `pages.dev` subdomains are
+    // This pins the security property. `pages.dev` subdomains are
     // first-come-first-served, and source 4 scrapes URLs out of bot
-    // comments — so a substring match would let a bot belonging to any
+    // comments. So a substring match would let a bot belonging to any
     // installed GitHub App aim the smoke lane at a host somebody else
-    // controls, and collect a green check that verified nothing. Matching
-    // is on the hostname, at a label boundary.
+    // controls, and collect a green check that verified nothing. The
+    // match happens on the hostname, at a label boundary.
     expect(pick(['https://evil-sahajatlas.pages.dev'], HOST)).toBeNull()
     expect(pick(['https://sahajatlas.pages.dev.evil.com'], HOST)).toBeNull()
     expect(pick([`https://${HOST}@evil.com/`], HOST)).toBeNull()
@@ -55,10 +56,10 @@ describe('pick', () => {
   })
 
   it('matches case-insensitively in both directions', () => {
-    // PAGES_RE carries the `i` flag, so an uppercase URL can reach pick().
-    // and CF_PROJECT is hand-typed, so the configured host can carry one
-    // too. Both sides normalise — a "harden the match" refactor must not
-    // drop either.
+    // PAGES_RE carries the `i` flag, so an uppercase URL can reach
+    // pick(). CF_PROJECT is hand-typed, so the configured host can carry
+    // one too. Both sides normalize. A "harden the match" refactor must
+    // not drop either.
     expect(pick([`https://ABC.SahajAtlas.PAGES.DEV`], HOST)).toBe(
       'https://ABC.SahajAtlas.PAGES.DEV',
     )
@@ -72,9 +73,10 @@ describe('pick', () => {
 })
 
 describe('deploymentAlias', () => {
-  // This is the chain that makes selection a fact: GitHub returned this check run for the
-  // head SHA, the run points at a deployment UUID, and Cloudflare's per-deployment alias is
-  // that UUID's first 8 characters. Nothing here is a shape heuristic.
+  // This is the chain that makes selection a fact. GitHub returned this
+  // check run for the head SHA. The run points at a deployment UUID.
+  // Cloudflare's per-deployment alias is that UUID's first 8 characters.
+  // Nothing here is a shape heuristic.
   it('reduces a dashboard link to the alias its deployment serves', () => {
     expect(
       deploymentAlias(
@@ -88,8 +90,9 @@ describe('deploymentAlias', () => {
     expect(deploymentAlias(undefined)).toBeNull()
   })
 
-  // The docblock says "ends in", so the LAST uuid is the deployment. An earlier uuid-shaped
-  // path segment winning would name a host that exists nowhere.
+  // The docblock says "ends in", so the LAST uuid is the deployment. An
+  // earlier uuid-shaped path segment winning would name a host that
+  // exists nowhere.
   it('reads the last uuid, not the first', () => {
     expect(
       deploymentAlias(
@@ -100,9 +103,9 @@ describe('deploymentAlias', () => {
 })
 
 describe('waitingLine', () => {
-  // A refused URL and live evidence are not alternatives — a poll can have a sibling run
-  // building AND a stale comment, and showing only the refusal drops the "a deploy exists"
-  // half that separates slow from absent.
+  // A refused URL and live evidence are not alternatives. A poll can have
+  // a sibling run building AND a stale comment. Showing only the refusal
+  // drops the "a deploy exists" half that separates slow from absent.
   it('reports the refusal and the evidence together', () => {
     const line = waitingLine(
       {
@@ -130,8 +133,9 @@ describe('waitingLine', () => {
 describe('provenanceOf', () => {
   it('ranks the deployment our check run names above everything', () => {
     expect(provenanceOf({ url: DEPLOY, scope: 'commit' }, DEPLOY_ID)).toBe(PROVENANCE.deployment)
-    // Even reached by the weakest source: the id is Cloudflare's own answer
-    // to "which host is this commit", so where we read it changes nothing.
+    // This is reached even by the weakest source: the id is Cloudflare's
+    // own answer to "which host is this commit", so where we read it
+    // changes nothing.
     expect(provenanceOf({ url: DEPLOY, scope: 'none' }, DEPLOY_ID)).toBe(PROVENANCE.deployment)
   })
 
@@ -140,17 +144,19 @@ describe('provenanceOf', () => {
     expect(provenanceOf({ url: BRANCH, scope: 'commit' })).toBe(PROVENANCE.alias)
   })
 
-  // This is the defect this ticket is about. A comment naming a different commit is worth
-  // nothing, no matter how convincing the URL in it looks — 6b78e192 is perfectly
-  // deploy-shaped, and it is another commit's build.
+  // This is the defect this ticket is about. A comment naming a
+  // different commit is worth nothing, no matter how convincing the URL
+  // in it looks. 6b78e192 is perfectly deploy-shaped, and it is another
+  // commit's build.
   it('refuses anything from a comment that names a different commit', () => {
     expect(provenanceOf({ url: STALE, scope: 'none' })).toBe(PROVENANCE.loose)
     expect(provenanceOf({ url: BRANCH, scope: 'none' })).toBe(PROVENANCE.loose)
   })
 
-  // The bare project host is PRODUCTION. It clears `pick()` and is not deploy-shaped, so it
-  // would otherwise sit on the floor beside a branch alias — but this script only runs for a
-  // PR head, so production is never right.
+  // The bare project host is PRODUCTION. It clears `pick()` and is not
+  // deploy-shaped, so it would otherwise sit on the floor beside a branch
+  // alias. But this script only runs for a PR head, so production is
+  // never right.
   it('refuses the bare project host, which is production rather than a preview', () => {
     expect(provenanceOf({ url: `https://${HOST}`, scope: 'commit' })).toBe(PROVENANCE.loose)
     expect(pickPreview(from('commit', `https://${HOST}`), { host: HOST })).toBeNull()
@@ -158,11 +164,11 @@ describe('provenanceOf', () => {
 
   it('ranks a comment BELOW the check run even when its URL is deploy-shaped', () => {
     // The comment is edited in place per deploy, and we cannot see
-    // retrospectively whether Cloudflare blanks its URL cells mid-build —
-    // so a body naming the head might still show the previous deploy's
-    // link. The check run therefore has to WIN that race, rather than tie
-    // it. This is asserted as an ordering, not a constant, so renaming a
-    // tier cannot quietly invert it.
+    // retrospectively whether Cloudflare blanks its URL cells mid-build.
+    // So a body naming the head might still show the previous deploy's
+    // link. The check run therefore has to WIN that race, rather than
+    // tie it. This is asserted as an ordering, not a constant, so
+    // renaming a tier cannot quietly invert it.
     expect(provenanceOf({ url: DEPLOY, scope: 'pr' })).toBe(PROVENANCE.claimed)
     expect(PROVENANCE.claimed).toBeLessThan(PROVENANCE.attested)
 
@@ -175,11 +181,11 @@ describe('provenanceOf', () => {
   })
 
   it('still prefers a comment DEPLOY alias over a bare branch alias', () => {
-    // `claimed` sits above `alias`, not below it: a deploy alias names one
-    // immutable build and the comment vouches for the head commit, whereas
-    // a branch alias is pinned to nothing at all. This is the path that
-    // runs if Cloudflare ever drops the per-deploy URL from the check-run
-    // summary.
+    // `claimed` sits above `alias`, not below it. A deploy alias names
+    // one immutable build, and the comment vouches for the head commit,
+    // whereas a branch alias is pinned to nothing at all. This is the
+    // path that runs if Cloudflare ever drops the per-deploy URL from
+    // the check-run summary.
     expect(pickPreview([...from('commit', BRANCH), ...from('pr', DEPLOY)], { host: HOST })).toBe(
       DEPLOY,
     )
@@ -187,8 +193,9 @@ describe('provenanceOf', () => {
 })
 
 describe('pickPreview', () => {
-  // This is the acceptance criterion, stated as a test: both URLs are in the same check-run
-  // summary and only one of them is pinned to this commit.
+  // This is the acceptance criterion, stated as a test: both URLs are in
+  // the same check-run summary, and only one of them is pinned to this
+  // commit.
   it('does not take the branch alias when the head commit has a deploy alias', () => {
     expect(pickPreview(from('commit', BRANCH, DEPLOY), { host: HOST, deployment: DEPLOY_ID })).toBe(
       DEPLOY,
@@ -200,41 +207,43 @@ describe('pickPreview', () => {
   })
 
   it('still prefers a deploy alias before the deployment id is known', () => {
-    // This is the in-build window: the run exists but carries no deployment
-    // yet.
+    // This is the in-build window. The run exists, but it carries no
+    // deployment yet.
     expect(pickPreview(from('commit', BRANCH, DEPLOY), { host: HOST })).toBe(DEPLOY)
   })
 
   it('returns nothing when the only offer is a comment about another commit', () => {
-    // This reproduces PR #135. The old `pick()` answered `found` here, and
-    // the smoke lane would have gone green having tested 9326e3b's build.
+    // This reproduces PR #135. The old `pick()` answered `found` here,
+    // and the smoke lane would have gone green having tested 9326e3b's
+    // build.
     expect(pickPreview(from('none', STALE, BRANCH), { host: HOST })).toBeNull()
   })
 
   it('keeps the branch alias as a floor, so a format change degrades rather than reddens', () => {
     // If Cloudflare ever stops printing the per-deploy URL, discovery
-    // should get worse, not stop: #99 hard-fails a same-repo PR on an
+    // should get worse, not stop. #99 hard-fails a same-repo PR on an
     // empty result.
     expect(pickPreview(from('commit', BRANCH), { host: HOST })).toBe(BRANCH)
-    // A comment that DOES name the head is the weakest usable source. Note
-    // this deliberately is not STALE — that constant is another commit's
-    // deploy, and reusing it here would read as "we accept another
-    // commit's build".
+    // A comment that DOES name the head is the weakest usable source.
+    // Note that this deliberately is not STALE — that constant is
+    // another commit's deploy, and reusing it here would read as "we
+    // accept another commit's build".
     expect(pickPreview(from('pr', BRANCH), { host: HOST })).toBe(BRANCH)
   })
 
-  // This is the tie-break the ticket exists to remove, one level down: inside a single
-  // comment, both URLs are `pr`-scope, so if deploy-shape were only read for per-SHA
-  // sources, then whichever Cloudflare happened to print first would win.
+  // This is the tie-break the ticket exists to remove, one level down.
+  // Inside a single comment, both URLs are `pr`-scope. So if deploy-shape
+  // were only read for per-SHA sources, whichever Cloudflare happened to
+  // print first would win.
   it('does not let a single comment markdown order decide between its two URLs', () => {
     expect(pickPreview(from('pr', BRANCH, DEPLOY), { host: HOST })).toBe(DEPLOY)
     expect(pickPreview(from('pr', DEPLOY, BRANCH), { host: HOST })).toBe(DEPLOY)
   })
 
   it('follows the configured host when refusing production, not a module-level copy', () => {
-    // provenanceOf derives the production label from the host it is GIVEN,
-    // so a different CF_PROJECT refuses its own bare host rather than this
-    // one.
+    // provenanceOf derives the production label from the host it is
+    // GIVEN, so a different CF_PROJECT refuses its own bare host rather
+    // than this one.
     const design = 'sahajatlas-design.pages.dev'
 
     expect(pickPreview(from('commit', `https://${design}`), { host: design })).toBeNull()
@@ -254,9 +263,10 @@ describe('pickPreview', () => {
 })
 
 describe('timeoutFrom', () => {
-  // A bad override must be IGNORED, not honoured. Read as seconds,
-  // PREVIEW_TIMEOUT_MS=600 is a 0.6s deadline — one poll, then a confident
-  // "the deploy did not happen" about a build that was never given time.
+  // A bad override must be IGNORED, not honored. Read as seconds,
+  // PREVIEW_TIMEOUT_MS=600 is a 0.6s deadline — one poll, then a
+  // confident "the deploy did not happen" about a build that was never
+  // given time.
   it('ignores anything that is not a positive number', () => {
     const fallback = timeoutFrom(undefined)
 
@@ -273,9 +283,9 @@ describe('timeoutFrom', () => {
 })
 
 describe('timeoutStatus', () => {
-  // `absent` (nothing happened) and `failed` (it happened and broke) both want a human.
-  // `pending` / `unreachable` mean we stopped waiting on a deploy that demonstrably exists,
-  // which wants a re-run (issue #132).
+  // `absent` (nothing happened) and `failed` (it happened and broke) both
+  // want a human. `pending` and `unreachable` mean we stopped waiting on
+  // a deploy that demonstrably exists, which wants a re-run (issue #132).
   it('reports a URL that never answered as unreachable', () => {
     expect(timeoutStatus({ lastUrl: `https://x.${HOST}`, evidence: null })).toBe(STATUS.unreachable)
   })
@@ -290,10 +300,11 @@ describe('timeoutStatus', () => {
     expect(timeoutStatus({ lastUrl: null, evidence: null })).toBe(STATUS.absent)
   })
 
-  // This is the case that makes the distinction worth having. A FAILED build still posts a
-  // check run, so counting that as "a deploy exists" would tell the reader to re-run a job
-  // that fails identically — the very habit the ticket set out to break. It outranks both
-  // other signals.
+  // This is the case that makes the distinction worth having. A FAILED
+  // build still posts a check run, so counting that as "a deploy exists"
+  // would tell the reader to re-run a job that fails identically — the
+  // very habit the ticket set out to break. It outranks both other
+  // signals.
   it('reports a finished-and-failed deploy as failed, over any other signal', () => {
     const failure = 'check run "Cloudflare Pages: sahajatlas" (failure)'
 
@@ -308,8 +319,8 @@ describe('timeoutStatus', () => {
 })
 
 describe('explain', () => {
-  // The two cases must not read alike: one asks for a re-run, the other for an
-  // investigation, and ci.yml relays whichever it is told.
+  // The two cases must not read alike. One asks for a re-run, the other
+  // for an investigation, and ci.yml relays whichever it is told.
   it('tells the reader to re-run when a deploy was seen', () => {
     for (const status of [STATUS.pending, STATUS.unreachable]) {
       const message = explain(status, {
@@ -328,9 +339,10 @@ describe('explain', () => {
     expect(message).not.toContain('re-run')
   })
 
-  // Without this, the `absent` sentence ("no check run, no deployment, no bot comment") is
-  // contradicted by the poll line printed seconds earlier naming the URL we declined — and
-  // the summary is the line a reader actually sees.
+  // Without this, the `absent` sentence ("no check run, no deployment, no
+  // bot comment") is contradicted by the poll line printed seconds
+  // earlier naming the URL we declined. The summary is the line a reader
+  // actually sees.
   it('names a refused URL rather than denying it existed', () => {
     const message = explain(STATUS.absent, { lastUrl: null, evidence: null, refused: STALE })
 
@@ -357,10 +369,11 @@ describe('explain', () => {
 })
 
 describe('note', () => {
-  // Source 3 accepts a check run whose NAME starts with "cloudflare pages" from any
-  // installed app, and that name is quoted into the step summary — so a newline in it would
-  // forge a summary line. `report()` only defangs a leading `::`, which a forged line placed
-  // mid-string would sail past.
+  // Source 3 accepts a check run whose NAME starts with "cloudflare
+  // pages" from any installed app, and that name is quoted into the step
+  // summary. So a newline in it would forge a summary line. `report()`
+  // only defangs a leading `::`, which a forged line placed mid-string
+  // would sail past.
   it('flattens a multi-line name onto one line', () => {
     expect(note('Cloudflare Pages: x\n::error::forged')).toBe('Cloudflare Pages: x ::error::forged')
     expect(note('  a \r\n\t b  ')).toBe('a b')

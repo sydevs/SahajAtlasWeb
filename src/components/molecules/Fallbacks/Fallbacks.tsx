@@ -77,7 +77,7 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
 
 /**
  * This covers every state that leaves a viewer looking at no content. That is the five
- * classified failures, plus the three ways a list can legitimately come back empty.
+ * classified failures, plus the three ways a list can legitimately end up empty.
  *
  * The empty states are NOT errors. Nothing throws to produce them. They share this table
  * because they share the screen. A region whose programs have all ended, and a URL that
@@ -454,7 +454,7 @@ export type SurfaceLimits = {
  * geocoder on screen.
  *
  * This function never strands a viewer. If the policy promised a way out, and the
- * surface removed every one, the report action comes back regardless. A screen with no
+ * surface removed every one, the report action still appears regardless. A screen with no
  * controls at all is worse than a screen with the wrong control. That is exactly what
  * `not-found` would produce at the app level, where its onward offer and its field
  * cannot render.
@@ -914,15 +914,15 @@ export type FallbackPanelProps = {
  * throw would escape to the app-level boundary, and blank the whole widget inside
  * someone else's page:
  *
- *   1 — copy and policy (`useFallbackDisplay`, `visibleActions`): pure, and falls back
- *       to the `unknown` row rather than looking up a missing one.
+ *   1 — copy and policy (`useFallbackDisplay`, `visibleActions`): pure, and defaults
+ *       to the `unknown` row, instead of looking up a missing one.
  *   2 — the offer (`useRecoveryOffer`) and the geocoder: three cache reads and a
  *       custom element. These sit behind their OWN boundary, and degrade to the floor
  *       rung — "Browse all countries", which needs no data at all — reporting why
  *       through `reportInternalError`.
  *
  * The floor keeps layer 1's retry and report actions. Only the parts that actually
- * failed are dropped. This never falls back to `null` either. Unlike the report modal,
+ * failed are dropped. This also never defaults to `null`. Unlike the report modal,
  * which stays off screen until asked, this IS the screen. So falling back to nothing
  * would strand the viewer.
  */
@@ -1020,7 +1020,7 @@ export type ResetErrorBoundaryProps = ErrorBoundaryProps & {
  * **This is also where an ordinary boundary trip becomes telemetry** (issue #108).
  * Reporting lives here for the same reason `reset` does. Every boundary in the app
  * goes through this component, so one wiring covers all of them. A boundary added
- * later cannot forget to report here — six hand-written `onError` props would instead
+ * later cannot forget to report here. Six hand-written `onError` props would instead
  * drift the moment one call site got copied without it. Before this component
  * existed, the seam had five callers. Every one of them was a failure the code had
  * already caught and worked around by hand: a refused href, an unclaimable fragment, a

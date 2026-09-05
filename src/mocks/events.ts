@@ -55,8 +55,9 @@ export const mockEventImages: EventImage[] = [
   },
 ]
 
-// A city (Cambridge) under the UK. The feed no longer carries breadcrumbs (ancestry
-// comes from the wholesale regions dict); the canonical route is the server `webPath`.
+// A city (Cambridge) under the UK. The feed no longer carries breadcrumbs. Ancestry
+// comes from the wholesale regions dict instead, and the canonical route is the server
+// `webPath`.
 const mockRegion: RegionRef = {
   id: 8001,
   slug: 'cambridge',
@@ -200,7 +201,7 @@ export const mockEventUpcoming: Event = {
   },
 }
 
-/** A bounded course that hasn't started → registration open, "starts" framing. */
+/** A bounded course that has not started → registration open, "starts" framing. */
 export const mockEventCourse: Event = {
   ...mockEventUpcoming,
   id: 123,
@@ -233,7 +234,7 @@ export const mockEventEnded: Event = {
   },
 }
 
-/** Venue dormant → no Register at all; Contact leads. */
+/** Venue dormant → no Register at all. Contact leads. */
 export const mockEventInactive: Event = {
   ...mockEvent,
   id: 126,
@@ -244,8 +245,8 @@ export const mockEventInactive: Event = {
 /**
  * At capacity (the CMS `registrationsFull` flag, SahajCloud#601) → "Full" chip,
  * registration hidden, "See nearby events" + the contact helper. Unlike Ended,
- * the class still runs, so its facts stay normal — it's a running weekly class
- * that simply can't be joined.
+ * the class still runs, so its facts stay normal — it is a running weekly class
+ * that simply cannot be joined.
  */
 export const mockEventFull: Event = {
   ...mockEvent,
@@ -328,7 +329,7 @@ export const mockEventVariants: EventSlim[] = [
   slimFrom(mockEventToday, { distance: 8, path: '/united-kingdom/cambridge/121' }),
   // First session still ahead → "Starts <date>".
   slimFrom(mockEventUpcoming, { distance: 15, path: '/united-kingdom/cambridge/122' }),
-  // A bounded course before it starts (registration open; "Course · N sessions").
+  // A bounded course before it starts (registration open, "Course · N sessions").
   slimFrom(mockEventCourse, { distance: 30, path: '/united-kingdom/cambridge/123' }),
   // The same course after its first session → "Started <date>".
   slimFrom(mockEventStartedCourse, { distance: 45, path: '/united-kingdom/cambridge/124' }),
@@ -378,7 +379,7 @@ export const mockEventVariants: EventSlim[] = [
  * covers those).
  *
  * `from`/`step` place the run on the distance scale, so a caller can build a nearby run
- * and a distant one (past `NEARBY_KM`) and concatenate them; `offset` keeps the ids and
+ * and a distant one (past `NEARBY_KM`) and concatenate them. `offset` keeps the ids and
  * routes of two runs from colliding. `country` overrides the address country, which the
  * list segments on too — an event across a border from the searched country is held to
  * half the distance (`FOREIGN_NEARBY_KM`), so a run at 200 km is nearby at home and

@@ -10,19 +10,19 @@ import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
 
-// We mock @payloadcms/sdk at the boundary (mirrors mocking axios before). The
-// PayloadSDK constructor returns a stub whose find/findByID/request the fetchers call;
-// the cross-cutting auth + locale + preview logic lives in `applyRequestContext`, tested
-// directly (no network round-trip). i18n is mocked so importing the client doesn't boot
-// the real HTTP backend / language detector.
+// This mocks `@payloadcms/sdk` at the boundary, the same way earlier tests mocked axios.
+// The `PayloadSDK` constructor returns a stub. Its `find`, `findByID`, and `request` methods are what the fetchers call.
+// The cross-cutting auth, locale, and preview logic lives in `applyRequestContext`.
+// This suite tests that function directly, with no network round trip.
+// This suite also mocks i18n, so importing the client does not boot the real HTTP backend or language detector.
 //
-// vi.hoisted runs before the hoisted vi.mock factory, so `sdk` is already spied when
-// client.ts calls `new PayloadSDK(...)`.
+// `vi.hoisted` runs before the hoisted `vi.mock` factory.
+// So `sdk` is already spied when `client.ts` calls `new PayloadSDK(...)`.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
 vi.mock('@payloadcms/sdk', () => ({
-  // A class so `new PayloadSDK(...)` in client.ts constructs cleanly; each instance's
-  // methods point at the shared hoisted spies the tests drive.
+  // This is a class, so `new PayloadSDK(...)` in `client.ts` constructs cleanly.
+  // Each instance's methods point at the shared hoisted spies the tests drive.
   PayloadSDK: class {
     find = sdk.find
     findByID = sdk.findByID
@@ -31,23 +31,23 @@ vi.mock('@payloadcms/sdk', () => ({
 }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 
-// A stubbed SDK Response: `sdk.request` resolves to a Response; `requestJson` reads `.json()`.
+// This is a stubbed SDK Response. `sdk.request` resolves to a Response, and `requestJson` reads `.json()`.
 const jsonResponse = (data: unknown) => ({ json: async () => data })
 
 beforeEach(() => {
   sdk.find.mockReset()
   sdk.findByID.mockReset()
   sdk.request.mockReset()
-  // Reset the shared preview singleton so only tests that opt in see preview mode.
+  // This resets the shared preview singleton, so only tests that opt in see preview mode.
   preview.active = false
   preview.secret = null
-  // loadRegions/loadGeojson/loadEventTitles cache through the shared QueryClient — clear
-  // it so each test re-reads the mocked data rather than a previous test's cached one.
+  // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
+  // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
 })
 
 describe('applyRequestContext (auth + locale + preview on every request)', () => {
-  // The interceptor mutates a URL + Headers in place; build a fresh pair and apply it.
+  // The interceptor mutates a URL and Headers pair in place. This builds a fresh pair and applies it.
   const context = (href = 'https://cloud.example/api/regions') => {
     const url = new URL(href)
     const headers = new Headers()
@@ -104,10 +104,12 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     expect(url.searchParams.get('draft')).toBeNull()
   })
 
-  // The end-to-end seam: interceptFetch parses the URL the SDK already serialized
-  // (bracket-encoded select/populate) and layers auth + locale on top. Drives the real
-  // wrapper against a spied global fetch to prove the injected params don't clobber the
-  // SDK's, and vice-versa — the one thing the pure-function tests above can't cover.
+  // This tests the end-to-end seam.
+  // `interceptFetch` parses the URL the SDK already serialized, with bracket-encoded `select` and `populate` values.
+  // It then layers auth and locale on top.
+  // This test drives the real wrapper against a spied global fetch.
+  // It proves the injected params do not clobber the SDK's params, and the SDK's params do not clobber the injected ones.
+  // The pure-function tests above cannot cover this.
   it('adds locale + auth without dropping the SDK-serialized select/depth params', async () => {
     atlasAuth.apiKey = 'k'
     const fetchSpy = vi
@@ -124,10 +126,10 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     fetchSpy.mockRestore()
     const url = new URL(calledUrl.toString())
 
-    // The SDK's bracket-serialized params survive the `new URL` round-trip …
+    // The SDK's bracket-serialized params survive the `new URL` round trip.
     expect(url.searchParams.get('select[title]')).toBe('true')
     expect(url.searchParams.get('depth')).toBe('0')
-    // … and the interceptor layers its own locale + auth on top.
+    // The interceptor then layers its own locale and auth on top.
     expect(url.searchParams.get('locale')).toBe('fr')
     expect(new Headers(calledInit?.headers).get('Authorization')).toBe('clients API-Key k')
   })
@@ -166,8 +168,10 @@ describe('getGeojson', () => {
 })
 
 describe('getRegion (region-tree derivation)', () => {
-  // One geojson feature; ancestry is walked from the regions dict via `region.id`,
-  // geometry is null for online events, `next` seeds the roll-up ordering.
+  // This builds one geojson feature.
+  // Ancestry is walked from the regions dict, through `region.id`.
+  // Geometry is null for online events.
+  // `next` seeds the roll-up ordering.
   const feature = ({
     id,
     regionId,
@@ -194,10 +198,12 @@ describe('getRegion (region-tree derivation)', () => {
     },
   })
 
-  // Belgium(28), a country with three city children: Antwerpen(473) [2 located →
-  // carded], Brussels(470) [1 located → carded], Ghent(475) [1 online → no card].
-  // The wholesale regions read returns the whole tree with each node's parent link;
-  // ancestry is walked from those links, not the feed.
+  // This is Belgium (id 28), a country with three city children.
+  // Antwerpen (id 473) has 2 located events, so it cards.
+  // Brussels (id 470) has 1 located event, so it cards too.
+  // Ghent (id 475) has 1 online event only, so it gets no card.
+  // The wholesale regions read returns the whole tree, with each node's parent link.
+  // Ancestry is walked from those links, not from the feed.
   const tree = [
     {
       id: 28,
@@ -246,9 +252,11 @@ describe('getRegion (region-tree derivation)', () => {
     }),
   ]
 
-  // getRegion makes three reads: the wholesale region tree (sdk.find on `regions`), the
-  // agnostic feed (sdk.request on /events/geojson), and the per-locale titles sliver
-  // (sdk.find on `events`, id→title) joined back by id. Dispatch the SDK stubs by which.
+  // `getRegion` makes three reads.
+  // It reads the wholesale region tree, through `sdk.find` on `regions`.
+  // It reads the agnostic feed, through `sdk.request` on `/events/geojson`.
+  // It reads the per-locale titles sliver, through `sdk.find` on `events`, mapping id to title, joined back by id.
+  // This dispatches the SDK stubs by which collection the call names.
   const mockBackend = (feed = countryFeed, nodes: unknown[] = tree) => {
     sdk.find.mockImplementation((options: { collection: string }) => {
       if (options.collection === 'regions') return Promise.resolve({ docs: nodes })
@@ -265,30 +273,30 @@ describe('getRegion (region-tree derivation)', () => {
 
     const region = await api.getRegion('belgium')
 
-    // Core derivations: level, path, canonical URL, bounds of located events. The ISO
-    // code now comes from the slug alone (no legacyData fallback), so a non-ISO slug like
-    // 'belgium' — an un-migrated seed — yields no country code rather than an error; the
-    // ISO-slug case is covered below.
+    // This asserts the core derivations: level, path, canonical URL, and bounds of located events.
+    // The ISO code now comes from the slug alone, with no `legacyData` fallback.
+    // So a non-ISO slug like 'belgium', an un-migrated seed, yields no country code instead of an error.
+    // The next test below covers the ISO-slug case.
     expect(region.level).toBe('country')
     expect(region.countryCode).toBeUndefined()
     expect(region.path).toBe('/belgium')
     expect(region.webUrl).toBe('https://atlas.example/belgium')
     expect(region.bounds).toEqual([4.35, 50.85, 4.41, 51.21])
-    // eventCount stays total (online included) — an online-only subtree still renders.
+    // `eventCount` stays total, online events included, so an online-only subtree still renders.
     expect(region.eventCount).toBe(5)
 
-    // Antwerpen (2 located) and Brussels (1 located) each card with a located-only
-    // badge, busiest first; Ghent (online-only) gets no card.
+    // Antwerpen, 2 located events, and Brussels, 1 located event, each card with a located-only badge.
+    // The busiest region cards first. Ghent, online-only, gets no card.
     expect(region.subregions.map((child) => [child.slug, child.eventCount])).toEqual([
       ['antwerpen', 2],
       ['brussels', 1],
     ])
     expect(region.subregions[0].path).toBe('/belgium/antwerpen')
 
-    // No promotion: a country lists no events inline (child events live on child cards).
+    // This asserts no promotion: a country lists no events inline. Child events live on child cards instead.
     expect(region.events).toHaveLength(0)
 
-    // Both online events roll up (Ghent + Antwerpen), soonest next occurrence first.
+    // Both online events, from Ghent and Antwerpen, roll up, ordered by soonest next occurrence.
     expect(region.onlineEvents.map((event) => event.id)).toEqual([5, 4])
     expect(region.onlineEvents.every((event) => event.eventType === 'online')).toBe(true)
   })
@@ -302,10 +310,10 @@ describe('getRegion (region-tree derivation)', () => {
 
     const region = await api.getRegion('de')
 
-    // The migrated slug is lowercase (`de`), but the stored code must be UPPERCASE:
-    // `Intl.DisplayNames({ type: 'region' })` is case-sensitive, so a lowercase code
-    // echoes back through fallback:'code' and the views render "de" instead of the
-    // country name. Assert both the normalization and that the name actually resolves.
+    // The migrated slug is lowercase, `de`, but the stored code must be UPPERCASE.
+    // `Intl.DisplayNames({ type: 'region' })` is case-sensitive.
+    // So a lowercase code echoes back through `fallback: 'code'`, and the views render "de" instead of the country name.
+    // This asserts both the normalization and that the name actually resolves.
     expect(region.countryCode).toBe('DE')
     expect(new Intl.DisplayNames('en', { type: 'region' }).of(region.countryCode!)).toBe('Germany')
   })
@@ -317,9 +325,9 @@ describe('getRegion (region-tree derivation)', () => {
   })
 
   it('resolves a region with no events into an empty one, rather than 404ing', async () => {
-    // It used to throw, so the boundary rendered an error page — but no button there
-    // could help: a retry fails identically and an empty region isn't a wrong turn.
-    // The view renders EmptyEventList off this shape instead (issue #89).
+    // This used to throw, so the boundary rendered an error page.
+    // No button there could help: a retry fails the same way, and an empty region is not a wrong turn.
+    // The view renders `EmptyEventList` from this shape instead. See issue #89.
     const empty = [
       {
         id: 7,
@@ -339,8 +347,8 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.events).toEqual([])
     expect(region.onlineEvents).toEqual([])
     expect(region.subregions).toEqual([])
-    // No located events ⇒ nothing to frame. The map controller reads both and clears
-    // its boundary rather than fitting a degenerate bbox.
+    // No located events means nothing to frame.
+    // The map controller reads both null values and clears its boundary, instead of fitting a zero-area bbox.
     expect(region.bounds).toBeNull()
     expect(region.center).toBeNull()
   })
@@ -364,7 +372,7 @@ describe('getRegion (region-tree derivation)', () => {
 
     const region = await api.getRegion('onlyonline')
 
-    // Online events count toward eventCount, so the subtree isn't "empty" — it renders.
+    // Online events count toward `eventCount`, so the subtree is not "empty." It renders.
     expect(region.eventCount).toBe(1)
     expect(region.events).toHaveLength(0)
     expect(region.onlineEvents.map((event) => event.id)).toEqual([20])
@@ -392,21 +400,22 @@ describe('getRegion (region-tree derivation)', () => {
 
     expect(region.level).toBe('city')
     expect(region.subregions).toHaveLength(0)
-    // Located event stays in `events` (feed order), nested under the city path.
+    // The located event stays in `events`, in feed order, nested under the city path.
     expect(region.events.map((event) => event.id)).toEqual([10])
     expect(region.events[0]).toMatchObject({ eventType: 'offline', path: '/belgium/brussels/10' })
     // The localized title is joined in from the per-locale titles sliver, by id.
     expect(region.events[0].title).toBe('Event 10')
-    // The online event rolls up instead of interleaving.
+    // The online event rolls up instead of interleaving with the located events.
     expect(region.onlineEvents.map((event) => event.id)).toEqual([11])
     expect(region.onlineEvents[0].eventType).toBe('online')
   })
 })
 
 describe('getEvent', () => {
-  // getEvent resolves image URLs at the boundary: SahajCloud serves a relative
-  // `url` in dev, so the fetcher origin-prefixes it. A null url (a file-less
-  // image) is left null for the UI to skip — the boundary never drops images.
+  // `getEvent` resolves image URLs at the boundary.
+  // SahajCloud serves a relative `url` in dev, so the fetcher prefixes it with the origin.
+  // A null `url`, meaning a file-less image, stays null, so the UI can skip it.
+  // The boundary never drops images.
   const rawEvent = {
     id: 13,
     title: 'Voronezh Class',
@@ -421,15 +430,15 @@ describe('getEvent', () => {
   }
 
   it('resolves relative image URLs against the origin, leaving null urls null', async () => {
-    // findByID returns the doc directly (no axios `.data` envelope).
+    // `findByID` returns the document directly, with no axios `.data` envelope.
     sdk.findByID.mockResolvedValue(rawEvent)
 
     const event = await api.getEvent(13)
 
-    // Absolute after resolution, without coupling to a specific origin (the dev
-    // `.env.local` and CI `.env` set different SahajCloud URLs).
+    // This is absolute after resolution, with no coupling to a specific origin.
+    // The dev `.env.local` file and the CI `.env` file set different SahajCloud URLs.
     expect(event.images[0].url).toMatch(/^https?:\/\/.*\/api\/images\/file\/pic\.jpg$/)
-    // Null stays null (the UI skips it); the boundary maps, it doesn't filter.
+    // Null stays null, so the UI can skip it. The boundary maps values, it does not filter them.
     expect(event.images[1].url).toBeNull()
     expect(event.images).toHaveLength(2)
   })
@@ -478,9 +487,10 @@ describe('eventsQuery (the results-list query contract)', () => {
     eventsQuery(latitude, longitude, DEFAULT_FILTERS, 'en').queryKey
 
   it('quantizes the centre to 2dp, so small map moves do not refetch', () => {
-    // Also the reveal's notion of "the same search": `revealKey` is built FROM this key
-    // (see lib/shape/reveal), so this rounding is the single definition of it. Retuning
-    // the precision here retunes both, which is the point of not duplicating it.
+    // This rounding is also the reveal's notion of "the same search."
+    // `revealKey` builds itself FROM this key. See `lib/shape/reveal`.
+    // So this rounding is the single definition of "the same search."
+    // Retuning the precision here retunes both, which is the point of not duplicating it.
     expect(key(51.5072, -0.1276)).toEqual(key(51.5074, -0.1277))
   })
 

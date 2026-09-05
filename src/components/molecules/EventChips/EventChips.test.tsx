@@ -5,9 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { EventChips } from './EventChips'
 
-// Drive the display resolver + locale by hand so the test exercises the chip
-// variant/filter logic, not the display derivation. The UI language is `en`;
-// `languageLabel` echoes the code so the combined language text is greppable.
+// This drives the display resolver and locale by hand, so the test
+// exercises the chip variant and filter logic, not the display derivation.
+// The UI language is `en`. `languageLabel` echoes the code, so the
+// combined language text is greppable.
 const { d } = vi.hoisted(() => ({
   d: { status: 'upcoming', full: false, typeLabel: 'Weekly class', isDefaultType: true },
 }))
@@ -89,8 +90,8 @@ describe('EventChips', () => {
   it('compact: a "Full" chip alone is enough to render the row', () => {
     d.full = true
 
-    // Plain weekly type + viewer language are both trimmed in compact, so the
-    // row would otherwise be empty.
+    // The plain weekly type and the viewer language are both trimmed in
+    // compact. So the row would otherwise be empty.
     expect(render(['en'], 'compact')).toContain('display.chip_full')
   })
 })

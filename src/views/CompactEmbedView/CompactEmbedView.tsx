@@ -17,16 +17,16 @@ import { useReportModal } from '@/config/store'
  * one control, and — where there is room to grow in place — the dialog that control
  * opens.
  *
- * **A view rather than a component, because it is a whole screen.** It is the
- * alternative to `DrawerStack`, chosen by `decideSlot` at mount, not a piece
- * something else composes.
+ * **This is a view, not a component, because it is a whole screen.** It is the
+ * alternative to `DrawerStack`, chosen by `decideSlot` at mount, not a piece something
+ * else composes.
  *
- * **The dialog lives here, rather than in `atoms/`, and that is the rule rather than
- * a preference.** It was briefly an `ExpandedSurface`/`Dialog` atom, which put two
- * components called Modal and Dialog side by side in the same folder doing what
- * looked like the same job — and the one that looked generic was not: it publishes
- * itself as the app's portal target, it needs `contain: layout` because *this* app's
- * interface is fixed-positioned throughout, and it has exactly one caller.
+ * **The dialog lives here, rather than in `atoms/`, and that is the rule, not a
+ * preference.** It was briefly an `ExpandedSurface`/`Dialog` atom, which put two
+ * components called Modal and Dialog side by side in the same folder, doing what
+ * looked like the same job. The one that looked generic was not. It publishes itself
+ * as the app's portal target. It needs `contain: layout`, because *this* app's
+ * interface is fixed-positioned throughout. And it has exactly one caller.
  * `src/components/AGENTS.md` covers both halves of that: atoms stay primitive and
  * carry no domain logic, and single-use compositions are inlined in their one
  * parent. `Modal` is now unambiguously the dialog atom — small, centred, chrome-ful,
@@ -43,20 +43,20 @@ type CardAction = { kind: 'overlay'; onOpen: () => void } | { kind: 'link'; href
  * **The button is the card.** An earlier draft previewed two or three upcoming
  * classes above it, sized by a predicate that estimated a row's height in pixels.
  * That estimate was wrong the moment a title wrapped, a locale ran long, or a
- * visitor had a larger default font — and the rows cost a feed read, a titles read,
+ * visitor had a larger default font. The rows also cost a feed read, a titles read,
  * and a third-party IP lookup on every page view of a sidebar embed nobody scrolls
  * to. Without them **it makes no data requests at all**, which is the honest shape
  * for a screen whose whole job is to lead somewhere else.
  *
- * **It never fills its slot.** It takes the height its content needs and no more,
- * in the host's own flow, whatever box they gave. Filling is wrong in both
- * directions: against an element with no height, `h-full` resolves to nothing and
- * the card collapses to invisible. Against a tall one, it stretches two lines down
- * 600px of empty background.
+ * **It never fills its slot.** It takes the height its content needs and no more, in
+ * the host's own flow, whatever box they gave. Filling is wrong in both directions.
+ * Against an element with no height, `h-full` resolves to nothing and the card
+ * collapses to invisible. Against a tall one, it stretches two lines down 600px of
+ * empty background.
  *
  * **The button is named for the task, not the product** — "Find a class near you",
  * never the widget's own name. That is the accessible name a screen-reader user
- * hears, and it is also the de-branding ratchet (#158): the one control here is the
+ * hears. It is also the de-branding ratchet (#158). The one control here is the
  * easiest place in the app to forget it.
  */
 function Card({ action }: { action: CardAction }) {
@@ -117,39 +117,40 @@ const closeClass =
  *
  * ⚠ **`contain: layout` is load-bearing, not an optimisation.** Everything rendered
  * inside — the map canvas, every drawer, the peek strips, the cog — is `position:
- * fixed`, and a fixed descendant resolves against the VIEWPORT unless an ancestor
+ * fixed`. A fixed descendant resolves against the VIEWPORT, unless an ancestor
  * establishes a containing block. Without it, they escape the margin and paint to
  * the screen edge while the dialog sits inset. Measured in Chrome 151: a `fixed;
  * inset: 0` child of a `fixed; inset: 16px` parent lands at 0,0,1440,900 plain, and
  * at 16,16,1408,868 under `contain: layout`.
  *
  * ⚠ That is the exact property `src/components/AGENTS.md` forbids on the SCOPE
- * ROOT, for the same mechanism pointed the other way: there it would re-parent the
+ * ROOT, for the same mechanism pointed the other way. There it would re-parent the
  * fixed layer to the host's element and break map mode. Here, re-parenting is what
  * this component wants. Do not move it up the tree.
  *
  * **Two data attributes, two meanings.** `data-sy-frame` says "the fixed layer
  * resolves against me", which `MapFrame` (#169) now says as well, and which is what
  * `--sy-frame-h: 100%` keys off. `data-sy-expanded` says "this is the compact
- * card's dialog", which stays dialog-only: what it carries is the nudge that keeps
+ * card's dialog", which stays dialog-only. What it carries is the nudge that keeps
  * Mapbox's control column clear of the collapse control in the corner, and a
  * contained map has no such control.
  *
  * **Radix owns the behaviour**: the focus trap, `aria-modal`, Escape, the host
- * page's scroll lock (via `Primitive.Overlay`, where `react-remove-scroll` lives,
- * which `docs/embedding.md` documents as an honest exception), and — now that there
- * is an outside — dismissal by pointer. An earlier version watched its own box with
+ * page's scroll lock — via `Primitive.Overlay`, where `react-remove-scroll` lives,
+ * which `docs/embedding.md` documents as an honest exception — and, now that there
+ * is an outside, dismissal by pointer. An earlier version watched its own box with
  * a `ResizeObserver` and closed itself when it stopped covering the viewport,
  * because the close button was then the only exit and a host could hide it.
- * Click-outside and Escape are two exits Radix maintains for free, so that is gone.
+ * Click-outside and Escape are two exits Radix maintains for free, so that
+ * workaround is gone.
  *
  * **Escape reaches the topmost layer, which may not be this one.** A vaul drawer
  * inside is a Radix dialog too, so its dismissable layer sits above and takes the
  * key first — correctly. `DrawerStack`'s `onEscapeKeyDown` finishes the ladder once
  * the stack has nowhere left to go.
  *
- * **Every portal in the app is redirected inside it while it is open** (`setFrame`).
- * This is not tidiness: a modal traps focus in its own content and hides everything
+ * **Every portal in the app redirects inside it while it is open** (`setFrame`).
+ * This is not tidiness. A modal traps focus in its own content and hides everything
  * else from assistive technology, so a drawer portaled beside it would be
  * unreachable by keyboard.
  */
@@ -193,12 +194,12 @@ function ExpandedDialog({
   // Tracked while CLOSED, because by the time an effect could run on open, Radix
   // has already moved focus inside — child effects run before the parent's.
   //
-  // **Scoped to the widget's own root, and that is a correctness fix rather than
-  // hygiene.** Safari and Firefox on macOS do not focus a `<button>` on click, so
-  // pressing the opening control fires no `focusin` at all — listening on
-  // `document` would leave this pointing at whatever the HOST had focused earlier
-  // (a search box, a login field), and closing would focus it, scrolling their page
-  // there and raising the keyboard on a phone.
+  // **Scoped to the widget's own root, and that is a correctness fix, not hygiene.**
+  // Safari and Firefox on macOS do not focus a `<button>` on click, so pressing the
+  // opening control fires no `focusin` at all. Listening on `document` would leave this
+  // pointing at whatever the HOST had focused earlier — a search box, a login field.
+  // Closing would then focus it, scrolling their page there and raising the keyboard
+  // on a phone.
   const opener = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -237,13 +238,13 @@ function ExpandedDialog({
             const root = widgetOverlayContainer()
             const opening = opener.current
 
-            // ⚠ Calls `preventDefault()` ONLY when there is somewhere to send focus.
-            // Called unconditionally, it also suppresses Radix's own restore — and
-            // `opener` is empty on two real paths: the auto-open one (the dialog is
-            // open on its first render, so the recorder effect never runs), and
-            // Safari/Firefox on macOS (no `focusin` from a button click). Both then
-            // dropped the visitor on the HOST page's `<body>`, which is the outcome
-            // this handler exists to prevent.
+            // ⚠ This calls `preventDefault()` ONLY when there is somewhere to send focus.
+            // Called unconditionally, it would also suppress Radix's own restore. `opener`
+            // is empty on two real paths: the auto-open one, where the dialog is open on
+            // its first render so the recorder effect never runs, and Safari/Firefox on
+            // macOS, which fires no `focusin` from a button click. Both then dropped the
+            // visitor on the HOST page's `<body>`, which is the outcome this handler
+            // exists to prevent.
             if (!opening?.isConnected || !root?.contains(opening)) return
 
             event.preventDefault()
@@ -257,11 +258,11 @@ function ExpandedDialog({
             contentRef.current?.focus()
           }}
         >
-          {/* Entry only, and the exit is instant on purpose: animating the way out needs
-              `forceMount`, which keeps the content — the Mapbox canvas included — mounted while
-              closed, and not mounting it is the entire point of the compact form. This uses
-              framer, rather than CSS, so `MotionConfig` covers it, which keeps reduced motion to
-              three seams instead of four (`src/components/AGENTS.md`). */}
+          {/* This animates entry only. The exit is instant on purpose. Animating the way out
+              needs `forceMount`, which keeps the content — the Mapbox canvas included —
+              mounted while closed, and not mounting it is the entire point of the compact
+              form. This uses framer, rather than CSS, so `MotionConfig` covers it, which
+              keeps reduced motion to three seams instead of four (`src/components/AGENTS.md`). */}
           <motion.div
             ref={adopt}
             animate={{ opacity: 1 }}

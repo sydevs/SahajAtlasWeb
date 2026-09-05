@@ -1,12 +1,13 @@
 import { getThemeRoot } from '@/hooks/use-theme'
 
-// Where Radix overlays (Dialog, Select listbox) portal to. They render into the
-// theme root so they inherit its brand CSS vars + light/dark class. In the
-// embedded widget the root is the widget wrapper (a <div>), so overlays stay
-// scoped to it — fixing the long-standing gap where overlays portaled to
-// document.body and lost the brand theme. Standalone / Ladle, the root is <html>;
-// a <div> can't be a valid child of <html>, so fall back to <body>, which still
-// inherits the html-level theme class + vars.
+// Where Radix overlays (Dialog, Select listbox) portal to. They render into
+// the theme root, so they inherit its brand CSS vars and light/dark class.
+// In the embedded widget the root is the widget wrapper (a <div>), so
+// overlays stay scoped to it. This fixes the long-standing gap where
+// overlays portaled to document.body and lost the brand theme. Standalone
+// or Ladle, the root is <html>. A <div> cannot be a valid child of <html>,
+// so this falls back to <body>, which still inherits the html-level theme
+// class and vars.
 
 /**
  * The widget's FRAME: the element the fixed layer resolves against, when something other

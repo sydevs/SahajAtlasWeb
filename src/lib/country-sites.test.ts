@@ -3,10 +3,10 @@ import { describe, it, expect } from 'vitest'
 import { COUNTRY_SITES, countrySite } from './country-sites'
 
 // The mapping is hand-scraped static data, so the contract it has to hold is
-// mechanical: canonical uppercase alpha-2 keys (what `isoCountryCode` normalizes a
-// `?cc` value to — a lowercase or aliased key would simply never be found) and
-// http(s) values (they're rendered as an external link). Asserted here so a
-// refresh from shrimataji.org can't quietly break either.
+// mechanical: canonical uppercase alpha-2 keys (what `isoCountryCode` normalizes
+// a `?cc` value to — a lowercase or aliased key would simply never be found),
+// and http(s) values (they are rendered as an external link). This is asserted
+// here, so a refresh from shrimataji.org cannot quietly break either.
 
 describe('COUNTRY_SITES', () => {
   const entries = Object.entries(COUNTRY_SITES)
@@ -47,8 +47,8 @@ describe('COUNTRY_SITES', () => {
     const names = new Intl.DisplayNames('en', { type: 'region' })
 
     for (const [code] of entries) {
-      // The offer labels itself with the country name; `of` echoing the raw code
-      // back would mean the key isn't a region Intl knows.
+      // The offer labels itself with the country name. `of` echoing the raw code
+      // back would mean the key is not a region Intl knows.
       expect(names.of(code), code).not.toBe(code)
     }
   })
@@ -61,7 +61,7 @@ describe('countrySite', () => {
   })
 
   it('is undefined for a country with no site, and for no country at all', () => {
-    // Angola is a real country the list doesn't cover — the "keeps today's empty
+    // Angola is a real country the list does not cover: the "keeps today's empty
     // state" case.
     expect(countrySite('AO')).toBeUndefined()
     expect(countrySite('')).toBeUndefined()
