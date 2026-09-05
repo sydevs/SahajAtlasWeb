@@ -3,7 +3,7 @@
  *
  * SahajCloud only builds a canonical URL from an embed it verified *itself*: it loads the host
  * page through Cloudflare Browser Rendering and looks for what this module writes. Reports
- * nominate a mount; the render decides.
+ * nominate a mount. The render decides.
  *
  * **Be precise about what that buys, because the obvious reading is too strong.** This attribute
  * detects a *broken* embed, not a *forged* one. It carries no nonce and no signature, a host can
@@ -16,10 +16,10 @@
  * sent by the same widget whose health is in question.
  *
  * **Why a DOM attribute and not a `postMessage`.** The Browser Rendering REST API renders a page
- * and hands back DOM; there is no message channel to listen on, and a listener injected into the
- * page would race the widget's own boot — which fails *healthy* sites, the one outcome a verifier
+ * and hands back DOM. There is no message channel to listen on, and a listener injected into the
+ * page would race the widget's own boot, which fails *healthy* sites, the one outcome a verifier
  * must never produce. An attribute is raceless: whenever the DOM is sampled, it is either there or
- * it is not. One mechanism, not two — the verifier is the only consumer.
+ * it is not. One mechanism, not two. The verifier is the only consumer.
  *
  * **It goes on `<html>`, which is the host's element, not ours.** The widget scopes everything
  * else to its own subtree on purpose (`lib/scope.ts`), so this is a deliberate exception: the

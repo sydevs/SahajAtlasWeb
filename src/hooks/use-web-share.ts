@@ -1,25 +1,24 @@
 import { useCallback } from 'react'
 
-// The payload the native share sheet accepts — the subset of the DOM `ShareData`
-// this app populates (an event title + its canonical URL).
+// This is the payload the native share sheet accepts.
+// It is the subset of the DOM `ShareData` type this app populates: an event title and its canonical URL.
 export type WebShareData = {
   title?: string
   url: string
 }
 
 /**
- * SSR-safe wrapper over the Web Share API (`navigator.share`).
+ * This is an SSR-safe wrapper over the Web Share API, `navigator.share`.
  *
- * `canShare` is true only where the browser actually exposes `navigator.share`
- * (mobile and some desktops) — detected by capability, never by user-agent
- * sniffing — and guarded so it is simply `false` under the node test runner,
- * where there is no `navigator.share`.
+ * `canShare` is true only where the browser actually exposes `navigator.share`, on mobile and some desktops.
+ * This detects it by capability, never by user-agent sniffing.
+ * It is guarded, so it is simply `false` under the node test runner, where there is no `navigator.share`.
  *
- * `share` opens the native OS sheet and resolves to `true` on success or `false`
- * when it can't complete: the API is missing, the user dismisses the sheet
- * (`AbortError`), or the host page has disabled it via `Permissions-Policy`
- * (`NotAllowedError`). Callers use that `false` to reveal the button grid so the
- * viewer is never stranded — it is a fallback signal, not an error to surface.
+ * `share` opens the native OS sheet.
+ * It resolves to `true` on success, or `false` when it cannot complete.
+ * It cannot complete when the API is missing, when the user dismisses the sheet, `AbortError`, or when the host page has disabled it through `Permissions-Policy`, `NotAllowedError`.
+ * Callers use that `false` to reveal the button grid, so the viewer is never stranded.
+ * This is a fallback signal, not an error to surface.
  */
 export function useWebShare(): {
   canShare: boolean
@@ -35,9 +34,8 @@ export function useWebShare(): {
 
       return true
     } catch {
-      // AbortError (user dismissed the sheet) or NotAllowedError (blocked by the
-      // host page's Permissions-Policy) — either way, signal the caller to show
-      // the grid rather than bubbling an error.
+      // This is `AbortError`, the user dismissed the sheet, or `NotAllowedError`, blocked by the host page's `Permissions-Policy`.
+      // Either way, this signals the caller to show the grid, instead of bubbling an error.
       return false
     }
   }, [])

@@ -20,9 +20,10 @@ export default {
   title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
-// Rows are the palette colors. Columns are the two appearances the single control
-// offers. (Disabled gets its own section below — it repaints on the neutral ramp, so
-// it's color-independent and needs both states side by side to be judged.)
+// Rows are the palette colors. Columns are the two appearances the single
+// control offers. Disabled gets its own section below. It repaints on the
+// neutral ramp, so it is color-independent, and both states need to sit side
+// by side to be judged.
 const rows = [
   { color: 'primary' as const },
   { color: 'secondary' as const },

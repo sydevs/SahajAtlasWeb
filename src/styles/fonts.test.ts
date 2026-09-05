@@ -4,8 +4,8 @@ import { FONT_FAMILY, fontFaceCss } from './fonts'
 
 // This is the one stylesheet of ours that reaches the host document WITHOUT passing
 // through the build's scoping pass — it is assembled at runtime, so `assert-css-scoped`
-// never sees it (issue #91). `@font-face` carries no selector and so cannot be scoped;
-// what has to hold instead is asserted here, so the single exemption from the invariant
+// never sees it (issue #91). `@font-face` carries no selector and so cannot be scoped.
+// What has to hold instead is asserted here, so the single exemption from the invariant
 // is mechanical rather than a promise in a comment.
 describe('fontFaceCss', () => {
   const css = fontFaceCss()

@@ -20,11 +20,12 @@ export const clusterLayer: Props = {
     'text-size': 12,
   },
   paint: {
-    // White count on the cluster bubble, which is the same art on both basemaps, so
-    // it needs no theming. The disc is slightly translucent (see `markers.ts`), so
-    // a pale feature underneath does bleed through and take some contrast with it —
-    // inherited from the Studio sprite this replaced, and the reason to make the
-    // inner disc fully opaque if the count ever reads thin.
+    // This shows a white count on the cluster bubble, which is the same art
+    // on both basemaps, so it needs no theming. The disc is slightly
+    // translucent (see `markers.ts`), so a pale feature underneath can show
+    // through and reduce contrast with it. This is inherited from the
+    // Studio sprite this replaced. Make the inner disc fully opaque if the
+    // count ever reads thin.
     'text-color': '#FFFFFF',
   },
 }
@@ -46,7 +47,6 @@ export const selectedPointLayer: LayerProps = {
   id: 'selected-point',
   type: 'symbol',
   source: 'selection',
-  //filter: ['has', 'point_count'],
   layout: {
     'icon-anchor': 'bottom',
     'icon-size': 0.85,
@@ -66,11 +66,12 @@ export const selectedAreaLayer: LayerProps = {
   },
 }
 
-// Card-hover highlight (issue #44). Reuses the selected marker images — larger
-// and slightly translucent so the hovered pin "pops" above the base points
-// without a dedicated hover image (one can land with #17). Fed by the `hover`
-// source (not `selection`) and never added to
-// `interactiveLayerIds`, so the highlight is purely visual.
+// This is the card-hover highlight (issue #44). It reuses the selected
+// marker images — larger and slightly translucent, so the hovered pin
+// "pops" above the base points without a dedicated hover image (one can
+// land with #17). It is fed by the `hover` source, not `selection`, and it
+// is never added to `interactiveLayerIds`, so the highlight stays purely
+// visual.
 export const hoveredPointLayer: LayerProps = {
   id: 'hovered-point',
   type: 'symbol',
@@ -109,8 +110,9 @@ export const boundsLayer: LayerProps = {
     'line-cap': 'round',
   },
   paint: {
-    // Debug-only layer (rendered behind DEBUG_BOUNDARY in Map.tsx); the neutral
-    // mid-grey reads on both basemaps, so it needs no theme-aware variant.
+    // This is a debug-only layer, rendered behind DEBUG_BOUNDARY in Map.tsx.
+    // The neutral mid-grey reads on both basemaps, so it needs no
+    // theme-aware variant.
     'line-color': '#888',
     'line-width': 4,
   },

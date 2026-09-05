@@ -3,10 +3,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { ShareContent } from './ShareContent'
 
-// Mock the i18n boundary so aria-labels render as real copy — including the
-// %{platform} interpolation — without booting i18next (see GeolocationPrompt.test).
-// Node lane, no jsdom (docs/testing.md). navigator has no `.share` here,
-// so ShareContent renders the grid; the last case stubs it to test the native path.
+// This mocks the i18n boundary, so aria-labels render as real copy,
+// including the %{platform} interpolation, without booting i18next (see
+// GeolocationPrompt.test). This is the node lane, with no jsdom
+// (docs/testing.md). `navigator` has no `.share` here, so ShareContent
+// renders the grid. The last case stubs it, to test the native path.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { platform?: string }) =>
@@ -22,8 +23,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-// A non-ASCII path so the double-encode regression is observable: encodeURI would
-// have turned "café" into "caf%C3%A9".
+// A non-ASCII path makes the double-encode regression observable.
+// encodeURI would have turned "café" into "caf%C3%A9".
 const url = 'https://atlas.example/e/café'
 const label = 'Saturday Morning Meditation'
 
@@ -62,7 +63,7 @@ describe('ShareContent', () => {
 
     const html = renderToStaticMarkup(<ShareContent country="RU" label={label} url={url} />)
 
-    // Native-first: one "Share…" button opens the OS sheet — not the platform grid.
+    // Native-first: one "Share…" button opens the OS sheet, not the platform grid.
     expect(html).toContain('Share…')
     expect(html).not.toContain('Share on VK')
   })

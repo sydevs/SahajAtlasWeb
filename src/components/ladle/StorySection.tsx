@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 
 /**
  * Unified StorySection component for consistent story structure in Ladle.
- * Ported from WeMeditateWeb for parity — see STORYBOOK.md.
+ * Ported from WeMeditateWeb for parity. See STORYBOOK.md.
  *
- * Chrome uses the semantic tokens so it stays legible in both themes; the
+ * Chrome uses the semantic tokens, so it stays legible in both themes. The
  * canvas theme is driven by Ladle's own toggle (see .ladle/components.tsx).
  *
  * @param title - Section title (renders as h2 for sections, p for subsections)
@@ -32,9 +32,10 @@ export const StorySection = ({
   variant = 'section',
   inContext = false,
 }: StorySectionProps) => {
-  // Context backgrounds that simulate the map surface panels float over. The
-  // teal gradient is a fixed dark brand colour, so its text is pinned white to
-  // read in both themes; neutral uses a theme-aware semantic surface token.
+  // Context backgrounds that simulate the map surface panels float over.
+  // The teal gradient is a fixed dark brand colour, so its text is pinned
+  // white to read in both themes. Neutral uses a theme-aware semantic
+  // surface token instead.
   const getBackgroundStyles = () => {
     if (background === 'neutral') return 'bg-gray-3 p-6 rounded-lg'
     if (background === 'gradient')

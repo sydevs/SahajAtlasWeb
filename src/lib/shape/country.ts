@@ -54,11 +54,11 @@ export type RegionedFeature = { properties: { region: { id: number } } }
  * never be mistaken here for a confirmed-empty country.
  *
  * Shares the subtree mechanics (`indexRegions` + `subtreeIds`) with
- * `buildRegionMatcher`, but deliberately isn't built on it: that maps an unknown slug
- * to `undefined` = "no region restriction", whose boolean reading would be *has
- * programs* — the exact opposite of what an absent country means here. Keeping them
- * separate means the filter's unknown-slug policy can change without silently
- * redefining "has programs".
+ * `buildRegionMatcher`, but is deliberately not built on it. That function maps an
+ * unknown slug to `undefined`, meaning "no region restriction", whose boolean
+ * reading would be *has programs*: the exact opposite of what an absent country
+ * means here. Keeping them separate means the filter's unknown-slug policy can
+ * change without silently redefining "has programs".
  */
 export const countryHasPrograms = (
   regions: CountryTreeNode[],
@@ -68,10 +68,11 @@ export const countryHasPrograms = (
   const index = indexRegions(regions)
   const country = index.bySlug.get(countryCode.toLowerCase())
 
-  // A country absent from the tree has no programs by definition — that's exactly
-  // the case the offer exists to catch. `level` qualifies the match because slugs are
-  // unique across the WHOLE tree, not per level: without it a two-letter slug at any
-  // level (a city `as`) would answer for its namesake country (American Samoa).
+  // A country absent from the tree has no programs by definition. That is
+  // exactly the case the offer exists to catch. `level` qualifies the match
+  // because slugs are unique across the whole tree, not per level. Without
+  // it, a two-letter slug at any level (a city `as`) would answer for its
+  // namesake country (American Samoa).
   if (country?.level !== 'country') return false
 
   const subtree = subtreeIds(index, country.id)

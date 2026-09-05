@@ -186,9 +186,10 @@ describe('embedLayout', () => {
     })
 
     it('does not degrade a padded phone layout', () => {
-      // 327px inside a 375px phone is a normal page with 24px of padding. `MIN_EXPANSION_GAIN`
-      // at 0.9 called this cramped and shipped a card over a working embed; at 0.8 the phone
-      // resolves to no destination at all, so the floors never get asked.
+      // 327px inside a 375px phone is a normal page with 24px of padding.
+      // `MIN_EXPANSION_GAIN` at 0.9 called this cramped, and shipped a card
+      // over a working embed. At 0.8 the phone resolves to no destination at
+      // all, so the floors never get asked.
       const destination = resolveDestination(box(327, 620), PHONE, box(390, 844), false)
 
       expect(embedLayout({ map: 'none', slot: box(327, 620), destination })).toEqual({
@@ -200,8 +201,9 @@ describe('embedLayout', () => {
 
 describe('the constants, ratcheted', () => {
   it('holds SLOT_GAIN in both directions', () => {
-    // Raising it degrades more embeds that are working; lowering it re-silences the map-mode
-    // takeover a 1000px column produces. Both directions are regressions, so both are pinned.
+    // Raising it degrades more embeds that are working. Lowering it
+    // re-silences the map-mode takeover a 1000px column produces. Both
+    // directions are regressions, so both are pinned.
     expect(SLOT_GAIN).toBe(0.8)
   })
 

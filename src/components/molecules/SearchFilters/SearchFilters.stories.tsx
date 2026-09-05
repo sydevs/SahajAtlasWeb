@@ -15,8 +15,9 @@ export default {
   title: 'Molecules',
 } satisfies StoryDefault
 
-// Seed the map's `['geojson']` cache (the form reads language options from it)
-// with a few distinct language sets, so the Language dropdown has options to show.
+// This seeds the map's `['geojson']` cache, which the form reads language
+// options from, with a few distinct language sets, so the Language
+// dropdown has options to show.
 const LANGUAGE_SETS = [['en'], ['fr'], ['hi', 'en'], ['de']]
 
 const mockGeojson: Geojson = {
@@ -24,7 +25,7 @@ const mockGeojson: Geojson = {
   features: mockEventSlimList.map((slim, index) => ({
     type: 'Feature',
     geometry: null,
-    // The feed is locale-agnostic (no `title`); the form only reads `languages` off it.
+    // The feed is locale-agnostic, with no `title`. The form only reads `languages` off it.
     properties: {
       id: slim.id,
       eventType: slim.eventType,

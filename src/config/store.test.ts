@@ -4,11 +4,11 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { rememberCamera, useCameraHistory, useCameraSettled, useViewState } from './store'
 
-// The stores are the single source of truth for map view (+ the registration draft).
-// They're plain zustand vanilla stores, so we drive their actions directly via
-// getState() without React. Reset to the initial slice in beforeEach since the module
-// singletons persist between tests. (Search filters moved to the URL — their
-// serialization is covered in filters.test.ts.)
+// These stores are the single source of truth for the map view, plus the registration draft.
+// They are plain zustand vanilla stores.
+// So this suite drives their actions directly, through `getState()`, with no React.
+// Each `beforeEach` resets the initial slice, since the module singletons persist between tests.
+// Search filters moved to the URL. Their serialization is covered in `filters.test.ts`.
 
 describe('useViewState', () => {
   beforeEach(() => {
@@ -50,7 +50,7 @@ describe('useViewState', () => {
 
     const state = useViewState.getState()
 
-    // hover is its own slice — setting it leaves the committed selection untouched.
+    // `hover` is its own slice. Setting it leaves the committed selection untouched.
     expect(state.hover).toEqual({ latitude: 3, longitude: 4, approximate: true })
     expect(state.selection).toEqual({ latitude: 1, longitude: 2, approximate: false })
 
@@ -59,9 +59,9 @@ describe('useViewState', () => {
   })
 })
 
-// Per-location.key camera snapshots: the map "remembers where you were" so a back
-// navigation restores the viewport instead of re-deriving it. Written imperatively
-// (getState) from the navigation seams, read on a POP by useFrameOnTop.
+// These are per-`location.key` camera snapshots.
+// The map "remembers where you were," so a back navigation restores the viewport instead of re-deriving it.
+// The navigation seams write this imperatively, through `getState`. `useFrameOnTop` reads it on a POP.
 describe('useCameraHistory', () => {
   beforeEach(() => {
     useCameraHistory.setState({ snapshots: {} })
@@ -135,9 +135,10 @@ describe('useCameraSettled', () => {
     expect(useCameraSettled.getState().settled).toBe(true)
   })
 
-  // The property that keeps this off the map's hot path. EVERY camera op calls `markSettled`,
-  // so a `set` returning a fresh object each time would notify subscribers on every pan and
-  // zoom — re-rendering the map for a boolean that stopped changing after the first move.
+  // This is the property that keeps this off the map's hot path.
+  // EVERY camera operation calls `markSettled`.
+  // A `set` call that returned a fresh object each time would notify subscribers on every pan and zoom.
+  // That would re-render the map for a boolean that stopped changing after the first move.
   it('is idempotent by IDENTITY, so a repeat call notifies nobody', () => {
     useCameraSettled.getState().markSettled()
 
@@ -148,10 +149,11 @@ describe('useCameraSettled', () => {
     expect(useCameraSettled.getState()).toBe(first)
   })
 
-  // The flag describes one map instance, and this store outlives it: a compact embed unmounts
-  // the whole interface when its dialog closes. Without this, the SECOND view meets a stale
-  // `true` — no curtain, and the first framing flies across the planet from [0,0] zoom 0, which
-  // is both of the defects this store exists to fix, back again.
+  // The flag describes one map instance, and this store outlives it.
+  // A compact embed unmounts the whole interface when its dialog closes.
+  // Without this reset, the SECOND view meets a stale `true`.
+  // No curtain draws, and the first framing flies across the planet from `[0,0]` zoom 0.
+  // That brings back both of the defects this store exists to fix.
   it('is forgotten when the map goes, so the next one arrives afresh', () => {
     useCameraSettled.getState().markSettled()
     expect(useCameraSettled.getState().settled).toBe(true)

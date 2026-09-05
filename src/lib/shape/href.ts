@@ -9,8 +9,8 @@ import { safePath } from './path'
  * §3.1 and the WHATWG parser both treat schemes case-insensitively anyway).
  *
  * Module-private on purpose. It used to live inside the `Link` atom, where the app's two
- * OTHER anchors could not reach it; this file exists so there is exactly one copy. Ask one
- * of the two predicates below rather than re-deriving the regex.
+ * other anchors could not reach it. This file exists so there is exactly one copy. Ask one
+ * of the two predicates below, instead of re-deriving the regex.
  */
 const ALLOWED_SCHEME = /^(?:https?|mailto|tel):/i
 
@@ -38,14 +38,14 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  *
  * It is **not** the app's only path from a URL to an anchor: `lexicalToHtml` (`lexical.ts`)
  * serializes CMS rich text to an HTML *string* containing `<a href>`, which is sanitized by
- * DOMPurify where it is rendered rather than gated here. Different sink, different
- * mechanism — don't read this as covering it.
+ * DOMPurify where it is rendered rather than gated here. This is a different sink, with a
+ * different mechanism. Do not read this as covering it.
  *
  * "Same-origin route" is **`safePath`**, never a fresh leading-slash check. `safePath` is
  * the repo's single definition and already rejects `//evil.com`, `/\evil.com` and the
  * TAB/LF/CR variants — the last because the WHATWG URL parser strips those characters
  * before parsing, so all three are read as `//evil.com`. Reimplementing the test here is how
- * a second, weaker definition gets born; `path.test.ts` pins each case against this one.
+ * a second, weaker definition gets born. `path.test.ts` pins each case against this one.
  *
  * Two things it deliberately does NOT promise:
  *
@@ -54,8 +54,8 @@ export const hasAllowedScheme = (href: unknown): boolean =>
  *   `mailto:` body executes or crosses an origin — but it means this gate is not a reason to
  *   retire an upstream check like `SafeUrlSchema` on the value being concatenated.
  * - **Safe is not the same as routable.** A site-relative `/gb` passes at all three anchors,
- *   but only `Link` has react-router behind it; on a `Button`/`ActionCircle` it renders a
- *   plain `<a>` that navigates the HOST document away. Read this as a shared safety floor,
+ *   but only `Link` has react-router behind it. On a `Button`/`ActionCircle` it renders a
+ *   plain `<a>` that navigates the host document away. Read this as a shared safety floor,
  *   never as a shared capability — see the note in `Fallbacks.tsx`'s `OnwardLink`.
  *
  * Takes a non-string safely and never throws: these anchors render inside the error

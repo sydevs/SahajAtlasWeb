@@ -10,10 +10,10 @@ import { mockEventSlim, mockEventSlimOnline } from '@/mocks/events'
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 /**
- * EventListItem — the list card (issue #52): title, then recurrence · start time,
- * then the address with the distance right-aligned, then a chip row (language ·
- * status) at the bottom. Online events carry "Online" in the distance slot and
- * a hosted-from place line.
+ * EventListItem — the list card (issue #52): title, then recurrence and
+ * start time, then the address with the distance right-aligned, then a chip
+ * row (language and status) at the bottom. Online events carry "Online" in
+ * the distance slot, and a hosted-from place line.
  */
 export const Default: Story = () => (
   <StoryWrapper>

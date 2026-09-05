@@ -12,9 +12,10 @@ import { hasAllowedScheme, isSafeHref } from './href'
 // guards against was a check that looked correct at the call site it was written for.
 
 describe('isSafeHref — refuses', () => {
-  // Executable schemes. `javascript:` is the one that matters most — the widget renders
-  // inside a host page, so it would run in THEIR realm — but the rest are refused for the
-  // same reason: nothing outside the three allowed schemes has a reason to reach an href.
+  // Executable schemes. `javascript:` is the one that matters most. The
+  // widget renders inside a host page, so it would run in their realm. The
+  // rest are refused for the same reason: nothing outside the three allowed
+  // schemes has a reason to reach an href.
   it.each([
     'javascript:alert(1)',
     'JavaScript:alert(1)',
@@ -35,10 +36,11 @@ describe('isSafeHref — refuses', () => {
     },
   )
 
-  // The whole point of reusing `safePath`. Each of these passes an `href.startsWith('/')`
-  // test — the exact check #100 found `//evil.com` walking through — and each resolves
-  // off-origin. The TAB/LF/CR forms are the non-obvious ones: the WHATWG URL parser strips
-  // those characters BEFORE parsing, so they are read as `//evil.com`.
+  // This is the whole point of reusing `safePath`. Each of these passes an
+  // `href.startsWith('/')` test, the exact check #100 found `//evil.com`
+  // walking through, and each resolves off-origin. The TAB/LF/CR forms are
+  // the non-obvious ones. The WHATWG URL parser strips those characters
+  // before parsing, so they are read as `//evil.com`.
   it.each(['//evil.com', '/\\evil.com', '/\t/evil.com', '/\n\\evil.com', '/\r/evil.com'])(
     '%j — passes a leading-slash test but is not a same-origin route',
     (href) => {
@@ -97,10 +99,11 @@ describe('isSafeHref — allows', () => {
 })
 
 describe('hasAllowedScheme', () => {
-  // A rendering question, not a safety one — it is what tells the `Link` atom to emit a
-  // plain `<a>` rather than routing through react-router. Pinned separately so nobody
-  // "simplifies" the two into one: a site-relative path is safe but is NOT a scheme, and
-  // swapping this in for the gate would refuse every internal route in the app.
+  // This is a rendering question, not a safety one. It is what tells the
+  // `Link` atom to emit a plain `<a>`, instead of routing through
+  // react-router. This is pinned separately so nobody "simplifies" the two
+  // into one: a site-relative path is safe but is not a scheme, and swapping
+  // this in for the gate would refuse every internal route in the app.
   it('is false for a site-relative path that isSafeHref allows', () => {
     expect(hasAllowedScheme('/gb/london')).toBe(false)
     expect(isSafeHref('/gb/london')).toBe(true)
@@ -119,12 +122,13 @@ describe('hasAllowedScheme', () => {
   })
 })
 
-// A predicate only helps the anchors that call it, and the failure this ticket exists to stop
-// is a FOURTH anchor being added that doesn't. The acceptance criteria for #114 spell that as
-// a manual grep ("grep for `<a` under src/components finds no anchor rendering an unguarded
-// caller-supplied href"); a grep nobody re-runs is how the first three recurrences happened,
-// so it is executable here instead. Precedent: `config/i18n-options.test.ts` pins the locale
-// directories the same way.
+// A predicate only helps the anchors that call it, and the failure this
+// ticket exists to stop is a fourth anchor being added that does not. The
+// acceptance criteria for #114 spell that as a manual grep ("grep for `<a`
+// under src/components finds no anchor rendering an unguarded caller-supplied
+// href"). A grep nobody re-runs is how the first three recurrences happened,
+// so it is executable here instead. Precedent: `config/i18n-options.test.ts`
+// pins the locale directories the same way.
 describe('the JSX anchor inventory', () => {
   const srcDir = fileURLToPath(new URL('../../', import.meta.url))
 
@@ -147,10 +151,12 @@ describe('the JSX anchor inventory', () => {
     )
     .map((entry) => relative(srcDir, join(entry.parentPath, entry.name)).split(sep).join('/'))
 
-  // Parsed, not grepped. A regex over the raw text has to strip comments first, and every
-  // cheap way of doing that has a FALSE PASS in it — an unpaired `/*` inside a string or a
-  // line comment swallows everything up to the next docblock, hiding a real anchor from the
-  // one test whose whole job is to find it. `typescript` is already a devDependency.
+  // This is parsed, not grepped. A regex over the raw text has to strip
+  // comments first, and every cheap way of doing that has a false pass in
+  // it. An unpaired `/*` inside a string, or a line comment, swallows
+  // everything up to the next docblock, hiding a real anchor from the one
+  // test whose whole job is to find it. `typescript` is already a
+  // devDependency.
   const rendersJsxAnchor = (source: string, fileName: string): boolean => {
     const parsed = ts.createSourceFile(
       fileName,
@@ -192,13 +198,15 @@ describe('the JSX anchor inventory', () => {
       rendersJsxAnchor(readFileSync(join(srcDir, path), 'utf8'), path),
     )
 
-    // A FOURTH file here renders an anchor: route its href through `isSafeHref`
-    // (`lib/shape/href.ts`), then add it below. Adding it below on its own defeats the test.
+    // A fourth file here renders an anchor. Route its href through
+    // `isSafeHref` (`lib/shape/href.ts`), then add it below. Adding it below
+    // on its own defeats the test.
     //
-    // Known blind spots, since a guard that oversells itself is worse than none: this sees
-    // JSX only, so `React.createElement('a', …)` (as `AddToCalendar`'s detached blob anchor
-    // legitimately uses) and an element-type variable (`const Tag = 'a'`) do not trip it, and
-    // `.ts` files are not scanned at all.
+    // Known blind spots follow, since a guard that oversells itself is worse
+    // than none. This sees JSX only, so `React.createElement('a', …)` (as
+    // `AddToCalendar`'s detached blob anchor legitimately uses), and an
+    // element-type variable (`const Tag = 'a'`), do not trip it. `.ts` files
+    // are not scanned at all.
     expect(withAnchor.sort()).toEqual(GATED_ANCHORS)
   })
 

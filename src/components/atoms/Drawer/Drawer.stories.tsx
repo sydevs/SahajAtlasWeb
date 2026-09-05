@@ -23,25 +23,26 @@ export default {
 const SNAP_POINTS = ['96px', '300px', 0.97]
 
 /**
- * Drawer — a vaul-based drawer that portals into the themed widget root. Left
- * fixed-width panel at ≥md, bottom snap-point sheet on mobile (resize to see the
- * crossing). Non-modal, so this background stays interactive. In the app,
- * DrawerStack renders a single drawer wired to the URL and simulates the parent
- * drawers as static peek cards behind it (rather than real nested drawers).
+ * Drawer — a vaul-based drawer that portals into the themed widget root. It
+ * shows a left fixed-width panel at ≥md, and a bottom snap-point sheet on
+ * mobile. Resize to see the crossing. It is non-modal, so this background
+ * stays interactive. In the app, DrawerStack renders a single drawer wired to
+ * the URL. It simulates the parent drawers as static peek cards behind it,
+ * instead of real nested drawers.
  */
 export const Default: Story = () => {
-  // The story is the whole page, so the viewport IS this drawer's container — unlike the
-  // app, where DrawerStack measures its own box (`useIsWide`). See ContainerWidth below
-  // for the story that exercises the measured path.
+  // The story is the whole page, so the viewport IS this drawer's container. In
+  // the app, DrawerStack instead measures its own box (`useIsWide`). See
+  // ContainerWidth below for the story that exercises the measured path.
   const direction = useIsWideViewport() ? 'left' : 'bottom'
   const isBottom = direction === 'bottom'
 
   const [open, setOpen] = useState(false)
   const [snap, setSnap] = useState<number | string | null>(SNAP_POINTS[1])
-  // A `filled` drawer portals into whatever `container` it's given and fills it
-  // with `absolute inset-0`. Passing `null` sends it to <body>, so it would fill
-  // the whole viewport — as DrawerStack does, hand it the bounding element so it
-  // stays inside the box.
+  // A `filled` drawer portals into whatever `container` it is given, and fills
+  // it with `absolute inset-0`. Passing `null` sends it to <body>, so it would
+  // fill the whole viewport. As DrawerStack does, this hands it the bounding
+  // element instead, so it stays inside the box.
   const [filledBox, setFilledBox] = useState<HTMLDivElement | null>(null)
 
   return (
@@ -117,14 +118,15 @@ export const Default: Story = () => {
 Default.storyName = 'Drawer'
 
 /**
- * One box, measured. `useIsWide` observes the element it is handed, so this panel picks its
- * own interaction model from its own width — the drag handle appears below the crossing and
- * goes away above it, exactly as the app's bottom sheet and left panel do.
+ * One box, measured. `useIsWide` observes the element it is handed. So this
+ * panel picks its own interaction model from its own width. The drag handle
+ * appears below the crossing, and goes away above it, exactly as the app's
+ * bottom sheet and left panel do.
  *
- * The right-hand box is resizable (drag its bottom-right corner): crossing 768px flips the
- * model, and holding the pointer near the crossing shows the damping — the switch commits
- * only once the width has held, because vaul's `direction` is not hot-swappable and the
- * drawer remounts on the change.
+ * The right-hand box is resizable: drag its bottom-right corner. Crossing
+ * 768px flips the model. Holding the pointer near the crossing shows the
+ * damping. The switch commits only once the width has held, because vaul's
+ * `direction` is not hot-swappable, and the drawer remounts on the change.
  */
 function MeasuredPanel({
   label,
@@ -148,10 +150,10 @@ function MeasuredPanel({
         className="relative h-64 overflow-hidden rounded-lg border border-divider"
         style={{ maxWidth: '100%', resize: resizable ? 'horizontal' : 'none', width }}
       >
-        {/* Keyed on the direction exactly as DrawerStack keys its own drawer: vaul's
-            `direction` is not hot-swappable, so the crossing has to REMOUNT the root. Without
-            this the story would demonstrate something the app deliberately never does, and
-            could strand a stale direction's transform after a resize. */}
+        {/* Keyed on the direction, exactly as DrawerStack keys its own drawer. Vaul's
+            `direction` is not hot-swappable, so the crossing has to REMOUNT the root.
+            Without this, the story would demonstrate something the app deliberately
+            never does, and could strand a stale direction's transform after a resize. */}
         <Drawer
           key={isWide ? 'left' : 'bottom'}
           container={box}
@@ -159,9 +161,9 @@ function MeasuredPanel({
           mode="filled"
           open={true}
         >
-          {/* `filled` hides the handle by default (there is nothing to drag a filled panel
-              to), so it is forced here to stand in for the affordance the real bottom sheet
-              carries — the visible half of what the direction decides. */}
+          {/* `filled` hides the handle by default, since there is nothing to drag a
+              filled panel to. So it is forced here, to stand in for the affordance the
+              real bottom sheet carries: the visible half of what the direction decides. */}
           <DrawerContent aria-label={label} handle={!isWide}>
             <DrawerHeader>
               <h2 className="text-lg font-semibold">{isWide ? 'Panel' : 'Sheet'}</h2>
@@ -181,10 +183,11 @@ function MeasuredPanel({
 }
 
 /**
- * Container-aware responsiveness (issue #107). Both panels are on the same page, at the same
- * viewport, and they disagree — because the question each one asks is "how wide am *I*",
- * not "how wide is the screen". This is the case the widget used to get wrong: a narrow
- * column embed on a desktop viewport was handed the desktop interaction model.
+ * Container-aware responsiveness (issue #107). Both panels sit on the same
+ * page, at the same viewport, and they disagree. Each one asks "how wide am
+ * *I*", not "how wide is the screen". This is the case the widget used to get
+ * wrong: a narrow column embed on a desktop viewport was handed the desktop
+ * interaction model.
  */
 export const ContainerWidth: Story = () => (
   <StoryWrapper>

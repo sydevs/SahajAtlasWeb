@@ -4,10 +4,10 @@ import { describe, it, expect } from 'vitest'
 
 import { ListItem } from './ListItem'
 
-// Node-only SSR assertions (see `docs/testing.md`). The row must be a valid
-// direct child of the List's <ul>: an <li> wrapping the <Link>/<a>, NOT an <a>
-// wrapping an <li> (the pre-#65 nesting). MemoryRouter supplies the router context
-// the internal Link needs.
+// Node-only SSR assertions (see `docs/testing.md`). The row must be a
+// valid direct child of the List's <ul>: an <li> wrapping the <Link>/<a>,
+// NOT an <a> wrapping an <li>, the pre-#65 nesting. MemoryRouter supplies
+// the router context the internal Link needs.
 
 describe('ListItem', () => {
   it('nests as <li><a> so the <li> is a direct child of the list <ul>', () => {
@@ -43,10 +43,11 @@ describe('ListItem', () => {
     expect(classes).not.toContain('items-stretch')
   })
 
-  // The trailing count and chevron step down from the title, and not to the same place:
-  // the count is still information, the chevron only restates what tapping the row does.
-  // Both were unstyled and inherited the row's default text colour — the same weight as
-  // the title, which is what flattened the row's hierarchy.
+  // The trailing count and chevron step down from the title, and not to
+  // the same place. The count is still information. The chevron only
+  // restates what tapping the row does. Both were unstyled, and
+  // inherited the row's default text colour, the same weight as the
+  // title. That is what flattened the row's hierarchy.
   it('steps the count and the chevron below the title, the chevron furthest', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>

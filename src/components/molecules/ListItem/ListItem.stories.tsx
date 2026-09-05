@@ -14,11 +14,12 @@ export default { title: 'Molecules / List' } satisfies StoryDefault
 const FLAG_CLASS = 'h-full w-full rounded-full border border-divider bg-divider'
 
 /**
- * ListItem — a single navigable row (optional leading glyph, label, optional
- * subtitle, count, trailing arrow). It backs every row in a region list: the
- * country → region → area drill-down, and the online-classes entry that belongs
- * to no region at all. The glyph is the only thing that varies, and the card's
- * fixed icon slot keeps every row aligned whatever goes in it.
+ * ListItem — a single navigable row: an optional leading glyph, a label, an
+ * optional subtitle, a count, and a trailing arrow. It backs every row in a
+ * region list: the country to region to area drill-down, and the
+ * online-classes entry that belongs to no region at all. The glyph is the
+ * only thing that varies, and the card's fixed icon slot keeps every row
+ * aligned, whatever goes in it.
  */
 export const Default: Story = () => (
   <StoryWrapper>

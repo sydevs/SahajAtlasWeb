@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { fetchIpLocation } from './use-ip-location'
 
-// Mock the network boundary (the bare `fetch`) so these assert our zod parse, not
-// ipwho.is itself. Node lane, no jsdom — see docs/testing.md.
+// This mocks the network boundary, the bare `fetch`, so these assertions check our zod parse, not ipwho.is itself.
+// This is the node lane, with no jsdom. See `docs/testing.md`.
 const mockFetch = (body: unknown, ok = true) =>
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok, json: async () => body }))
 
@@ -47,8 +47,8 @@ describe('fetchIpLocation', () => {
   })
 
   it('still parses when the timezone object is id-less (#64 safe degrade)', async () => {
-    // An id-less timezone must not fail the whole location parse — it just leaves
-    // nothing to reconcile the region label against, so the time shows bare.
+    // An id-less timezone must not fail the whole location parse.
+    // It just leaves nothing to reconcile the region label against, so the time shows bare.
     mockFetch({ ...VALID, timezone: {} })
 
     expect(await fetchIpLocation()).toEqual({

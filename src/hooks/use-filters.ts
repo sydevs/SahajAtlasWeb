@@ -5,14 +5,15 @@ import { useLocation, useSearchParams } from 'react-router'
 
 import { DEFAULT_FILTERS, filtersFromParams, filtersToParams } from '@/lib/shape'
 
-// The applied event filters live in the URL query — the single source of truth, so
-// a filtered view is linkable/shareable and the map + list always agree on it. Read
-// with `useEventFilters`; mutate the /search flow's filters with `useSetFilters`.
+// The applied event filters live in the URL query, the single source of truth.
+// So a filtered view is linkable and shareable, and the map and list always agree on it.
+// Read them with `useEventFilters`. Mutate the `/search` flow's filters with `useSetFilters`.
 
 /**
- * Applied filters parsed from the URL query. Re-derives on any query change
- * (including `?q`/`?bbox`/`?center`), but that's off the map's true hot path:
- * pan/zoom writes the camera to zustand, never the URL, so those don't churn this.
+ * These are applied filters, parsed from the URL query.
+ * This re-derives on any query change, including `?q`, `?bbox`, and `?center`.
+ * That is off the map's true hot path.
+ * Pan and zoom write the camera to zustand, never to the URL, so those never churn this.
  */
 export const useEventFilters = (): EventFilters => {
   const [searchParams] = useSearchParams()
@@ -21,23 +22,22 @@ export const useEventFilters = (): EventFilters => {
 }
 
 /**
- * Filter setters that rewrite the current URL's filter params while preserving the
- * rest (`q`/`bbox`/`center`). Used by the results' quick-edit pills; `setFilters`
- * commits a whole set. `replace` so tweaking a filter doesn't stack a history entry.
+ * These are filter setters. They rewrite the current URL's filter params, while preserving the rest, `q`, `bbox`, and `center`.
+ * The results' quick-edit pills use these. `setFilters` commits a whole set.
+ * This uses `replace`, so tweaking a filter does not stack a history entry.
  *
- * The results list's reveal resets with any of these, without a reset call here: the
- * filters are part of `revealKey`, so an edited set simply isn't the result set the
- * stored count belongs to (see `use-reveal`).
+ * The results list's reveal resets with any of these, with no reset call here.
+ * The filters are part of `revealKey`, so an edited set simply is not the result set the stored count belongs to. See `use-reveal`.
  */
 export const useSetFilters = () => {
   const [, setSearchParams] = useSearchParams()
   const location = useLocation()
 
-  // Read the *current* filters from `prev` inside the updater (not a render-time
-  // snapshot), so a concurrent change can't be clobbered.
+  // This reads the CURRENT filters from `prev` inside the updater, not a render-time snapshot.
+  // So a concurrent change cannot get clobbered.
   const update = (change: (filters: EventFilters) => EventFilters) =>
-    // `state` is carried explicitly: a `replace` without it strips the entry's
-    // `atlasDepth` and breaks the drawer's history-aware dismissal.
+    // This carries `state` explicitly.
+    // A `replace` without it would strip the entry's `atlasDepth` and break the drawer's history-aware dismissal.
     setSearchParams(
       (prev) => filtersToParams(change(filtersFromParams(prev)), new URLSearchParams(prev)),
       { replace: true, state: location.state },

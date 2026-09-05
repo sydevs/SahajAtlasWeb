@@ -4,20 +4,20 @@ import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
 
 /**
- * Character budgets for the copy that renders in a size-constrained slot, from
- * the translation table in issue #52. They were written there as prose, which
- * meant nothing checked them — the full-state translations shipped up to 55
- * characters against a 40 budget. Pinning them here makes the budget real:
- * adding a locale or retranslating a key can't quietly blow the layout.
+ * These are character budgets for the copy that renders in a size-constrained slot, from the translation table in issue #52.
+ * That table was written as prose, so nothing checked it.
+ * The full-state translations shipped up to 55 characters against a 40 budget.
+ * Pinning the budgets here makes them real.
+ * Adding a locale or retranslating a key cannot quietly blow the layout.
  *
- * Budgets apply to EVERY locale, not just `en` — the point is that translations
- * (reliably longer than English) still fit.
+ * These budgets apply to EVERY locale, not only `en`.
+ * The point is that translations, reliably longer than English, still fit.
  */
 const LOCALES_DIR = join(process.cwd(), 'public/locales')
 
 /**
- * HARD budgets — the slot truncates, so an overflow silently loses characters.
- * `chip_*` render inside the Chip atom, which is `truncate` + `max-w-full`.
+ * These are HARD budgets. The slot truncates, so an overflow silently loses characters.
+ * The `chip_*` keys render inside the Chip atom, which is `truncate` plus `max-w-full`.
  */
 const CHIP_BUDGETS: Record<string, number> = {
   chip_full: 14,
@@ -26,20 +26,19 @@ const CHIP_BUDGETS: Record<string, number> = {
 }
 
 /**
- * SOFT budgets — these render in wrapping `<p>` helpers, so an overflow costs a
- * second line rather than lost text. Still bounded, because an unbounded helper
- * turns the register slot into a paragraph: the full-state translations shipped
- * at up to 55 characters until this budget was applied.
+ * These are SOFT budgets. These keys render in wrapping `<p>` helpers, so an overflow costs a second line, not lost text.
+ * They are still bounded.
+ * An unbounded helper turns the register slot into a paragraph.
+ * The full-state translations shipped at up to 55 characters until this budget was applied.
  *
- * `contact_to_join_full` holds the issue's number exactly — every locale fits it
- * once the verbose renderings are tightened.
+ * `contact_to_join_full` holds the issue's number exactly.
+ * Every locale fits it once the verbose renderings are tightened.
  *
- * `event_full` is the one place the issue's English-derived budget (28) is
- * simply wrong: each locale deliberately parallels its own `event_ended`
- * wording, and German's "Diese Veranstaltung ist …" frame costs 34 there — while
- * the already-shipped `event_ended` spends 31 on the same frame. Breaking the
- * parallel to satisfy an English character count would be the worse trade, so
- * the ceiling accommodates the frame instead.
+ * `event_full` is the one place the issue's English-derived budget, 28, is simply wrong.
+ * Each locale deliberately parallels its own `event_ended` wording.
+ * German's "Diese Veranstaltung ist …" frame costs 34 there, while the already-shipped `event_ended` spends 31 on the same frame.
+ * Breaking the parallel to satisfy an English character count would be the worse trade.
+ * So the ceiling accommodates the frame instead.
  */
 const HELPER_BUDGETS: Record<string, number> = {
   event_full: 36,
@@ -47,26 +46,25 @@ const HELPER_BUDGETS: Record<string, number> = {
 }
 
 /**
- * SOFT budget — the post-event acknowledgement's TITLE line (#164, tightened in #181 review).
+ * This is a SOFT budget for the post-event acknowledgement's TITLE line. See #164, tightened in the #181 review.
  *
- * `Alert` renders `title` as its own `font-medium` line above `description`, in a `size="sm"`
- * banner inside a drawer no wider than 22rem. The acknowledgement originally spent its whole
- * sentence in that slot ("Thank you for confirming that this class is still running — this
- * helps other seekers find it.", ~90 chars), which wrapped to three bold lines and read as a
- * paragraph rather than a heading. Splitting it into a title plus a body is the review's fix;
- * this ceiling is what keeps a retranslation from quietly undoing it.
+ * `Alert` renders `title` as its own `font-medium` line above `description`, in a `size="sm"` banner inside a drawer no wider than 22rem.
+ * The acknowledgement originally spent its whole sentence in that slot, "Thank you for confirming that this class is still running — this helps other seekers find it," about 90 characters.
+ * That wrapped to three bold lines and read as a paragraph, not a heading.
+ * Splitting it into a title plus a body is the review's fix.
+ * This ceiling keeps a retranslation from quietly undoing it.
  *
- * Nothing truncates, so an overflow costs a wrapped line rather than lost text. 40 clears the
- * longest current rendering (fr's "Merci de nous avoir prévenus", 28) with room for a locale
- * that needs a longer greeting, and is less than half what the one-sentence titles spent.
+ * Nothing truncates here, so an overflow costs a wrapped line, not lost text.
+ * 40 clears the longest current rendering, fr's "Merci de nous avoir prévenus," 28 characters, with room for a locale that needs a longer greeting.
+ * It is also less than half what the one-sentence titles spent.
  *
- * A BLANK title would pass this length check; it is the `common`-namespace parity test in
- * `i18n-options.test.ts` that rejects one, and that test is where the two answers' keys are
- * required to exist in every locale at all.
+ * A BLANK title would pass this length check.
+ * The `common`-namespace parity test in `i18n-options.test.ts` is what rejects one.
+ * That test is where the two answers' keys are required to exist in every locale at all.
  */
 const FEEDBACK_TITLE_BUDGET = 40
 
-/** The two answers `?feedback=` can carry, each rendering its own banner. */
+/** These are the two answers `?feedback=` can carry, each rendering its own banner. */
 const FEEDBACK_ANSWERS = ['confirmed', 'denied']
 
 const locales = readdirSync(LOCALES_DIR, { withFileTypes: true })
@@ -82,7 +80,7 @@ const feedbackTitle = (locale: string, answer: string): unknown =>
 
 describe('locale copy budgets (issue #52)', () => {
   it('finds every locale bundle', () => {
-    // A guard on the guard: a bad path would make every assertion below vacuous.
+    // This guards the guard. A bad path would make every assertion below vacuous.
     expect(locales.length).toBeGreaterThanOrEqual(10)
     expect(locales).toContain('en')
   })

@@ -12,7 +12,7 @@ import {
   icsFileName,
 } from './ics'
 
-// Wednesday 19:30–20:45 in Prague; 2026-07-01T17:30Z is 19:30 CEST.
+// Wednesday 19:30–20:45 in Prague. 2026-07-01T17:30Z is 19:30 CEST.
 const weekly: EventSchedule = {
   firstDate: new Date('2026-07-01T17:30:00Z'),
   firstDate_tz: 'Europe/Prague',
@@ -170,7 +170,7 @@ describe('exclusionDates', () => {
       ],
     }
 
-    // Series anchors on Wed 1 Jul; the fortnightly Wednesdays are 15 and 29 Jul.
+    // Series anchors on Wed 1 Jul. The fortnightly Wednesdays are 15 and 29 Jul.
     expect(exclusionDates(fortnightly).map((d) => d.toFormat('yyyy-MM-dd'))).toEqual([
       '2026-07-15',
       '2026-07-29',
@@ -187,8 +187,9 @@ describe('exclusionDates', () => {
   })
 
   it('exclusion days survive zones west of the stored midnight stamp', () => {
-    // Wednesday series in New York; the excluded day is stored as midnight UTC.
-    // Naively that instant is Tuesday evening in NY and no EXDATE would match.
+    // Wednesday series in New York. The excluded day is stored as midnight
+    // UTC. Naively that instant is Tuesday evening in NY, and no EXDATE
+    // would match.
     const ny: EventSchedule = {
       ...weekly,
       firstDate: new Date('2026-07-01T23:30:00Z'), // Wed 19:30 EDT
@@ -236,10 +237,11 @@ describe('buildEventIcs', () => {
     expect(ics).toContain('BEGIN:VCALENDAR')
     expect(ics).toContain('UID:event-42@cloud.sydevelopers.com')
 
-    // The rule the UID exists to satisfy, asserted rather than only described: the same event
-    // exported from two different client embeds must produce the SAME identifier, or a visitor who
-    // reaches one class from the national site and again from a city one gets two calendar
-    // entries for it. Nothing tenant-derived may enter this string.
+    // This asserts the rule the UID exists to satisfy, rather than only
+    // describing it. The same event exported from two different client
+    // embeds must produce the same identifier, or a visitor who reaches one
+    // class from the national site, and again from a city one, gets two
+    // calendar entries for it. Nothing tenant-derived may enter this string.
     expect(ics).not.toMatch(/UID:[^\r\n]*(sahajatlas|sahajayoga|wemeditate)/i)
     expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260701T193000')
     expect(ics).toContain('DTEND;TZID=Europe/Prague:20260701T204500')
@@ -258,10 +260,10 @@ describe('buildEventIcs', () => {
     )
 
     expect(ics).not.toContain('RRULE')
-    // No `endTime` on the schedule. A bare DTSTART is RFC-legal but means a
-    // ZERO-length event (RFC 5545 §3.6.1), which every calendar app draws as a
-    // hairline — so it falls back to the same hour SahajCloud's own ICS builder
-    // uses, and the two descriptions of one class agree.
+    // No `endTime` on the schedule. A bare DTSTART is RFC-legal, but means a
+    // zero-length event (RFC 5545 §3.6.1), and every calendar app draws that
+    // as a hairline. So it falls back to the same hour SahajCloud's own ICS
+    // builder uses, and the two descriptions of one class agree.
     expect(ics).toContain('DTSTART;TZID=Europe/Prague:20260701T193000')
     expect(ics).toContain('DTEND;TZID=Europe/Prague:20260701T203000')
   })
@@ -278,8 +280,9 @@ describe('buildEventIcs', () => {
   })
 
   it('folds by UTF-8 octets and never splits a multi-byte character', () => {
-    // Cyrillic is 2 bytes/char in UTF-8 — code-unit folding would emit ~148-octet
-    // lines; and a code-point boundary must never fall inside a character.
+    // Cyrillic is 2 bytes per character in UTF-8. Code-unit folding would
+    // emit about 148-octet lines, and a code-point boundary must never fall
+    // inside a character.
     const ics = buildEventIcs({ ...input, description: 'д'.repeat(120) }, { now: NOW })
     const encoder = new TextEncoder()
 
@@ -341,10 +344,10 @@ describe('buildGoogleCalendarUrl', () => {
   })
 })
 
-// The three providers below take no recurrence parameter — none of their URL
-// APIs has one — so each gets a SINGLE occurrence, and the whole question is
-// which one. Never the series start: a class running since 2019 would drop a
-// 2019 date into the viewer's calendar and call it done.
+// The three providers below take no recurrence parameter. None of their URL
+// APIs has one, so each gets a single occurrence, and the whole question is
+// which one. This is never the series start: a class running since 2019
+// would drop a 2019 date into the viewer's calendar and call it done.
 describe('recurrence-less providers anchor on the right occurrence', () => {
   const longRunning: EventSchedule = {
     ...weekly,
@@ -425,8 +428,9 @@ describe('icsFileName', () => {
   })
 
   it('degrades a title with no Latin characters to a generic name', () => {
-    // Rather than emitting mojibake or an empty name into a Windows/Android
-    // filesystem. Transliterating properly would be a dependency for a filename.
+    // This avoids emitting mojibake, or an empty name, into a Windows or
+    // Android filesystem. Transliterating properly would be a dependency for
+    // a filename.
     expect(icsFileName('瞑想')).toBe('event.ics')
   })
 

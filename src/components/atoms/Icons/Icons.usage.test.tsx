@@ -5,20 +5,23 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The Icons story's gallery is the app's USAGE, not a catalogue.
+ * The Icons story's gallery shows the app's USAGE, not a catalogue.
  *
- * Lucide ships ~2,000 glyphs and we render two dozen. A gallery that drifts from the call
- * sites becomes a second, worse copy of lucide.dev — stale the moment upstream ships
- * anything, and an invitation to pick from our page instead of theirs. So the story lists
- * exactly what the app imports and links out for the rest.
+ * Lucide ships about 2,000 glyphs, and this app renders two dozen. A gallery
+ * that drifts from the call sites becomes a second, worse copy of
+ * lucide.dev. It would go stale the moment upstream ships anything, and it
+ * would invite picking from our page instead of theirs. So the story lists
+ * exactly what the app imports, and links out for the rest.
  *
- * That rule is a maintenance promise, and this is what makes it mechanical rather than
- * remembered (the same reasoning as `href.test.ts`'s anchor inventory): a newly-used glyph
- * fails the lane until it is listed, and one that loses its last call site cannot linger.
+ * That rule is a maintenance promise. This spec is what makes it mechanical,
+ * not remembered, the same reasoning as `href.test.ts`'s anchor inventory. A
+ * newly-used glyph fails the lane until it is listed. One that loses its
+ * last call site cannot linger either.
  *
- * ⚠ Deliberately excludes stories and tests. `Video` and `Calendar` are imported by
- * `Chip.stories.tsx` alone — a story needing a glyph is not the app using one, and if that
- * counted, the gallery would re-grow exactly the rows this test exists to keep out.
+ * ⚠ This deliberately excludes stories and tests. `Chip.stories.tsx` alone
+ * imports `Video` and `Calendar`. A story needing a glyph is not the app
+ * using one. If it counted, the gallery would re-grow exactly the rows this
+ * test exists to keep out.
  */
 
 const SRC = fileURLToPath(new URL('../../..', import.meta.url))
@@ -66,8 +69,9 @@ describe('the Icons story gallery matches what the app actually renders', () => 
     [...story.matchAll(/\{ name: '([A-Za-z]+)', Icon: [A-Za-z]+ \}/g)].map((m) => m[1]),
   )
 
-  // Guards both sets: an empty one would make every assertion below vacuously true, which
-  // is precisely how a walker that silently stops matching reports a clean bill of health.
+  // This guards both sets. An empty one would make every assertion below
+  // vacuously true. That is precisely how a walker that silently stops
+  // matching reports a clean bill of health.
   it('finds both inventories', () => {
     expect(used.size).toBeGreaterThan(10)
     expect(gallery.size).toBeGreaterThan(10)

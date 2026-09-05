@@ -25,15 +25,15 @@ import {
   useFrameOnTop,
 } from '@/views/shared'
 
-// A region at any level (route `<region-path>`): child-region cards then this region's
-// own located events, in ONE mixed list. A city can hold both venue/centre sub-regions
-// and free-floating events (an event pinned to the city rather than to a venue), and
-// both show together. A region whose online events roll up leads with an "Online
-// Classes" card (opening their own `<region-path>/online` drawer), keeping those
-// placeless classes out of the list; a region without that card lists its online events
-// inline, after the located ones. Frames the map to the region's bounds when it's the
-// top of the stack. No canonicalization redirect — the URL stays where the user
-// navigated; the canonical tag is standalone-only.
+// A region at any level, at route `<region-path>`. It shows child-region cards, then this
+// region's own located events, in ONE mixed list. A city can hold both venue and centre
+// sub-regions, and free-floating events — an event pinned to the city rather than to a venue —
+// and both show together. A region whose online events roll up leads with an "Online Classes"
+// card, which opens its own `<region-path>/online` drawer and keeps those placeless classes
+// out of the list. A region without that card lists its online events inline, after the
+// located ones. This view frames the map to the region's bounds when it is the top of the
+// stack. There is no canonicalization redirect. The URL stays where the user navigated. The
+// canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
   const { t } = useTranslation('events')
   const { t: tCommon } = useTranslation('common')
@@ -54,29 +54,29 @@ export function RegionView({ slug }: { slug: string }) {
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const canonicalUrl = validateWebUrl(region.webUrl)
-  // A region with sub-region cards surfaces its online roll-up behind a dedicated
-  // "Online Classes" card; a region without sub-regions lists its online events inline.
+  // A region with sub-region cards surfaces its online roll-up behind a dedicated "Online
+  // Classes" card. A region without sub-regions lists its online events inline.
   const showOnlineCard = region.subregions.length > 0 && region.onlineEvents.length > 0
 
-  // Warm the first few events actually rendered as cards on idle, so opening one is a
-  // cache hit even on touch (no hover to trigger the per-card prefetch). Online events
-  // behind the "Online Classes" roll-up card aren't tappable from here, so exclude them;
-  // only the inline online list (shown when there's no roll-up card) is warmed.
+  // Warm the first few events actually rendered as cards, on idle, so opening one is a cache
+  // hit even on touch — there is no hover to trigger the per-card prefetch. Online events
+  // behind the "Online Classes" roll-up card are not tappable from here, so this excludes
+  // them. Only the inline online list, shown when there is no roll-up card, gets warmed.
   usePrefetchEvents(
     [...region.events, ...(showOnlineCard ? [] : region.onlineEvents)].map((event) => event.id),
   )
   // Whether this view actually shows event cards (vs. only child-region cards).
   const hasEventList =
     region.events.length > 0 || (!showOnlineCard && region.onlineEvents.length > 0)
-  // Nothing to list at all — no child cards and no event cards. (`showOnlineCard` needs
-  // sub-regions, so with none, `hasEventList` already covers the online roll-up.)
-  // `getRegion` used to 404 a 0-event region into the error boundary; it resolves now,
-  // because no button on an error page could help here (issue #89), so the drawer says
-  // so plainly instead of rendering an empty <List>.
+  // Nothing to list at all — no child cards and no event cards. `showOnlineCard` needs
+  // sub-regions, so with none, `hasEventList` already covers the online roll-up.
+  // `getRegion` used to 404 a 0-event region into the error boundary. It resolves now, because
+  // no button on an error page could help here (issue #89). So the drawer says so plainly,
+  // instead of rendering an empty <List>.
   const isEmpty = region.subregions.length === 0 && !hasEventList
-  // "All events are free" is the subtitle FALLBACK — stated once per list (no
-  // Free chip repeats on cards) but only where events are actually listed;
-  // a city's own subtitle takes the slot when present.
+  // "All events are free" is the subtitle FALLBACK. It states this once per list — no Free
+  // chip repeats on cards — but only where events are actually listed. A city's own subtitle
+  // takes the slot when present.
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
     (hasEventList ? t('display.all_events_free') : undefined)
@@ -91,7 +91,7 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search + close as one right-aligned control group; justify-between
+        {/* Calendar, search, and close form one right-aligned control group. justify-between
             keeps the title left. The calendar opens pre-scoped to this region. */}
         <div className="flex shrink-0 items-center gap-2">
           <CalendarButton regionSlug={region.slug} />
@@ -101,23 +101,24 @@ export function RegionView({ slug }: { slug: string }) {
       </DrawerHeader>
       <DrawerBody>
         {/* Above the region's own content, which IS the "other classes near them" the
-            acknowledgement hands off to — so the banner carries no onward link of its own.
-            Neutral and unticked: a tick would read as "yes, it's gone", and one report is not
-            a verdict (the listing only comes down at five denials with a Wilson upper bound
-            below 0.5). */}
+            acknowledgement hands off to. So the banner carries no onward link of its own.
+            This stays neutral and unticked. A tick would read as "yes, it's gone", and one
+            report is not a verdict — the listing only comes down at five denials, with a
+            Wilson upper bound below 0.5. */}
         {feedback === 'denied' && (
           <Alert
             className="mb-4"
             closeLabel={tCommon('close')}
             color="neutral"
             description={
-              // Normally the onward step is the list directly below, so the banner names it
-              // rather than linking to the page the reader is already on — `below` joins onto
-              // `body` as the one paragraph the copy was written as. A region with nothing left
-              // to list is the exception — the fifth denial unpublishes the event, so this is
-              // reachable — and there that clause would be a claim standing above an empty
-              // state, so it becomes a real link into the search instead. The joining space
-              // belongs to the clause, not to the body: the link is a block and wants none.
+              // Normally the onward step is the list directly below. So the banner names it,
+              // instead of linking to the page the reader is already on — `below` joins onto
+              // `body` as one paragraph, the way the copy was written. A region with nothing
+              // left to list is the exception. The fifth denial unpublishes the event, so this
+              // case is reachable, and there that clause would stand as a claim above an empty
+              // state. So it becomes a real link into the search instead. The joining space
+              // belongs to the clause, not to the body. The link is a block, and wants no
+              // leading space.
               <>
                 {tCommon('feedback.denied.body')}
                 {isEmpty ? (
@@ -135,9 +136,9 @@ export function RegionView({ slug }: { slug: string }) {
             onClose={dismissFeedback}
           />
         )}
-        {/* Suppressed while the acknowledgement is up: two stacked prompts above the list is
-            more than the screen can carry, and the reader has just acted once already. It
-            returns as soon as they dismiss the banner. */}
+        {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
+            list are more than the screen can carry, and the reader has just acted once
+            already. It returns as soon as they dismiss the banner. */}
         {!feedback && <GeolocationSuggestion regionCenter={region.center} />}
         {isEmpty ? (
           <EmptyEventList />

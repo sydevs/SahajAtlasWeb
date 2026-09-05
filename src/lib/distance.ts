@@ -1,8 +1,9 @@
 /**
  * List-card distance formatting (issue #52): metres below 1 km, one decimal
- * below 10 km, integers above — and miles where that's the road-distance
- * convention (en-US / en-GB), kilometres everywhere else. Values format through
- * `Intl.NumberFormat`'s unit style so separators and unit labels localize.
+ * below 10 km, integers above, and miles where that is the road-distance
+ * convention (en-US / en-GB), with kilometres everywhere else. Values format
+ * through `Intl.NumberFormat`'s unit style, so separators and unit labels
+ * localize.
  */
 
 const MILE_LOCALES = new Set(['en-us', 'en-gb'])

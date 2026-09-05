@@ -37,16 +37,17 @@ export default {
 } satisfies StoryDefault
 
 /**
- * The gallery is the icons the app ACTUALLY RENDERS — not a curated subset of Lucide, and
- * not a wishlist. Adding an icon here without a call site turns this page into a second,
- * worse copy of the Lucide catalogue: it goes stale the moment Lucide ships anything, and
- * it invites picking a glyph from our page rather than from the 2,000 upstream. So the
- * rule is one-way — an icon earns its row by being used, and the button below covers
- * everything else.
+ * The gallery shows the icons the app ACTUALLY RENDERS. It is not a curated
+ * subset of Lucide, and not a wishlist. Adding an icon here without a call
+ * site would turn this page into a second, worse copy of the Lucide
+ * catalogue. It would go stale the moment Lucide ships anything, and it
+ * would invite picking a glyph from our page instead of the 2,000 upstream.
+ * So the rule runs one way: an icon earns its row by being used, and the
+ * button below covers everything else.
  *
- * ⚠ Keep this list in step with the imports in app code (excluding stories and tests).
- * `Video` and `Calendar` are the ones to watch: both appear in `Chip.stories.tsx` only, so
- * neither belongs here.
+ * ⚠ Keep this list in step with the imports in app code, excluding stories
+ * and tests. Watch `Video` and `Calendar`. Both appear in `Chip.stories.tsx`
+ * only, so neither belongs here.
  */
 const ICONS = [
   { name: 'ArrowUpRight', Icon: ArrowUpRight },
@@ -76,9 +77,9 @@ const ICONS = [
 
 const SOCIAL_PLATFORMS = ['zoom', 'google_meet', 'youtube'] as const
 
-// Every icon is drawn with `currentColor`, so it inherits the surrounding text
-// color — one glyph serves every palette role. `text-{role}-11` is the readable
-// on-surface step for the brand roles; neutral text uses `text-gray-12`.
+// Every icon is drawn with `currentColor`, so it inherits the surrounding
+// text color. One glyph serves every palette role. `text-{role}-11` is the
+// readable on-surface step for the brand roles. Neutral text uses `text-gray-12`.
 const PALETTE = [
   { name: 'primary', className: 'text-primary-11' },
   { name: 'secondary', className: 'text-secondary-11' },
@@ -87,8 +88,9 @@ const PALETTE = [
 ] as const
 
 /**
- * Icons — the Lucide glyphs the app renders, plus the brand marks that stay ours (Lucide
- * ships no brand icons). Rendered as a labelled gallery at size 28.
+ * Icons — the Lucide glyphs the app renders, plus the brand marks that stay
+ * ours. (Lucide ships no brand icons.) This renders as a labelled gallery at
+ * size 28.
  */
 export const Default: Story = () => (
   <StoryWrapper>
@@ -106,8 +108,8 @@ export const Default: Story = () => (
           ))}
         </div>
 
-        {/* Reaching for a glyph we don't use yet is the common case, and the answer is
-            upstream rather than a longer list here — see the docblock on ICONS. */}
+        {/* Reaching for a glyph the app does not use yet is the common case. The
+            answer is upstream, not a longer list here. See the docblock on ICONS. */}
         <div className="flex flex-col items-start gap-2">
           <Button
             href="https://lucide.dev/icons/"

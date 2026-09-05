@@ -59,26 +59,27 @@ export type CalendarEntry = {
   path: string
   /** Schedule-X calendar id — set to `online` for online programs so they get their own colour. */
   calendarId?: string
-  /** Schedule-X `location` (shown with a pin in the week/day views) — the "Online" term for
-   *  online programs; the month/list views distinguish them by colour instead. */
+  /** Schedule-X `location` (shown with a pin in the week/day views): the "Online" term for
+   *  online programs. The month/list views distinguish them by colour instead. */
   location?: string
 }
 
-// Schedule-X reads a plain wall-clock string; we hand it the occurrence already
-// resolved into its display zone, so what the grid shows is the local class time.
+// Schedule-X reads a plain wall-clock string. This hands it the occurrence
+// already resolved into its display zone, so what the grid shows is the
+// local class time.
 const SX_FORMAT = 'yyyy-MM-dd HH:mm'
 
 /**
- * Expand events into calendar entries — one per `upcomingDates` occurrence whose start
- * falls in `[from, to]` (absolute instants; defaults to today … +12 months) AND matches
- * the active day / time / date filters (via `occurrenceMatchesFilters`, the same cut
- * `matchesFilters` applies). The event-level filters (format/language/cadence/region) are
- * already applied upstream, but a recurring event's individual occurrences must still be
- * trimmed — a "Mondays only" filter shows only the Monday occurrences of a matching event.
- * Each occurrence is read in the event's display zone (`eventTimeZone`: the event's own
- * zone for physical events, the viewer's for online, UTC when `firstDate_tz` is null) and
- * emitted as a wall-clock entry; the end is that day's `endTime`, else +1h. An event with
- * no occurrences contributes nothing.
+ * Expands events into calendar entries: one per `upcomingDates` occurrence whose start
+ * falls in `[from, to]` (absolute instants, defaulting to today through +12 months), and
+ * matches the active day, time, and date filters (via `occurrenceMatchesFilters`, the
+ * same cut `matchesFilters` applies). The event-level filters (format/language/cadence/
+ * region) are already applied upstream, but a recurring event's individual occurrences
+ * must still be trimmed. A "Mondays only" filter shows only the Monday occurrences of a
+ * matching event. Each occurrence is read in the event's display zone (`eventTimeZone`:
+ * the event's own zone for physical events, the viewer's for online, UTC when
+ * `firstDate_tz` is null), and emitted as a wall-clock entry. The end is that day's
+ * `endTime`, or +1h otherwise. An event with no occurrences contributes nothing.
  */
 export const eventsToCalendarEntries = (
   events: CalendarSourceEvent[],
@@ -121,8 +122,9 @@ export const eventsToCalendarEntries = (
       if (start < from || start > to) continue
       if (!occurrenceMatchesFilters(start, filters, floor)) continue
 
-      // A same-minute (or unset) endTime leaves no visible span for the week/day views,
-      // so fall back to a default duration when the end isn't strictly after the start.
+      // A same-minute (or unset) endTime leaves no visible span for the
+      // week/day views, so this falls back to a default duration when the
+      // end is not strictly after the start.
       const end = withEndTime(eventStart, endTime)?.setZone(displayZone)
       const finish = end && end > start ? end : start.plus(DEFAULT_DURATION)
 
@@ -159,11 +161,11 @@ const entryHour = (wallClock: string): number => {
  * or `undefined` to leave its default:
  *
  * - **Time-of-day filter set** → span the selected period(s). A single range (including a
- *   night span that wraps midnight, e.g. `21:00`–`06:00`) frames the grid directly;
- *   several non-wrapping ranges span from the earliest start to the latest end.
+ *   night span that wraps midnight, e.g. `21:00`–`06:00`) frames the grid directly.
+ *   Several non-wrapping ranges span from the earliest start to the latest end.
  * - **Otherwise** → hug the entries: 1 h before the earliest occurrence start and 1 h
- *   after the latest end (an overnight entry counts to the day's end). Undefined when there
- *   are no entries.
+ *   after the latest end (an overnight entry counts to the day's end). This is undefined
+ *   when there are no entries.
  */
 export const computeDayBoundaries = (
   entries: CalendarEntry[],

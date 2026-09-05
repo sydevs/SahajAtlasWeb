@@ -5,8 +5,8 @@ import { describe, it, expect } from 'vitest'
 
 import { stripLabel } from './strip-label'
 
-// A stand-in for i18next that returns the en copy for the handful of keys this reaches,
-// so the assertions read as the sentence a screen reader would speak rather than a key.
+// A stand-in for i18next. It returns the en copy for the handful of keys this test
+// reaches, so the assertions read as the sentence a screen reader would speak, not a key.
 const t = ((key: string, opts?: { title?: string }) => {
   const copy: Record<string, string> = {
     back: 'Back',
@@ -73,7 +73,7 @@ describe('stripLabel', () => {
   })
 
   it('never returns an empty name', () => {
-    // Whatever the caches hold, a strip is a button; a button with no accessible name is
+    // Whatever the caches hold, a strip is a button. A button with no accessible name is
     // a worse outcome than a vague one.
     const entries: (StackEntry | undefined)[] = [
       undefined,

@@ -7,11 +7,12 @@ import { SortMenu } from './SortMenu'
 export default { title: 'Molecules' } satisfies StoryDefault
 
 /**
- * SortMenu — the results-list sort selector. The trigger shows `Sort: <current>`; open
- * it to pick Recommended / Closest / Soonest (a checkmark marks the active one). The
- * selection persists in `?sort=` on the story's in-memory router, so the trigger label
- * updates as you choose. Built on Radix DropdownMenu (RadioGroup + ItemIndicator), so
- * the panel portals to the theme root — open it to inspect.
+ * SortMenu — the results-list sort selector. The trigger shows `Sort:
+ * <current>`. Open it to pick Recommended, Closest, or Soonest, with a
+ * checkmark on the active one. The selection persists in `?sort=` on the
+ * story's in-memory router, so the trigger label updates as you choose. It
+ * is built on Radix DropdownMenu (RadioGroup and ItemIndicator), so the
+ * panel portals to the theme root. Open it to inspect.
  */
 export const Default: Story = () => (
   <StoryWrapper>

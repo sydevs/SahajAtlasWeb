@@ -2,21 +2,23 @@ import { type ReactNode, forwardRef, useState } from 'react'
 import clsx from 'clsx'
 import { tv } from 'tailwind-variants'
 
-// A vertical radio list rendered as selectable cards, controlled via
-// value/onChange (pair with react-hook-form's Controller). Options past
-// `collapseAfter` hide behind a reveal link so a long list doesn't flood a form.
-// Native `<input type="radio">` (not a Radix primitive) so every option is visible
-// at a glance — the common case is picking the first. Domain formatting (dates,
-// counts, …) stays in the caller: `label` is any node.
+// A vertical radio list, rendered as selectable cards. It is controlled
+// through `value` and `onChange` (pair it with react-hook-form's
+// Controller). Options past `collapseAfter` hide behind a reveal link, so a
+// long list does not flood a form. It uses a native `<input type="radio">`,
+// not a Radix primitive, so every option is visible at a glance, since the
+// common case is picking the first. Domain formatting, such as dates and
+// counts, stays in the caller: `label` accepts any node.
 export type RadioOption = {
   value: string
   label: ReactNode
 }
 
-// The selected option fills with the primary solid — reading like a selected
-// ToggleGroup item — rather than a faint tint, so the choice is unmistakable.
-// `highlight` primary-tints the UNSELECTED cards (a colour change only — no wrapper,
-// no size change) so an active field stands out without shifting the layout.
+// The selected option fills with the primary solid, reading like a selected
+// ToggleGroup item, instead of a faint tint. This makes the choice
+// unmistakable. `highlight` primary-tints the UNSELECTED cards. This changes
+// colour only, with no wrapper and no size change, so an active field
+// stands out without shifting the layout.
 const radioOption = tv({
   base: 'flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors',
   variants: {
@@ -25,9 +27,11 @@ const radioOption = tv({
       false: 'border-gray-7 text-foreground hover:bg-gray-2',
     },
     highlight: { true: '' },
-    // Recolour to danger — the unselected cards get a danger border, the SELECTED card swaps
-    // its primary fill for the danger solid (colour change only, no layout shift). The group
-    // also sets `aria-invalid`. Listed after `highlight` so an error wins the colours.
+    // This recolours to danger. The unselected cards get a danger border.
+    // The SELECTED card swaps its primary fill for the danger solid. This
+    // changes colour only, with no layout shift. The group also sets
+    // `aria-invalid`. It is listed after `highlight`, so an error wins the
+    // colours.
     isInvalid: { true: '' },
   },
   compoundVariants: [
@@ -50,18 +54,18 @@ const radioOption = tv({
 })
 
 export type RadioGroupProps = {
-  /** The radio inputs' shared `name` — one checked value per group. */
+  /** The radio inputs' shared `name`. Each group has one checked value. */
   name: string
   options: RadioOption[]
   value?: string
   onChange: (value: string) => void
   onBlur?: () => void
   'aria-label'?: string
-  /** Id of the group's error/description text, forwarded for screen readers. */
+  /** Id of the group's error or description text. It is forwarded for screen readers. */
   'aria-describedby'?: string
-  /** Danger-border the group + set `aria-invalid` to flag a validation error. */
+  /** Danger-border the group and set `aria-invalid` to flag a validation error. */
   isInvalid?: boolean
-  /** Primary-tint the group to flag it as an active/used field (mirrors the other atoms). */
+  /** Primary-tint the group to flag it as an active field. This mirrors the other atoms. */
   highlight?: boolean
   /** Show only the first N options, revealing the rest behind `moreLabel`. */
   collapseAfter?: number
@@ -71,18 +75,20 @@ export type RadioGroupProps = {
 }
 
 /**
- * The ref lands on the FIRST radio, so react-hook-form's `shouldFocusError` can reach
- * this group when a submit fails (issue #102).
+ * The ref lands on the FIRST radio, so react-hook-form's `shouldFocusError`
+ * can reach this group when a submit fails (issue #102).
  *
- * A `Controller`-driven group that swallows the ref is invisible to that: RHF stores
- * whatever `field.ref` was given, finds `undefined`, and skips the field in silence —
- * so a submit with nothing chosen moves focus nowhere and says nothing, which reads as
- * the submit button being broken. Same reason `Input`, `Textarea`, `Button` and `Link`
- * all forward theirs.
+ * A `Controller`-driven group that swallows the ref stays invisible to that
+ * mechanism. RHF stores whatever `field.ref` was given, finds `undefined`,
+ * and skips the field in silence. So a submit with nothing chosen moves
+ * focus nowhere and says nothing, which reads as a broken submit button.
+ * `Input`, `Textarea`, `Button`, and `Link` all forward theirs for the same
+ * reason.
  *
- * The first radio rather than the checked one, because `collapseAfter` may mean the
- * checked option isn't rendered; and a radio group is a single tab stop, so entering it
- * at the top is where a keyboard user expects to arrive anyway.
+ * This uses the first radio, not the checked one. `collapseAfter` may mean
+ * the checked option is not rendered. A radio group is also a single tab
+ * stop, so entering it at the top is where a keyboard user expects to
+ * arrive anyway.
  */
 export const RadioGroup = forwardRef<HTMLInputElement, RadioGroupProps>(function RadioGroup(
   {

@@ -11,8 +11,9 @@ export default {
   title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
-// Region-like options: a primary label + a breadcrumb `hint`. Both are searchable, so typing
-// "Alberta" finds Calgary — the reason this is a combobox and not a plain Select.
+// Region-like options: a primary label and a breadcrumb `hint`. Both are
+// searchable, so typing "Alberta" finds Calgary. That is why this uses a
+// combobox, not a plain Select.
 const options: ComboboxOption[] = [
   { value: 'calgary', label: 'Calgary', hint: 'Canada · Alberta' },
   { value: 'edmonton', label: 'Edmonton', hint: 'Canada · Alberta' },
@@ -22,9 +23,10 @@ const options: ComboboxOption[] = [
 ]
 
 /**
- * Combobox — search-in-the-field single-select (Radix Popover + cmdk). The search happens in
- * the input itself and selection on click; once chosen, the trigger shows just the short label
- * (the breadcrumb hint stays in the list). Used by the region filter.
+ * Combobox — a search-in-the-field single-select, on Radix Popover and cmdk. The
+ * search happens in the input itself. Selection happens on click. Once chosen,
+ * the trigger shows only the short label. The breadcrumb hint stays in the list.
+ * The region filter uses this component.
  */
 export const Default: Story = () => {
   const [value, setValue] = useState<string | undefined>('calgary')

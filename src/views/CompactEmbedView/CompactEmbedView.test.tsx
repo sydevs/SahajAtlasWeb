@@ -5,12 +5,12 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { CompactEmbedView } from './CompactEmbedView'
 
-// Node-only SSR assertions (`docs/testing.md`). What matters here is what a visitor
-// reads off it: the one control has to name the TASK rather than the product, both because that
-// is the accessible name and because the atlas has to read as the host's own events feature.
+// Node-only SSR assertions (`docs/testing.md`). What matters here is what a visitor reads off
+// it. The one control must name the TASK, not the product. That is because it is the
+// accessible name, and because the atlas has to read as the host's own events feature.
 //
-// `t` resolves through the real `en/common.json` rather than echoing keys back, so these are
-// about the copy that actually ships — and a key deleted from the bundle fails here instead of
+// `t` resolves through the real `en/common.json`, rather than echoing keys back, so these are
+// about the copy that actually ships. A key deleted from the bundle fails here, instead of
 // rendering as its own dotted name on somebody's page.
 const en = JSON.parse(readFileSync('public/locales/en/common.json', 'utf8'))
 const copy = (key: string): string =>
@@ -52,9 +52,10 @@ describe('CompactEmbedView', () => {
   })
 
   it('renders an anchor to the fallback for a framed embed', () => {
-    // An anchor rather than a button that calls `window.open`: middle-click, "open in new tab"
-    // and a visible target all come free, and it inherits the `Button` atom's `isSafeHref` gate
-    // rather than adding a fourth JSX anchor to the inventory `href.test.ts` pins.
+    // This uses an anchor, rather than a button that calls `window.open`. Middle-click, "open
+    // in new tab", and a visible target all come free. It also inherits the `Button` atom's
+    // `isSafeHref` gate, rather than adding a fourth JSX anchor to the inventory `href.test.ts`
+    // pins.
     const html = renderToStaticMarkup(<CompactEmbedView compact={link}>{null}</CompactEmbedView>)
 
     expect(html).toContain('href="https://wemeditate.com/map"')
@@ -63,9 +64,10 @@ describe('CompactEmbedView', () => {
   })
 
   it('previews no events, and so reads nothing', () => {
-    // Rows cost a feed read, a titles read and a third-party IP lookup on every page view of a
-    // sidebar embed nobody scrolls to, and were sized by a per-row pixel estimate that a wrapped
-    // title or a larger default font made wrong. Asserted as ABSENCE so they cannot creep back.
+    // Rows cost a feed read, a titles read, and a third-party IP lookup on every page view of a
+    // sidebar embed nobody scrolls to. They were also sized by a per-row pixel estimate that a
+    // wrapped title or a larger default font made wrong. This is asserted as ABSENCE, so they
+    // cannot creep back.
     const html = renderToStaticMarkup(<CompactEmbedView compact={overlay}>{null}</CompactEmbedView>)
 
     expect(html).not.toContain('<ul')
@@ -74,14 +76,14 @@ describe('CompactEmbedView', () => {
 
   it('never stretches to fill the slot', () => {
     // It takes the height its content needs, in the host's own flow, whatever box they gave.
-    // Filling is wrong in both directions: against an element with no height `h-full` resolves
-    // to nothing and the view collapses to invisible; against a tall one it stretches a two-line
-    // card down 600px of empty background.
+    // Filling is wrong in both directions. Against an element with no height, `h-full` resolves
+    // to nothing and the view collapses to invisible. Against a tall one, it stretches a
+    // two-line card down 600px of empty background.
     //
-    // Asserted on class TOKENS, not with `toContain`. An earlier version joined the list with a
-    // template literal, prettier-plugin-tailwindcss ate the leading space, and it shipped as
-    // `text-foregroundh-full` — a class present in the DOM matching no rule, with every gate
-    // green. A substring assertion passes on that string.
+    // This asserts on class TOKENS, not with `toContain`. An earlier version joined the list
+    // with a template literal. prettier-plugin-tailwindcss ate the leading space, and it
+    // shipped as `text-foregroundh-full` — a class present in the DOM matching no rule, with
+    // every gate green. A substring assertion passes on that string.
     const classes = (
       renderToStaticMarkup(<CompactEmbedView compact={overlay}>{null}</CompactEmbedView>).match(
         /class="([^"]*)"/,

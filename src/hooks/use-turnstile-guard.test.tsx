@@ -11,13 +11,13 @@ import { useTurnstileGuard } from './use-turnstile-guard'
 import { classifyError } from '@/lib/report'
 
 /**
- * The eager Turnstile check fails the widget rather than degrading (issue #182).
+ * The eager Turnstile check fails the widget instead of degrading. See issue #182.
  *
- * **jsdom, because the property is a re-render that SSR cannot express.** The verdict arrives
- * from a promise *after* the first paint — that is the whole design, since nothing blocks on
- * it — so `renderToStaticMarkup`, which runs no effects and never re-renders, would assert the
- * healthy first frame and call it a pass no matter what the probe returned. A spec written that
- * way covers the initial render, not the guard.
+ * **This uses jsdom, because the property under test is a re-render that SSR cannot express.**
+ * The verdict arrives from a promise AFTER the first paint. That is the whole design, since nothing blocks on it.
+ * `renderToStaticMarkup` runs no effects and never re-renders.
+ * So it would assert the healthy first frame and call it a pass, no matter what the probe returned.
+ * A spec written that way covers the initial render, not the guard.
  */
 
 const { probeTurnstile } = vi.hoisted(() => ({ probeTurnstile: vi.fn() }))
@@ -25,8 +25,8 @@ const { probeTurnstile } = vi.hoisted(() => ({ probeTurnstile: vi.fn() }))
 vi.mock('@/hooks/use-turnstile', () => ({ probeTurnstile }))
 
 let cleanup: (() => void) | null = null
-// The guard writes the CSP directive to the console on its way out; silenced so a deliberate
-// failure case doesn't print a wall of advice during a green run.
+// The guard writes the CSP directive to the console on its way out.
+// This silences that, so a deliberate failure case does not print a wall of advice during a green run.
 let warn: MockInstance<typeof console.warn>
 
 beforeEach(() => {
@@ -49,7 +49,7 @@ function Guarded() {
   return <p>{GUARDED}</p>
 }
 
-/** Whatever reached the boundary, so a case can assert the KIND and not just that it threw. */
+/** This holds whatever reached the boundary, so a case can assert the KIND, not only that it threw. */
 let caught: unknown
 
 function Boundary({ children }: { children: ReactNode }) {
@@ -103,9 +103,9 @@ describe('useTurnstileGuard', () => {
     await mount()
 
     expect(document.body.textContent).not.toContain(GUARDED)
-    // The KIND, not merely that something threw: it is what picks the sentence and — the
-    // load-bearing half — what withholds the report CTA that would open a second form the
-    // same failure has already disabled.
+    // This checks the KIND, not merely that something threw.
+    // The kind picks the sentence.
+    // More importantly, it withholds the report CTA that would open a second form the same failure has already disabled.
     expect(classifyError(caught)).toBe('captcha-blocked')
   })
 
@@ -116,17 +116,17 @@ describe('useTurnstileGuard', () => {
 
     const advice = warn.mock.calls.map((args) => String(args[0])).join('\n')
 
-    // The directive is the only part of this addressed to somebody who can act on it, and
-    // it must survive the throw that unmounts the tree — hence the ordering in the hook.
+    // The directive is the only part of this addressed to somebody who can act on it.
+    // It must survive the throw that unmounts the tree. That is why the hook orders its steps this way.
     expect(advice).toContain('challenges.cloudflare.com')
     expect(advice).toContain('docs/embedding.md')
   })
 
   it('does not block the first paint on the probe', async () => {
-    // A promise that never settles — the slow-network case. The interface must already be
-    // on screen: the ticket's decision is "load eagerly, but asynchronously", and a guard
-    // that suspended or held children back would tax every healthy embed for the rare
-    // broken one.
+    // This is a promise that never settles, the slow-network case.
+    // The interface must already be on screen.
+    // The ticket's decision is "load eagerly, but asynchronously."
+    // A guard that suspended or held children back would tax every healthy embed for the rare broken one.
     probeTurnstile.mockReturnValue(new Promise(() => {}))
 
     await mount()

@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { composeCalendarLine } from './use-event-display'
 
-// The shared calendar-line composition used by both the list card (EventFacts
-// compact) and the map-pin hover popover (#72). Pure string logic — the i18n /
-// locale resolution that produces the inputs is exercised through the hook in the
-// browser; here we pin the join rules so the two surfaces can never drift.
+// This is the shared calendar-line composition, used by both the list card, EventFacts compact, and the map-pin hover popover. See #72.
+// This is pure string logic.
+// The i18n and locale resolution that produces the inputs is exercised through the hook in the browser.
+// Here, this pins the join rules, so the two surfaces can never drift.
 describe('composeCalendarLine', () => {
   it('leads with the recurrence pattern and appends the time', () => {
     expect(

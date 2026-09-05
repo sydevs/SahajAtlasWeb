@@ -40,9 +40,9 @@ describe('mountParts', () => {
    * The one carve-out, and the direction that makes it a carve-out rather than a hole (#153).
    *
    * WordPress default permalinks make every page `/?p=<id>`, so discarding the query collapses a
-   * whole site onto one mount and the page an operator needs to name as canonical cannot be named
-   * at all. A post id is not seeker input; everything else still is, so a permalink with anything
-   * appended is refused whole rather than trimmed back to its first parameter.
+   * whole site onto one mount, and the page an operator needs to name as canonical cannot be named
+   * at all. A post id is not seeker input. Everything else still is, so a permalink with anything
+   * appended is refused whole, instead of trimmed back to its first parameter.
    */
   describe('the WordPress permalink carve-out', () => {
     it.each([

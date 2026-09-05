@@ -2,10 +2,10 @@
  * Minimal Lexical → HTML / plain-text serializer for event descriptions.
  *
  * SahajCloud's event `description` richText editor enables only italic, H3, and
- * links, so we render just those (plus paragraphs and line breaks) rather than
+ * links, so this renders just those (plus paragraphs and line breaks), instead of
  * pulling the full `@payloadcms/richtext-lexical` HTML converter into this public
  * widget bundle. `lexicalToHtml` output is sanitized through DOMPurify at the
- * render site (`EventPanel`); `lexicalToText` feeds plain-text meta/OG tags.
+ * render site (`EventPanel`). `lexicalToText` feeds plain-text meta/OG tags.
  */
 
 // Lexical text-format bitmask — only the flags the editor can produce.
@@ -91,7 +91,7 @@ const collectText = (node: LexicalNode): string => {
   if (node.type === 'text') return node.text ?? ''
   const inner = (node.children ?? []).map(collectText).join('')
 
-  // Block-level nodes get a trailing newline so they don't run together.
+  // Block-level nodes get a trailing newline so they do not run together.
   return ['paragraph', 'heading', 'listitem'].includes(node.type ?? '') ? `${inner}\n` : inner
 }
 

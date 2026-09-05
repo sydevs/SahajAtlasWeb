@@ -10,7 +10,7 @@ export default {
   title: 'Atoms / Inputs',
 } satisfies StoryDefault
 
-/** Input — a native text input on the shared field chrome (the registration form + date bounds). */
+/** Input — a native text input on the shared field chrome (the registration form and date bounds). */
 export const Default: Story = () => {
   const [value, setValue] = useState('')
 

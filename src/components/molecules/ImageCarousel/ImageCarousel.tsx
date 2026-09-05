@@ -18,9 +18,10 @@ export type Slide = {
   caption?: string
 }
 
-// The lightbox wraps yet-another-react-lightbox and its CSS, so it is imported
-// lazily (its own chunk) — never statically — keeping YARL out of the initial
-// bundle until a photo is opened. Render it inside a <Suspense> boundary.
+// The lightbox wraps yet-another-react-lightbox and its CSS. So it is
+// imported lazily, in its own chunk, never statically. This keeps YARL
+// out of the initial bundle until a photo is opened. Render it inside a
+// <Suspense> boundary.
 const Lightbox = lazy(() => import('./lightbox').then((m) => ({ default: m.Lightbox })))
 
 const AUTOPLAY_DELAY_MS = 4000
@@ -37,30 +38,31 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
   const [paused, setPaused] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
 
-  // Swiper's loop mode clones slides to fake infinite scrolling and needs more
-  // than one slide to do it — with a single image it warns and renders a blank
-  // track. Autoplay/pagination are equally pointless there, so a lone image is
-  // shown as a plain, static slide.
+  // Swiper's loop mode clones slides to fake infinite scrolling, and needs
+  // more than one slide to do it. With a single image, it warns and
+  // renders a blank track. Autoplay and pagination are equally pointless
+  // there. So a lone image shows as a plain, static slide.
   const carousel = slides.length > 1
 
-  // Whether this carousel moves on its own AT ALL, versus whether it is moving
-  // right now. Under `prefers-reduced-motion: reduce` it never does, so there is
-  // nothing to pause and the control doesn't render — the images stay reachable
-  // by swipe and by the pagination bullets, which is the whole carousel minus
-  // the unrequested motion.
+  // Whether this carousel moves on its own AT ALL, versus whether it is
+  // moving right now. Under `prefers-reduced-motion: reduce`, it never
+  // does. So there is nothing to pause, and the control does not render.
+  // The images stay reachable by swipe and by the pagination bullets,
+  // which is the whole carousel minus the unrequested motion.
   const autoplays = carousel && !reducedMotion
   const playing = autoplays && !paused
 
-  // Swiper's React wrapper merges changed params into the live instance but
-  // never starts or stops autoplay for you (`updateSwiper`), so the declarative
-  // config below only decides whether autoplay starts AT INIT — every later
-  // change is ours to apply.
+  // Swiper's React wrapper merges changed params into the live instance,
+  // but never starts or stops autoplay on its own (`updateSwiper`). So the
+  // declarative config below only decides whether autoplay starts AT
+  // INIT. Every later change is this code's to apply.
   //
-  // `running` is the right field to compare against: a transient interaction
-  // pause sets `paused`, not `running`, so this effect never mistakes one for a
-  // stop. Comparing at all is what stops a re-render from restarting the 4s
-  // countdown and re-emitting `autoplayStart` — `start()` has no re-entry guard
-  // of its own. (It would not leak a timer; `run()` clears the previous one.)
+  // `running` is the right field to compare against. A transient
+  // interaction pause sets `paused`, not `running`. So this effect never
+  // mistakes one for a stop. Comparing at all is what stops a re-render
+  // from restarting the 4s countdown and re-emitting `autoplayStart`.
+  // `start()` has no re-entry guard of its own. (It would not leak a
+  // timer. `run()` clears the previous one.)
   useEffect(() => {
     if (!swiper || swiper.destroyed) return
 
@@ -79,18 +81,19 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
 
   return (
     <>
-      {/* `relative` so the pause control can sit over the image. It wraps the
-          Swiper rather than riding inside it (Swiper's `container-end` slot) so
-          the button's stacking and position are ours, not the library's. */}
+      {/* `relative`, so the pause control can sit over the image. It wraps
+          the Swiper, instead of riding inside it (Swiper's `container-end`
+          slot), so the button's stacking and position stay ours, not the
+          library's. */}
       <div className="relative w-full">
         <Swiper
           autoplay={autoplays && { delay: AUTOPLAY_DELAY_MS, disableOnInteraction: false }}
           // `w-full`: the carousel is mounted inside a flex row, where an
-          // unsized Swiper root collapses to its content — which, since Swiper
-          // sizes the slides FROM the root, meant a 48px-wide track (just the
-          // slide padding) and an invisible image.
+          // unsized Swiper root collapses to its content. Since Swiper
+          // sizes the slides FROM the root, that meant a 48px-wide track,
+          // just the slide padding, and an invisible image.
           //
-          // `sy-carousel` is what our pagination theming keys on (globals.css).
+          // `sy-carousel` is what this app's pagination theming keys on (globals.css).
           className="sy-carousel w-full"
           enabled={carousel}
           grabCursor={carousel}
@@ -101,10 +104,11 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
           onSwiper={setSwiper}
         >
           {slides.map((slide, index) => (
-            // No bottom padding: the bullets sit OVER the image (see globals.css), so
-            // the slide is the image and nothing else. Reserving a band below it just
-            // put dead space under the last thing in a view — and sizing that band to
-            // the bullets left them butted against the image's edge instead.
+            // No bottom padding: the bullets sit OVER the image (see
+            // globals.css), so the slide is the image and nothing else.
+            // Reserving a band below it just put dead space under the last
+            // thing in a view. Sizing that band to the bullets instead left
+            // them butted against the image's edge.
             <SwiperSlide key={slide.src}>
               <button
                 aria-label={slide.alt ?? t('details.view_photo')}
@@ -122,25 +126,27 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
           ))}
         </Swiper>
 
-        {/* WCAG 2.2.2 (Pause, Stop, Hide): anything that moves for more than five
-            seconds needs a way to stop it. A toggle button, so the accessible
-            name stays put and `aria-pressed` carries the state — a name that
-            flipped between "Pause"/"Play" alongside `aria-pressed` would announce
-            the state twice, and disagree with itself while doing so.
+        {/* WCAG 2.2.2 (Pause, Stop, Hide): anything that moves for more than
+            five seconds needs a way to stop it. This uses a toggle button, so
+            the accessible name stays put and `aria-pressed` carries the
+            state. A name that flipped between "Pause" and "Play" alongside
+            `aria-pressed` would announce the state twice, and disagree with
+            itself while doing so.
 
-            A plain button rather than the Button atom: every colour the atom
-            offers is a theme token, and this sits on top of an arbitrary photo,
-            where only a self-supplied backdrop makes the contrast predictable.
-            It is the same reasoning (and the same white) as the pagination
-            bullets it sits beside.
+            This uses a plain button, not the Button atom. Every colour the
+            atom offers is a theme token, and this sits on top of an
+            arbitrary photo, where only a self-supplied backdrop makes the
+            contrast predictable. It uses the same reasoning, and the same
+            white, as the pagination bullets it sits beside.
 
-            `data-vaul-no-drag` is the part that does NOT come for free with that
-            choice. The carousel renders inside the drawer (EventDetails), and
-            vaul reads a tap carrying any micro-movement as a drag and swallows
-            the click — so without it the one control this exists to add would
-            fire only intermittently on touch, which is where it matters most.
-            The Button atom sets it on every button; ActionRow carries it by hand
-            for exactly this reason. */}
+            `data-vaul-no-drag` is the part that does NOT come for free with
+            that choice. The carousel renders inside the drawer
+            (EventDetails), and vaul reads a tap carrying any micro-movement
+            as a drag, and swallows the click. So without it, the one
+            control this exists to add would fire only intermittently on
+            touch, which is where it matters most. The Button atom sets it
+            on every button. ActionRow carries it by hand for exactly this
+            reason. */}
         {autoplays && (
           <button
             data-vaul-no-drag
@@ -155,8 +161,9 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         )}
       </div>
 
-      {/* Mounted only once a photo is tapped, so the lazy YARL chunk (library +
-          CSS) is fetched on first open rather than with the carousel. */}
+      {/* This mounts only once a photo is tapped, so the lazy YARL chunk
+          (library and CSS) fetches on first open, instead of with the
+          carousel. */}
       {open && (
         <Suspense fallback={null}>
           <Lightbox isOpen index={activeIndex} slides={slides} onClose={() => setOpen(false)} />

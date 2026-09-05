@@ -14,10 +14,11 @@ import { mockErrorKinds, mockErrors, sdkError } from '@/mocks/errors'
 // which is exactly the case the guards in `report.ts` exist for.
 const browser = { pageUrl: 'https://host.example/classes', userAgent: 'TestAgent/1.0' }
 
-// This file covers the seam's console half. Pin the DSN empty so it stays that way: with
-// one set in the environment, `reportInternalError` would reach the REAL `@sentry/browser`
-// (unmocked here — the Sentry cases live in `report.sentry.test.ts`) and these specs would
-// quietly start exercising a network client. See `docs/environment.md`.
+// This file covers the seam's console half. This pins the DSN empty so it
+// stays that way. With one set in the environment, `reportInternalError`
+// would reach the real `@sentry/browser` (unmocked here: the Sentry cases
+// live in `report.sentry.test.ts`), and these specs would quietly start
+// exercising a network client. See `docs/environment.md`.
 beforeEach(() => vi.stubEnv('VITE_SENTRY_DSN', ''))
 
 afterEach(() => {
@@ -27,8 +28,9 @@ afterEach(() => {
 
 describe('buildReportContext', () => {
   it('captures the host page as origin + path, never its query or fragment', () => {
-    // We're embedded on sites we don't control and a report is emailed onward, so a
-    // host's own `?reset_token=` / `#access_token=` must never ride along.
+    // This widget is embedded on sites we do not control, and a report is
+    // emailed onward, so a host's own `?reset_token=` / `#access_token=`
+    // must never ride along.
     vi.stubGlobal('window', {
       location: { href: 'https://host.example/members?reset_token=abc123#access_token=xyz' },
     })
@@ -93,8 +95,9 @@ describe('buildReportContext', () => {
     expect(context.path).toBe('/')
     // There is no `window` in the node lane, so the host URL falls back to empty.
     expect(context.pageUrl).toBe('')
-    // `navigator` IS defined in node 18+ (as "Node.js/<major>"), so assert the type
-    // rather than a value that would differ between the browser and the runner.
+    // `navigator` is defined in node 18+ (as "Node.js/<major>"), so this
+    // asserts the type, instead of a value that would differ between the
+    // browser and the runner.
     expect(typeof context.userAgent).toBe('string')
   })
 })
@@ -160,20 +163,20 @@ describe('classifyError', () => {
   })
 
   it('trusts a status over navigator.onLine — a status proves a server answered', () => {
-    // The browser can report the machine offline the instant after a response lands;
-    // the response is the stronger evidence, and "you appear to be offline" would be
-    // the wrong sentence for a 404.
+    // The browser can report the machine offline the instant after a
+    // response lands. The response is the stronger evidence, and "you
+    // appear to be offline" would be the wrong sentence for a 404.
     vi.stubGlobal('navigator', { onLine: false })
 
     expect(classifyError(sdkError(404))).toBe('not-found')
   })
 
   it('classifies a zod parse failure as unknown, not as its own kind', () => {
-    // Schema drift used to be `contract`, a kind of its own that withheld the retry.
-    // It named a CAUSE the viewer can do nothing with, so it collapsed into the
-    // catch-all — which means the ZodError shape must fall all the way through rather
-    // than matching some other branch on its way (it carries `name` and `issues`, and
-    // both were once read here).
+    // Schema drift used to be `contract`, a kind of its own that withheld
+    // the retry. It named a cause the viewer can do nothing with, so it
+    // collapsed into the catch-all. This means the ZodError shape must fall
+    // all the way through, instead of matching some other branch on its way
+    // (it carries `name` and `issues`, and both were once read here).
     expect(classifyError(mockErrors.unknown)).toBe('unknown')
   })
 
@@ -193,8 +196,8 @@ describe('classifyError', () => {
   })
 
   it('ignores a `kind` that is not one of ours', () => {
-    // The widget runs inside host pages; a third-party rejection carrying its own
-    // `kind` field must not be able to pick our copy or our buttons.
+    // The widget runs inside host pages. A third-party rejection carrying
+    // its own `kind` field must not be able to pick our copy or our buttons.
     expect(classifyError(Object.assign(new Error('boom'), { kind: 'catastrophic' }))).toBe(
       'unknown',
     )
@@ -217,11 +220,12 @@ describe('classifyError', () => {
   })
 
   it('blames the server, not the viewer, for an ambiguous network failure', () => {
-    // `fetch` rejects identically for a dropped connection, a DNS failure, SahajCloud
-    // being down, a rejected CORS preflight, and a host page whose CSP omits
-    // `connect-src`. Calling those "offline" both blames the wrong party and — since
-    // `offline` suppresses the report CTA — leaves no way to tell us about the ones
-    // that are ours or the host's. `server` keeps both the retry and the report.
+    // `fetch` rejects identically for a dropped connection, a DNS failure,
+    // SahajCloud being down, a rejected CORS preflight, and a host page
+    // whose CSP omits `connect-src`. Calling those "offline" blames the
+    // wrong party. It also suppresses the report CTA, leaving no way to
+    // tell us about the ones that are ours or the host's. `server` keeps
+    // both the retry and the report.
     vi.stubGlobal('navigator', { onLine: true })
 
     expect(classifyError(new TypeError('Failed to fetch'))).toBe('server')
@@ -284,9 +288,10 @@ describe('classifyError', () => {
   })
 
   it.each(mockErrorKinds)('classifies the %s story fixture as %s', (kind) => {
-    // The Ladle stories enumerate `mockErrors` and claim each entry demonstrates its own
-    // kind. Assert that here, so a fixture can't quietly start previewing the wrong
-    // policy — and so the stories stay honest without a browser.
+    // The Ladle stories enumerate `mockErrors` and claim each entry
+    // demonstrates its own kind. This asserts that here, so a fixture
+    // cannot quietly start previewing the wrong policy, and so the stories
+    // stay honest without a browser.
     expect(classifyError(mockErrors[kind])).toBe(kind)
   })
 })

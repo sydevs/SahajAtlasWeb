@@ -27,10 +27,10 @@ import {
 } from '@/views/shared'
 
 /**
- * Whether this route's chrome leads with the geocoder rather than a title — the root and
+ * Whether this route's chrome leads with the geocoder, rather than a title — the root and
  * the search view, which get the header their own view would render.
  *
- * Read by BOTH the chrome (to render the field) and the body (to suppress its own): a
+ * Both the chrome, to render the field, and the body, to suppress its own, read this. A
  * `not-found` at `/` or `/search` is a DEAD_END row, which asks for a geocoder, so
  * without this check the screen would draw two. `docs/rules/i18n-and-state.md` states
  * the invariant — "`visibleActions` narrows by surface … a geocoder already in the
@@ -38,9 +38,9 @@ import {
  */
 const leadsWithGeocoder = (
   entry: StackEntry | undefined,
-  // A type predicate, not a plain boolean: the chrome early-returns on it, and the
-  // code after that return reads `entry.slug`/`entry.id` — so it has to narrow away
-  // `undefined` and the search variant exactly as the inline check it replaced did.
+  // This is a type predicate, not a plain boolean. The chrome early-returns on it, and the
+  // code after that return reads `entry.slug`/`entry.id`. So it must narrow away `undefined`
+  // and the search variant, exactly as the inline check it replaced did.
 ): entry is undefined | Extract<StackEntry, { kind: 'search' }> => !entry || entry.kind === 'search'
 
 // What a DRAWER adds around the shared fallback body — the chrome that survives when
@@ -50,7 +50,7 @@ const leadsWithGeocoder = (
 //
 // The governing rule, which every component here obeys: THE FALLBACK MUST NEVER
 // THROW. It runs where a throw would escape to the app-level boundary and blank the
-// whole widget inside someone else's page, so it is built in layers, and a failure in
+// whole widget inside someone else's page. So it is built in layers, and a failure in
 // an outer one costs only that layer:
 //
 //   0 — the frame (`DrawerChrome`): a header plus a working close control, rebuilt
@@ -95,19 +95,19 @@ function SearchFieldSkeleton() {
  * along with the content. That left an error state with no way out of the drawer at
  * all (issue #89), and a load with nothing on screen to say which thing was opening.
  *
- * Deriving the title from the URL plus already-cached data — rather than from the
- * query that is failing or pending — is what makes this worth rendering instead of
+ * Deriving the title from the URL plus already-cached data, rather than from the
+ * query that is failing or pending, is what makes this worth rendering instead of
  * "Loading…".
  *
- * It cannot THROW: every lookup is a non-suspending cache read that degrades to
- * `undefined`, its own `t()` calls carry a `defaultValue`, and an unrecognised route
+ * It cannot THROW. Every lookup is a non-suspending cache read that degrades to
+ * `undefined`. Its own `t()` calls carry a `defaultValue`. An unrecognised route
  * simply omits the title — a header with only a close control still beats no header.
  *
- * It can still SUSPEND, in one case, and that is deliberate, rather than overlooked:
+ * It can still SUSPEND, in one case, and that is deliberate, not overlooked.
  * `useLocale()` reads i18next through a plain `useTranslation()`, so switching
  * language while this is on screen suspends here as it does everywhere else in the
- * app. The controls this renders all pass `useSuspense: false`, so they do not add a
- * second way to do it, but making the locale read non-suspending is an app-wide
+ * app. The controls this renders all pass `useSuspense: false`, so they add no
+ * second way to do it — but making the locale read non-suspending is an app-wide
  * decision, not this component's.
  */
 export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
@@ -117,12 +117,11 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
   const { hasMap } = useWidgetMode()
   const location = useLocation()
   const { canDismiss } = useDrawerControl()
-  // Cache-only (`enabled: false`), not merely non-suspending: this renders on EVERY
-  // loading and error state, so a fetch here would re-issue a read on exactly the
-  // failures where the backend is already the problem. A miss costs the title,
-  // never the frame. Both go through the shared factories, so the keys cannot drift
-  // from the ones the loaders write — a cache-only read under a divergent key does
-  // not error, it silently misses.
+  // This is cache-only (`enabled: false`), not merely non-suspending. It renders on EVERY
+  // loading and error state, so a fetch here would re-issue a read on exactly the failures
+  // where the backend is already the problem. A miss costs the title, never the frame. Both go
+  // through the shared factories, so the keys cannot drift from the ones the loaders write. A
+  // cache-only read under a divergent key does not error. It silently misses.
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
@@ -181,18 +180,19 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
     return (
       <>
         <DrawerHeader>
-          {/* A LOADING chrome gets the field's shape, not a working field. `SearchField`
-              mounts a Mapbox Geocoder — a shadow-DOM custom element bound to the live map —
-              and this fallback is freshly mounted per path inside DrawerStack's keyed
-              motion.div, so on a cold start it would instantiate one while the map is still
-              initialising and tear it down again the moment CountriesView mounts its own.
-              An ERROR chrome keeps the real field: there it is the escape hatch.
+          {/* A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts
+              a Mapbox Geocoder — a shadow-DOM custom element bound to the live map. This
+              fallback is freshly mounted per path inside DrawerStack's keyed motion.div, so on
+              a cold start it would instantiate one while the map is still initialising, then
+              tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
+              the real field. There it is the escape hatch.
 
-              `syncToUrl={false}` for the same reason the BODY's field sets it: the only
-              interactive case here is the error chrome, whose URL is the dead one we just
-              reported — and embedded, that URL lives in the host page's `#!` fragment, so
-              writing keystrokes into it spreads a broken link into anything the visitor
-              copies. Selecting a place still navigates. Only the `?q` echo is dropped. */}
+              `syncToUrl={false}` for the same reason the BODY's field sets it. The only
+              interactive case here is the error chrome, whose URL is the dead one this
+              boundary just reported. Embedded, that URL lives in the host page's `#!`
+              fragment, so writing keystrokes into it spreads a broken link into anything the
+              visitor copies. Selecting a place still navigates. Only the `?q` echo is
+              dropped. */}
           {interactive ? <SearchField syncToUrl={false} /> : <SearchFieldSkeleton />}
           {dismiss}
         </DrawerHeader>
@@ -341,16 +341,15 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
       // they cannot disagree about which routes those are.
       hasSearchChrome={leadsWithGeocoder(entry)}
       kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
-      // The thrown developer string is not the headline — it is untranslated text
-      // written for us, rendered to a viewer inside someone else's page. It
-      // survives as report context only (issue #89). `FallbackPanel` defaults to
-      // the sentence.
+      // The thrown developer string is not the headline. It is untranslated text written for
+      // a developer, rendered to a viewer inside someone else's page. It survives as report
+      // context only (issue #89). `FallbackPanel` defaults to the sentence.
       reportContext={errorMessage(error) ?? undefined}
       resetErrorBoundary={resetErrorBoundary}
     >
-      {/* `syncToUrl={false}`: this URL is the dead one we've just reported, and embedded
-          it lives in the host page's `#!` fragment — writing keystrokes into it spreads
-          a broken link into anything the visitor copies. */}
+      {/* `syncToUrl={false}`. This URL is the dead one this boundary just reported. Embedded,
+          it lives in the host page's `#!` fragment, so writing keystrokes into it spreads a
+          broken link into anything the visitor copies. */}
       <SearchField
         label={t('error.search_label', { defaultValue: 'Or search for a place' })}
         syncToUrl={false}

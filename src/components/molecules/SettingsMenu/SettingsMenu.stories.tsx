@@ -7,10 +7,10 @@ import { SettingsMenu } from './SettingsMenu'
 export default { title: 'Molecules' } satisfies StoryDefault
 
 /**
- * SettingsMenu — the cog that carries language and theme. Built directly on
- * `@radix-ui/react-dropdown-menu` rather than the Dropdown atom: it needs Sub
- * (the language submenu), RadioGroup and ItemIndicator, which the atom's popover
- * shell deliberately doesn't model.
+ * SettingsMenu — the cog that carries language and theme. This is built
+ * directly on `@radix-ui/react-dropdown-menu`, instead of the Dropdown
+ * atom. It needs Sub (the language submenu), RadioGroup, and ItemIndicator,
+ * which the atom's popover shell deliberately does not model.
  *
  * The menu portals into the theme root, so open it to inspect the panel — it
  * renders outside this section's box. Language and theme changes are live: they

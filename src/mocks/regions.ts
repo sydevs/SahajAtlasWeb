@@ -42,12 +42,12 @@ export const mockCountries: RegionListItem[] = [
  * invariant is exactly what `countryHasPrograms` looks a country up by. Ids match
  * `mockCountries`, and the two UK descendants match the feed's own region refs
  * (`mockEventSlim.region`, id 8001), so a feed feature really does resolve two levels
- * under `gb`. Iceland is deliberately absent: it's the program-less country the
+ * under `gb`. Iceland is deliberately absent: it is the program-less country the
  * country-website offer exists for.
  */
 export const mockRegionNodes: RegionNode[] = [
-  // Every `mockCountries` row carries a `countryCode`; a row without one would slug to
-  // `''` and collide with the next, so it's dropped rather than silently folded in.
+  // Every `mockCountries` row carries a `countryCode`. A row without one would slug to
+  // `''` and collide with the next, so it is dropped rather than silently folded in.
   ...mockCountries.flatMap<RegionNode>(({ id, name, countryCode }) => {
     if (!countryCode) return []
     const slug = countryCode.toLowerCase()
@@ -71,7 +71,7 @@ const regionChildren: RegionListItem[] = [
 ]
 
 /** Eight child rows for the full (country) parent — a mix of rows that carry a
- *  disambiguating subtitle and rows that don't. */
+ *  disambiguating subtitle and rows that do not. */
 const countrySubregions: RegionListItem[] = [
   { id: 9101, slug: 'greater-london', level: 'region', name: 'Greater London', eventCount: 210, path: '/united-kingdom/greater-london' }, // prettier-ignore
   { id: 9102, slug: 'greater-manchester', level: 'region', name: 'Greater Manchester', eventCount: 96, path: '/united-kingdom/greater-manchester' }, // prettier-ignore
@@ -84,7 +84,7 @@ const countrySubregions: RegionListItem[] = [
 ]
 
 /** Two venues inside a city — the child rows a "city with venues" region shows.
- *  Level `venue` is the leaf; it routes to a venue page. */
+ *  Level `venue` is the leaf. It routes to a venue page. */
 const cityVenues: RegionListItem[] = [
   { id: 8201, slug: '44-chelsham-road', level: 'venue', name: '44 Chelsham Rd', eventCount: 6, path: '/united-kingdom/greater-london/london/44-chelsham-road' }, // prettier-ignore
   { id: 8202, slug: 'flood-street', level: 'venue', name: 'Flood Street', eventCount: 4, path: '/united-kingdom/greater-london/london/flood-street' }, // prettier-ignore
@@ -103,7 +103,7 @@ export const mockParentRegion: Region = {
   level: 'region',
   subtitle: null,
   // Only country-level regions carry a countryCode (RegionView shows the country
-  // name for those); a sub-country region leaves it null so its own name shows.
+  // name for those). A sub-country region leaves it null, so its own name shows.
   countryCode: null,
   eventCount: 18,
   bounds: [-0.5, 52.0, 0.5, 52.6],
@@ -118,7 +118,7 @@ export const mockParentRegion: Region = {
 
 /**
  * A full parent (a country): eight child-region cards led by an "Online Classes"
- * roll-up, with a mix of rows that carry a subtitle and rows that don't. The header
+ * roll-up, with a mix of rows that carry a subtitle and rows that do not. The header
  * shows the localized country name (via `countryCode`).
  */
 export const mockCountryRegion: Region = {

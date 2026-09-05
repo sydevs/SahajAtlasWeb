@@ -16,9 +16,10 @@ export type EventMetadataProps = {
 
 export function EventMetadata({ event }: EventMetadataProps) {
   const { locale } = useLocale()
-  // Cache-only: this renders inside the tree that already fetched the client, so the record is
-  // there. Reading it with `enabled: false` keeps a metadata block from ever becoming a fetch —
-  // the same contract `DrawerChrome` uses for the event-titles sliver.
+  // Cache-only. This renders inside the tree that already fetched the
+  // client, so the record is there. Reading it with `enabled: false` keeps
+  // a metadata block from ever becoming a fetch. `DrawerChrome` uses the
+  // same contract for the event-titles sliver.
   const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
   const { t } = useTranslation('common')
 
@@ -27,7 +28,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
   const languageCode = event.languages[0] ?? locale
   const description = lexicalToText(event.description) || 'Free meditation class'
   // SEO reads the same resolver as the UI (issue #52): the rolled next
-  // occurrence (not a stale [0]), a status that matches what renders, and
+  // occurrence, not a stale [0], a status that matches what renders, and
   // availability that will track fullness once the CMS exposes it.
   const display = useMemo(() => resolveEventDisplay(event), [event])
   const startDate =
@@ -41,9 +42,9 @@ export function EventMetadata({ event }: EventMetadataProps) {
     description,
     startDate,
     image,
-    // Dateless/inactive events have no schedulable date — EventPostponed is the
-    // closest truthful status; everything else stays scheduled (an ended event
-    // simply carries a past startDate).
+    // Dateless or inactive events have no schedulable date. EventPostponed
+    // is the closest truthful status. Everything else stays scheduled. An
+    // ended event simply carries a past startDate.
     eventStatus: `https://schema.org/${display.status === 'inactive' ? 'EventPostponed' : 'EventScheduled'}`,
     eventAttendanceMode: `https://schema.org/${online ? 'OnlineEventAttendanceMode' : 'OfflineEventAttendanceMode'}`,
     offers: {
@@ -56,14 +57,17 @@ export function EventMetadata({ event }: EventMetadataProps) {
     },
   }
 
-  // **Omitted entirely when the client record does not name one (#156).** It used to hardcode We
-  // Meditate on every event in the world, which was wrong twice over: it named the wrong
-  // organisation for anyone else's classes, and it put our brand in structured data a tenant
-  // publishes under their own domain. An absent optional property is better structured data than a
-  // confidently false one — and `schema.org/Event` does not require `organizer`.
+  // **This is omitted entirely when the client record does not name one
+  // (#156).** It used to hardcode this project's own name on every event in
+  // the world, which was wrong twice over. It named the wrong organization
+  // for anyone else's classes. It also put this project's own brand in
+  // structured data that a tenant publishes under their own domain. An
+  // absent optional property is better structured data than a confidently
+  // false one, and `schema.org/Event` does not require `organizer`.
   //
-  // No URL and no logo: the client record carries neither today, and inventing one from
-  // `allowedDomains` would be a guess published as a fact.
+  // This has no URL and no logo. The client record carries neither today.
+  // Inventing one from `allowedDomains` would be a guess published as a
+  // fact.
   if (client?.name) {
     schema.organizer = { '@type': 'Organization', name: client.name }
   }

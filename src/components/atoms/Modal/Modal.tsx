@@ -5,30 +5,38 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { overlayContainer } from '@/lib/overlay'
 
-// A centred, ephemeral dialog on @radix-ui/react-dialog (issue #79). Radix owns the
-// focus trap, Esc, and scroll lock; we own the Tailwind skin, which reuses the Drawer
-// atom's tokens so the two surfaces read as one system. It portals into the themed
-// widget root via `overlayContainer()`, so an embedded modal inherits the brand vars +
-// light/dark class — the same call SettingsMenu and the Select listbox make.
+// A centred, ephemeral dialog on @radix-ui/react-dialog (issue #79). Radix
+// owns the focus trap, Esc, and scroll lock. This atom owns the Tailwind
+// skin, which reuses the Drawer atom's tokens, so the two surfaces read as
+// one system. It portals into the themed widget root through
+// `overlayContainer()`, so an embedded modal inherits the brand variables
+// and the light/dark class. SettingsMenu and the Select listbox make the
+// same call.
 //
-// This is deliberately NOT part of the URL-driven drawer stack (`src/views/`): a modal
-// is ephemeral local state, it never appears in the URL, and opening or closing it must
-// not push or pop history. Reach for the Drawer for anything that IS a navigable place.
+// This is deliberately NOT part of the URL-driven drawer stack
+// (`src/views/`). A modal is ephemeral local state. It never appears in the
+// URL, and opening or closing it must not push or pop history. Reach for
+// the Drawer for anything that IS a navigable place.
 //
-// Sits above the drawer (z-40) at z-50, so it overlays the stack rather than being
-// swallowed by it.
+// This sits above the drawer, which is z-40, at z-50. So it overlays the
+// stack, instead of being swallowed by it.
 //
-// **Both axes are measured against the box this modal is CLIPPED to, not the viewport.** It
-// portals through `overlayContainer()`, so inside a frame — `CompactEmbedView`'s dialog, or a
-// contained map's `MapFrame` (#169) — `contain: layout` makes that frame the containing block,
-// and a viewport unit describes something else entirely.
+// **Both axes are measured against the box this modal is CLIPPED to, not
+// the viewport.** It portals through `overlayContainer()`. So inside a
+// frame, such as `CompactEmbedView`'s dialog or a contained map's
+// `MapFrame` (#169), `contain: layout` makes that frame the containing
+// block. A viewport unit would then describe something else entirely.
 //
-// Height reads `--sy-frame-h`, which is `100dvh` outside a frame and `100%` inside one. Width is
-// `100%`, which needs no token: a percentage on a fixed element already resolves against its
-// containing block, so it is the viewport where there is no frame and the frame where there is.
-// ⚠ It used to be `100vw`, defended as "`max-w-md` caps it well below `100vw-2rem` on any
-// viewport where the difference could show". True while the only frame was a near-viewport
-// dialog; a `MapFrame` can be 360px at the interface floor, and `max-w-md` is 448.
+// Height reads `--sy-frame-h`, which is `100dvh` outside a frame and `100%`
+// inside one. Width is `100%`, which needs no token. A percentage on a
+// fixed element already resolves against its containing block. So it
+// describes the viewport where there is no frame, and the frame where there
+// is one.
+//
+// ⚠ It used to be `100vw`, defended on the reasoning that "`max-w-md` caps
+// it well below `100vw-2rem` on any viewport where the difference could
+// show". That was true while the only frame was a near-viewport dialog. A
+// `MapFrame` can be 360px at the interface floor, and `max-w-md` is 448.
 const overlay = 'fixed inset-0 z-50 bg-black/50'
 const content =
   'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(var(--sy-frame-h,100dvh)-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-2xl outline-none'
@@ -50,16 +58,17 @@ export function Modal({ open, onOpenChange, children }: ModalProps) {
 }
 
 export type ModalContentProps = {
-  /** The visible heading — and the dialog's accessible name (one Radix Title). */
+  /** The visible heading. It is also the dialog's accessible name (one Radix Title). */
   title: ReactNode
   /** Optional supporting line under the title (the Radix Description). */
   description?: ReactNode
-  /** Accessible label for the × control; atoms take their copy as props, not from i18n. */
+  /** Accessible label for the × control. Atoms take their copy as props, not from i18n. */
   closeLabel: string
   /**
-   * Radix's focus-return target is whatever was focused when the dialog mounted, which
-   * isn't always the control that opened it (a menu item is gone by then). Handle this to
-   * send focus somewhere specific — `preventDefault()` then `.focus()` your own element.
+   * Radix's focus-return target is whatever had focus when the dialog
+   * mounted. That is not always the control that opened it, since a menu
+   * item is gone by then. Handle this event to send focus somewhere
+   * specific: call `preventDefault()`, then `.focus()` your own element.
    */
   onCloseAutoFocus?: (event: Event) => void
   children: ReactNode
@@ -75,9 +84,10 @@ export function ModalContent({
   children,
   className,
 }: ModalContentProps) {
-  // Radix logs a missing-description warning unless `aria-describedby` is explicitly
-  // undefined — but passing that prop unconditionally would ALSO clobber the id it
-  // wires up when a Description is rendered, so only opt out when there isn't one.
+  // Radix logs a missing-description warning unless `aria-describedby` is
+  // explicitly undefined. But passing that prop unconditionally would ALSO
+  // clobber the id it wires up when a Description renders. So this opts out
+  // only when there is no description.
   const describedBy = description ? {} : { 'aria-describedby': undefined }
 
   return (

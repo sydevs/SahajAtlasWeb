@@ -5,14 +5,15 @@ import { eventQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { createPrefetchIntent } from '@/lib/prefetch-intent'
 
-// How many of a region list's leading events to warm eagerly. Small on purpose: it's
-// the touch-device counterpart to hover prefetch (no pointer to trigger per-card
-// warming), so it covers the few most-likely first taps without a request burst.
+// This is how many of a region list's leading events to warm eagerly.
+// This number is small on purpose.
+// It is the touch-device counterpart to hover prefetch, since there is no pointer to trigger per-card warming.
+// So it covers the few most-likely first taps, without a request burst.
 const EAGER_COUNT = 3
 
-// Delay the eager warm-up off the view's own paint so it never competes with rendering
-// the list the user is looking at. `requestIdleCallback` where available; a short
-// timeout otherwise (Safari lacks rIC).
+// This delays the eager warm-up off the view's own paint.
+// So it never competes with rendering the list the user is looking at.
+// It uses `requestIdleCallback` where available, and a short timeout otherwise, since Safari lacks `requestIdleCallback`.
 const scheduleIdle = (run: () => void): (() => void) => {
   if (typeof requestIdleCallback === 'function') {
     const id = requestIdleCallback(run)
@@ -26,65 +27,61 @@ const scheduleIdle = (run: () => void): (() => void) => {
 }
 
 /**
- * ONE gate for the whole widget, deliberately at module scope.
+ * This is ONE gate for the whole widget, deliberately at module scope.
  *
- * Both halves of it have to be shared to mean anything: there is only one pointer, so
- * only one row can be dwelling at a time, and a per-card instance would hand every card
- * its own in-flight budget — a hundred rows would then be a hundred allowed requests,
- * which is the storm this exists to prevent. Two widgets on one page share it too, which
- * is right: the budget is one browser's politeness toward one API, not per-element.
+ * Both halves of it must be shared to mean anything.
+ * There is only one pointer, so only one row can be dwelling at a time.
+ * A per-card instance would hand every card its own in-flight budget.
+ * A hundred rows would then allow a hundred requests, the storm this exists to prevent.
+ * Two widgets on one page share it too, and that is right.
+ * The budget is one browser's politeness toward one API, not a per-element budget.
  */
 const hoverIntent = createPrefetchIntent()
 
 /**
- * The raw warm: fills `['event', id, locale]` so opening the event is a cache hit rather
- * than a cold `findByID` round-trip. **Module-private** — the two hooks below are the
- * ways in, one metered and one deliberately not, and an unmetered warm is not something
- * a new caller should be able to reach for by accident.
+ * This is the raw warm. It fills `['event', id, locale]`, so opening the event is a cache hit, not a cold `findByID` round trip.
+ * This function is MODULE-PRIVATE.
+ * The two hooks below are the ways in, one metered and one deliberately not.
+ * An unmetered warm is not something a new caller should be able to reach for by accident.
  *
- * It takes the global retry policy and **must not override it**, tempting as `retry:
- * false` is for a speculative request. `prefetchQuery` → `fetchQuery` → `query.fetch(opts)`
- * writes those options onto the SHARED `Query` object, and `useSuspenseQuery` reaches it
- * through `fetchOptimistic`, which calls `query.fetch()` with no arguments and so inherits
- * whatever the last writer left. Pinning `retry: false` here therefore disabled retries for
- * EventView's own read of every card the pointer had ever touched — a per-fetch override
- * is simply not expressible through a shared key. `shouldRetryQuery` already caps at one
- * attempt and never retries a 4xx, which is all the restraint a warm needed.
+ * This takes the global retry policy and MUST NOT override it, tempting as `retry: false` looks for a speculative request.
+ * `prefetchQuery` calls `fetchQuery`, which calls `query.fetch(opts)`, and that writes those options onto the SHARED `Query` object.
+ * `useSuspenseQuery` reaches it through `fetchOptimistic`, which calls `query.fetch()` with no arguments, and so inherits whatever the last writer left.
+ * Pinning `retry: false` here would therefore disable retries for EventView's own read of every card the pointer had ever touched.
+ * A per-fetch override is simply not expressible through a shared key.
+ * `shouldRetryQuery` already caps at one attempt and never retries a 4xx, which is all the restraint a warm needed.
  */
 function usePrefetchEvent() {
   const queryClient = useQueryClient()
   const { locale } = useLocale()
 
   return useCallback(
-    // Returns the prefetch promise (it never rejects) so callers that meter concurrency
-    // can tell when the request has actually settled.
+    // This returns the prefetch promise, which never rejects.
+    // So callers that meter concurrency can tell when the request has actually settled.
     (id: number) => queryClient.prefetchQuery(eventQuery(id, locale)),
     [queryClient, locale],
   )
 }
 
 /**
- * Speculation is pointless while the browser says there's no network — and worse than
- * pointless for the gate: React Query's default `networkMode: 'online'` *pauses* a fetch
- * started offline rather than failing it, so the promise never settles, the in-flight slot
- * is never returned, and two such warms would silently kill hover prefetching for the rest
- * of the session.
+ * Speculation is pointless while the browser says there is no network.
+ * It is worse than pointless for the gate.
+ * React Query's default `networkMode: 'online'` PAUSES a fetch started offline, rather than failing it.
+ * So the promise never settles, the in-flight slot never returns, and two such warms would silently kill hover prefetching for the rest of the session.
  */
 const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false
 
 /**
- * The hover/focus counterpart: same warm, gated by dwell + a shared concurrency cap
- * (see `@/lib/prefetch-intent`). Wire `enter` to a card's `mouseenter`/`focus` and
- * `leave` to its `mouseleave`/`blur` — the fetch then runs during the pointer's
- * travel-to-click for a card the viewer is actually aiming at, and not at all for the
- * hundred cards they merely swept across on the way.
+ * This is the hover and focus counterpart: the same warm, gated by dwell and a shared concurrency cap. See `@/lib/prefetch-intent`.
+ * Wire `enter` to a card's `mouseenter` or `focus`, and `leave` to its `mouseleave` or `blur`.
+ * The fetch then runs during the pointer's travel to click, for a card the viewer is actually aiming at.
+ * It never runs for the hundred cards they merely swept across on the way.
  *
- * Deliberately no per-card unmount teardown, though a card CAN unmount mid-dwell (the
- * list re-pages under a stationary cursor). This hook runs on every row of the repo's
- * one memoized 1000-row list, and a ref + a cleanup effect on all thousand of them would
- * buy the cancellation of at most one pending warm — the gate holds a single timer. The
- * uncancelled case costs one speculative request, which the concurrency cap already
- * bounds; every case where the pointer actually leaves is covered by `leave`.
+ * This deliberately has no per-card unmount teardown, though a card CAN unmount mid-dwell, since the list re-pages under a stationary cursor.
+ * This hook runs on every row of the repo's one memoized 1000-row list.
+ * A ref plus a cleanup effect on all thousand of them would buy the cancellation of at most one pending warm, since the gate holds a single timer.
+ * The uncancelled case costs one speculative request, which the concurrency cap already bounds.
+ * Every case where the pointer actually leaves is covered by `leave`.
  */
 export function useHoverPrefetch() {
   const warm = usePrefetchEvent()
@@ -100,21 +97,18 @@ export function useHoverPrefetch() {
 }
 
 /**
- * Eagerly warm the first few events of a list once the view is idle — the touch-device
- * counterpart to hover prefetch. Keyed on the leading ids (a stable primitive) so it
- * only re-runs when the prefetched set actually changes, and cancelled on unmount so a
- * quick drill-through doesn't fire stale warm-ups.
+ * This eagerly warms the first few events of a list once the view is idle, the touch-device counterpart to hover prefetch.
+ * It keys on the leading ids, a stable primitive, so it only re-runs when the prefetched set actually changes.
+ * It cancels on unmount, so a quick drill-through does not fire stale warm-ups.
  *
- * Deliberately NOT routed through the hover gate: this set is already bounded to
- * `EAGER_COUNT`, it isn't driven by pointer movement, and metering it would mean a
- * touch device — the one that has no hover to fall back on — silently warms fewer cards
- * than it asked for.
+ * This deliberately does NOT route through the hover gate.
+ * This set is already bounded to `EAGER_COUNT`, it is not driven by pointer movement, and metering it would mean a touch device, the one that has no hover to fall back on, silently warms fewer cards than it asked for.
  */
 export function usePrefetchEvents(ids: number[]) {
   const prefetch = usePrefetchEvent()
   const leading = ids.slice(0, EAGER_COUNT)
-  // Depend on a stable primitive (the leading ids joined) since the array is a fresh
-  // reference each render; the effect warms the captured `leading` numbers directly.
+  // This depends on a stable primitive, the leading ids joined, since the array is a fresh reference each render.
+  // The effect warms the captured `leading` numbers directly.
   const key = leading.join(',')
 
   useEffect(() => {

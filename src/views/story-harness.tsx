@@ -26,7 +26,7 @@ import { mockGeojson, mockRegionNodes } from '@/mocks/regions'
 export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 
 // A shared harness for the view stories (title group "Views"). A view is a
-// data-connected drawer screen, so previewing one needs three things the Ladle
+// data-connected drawer screen, so previewing one needs four things the Ladle
 // decorator does not give it:
 //
 //  1. Seeded data. The view suspends on `useSuspenseQuery`. The harness seeds the
@@ -125,9 +125,10 @@ export type ViewHarnessProps = {
    * is cut off. It still scrolls. It just reads as though it does not, which is worse.
    *
    * This is the container-vs-viewport tension the dialog's margin introduces, in the one
-   * place this repo owns the arithmetic. Note that vaul has the same exposure, and we do
-   * NOT own that one: it computes a snap-point sheet's travel from `window.innerHeight`,
-   * so a real bottom sheet inside the dialog is off by the same margin.
+   * place this repo owns the arithmetic. Note that vaul has the same exposure, and this
+   * repo does NOT own that one. It computes a snap-point sheet's travel from
+   * `window.innerHeight`, so a real bottom sheet inside the dialog is off by the same
+   * margin.
    */
   height?: 'screen' | 'container'
   children: ReactNode

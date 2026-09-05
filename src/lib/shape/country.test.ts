@@ -50,9 +50,9 @@ describe('countryHasPrograms', () => {
   })
 
   it('counts an online class listed under the country — it is still a program', () => {
-    // Online events belong to no *place*, but the feed still files them under a
-    // region, so a country whose only listing is an online class isn't empty and
-    // must not be offered its own website.
+    // Online events belong to no *place*, but the feed still files them
+    // under a region, so a country whose only listing is an online class is
+    // not empty and must not be offered its own website.
     expect(countryHasPrograms(regions, [at(1)], 'GB')).toBe(true)
   })
 

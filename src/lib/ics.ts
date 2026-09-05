@@ -5,50 +5,51 @@ import { DateTime } from 'luxon'
 import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
 
 /**
- * A hand-rolled iCalendar (RFC 5545) export — no runtime dependency. The bundle
- * is public (issue #52). The export carries the REAL recurrence: `DTSTART;TZID`
- * in the event's own zone, an `RRULE` built from the structured schedule fields,
- * and `EXDATE`s expanded from the exclusion windows — the importing calendar app
- * then owns all viewer-timezone and DST conversion (the one place that problem
- * solves itself).
+ * A hand-rolled iCalendar (RFC 5545) export, with no runtime dependency. The
+ * bundle is public (issue #52). The export carries the real recurrence:
+ * `DTSTART;TZID` in the event's own zone, an `RRULE` built from the structured
+ * schedule fields, and `EXDATE`s expanded from the exclusion windows. The
+ * importing calendar app then owns all viewer-timezone and DST conversion,
+ * the one place that problem solves itself.
  *
- * This references IANA TZIDs without a VTIMEZONE component: Google, Apple, and
- * Outlook all resolve IANA ids natively, while a hand-generated VTIMEZONE (with
- * its own DST RRULEs) is exactly the kind of thing that goes subtly wrong.
+ * This references IANA TZIDs without a VTIMEZONE component. Google, Apple,
+ * and Outlook all resolve IANA ids natively, while a hand-generated VTIMEZONE
+ * (with its own DST RRULEs) is exactly the kind of thing that goes subtly
+ * wrong.
  *
- * ## Why this is hand-rolled rather than a dependency (issue #105)
+ * ## Why this is hand-rolled, instead of a dependency (issue #105)
  *
- * This is measured, not assumed. `datebook` (3.3 KiB gz, zero deps) and
- * `calendar-link` (4.9 KiB gz, pulls dayjs — a SECOND date library beside the
- * luxon we already ship) both emit `DTSTART:20260907T180000Z`: a bare UTC
+ * This claim is measured, not assumed. `datebook` (3.3 KiB gz, zero deps) and
+ * `calendar-link` (4.9 KiB gz, pulls in dayjs, a second date library beside
+ * the luxon we already ship) both emit `DTSTART:20260907T180000Z`: a bare UTC
  * instant with **no `TZID`**. That is not a style difference. A weekly 19:00
  * London class anchored to a UTC instant silently becomes 18:00 for every
  * occurrence after the October DST change, because the absolute instant is
  * preserved and the wall-clock time is not. `ics` (23.6 KiB gz) is heavier
- * still and no better on this point. Recurrence in the viewer's own timezone is
- * the whole job here, so a library that cannot express it is not a smaller
- * version of this file — it is a wrong one. (`calendar-link` also emits
- * `LOCATION:a, b` with the comma unescaped, an RFC 5545 violation.)
+ * still, and no better on this point. Recurrence in the viewer's own timezone
+ * is the whole job here, so a library that cannot express it is not a
+ * smaller version of this file. It is a wrong one. (`calendar-link` also
+ * emits `LOCATION:a, b` with the comma unescaped, an RFC 5545 violation.)
  *
  * ## Why not the CMS's own `icalRule`
  *
- * SahajCloud computes `schedule.icalRule` (rrule-temporal's `toString()`), and
- * it is selected onto the feed — but it is not usable as-is, for four reasons,
- * and SahajCloud's own ICS builder rejects it for the same ones:
+ * SahajCloud computes `schedule.icalRule` (rrule-temporal's `toString()`),
+ * and it is selected onto the feed. But it is not usable as-is, for four
+ * reasons, and SahajCloud's own ICS builder rejects it for the same ones:
  *
- *  - a NON-recurring event still gets `FREQ=DAILY;COUNT=1` (one-offs are
+ *  - A non-recurring event still gets `FREQ=DAILY;COUNT=1` (one-offs are
  *    modelled that way internally), so a single class would import as a
  *    series.
- *  - its `EXDATE` is UTC-stamped while its `DTSTART` is TZID-local, and a UTC
- *    EXDATE frequently fails to match a TZID-local instance — the cancelled
+ *  - Its `EXDATE` is UTC-stamped while its `DTSTART` is TZID-local, and a UTC
+ *    EXDATE frequently fails to match a TZID-local instance. The cancelled
  *    session then still shows.
- *  - it carries no `DTEND` (`endTime` is absent from it entirely).
- *  - it never folds lines at 75 octets.
+ *  - It carries no `DTEND` (`endTime` is absent from it entirely).
+ *  - It never folds lines at 75 octets.
  *
  * So the RRULE is rebuilt here from the structured fields, which the full
  * event doc carries in full (`getEventDoc` selects `schedule: true`). Note
- * that the feed does NOT carry `monthDay` / `weekdayOfMonth` / `untilDate` /
- * `exclusions` — build the export from the full doc, never from a feed event.
+ * that the feed does not carry `monthDay` / `weekdayOfMonth` / `untilDate` /
+ * `exclusions`. Build the export from the full doc, never from a feed event.
  */
 
 export type IcsEventInput = {
@@ -59,10 +60,11 @@ export type IcsEventInput = {
   location?: string | null
   url?: string | null
   /**
-   * The specific session to anchor a recurrence-LESS target on — the date the
+   * The specific session to anchor a recurrence-less target on: the date the
    * viewer actually registered for. Only the providers whose URL API has no
-   * recurrence parameter (Outlook, Office 365, Yahoo) read it. The ICS and the
-   * Google link carry the real RRULE and so must stay anchored on the series.
+   * recurrence parameter (Outlook, Office 365, Yahoo) read it. The ICS and
+   * the Google link carry the real RRULE, and so must stay anchored on the
+   * series.
    */
   from?: Date | null
 }
@@ -89,16 +91,18 @@ const localStamp = (dt: DateTime): string => dt.toFormat("yyyyMMdd'T'HHmmss")
 const utcStamp = (dt: DateTime): string => dt.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'")
 
 /**
- * The end of an occurrence: the schedule's `endTime`, else `DEFAULT_DURATION`.
+ * The end of an occurrence: the schedule's `endTime`, or `DEFAULT_DURATION`
+ * otherwise.
  *
- * A DTSTART with no DTEND is legal — RFC 5545 §3.6.1 makes it a zero-length
- * instant — but every calendar app draws that as a hairline, and the three
- * provider URLs below have no way to express it at all (their APIs require an
- * end). The fallback triggers on any end that is not strictly AFTER the
- * start, not merely on a missing one, so an `endTime` equal to the start time
- * also gets a real span — the same condition `shape/calendar.ts` applies to
- * the grid, from the same constant, so the block a viewer sees and the file
- * they download cannot describe one class two different lengths.
+ * A DTSTART with no DTEND is legal. RFC 5545 §3.6.1 makes it a zero-length
+ * instant. But every calendar app draws that as a hairline, and the three
+ * provider URLs below have no way to express it at all (their APIs require
+ * an end). The fallback triggers on any end that is not strictly after the
+ * start, not merely on a missing one, so an `endTime` equal to the start
+ * time also gets a real span. `shape/calendar.ts` applies the same
+ * condition to the grid, from the same constant, so the block a viewer sees
+ * and the file they download cannot describe one class two different
+ * lengths.
  */
 const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime => {
   const end = withEndTime(start, schedule.endTime)
@@ -107,9 +111,9 @@ const occurrenceEnd = (start: DateTime, schedule: EventSchedule): DateTime => {
 }
 
 /**
- * The calendar DAY a date-only wire value means, in the event's zone. The CMS
- * stores date pickers as instants at midnight in *some* zone (UTC or the
- * admin's) — read naively in a zone west of that, the instant lands on the
+ * The calendar day a date-only wire value means, in the event's zone. The
+ * CMS stores date pickers as instants at midnight in *some* zone (UTC or the
+ * admin's). Read naively in a zone west of that, the instant lands on the
  * previous local day. Normalizing via noon absorbs any offset up to plus or
  * minus 12 hours.
  */
@@ -156,8 +160,8 @@ export const buildRrule = (schedule: EventSchedule): string | null => {
 }
 
 /**
- * Whether the pattern lands on `day` (event-zone) — a per-day predicate, not a
- * recurrence engine. It expands only the short exclusion windows to
+ * Whether the pattern lands on `day` (event-zone): a per-day predicate, not
+ * a recurrence engine. It expands only the short exclusion windows to
  * EXDATEs.
  */
 const occursOn = (day: DateTime, schedule: EventSchedule): boolean => {
@@ -202,8 +206,9 @@ const occursOn = (day: DateTime, schedule: EventSchedule): boolean => {
   return day.day === (schedule.monthDay ?? first.day)
 }
 
-// Caps the per-window EXDATE expansion — an exclusion is a holiday or seasonal
-// break, not a decade. Beyond this the loop truncates rather than continuing.
+// This caps the per-window EXDATE expansion. An exclusion is a holiday or
+// seasonal break, not a decade. Beyond this the loop truncates, instead of
+// continuing.
 const MAX_EXCLUSION_DAYS = 400
 
 /** The occurrence instants (event-zone) skipped by the exclusion windows. */
@@ -282,29 +287,30 @@ export type BuildIcsOptions = {
 }
 
 /**
- * The exported series anchor. A recurring series anchors at its first session
- * (RRULE COUNT counts from DTSTART. Past occurrences in a calendar are
- * normal). A one-off anchors at the session the viewer registered for when we
- * know it, else at its next upcoming occurrence — a rescheduled one-off may
- * carry a stale `firstDate` while `upcomingDates` holds the real date (the
- * same drift the display resolver trusts).
+ * The exported series anchor. A recurring series anchors at its first
+ * session. RRULE COUNT counts from DTSTART, and past occurrences in a
+ * calendar are normal. A one-off anchors at the session the viewer
+ * registered for when we know it, or at its next upcoming occurrence
+ * otherwise. A rescheduled one-off may carry a stale `firstDate`, while
+ * `upcomingDates` holds the real date: the same drift the display resolver
+ * trusts.
  *
- * `from` cannot move a RECURRING anchor: DTSTART is the instance the RRULE
+ * `from` cannot move a recurring anchor. DTSTART is the instance the RRULE
  * counts from, so re-anchoring an 8-session course on session 5 would hand
- * the importer eight MORE sessions starting there.
+ * the importer eight more sessions starting there.
  */
 const exportStart = (schedule: EventSchedule, from?: Date | null): DateTime =>
   schedule.recurrenceType ? seriesStart(schedule) : occurrenceStart(schedule, from)
 
 /**
- * The anchor for a target that CANNOT carry recurrence (Outlook, Office 365,
- * Yahoo — none of their URL APIs has a recurrence parameter). Those get a
- * single event, so it has to be the RIGHT single event: the session the
- * viewer registered for, else the next upcoming one.
+ * The anchor for a target that cannot carry recurrence (Outlook, Office 365,
+ * Yahoo: none of their URL APIs has a recurrence parameter). Those get a
+ * single event, so it has to be the right single event: the session the
+ * viewer registered for, or the next upcoming one otherwise.
  *
- * Never the series start, which is what `exportStart` gives a recurring
- * event — a weekly class that has run since 2019 would otherwise drop a 2019
- * date into the viewer's calendar and call it done.
+ * This is never the series start, which is what `exportStart` gives a
+ * recurring event. A weekly class that has run since 2019 would otherwise
+ * drop a 2019 date into the viewer's calendar and call it done.
  */
 const occurrenceStart = (schedule: EventSchedule, from?: Date | null): DateTime => {
   const anchor = from ?? schedule.upcomingDates?.[0]
@@ -332,17 +338,19 @@ export function buildEventIcs(input: IcsEventInput, options: BuildIcsOptions = {
     'BEGIN:VEVENT',
     // The calendar's dedupe key, namespaced to the CMS the id comes from.
     //
-    // ⚠ **It must stay tenant-INDEPENDENT, and that is a stronger rule than it looks.** The same
-    // class can be exported from several client embeds — a visitor might reach it from the
-    // national site and again from a city one — and those have to land in a calendar as ONE entry.
-    // Deriving any part of this from the client would turn each embed into a separate event in
-    // somebody's calendar for the same class.
+    // ⚠ **This must stay tenant-independent, and that is a stronger rule
+    // than it looks.** The same class can be exported from several client
+    // embeds. A visitor might reach it from the national site, and again
+    // from a city one, and those have to land in a calendar as one entry.
+    // Deriving any part of this from the client would turn each embed into a
+    // separate event in somebody's calendar for the same class.
     //
-    // The host part is an opaque namespace, not a link, so it is pinned to `cloud.sydevelopers.com`
-    // — where the id actually comes from — rather than to whichever origin happens to be serving
-    // the widget. That origin is being consolidated (#148) and the canonical is moving to
-    // per-owner domains (#156 programme), and neither should be able to change an identifier whose
-    // whole job is to stay the same.
+    // The host part is an opaque namespace, not a link, so it is pinned to
+    // `cloud.sydevelopers.com`, where the id actually comes from, instead of
+    // to whichever origin happens to be serving the widget. That origin is
+    // being consolidated (#148), and the canonical is moving to per-owner
+    // domains (#156 programme). Neither should be able to change an
+    // identifier whose whole job is to stay the same.
     `UID:event-${input.id}@cloud.sydevelopers.com`,
     `DTSTAMP:${utcStamp(DateTime.fromJSDate(options.now ?? new Date()))}`,
     `SUMMARY:${escapeText(input.title)}`,
@@ -407,12 +415,12 @@ export type OutlookFlavor = keyof typeof OUTLOOK_HOSTS
 /**
  * An Outlook.com / Office 365 compose link.
  *
- * `startdt`/`enddt` are absolute UTC instants: the compose API takes no
- * timezone parameter, so the instant is the only unambiguous thing to send —
+ * `startdt`/`enddt` are absolute UTC instants. The compose API takes no
+ * timezone parameter, so the instant is the only unambiguous thing to send.
  * Outlook then renders it in the viewer's own calendar timezone, which is
- * what they want to see. It also has **no recurrence parameter**, so this is
- * deliberately a single occurrence anchored by `occurrenceStart`. The ICS
- * download is the lossless path for a series, and the UI says so.
+ * what they want to see. It also has **no recurrence parameter**, so this
+ * is deliberately a single occurrence anchored by `occurrenceStart`. The
+ * ICS download is the lossless path for a series, and the UI says so.
  */
 export function buildOutlookCalendarUrl(input: IcsEventInput, flavor: OutlookFlavor): string {
   const { schedule } = input

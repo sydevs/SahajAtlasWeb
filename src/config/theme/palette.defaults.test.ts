@@ -4,15 +4,13 @@ import { describe, it, expect } from 'vitest'
 
 import { buildScale, DEFAULT_SEEDS, type Step, type ThemeMode } from './palette'
 
-// The built-in brand defaults are hand-frozen in globals.css as static CSS (the
-// runtime engine writes the same vars at runtime). This gate asserts those
-// frozen values are exactly what buildScale() produces from DEFAULT_SEEDS, so a
-// change to the ladder / saturation cap / clamp logic can't silently desync the
-// no-tenant theme from every tenant theme without turning this test red.
+// The built-in brand defaults are hand-frozen in `globals.css` as static CSS. The runtime engine writes the same variables at runtime.
+// This gate asserts that those frozen values exactly match what `buildScale()` produces from `DEFAULT_SEEDS`.
+// So a change to the ladder, the saturation cap, or the clamp logic cannot silently desync the no-tenant theme from every tenant theme, without turning this test red.
 
 const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), 'utf8')
 
-// Pull the `--name: value;` declarations out of a selector block's body.
+// This pulls the `--name: value;` declarations out of a selector block's body.
 const declarations = (body: string): Record<string, string> => {
   const out: Record<string, string> = {}
 

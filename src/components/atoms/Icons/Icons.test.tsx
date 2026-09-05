@@ -4,19 +4,21 @@ import { Check } from 'lucide-react'
 
 import { Logo, SocialIcon } from '.'
 
-// Node-only component test (mirrors WeMeditateWeb): no jsdom / Testing Library.
-// Presentational components are asserted via their SSR markup with
-// renderToStaticMarkup — this file is the template for component coverage in
-// this repo (see `docs/testing.md`). Hover/portal/interaction behaviour
-// belongs in Ladle and the browser, not here.
+// A node-only component test, mirroring WeMeditateWeb: no jsdom, no Testing
+// Library. This asserts presentational components through their SSR markup,
+// with renderToStaticMarkup. This file is the template for component
+// coverage in this repo (see `docs/testing.md`). Hover, portal, and
+// interaction behaviour belong in Ladle and the browser, not here.
 //
-// Since #003 the interface glyphs come from `lucide-react` and only the brand marks are
-// ours, so this file covers both sides of that seam: what Lucide guarantees (the two
-// contracts the swap had to preserve) and what we still draw ourselves.
+// Since #003, the interface glyphs come from `lucide-react`, and only the
+// brand marks are ours. So this file covers both sides of that seam: what
+// Lucide guarantees (the two contracts the swap had to preserve), and what
+// this app still draws itself.
 
 describe('lucide icons — the contracts the swap had to keep', () => {
-  // Both were previously supplied by our own `BaseIcon`. If a Lucide upgrade ever drops
-  // either, every icon in the app regresses at once and nothing else would say so.
+  // Both contracts were previously supplied by our own `BaseIcon`. If a Lucide
+  // upgrade ever drops either one, every icon in the app regresses at once,
+  // and nothing else would report it.
   it('draws with currentColor, so a glyph takes its surrounding text colour', () => {
     const html = renderToStaticMarkup(<Check />)
 
@@ -37,8 +39,8 @@ describe('lucide icons — the contracts the swap had to keep', () => {
   })
 })
 
-// Lucide removed its brand icons and redrawing them is a trademark problem, so these
-// stay hand-drawn on our own BaseIcon.
+// Lucide removed its brand icons, and redrawing them is a trademark problem.
+// So these stay hand-drawn on our own BaseIcon.
 describe('the brand marks we still own', () => {
   it('renders the logo as an accessible, presentational svg with a path', () => {
     const html = renderToStaticMarkup(<Logo />)
@@ -53,7 +55,7 @@ describe('the brand marks we still own', () => {
     expect(renderToStaticMarkup(<SocialIcon platform="zoom" />)).toContain('<svg')
   })
 
-  // An unknown platform must render nothing rather than crash on an undefined element.
+  // An unknown platform must render nothing, instead of crashing on an undefined element.
   it('renders nothing for an unknown platform', () => {
     expect(renderToStaticMarkup(<SocialIcon platform="myspace" />)).toBe('')
   })

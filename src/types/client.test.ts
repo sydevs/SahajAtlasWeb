@@ -22,7 +22,7 @@ describe('ClientSchema', () => {
     expect(ClientSchema.parse({ id: 7, name: 'Host Site' }).region).toBeUndefined()
   })
 
-  // ⚠ The record still HAS a locale; the widget stopped reading it, so the schema stopped
+  // ⚠ The record still HAS a locale. The widget stopped reading it, so the schema stopped
   // declaring it. Parsing must ignore it rather than fail, or a client with the field set would
   // blank the widget over a setting we deliberately no longer honour.
   it('ignores the record’s locale, which the widget no longer reads', () => {

@@ -46,19 +46,19 @@ const EXAMPLES: Record<string, Event> = {
 type ExampleKey = keyof typeof EXAMPLES
 
 /**
- * EventView — the full event panel screen (header + facts → Register → actions →
- * images → About). Switch resolver states with the Example control; the State control
- * runs any of them into the drawer's fallback instead.
+ * EventView — the full event panel screen: header, facts, Register, actions, images, About.
+ * Switch resolver states with the Example control. The State control instead runs any of them
+ * into the drawer's fallback.
  *
- * "Not found · event" is the failure this view actually reaches: a link to an event the
- * CMS no longer serves — SahajCloud answers 404 and `classifyError` reads the status. It
- * is a dead end, not a malfunction, so it renders the empty-state register: a neutral note
- * saying "that event" (not "that page"), a working close control, somewhere real to go,
- * and no retry — a dead link fails identically every time.
+ * "Not found · event" is the failure this view actually reaches. A link to an event the CMS no
+ * longer serves gets a 404 from SahajCloud, and `classifyError` reads that status. It is a dead
+ * end, not a malfunction, so it renders the empty-state register: a neutral note saying "that
+ * event", not "that page", a working close control, somewhere real to go, and no retry — a dead
+ * link fails identically every time.
  *
- * Each example renders at its own event path (`/united-kingdom/cambridge/<id>`), so the
- * ladder drops the dead id and offers **Cambridge**, the nearest ancestor the region tree
- * still knows — with nothing configured per error.
+ * Each example renders at its own event path (`/united-kingdom/cambridge/<id>`), so the ladder
+ * drops the dead id and offers **Cambridge**, the nearest ancestor the region tree still knows,
+ * with nothing configured per error.
  */
 export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,

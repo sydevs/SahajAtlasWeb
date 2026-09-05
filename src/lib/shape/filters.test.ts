@@ -113,7 +113,7 @@ describe('matchesFilters — day of week (in the event zone)', () => {
     const laEvent = event({ zone: 'America/Los_Angeles', occurrences: [laMonEvening] })
 
     expect(matchesFilters(laEvent, withFilters({ daysOfWeek: [laMonEvening.weekday] }))).toBe(true)
-    // A UTC reading would place it on the next day; assert that day does NOT match.
+    // A UTC reading would place it on the next day. Assert that day does not match.
     const utcWeekday = DateTime.fromJSDate(laMonEvening.toJSDate(), { zone: 'UTC' }).weekday
 
     expect(utcWeekday).not.toBe(laMonEvening.weekday)
@@ -281,7 +281,7 @@ describe('matchesFilters — date range (in the event zone)', () => {
     const matches = (overrides: Partial<EventFilters>) =>
       matchesFilters(twoOccurrences, withFilters(overrides))
 
-    // The 22nd is only in the evening; the morning occurrence is the 20th — no overlap.
+    // The 22nd is only in the evening. The morning occurrence is the 20th, so there is no overlap.
     expect(
       matches({ dateRange: { start: '2026-07-22', end: '2026-07-22' }, timeOfDay: ['morning'] }),
     ).toBe(false)
@@ -450,7 +450,7 @@ describe('region filter — URL codec + count', () => {
 })
 
 describe('region-aware matchesFilters (self + descendants)', () => {
-  // gb ▸ london ▸ ealing; de ▸ berlin
+  // gb ▸ london ▸ ealing, and de ▸ berlin
   const regions = [
     { id: 1, slug: 'gb', parent: null },
     { id: 2, slug: 'london', parent: 1 },

@@ -1,18 +1,18 @@
 // @vitest-environment jsdom
 //
-// The ONE spec in the unit lane that boots a DOM, opted in per-file so the rest of the
-// lane stays node-only (see `docs/testing.md`). It earns that because what it
-// covers is a re-render behaviour that SSR markup cannot express: a `resetKeys` change
-// clearing an already-thrown boundary.
+// The ONE spec in the unit lane that boots a DOM, opted in per file so the rest of the lane
+// stays node-only (see `docs/testing.md`). It earns that because what it covers is a
+// re-render behaviour that SSR markup cannot express: a `resetKeys` change clearing an
+// already-thrown boundary.
 //
 // That behaviour is load-bearing for issue #89. The drawer's boundary is keyed on the
-// PATHNAME, but a re-search and a calendar filter change move only the QUERY STRING — so
-// the body-level boundaries in SearchView and CalendarView must reset on their own keys.
-// Without that, one failed fetch pins its error over every later attempt and the boundary
-// added to contain a failure instead *creates* a permanent dead end.
+// PATHNAME, but a re-search and a calendar filter change move only the QUERY STRING. So the
+// body-level boundaries in SearchView and CalendarView must reset on their own keys. Without
+// that, one failed fetch pins its error over every later attempt, and the boundary added to
+// contain a failure instead *creates* a permanent dead end.
 //
-// Deliberately no @testing-library/react: React 18.3 exports `act`, and `createRoot` is
-// all this needs. One new devDependency (jsdom), not two.
+// Deliberately no @testing-library/react. React 18.3 exports `act`, and `createRoot` is all
+// this needs. One new devDependency (jsdom), not two.
 import { StrictMode, act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -21,9 +21,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { listResetKey } from '@/lib/shape'
 import { ResetErrorBoundary } from '@/components/molecules/Fallbacks/Fallbacks'
 
-// The seam itself is covered in `src/lib/report*.test.ts`; here it is mocked so the
-// question is only whether the boundary CALLS it. Partial, because `Fallbacks.tsx` imports
-// `classifyError`/`errorMessage` from the same module and those must stay real.
+// The seam itself is covered in `src/lib/report*.test.ts`. Here it is mocked, so the
+// question is only whether the boundary CALLS it. This mock is partial, because
+// `Fallbacks.tsx` imports `classifyError`/`errorMessage` from the same module, and those must
+// stay real.
 const reported = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/report', async (importOriginal) => ({
@@ -33,9 +34,9 @@ vi.mock('@/lib/report', async (importOriginal) => ({
 
 let container: HTMLDivElement
 
-// React's development build re-throws a caught error through a synthetic `error` event so
-// DevTools can surface it; jsdom then prints the whole stack. Both specs here throw ON
-// PURPOSE, so swallow that — a passing run should be readable, and a real failure still
+// React's development build re-throws a caught error through a synthetic `error` event, so
+// DevTools can surface it. jsdom then prints the whole stack. Both specs here throw ON
+// PURPOSE, so this swallows that — a passing run should be readable, and a real failure still
 // surfaces through the assertions.
 const muteExpectedThrow = (event: ErrorEvent) => event.preventDefault()
 
@@ -60,7 +61,7 @@ function Boom({ failing }: { failing: boolean }) {
 
 describe('resetKeys on the body-level boundaries', () => {
   it('clears a thrown error when the key changes, and not before', () => {
-    // React logs every boundary catch; silence it so a passing run stays readable.
+    // React logs every boundary catch. This silences it, so a passing run stays readable.
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     // Mirrors the real wiring: the boundary's key is derived from the URL, and the child
@@ -161,10 +162,10 @@ describe('resetKeys on the body-level boundaries', () => {
 /**
  * The wiring that turns a boundary trip into telemetry (issue #108).
  *
- * It lives in `ResetErrorBoundary` precisely so the six call sites don't each carry it,
- * which means there is exactly one place it can silently stop working — and no amount of
- * SSR markup can show whether `onError` fired. Same jsdom exception as the specs above,
- * for the same reason: the behaviour IS the re-render.
+ * This lives in `ResetErrorBoundary` precisely so the six call sites do not each carry it.
+ * That means there is exactly one place it can silently stop working, and no amount of SSR
+ * markup can show whether `onError` fired. This uses the same jsdom exception as the specs
+ * above, for the same reason: the behaviour IS the re-render.
  */
 describe('ResetErrorBoundary reports through the seam', () => {
   beforeEach(() => reported.mockClear())

@@ -11,9 +11,10 @@ import { parentOf, searchPath } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
- * Where "See nearby events" leads: back up the drawer stack to the event's
- * parent region when the URL carries the ancestry, else a distance-ranked
- * search centred on the event (flat direct links have no region ancestry).
+ * This decides where "See nearby events" leads. When the URL carries the
+ * event's region ancestry, it goes back up the drawer stack to the parent
+ * region. Otherwise, it runs a distance-ranked search centered on the event.
+ * A flat direct link has no region ancestry.
  */
 const nearbyPath = (event: Event, basePath: string): string => {
   const parent = parentOf(basePath)
@@ -25,7 +26,7 @@ const nearbyPath = (event: Event, basePath: string): string => {
   return searchPath(longitude != null && latitude != null ? [longitude, latitude] : undefined)
 }
 
-/** The escape hatch out of terminal states, back into live inventory. */
+/** This is the escape hatch out of terminal states, back into live inventory. */
 function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) {
   const { t } = useTranslation('events')
   const navigate = useAtlasNavigate()
@@ -44,10 +45,11 @@ function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) 
 
 export type EventRegisterBarProps = EventSurfaceProps
 
-/** Whether the register slot renders anything for this event — the sticky
- *  mobile footer uses this so it never pins an empty bar. Inactive events have
- *  no slot (contact is the emphasized action), and an external-mode event
- *  without its URL has no CTA at all (matching the pre-redesign behavior). */
+/** This returns whether the register slot renders anything for this event.
+ *  The sticky mobile footer uses this, so it never pins an empty bar.
+ *  Inactive events have no slot. Contact is the emphasized action instead.
+ *  An external-mode event with no URL has no CTA at all. This matches the
+ *  pre-redesign behavior. */
 export const hasRegisterSlot = (event: Event, display: EventDisplay): boolean => {
   if (display.status === 'inactive') return false
   if (
@@ -61,26 +63,27 @@ export const hasRegisterSlot = (event: Event, display: EventDisplay): boolean =>
 }
 
 /**
- * The Register slot — the ONLY filled/emphasized control on the surface (issue
- * #52). Open native events route to the registration drawer; open external
- * events link out (the sole external-mode difference — all copy/state is
- * identical). Closed courses show a disabled button + the contact helper;
- * terminal states replace the button with their message + escape hatch.
+ * The Register slot is the only filled, emphasized control on the surface
+ * (issue #52). An open native event routes to the registration drawer. An
+ * open external event links out instead. That is the only difference between
+ * the two modes. All other copy and state stay identical. A closed course
+ * shows a disabled button and the contact helper. A terminal state replaces
+ * the button with its message and an escape hatch.
  */
 export function EventRegisterBar({ event, basePath }: EventRegisterBarProps) {
   const navigate = useAtlasNavigate()
   const { display, registerLabel, microcopy, contactHelper, blockedMessage } =
     useEventDisplay(event)
 
-  // Inactive events carry their guidance in facts + the emphasized Contact
-  // action; an external-mode event without its URL has no CTA at all.
+  // Inactive events carry their guidance in the facts and the emphasized
+  // Contact action. An external-mode event with no URL has no CTA at all.
   if (!hasRegisterSlot(event, display)) return null
 
   if (display.registration === 'hidden') {
     return (
       <div className="flex flex-col items-center gap-1 text-center">
-        {/* The ended message lives in the facts block; full events (whose facts
-            stay normal) carry theirs here. */}
+        {/* The ended message lives in the facts block. A full event's facts stay
+            normal, so its message renders here instead. */}
         {display.full && blockedMessage && <p className="text-sm text-gray-11">{blockedMessage}</p>}
         <SeeNearbyLink basePath={basePath} event={event} />
         {contactHelper && <p className="text-xs text-gray-11">{contactHelper}</p>}

@@ -20,10 +20,10 @@ describe('searchWithout', () => {
   /**
    * The whole reason this module exists rather than `URLSearchParams.delete()`.
    *
-   * `.delete()` re-serializes every surviving pair, losing BOTH the `/` and `,` that `routeToParam`
+   * `.delete()` re-serializes every surviving pair, losing both the `/` and `,` that `routeToParam`
    * deliberately restores — the part of a shared link that has to stay readable — and a host's own
-   * `%20`, rewritten to `+`. Equivalent to a parser; not what the page had, and the second is
-   * somebody else's parameter.
+   * `%20`, rewritten to `+`. This is equivalent to a parser, not what the page had, and the second
+   * loss is somebody else's parameter.
    */
   it('leaves every surviving pair byte-identical, the route and the host’s own alike', () => {
     expect(searchWithout('?atlas=/nl/amsterdam?center=4.9,52.3&x=1&keep=a%20b', 'x')).toBe(

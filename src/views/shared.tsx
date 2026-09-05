@@ -306,11 +306,11 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
     // its 150ms exit, and router context still reaches it, so a view whose deps
     // come from the URL re-renders under the NEXT route and re-runs this effect
     // for a level it no longer shows. That is how tapping a pin from a search
-    // used to reset the camera to the world a beat before the event framed —
-    // read as a zoom-out followed by a long fly back in. See `topViewKey` for
-    // why this is not a `location.pathname` comparison, and why it must not be
-    // "did the location change" (a re-search moves `?center` and legitimately
-    // re-frames the SAME view).
+    // used to reset the camera to the world a beat before the event framed. A
+    // visitor read that as a zoom-out followed by a long fly back in. See
+    // `topViewKey` for why this is not a `location.pathname` comparison, and why
+    // it must not be "did the location change" (a re-search moves `?center` and
+    // legitimately re-frames the SAME view).
     if (activeView !== ownView.current) return
 
     // On a POP back to a remembered entry, this restores the camera the user
@@ -328,16 +328,14 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
   }, [...deps])
 }
 
-// RegistrationView and ShareView both resolve an event from its route path and
-// suspense-fetch it — shared here, so the resolvePath-plus-queryKey convention
-// stays in one place. (EventView, one level up in the stack, already fetches the
-// same event. TanStack Query's `['event', id, locale]` cache serves this call from
-// that fetch, not a fresh network round trip.) `resolveStack` derives `eventPath`
-// from the raw preceding URL segment without checking that it is actually an
-// event — a hand-typed `/india/register` would otherwise reach here as a region
-// path — so this bails out before firing a request for a non-existent `NaN` id.
-// the nearest ErrorBoundary (DrawerErrorFallback) renders the not-found state
-// instead.
+// RegistrationView and ShareView both resolve an event from its route path, and suspense-fetch
+// it. This is shared here, so the resolvePath-plus-queryKey convention stays in one place.
+// EventView, one level up in the stack, already fetches the same event. TanStack Query's
+// `['event', id, locale]` cache serves this call from that fetch, not a fresh network round
+// trip. `resolveStack` derives `eventPath` from the raw preceding URL segment, without checking
+// that it is actually an event. A hand-typed `/india/register` would otherwise reach here as a
+// region path. So this bails out before firing a request for a non-existent `NaN` id. The
+// nearest ErrorBoundary (DrawerErrorFallback) renders the not-found state instead.
 export function useEventFromPath(eventPath: string) {
   const { locale } = useLocale()
   const resolved = resolvePath(eventPath)
@@ -390,17 +388,16 @@ export function EmptyEventList() {
   )
 }
 
-// The single shared wiring for the IP-geolocation nearby suggestion, rendered
-// above the list on CountriesView, RegionView, and SearchView, so the behaviour is
-// not triplicated. This reads the passive IP location (one lookup per session.
-// It fails silently, so nothing renders) and, on accept, navigates into the
-// distance-ranked search centred on the guess — preserving the active URL filters
-// exactly as SearchField does, plus a synthesized city-sized bbox, so SearchView
-// frames a neighbourhood rather than the pinpoint zoom it uses for a bare centre.
-// `shouldShowGeolocationPrompt` (src/lib/geolocation.ts, fully unit-tested) owns
-// the visibility conditions. Only the close button persists a (session-scoped)
-// dismissal. Accepting merely navigates — the prompt self-hides while you are
-// viewing that area, but returns once you leave it.
+// The single shared wiring for the IP-geolocation nearby suggestion, rendered above the list
+// on CountriesView, RegionView, and SearchView, so the behaviour is not triplicated. This reads
+// the passive IP location — one lookup per session, which fails silently, so nothing renders —
+// and, on accept, navigates into the distance-ranked search centred on the guess. It preserves
+// the active URL filters exactly as SearchField does, plus a synthesized city-sized bbox, so
+// SearchView frames a neighbourhood rather than the pinpoint zoom it uses for a bare centre.
+// `shouldShowGeolocationPrompt` (src/lib/geolocation.ts, fully unit-tested) owns the visibility
+// conditions. Only the close button persists a session-scoped dismissal. Accepting merely
+// navigates. The prompt self-hides while the visitor views that area, but returns once they
+// leave it.
 export function GeolocationSuggestion({
   regionCenter,
 }: {
@@ -437,12 +434,11 @@ export function GeolocationSuggestion({
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
 
-    // Accepting must NOT persist a dismissal — only the close button does
-    // (handleDismiss). Zooming to the guess already hides the prompt on its
-    // own: the new URL carries `?center`/`?q`, so `hasActivePlaceSearch`
-    // suppresses it while you are looking at that area. Leaving the area
-    // (clearing the search) brings the suggestion back, so it keeps offering
-    // until the user actually dismisses it.
+    // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
+    // Zooming to the guess already hides the prompt on its own. The new URL carries
+    // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while the visitor is looking at
+    // that area. Leaving the area, by clearing the search, brings the suggestion back, so it
+    // keeps offering until the visitor actually dismisses it.
     navigate(
       placeSearchPath(searchParams, {
         q: `${ipLocation.city}, ${ipLocation.country}`,

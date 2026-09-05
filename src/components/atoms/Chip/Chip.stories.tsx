@@ -23,8 +23,9 @@ export default {
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
 
 /**
- * Chip — a compact, uppercase label on the Radix-semantic tokens. Showcases the
- * colour × variant matrix and the size / radius / removable options.
+ * Chip — a compact, uppercase label on the Radix-semantic tokens. This story
+ * shows the colour × variant matrix, and the size, radius, and removable
+ * options.
  */
 export const Default: Story = () => (
   <StoryWrapper>

@@ -9,8 +9,8 @@ import { ListItem } from '@/components/molecules/ListItem'
 export default { title: 'Molecules / List' } satisfies StoryDefault
 
 /**
- * List — a scroll-shadowed `<ul>` container for ListItem / EventListItem rows, as
- * used inside the RegionView drawer body.
+ * List — a scroll-shadowed `<ul>` container for ListItem or EventListItem
+ * rows, as used inside the RegionView drawer body.
  */
 export const Default: Story = () => (
   <StoryWrapper>

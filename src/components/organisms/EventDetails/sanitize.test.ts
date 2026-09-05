@@ -1,21 +1,24 @@
 // @vitest-environment jsdom
 //
-// The third spec in the unit lane that boots a DOM (see `docs/testing.md`), and the
-// one case where that is not a judgement call: DOMPurify sanitizes by parsing into a real
-// document and walking it. There is no DOM-free half to extract — the thing under test IS
-// the DOM behaviour, and it is exercised through the module's own configured instance so
-// the hook and the config are covered as they actually ship.
+// This is the third spec in the unit lane that boots a DOM (see `docs/testing.md`).
+// It is also the one case where that choice is not a judgment call. DOMPurify
+// sanitizes by parsing a real document and walking it. So there is no DOM-free
+// half to extract. The DOM behavior IS the thing under test. This spec exercises
+// it through the module's own configured instance, so the hook and the config
+// are covered exactly as they ship.
 //
-// What it pins is that the allowlist is LOAD-BEARING. It was not: `USE_PROFILES: { html:
-// true }` replaced `ALLOWED_TAGS`/`ALLOWED_ATTR` rather than intersecting with them, so
-// the list was documentation and the real policy was the full HTML profile. Every gate
-// stayed green the whole time, because nothing asserted on the output — which is why the
-// assertions here are on strings a reader can check by eye.
+// This spec pins down that the allowlist is LOAD-BEARING. It once was not.
+// `USE_PROFILES: { html: true }` replaced `ALLOWED_TAGS` and `ALLOWED_ATTR`
+// instead of narrowing them. So the list was only documentation, and the real
+// policy was the full HTML profile. Every gate stayed green the whole time,
+// because nothing asserted on the output. This is why the assertions here
+// check strings a reader can verify by eye.
 //
-// The round trip against `lexicalToHtml` is the other half, and it is the one that would
-// have caught this file's own first draft: tightening the allowlist is only safe while it
-// stays a superset of what the serializer emits, and the draft dropped five heading levels
-// silently, because a stripped tag keeps its text and looks like prose.
+// The round trip against `lexicalToHtml` is the other half of this spec. It is
+// the check that would have caught this file's own first draft. Tightening the
+// allowlist is safe only while it stays a superset of what the serializer
+// emits. The first draft dropped five heading levels silently, because a
+// stripped tag keeps its text and looks like plain prose.
 import { describe, expect, it } from 'vitest'
 
 import { sanitizeDescription } from './sanitize'
@@ -57,8 +60,9 @@ describe('sanitizeDescription', () => {
     })
   })
 
-  // The agreement that keeps the two files from drifting. `lexicalToHtml` passes any
-  // h1-h6 through, so an allowlist carrying only `h3` deletes five of them in silence.
+  // This test keeps the two files from drifting apart. `lexicalToHtml` passes
+  // any h1 through h6 heading through, so an allowlist carrying only `h3`
+  // would silently delete five of them.
   describe('survives everything lexicalToHtml can emit', () => {
     it.each(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])('heading %s round-trips', (tag) => {
       const html = lexicalToHtml(
@@ -96,8 +100,9 @@ describe('sanitizeDescription', () => {
   })
 
   describe('strips everything outside it', () => {
-    // The clickjacking surface the profile was leaving open: an authored overlay
-    // covering the HOST page. Both the tag and the style attribute must go.
+    // This is the clickjacking surface the old profile left open: an authored
+    // overlay could cover the HOST page. Both the tag and the style attribute
+    // must go.
     it('drops a positioned div, keeping only its text', () => {
       const out = sanitizeDescription(
         '<div style="position:fixed;inset:0;z-index:9999">overlay</div>',
@@ -130,10 +135,10 @@ describe('sanitizeDescription', () => {
       )
     })
 
-    // ALLOW_DATA_ATTR / ALLOW_ARIA_ATTR default to true and are independent of
-    // ALLOWED_ATTR, so these pass straight through unless turned off by name.
-    // `data-vaul-*` drives the drawer this prose renders inside; `aria-live` on a
-    // host page hijacks announcements the host owns.
+    // ALLOW_DATA_ATTR and ALLOW_ARIA_ATTR default to true. They are independent
+    // of ALLOWED_ATTR, so these attributes pass straight through unless turned
+    // off by name. `data-vaul-*` drives the drawer that renders this prose.
+    // `aria-live` on a host page hijacks announcements the host owns.
     it('drops data-* attributes', () => {
       expect(sanitizeDescription('<p data-vaul-no-drag="true" data-state="open">t</p>')).toBe(
         '<p>t</p>',

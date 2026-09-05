@@ -56,8 +56,9 @@ describe('shareableUrl', () => {
   })
 
   it('rejects a non-http(s) candidate on either side', () => {
-    // A `file://` document is linkable in the routing sense and useless as a share
-    // target; a CMS value that slipped the schema must not reach a share intent.
+    // A `file://` document is linkable in the routing sense and useless as
+    // a share target. A CMS value that slipped the schema must not reach a
+    // share intent.
     expect(shareableUrl(null, 'file:///Users/x/demo.html')).toBeUndefined()
     expect(shareableUrl('javascript:alert(1)', STANDALONE)).toBe(STANDALONE)
     expect(shareableUrl('javascript:alert(1)', undefined)).toBeUndefined()

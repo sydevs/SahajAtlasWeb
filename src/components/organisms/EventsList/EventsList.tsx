@@ -15,9 +15,10 @@ export interface EventsListProps {
   searchedPlace?: string
 }
 
-// The presentational list — events passed in via props, one card each. Kept free
-// of the data/i18n graph (its network-bound container is DynamicEventsList) so a
-// story can render it without booting the app's query client or i18n backend.
+// This is the presentational list: events pass in via props, one card each.
+// It stays free of the data and i18n graph — its network-bound container is
+// DynamicEventsList — so a story can render it without booting the app's
+// query client or i18n backend.
 export function EventsList({ events, searchedPlace }: EventsListProps) {
   return (
     <List>

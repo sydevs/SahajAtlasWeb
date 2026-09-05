@@ -18,7 +18,7 @@ import { setThemeRoot } from '@/hooks/use-theme'
  * **jsdom, because every property here is about a real document.** Whether the element exists,
  * whether it is published to the module the whole app portals through, and — the one that
  * matters most — WHEN it is published relative to its own children's first render. None of
- * those survive `renderToStaticMarkup`: refs and effects do not run there at all, so an SSR
+ * those survive `renderToStaticMarkup`. Refs and effects do not run there at all, so an SSR
  * spec would assert the markup and silently skip the entire contract.
  */
 
@@ -73,7 +73,7 @@ describe('MapFrame, uncontained', () => {
     expect(wrapper.querySelector('[data-sy-frame]')).toBeNull()
     expect(frameElement()).toBeNull()
     // `null` is what makes `--sy-sheet-top` a zero offset and hands vaul `window.innerHeight`
-    // — i.e. exactly the behaviour that shipped before this existed.
+    // — that is, exactly the behaviour that shipped before this existed.
     expect(overlayContainer()).toBe(wrapper)
   })
 })
@@ -82,14 +82,14 @@ describe('MapFrame, contained by a box it cannot fill', () => {
   /**
    * ⚠ The case `mapMode` cannot see, because it reads the element's RECT.
    *
-   * `min-height: 640px` gives a non-zero rect while `height: 100%` on the child resolves to
+   * `min-height: 640px` gives a non-zero rect, while `height: 100%` on the child resolves to
    * `auto` — percentages resolve against the parent's computed `height`, not its used one. The
    * frame then computes to 0, and `contain: layout` makes that zero-height box the containing
-   * block for the entire fixed layer, so nothing renders at all while the readiness marker still
-   * attests a healthy embed. Measured in Chrome 151 on a real host page.
+   * block for the entire fixed layer. So nothing renders at all, while the readiness marker
+   * still attests a healthy embed. This was measured in Chrome 151 on a real host page.
    *
-   * Refusing rather than only warning is the point: before #169 that same host got the compact
-   * card — a working button and the right advice — so leaving it invisible would be a
+   * Refusing, rather than only warning, is the point. Before #169, that same host got the
+   * compact card — a working button and the right advice — so leaving it invisible would be a
    * regression. jsdom reports 0 for every `offsetHeight`, which is exactly this condition.
    */
   it('refuses the frame and renders its children uncontained', () => {
@@ -114,8 +114,8 @@ describe('MapFrame, contained by a box it cannot fill', () => {
  * Give the frame a box, because jsdom performs no layout and reports `offsetHeight === 0` for
  * every element — which is precisely the "cannot be filled" condition the component refuses.
  *
- * Stubbing it is not a workaround; it is the spec being explicit that these cases are about a
- * frame that DID get a box, and the describe above is about one that did not.
+ * Stubbing it is not a workaround. It makes the spec explicit that these cases are about a
+ * frame that DID get a box, while the describe above is about one that did not.
  */
 function withLayout() {
   const descriptors = {
@@ -212,10 +212,10 @@ describe('MapFrame, contained', () => {
 /**
  * The JOIN, pinned in source.
  *
- * `docs/testing.md` records the `timeoutStatus` lesson twice over: a helper can be
+ * `docs/testing.md` records the `timeoutStatus` lesson twice over. A helper can be
  * exhaustively specced, return the right answer, and never be wired to its caller — and no pure
- * spec can see that. Everything above proves `MapFrame` works; none of it proves the map is
- * inside one. Rendering `FullInterface` here to close that gap is not an option: it imports
+ * spec can see that. Everything above proves `MapFrame` works. None of it proves the map is
+ * inside one. Rendering `FullInterface` here to close that gap is not an option. It imports
  * `react-map-gl`, whose `exports-mapbox.js` fires `import('mapbox-gl')` at module scope, which
  * is precisely what the node lane must never pull in.
  */

@@ -10,22 +10,23 @@ import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 /**
  * The collapsed card does not render the interface (issue #161).
  *
- * **jsdom, and the sibling SSR spec cannot do this job — I checked rather than assumed.** The
- * dialog's content sits behind a Radix `Dialog.Portal`, which wraps its child in `<Presence>`, so
- * while the dialog is CLOSED `createPortal` is never called and there is nothing for SSR to
- * serialize. An `expect(html).not.toContain(…)` therefore passes whether or not the interface
- * would have rendered. Written that way first, it stayed green with the regression deliberately
- * reintroduced: a spec covering the door rather than the state (`docs/testing.md`).
+ * **This uses jsdom. The sibling SSR spec cannot do this job — this was checked, not
+ * assumed.** The dialog's content sits behind a Radix `Dialog.Portal`, which wraps its child
+ * in `<Presence>`. So while the dialog is CLOSED, `createPortal` is never called, and there is
+ * nothing for SSR to serialize. An `expect(html).not.toContain(…)` therefore passes whether or
+ * not the interface would have rendered. Written that way first, it stayed green with the
+ * regression deliberately reintroduced — a spec covering the door, rather than the state
+ * (`docs/testing.md`).
  *
- * The property is worth pinning because THREE separate fixes on this branch rest on it alone, and
- * each has its own spec that would keep passing if this broke:
+ * This property is worth pinning, because THREE separate fixes on this branch rest on it
+ * alone, and each has its own spec that would keep passing if this broke:
  *
- *   - mapbox-gl is never fetched, because `FullInterface` is lazy and never rendered;
- *   - the events feed and region tree are never warmed (`App` skips `warmCaches` when compact);
+ *   - mapbox-gl is never fetched, because `FullInterface` is lazy and never rendered.
+ *   - the events feed and region tree are never warmed (`App` skips `warmCaches` when compact).
  *   - no Fathom pageview is recorded, because `Analytics` mounts with the interface.
  *
- * All three are "React never renders `children`" wearing different clothes. If the collapsed card
- * starts rendering them, all three regress at once and nothing else in the lane goes red.
+ * All three are "React never renders `children`" wearing different clothes. If the collapsed
+ * card starts rendering them, all three regress at once, and nothing else in the lane goes red.
  */
 
 vi.mock('react-i18next', () => ({
@@ -65,9 +66,10 @@ const Sentinel = () => <p>{INTERFACE}</p>
 /**
  * A child that reaches for Turnstile the way `FullInterface` does (issue #182) — the fifth
  * candidate for the bug this file exists to catch, and the first one that injects a
- * third-party script into a page we do not own rather than merely fetching or reporting.
+ * third-party script into a page this project does not own, rather than merely fetching or
+ * reporting.
  *
- * It calls the real hook rather than a stand-in: what is being asserted is that React never
+ * This calls the real hook, rather than a stand-in. What is being asserted is that React never
  * renders this subtree, so anything the subtree would do is equally prevented. A fake would
  * only prove the fake stayed unrendered.
  */
@@ -102,10 +104,10 @@ describe('CompactEmbedView — what a collapsed card mounts', () => {
     expect(document.body.textContent).toContain(INTERFACE)
   })
 
-  // The fifth candidate for the four-bug pattern above, and the one with a cost outside our
-  // own page: a collapsed card is one button in somebody's sidebar, and loading Cloudflare's
-  // challenge for it would put a third-party script into their document — and a request to
-  // Cloudflare from every page view — for an interface nobody opened (issue #182).
+  // The fifth candidate for the four-bug pattern above, and the one with a cost outside this
+  // project's own page. A collapsed card is one button in somebody's sidebar. Loading
+  // Cloudflare's challenge for it would put a third-party script into their document, and a
+  // request to Cloudflare from every page view, for an interface nobody opened (issue #182).
   it('injects no Turnstile script while collapsed, and does once opened', () => {
     expect(turnstileScripts()).toBe(0)
 

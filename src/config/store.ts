@@ -3,9 +3,9 @@ import { Feature } from 'geojson'
 
 // ===== VIEW STATE ===== //
 
-// A point the map emphasizes with a sprite: the committed `selection` (from
-// frameEvent) and the transient `hover` (from highlightEvent) share this shape.
-// `approximate` swaps the crisp pin for the softer area sprite (online events).
+// This is a point the map emphasizes with a sprite.
+// The committed `selection`, from `frameEvent`, and the transient `hover`, from `highlightEvent`, share this shape.
+// `approximate` swaps the crisp pin for the softer area sprite, used for online events.
 export type MapPoint = { latitude: number; longitude: number; approximate: boolean }
 
 type ViewState = {
@@ -36,18 +36,19 @@ export const useViewState = create<ViewState & ViewAction>((set) => ({
   setBoundary: (boundary: ViewState['boundary']) => set(() => ({ boundary })),
 }))
 
-// Search filters no longer live here — they're the single source of truth in the
-// URL query (`src/hooks/use-filters.ts` + `filtersToParams`/`filtersFromParams`),
-// so a filtered view is linkable. The map + list read them with `useEventFilters`.
+// Search filters no longer live here.
+// The URL query is their single source of truth now, through `src/hooks/use-filters.ts`, `filtersToParams`, and `filtersFromParams`.
+// So a filtered view stays linkable.
+// The map and the list both read the filters with `useEventFilters`.
 
 // ===== CAMERA HISTORY ===== //
 
-// A remembered camera, keyed by `location.key`, so going *back* restores the exact
-// viewport the user left instead of re-deriving it from the region/event. Captured
-// at navigation time (via the Link atom + useAtlasNavigate, before any new framing
-// runs — so it never races the incoming view's frame), read on a POP navigation by
-// `useFrameOnTop`. `location.key` is stable per history entry, so browser
-// back/forward hit the same snapshot for free.
+// This is a remembered camera, keyed by `location.key`.
+// So going back restores the exact viewport the user left, instead of re-deriving it from the region or event.
+// The app captures it at navigation time, through the `Link` atom and `useAtlasNavigate`, before any new framing runs.
+// So it never races the incoming view's frame.
+// `useFrameOnTop` reads it on a POP navigation.
+// `location.key` stays stable per history entry, so browser back and forward hit the same snapshot for free.
 export type CameraSnapshot = Pick<
   ViewState,
   'zoom' | 'latitude' | 'longitude' | 'selection' | 'boundary'
@@ -59,13 +60,15 @@ type CameraHistoryState = {
   read: (key: string) => CameraSnapshot | undefined
 }
 
-// Bound the history so a long-lived embedded session can't grow it without limit;
-// far more than back/forward ever reaches back through. Oldest-inserted evicts first
-// (object key order), which is fine — restores target recent entries.
+// This bounds the history, so a long-lived embedded session cannot grow it without limit.
+// The limit is far more than back and forward ever reach through.
+// The oldest-inserted entry evicts first, by object key order.
+// This is fine, since a restore always targets a recent entry.
 const MAX_SNAPSHOTS = 50
 
-// Accessed imperatively (getState) from navigation handlers + the frame effect, not
-// subscribed to in render — so writing a snapshot never re-renders the map.
+// Navigation handlers and the frame effect access this store imperatively, through `getState`.
+// No render subscribes to it.
+// So writing a snapshot never re-renders the map.
 export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
   snapshots: {},
   save: (key, camera) =>
@@ -81,8 +84,9 @@ export const useCameraHistory = create<CameraHistoryState>((set, get) => ({
 }))
 
 /**
- * Snapshot the live camera (from `useViewState`) under a history key. Called right
- * before an in-widget push so a later POP back to that entry can restore it.
+ * This snapshots the live camera, from `useViewState`, under a history key.
+ * The app calls it right before an in-widget push.
+ * So a later POP back to that entry can restore the camera.
  */
 export const rememberCamera = (key: string): void => {
   const { zoom, latitude, longitude, selection, boundary } = useViewState.getState()
@@ -93,28 +97,28 @@ export const rememberCamera = (key: string): void => {
 // ===== CAMERA SETTLED ===== //
 
 /**
- * Whether the camera has been commanded yet this session — i.e. whether the map has ARRIVED
- * anywhere, as opposed to still sitting on the boot-time world view.
+ * This tracks whether the camera has been commanded yet this session.
+ * In other words, has the map ARRIVED anywhere, or is it still sitting on the boot-time world view?
  *
- * `<ReactMapGL>` is deliberately uncontrolled and takes no `initialViewState`, so it boots at
- * `[0, 0]` zoom 0 and the first framing has to carry it to wherever the visitor actually asked
- * for. Two things need to know that this is the first move, and it is the same fact both times:
+ * `<ReactMapGL>` is deliberately uncontrolled. It takes no `initialViewState`.
+ * So it boots at `[0, 0]`, zoom 0, and the first framing must carry it to wherever the visitor actually asked for.
+ * Two things need to know that this is the first move, and both need the same fact:
  *
- *  - **the first camera command jumps rather than flies** (`use-mapbox.ts`). A `flyTo` from zoom
- *    0 to zoom 15 arcs across the whole planet, which on a deep link to a region or an event is
- *    a long, disorienting animation of somewhere the visitor never asked to see. Every LATER
- *    transition still flies — that symmetry between drilling in and backing out is deliberate.
- *  - **the map stays hidden until then** (`Map.tsx`), so the world frame is never painted.
+ *  - **The first camera command jumps rather than flies** (`use-mapbox.ts`). A `flyTo` from zoom 0 to zoom 15
+ *    arcs across the whole planet. On a deep link to a region or an event, that arc is a long, disorienting
+ *    animation of somewhere the visitor never asked to see. Every LATER transition still flies.
+ *    That symmetry between drilling in and backing out is deliberate.
+ *  - **The map stays hidden until then** (`Map.tsx`), so the world frame is never painted.
  *
- * ⚠ **Not `isEntry`**, which is the obvious-looking alternative and is wrong. `isEntry` is
- * `atlasDepth(location) === 0`, true both for a fresh deep link AND for a structural climb — so
- * dismissing an event up to its region an hour into a session would jump, breaking the rule that
- * every in-app level transition flies one tuned arc. "Has the camera moved yet" is a fact about
- * the map, and it is exactly the condition under which a fly is disorienting.
+ * ⚠ **This is not `isEntry`.** `isEntry` looks like the obvious choice, but it is wrong.
+ * `isEntry` is `atlasDepth(location) === 0`. That is true both for a fresh deep link and for a structural climb.
+ * So dismissing an event up to its region an hour into a session would jump, breaking the rule that every
+ * in-app level transition flies one tuned arc.
+ * "Has the camera moved yet" is a fact about the map, and it is exactly the condition under which a fly is disorienting.
  *
- * ⚠ **Here rather than beside `usePaddingState` in `use-mapbox.ts`**: that module imports
- * `react-map-gl`, which does `import('mapbox-gl')` at module scope, so the node lane cannot
- * import it and a flag living there could not be tested at all.
+ * ⚠ **This flag lives here, not beside `usePaddingState` in `use-mapbox.ts`.**
+ * That module imports `react-map-gl`, which runs `import('mapbox-gl')` at module scope.
+ * So the node lane cannot import that module, and a flag living there could not be tested at all.
  */
 type CameraSettled = {
   settled: boolean
@@ -124,36 +128,38 @@ type CameraSettled = {
 
 export const useCameraSettled = create<CameraSettled>((set) => ({
   settled: false,
-  // Idempotent by identity, not just by value: every camera command calls this, and a `set`
-  // that returned a fresh object each time would notify subscribers — re-rendering the map on
-  // every pan and zoom for a boolean that stopped changing after the first one.
+  // This is idempotent by identity, not only by value.
+  // Every camera command calls this function.
+  // A `set` call that returned a fresh object each time would notify subscribers.
+  // That would re-render the map on every pan and zoom, for a boolean that stopped changing after the first call.
   markSettled: () => set((state) => (state.settled ? state : { settled: true })),
   /**
-   * Forget it, because the map this described has gone.
+   * This clears the settled flag, because the map it described has gone.
    *
-   * ⚠ **Not housekeeping — without it both fixed defects come back on the second view.** This
-   * store is module-global while the map is not: a compact embed unmounts the whole interface
-   * when its dialog closes (`CompactEmbedView` passes the interface as `children` and
-   * deliberately does not `forceMount` it). A stale `true` would then meet a freshly mounted map
-   * sitting at [0, 0] zoom 0 — so the curtain would not draw, the world frame would be painted,
-   * and the first framing would fly across the planet again.
+   * ⚠ **This is not housekeeping. Without it, both fixed defects come back on the second view.**
+   * This store is module-global, but the map is not.
+   * A compact embed unmounts the whole interface when its dialog closes.
+   * `CompactEmbedView` passes the interface as `children` and deliberately does not `forceMount` it.
+   * A stale `true` value would then meet a freshly mounted map sitting at `[0, 0]`, zoom 0.
+   * So the curtain would not draw, the world frame would paint, and the first framing would fly across the planet again.
    *
-   * Called from the map's own unmount, because "the camera has arrived" is a fact about a live
-   * map instance and has to die with it.
+   * The map's own unmount calls this function.
+   * "The camera has arrived" is a fact about a live map instance, and it must die with that instance.
    */
   forgetSettled: () => set((state) => (state.settled ? { settled: false } : state)),
 }))
 
 // ===== CALENDAR POSITION ===== //
 
-// The full-width CalendarView's last view (`month-grid` / `week` / `list`) + focused
-// date, kept so applying a filter (which remounts the filters-keyed grid) or opening an
-// event and coming back doesn't reset Schedule-X to the month grid on today. Session-scoped
-// and cleared on reload. The grid SEEDS from it once at mount (via getState) and writes both
-// fields imperatively as the user navigates — so a write never re-renders the calendar. The
-// `view` is additionally read reactively (a selector) by DrawerStack to size the drawer
-// (list view → regular width); `date` is only ever read via getState, so its frequent writes
-// stay render-free.
+// This holds the full-width `CalendarView`'s last view, `month-grid`, `week`, or `list`, plus its focused date.
+// The store keeps this so applying a filter, which remounts the filters-keyed grid, does not reset Schedule-X to today's month grid.
+// Opening an event and coming back also does not reset it.
+// This state is session-scoped and clears on reload.
+// The grid SEEDS from this store once at mount, through `getState`.
+// It then writes both fields imperatively as the user navigates.
+// So a write never re-renders the calendar.
+// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer. A list view needs the regular width.
+// `date` is only ever read through `getState`, so its frequent writes stay render-free.
 type CalendarPositionState = {
   view: string | null
   date: string | null
@@ -170,18 +176,19 @@ export const useCalendarPosition = create<CalendarPositionState>((set) => ({
 
 // ===== RESULTS REVEAL ===== //
 
-// How much of the search results list is revealed: the row count, and whether the
-// distant (beyond the distance boundary) segment has been reached. Session-scoped and
-// cleared on reload — a fresh visit starts at the first page, which is what a reload
-// is asking for. A store rather than component state because the drawer stack REMOUNTS
-// views: opening an event and coming back would otherwise drop the reader back to the
-// top of a list they had paged deep into. Not in the URL either — paging is a reading
-// position, not a destination, and it has no business in a shared link.
+// This holds how much of the search results list is revealed.
+// It holds the row count, and whether the distant segment, beyond the distance boundary, has been reached.
+// This state is session-scoped and clears on reload.
+// A fresh visit starts at the first page, which is what a reload is asking for.
+// This is a store, not component state, because the drawer stack REMOUNTS views.
+// Opening an event and coming back would otherwise drop the reader back to the top of a list they had paged deep into.
+// This state does not live in the URL either.
+// Paging is a reading position, not a destination, so it has no place in a shared link.
 //
-// `key` is the result set the counts describe (centre + filters + sort + locale). When
-// the list reads a different key than the one stored, the reveal simply IS the first
-// page — so a new search, a filter edit or a re-sort resets by construction, with no
-// reset call to forget at any of the call sites that change those things.
+// `key` names the result set the counts describe: center, filters, sort, and locale.
+// When the list reads a different key than the one stored, the reveal simply IS the first page.
+// So a new search, a filter edit, or a re-sort resets the reveal by construction.
+// No call site that changes those things needs to call a reset.
 type ResultsRevealState = {
   key: string
   shown: number
@@ -198,26 +205,27 @@ export const useResultsReveal = create<ResultsRevealState>((set) => ({
 
 // ===== REPORT MODAL ===== //
 
-// Open state for the report-issue modal (issue #79). Deliberately NOT part of the
-// URL-driven drawer stack: the modal is ephemeral, never appears in the URL,
-// `resolveStack` never sees it, and opening or closing it must neither push nor pop
-// history. It's a store rather than local state because its three triggers live in
-// unrelated subtrees — the settings cog, the app-level ErrorFallback, and the in-drawer
-// DrawerErrorFallback — and the two error CTAs must reach a modal host mounted OUTSIDE
-// the ErrorBoundary that is currently rendering them.
+// This holds the open state for the report-issue modal, issue #79.
+// This modal is deliberately NOT part of the URL-driven drawer stack.
+// The modal is ephemeral. It never appears in the URL. `resolveStack` never sees it.
+// Opening or closing it must neither push nor pop history.
+// This is a store, not local state, because its three triggers live in unrelated subtrees.
+// Those triggers are the settings cog, the app-level `ErrorFallback`, and the in-drawer `DrawerErrorFallback`.
+// The two error CTAs must reach a modal host mounted OUTSIDE the ErrorBoundary that is currently rendering them.
 type ReportModalState = {
   open: boolean
-  /** Whatever was thrown, when opened from an error CTA — carried into the report context. */
+  /** This carries whatever was thrown, when an error CTA opens the modal, into the report context. */
   error: string | null
   openReport: (error?: string | null) => void
   closeReport: () => void
 }
 
-// The control that opened the modal, so focus can return to it. Held outside the store's
-// reactive state — it's a DOM node read once on close, and writing it must not re-render.
+// This holds the control that opened the modal, so focus can return to it.
+// This value stays outside the store's reactive state.
+// It is a DOM node, read once on close, and writing it must not trigger a render.
 let reportOpener: HTMLElement | null = null
 
-/** The element that opened the report modal, if it's still in the document. */
+/** This returns the element that opened the report modal, if it is still in the document. */
 export const reportReturnFocus = (): HTMLElement | null =>
   reportOpener?.isConnected ? reportOpener : null
 
@@ -225,9 +233,10 @@ export const useReportModal = create<ReportModalState>((set) => ({
   open: false,
   error: null,
   openReport: (error) => {
-    // Captured at CLICK time, not on open: the settings menu unmounts its item before the
-    // dialog mounts, so by the time Radix records a "previously focused element" it would
-    // be <body> — and closing would drop a keyboard user at the top of the host page.
+    // This captures the element at CLICK time, not at open time.
+    // The settings menu unmounts its item before the dialog mounts.
+    // So by the time Radix records a "previously focused element," that element would be `<body>`.
+    // Closing the modal would then drop a keyboard user at the top of the host page.
     reportOpener =
       typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -235,17 +244,18 @@ export const useReportModal = create<ReportModalState>((set) => ({
 
     set(() => ({ open: true, error: error ?? null }))
   },
-  // Clear the error too, so a later open from the settings menu can't inherit the
-  // error context of an earlier, unrelated report.
+  // This also clears the error.
+  // So a later open from the settings menu cannot inherit the error context of an earlier, unrelated report.
   closeReport: () => set(() => ({ open: false, error: null })),
 }))
 
 // ===== REGISTRATION DRAFT ===== //
 
-// In-progress registration form values, hoisted out of the form so a drawer
-// remount (e.g. the md-crossing direction remount) can't drop a half-filled form.
-// Scoped to one event at a time; cleared on submit or when a different event's
-// form opens. Read/written via getState() in the form to avoid a watch↔store loop.
+// This holds in-progress registration form values, hoisted out of the form.
+// So a drawer remount, such as the md-crossing direction remount, cannot drop a half-filled form.
+// This state is scoped to one event at a time.
+// It clears on submit, or when a different event's form opens.
+// The form reads and writes this through `getState()`, to avoid a loop between watching and writing the store.
 type RegistrationDraftState = {
   eventId: number | null
   values: Record<string, unknown>

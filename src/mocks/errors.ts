@@ -4,7 +4,7 @@ import { atlasError } from '@/lib/report'
 
 // One representative throw per failure kind (issue #89) — the REAL values, so a story
 // exercises `classifyError` rather than asserting a kind it was handed. Shared by the
-// app-level (Fallbacks) and drawer (Views) error stories so the two enumerations can't
+// app-level (Fallbacks) and drawer (Views) error stories so the two enumerations cannot
 // drift, and by `report.test.ts`, which asserts every fixture classifies as its own key.
 //
 // Keyed by kind and typed `Record<ErrorKind, unknown>`, so adding a kind to the union
@@ -15,11 +15,12 @@ export const sdkError = (status: number, message = 'Request failed') =>
   Object.assign(new Error(message), { status })
 
 export const mockErrors: Record<ErrorKind, unknown> = {
-  // In the app this is a fetch TypeError ("Failed to fetch" — Chrome's wording; Firefox
-  // and Safari differ) raised while `navigator.onLine` is false. Tagged here rather than
-  // thrown raw so the story doesn't classify differently depending on whether the machine
-  // rendering it happens to be online: an ambiguous network failure is `server`, and only
-  // the browser's own verdict makes it `offline`. That pairing is covered in report.test.
+  // In the app this is a fetch TypeError ("Failed to fetch" — Chrome's wording. Firefox
+  // and Safari word it differently) raised while `navigator.onLine` is false. It is tagged
+  // here rather than thrown raw, so the story does not classify differently depending on
+  // whether the machine rendering it happens to be online: an ambiguous network failure is
+  // `server`, and only the browser's own verdict makes it `offline`. That pairing is
+  // covered in report.test.
   offline: atlasError('offline', 'Failed to fetch'),
   // The undefined-body path `validateSDKResponse` guards (payloadcms/payload#14495).
   server: atlasError('server', 'SahajCloud request returned no data: /events/geojson'),
@@ -56,7 +57,7 @@ export const mockErrorKinds = Object.keys(mockErrors) as ErrorKind[]
  * differ, and `report.test.ts` covers both directly.
  */
 export const mockNotFound = {
-  /** `fetch.ts` — a slug the region tree doesn't carry. RegionView, OnlineView. */
+  /** `fetch.ts` — a slug the region tree does not carry. RegionView, OnlineView. */
   region: atlasError('not-found', 'Region not found: atlantis'),
   /** SahajCloud answers 404 and `classifyError` reads the status — the only not-found
    *  fixture exercising the status path rather than our own tag. EventView,

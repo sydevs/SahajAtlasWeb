@@ -16,15 +16,14 @@ import {
   useFrameOnTop,
 } from '@/views/shared'
 
-// The registration form for an event (route `<event-path>/register`). Reached by
-// the event's Register CTA and deep-linkable — so the resolver gates it: a
-// closed/ended/full/inactive event renders its state message, never an
-// operative form, and an external-mode event renders the link-out CTA, never
-// the native form. The CMS enforces the same four refusals server-side
-// (SahajCloud#601: `POST /register` answers 409 + a machine-readable `code`), so
-// this gate is now the fast path rather than the only one — a submission that
-// races the state change is still refused, and RegistrationForm maps the code
-// back to the same copy this renders.
+// The registration form for an event, at route `<event-path>/register`. The event's Register
+// CTA reaches this view, and the route is deep-linkable, so the resolver gates it. A closed,
+// ended, full, or inactive event renders its state message, never an operative form. An
+// external-mode event renders the link-out CTA, never the native form. The CMS enforces the
+// same four refusals server-side (SahajCloud#601: `POST /register` answers 409 with a
+// machine-readable `code`). So this gate is now the fast path, not the only one. A submission
+// that races the state change is still refused, and RegistrationForm maps the code back to the
+// same copy this renders.
 export function RegistrationView({
   eventPath,
   parentPath,
@@ -41,9 +40,9 @@ export function RegistrationView({
 
   const { data: event } = useEventFromPath(eventPath)
   const { display, blockedMessage, whereLine } = useEventDisplay(event)
-  // One answer for both surfaces the confirmation screen puts a URL on — the calendar
-  // entry and the invite-a-friend block — so they can't word the same event two ways.
-  // `undefined` where there is no honest link (issue #115): both degrade rather than
+  // One answer serves both surfaces the confirmation screen puts a URL on — the calendar
+  // entry and the invite-a-friend block — so they cannot word the same event two ways. This is
+  // `undefined` where there is no honest link (issue #115). Both then degrade, rather than
   // carry the host page's address.
   const eventUrl = useShareUrl(event.webUrl, event.path)
 
@@ -68,34 +67,33 @@ export function RegistrationView({
 
   const selectableDates = display.kind === 'course' ? futureDates.slice(0, 1) : futureDates
 
-  // Calendar-export inputs for the confirmation screen (issue #105). Built HERE
-  // because this view holds the FULL event doc: `getEventDoc` selects the whole
-  // `schedule` group, so it carries the exclusions / untilDate / monthDay /
-  // weekdayOfMonth that the trimmed feed deliberately omits. A feed event would
-  // silently export a series missing its cancelled sessions and its end date.
+  // Calendar-export inputs for the confirmation screen (issue #105). This is built HERE
+  // because this view holds the FULL event doc. `getEventDoc` selects the whole `schedule`
+  // group, so it carries the exclusions, untilDate, monthDay, and weekdayOfMonth that the
+  // trimmed feed deliberately omits. A feed event would silently export a series missing its
+  // cancelled sessions and its end date.
   //
-  // `whereLine` is the same one-line place string the rest of the event surfaces
-  // show, so the calendar entry names the venue the way the panel did — but only
-  // for a PHYSICAL event. Online, that line reads "hosted from <somewhere>",
-  // which is where the class originates, not anywhere the viewer goes; as a
-  // calendar LOCATION it would send them to a city they have no business in. The
-  // event's own page rides the description instead (Atlas never holds the join
-  // link — the CMS delivers it after registration).
+  // `whereLine` is the same one-line place string the rest of the event surfaces show, so the
+  // calendar entry names the venue the way the panel did — but only for a PHYSICAL event.
+  // Online, that line reads "hosted from <somewhere>", which is where the class originates,
+  // not anywhere the viewer goes. As a calendar LOCATION it would send them to a city they
+  // have no business in. The event's own page carries the join link in its description
+  // instead — Atlas never holds that link itself, because the CMS delivers it after
+  // registration.
   const calendarExport = event.schedule
     ? {
         id: event.id,
         title: event.title,
-        // The FILTERED dates, so the export can't anchor on a session that has
-        // already finished — the same guard the date picker above needed, and the
-        // one thing `lib/ics.ts` cannot re-derive on its own.
+        // The FILTERED dates, so the export cannot anchor on a session that has already
+        // finished — the same guard the date picker above needed, and the one thing
+        // `lib/ics.ts` cannot re-derive on its own.
         schedule: { ...event.schedule, upcomingDates: futureDates },
         location: isOnline(event) ? undefined : whereLine,
-        // The SAME resolution the share block uses, so the two can't disagree about
-        // what this event's link is. `webUrl` is `SafeUrlSchema`
-        // (`.nullish().catch(null)`), so passing it raw would leave the exported
-        // event with no link back for exactly the events whose CMS url is
-        // missing or non-http — while the share block still had one. `lib/ics.ts`
-        // takes `url` as nullish and simply omits the `URL:` line, which is the
+        // The SAME resolution the share block uses, so the two cannot disagree about what
+        // this event's link is. `webUrl` is `SafeUrlSchema` (`.nullish().catch(null)`), so
+        // passing it raw would leave the exported event with no link back for exactly the
+        // events whose CMS url is missing or non-http, while the share block still had one.
+        // `lib/ics.ts` takes `url` as nullish and simply omits the `URL:` line, which is the
         // right outcome when there is no honest link to put in the calendar entry.
         url: eventUrl,
       }
@@ -140,17 +138,17 @@ export function RegistrationView({
             <EventRegisterBar basePath={parentPath} event={event} />
           </div>
         ) : (
-          // Full, ended, or registration closed — the class is real, it just can't be
+          // Full, ended, or registration closed. The class is real, it just cannot be
           // joined from here. That is the same shape as every other screen with nothing to
-          // act on, so it renders through the shared panel rather than as two bare
+          // act on, so it renders through the shared panel, instead of as two bare
           // paragraphs: the reason in the neutral register, then ONE next step.
           //
-          // Which step is the point. A person can still let someone into a full class where
-          // no button of ours can, so the organiser's number leads whenever the event
-          // carries one; `visibleActions` swaps in the recovery ladder ("see events in
-          // <region>") only when there is nobody to call. The old `contactHelper` line said
-          // "contact the host to join" in words — the CTA says it as something to press, so
-          // rendering both would be saying it twice.
+          // Which step matters is the point. A person can still let someone into a full class
+          // where no button of ours can, so the organiser's number leads whenever the event
+          // carries one. `visibleActions` swaps in the recovery ladder — "see events in
+          // <region>" — only when there is nobody to call. The old `contactHelper` line said
+          // "contact the host to join" in words. The CTA says the same thing as something to
+          // press, so rendering both would say it twice.
           <FallbackPanel
             align="start"
             contact={
@@ -159,7 +157,7 @@ export function RegistrationView({
                 : undefined
             }
             kind="unavailable"
-            // `useEventDisplay` owns the status→copy table and its tests; this row's own
+            // `useEventDisplay` owns the status→copy table and its tests. This row's own
             // sentence is only the generic behind it.
             message={blockedMessage ?? undefined}
           />

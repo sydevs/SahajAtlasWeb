@@ -16,65 +16,73 @@ export const usePaddingState = create<PaddingState>((set) => ({
   setPadding: (padding) => set(() => ({ padding })),
 }))
 
-// Feel knobs for the app's level-to-level camera transitions (`flyTo` + `fitBounds`,
-// below). Mapbox's flyTo coordinates pan + zoom into one smooth arc; `curve` is how far
-// it arcs out to show the path (lower = flatter, less zoom-out) and `speed` is the
-// velocity (lower = slower). Tuned off the snappy defaults (curve 1.42 / speed 1.2).
+// These are feel knobs for the app's level-to-level camera transitions, `flyTo` and `fitBounds` below.
+// Mapbox's `flyTo` coordinates pan and zoom into one smooth arc.
+// `curve` sets how far it arcs out to show the path. A lower value gives a flatter arc, with less zoom-out.
+// `speed` sets the velocity. A lower value moves slower.
+// These values are tuned down from Mapbox's snappy defaults, curve 1.42 and speed 1.2.
 const FLY_CURVE = 1.2
 const FLY_SPEED = 1.0
 
-// REDUCED MOTION IS ALREADY HANDLED, AND DELIBERATELY NOT HANDLED HERE (issue #102).
+// REDUCED MOTION IS ALREADY HANDLED. THIS FILE DELIBERATELY DOES NOT HANDLE IT AGAIN. See issue #102.
 //
-// This looked like the obvious third place to add a `prefers-reduced-motion` check,
-// beside `providers.tsx` and `styles/vaul.css`. It isn't: mapbox-gl does it itself, in
-// the same three calls this hook makes. `flyTo` short-circuits to `jumpTo` under the
-// preference, `easeTo` sets `duration = 0`, and `fitBounds` reaches one of them through
-// `_fitInternal` — all gated on `_respectPrefersReducedMotion`, which defaults on, and
-// on a media-query read that is live rather than cached (`browser.prefersReducedMotion`
-// re-reads `.matches` per call), so it agrees with our own hook mid-session.
+// This looked like the obvious third place to add a `prefers-reduced-motion` check, beside `providers.tsx` and `styles/vaul.css`.
+// It is not the right place.
+// mapbox-gl already does this itself, in the same three calls this hook makes.
+// `flyTo` short-circuits to `jumpTo` under the preference.
+// `easeTo` sets `duration = 0`.
+// `fitBounds` reaches one of those two through `_fitInternal`.
+// All three gate on `_respectPrefersReducedMotion`, which defaults on.
+// That gate reads the media query live, not from a cache. `browser.prefersReducedMotion` re-reads `.matches` on every call.
+// So mapbox-gl agrees with our own hook mid-session.
 //
-// Nothing is lost on the way through. flyTo's reduced-motion branch `pick`s
-// `center/zoom/bearing/pitch/around/padding/retainPadding` into the jump, so the drawer
-// offset survives — and `fitBoundsOptions` below contributes only `maxZoom` (consumed by
-// `cameraForBounds` before any of this) and `padding`. A hand-rolled branch here would
-// therefore be a re-implementation that can only drift from the one that actually runs.
+// Nothing is lost on the way through.
+// `flyTo`'s reduced-motion branch `pick`s `center`, `zoom`, `bearing`, `pitch`, `around`, `padding`, and `retainPadding` into the jump.
+// So the drawer offset survives.
+// `fitBoundsOptions` below contributes only `maxZoom`, consumed by `cameraForBounds` earlier, and `padding`.
+// A hand-rolled branch here would only re-implement this, and could only drift from the branch that actually runs.
 //
-// Two ways to break it, both by addition: setting `respectPrefersReducedMotion: false`
-// on the map, or passing `essential: true` on a camera call — Mapbox's documented opt-out
-// for camera moves that carry meaning. Neither is used, and neither should be.
+// Two changes would break this, and both are additions.
+// One is setting `respectPrefersReducedMotion: false` on the map.
+// The other is passing `essential: true` on a camera call, Mapbox's documented opt-out for camera moves that carry meaning.
+// This code uses neither, and it should stay that way.
 //
 // THE FIRST CAMERA COMMAND OF A SESSION ARRIVES INSTEAD OF FLYING.
 //
-// The map is uncontrolled and takes no `initialViewState`, so it boots showing the world at
-// zoom 0. Flying from there to an event's zoom 15 is an arc across the planet — on a deep link,
-// several seconds of somewhere nobody asked to see. `useCameraSettled` (`config/store.ts`) says
-// whether the camera has arrived anywhere yet; until it has, these ops jump. Everything after
-// flies exactly as before, which is what keeps drilling in and backing out symmetric.
+// The map is uncontrolled and takes no `initialViewState`.
+// So it boots showing the world at zoom 0.
+// Flying from there to an event's zoom 15 arcs across the planet.
+// On a deep link, that arc is several seconds of somewhere nobody asked to see.
+// `useCameraSettled` in `config/store.ts` says whether the camera has arrived anywhere yet.
+// Until it has, these operations jump instead.
+// Everything after that flies exactly as before, which keeps drilling in and backing out symmetric.
 //
-// Two mechanics worth stating, because both were measured against mapbox-gl 3.9.2 rather than
-// assumed, and the obvious guesses are wrong:
+// Two mechanics are worth stating here.
+// Both were measured against mapbox-gl 3.9.2, not assumed, and the obvious guesses are wrong.
 //
-//  - the instant point move is `jumpTo`, which is precisely what `flyTo`'s own reduced-motion
-//    branch delegates to; its `pick` list keeps `padding`/`retainPadding`, so the drawer offset
-//    survives the jump exactly as it survives that one.
-//  - the instant bounds fit needs BOTH `linear: true` and `animate: false`. `fitBounds` routes
-//    through `_fitInternal`, which picks `easeTo` over `flyTo` on `linear`, and it is `easeTo`
-//    that honours `animate: false` by zeroing its duration. `cameraForBounds` has already
-//    consumed `maxZoom` and the padding by then, so neither is lost.
+//  - The instant point move is `jumpTo`. This is exactly what `flyTo`'s own reduced-motion branch delegates to.
+//    Its `pick` list keeps `padding` and `retainPadding`, so the drawer offset survives the jump the same way it survives that branch.
+//  - The instant bounds fit needs BOTH `linear: true` and `animate: false`.
+//    `fitBounds` routes through `_fitInternal`, which picks `easeTo` over `flyTo` when `linear` is set.
+//    `easeTo` is the one that honors `animate: false`, by zeroing its duration.
+//    `cameraForBounds` has already consumed `maxZoom` and the padding by then, so this loses neither.
 //
-// This is not a reduced-motion branch and must not become one: it reads no media query, and it
-// still must never pass `essential: true`. Under the preference mapbox already jumps, so the
-// first move is a no-op difference and every later one reaches mapbox's own branch untouched.
+// This is not a reduced-motion branch, and it must not become one.
+// It reads no media query, and it must still never pass `essential: true`.
+// Under the preference, mapbox already jumps.
+// So the first move makes no real difference, and every later move reaches mapbox's own branch untouched.
 
 /**
- * Claim the session's first camera command: true exactly once, for whichever op runs first.
+ * This claims the session's first camera command.
+ * It returns true exactly once, for whichever operation runs first.
  *
- * Read imperatively rather than through a selector, so the ops below don't re-render every
- * consumer of this hook — the map is the hottest render path in the app — and so the flag is
- * consumed at CALL time. That matters: `useFrameOnTop` fires once before react-map-gl has
- * registered the instance (it resolves in a microtask after the mounting commit), and each op
- * bails on `!mapbox` before reaching here, so that no-op run cannot spend the first move and
- * leave the real one flying.
+ * This reads the flag imperatively, not through a selector.
+ * So the operations below do not re-render every consumer of this hook. The map is the hottest render path in the app.
+ * This also means the flag is consumed at CALL time.
+ * That timing matters: `useFrameOnTop` fires once before react-map-gl has registered the instance.
+ * That instance resolves in a microtask after the mounting commit.
+ * Each operation bails out on `!mapbox` before reaching here.
+ * So that no-op run cannot spend the first move and leave the real one flying.
  */
 const arriving = (): boolean => {
   const { settled, markSettled } = useCameraSettled.getState()
@@ -106,11 +114,11 @@ export function useMapbox() {
     mapbox,
     padding,
     setPadding: changePadding,
-    // Fit a bounds. `opts` layers a maxZoom cap + extra inset over the ambient drawer
-    // padding (a tight/single-event bbox can't zoom past the cap; events keep off the
-    // edge). Mapbox fitBounds already flies — `linear` defaults to false, so it
-    // transitions via flyTo and forwards our curve/speed — so drilling into a region
-    // gets the same tuned arc as flying into an event, for free.
+    // This fits a bounds.
+    // `opts` layers a `maxZoom` cap and extra inset over the ambient drawer padding.
+    // So a tight or single-event bbox cannot zoom past the cap, and events stay off the edge.
+    // Mapbox's `fitBounds` already flies, since `linear` defaults to false and it transitions through `flyTo`, forwarding our curve and speed.
+    // So drilling into a region gets the same tuned arc as flying into an event, for free.
     fitBounds: useCallback(
       (bounds: LngLatBoundsLike, opts?: FitOptions) => {
         if (!mapbox) return
@@ -122,8 +130,8 @@ export function useMapbox() {
       },
       [mapbox, padding],
     ),
-    // Whether an event's point is inside the padded viewport (the map area not
-    // covered by the drawer) — so frameEvent can keep the zoom for an on-screen pin.
+    // This checks whether an event's point sits inside the padded viewport, the map area the drawer does not cover.
+    // So `frameEvent` can keep the zoom for an on-screen pin.
     isPointVisible: useCallback(
       (longitude: number, latitude: number) => {
         if (!mapbox) return false
@@ -139,16 +147,16 @@ export function useMapbox() {
       },
       [mapbox, padding],
     ),
-    // The eased (non-flying) camera op — a plain easeTo. `flyTo` / `fitBounds` above are
-    // the app's flying level transitions; `moveMap` is the snappy one, kept for the
-    // deliberate exceptions: the world reset (zoom 0) and cluster expansion.
+    // This is the eased, non-flying camera operation, a plain `easeTo`.
+    // `flyTo` and `fitBounds` above are the app's flying level transitions.
+    // `moveMap` is the snappy one, kept for two deliberate exceptions: the world reset at zoom 0, and cluster expansion.
     moveMap: useCallback(
       (options: EasingOptions) => {
         if (!mapbox) return
 
-        // Already an easeTo, so nothing about the move changes on the first command — but it
-        // still marks the camera as arrived, or the world reset the root view performs would
-        // leave the next command thinking it was the first.
+        // This is already an `easeTo`, so nothing about the move changes on the first command.
+        // It still marks the camera as arrived.
+        // Otherwise, the world reset the root view performs would leave the next command thinking it was the first.
         arriving()
 
         if (options.padding) {
@@ -160,12 +168,13 @@ export function useMapbox() {
       },
       [mapbox, padding],
     ),
-    // The app's standard "move between levels" transition to a point + zoom: Mapbox's
-    // built-in flyTo — ONE smooth, coordinated pan+zoom arc (it stays wider mid-flight
-    // and zooms in near the target, so the zoom never starts while the target is still
-    // crossing the screen). Used for framing an event and restoring a remembered camera
-    // on back, so zooming in and out feel symmetric. A later camera command cancels an
-    // in-flight fly, so an interrupting restore / new frame just takes over cleanly.
+    // This is the app's standard "move between levels" transition to a point and zoom.
+    // It uses Mapbox's built-in `flyTo`, ONE smooth, coordinated pan-and-zoom arc.
+    // That arc stays wider mid-flight and zooms in near the target, so the zoom never starts while the target is still crossing the screen.
+    // The app uses this for framing an event and for restoring a remembered camera on back navigation.
+    // So zooming in and zooming out feel symmetric.
+    // A later camera command cancels an in-flight fly.
+    // So an interrupting restore or a new frame just takes over cleanly.
     flyTo: useCallback(
       (center: [number, number], zoom: number) => {
         if (!mapbox) return

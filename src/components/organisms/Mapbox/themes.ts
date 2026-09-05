@@ -1,20 +1,22 @@
 import { FONT_FAMILY } from '@/styles/fonts'
 
-// Themes the Mapbox Search JS Geocoder (used by MapSearch) to match the rest of
-// the widget: it reads the project's brand CSS tokens instead of hardcoded
-// colours, so the input + its suggestion dropdown follow light/dark mode and the
-// tenant palette. Colours map to the same tokens Tailwind uses — the neutral
-// ramp (`--gray-*`, dark-adaptive), the surface (`--background`), and the brand
-// accent (`--primary-9`) — with the input border matching our form inputs
-// (`gray-7`) and the default rounded corners.
-// The geocoder styles itself with CSS-in-JS of its own, so it can't inherit our
-// `font-sans`; the stack is restated here and built from FONT_FAMILY so a rename of the
-// self-hosted face can't leave this one input in the fallback system sans (#91).
+// This themes the Mapbox Search JS Geocoder (used by MapSearch) to match the
+// rest of the widget. It reads the project's brand CSS tokens instead of
+// hardcoded colors, so the input and its suggestion dropdown follow
+// light/dark mode and the tenant palette. Colors map to the same tokens
+// Tailwind uses: the neutral ramp (`--gray-*`, dark-adaptive), the surface
+// (`--background`), and the brand accent (`--primary-9`). The input border
+// matches our form inputs (`gray-7`), with the default rounded corners.
+// The geocoder styles itself with its own CSS-in-JS, so it cannot inherit
+// our `font-sans`. The stack is restated here and built from FONT_FAMILY,
+// so a rename of the self-hosted face cannot leave this one input in the
+// fallback system sans (#91).
 export const controlTheme = {
   variables: {
     fontFamily: `${FONT_FAMILY}, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
-    // Base font size for the input + suggestions (spacing derives from it); kept
-    // small so the "Search for events near…" placeholder isn't truncated.
+    // This is the base font size for the input and suggestions. Spacing
+    // derives from it. It stays small, so the "Search for events near…"
+    // placeholder is not truncated.
     unit: '14px',
     fontWeight: '500',
     padding: '1em',

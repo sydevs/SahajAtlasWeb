@@ -82,7 +82,7 @@ describe('isLocalRegion', () => {
 })
 
 describe('shouldShowGeolocationPrompt', () => {
-  // A baseline where the prompt SHOWS; each case flips exactly one condition.
+  // A baseline where the prompt shows. Each case flips exactly one condition.
   const showing = {
     guess: PARIS,
     dismissed: false,

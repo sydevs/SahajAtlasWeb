@@ -96,7 +96,7 @@ describe('decideSlot — the whole decision', () => {
     const { compact, warning } = decideSlot({ element, hasMap: true, fromPage: false })
 
     expect(compact).toMatchObject({ action: { kind: 'overlay' } })
-    // The two reasons earn opposite advice; this one must not tell them to resize the element.
+    // The two reasons earn opposite advice. This one must not tell them to resize the element.
     expect(warning).toContain('map=false')
   })
 

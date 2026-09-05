@@ -1,13 +1,12 @@
 /**
- * SahajCloud live-preview session (issue #40).
+ * This is the SahajCloud live-preview session. See issue #40.
  *
- * When the CMS admin opens Live Preview it loads the standalone Atlas at
- * `/preview?collection=events|regions&id=<id>&secret=<SAHAJCLOUD_PREVIEW_SECRET>`.
- * `main.tsx` captures those params here at boot (before React mounts) and scrubs the
- * secret from the address bar. The request interceptor (`config/api/client.ts`) reads
- * `secret`/`active` to unlock drafts; `<PreviewController>` reads `collection`/`id` to
- * boot the drawer. Mirrors `config/api/auth.ts`: a mutable in-memory singleton, never
- * persisted — the secret lives only in memory, never in the bundle or storage.
+ * When the CMS admin opens Live Preview, it loads the standalone Atlas at `/preview?collection=events|regions&id=<id>&secret=<SAHAJCLOUD_PREVIEW_SECRET>`.
+ * `main.tsx` captures those params here at boot, before React mounts, and scrubs the secret from the address bar.
+ * The request interceptor, `config/api/client.ts`, reads `secret` and `active` to unlock drafts.
+ * `<PreviewController>` reads `collection` and `id` to boot the drawer.
+ * This mirrors `config/api/auth.ts`: a mutable in-memory singleton, never persisted.
+ * The secret lives only in memory, never in the bundle or storage.
  */
 
 export type PreviewCollection = 'events' | 'regions'
@@ -26,21 +25,21 @@ const preview: PreviewSession = {
   secret: null,
 }
 
-/** The live-preview boot route. Reserved in `RESERVED_SLUGS` so it never reads as a region. */
+/** This is the live-preview boot route. `RESERVED_SLUGS` reserves it, so it never reads as a region. */
 export const PREVIEW_PATH = '/preview'
 
 /**
- * Header carrying the live-preview secret to SahajCloud. Must match the CMS's
- * `PREVIEW_SECRET_HEADER` (`src/lib/utilities/previewSecret.ts`): a request bearing the
- * valid secret unlocks drafts and is exempt from the client `select`/`populate` gate.
+ * This is the header carrying the live-preview secret to SahajCloud.
+ * It must match the CMS's `PREVIEW_SECRET_HEADER`, in `src/lib/utilities/previewSecret.ts`.
+ * A request bearing the valid secret unlocks drafts, and is exempt from the client `select` and `populate` gate.
  */
 export const PREVIEW_SECRET_HEADER = 'x-sahajcloud-preview-secret'
 
 /**
- * Parse a boot location into a preview session, or `null` when it isn't the `/preview`
- * route. Pure (no `window`, no mutation) so it's unit-testable in the node lane. An
- * unknown/absent `collection` yields a `null` collection — handled downstream as an
- * unsupported/"save first" fallback rather than a crash.
+ * This parses a boot location into a preview session, or `null` when it is not the `/preview` route.
+ * This function is pure, with no `window` and no mutation, so it is unit-testable in the node lane.
+ * An unknown or absent `collection` yields a `null` collection.
+ * Downstream code handles that as an unsupported or "save first" fallback, not a crash.
  */
 export function readPreviewParams(pathname: string, search: string): PreviewSession | null {
   if (pathname !== PREVIEW_PATH) return null
@@ -57,10 +56,10 @@ export function readPreviewParams(pathname: string, search: string): PreviewSess
 }
 
 /**
- * Boot-time capture (`main.tsx`, standalone only). If the URL is the `/preview` route,
- * populate the singleton and `history.replaceState` the secret out of the address bar —
- * keeping the `/preview` pathname so it stays inert (no region resolve, no home
- * redirect). Returns whether preview mode is now active.
+ * This is the boot-time capture, in `main.tsx`, standalone only.
+ * If the URL is the `/preview` route, this populates the singleton and calls `history.replaceState` to remove the secret from the address bar.
+ * It keeps the `/preview` pathname, so it stays inert, with no region resolve and no home redirect.
+ * This returns whether preview mode is now active.
  */
 export function capturePreview(): boolean {
   const parsed = readPreviewParams(window.location.pathname, window.location.search)

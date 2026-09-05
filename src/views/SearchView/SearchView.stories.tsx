@@ -59,9 +59,9 @@ const SEARCHED_BORDER = 'q=Folkestone&center=1.18,51.08&cc=GB'
 
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
-  // More matches than one page. The foot of the list carries "Show more" — and because
-  // this is the nearby segment, the list also presses it for you as you reach it, so
-  // scrolling pages on without a click. Nothing refetches; every match is already here.
+  // More matches than one page. The foot of the list carries "Show more". Because this is
+  // the nearby segment, the list also presses that button for you as you reach it, so
+  // scrolling pages on without a click. Nothing refetches. Every match is already here.
   Paged: { search: SEARCHED, events: mockEventSeries(60) },
   // A handful nearby and a long tail past NEARBY_KM. Auto-paging stops dead at the
   // boundary and the control becomes "Show distant events" — the list's only distance
@@ -116,29 +116,29 @@ const eventsKey = (search: string, locale: string) => {
 }
 
 /**
- * SearchView — the distance-ranked results screen: the geocoder header over the event
- * list, with the Filters + Sort toolbar in its own fixed band between the two (a
- * `DrawerToolbar`, outside the scroll container — the list pages as you scroll, so a
- * toolbar inside the body would scroll away exactly when a long list made it useful).
+ * SearchView — the distance-ranked results screen. It shows the geocoder header over the
+ * event list, with the Filters and Sort toolbar in its own fixed band between the two — a
+ * `DrawerToolbar`, outside the scroll container. The list pages as you scroll, so a toolbar
+ * inside the body would scroll away exactly when a long list made it useful.
  *
- * "Paged" covers the reveal control and the auto-paging that fires as you reach it;
- * "Distant events" the boundary where that stops and a deliberate press takes over;
- * "Across a border" the same boundary tightened to half the distance for another
- * country. "Empty" is the no-results state; "Country website" the offer that replaces
- * it when the searched country lists no programs at all; "Filtered" the toolbar badge +
+ * "Paged" covers the reveal control and the auto-paging that fires as you reach it.
+ * "Distant events" covers the boundary where that stops and a deliberate press takes over.
+ * "Across a border" covers the same boundary, tightened to half the distance for another
+ * country. "Empty" is the no-results state. "Country website" is the offer that replaces it
+ * when the searched country lists no programs at all. "Filtered" shows the toolbar badge and
  * active-filter pills over a list.
  *
- * Cases that need a URL seed it onto the decorator's OWN router via `SeedSearchParams`
- * (react-router v7 throws on a nested `<Router>`), which lands one render in — so each
- * case seeds both the default key the first render reads and the key its own params
- * resolve to, and neither render ever reaches the absent backend.
+ * Cases that need a URL seed it onto the decorator's OWN router, via `SeedSearchParams` —
+ * react-router v7 throws on a nested `<Router>`. That lands one render in, so each case
+ * seeds both the default key the first render reads and the key its own params resolve to,
+ * and neither render ever reaches the absent backend.
  *
- * The State control carries no not-found flavour: a search has no slug to get wrong. What
- * it reaches is a failed fetch — and `Offline` is the one to look at, since the results
- * list is the screen a viewer lands on straight from a dropped connection: Try again only,
- * no onward rung (that search fails identically) and no report CTA (connectivity isn't
- * ours to fix, and the report POST needs the network that just went). The geocoder header
- * and the toolbar survive it, because the boundary sits below them.
+ * The State control carries no not-found flavour. A search has no slug to get wrong. What it
+ * reaches is a failed fetch, and `Offline` is the one to look at, since the results list is
+ * the screen a viewer lands on straight from a dropped connection. It shows Try again only,
+ * with no onward rung, because that search fails identically, and no report CTA, because
+ * connectivity is not this project's to fix, and the report POST needs the network that just
+ * went. The geocoder header and the toolbar survive it, because the boundary sits below them.
  */
 export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,
@@ -149,11 +149,11 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
   // strips the results and leaves the query (and therefore the header, the pills and the
   // distance boundary) exactly as that example had them.
   const events = state === EMPTY ? [] : (EXAMPLES[example] ?? EXAMPLES.Results).events
-  // Stable per case — SeedSearchParams keys its effect on this, so a fresh object every
-  // render would re-seed the URL in a loop. Memoized on the CASE, not on its query
-  // string: two cases sharing a query would otherwise share one object and one seed, so
-  // switching between them wouldn't re-seed and whatever the first left in the URL (a
-  // cleared filter, a changed sort) would carry into the second.
+  // Stable per case. SeedSearchParams keys its effect on this, so a fresh object every
+  // render would re-seed the URL in a loop. This memoizes on the CASE, not on its query
+  // string. Two cases sharing a query would otherwise share one object and one seed, so
+  // switching between them would not re-seed, and whatever the first case left in the URL —
+  // a cleared filter, a changed sort — would carry into the second.
   const params = useMemo(
     () => new URLSearchParams((EXAMPLES[example] ?? EXAMPLES.Results).search),
     [example],

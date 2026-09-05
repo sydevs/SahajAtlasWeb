@@ -6,12 +6,13 @@ import { EventListItem } from './EventListItem'
 
 import { mockEventSlim } from '@/mocks/events'
 
-// Node-only SSR assertions (see `docs/testing.md`). The card must be a valid
-// direct child of the List's <ul>: an <li> wrapping the <Link>/<a>, not <a><li>
-// (#65). Mock the hooks/child that would otherwise pull in i18next, react-query
-// (the online-event IP lookup) and the map controller — this test exercises the
-// DOM nesting and the resolved class list, not visuals. MemoryRouter supplies
-// the router context (internal Link + useSearchParams).
+// Node-only SSR assertions (see `docs/testing.md`). The card must be a
+// valid direct child of the List's <ul>: an <li> wrapping the <Link>/<a>,
+// not <a><li> (#65). This mocks the hooks and child that would otherwise
+// pull in i18next, react-query (the online-event IP lookup), and the map
+// controller. This test exercises the DOM nesting and the resolved class
+// list, not visuals. MemoryRouter supplies the router context (internal
+// Link and useSearchParams).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
@@ -21,16 +22,17 @@ vi.mock('@/hooks/use-locale', () => ({
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ highlightEvent: () => {} }),
 }))
-// Prefetch-on-hover pulls react-query + the config/api chain (→ i18next); stub it out
-// so this stays a DOM-nesting-only SSR assertion.
+// Prefetch-on-hover pulls react-query and the config/api chain, which
+// leads to i18next. Stub it out, so this stays a DOM-nesting-only SSR
+// assertion.
 vi.mock('@/hooks/use-prefetch-event', () => ({
   useHoverPrefetch: () => ({ enter: () => {}, leave: () => {} }),
 }))
 vi.mock('@/components/molecules/EventFacts', () => ({
   EventFacts: () => null,
 }))
-// EventChips pulls the display resolver + i18n; the card's chips aren't what this
-// DOM-nesting test asserts, so stub it out (like EventFacts).
+// EventChips pulls the display resolver and i18n. The card's chips are not
+// what this DOM-nesting test asserts. So stub it out, like EventFacts.
 vi.mock('@/components/molecules/EventChips', () => ({
   EventChips: () => null,
 }))
@@ -58,10 +60,11 @@ describe('EventListItem', () => {
       </MemoryRouter>,
     )
 
-    // DynamicEventsList queries `[data-event-row]` to move focus onto the first newly
-    // revealed card when a "show more" press unmounts its button. JSX doesn't
-    // type-check hyphenated attributes, so this is the only thing standing between a
-    // rename here and focus silently dropping to <body> there.
+    // DynamicEventsList queries `[data-event-row]`, to move focus onto the
+    // first newly revealed card when a "show more" press unmounts its
+    // button. JSX does not type-check hyphenated attributes. So this test
+    // is the only thing standing between a rename here and focus silently
+    // dropping to <body> there.
     expect(html).toContain('data-event-row')
   })
 
@@ -77,8 +80,8 @@ describe('EventListItem', () => {
 
     expect(classes).toContain('flex-col')
     expect(classes).toContain('items-stretch')
-    // The Link atom's inline-link `items-center` must lose the merge — on a
-    // flex-col card it centers every line of content.
+    // The Link atom's inline-link `items-center` must lose the merge. On a
+    // flex-col card, it would centre every line of content.
     expect(classes).not.toContain('items-center')
   })
 })

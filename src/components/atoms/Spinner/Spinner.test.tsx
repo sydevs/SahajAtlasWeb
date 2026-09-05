@@ -3,14 +3,15 @@ import { describe, it, expect } from 'vitest'
 
 import { Spinner } from '.'
 
-// Node-only SSR assertions (see `docs/testing.md`). The subject is the atom's
-// screen-reader name, which used to be the string "Loading" hard-coded in the markup —
-// the app's one untranslated SR string (issue #102).
+// Node-only SSR assertions (see `docs/testing.md`). The subject is the
+// atom's screen-reader name. It used to be the string "Loading",
+// hard-coded in the markup: the app's one untranslated SR string (issue #102).
 
 describe('Spinner screen-reader text', () => {
   it('falls back to English rather than a raw key when the caller has no translation', () => {
-    // The default has to be a real word, not `t('loading')`: a Suspense fallback can run
-    // before the translation bundles have loaded, and English is the app's fallbackLng.
+    // The default has to be a real word, not `t('loading')`. A Suspense
+    // fallback can run before the translation bundles load, and English is
+    // the app's fallbackLng.
     const html = renderToStaticMarkup(<Spinner />)
 
     expect(html).toContain('<span class="sr-only">Loading</span>')
@@ -24,8 +25,9 @@ describe('Spinner screen-reader text', () => {
   })
 
   it('says nothing at all when decorative', () => {
-    // Inside a control that already announces its own busy state (Button carries
-    // aria-busy), a second "Loading" would be layered over the control's label.
+    // Inside a control that already announces its own busy state, such as
+    // Button's `aria-busy`, a second "Loading" would layer over the
+    // control's label.
     const html = renderToStaticMarkup(<Spinner decorative />)
 
     expect(html).not.toContain('sr-only')

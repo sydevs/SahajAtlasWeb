@@ -22,10 +22,11 @@ const REGIONS: { code?: string; name: string }[] = [
 ]
 
 /**
- * ShareContent — a click-to-copy URL field plus region-ordered share targets.
- * On a Web-Share-capable browser the live component leads with a single "Share…"
- * button (the native OS sheet); the "Region ordering" section renders the grids
- * directly so the per-region ordering stays visible whatever the browser supports.
+ * ShareContent — a click-to-copy URL field, plus region-ordered share
+ * targets. On a Web-Share-capable browser, the live component leads with
+ * a single "Share…" button, the native OS sheet. The "Region ordering"
+ * section renders the grids directly, so the per-region ordering stays
+ * visible, whatever the browser supports.
  */
 export const Default: Story = () => (
   <StoryWrapper>

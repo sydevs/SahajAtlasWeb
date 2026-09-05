@@ -115,8 +115,9 @@ describe('hrefFor', () => {
     expect(hrefFor(`${HOST}#respond`, '/nl')).toBe(`${HOST}?atlas=/nl#respond`)
   })
 
-  // A host served at a doubled path has `pathname === '//classes'`; a RELATIVE href built from
-  // that would read as protocol-relative and leave the origin on middle-click.
+  // A host served at a doubled path has `pathname === '//classes'`. A relative
+  // href built from that would read as protocol-relative, and leave the
+  // origin on middle-click.
   it('cannot emit a protocol-relative href from a doubled host path', () => {
     const href = hrefFor('https://host.example//classes', '/nl')
 
@@ -158,9 +159,10 @@ describe('mountDecision', () => {
   })
 
   describe('fromPage — whose route it is', () => {
-    // `path` alone cannot tell a visitor who deep-linked from a host who configured a default
-    // view, and only the first may open the compact card's surface on mount: otherwise every
-    // host with a default region gets a full-screen overlay over their content on every load.
+    // `path` alone cannot tell a visitor who deep-linked from a host who
+    // configured a default view. Only the first may open the compact card's
+    // surface on mount. Otherwise every host with a default region gets a
+    // full-screen overlay over their content on every load.
     it('is true when the page URL carries the route', () => {
       expect(mountDecision({ routing: 'query', search: '?atlas=/gb/london' })).toMatchObject({
         path: '/gb/london',
@@ -192,7 +194,7 @@ describe('mountDecision', () => {
     })
 
     it('survives the memory degradation', () => {
-      // A sandboxed frame still deep-links; it just cannot write the URL afterwards.
+      // A sandboxed frame still deep-links. It just cannot write the URL afterwards.
       expect(
         mountDecision({ routing: 'query', search: '?atlas=/gb', urlWritable: false }),
       ).toMatchObject({ mode: 'memory', fromPage: true })
@@ -295,10 +297,11 @@ describe('mountPrefix', () => {
     expect(mountPrefix('wemeditate.com/', HOST)).toBe('')
   })
 
-  // ⚠ The sharp one. `''` disables `routeFromPathname`'s segment-boundary check, so a prefix that
-  // reaches `''` BY ACCIDENT makes the #92 basename-miss guard unable to fire — and path mode then
-  // adopts the host's entire URL space, rewriting whatever page it is on. A root mount has to be
-  // spelled with the slash; everything slashless is a malformed key.
+  // ⚠ This is the sharp one. `''` disables `routeFromPathname`'s
+  // segment-boundary check, so a prefix that reaches `''` by accident makes
+  // the #92 basename-miss guard unable to fire. Path mode then adopts the
+  // host's entire URL space, rewriting whatever page it is on. A root mount
+  // has to be spelled with the slash. Everything slashless is a malformed key.
   it.each(['wemeditate.com', 'map', 'not a url', 'javascript:alert(1)'])(
     'refuses a slashless value rather than claiming the whole origin: %j',
     (embed) => {
@@ -331,9 +334,10 @@ describe('mountPrefix', () => {
     expect(mountPrefix('http://localhost:5173/pathmode', 'localhost:5173')).toBe('/pathmode')
   })
 
-  // The mount ends up in an `<a href>`, so it takes the same guard every other server-provided
-  // path takes — and BEFORE the trailing-slash strip, or `host//` normalises to `''` and reaches
-  // the root-mount answer without ever meeting it.
+  // The mount ends up in an `<a href>`, so it takes the same guard every
+  // other server-provided path takes. This runs before the trailing-slash
+  // strip, or `host//` normalises to `''` and reaches the root-mount answer
+  // without ever meeting it.
   it.each(['//evil.com', '/\\evil.com', '/\tevil', '//'])(
     'refuses a mount path that is not safe: %j',
     (path) => {
@@ -372,13 +376,14 @@ describe('routeFromPathname', () => {
 // green for each, so neither property was covered before.
 describe('hrefFor and pathHrefFor on the shared query editor', () => {
   /**
-   * ⚠ The trap the move had to avoid, and the reason `hrefFor` calls `searchWith` (the string
-   * editor) rather than `hrefWith` (the URL wrapper).
+   * ⚠ This is the trap the move had to avoid, and the reason `hrefFor` calls
+   * `searchWith` (the string editor), instead of `hrefWith` (the URL wrapper).
    *
-   * `hrefWith` answers `''` when the value is already there, because its two callers —
-   * `publishLocale` and `clearFeedback` — both mean "leave the URL alone" by it. `hrefFor` feeds
-   * `createHref` for every `<Link>`, and a link to the route already on screen is the commonest
-   * case in the whole app, so `''` there blanks the href of every self-link on the page.
+   * `hrefWith` answers `''` when the value is already there. Its two callers,
+   * `publishLocale` and `clearFeedback`, both mean "leave the URL alone" by
+   * it. `hrefFor` feeds `createHref` for every `<Link>`, and a link to the
+   * route already on screen is the commonest case in the whole app. So `''`
+   * there blanks the href of every self-link on the page.
    */
   it('still returns a URL when the route is already the current one', () => {
     const href = 'https://host.example/p?atlas=/gb/london'
@@ -388,9 +393,10 @@ describe('hrefFor and pathHrefFor on the shared query editor', () => {
   })
 
   /**
-   * The improvement the move buys. The old `readable()` pass ran `%2F`→`/` and `%2C`→`,` over the
-   * WHOLE query to repair `searchParams.set`'s re-serialization, which also rewrote a host's own
-   * pairs — and never recovered their `%20`, which `set` had already turned into `+`.
+   * The improvement the move buys. The old `readable()` pass ran `%2F`→`/`
+   * and `%2C`→`,` over the whole query to repair `searchParams.set`'s
+   * re-serialization. That pass also rewrote a host's own pairs, and never
+   * recovered their `%20`, which `set` had already turned into `+`.
    */
   it('leaves the host’s own encoding byte-identical, `%20` and `%2F` alike', () => {
     expect(hrefFor('https://host.example/p?keep=a%20b&path=x%2Fy', '/gb/london')).toBe(
@@ -475,7 +481,7 @@ describe('pathHrefFor', () => {
       '/m',
     )
 
-    // Ours is inside the parameter; theirs is left exactly where it was.
+    // Ours is inside the parameter. Theirs is left exactly where it was.
     expect(href).toContain('atlas=format%3Dweekly')
     expect(href).toContain('format=online')
   })

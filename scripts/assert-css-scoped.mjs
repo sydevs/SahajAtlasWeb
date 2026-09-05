@@ -1,26 +1,29 @@
 #!/usr/bin/env node
 /**
- * A post-build gate: proves the CSS we actually ship cannot restyle a host page (#91).
+ * A post-build gate. It proves the shipped CSS cannot restyle a host page
+ * (#91).
  *
- * The widget has no shadow boundary — `vite-plugin-css-injected-by-js` appends
- * our stylesheet to the HOST document's <head>, after their sheets, so
- * anything left at the top level wins ties and repaints their page.
- * `scripts/postcss-scope-widget.mjs` confines every selector at build time.
- * This asserts the result on the emitted bytes, rather than trusting the
- * pass that produced them.
+ * The widget has no shadow boundary. `vite-plugin-css-injected-by-js`
+ * appends our stylesheet to the HOST document's <head>, after the host's
+ * own sheets. Anything left at the top level then wins style conflicts and
+ * repaints the host page. `scripts/postcss-scope-widget.mjs` confines
+ * every selector at build time. This gate checks the result in the
+ * emitted bytes. It does not trust the build pass alone.
  *
- * It reads the CSS back OUT of `dist/**\/*.js` (there are no .css assets —
- * the injector inlines them as JS string literals) and checks three things:
+ * This script reads the CSS back out of `dist/**\/*.js`. There are no
+ * separate .css assets — the injector inlines each stylesheet as a JS
+ * string literal. The script checks three things:
  *
  *   1. every top-level selector is scoped to the widget class,
- *   2. every `@keyframes` is namespaced — keyframe names are document-global
- *      and last-definition-wins, so a bare `fadeIn` hijacks a host page's
- *      animation,
- *   3. no request to a third-party font CDN survives (the Raleway `@import`
- *      that used to disclose every visitor's IP to Google — LG München I 3 O
- *      17493/20).
+ *   2. every `@keyframes` name carries the widget namespace — keyframe
+ *      names are document-global, and the last definition wins, so a bare
+ *      `fadeIn` would hijack a host page's animation,
+ *   3. no request to a third-party font CDN survives (a Raleway `@import`
+ *      once disclosed every visitor's IP address to Google — LG München I
+ *      3 O 17493/20).
  *
- * Run via `pnpm build`, so CI and the Cloudflare Pages build both gate on it.
+ * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
+ * enforce it.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -31,14 +34,15 @@ import postcss from 'postcss'
 
 import { WIDGET_SCOPE, assertScoped } from './postcss-scope-widget.mjs'
 
-// This resolves against this module, not the cwd — matching the other
-// scripts here — so the gate cannot pass or fail on where it happened to be
-// invoked from.
+// This path resolves against this module, not the current working
+// directory, matching the other scripts here. This way, the gate's result
+// never depends on where someone runs it from.
 const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 
-// Origins the widget must never reach for a font. Self-hosting removed
-// both, and a re-added `@import` would silently reinstate the GDPR exposure
-// and the two CSP origins the README no longer asks hosts for.
+// Origins the widget must never request a font from. Self-hosting the
+// font removed both origins. A re-added `@import` would silently bring
+// back the GDPR exposure, and the two CSP origins the README no longer
+// asks hosts to allow.
 const FORBIDDEN_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com']
 
 const distFiles = (ext) => {
@@ -50,11 +54,11 @@ const distFiles = (ext) => {
 }
 
 /**
- * Pulls every stylesheet the injector embedded, by scanning for the template
- * literal it hands to `document.createTextNode`. This is deliberately
- * narrow: if the injector ever changes shape, this finds nothing, and
- * finding nothing is a failure (below), rather than a green run over an
- * empty set.
+ * Pulls out every stylesheet the injector embedded. It scans for the
+ * template literal the injector hands to `document.createTextNode`. This
+ * scan is deliberately narrow. If the injector's output ever changes
+ * shape, this function finds nothing, and finding nothing later fails the
+ * gate (see below), instead of passing on an empty set.
  *
  * @param {string} source
  * @returns {string[]}
@@ -68,9 +72,9 @@ export function extractInjectedCss(source) {
     const start = at + marker.length
     let i = start
 
-    // Walks to the closing backtick, stepping over escaped ones. This uses
-    // `indexOf` rather than character by character: each of these strings
-    // is about 150 KB.
+    // Walks forward to the closing backtick, stepping over any escaped
+    // backtick. This uses `indexOf`, not a character-by-character scan,
+    // because each string is about 150 KB.
     for (;;) {
       const end = source.indexOf('`', i)
       const escape = source.indexOf('\\', i)
@@ -86,7 +90,8 @@ export function extractInjectedCss(source) {
       break
     }
 
-    // Undoes the escaping the bundler applied to fit CSS inside a template literal.
+    // Undoes the escaping the bundler applied, to fit the CSS inside a
+    // template literal.
     found.push(source.slice(start, i).replace(/\\(`|\$\{|\\)/g, '$1'))
     at = source.indexOf(marker, i)
   }
@@ -99,37 +104,41 @@ function fail(message) {
   process.exit(1)
 }
 
-// A stylesheet that reaches the host document but is not scoped-by-selector. `@font-face`
-// carries no selector, so the pass can't touch it and `assertScoped` can't see it — but
-// the family name IS document-global and last-wins, which is the same property that made
-// bare `@keyframes` a leak. Ours is namespaced. Swiper's icon font is upstream's and is
-// allowed through by name so the exemption is visible rather than silent.
+// A stylesheet can reach the host document without being scoped by
+// selector. `@font-face` carries no selector, so the scoping pass cannot
+// touch it, and `assertScoped` cannot see it. But the font-family name is
+// document-global, and the last definition wins — the same property that
+// made a bare `@keyframes` a leak. Our own font family is namespaced.
+// Swiper's icon font belongs to that upstream library. This script allows
+// it through by name, so the exemption stays visible instead of silent.
 const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
 
 let sheets = 0
 let rules = 0
 
 // The injector emits one copy of the same stylesheet per build entry, so
-// the shared App chunk carries it twice. Checking a sheet we have already
-// checked adds no coverage and doubles the parse of a roughly 150 KB
-// string. The counter above still counts every copy, since what it guards
-// is "did we find any CSS at all".
+// the shared App chunk carries it twice. Checking an already-checked sheet
+// again adds no coverage, and it doubles the parse time of a roughly
+// 150 KB string. The `sheets` counter still counts every copy — it only
+// needs to answer one question: did this gate find any CSS at all?
 const checked = new Set()
 
-// A .css asset means the injector failed to inline one — it would be linked, not injected,
-// and this gate would never see it.
+// A .css asset in the build output means the injector failed to inline
+// one stylesheet. The host page would link that file instead of receiving
+// injected CSS. This gate would never see the leftover stylesheet.
 const strayCss = distFiles('.css')
 
 if (strayCss.length > 0) {
   fail(`${strayCss.join(', ')}: CSS emitted as a separate asset, outside what this gate reads`)
 }
 
-// Every injection site stamps the style tag's id, so the count of sites is
-// knowable independently of how the CSS itself is quoted. The extractor
-// only recognises a template literal — which is a minifier artefact, not a
-// contract — so without this cross-check a chunk whose injection came out
-// double-quoted would be skipped in SILENCE, and the `sheets === 0` guard
-// would not fire as long as some other chunk still matched.
+// Every injection site stamps its style tag with an id. This lets the
+// script count injection sites independently of how the CSS itself is
+// quoted. The extractor above only recognizes a template literal, and
+// that shape is a minifier artifact, not a guaranteed contract. Without
+// this separate count, a chunk whose injection came out double-quoted
+// would be skipped silently, and the `sheets === 0` guard below would stay
+// quiet as long as some other chunk still matched.
 let injectionSites = 0
 
 for (const file of distFiles('.js')) {
@@ -137,10 +146,9 @@ for (const file of distFiles('.js')) {
 
   injectionSites += source.split('sahaj-atlas-style').length - 1
 
-  // This is checked against the whole chunk, not just the stylesheets
-  // inside it: the faces are registered from `src/styles/fonts.ts` now, so
-  // a regression could reappear either as a CSS `@import` or as a URL in
-  // JS.
+  // This check scans the whole chunk, not only the stylesheets inside it.
+  // `src/styles/fonts.ts` now registers the font faces, so a regression
+  // could reappear as a CSS `@import` or as a plain URL in JS.
   for (const origin of FORBIDDEN_ORIGINS) {
     if (source.includes(origin)) {
       fail(`${file} ships a request to ${origin} — the font must stay self-hosted`)
@@ -148,7 +156,7 @@ for (const file of distFiles('.js')) {
   }
 
   for (const css of extractInjectedCss(source)) {
-    // `t.cssText`-style dynamic calls in the injector's own runtime are not stylesheets.
+    // `t.cssText`-style dynamic calls in the injector's runtime are not stylesheets.
     if (!css.includes('{')) continue
 
     sheets += 1

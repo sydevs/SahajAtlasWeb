@@ -17,9 +17,10 @@ const options: RadioOption[] = [
 ]
 
 /**
- * RadioGroup — a controlled radio list rendered as selectable cards. The chosen
- * card is highlighted; `collapseAfter` hides the tail behind a reveal link so a
- * long list (e.g. the registration date picker) doesn't flood the form.
+ * RadioGroup — a controlled radio list, rendered as selectable cards. The
+ * chosen card is highlighted. `collapseAfter` hides the tail behind a
+ * reveal link, so a long list, such as the registration date picker, does
+ * not flood the form.
  */
 export const Default: Story = () => {
   const [simple, setSimple] = useState('a')

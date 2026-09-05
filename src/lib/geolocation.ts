@@ -3,20 +3,22 @@ import type { BBox } from 'geojson'
 
 import { approxBounds, boundsOfPoints, distanceKm } from './geo'
 
-// The visibility logic behind the IP-geolocation "nearby classes" suggestion,
-// factored out of the GeolocationSuggestion component so every condition is
-// unit-tested (the component itself is hook-heavy and the node lane can't render it).
+// The visibility logic behind the IP-geolocation "nearby classes"
+// suggestion, factored out of the GeolocationSuggestion component so every
+// condition is unit-tested (the component itself is hook-heavy, and the
+// node lane cannot render it).
 
-// One session-scoped flag: dismissing the suggestion (× or clicking through) hides
-// it for the rest of the browser session; it reappears on a fresh visit.
+// One session-scoped flag: dismissing the suggestion (× or clicking through)
+// hides it for the rest of the browser session. It reappears on a fresh visit.
 export const GEOLOCATION_DISMISS_KEY = 'atlas.geolocationPromptDismissed'
 
 // Only suggest when a located class is within this radius (km) of the guess — a
 // tight "genuinely near" bound so the prompt never leads to an empty search.
 export const NEARBY_MAX_KM = 100
 
-// Treat a region as the user's own "local" region when its centre sits within this
-// radius (km) of the guess — a metro region's centre is near you, a country's isn't.
+// Treat a region as the user's own "local" region when its centre sits
+// within this radius (km) of the guess. A metro region's centre is near
+// you. A country's is not.
 export const LOCAL_REGION_KM = 100
 
 // A city-sized radius (km): the floor on any framed neighbourhood, so a located point is shown
@@ -44,7 +46,7 @@ export const markGeolocationDismissed = (): void => {
   try {
     sessionStorage.setItem(GEOLOCATION_DISMISS_KEY, '1')
   } catch {
-    // Dismissal just won't persist where sessionStorage is unavailable — acceptable.
+    // Dismissal will not persist where sessionStorage is unavailable. This is acceptable.
   }
 }
 
@@ -54,8 +56,8 @@ export const hasActivePlaceSearch = (params: URLSearchParams): boolean =>
 
 /**
  * Whether at least one *located* class in the feed is within `km` of the
- * `[longitude, latitude]` point. Online classes carry no geometry, so they're
- * naturally excluded. `undefined` (feed still loading) counts as "none".
+ * `[longitude, latitude]` point. Online classes carry no geometry, so they
+ * are naturally excluded. `undefined` (feed still loading) counts as "none".
  */
 export const hasClassWithin = (
   geojson: Geojson | undefined,
@@ -86,8 +88,8 @@ export const hasClassWithin = (
  *    classes gets the floor box, never a continent.
  *
  * ⚠ Neither `@turf/bbox` nor `@turf/circle` handles the antimeridian, so a visitor at ±179°
- * longitude gets a box spanning the world. Pre-existing, and shared with every other
- * `approxBounds` caller; out of scope here.
+ * longitude gets a box spanning the world. This is pre-existing, and shared with every
+ * other `approxBounds` caller. It is out of scope here.
  */
 export const nearbyBounds = (
   point: [number, number],
@@ -134,10 +136,16 @@ export type GeolocationPromptState = {
 }
 
 /**
- * Whether to show the IP-geolocation nearby suggestion. Hidden when: there's no
- * resolved guess; it was dismissed this session; a place search is already active;
- * no located class is within `NEARBY_MAX_KM` of the guess (the suggestion would
- * lead nowhere); or the user is already viewing a region local to the guess.
+ * Whether to show the IP-geolocation nearby suggestion.
+ *
+ * This is hidden in any of these cases:
+ *
+ * - There is no resolved guess.
+ * - The suggestion was dismissed this session.
+ * - A place search is already active.
+ * - No located class is within `NEARBY_MAX_KM` of the guess (the suggestion would lead
+ *   nowhere).
+ * - The user is already viewing a region local to the guess.
  */
 export const shouldShowGeolocationPrompt = ({
   guess,

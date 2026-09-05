@@ -28,13 +28,13 @@ const parseBounds = (value: string | null): [number, number, number, number] | u
     : undefined
 }
 
-// The search view (route `/search`): events ranked by distance from the geocoded
-// place (`?center=lng,lat`) or, absent that, a one-time snapshot of the map
-// centre — never the live viewport, so the list doesn't re-sort on map pan. The
-// distance query key stays quantized inside DynamicEventsList, which also applies
-// the active event filters (online events included unless the format filter
-// narrows them out). Filters are changed in the FilterView drawer (opened from the
-// header), so this view just reflects the current filters when it (re)mounts.
+// The search view, at route `/search`. It ranks events by distance from the geocoded place
+// (`?center=lng,lat`), or, absent that, from a one-time snapshot of the map centre — never
+// the live viewport, so the list does not re-sort on map pan. The distance query key stays
+// quantized inside DynamicEventsList, which also applies the active event filters — online
+// events included, unless the format filter narrows them out. Filters change in the
+// FilterView drawer, opened from the header, so this view just reflects the current filters
+// when it (re)mounts.
 export function SearchView() {
   const [searchParams] = useSearchParams()
   const { frameSearch } = useMapController()
@@ -73,10 +73,10 @@ export function SearchView() {
       </DrawerToolbar>
       <DrawerBody>
         <GeolocationSuggestion />
-        {/* The list owns the `['events', …]` read; the geocoder above it doesn't. Keeping
-            a failed list local means the search field stays live, so the escape from a
-            failed search is to run a different one — the most useful thing on the screen.
-            `resetKeys` is load-bearing; `listResetKey` explains why. */}
+        {/* The list owns the `['events', …]` read. The geocoder above it does not. Keeping a
+            failed list local means the search field stays live, so the escape from a failed
+            search is to run a different one — the most useful thing on the screen. `resetKeys`
+            is load-bearing. `listResetKey` explains why. */}
         <ResetErrorBoundary FallbackComponent={ErrorPanel} resetKeys={[resetKey]}>
           <DynamicEventsList
             hasSearchCenter={center !== undefined}

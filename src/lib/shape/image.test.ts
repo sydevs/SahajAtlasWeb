@@ -25,8 +25,9 @@ describe('resolveImageUrl', () => {
   })
 
   it('returns null when the origin is empty, instead of throwing', () => {
-    // A misconfigured/empty origin must not crash the event read; drop the url so
-    // the UI skips it (at most one broken <img>, never a whole-event failure).
+    // A misconfigured or empty origin must not crash the event read. Drop
+    // the url, so the UI skips it (at most one broken <img>, never a
+    // whole-event failure).
     expect(resolveImageUrl('/api/images/file/pic.jpg', '')).toBeNull()
   })
 

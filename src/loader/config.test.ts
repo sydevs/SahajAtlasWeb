@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { parseConfig, resolveRoute } from './config'
 
-/** `resolveRoute` returns the route AND its provenance; most cases only assert the route. */
+/** `resolveRoute` returns the route AND its provenance. Most cases only assert the route. */
 const routeOf = (scriptValue: string | null, pageSearch: string | null | undefined) =>
   resolveRoute(scriptValue, pageSearch).route
 
@@ -36,9 +36,10 @@ describe('parseConfig', () => {
     expect(at('?key=').key).toBeNull()
   })
 
-  // The settings that were REMOVED rather than renamed (#149). Identity and branding belong to
-  // the client record, and there are no privacy opt-outs. A stray value must be ignored, not
-  // quietly honoured — otherwise the "configured in the CMS" rule has an undocumented bypass.
+  // The settings that were REMOVED, not renamed (#149). Identity and branding belong to the
+  // client record, and there are no privacy opt-outs. A stray value must be ignored, not
+  // quietly honoured. Otherwise the "configured in the CMS" rule would have an undocumented
+  // bypass.
   it.each([
     'analytics=false',
     'geolocation=false',
@@ -82,9 +83,9 @@ describe('parseConfig', () => {
   })
 
   describe('routeFromPage — which URL the route came from', () => {
-    // The two mean opposite things and `route` alone cannot tell them apart once resolved. A
-    // page route is a visitor who followed a link, so the widget mounts eagerly and opens onto
-    // it; a script route is the host's default view, so it stays lazy and opens nothing.
+    // The two mean opposite things, and `route` alone cannot tell them apart once resolved. A
+    // page route means a visitor followed a link, so the widget mounts eagerly and opens onto
+    // it. A script route is the host's default view, so it stays lazy and opens nothing.
     it('is true for a route on the page URL', () => {
       const config = parseConfig('https://atlas.example/auto.js?key=k', '?atlas=/gb/london')
 
@@ -98,8 +99,8 @@ describe('parseConfig', () => {
     })
 
     it('is false for a page route the path guard rejected', () => {
-      // `?atlas=//evil.example` must not count as a deep link: it would mount eagerly and
-      // auto-open on a route we refused to honour.
+      // `?atlas=//evil.example` must not count as a deep link. It would mount eagerly and
+      // auto-open on a route this code refused to honour.
       const config = parseConfig('https://atlas.example/auto.js?key=k', '?atlas=//evil.example')
 
       expect(config).toMatchObject({ route: undefined, routeFromPage: false })
@@ -125,8 +126,9 @@ describe('parseConfig', () => {
     )
   })
 
-  // This runs before anything is on screen, in a page we do not own. A throw here would take
-  // the host's own scripts down with it, so a URL we cannot parse yields defaults.
+  // This runs before anything is on screen, in a page this project does not own. A throw here
+  // would take the host's own scripts down with it, so a URL this code cannot parse yields
+  // defaults.
   describe('a script src it cannot parse', () => {
     it.each([null, undefined, '', 'not a url'])('yields defaults for %s', (src) => {
       const config = parseConfig(src as string | null | undefined)
@@ -144,9 +146,9 @@ describe('parseConfig', () => {
 })
 
 describe('resolveRoute', () => {
-  // The precedence is the whole point: the page's own `?atlas=` is a visitor who deep-linked,
-  // navigated or followed a shared link, so sending them to the embed's default instead would
-  // discard where they actually asked to be.
+  // The precedence is the whole point. The page's own `?atlas=` means a visitor deep-linked,
+  // navigated, or followed a shared link. Sending them to the embed's default instead would
+  // discard where they actually asked to go.
   it('prefers the route already on the page', () => {
     expect(routeOf('/gb/london', '?atlas=/nl/amsterdam')).toBe('/nl/amsterdam')
   })
@@ -165,8 +167,8 @@ describe('resolveRoute', () => {
     expect(routeOf(null, '?p=123&atlas=/fr/paris&utm=x')).toBe('/fr/paris')
   })
 
-  // A route is a route wherever it came from. The page's copy is the MORE likely of the two to be
-  // adversarial — it rides on a link somebody clicked — so it is guarded just as hard.
+  // A route is a route wherever it came from. The page's copy is the MORE likely of the two to
+  // be an attack, because it rides on a link somebody clicked. So it gets guarded just as hard.
   describe('both sources are guarded', () => {
     const hostile = [
       '//evil.example',
@@ -187,8 +189,8 @@ describe('resolveRoute', () => {
       expect(routeOf(value, '')).toBeUndefined()
     })
 
-    // A hostile value on the page must not win, but it must not poison the fallback either:
-    // the embed's own safe default is still the right answer.
+    // A hostile value on the page must not win. It also must not poison the fallback. The
+    // embed's own safe default is still the right answer.
     it('falls through to a safe embed default when the page value is refused', () => {
       expect(routeOf('/gb/london', '?atlas=//evil.example')).toBe('/gb/london')
     })

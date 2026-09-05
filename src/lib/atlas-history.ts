@@ -15,22 +15,23 @@ import {
  * A react-router `History` that keeps the widget's route in a query parameter on the host page
  * (#154).
  *
- * Written by hand rather than adapted from `createBrowserHistory` because three of its behaviours
- * are wrong for an embed, and each is called out below: where the location is read from, what
- * `createHref` returns, and what happens to the host's own `history.state`.
+ * This is written by hand, instead of adapted from `createBrowserHistory`, because three of its
+ * behaviours are wrong for an embed. Each is called out below: where the location is read from,
+ * what `createHref` returns, and what happens to the host's own `history.state`.
  *
- * `Router` + this object is what `unstable_HistoryRouter` does in fifteen lines; `src/router.tsx`
- * copies those rather than importing an `unstable_` export, so nothing here depends on a name
- * react-router has reserved the right to change.
+ * `Router` plus this object is what `unstable_HistoryRouter` does in fifteen lines.
+ * `src/router.tsx` copies those, instead of importing an `unstable_` export, so nothing here
+ * depends on a name react-router has reserved the right to change.
  */
 
 /**
  * What `Router` and `AtlasRouter` need between them.
  *
- * Declared here rather than imported: react-router exports `Navigator` (what `Router` consumes)
- * but keeps `History` internal, and `AtlasRouter` additionally needs the three fields a history
- * exposes to drive React state. Structural typing means this still satisfies `Navigator`, which is
- * asserted below so a drift in their contract fails the build rather than at runtime.
+ * This is declared here, instead of imported. react-router exports `Navigator` (what `Router`
+ * consumes), but keeps `History` internal, and `AtlasRouter` additionally needs the three fields
+ * a history exposes to drive React state. Structural typing means this still satisfies
+ * `Navigator`, which is asserted below, so a drift in their contract fails the build instead of
+ * at runtime.
  */
 export type AtlasHistory = Navigator & {
   readonly action: NavigationType
@@ -45,10 +46,10 @@ const STATE_KEY = '__sy_atlas'
 type AtlasState = { usr?: unknown; key: string; idx: number }
 
 /**
- * Mint an entry key.
+ * Mints an entry key.
  *
- * ⚠ **Not decorative.** `Router` defaults `location.key` to the literal `"default"`, so a history
- * that does not mint one gives every entry the same key — and `rememberCamera(location.key)`
+ * ⚠ **This is not decorative.** `Router` defaults `location.key` to the literal `"default"`, so a
+ * history that does not mint one gives every entry the same key. `rememberCamera(location.key)`
  * (`config/store.ts`) then collapses an entire session's camera snapshots into a single bucket.
  * Back-navigation would restore the wrong viewport, and every test would stay green, because
  * nothing else in the app reads `key`.
@@ -63,12 +64,12 @@ function toLocation(route: string, state: AtlasState): Location {
 }
 
 /**
- * Where the route lives in the host's URL — the only difference between the two URL-backed modes.
+ * Where the route lives in the host's URL: the only difference between the two URL-backed modes.
  *
- * The history's mechanics are identical either way: mint a key per entry, namespace our slice of
- * `history.state`, never write an identical URL, keep the tree consistent when a write is refused.
- * Only *reading* the route out of a URL and *composing* one back into it differ, so those two
- * functions are the seam rather than a second history.
+ * The history's mechanics stay identical either way. Both modes mint a key per entry, namespace
+ * our slice of `history.state`, never write an identical URL, and keep the tree consistent when a
+ * write is refused. Only *reading* the route out of a URL, and *composing* one back into it,
+ * differ. So those two functions are the seam, instead of a second history.
  */
 export type RouteShape = {
   /** The route currently in the URL, or `undefined` when this URL names none. */
@@ -84,11 +85,11 @@ export const queryShape: RouteShape = {
 }
 
 /**
- * `/{prefix}/gb/london` — the host has dedicated a path subtree to the widget.
+ * `/{prefix}/gb/london`: the host has dedicated a path subtree to the widget.
  *
  * ⚠ `read` returns `undefined` when the page is served outside `prefix`, and the caller falls back
- * to the boot route rather than rendering nothing. `mountDecision` has already refused to enter
- * path mode at all if the FIRST read misses; this covers a host that navigates their own SPA out
+ * to the boot route, instead of rendering nothing. `mountDecision` has already refused to enter
+ * path mode at all if the first read misses. This covers a host that navigates their own SPA out
  * from under us afterwards.
  */
 export const pathShape = (prefix: string): RouteShape => ({
@@ -102,9 +103,10 @@ export type QueryHistoryOptions = {
   /**
    * Where to start when the page's URL names no route.
    *
-   * Read on **every** location read, not just the first, and that is deliberate: pressing Back to
-   * an entry that predates any widget navigation lands on a URL with no parameter, and the right
-   * answer there is the route the widget booted at — not the root, which the visitor never chose.
+   * This is read on **every** location read, not just the first, and that is deliberate. Pressing
+   * Back to an entry that predates any widget navigation lands on a URL with no parameter. The
+   * right answer there is the route the widget booted at, not the root, which the visitor never
+   * chose.
    */
   initialPath: string
   /** Where the route lives. Defaults to the query parameter. */
@@ -132,10 +134,10 @@ export function createQueryHistory({
    * **The host's own `history.state` is preserved, not replaced.**
    *
    * `createBrowserHistory` writes `{usr, key, idx}` as the *entire* state, discarding whatever the
-   * host put there. On somebody else's page that is not ours to do: on a `replace` we are
+   * host put there. On somebody else's page, that is not ours to do. On a `replace` we are
    * overwriting an entry the host created, and on a `push` we are adding one inside their stack
-   * that their own router may later pop into. Namespacing under one key and spreading the rest is
-   * the same courtesy the widget's old fragment writer extended to the fragment.
+   * that their own router may later pop into. Namespacing under one key, and spreading the rest,
+   * is the same courtesy the widget's old fragment writer extended to the fragment.
    */
   function writeState(next: AtlasState) {
     const host = (win.history.state as Record<string, unknown> | null) ?? {}
@@ -205,8 +207,8 @@ export function createQueryHistory({
     },
 
     // `encodeLocation` is intentionally absent. It is optional on `Navigator`, and the obvious
-    // implementation — parsing what `createHref` returns — would hand back the HOST's pathname as
-    // the location's, poisoning every route the app derives from `location.pathname`.
+    // implementation, parsing what `createHref` returns, would hand back the host's pathname as
+    // the location's. That would poison every route the app derives from `location.pathname`.
 
     push(to: To, state?: unknown) {
       navigate(to, state, false)
@@ -224,10 +226,10 @@ export function createQueryHistory({
       listener = fn
 
       const onPop = () => {
-        // One read of our state, not two: `currentState()` MINTS a key when the entry has none —
+        // One read of our state, not two. `currentState()` mints a key when the entry has none —
         // a host-created entry, or one predating the widget — so calling it twice would mint two
-        // and use only the first. Harmless today, and exactly the kind of thing that stops being
-        // harmless when someone starts trusting `idx`.
+        // and use only the first. This is harmless today, and exactly the kind of thing that
+        // stops being harmless when someone starts trusting `idx`.
         const state = currentState()
 
         action = 'POP' as NavigationType

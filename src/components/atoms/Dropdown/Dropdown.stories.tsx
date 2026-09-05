@@ -14,17 +14,18 @@ export default {
 const sizes = ['sm', 'md', 'lg'] as const
 
 // A plain styled trigger. The Dropdown wrapper makes it the focusable
-// `role="button"`, so the trigger itself must not be an interactive element
-// (nesting a real <button> inside would give two focus stops for one control).
+// `role="button"`. So the trigger itself must not be an interactive element.
+// Nesting a real <button> inside would give two focus stops for one control.
 const triggerClass =
   'inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-7 px-4 py-2 text-sm font-medium text-foreground'
 
 /**
- * Dropdown — a portaled popover shell with viewport-aware placement (flip/shift)
- * built on Floating UI. It frames arbitrary content and takes its ARIA role from
- * `role`; menus with submenus/radio groups use `@radix-ui/react-dropdown-menu`
- * instead (see SettingsMenu). Panel chrome uses the Radix semantic tokens, so it
- * follows light/dark + the accent theme.
+ * Dropdown — a portaled popover shell with viewport-aware placement (flip and
+ * shift), built on Floating UI. It frames arbitrary content and takes its
+ * ARIA role from `role`. Menus with submenus or radio groups use
+ * `@radix-ui/react-dropdown-menu` instead (see SettingsMenu). Panel chrome
+ * uses the Radix semantic tokens, so it follows light and dark mode and the
+ * accent theme.
  */
 export const Default: Story = () => (
   <StoryWrapper>

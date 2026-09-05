@@ -35,9 +35,9 @@ export interface DynamicEventsListProps {
   latitude: number
   longitude: number
   /**
-   * Whether latitude/longitude came from a geocoded search (vs the map centre).
-   * Without a searched place there's no meaningful distance cut, so the results are
-   * one undivided list.
+   * Whether latitude and longitude came from a geocoded search, rather than
+   * the map center. Without a searched place, there is no meaningful distance
+   * cut, so the results form one undivided list.
    */
   hasSearchCenter?: boolean
 }
@@ -55,17 +55,19 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
   return order
 }
 
-// Reorder the fetched events for the chosen sort (a presentation concern — this runs
-// on the already-fetched list, so switching sort never refetches). Recommended keeps
-// the relevance score, decorate-sort-undecorate so each event's order is computed once
-// (it builds luxon DateTimes) rather than O(n·log n) times inside the comparator;
-// Closest and Soonest reuse the shared `@/lib/shape` comparators (distance ascending /
-// next-occurrence, placeless + undated last).
+// This reorders the fetched events for the chosen sort. Sorting is a
+// presentation concern: it runs on the already-fetched list, so switching
+// sort never triggers a refetch. Recommended keeps the relevance score. It
+// uses decorate-sort-undecorate, so each event's order is computed once (it
+// builds luxon DateTimes) instead of O(n·log n) times inside the comparator.
+// Closest and Soonest reuse the shared `@/lib/shape` comparators: distance
+// ascending, or next occurrence, with placeless and undated events last.
 //
-// It sorts the WHOLE matching set. That's the point of dropping the fetcher's
-// nearest-50 cap (#85): sorting a pre-truncated pool made `?sort=soonest` mean
-// "soonest among the 50 nearest" and re-ranked `recommended` over an arbitrary subset.
-// Order of operations is filter → sort → segment → slice; `revealRows` owns the last two.
+// This sorts the WHOLE matching set. That is the point of dropping the
+// fetcher's nearest-50 cap (#85). Sorting a pre-truncated pool made
+// `?sort=soonest` mean "soonest among the 50 nearest," and it re-ranked
+// `recommended` over an arbitrary subset. The order of operations is filter,
+// then sort, then segment, then slice. `revealRows` owns the last two steps.
 function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
   switch (order) {
     case 'closest':
@@ -90,42 +92,48 @@ export function DynamicEventsList({
   longitude,
   hasSearchCenter = false,
 }: DynamicEventsListProps) {
-  // The active (applied) filters. getEvents applies the shared `matchesFilters`
-  // predicate; the map filters its pins/clusters with the same filters, so the
-  // list and the map agree. The key includes the filters, so applying a new set
-  // refetches (filters are edited in the FilterView drawer, not here).
+  // These are the active, applied filters. getEvents applies the shared
+  // `matchesFilters` predicate. The map filters its pins and clusters with the
+  // same filters, so the list and the map agree. The key includes the
+  // filters, so applying a new set triggers a refetch. Filters are edited in
+  // the FilterView drawer, not here.
   const filters = useEventFilters()
   const { locale } = useLocale()
 
-  // Through the shared `eventsQuery` factory so the SearchView story seeds the exact
-  // key this reads (see config/api) — the quantized centre, the filters, and the
-  // locale, with sort and the reveal count deliberately absent (both are presentation,
-  // re-applied client-side below; a count in the key would refetch on every press).
+  // This query uses the shared `eventsQuery` factory, so the SearchView story
+  // seeds the exact key this reads (see config/api). The key holds the
+  // quantized center, the filters, and the locale. It deliberately omits sort
+  // and the reveal count. Both are presentation concerns, re-applied
+  // client-side below. A count in the key would trigger a refetch on every
+  // press.
   const query = eventsQuery(latitude, longitude, filters, locale)
   const { data: events } = useSuspenseQuery(query)
 
-  // Apply the URL-selected ordering to the fetched list. Memoized on the fetched
-  // reference + the order, so re-sorting is a cheap client-side reorder, never a
-  // refetch (the query key above is unchanged).
+  // This applies the URL-selected ordering to the fetched list. It is memoized
+  // on the fetched reference and the order, so re-sorting is a cheap
+  // client-side reorder, never a refetch. The query key above stays unchanged.
   const order = useSortOrder()
   const sorted = useMemo(() => sortEvents(events, order), [events, order])
 
-  // How much of that is revealed — session state keyed by the result set, so it
-  // survives the drawer stack's remount-on-navigation (opening an event and coming back
-  // keeps your place) but resets on a reload and whenever the key changes: a new place,
-  // an edited filter, a re-sort, a language switch. `revealRows` splits the sorted set
-  // at the distance boundary (tightened for events across a border from the searched
-  // country) and slices to the count; nothing here refetches, every match is in memory.
-  // Keyed off the events query key itself (plus the sort, which that key omits), so the
-  // reveal's notion of "the same search" can't drift from the fetch's — the centre
-  // quantization lives in one place.
+  // This tracks how much of the list is revealed. It is session state, keyed
+  // by the result set, so it survives the drawer stack's remount-on-navigation:
+  // opening an event and coming back keeps your place. It resets on a reload
+  // and whenever the key changes — a new place, an edited filter, a re-sort,
+  // or a language switch. `revealRows` splits the sorted set at the distance
+  // boundary (tightened for events across a border from the searched
+  // country), then slices to the count. Nothing here refetches. Every match
+  // stays in memory. The key comes from the events query key itself, plus the
+  // sort, which that key omits. This way, the reveal's notion of "the same
+  // search" cannot drift from the fetch's. The center quantization lives in
+  // one place.
   const searchCountry = useSearchCountry()
   const { shown, showAll, pending, revealMore } = useReveal(revealKey(query.queryKey, order))
 
-  // The searched place each card names in its distance line, read ONCE here. `?q` is
-  // rewritten on every geocoder keystroke, so a card reading it subscribes the whole
-  // list to that churn — see the prop's note on `EventsList`. Its leading part keeps
-  // the line short; the precise reference point stays in each card's accessible label.
+  // This is the searched place each card names in its distance line, read
+  // ONCE here. `?q` is rewritten on every geocoder keystroke, so a card that
+  // reads it directly subscribes the whole list to that churn — see the
+  // prop's note on `EventsList`. Its leading part keeps the line short. The
+  // precise reference point stays in each card's accessible label.
   const searchedPlace = (useSearchParams()[0].get('q') ?? '').split(',')[0].trim()
   const { rows, more, next, total, nearbyKm } = useMemo(
     () => revealRows(sorted, { shown, showAll, hasSearchCenter, searchCountry }),
@@ -146,19 +154,21 @@ export function DynamicEventsList({
 
   const reveal = (trigger: 'press' | 'auto') => {
     // `pending` guards a double reveal: the previous page is still rendering, so the
-    // rows this would count from are already stale. Matters most for the observer,
-    // which can fire again before the transition commits.
+    // rows this would count from are already stale. This matters most for the
+    // observer, which can fire again before the transition commits.
     if (!next || pending) return
     // Only a press parks a focus target. An auto-reveal is a scroll, not an
-    // interaction: moving focus there would yank it off whatever the reader was on.
+    // interaction: moving focus there would remove focus from whatever the
+    // reader was on.
     if (trigger === 'press') focusFrom.current = rows.length
     revealMore(next)
   }
 
-  // Keep focus somewhere sensible after a reveal. While the button survives the press
-  // it keeps focus for free (same DOM node — only its label can change), so the only
-  // case to handle is the LAST press, which unmounts it and would otherwise drop focus
-  // to the document body. Then focus goes to the first newly revealed card.
+  // This keeps focus somewhere sensible after a reveal. While the button
+  // survives a press, it keeps focus for free: it is the same DOM node, and
+  // only its label changes. The one case to handle is the LAST press. That
+  // press unmounts the button, and would otherwise drop focus to the
+  // document body. So focus instead goes to the first newly revealed card.
   useEffect(() => {
     const index = focusFrom.current
 
@@ -166,9 +176,10 @@ export function DynamicEventsList({
     focusFrom.current = null
     if (more !== null) return
 
-    // `preventScroll` because the newly revealed rows open exactly where the button
-    // was — already in view. Letting the browser scroll to the focused card on top of
-    // that yanks the list out from under a mouse user who only pressed a button.
+    // `preventScroll` applies because the newly revealed rows open exactly
+    // where the button was, already in view. If the browser also scrolled to
+    // the focused card, it would move the list unexpectedly under a mouse
+    // user who only pressed a button.
     listRef.current
       ?.querySelectorAll<HTMLElement>('[data-event-row]')
       [index]?.focus({ preventScroll: true })
@@ -184,17 +195,19 @@ export function DynamicEventsList({
           <EventsList events={rows} searchedPlace={searchedPlace} />
         )}
       </div>
-      {/* Nothing left to offer and nothing announced yet — but once a reveal HAS
-          happened the footer stays mounted, so the final press's announcement isn't
-          unmounted in the same commit as the button that triggered it. */}
+      {/* At this point, nothing is left to offer and nothing has announced yet.
+          But once a reveal HAS happened, the footer stays mounted. This way,
+          the final press's announcement is not unmounted in the same commit
+          as the button that triggered it. */}
       {(more !== null || revealed) && (
         <LoadMore
           announce={revealed}
-          // Page automatically as the reader reaches the foot of the list — but ONLY
-          // within the segment on screen. Crossing into the distant events is a
-          // decision ("Show distant events"), so it never happens on a scroll; and
-          // once they ARE showing, paging goes back to being explicit, because from
-          // there the list runs to the other side of the world.
+          // This pages automatically as the reader reaches the foot of the list,
+          // but ONLY within the segment on screen. Crossing into the distant
+          // events is a decision ("Show distant events"), so it never happens
+          // on a scroll. Once those events ARE showing, paging goes back to
+          // being explicit, because from there the list runs to the other
+          // side of the world.
           auto={more === 'more' && !showAll}
           loading={pending}
           more={more}
@@ -207,32 +220,38 @@ export function DynamicEventsList({
   )
 }
 
-// Shown when no events match, in the order the reasons actually explain the empty list.
-// Every branch is the same `FallbackPanel` a dead link and a broken query render — one
-// component reading one policy table (issue #89) — so all this decides is WHICH row:
+// This renders when no events match. The three branches below appear in the
+// order that best explains the empty list. Every branch uses the same
+// `FallbackPanel` that a dead link and a broken query also render — one
+// component reading one policy table (issue #89). So this function only
+// decides WHICH row to show:
 //
-//  1. The searched country lists NO programs at all — offer its own national site
-//     (issue #82). Ahead of the distance boundary below because `getEvents` returns
-//     every match ranked by distance with no limit, so a program-less country's
-//     nearest results are usually a thousand km away: the "no events within N km"
-//     branch would fire for virtually every such search and bury the one useful next
-//     step. `useCountrySite` answers from the FULL feed, and stands down while any
-//     filter is active — an empty list under filters is explained by the filters, and
-//     case 3 owns the "clear all" escape hatch, so the offer waits rather than
-//     replacing it.
-//  2. Every match lies beyond the distance boundary — say so; the "show events farther
-//     than N km" control below the list is how the user reaches them. The one row that
-//     offers nothing, because that control already is the way out.
-//  3. Otherwise: "no results" with a "clear all filters" action when filters are the
-//     reason, else the plain "no events" line with the onward offer behind it.
+//  1. The searched country lists NO programs at all. This row offers that
+//     country's own national site (issue #82). It comes before the
+//     distance-boundary row below, because `getEvents` returns every match
+//     ranked by distance with no limit. So a program-less country's nearest
+//     results usually sit a thousand km away, and the "no events within N km"
+//     branch would fire for almost every such search, burying the one useful
+//     next step. `useCountrySite` answers from the FULL feed. It stands down
+//     while any filter is active, because an empty list under a filter is
+//     explained by the filter — case 3 owns the "clear all" escape hatch
+//     there. So this offer waits, rather than replacing that one.
+//  2. Every match lies beyond the distance boundary. This row says so. The
+//     "show events farther than N km" control below the list is how the user
+//     reaches them. This is the one row that offers nothing else, because
+//     that control is already the way out.
+//  3. Otherwise, this row shows "no results" with a "clear all filters"
+//     action, when filters are the reason. Else it shows the plain "no
+//     events" line, with the onward offer behind it.
 //
-// The country-site offer does NOT suppress the "show events farther" control below the
-// list — the offer keeps the top of the empty state, and a second way out sitting under
-// it doesn't bury it. That also keeps `useCountrySite` (which scans the whole feed and
-// rebuilds a region index) off the path a NON-empty list renders on.
+// The country-site offer does NOT suppress the "show events farther" control
+// below the list. The offer keeps the top of the empty state, and a second
+// way out below it does not bury the first. This also keeps `useCountrySite`
+// off the path a NON-empty list renders on — that hook scans the whole feed
+// and rebuilds a region index.
 //
-// `hasSearchChrome` throughout: SearchView's header already IS a geocoder, and a second
-// one under the sentence would be the odd thing on the screen.
+// `hasSearchChrome` appears throughout, because SearchView's header already
+// IS a geocoder. A second one under the sentence would look odd on the screen.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { regionNames } = useLocale()
   const active = hasActiveFilters(useEventFilters())
@@ -266,8 +285,9 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
     )
   }
 
-  // Filters are the explanation AND the escape, so that row keeps "Clear all" and nothing
-  // else — an onward link would compete with the one action that actually restores results.
+  // Filters are both the explanation and the escape. So that row keeps "Clear
+  // all" and nothing else. An onward link would compete with the one action
+  // that actually restores results.
   return (
     <FallbackPanel
       hasSearchChrome

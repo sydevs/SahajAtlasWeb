@@ -10,8 +10,8 @@ import { mockParentRegion } from '@/mocks/regions'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// Every event in this view is online, so present the shared variant gallery as
-// online classes (their location details give way to the hosted-from line).
+// Every event in this view is online. So present the shared variant gallery as online
+// classes — their location details give way to the hosted-from line.
 const onlineVariants = mockEventVariants.map((event) => ({
   ...event,
   eventType: 'online' as const,
@@ -27,17 +27,17 @@ const EXAMPLES: Record<string, Region> = {
 type ExampleKey = keyof typeof EXAMPLES
 
 /**
- * OnlineView — a region's online classes as a flat list (no places), reached from
- * the "Online Classes" card. Every event is online, so cards show the screen icon.
+ * OnlineView — a region's online classes as a flat list, with no places. Reached from the
+ * "Online Classes" card. Every event is online, so cards show the screen icon.
  *
- * `Empty` is on the State control rather than being an example of its own: it is the
- * roll-up with nothing in it, which is a state any of these can be in. It renders the
- * same `FallbackPanel` the not-found case does, one policy row apart (issue #89).
+ * `Empty` sits on the State control, rather than existing as an example of its own. It is the
+ * roll-up with nothing in it — a state any of these examples can be in. It renders the same
+ * `FallbackPanel` the not-found case does, one policy row apart (issue #89).
  *
- * The roll-up resolves its PARENT region, so a bad parent slug fails here exactly as
- * RegionView does — and inherits its wording, "that place", rather than growing an
- * online-flavoured sentence of its own. Rendered at `<region>/online`, so the ladder drops
- * the failing `online` segment and offers the parent region by name.
+ * The roll-up resolves its PARENT region, so a bad parent slug fails here exactly as RegionView
+ * does. It inherits RegionView's wording, "that place", instead of growing an online-specific
+ * sentence of its own. This view renders at `<region>/online`, so the ladder drops the failing
+ * `online` segment and offers the parent region by name.
  */
 export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
   example,

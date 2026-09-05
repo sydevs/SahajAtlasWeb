@@ -3,10 +3,10 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { useWebShare } from './use-web-share'
 
-// Node-only hook test: no jsdom. A probe component renders the hook so its
-// synchronous `canShare` shows up in the SSR markup, and captures the returned
-// value so the async `share()` can be driven directly. `navigator.share` is
-// stubbed per-case (node has a global `navigator` but no `.share`).
+// This is a node-only hook test, with no jsdom.
+// A probe component renders the hook, so its synchronous `canShare` shows up in the SSR markup.
+// It also captures the returned value, so the async `share()` can be driven directly.
+// This stubs `navigator.share` per case. Node has a global `navigator`, but no `.share`.
 
 let captured: ReturnType<typeof useWebShare> | undefined
 

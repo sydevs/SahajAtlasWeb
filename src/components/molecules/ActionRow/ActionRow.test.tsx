@@ -3,22 +3,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ActionCircle } from './ActionRow'
 
-// The refusal path calls `reportInternalError`, which logs. Silence it and match on our own
-// prefix rather than the call count (mirrors Link.test.tsx).
+// The refusal path calls `reportInternalError`, which logs. Silence it and
+// match on our own prefix, not the call count. This mirrors Link.test.tsx.
 const silenceReport = () => vi.spyOn(console, 'error').mockImplementation(() => {})
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// ActionCircle is the third of the app's three JSX anchors and, until #114, the second of
-// the two that rendered a raw `<a href>` with no gate of their own.
+// ActionCircle is the third of the app's three JSX anchors. Until #114, it
+// was the second of the two that rendered a raw `<a href>` with no gate of
+// their own.
 //
-// As in Button.test.tsx, the predicate's case table stays in `src/lib/shape/href.test.ts`.
-// This spec proves the wiring and the hrefs this row really carries.
+// As in Button.test.tsx, the predicate's case table stays in
+// `src/lib/shape/href.test.ts`. This spec proves the wiring, and the hrefs
+// this row really carries.
 describe('ActionCircle — href gate', () => {
-  // Refusing must not silently promote the action to a focusable control that does nothing —
-  // that is a worse dead end for a keyboard user than inert content.
+  // Refusing must not silently promote the action to a focusable control
+  // that does nothing. That is a worse dead end for a keyboard user than
+  // inert content.
   it('refuses an unsafe href, degrading to a non-interactive span and not the button arm', () => {
     const spy = silenceReport()
     const html = renderToStaticMarkup(
@@ -29,7 +32,7 @@ describe('ActionCircle — href gate', () => {
     expect(html).not.toContain('href=')
     expect(html).toMatch(/^<span[\s>]/)
     expect(html).not.toContain('<button')
-    // The label survives, so the refusal is visible rather than a hole in the row.
+    // The label survives, so the refusal is visible, instead of a hole in the row.
     expect(html).toContain('Contact')
     expect(
       spy.mock.calls.filter(([message]) =>
@@ -47,9 +50,10 @@ describe('ActionCircle — href gate', () => {
     expect(html).not.toContain('evil.com')
   })
 
-  // Its one production caller passes exactly three shapes: a `directionsUrl` we build, a
-  // `SafeUrlSchema`-parsed `event.website`, and a literal `tel:`. A gate that broke the phone
-  // link would be worse than no gate at all.
+  // Its one production caller passes exactly three shapes: a
+  // `directionsUrl` this app builds, a `SafeUrlSchema`-parsed
+  // `event.website`, and a literal `tel:`. A gate that broke the phone link
+  // would be worse than no gate at all.
   it.each([
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
     'https://example.org/',
@@ -70,8 +74,8 @@ describe('ActionCircle — href gate', () => {
     expect(html).toContain('target="_blank"')
   })
 
-  // No href to judge — the gate must not touch the button arm the desktop contact popover
-  // anchors to.
+  // There is no href to judge. The gate must not touch the button arm the
+  // desktop contact popover anchors to.
   it('leaves the hrefless button arm alone', () => {
     const html = renderToStaticMarkup(<ActionCircle icon={<svg />} label="Share" />)
 
@@ -80,11 +84,12 @@ describe('ActionCircle — href gate', () => {
   })
 })
 
-// The caption used to be pinned to `text-primary-12 dark:text-primary-11` in the slot
-// recipe while the circle beside it took its colour from `controlSurface` — so every
-// non-primary circle wore a primary word, sixteen times over in the story's colour ×
-// variant matrix. Matching on the span that holds the label keeps this off the circle's
-// own classes, which name overlapping steps on the same ramps.
+// The caption used to be pinned to `text-primary-12 dark:text-primary-11`
+// in the slot recipe, while the circle beside it took its colour from
+// `controlSurface`. So every non-primary circle wore a primary word,
+// visible sixteen times over in the story's colour × variant matrix.
+// Matching on the span that holds the label keeps this off the circle's own
+// classes, which name overlapping steps on the same ramps.
 describe('ActionCircle — the caption follows the colour prop', () => {
   const captionClasses = (html: string) =>
     (html.match(/<span class="([^"]*)">Contact<\/span>/)?.[1] ?? '').split(' ')

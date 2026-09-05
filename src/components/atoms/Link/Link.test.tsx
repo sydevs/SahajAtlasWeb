@@ -6,14 +6,16 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { Link } from './Link'
 
-// Node-only SSR assertions (see `docs/testing.md`). MemoryRouter supplies the
-// router context the internal branch needs; the external branch is a plain <a> and needs
-// none, but wrapping everything keeps the cases comparable.
+// Node-only SSR assertions (see `docs/testing.md`). MemoryRouter supplies
+// the router context the internal branch needs. The external branch is a
+// plain <a> and needs none, but wrapping everything keeps the cases
+// comparable.
 const render = (ui: ReactElement) => renderToStaticMarkup(<MemoryRouter>{ui}</MemoryRouter>)
 
-// The refusal path calls `reportInternalError`, which logs. Silence it, and match on our
-// own prefix rather than the call count: MemoryRouter also emits React's "useLayoutEffect
-// does nothing on the server" warning through the same channel.
+// The refusal path calls `reportInternalError`, which logs. Silence it, and
+// match on our own prefix, not the call count. MemoryRouter also emits
+// React's "useLayoutEffect does nothing on the server" warning through the
+// same channel.
 const silenceReport = () => vi.spyOn(console, 'error').mockImplementation(() => {})
 
 afterEach(() => {
@@ -21,8 +23,8 @@ afterEach(() => {
 })
 
 describe('Link — scheme guard', () => {
-  // Safety is decided by the href alone, before the flags are read (see Link.tsx), so
-  // every flag combination has to refuse the same href.
+  // Safety is decided by the href alone, before the flags are read (see
+  // Link.tsx). So every flag combination has to refuse the same href.
   it.each([
     { name: 'bare', props: {} },
     { name: 'isExternal', props: { isExternal: true } },
@@ -39,10 +41,10 @@ describe('Link — scheme guard', () => {
     // No anchor at all, and the string never appears in the markup.
     expect(html).not.toContain('<a')
     expect(html).not.toContain('javascript:')
-    // It degrades to plain text rather than vanishing — the failure is visible, not silent.
+    // It degrades to plain text, instead of vanishing. The failure is visible, not silent.
     expect(html).toContain('<span')
     expect(html).toContain('Click me')
-    // And it is reported, so a caller feeding the atom bad data can be found.
+    // It is also reported, so a review can trace bad data back to its caller.
     expect(
       spy.mock.calls.filter(([message]) => String(message).startsWith('[sahaj-atlas] Link')),
     ).toHaveLength(1)
@@ -59,10 +61,11 @@ describe('Link — scheme guard', () => {
     },
   )
 
-  // "Site-relative" is `safePath`, not a leading slash. `//evil.com` is the one that
-  // bites: react-router treats a `//` prefix as absolute, renders it verbatim and drops
-  // its click interception, so a left-click navigates the HOST page off-origin. The
-  // backslash and TAB/LF/CR forms are the strings the WHATWG parser rewrites into that.
+  // "Site-relative" means `safePath`, not a leading slash. `//evil.com` is
+  // the one that bites. react-router treats a `//` prefix as absolute,
+  // renders it verbatim, and drops its click interception. So a left-click
+  // navigates the HOST page off-origin. The backslash and TAB/LF/CR forms
+  // are the strings the WHATWG parser rewrites into that shape.
   it.each(['//evil.com', '/\\evil.com', '/\t/evil.com', '/\n\\evil.com', '/\r/evil.com'])(
     'refuses %j — passes a leading-slash test but is not a same-origin route',
     (href) => {
@@ -77,9 +80,10 @@ describe('Link — scheme guard', () => {
 })
 
 describe('Link — allowed schemes still render as before', () => {
-  // `HTTPS:` is in the list because the two upstream guards that feed this atom
-  // (`SafeUrlSchema`, `validateWebUrl`) are case-insensitive: a case-sensitive test here
-  // would refuse a URL they already passed and silently degrade the link to text.
+  // `HTTPS:` is in the list because the two upstream guards that feed this
+  // atom, `SafeUrlSchema` and `validateWebUrl`, are case-insensitive. A
+  // case-sensitive test here would refuse a URL they already passed, and
+  // silently degrade the link to text.
   it.each([
     'https://example.com/',
     'http://example.com/',
@@ -121,15 +125,17 @@ describe('Link — site-relative hrefs', () => {
   })
 
   it('does not refuse a site-relative href just because a flag is set', () => {
-    // The guard must not have become stricter: a flag on an internal path still yields a
-    // link, not the refusal span. Only that much is pinned here.
+    // The guard must not have become stricter. A flag on an internal path
+    // still yields a link, not the refusal span. This spec pins only that
+    // much.
     //
-    // What this case deliberately does NOT bless is the resulting markup. No caller pairs
-    // `isExternal` with a site-relative href today (every one passes an absolute URL), and
-    // the pairing is questionable on its own terms — it renders a plain
-    // `<a href="/gb" target="_blank">`, which resolves
-    // against the HOST page, exactly what `OnwardLink` warns about. Making that route
-    // internally is a behaviour change and belongs in its own ticket.
+    // This case deliberately does NOT bless the resulting markup. No caller
+    // pairs `isExternal` with a site-relative href today, since every one
+    // passes an absolute URL. The pairing is questionable on its own terms.
+    // It renders a plain `<a href="/gb" target="_blank">`, which resolves
+    // against the HOST page, exactly what `OnwardLink` warns about. Making
+    // that route internally is a behaviour change, and belongs in its own
+    // ticket.
     const html = render(
       <Link isExternal href="/gb">
         GB

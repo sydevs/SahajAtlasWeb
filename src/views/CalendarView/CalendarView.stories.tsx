@@ -14,8 +14,8 @@ import { DEFAULT_FILTERS, filtersKey, filtersToParams } from '@/lib/shape'
 
 export default { title: 'Views' } satisfies StoryDefault
 
-// The zone the physical classes are authored in (they carry their own IANA zone); the online
-// one is authored in UTC — its `firstDate_tz` is null, which the expansion reads as UTC.
+// The zone the physical classes are authored in — they carry their own IANA zone. The online
+// one is authored in UTC. Its `firstDate_tz` is null, which the expansion reads as UTC.
 const EVENT_ZONE = 'Europe/London'
 
 // An occurrence `dayOffset` days from now at `hh:mm` IN `zone` — anchored to render time so the
@@ -43,8 +43,9 @@ const weekly = (
   minute = 0,
   online = false,
 ): CalendarSourceEvent => {
-  // Online events read in the viewer's zone (null tz → the expansion treats the stored instant
-  // as UTC); physical ones in their own. Author each occurrence in that same zone.
+  // Online events read in the viewer's zone — a null tz makes the expansion treat the stored
+  // instant as UTC. Physical events read in their own zone. This authors each occurrence in
+  // that same zone.
   const zone = online ? 'utc' : EVENT_ZONE
 
   return {
@@ -117,11 +118,12 @@ const EXAMPLES = ['Month', 'Grid failure'] as const
 const POISONED = { notAnArray: true }
 
 /**
- * CalendarView — the full-width month / week / list surface. Events are the (mocked) filtered
- * feed expanded into per-occurrence entries, labelled by city; our own header drives the views +
- * navigation, with the active-filter pills below it. Themed to our tokens (follows light/dark).
+ * CalendarView — the full-width month, week, or list surface. Events are the mocked filtered
+ * feed, expanded into per-occurrence entries and labelled by city. This project's own header
+ * drives the views and navigation, with the active-filter pills below it. It is themed to this
+ * project's tokens, and follows light and dark mode.
  *
- * The State control carries no not-found flavour: an unknown `?region=` slug means "no
+ * The State control carries no not-found flavour. An unknown `?region=` slug means "no
  * restriction", never a throw, so this view's routes cannot 404.
  */
 export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFallbackArg }> = ({
@@ -140,10 +142,10 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
         for (const filters of [DEFAULT_FILTERS, activeFilters]) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
-            // The error case seeds a shape the expansion can't consume, so the throw
-            // happens where a Schedule-X or contract failure would: inside CalendarGrid's
-            // render, below the header. Cast because that is precisely the point — the
-            // types say this can't happen, and the boundary exists for when it does.
+            // The error case seeds a shape the expansion cannot consume, so the throw happens
+            // where a Schedule-X or contract failure would: inside CalendarGrid's render,
+            // below the header. This casts the value because that is precisely the point. The
+            // types say this cannot happen, and the boundary exists for when it does.
             example === 'Grid failure' ? (POISONED as unknown as CalendarSourceEvent[]) : events,
           )
         }

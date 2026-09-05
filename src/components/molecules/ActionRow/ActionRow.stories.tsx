@@ -22,12 +22,13 @@ const COLORS = ['primary', 'secondary', 'contrast', 'neutral'] as const
 const VARIANTS = ['solid', 'flat', 'bordered', 'ghost'] as const
 
 /**
- * ActionRow / ActionCircle — the labelled tonal-circle secondary actions under
- * an event's Register CTA. All circles carry equal weight (emphasis belongs to
- * Register); the one sanctioned `emphasized` case is Contact on an inactive
- * event, which has no Register. The whole set always stays on ONE line: the
- * circles share the row width equally and only the labels narrow, so the row
- * neither wraps nor scrolls however many actions a state carries.
+ * ActionRow / ActionCircle — the labelled tonal-circle secondary actions
+ * under an event's Register CTA. All circles carry equal weight, since
+ * emphasis belongs to Register. The one sanctioned `emphasized` case is
+ * Contact on an inactive event, which has no Register. The whole set always
+ * stays on ONE line. The circles share the row width equally, and only the
+ * labels narrow, so the row neither wraps nor scrolls, however many actions
+ * a state carries.
  */
 export const Default: Story = () => (
   <StoryWrapper>

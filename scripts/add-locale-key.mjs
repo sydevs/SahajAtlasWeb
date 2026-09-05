@@ -1,8 +1,8 @@
 /**
- * Adds (or overwrites) one i18n key across the hand-maintained locale JSON
- * under public/locales/<lng>/<ns>.json. This keeps the files
- * prettier-formatted (2-space, trailing newline) and reports which locales
- * were left to fall back to `en`.
+ * Adds or overwrites one i18n key across the hand-maintained locale JSON
+ * files, under public/locales/<lng>/<ns>.json. This script keeps the files
+ * Prettier-formatted, with 2-space indent and a trailing newline. It also
+ * lists which locales it left to fall back to `en`.
  *
  * Usage:
  *   node scripts/add-locale-key.mjs <dotted.key> '<{lng:value}>' [namespace]
@@ -11,12 +11,13 @@
  * Example:
  *   pnpm i18n:add filters.nearby '{"en":"< %{km} km","fr":"< %{km} km"}'
  *
- * The values map is { <lng>: <value> }. `en` (the fallbackLng) is required.
- * Locales present in public/locales but absent from the map are left
- * untouched (they fall back to en) and listed. Interpolation uses this
- * repo's Ruby-style `%{var}` — remember that `count` triggers i18next
- * pluralization, so use a different variable name for a plain number (see
- * docs/rules/i18n-and-state.md).
+ * The values argument is a map of { <lng>: <value> }. `en` is the fallback
+ * language, so the map must include it. A locale present in public/locales
+ * but absent from the map keeps its old value and falls back to `en`. This
+ * script lists those skipped locales. Interpolation uses this repo's
+ * Ruby-style `%{var}` syntax. Note: i18next treats `count` as a
+ * pluralization trigger, so use a different variable name for a plain
+ * number (see docs/rules/i18n-and-state.md).
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

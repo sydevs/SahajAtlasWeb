@@ -6,22 +6,25 @@ import { tv, type VariantProps } from 'tailwind-variants'
 import { Check } from 'lucide-react'
 
 // A two-in-one boolean control. The default `switch` appearance is the brand
-// track/thumb toggle (unchanged from the former Switch atom, `role="switch"`);
-// the `checkbox` appearance is a square box with a check indicator on the same
-// brand tokens (`role="checkbox"`). Both share the `color`/`size` variants and
-// an optional trailing label, and both are controllable or uncontrolled.
-// Disabled is GREY, never a faded brand. Fading the brand fill produced a pale tint
-// that read as "a lighter shade of on" rather than "you can't touch this", and against
-// a pale brand was hard to tell from the enabled-unchecked track. So it repaints on the
-// neutral ramp (gray-9 on / gray-5 off, both OFF the enabled steps) at FULL opacity — a
-// control you can see but can't use beats one faded to near-invisible — and the inert
-// cue moves to the knob/box instead.
+// track/thumb toggle. It is unchanged from the former Switch atom, with
+// `role="switch"`. The `checkbox` appearance is a square box with a check
+// indicator, on the same brand tokens, with `role="checkbox"`. Both share the
+// `color` and `size` variants and an optional trailing label. Both can be
+// controlled or uncontrolled.
 //
-// Driven off Radix's own `data-disabled` (as Slider does) rather than a tv variant, so
-// the override beats the `color` AND `isInvalid` fills by CSS SPECIFICITY — one more
-// attribute in the selector — instead of depending on class order or on where a variant
-// sits in the recipe. `isInvalid`'s ring is a different property, so an errored control
-// keeps its ring while going grey.
+// Disabled is always GREY, never a faded brand colour. Fading the brand fill
+// produced a pale tint that read as "a lighter shade of on", not "you can't
+// touch this". Against a pale brand, it was also hard to tell from the
+// enabled-unchecked track. So a disabled control repaints on the neutral ramp
+// instead: gray-9 when on, gray-5 when off, both off the enabled steps, at FULL
+// opacity. A control you can see but can't use beats one faded to
+// near-invisible. The inert cue moves to the knob or box instead.
+//
+// This reads Radix's own `data-disabled` attribute, not a tv variant, as
+// Slider does. So the override beats the `color` and `isInvalid` fills by CSS
+// SPECIFICITY: one more attribute in the selector. It does not depend on class
+// order or on where a variant sits in the recipe. `isInvalid`'s ring is a
+// different property, so an errored control keeps its ring while it goes grey.
 const toggle = tv({
   slots: {
     root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
@@ -29,8 +32,9 @@ const toggle = tv({
       'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform data-[disabled]:bg-gray-2 data-[disabled]:shadow-none',
   },
   variants: {
-    // Checked track darkened (step 12) in light mode so a pale brand still reads
-    // against the near-white thumb; dark mode keeps the ramp's light solid (step 9).
+    // The checked track darkens (step 12) in light mode, so a pale brand still
+    // reads against the near-white thumb. Dark mode keeps the ramp's light
+    // solid (step 9).
     color: {
       primary: {
         root: 'data-[state=checked]:bg-primary-12 dark:data-[state=checked]:bg-primary-9',
@@ -46,12 +50,13 @@ const toggle = tv({
       sm: { root: 'h-5 w-9', thumb: 'h-4 w-4 data-[state=checked]:translate-x-[18px]' },
       md: { root: 'h-6 w-11', thumb: 'h-5 w-5 data-[state=checked]:translate-x-[22px]' },
     },
-    // Active-filter tint: primary-colour the UNCHECKED track (checked keeps its solid
-    // fill above) so an in-use field stands out — a colour change only, no wrapper.
+    // Active-filter tint. This colours the UNCHECKED track primary. The checked
+    // track keeps its solid fill above. This makes an in-use field stand out.
+    // It changes colour only, with no wrapper.
     highlight: { true: { root: 'bg-primary-5' } },
-    // Validation error: recolour to danger — the CHECKED track swaps its primary fill for the
-    // danger solid, plus a danger ring so an unchecked switch still reads as errored (no layout
-    // shift). The control also sets `aria-invalid`.
+    // Validation error: recolour to danger. The CHECKED track swaps its primary
+    // fill for the danger solid. A danger ring makes an unchecked switch still
+    // read as errored, with no layout shift. The control also sets `aria-invalid`.
     isInvalid: {
       true: {
         root: 'ring-2 ring-danger-7 data-[state=checked]:bg-danger-9 dark:data-[state=checked]:bg-danger-9',
@@ -61,19 +66,20 @@ const toggle = tv({
   defaultVariants: { color: 'primary', size: 'md' },
 })
 
-// Disabled follows the toggle's note above — the same neutral ramp off the same
-// `data-disabled` selector. The unchecked box additionally FILLS (gray-4 over the
-// enabled `bg-background`) while keeping its border weight, so "off and disabled"
-// reads as a solid inert box rather than a fainter copy of the plain unchecked one.
+// Disabled follows the toggle's note above: the same neutral ramp off the same
+// `data-disabled` selector. The unchecked box also FILLS, gray-4 over the
+// enabled `bg-background`, while it keeps its border weight. So "off and
+// disabled" reads as a solid inert box, not a fainter copy of the plain
+// unchecked one.
 const box = tv({
   slots: {
     root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
     indicator: 'flex items-center justify-center',
   },
   variants: {
-    // Checked box darkened (step 12) + WHITE check in light mode, so even a pale
-    // brand gets a legible check; dark mode keeps the ramp's light solid (step 9)
-    // + its adaptive on-color (`--{role}-on`).
+    // The checked box darkens (step 12) and shows a WHITE check in light mode,
+    // so even a pale brand gets a legible check. Dark mode keeps the ramp's
+    // light solid (step 9) and its adaptive on-color (`--{role}-on`).
     color: {
       primary: {
         root: 'data-[state=checked]:border-primary-12 data-[state=checked]:bg-primary-12 data-[state=checked]:text-white dark:data-[state=checked]:border-primary-9 dark:data-[state=checked]:bg-primary-9 dark:data-[state=checked]:text-primary-foreground',
@@ -89,12 +95,13 @@ const box = tv({
       sm: { root: 'h-4 w-4' },
       md: { root: 'h-5 w-5' },
     },
-    // Active-filter tint: primary-colour the UNCHECKED box (checked keeps its solid fill
-    // above) so an in-use field stands out — a colour change only, no wrapper.
+    // Active-filter tint. This colours the UNCHECKED box primary. The checked
+    // box keeps its solid fill above. This makes an in-use field stand out. It
+    // changes colour only, with no wrapper.
     highlight: { true: { root: 'border-primary-7 bg-primary-2' } },
-    // Validation error: recolour to danger — the unchecked box border AND the CHECKED box's
-    // primary fill/border/check swap for the danger solid (colour change only). The control
-    // also sets `aria-invalid`.
+    // Validation error: recolour to danger. The unchecked box border, and the
+    // CHECKED box's primary fill, border, and check, all swap for the danger
+    // solid. This is a colour change only. The control also sets `aria-invalid`.
     isInvalid: {
       true: {
         root: 'border-danger-7 data-[state=checked]:border-danger-9 data-[state=checked]:bg-danger-9 data-[state=checked]:text-danger-foreground dark:data-[state=checked]:border-danger-9 dark:data-[state=checked]:bg-danger-9 dark:data-[state=checked]:text-danger-foreground',
@@ -105,7 +112,7 @@ const box = tv({
 })
 
 export type CheckboxProps = VariantProps<typeof toggle> & {
-  /** `switch` (default) keeps the brand toggle; `checkbox` renders a check box. */
+  /** `switch` (default) keeps the brand toggle. `checkbox` renders a check box. */
   appearance?: 'switch' | 'checkbox'
   checked?: boolean
   defaultChecked?: boolean
@@ -180,8 +187,9 @@ export function Checkbox({
 
   if (!children) return control
 
-  // The label isn't a Radix part, so it has no `data-disabled` to key off — it
-  // takes the prop directly to match the control's cursor and dim its text.
+  // The label isn't a Radix part, so it has no `data-disabled` attribute to key
+  // off. It reads the `disabled` prop directly, to match the control's cursor
+  // and dim its text.
   return (
     <label
       className={clsx(

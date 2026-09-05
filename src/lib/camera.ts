@@ -3,22 +3,22 @@ import type { PaddingOptions } from 'mapbox-gl'
 /**
  * Pure camera-decision helpers, split out of the map controller / mapbox hook so
  * they unit-test without a live map. The controller owns the zoom *values*
- * (EVENT_ZOOM / REGION_MAX_ZOOM / REGION_FIT_PADDING) and passes them in; these
+ * (EVENT_ZOOM / REGION_MAX_ZOOM / REGION_FIT_PADDING) and passes them in. These
  * functions only decide the *shape* of the move.
  */
 
 /** Extra options fitBounds accepts on top of the ambient drawer padding. */
 export type FitOptions = {
-  /** Cap the fit zoom (a tight/single-event bbox can't zoom past this). */
+  /** Cap the fit zoom. A tight or single-event bbox cannot zoom past this. */
   maxZoom?: number
-  /** Uniform px added to every side of the base padding, so events aren't flush to the edge. */
+  /** Uniform px added to every side of the base padding, so events are not flush to the edge. */
   padding?: number
 }
 
 /**
- * Merge the ambient drawer padding with an extra uniform inset for a fitBounds
- * call. Keeps the drawer's known footprint out of the camera *and* leaves
- * breathing room around edge events — without DOM-measuring the panel.
+ * Merges the ambient drawer padding with an extra uniform inset for a fitBounds
+ * call. This keeps the drawer's known footprint out of the camera, and leaves
+ * breathing room around edge events, without DOM-measuring the panel.
  */
 export const fitBoundsOptions = (
   base: PaddingOptions,
@@ -38,9 +38,9 @@ export const fitBoundsOptions = (
 }
 
 /**
- * Whether a projected screen point sits inside the *padded* viewport — the visible
+ * Whether a projected screen point sits inside the *padded* viewport: the visible
  * map area minus the drawer footprint. `frameEvent` uses it to keep the zoom for a
- * pin that's already on screen and only ease to an off-screen one.
+ * pin that is already on screen, and only ease to an off-screen one.
  */
 export const isWithinPaddedViewport = (
   point: { x: number; y: number },
@@ -53,15 +53,15 @@ export const isWithinPaddedViewport = (
   point.y <= size.height - (padding.bottom ?? 0)
 
 /**
- * The zoom `frameEvent` should ease to, or `null` to stay put — "move only as needed"
+ * The zoom `frameEvent` should ease to, or `null` to stay put: "move only as needed"
  * (selecting the marker happens unconditionally, separately).
  *
- * - **Online / approximate** events have no real location: frame their stored point
- *   only as the session entry point (a deep link); in-session, selecting one never
- *   moves the camera.
+ * - **Online / approximate** events have no real location. This frames their stored
+ *   point only as the session entry point (a deep link). In-session, selecting one
+ *   never moves the camera.
  * - **Located** events ease in to the event zoom on entry, from a wider view, or when
  *   off-screen. Only a genuine pin click — already on-screen *and* already at a detail
- *   zoom (`atDetailZoom`) — keeps the current zoom, so it doesn't nudge the camera.
+ *   zoom (`atDetailZoom`) — keeps the current zoom, so it does not nudge the camera.
  *   `atDetailZoom` is the guard that stops the boot-time world view (zoom 0, where any
  *   point projects as "visible") from reading as "already showing the event".
  */

@@ -1,47 +1,49 @@
 /**
- * Gives a JS entry the discovery coverage an HTML entry gets for free (issue #96).
+ * Gives a JS entry the same discovery coverage an HTML entry gets for free
+ * (issue #96).
  *
- * Vite writes a `<link rel="modulepreload">` for the entry's WHOLE transitive
- * static closure into the HTML shell, so `dist/index.html` lets a browser
- * discover every eager chunk from one parse. `embed.js` has no shell —
- * nothing writes HTML for someone else's page — so a host discovers only
- * what the entry itself imports, and everything deeper costs an extra round
- * trip. Measured on this build before the fix: `embed.js` imported 7 of its
- * 10 chunks directly, and the three it missed included `shared`, the single
- * largest chunk in the eager payload. A third of the embed's bytes arrived
- * one RTT late.
+ * Vite writes a `<link rel="modulepreload">` hint into the HTML shell, for
+ * the entry's WHOLE transitive static closure. `dist/index.html` lets a
+ * browser discover every eager chunk from a single parse. `embed.js` has
+ * no shell — nothing writes HTML for a page this widget does not own — so
+ * a host discovers only what the entry itself imports directly, and
+ * everything deeper costs an extra round trip. Measured on this build
+ * before the fix: `embed.js` imported 7 of its 10 chunks directly. The
+ * three it missed included `shared`, the single largest chunk in the
+ * eager payload. A third of the embed's bytes arrived one round trip late.
  *
- * The fix has to be a static import, not an injected `<link>`. A module's
- * static imports are fetched AND evaluated before its body runs, so any
- * preload hint written from inside `embed.js` executes after the very graph
- * it would have hinted at — runtime injection cannot, even in principle, be
- * early. Appending the missing chunks to the entry's own import list puts
- * the same information in the only place a host reads it in time.
+ * The fix has to be a static import, not an injected `<link>` tag. A
+ * module's static imports get fetched AND evaluated before its body runs.
+ * So a preload hint written from inside `embed.js` would execute after the
+ * very graph it hints at — runtime injection cannot be early, even in
+ * principle. Appending the missing chunks to the entry's own import list
+ * puts the same information in the one place a host reads it in time.
  *
- * Two properties are load-bearing:
+ * Two properties are load-bearing here:
  *
- *   1. **Appended AFTER the existing imports.** ES modules evaluate
- *      depth-first in import order, so every chunk already reachable
- *      through an earlier import is evaluated exactly when it was before,
- *      and these trailing specifiers resolve to already-evaluated modules.
- *      They add fetch parallelism, never a reorder.
- *   2. **Only an entry whose filename carries no content hash.** This
- *      rewrites `chunk.code` in `generateBundle`, which runs AFTER
- *      rolldown has hashed the output — so flattening an
- *      `assets/[name]-[hash].js` entry would ship bytes that no longer
- *      match the hash in their own filename, and break cache-busting.
- *      `embed.js` is safe because `entryFileNames` pins it to that literal
- *      name.
+ *   1. **The missing chunks get appended AFTER the existing imports.** ES
+ *      modules evaluate depth-first, in import order. Every chunk already
+ *      reachable through an earlier import still evaluates exactly when
+ *      it did before. These trailing specifiers resolve to
+ *      already-evaluated modules. They only add fetch parallelism. They
+ *      never reorder evaluation.
+ *   2. **This only rewrites an entry whose filename carries no content
+ *      hash.** The rewrite happens to `chunk.code` inside
+ *      `generateBundle`, which runs AFTER rolldown has already hashed the
+ *      output. Flattening an `assets/[name]-[hash].js` entry would ship
+ *      bytes that no longer match the hash in their own filename, and
+ *      that would break cache-busting. `embed.js` is safe, because
+ *      `entryFileNames` pins it to that one literal name.
  */
 
 /**
- * Every chunk reachable from `entry` through STATIC imports, `entry`'s own
- * direct imports included. `chunk.imports` is rolldown's own record of
- * static (never dynamic) imports, so this is exactly the eager graph
- * `scripts/check-bundle-size.mjs` budgets.
+ * Every chunk reachable from `entry` through STATIC imports, including
+ * `entry`'s own direct imports. `chunk.imports` is rolldown's own record
+ * of static imports — it never records dynamic ones. So this is exactly
+ * the eager graph `scripts/check-bundle-size.mjs` budgets.
  *
- * A `Set` walked with `for…of` visits values appended during iteration, so
- * the traversal needs no separate worklist.
+ * A `Set` walked with `for…of` visits values appended during the same
+ * iteration. So this traversal needs no separate worklist.
  *
  * @param {Record<string, {type: string, imports?: string[]}>} bundle
  * @param {{imports?: string[]}} entry
@@ -62,10 +64,10 @@ export function importClosure(bundle, entry) {
 }
 
 /**
- * The `import "…";` lines to append to an entry, for every chunk in its
- * closure it does not already import directly. Specifiers are relative to
- * the ENTRY's own directory, not the output root — `embed.js` sits at the
- * root today, but `entryFileNames` is free to move it.
+ * The `import "…";` lines to append to an entry, one for every chunk in
+ * its closure that it does not already import directly. Each specifier is
+ * relative to the ENTRY's own directory, not the output root — `embed.js`
+ * sits at the output root today, but `entryFileNames` is free to move it.
  *
  * @param {Record<string, {type: string, imports?: string[]}>} bundle
  * @param {{fileName: string, imports?: string[]}} entry
@@ -75,9 +77,9 @@ export function flattenedImports(bundle, entry) {
   const direct = new Set(entry.imports ?? [])
   const missing = [...importClosure(bundle, entry)].filter((f) => !direct.has(f)).sort()
 
-  // This uses POSIX semantics regardless of host OS: these are URL-ish
-  // module specifiers, and on Windows `path.relative` would hand back
-  // backslashes that no browser resolves.
+  // This uses POSIX path semantics regardless of the host OS. These are
+  // URL-ish module specifiers. On Windows, `path.relative` would return
+  // backslashes, and no browser can resolve those.
   const from = entry.fileName.includes('/') ? entry.fileName.replace(/\/[^/]*$/, '') : ''
   const specifier = (file) => {
     if (!from) return `./${file}`
@@ -98,9 +100,9 @@ export function flattenedImports(bundle, entry) {
 }
 
 /**
- * The Vite plugin. `entryName` is the `rolldownOptions.input` KEY (not the
- * emitted filename), so the coupling is to the config a few lines away,
- * rather than to a hash.
+ * The Vite plugin. `entryName` is the `rolldownOptions.input` KEY, not the
+ * emitted filename. This couples the plugin to the config a few lines
+ * away, instead of to a content hash.
  *
  * @param {string} entryName
  * @returns {import('vite').Plugin}
@@ -115,17 +117,18 @@ export default function flattenEntryImports(entryName) {
         (c) => c.type === 'chunk' && c.isEntry && c.name === entryName,
       )
 
-      // The second clause is the narrowing `Array.prototype.find` cannot
-      // carry out of its own predicate, not a second condition — an asset
-      // can never match `name`/`isEntry`.
+      // The second clause here narrows the type. `Array.prototype.find`
+      // cannot carry that narrowing out of its own predicate function. It
+      // is not really a second condition — an asset can never match `name`
+      // and `isEntry` together.
       if (!entry || entry.type !== 'chunk') {
-        // This uses `error`, not `warn`: a warning is as invisible as
-        // silence here. `pnpm build` has no `onwarn` override and Vite does
-        // not fail on rollup warnings, and `pnpm size` cannot catch it
-        // either — flattening changes DISCOVERY, not bytes, so the budget
-        // is identical whether this ran or not. Renaming the input key
-        // would otherwise revert the whole optimization with every gate
-        // still green.
+        // This calls `error`, not `warn`. A warning here would be as
+        // invisible as silence. `pnpm build` has no `onwarn` override, and
+        // Vite does not fail the build on rollup warnings. `pnpm size`
+        // cannot catch this either — flattening changes DISCOVERY, not
+        // bytes, so the size budget stays identical whether this plugin
+        // ran or not. Renaming the input key would otherwise silently
+        // revert this whole optimization, with every gate still green.
         this.error(
           `flattenEntryImports: no entry chunk named "${entryName}". Update the name to ` +
             'match the `rolldownOptions.input` key in vite.config.ts.',
@@ -134,13 +137,14 @@ export default function flattenEntryImports(entryName) {
         return
       }
 
-      // This enforces the invariant the docblock calls load-bearing, rather
-      // than trusting a ternary in another file to keep holding. Rewriting
-      // a hash-named entry would ship bytes that do not match the hash in
-      // their own filename — into a path `_headers` marks `immutable,
-      // max-age=31536000`, meaning a URL promising content-addressing while
-      // serving something else. `pnpm size` cannot see it: flattening
-      // changes discovery, not bytes.
+      // This enforces the invariant this file's header docblock calls
+      // load-bearing. It does not trust a ternary elsewhere in the
+      // codebase to keep holding. Rewriting a hash-named entry would ship
+      // bytes that do not match the hash in their own filename. `_headers`
+      // marks that path `immutable, max-age=31536000`, so the URL would
+      // promise content-addressing while serving something else. `pnpm
+      // size` cannot see this failure, because flattening changes
+      // discovery, not bytes.
       if (/-[A-Za-z0-9_-]{8}\.js$/.test(entry.fileName)) {
         this.error(
           `flattenEntryImports: refusing to rewrite hash-named "${entry.fileName}" — ` +

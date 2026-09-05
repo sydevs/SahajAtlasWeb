@@ -3,8 +3,8 @@ import z from 'zod'
 import { AgnosticFeedEventSchema } from './event'
 
 // `GET /api/events/geojson` — a FeatureCollection whose feature `properties` is the
-// selected event document, LOCALE-AGNOSTIC (no `title`; it's joined per-locale by
-// id). Geometry is null for online events or when coordinates weren't selected.
+// selected event document, LOCALE-AGNOSTIC (no `title`. It is joined per-locale by
+// id). Geometry is null for online events or when coordinates were not selected.
 // Pagination foreign members are ignored.
 export const GeoFeatureSchema = z.object({
   type: z.literal('Feature'),

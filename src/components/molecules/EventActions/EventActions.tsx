@@ -12,11 +12,12 @@ import { directionsUrl } from '@/lib'
 import { overlayContainer } from '@/lib/overlay'
 import { Event } from '@/types'
 
-// The desktop contact action: the circle plus a popover carrying the number and
-// a copy affordance (a raw `tel:` link is a desktop dead end). Same @floating-ui
-// pattern as the Dropdown atom — portaled (never clipped by the scrolling
-// panel), viewport-aware, dismissed on outside click/Esc. A component of its own
-// because the hook can't run inside the action `flatMap` below.
+// The desktop contact action: the circle, plus a popover carrying the
+// number and a copy affordance. A raw `tel:` link is a desktop dead end.
+// This uses the same @floating-ui pattern as the Dropdown atom. It is
+// portaled, so the scrolling panel never clips it. It is viewport-aware,
+// and dismissed on outside click or Esc. This is its own component,
+// because the hook cannot run inside the action `flatMap` below.
 function ContactPopover({
   label,
   name,
@@ -44,19 +45,21 @@ function ContactPopover({
       />
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
-          {/* The panel is PORTALED to the theme root, so in DOM order it is nowhere
-              near the circle that opened it: without a focus manager a keyboard or
-              screen-reader user pressed Contact, was told a dialog opened, and then
-              tabbed on into whatever follows the map — never reaching the number.
+          {/* The panel is PORTALED to the theme root. So in DOM order it sits
+              nowhere near the circle that opened it. Without a focus manager, a
+              keyboard or screen-reader user pressed Contact, was told a dialog
+              opened, and then tabbed on into whatever follows the map, never
+              reaching the number.
 
-              So unlike the Dropdown atom, which uses `initialFocus={-1}` because its
-              panel is a filter surface a viewer may want to leave alone, this one pulls
-              focus IN: the copy button is the whole reason the popover was opened. The
-              rest matches Dropdown — non-modal (the page behind stays live, this is a
-              phone number, not a task to finish) and `returnFocus` so Esc or an outside
-              click puts the caret back on the Contact circle rather than at the top of
-              the document. Esc and outside-click themselves come from `useDismiss` in
-              `usePopover`; the manager only decides where focus goes. */}
+              So unlike the Dropdown atom, this one pulls focus IN. Dropdown uses
+              `initialFocus={-1}`, because its panel is a filter surface a viewer
+              may want to leave alone. Here, the copy button is the whole reason the
+              popover opened. The rest matches Dropdown. It is non-modal, since the
+              page behind stays live and this is a phone number, not a task to
+              finish. It also sets `returnFocus`, so Esc or an outside click puts the
+              caret back on the Contact circle, instead of at the top of the
+              document. Esc and outside-click themselves come from `useDismiss` in
+              `usePopover`. The manager only decides where focus goes. */}
           <FloatingFocusManager context={context} modal={false} returnFocus={true}>
             <div
               ref={refs.setFloating}
@@ -76,23 +79,24 @@ function ContactPopover({
 
 export type EventActionsProps = {
   event: Event
-  /** The event's current route; the share action navigates to `${basePath}/share`. */
+  /** The event's current route. The share action navigates to `${basePath}/share`. */
   basePath: string
 }
 
 /**
  * The secondary action row (issue #52, WS3): equal-weight labelled tonal
- * circles, set per resolver state. Contact is `tel:` on touch and a popover
- * with the number + copy on desktop (a raw tel: link is a desktop dead end).
+ * circles, set per resolver state. Contact is `tel:` on touch, and a popover
+ * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
   const { t } = useTranslation('events')
   const navigate = useAtlasNavigate()
-  // The one responsive decision in the app that is about the DEVICE rather than the
-  // space (issue #107). Whether a `tel:` link reaches anything is a property of the
-  // hardware: narrowing a desktop window — or embedding this widget in a 320px column
-  // on one — has never given it a dialer, and a phone held sideways can be wider than
-  // any breakpoint we would pick. So this asks the pointer, not the width.
+  // The one responsive decision in the app that is about the DEVICE, not
+  // the space (issue #107). Whether a `tel:` link reaches anything is a
+  // property of the hardware. Narrowing a desktop window, or embedding
+  // this widget in a 320px column on one, has never given it a dialer. A
+  // phone held sideways can also be wider than any breakpoint this app
+  // would pick. So this asks the pointer, not the width.
   const canDial = useCoarsePointer()
   const { display } = useEventDisplay(event)
 
@@ -130,7 +134,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
         if (!event.contactPhone) return []
         const label = t('actions.contact')
 
-        // Touch devices dial; everything else shows the number with a copy affordance.
+        // Touch devices dial. Everything else shows the number with a copy affordance.
         if (canDial) {
           return [
             <ActionCircle

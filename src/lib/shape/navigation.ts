@@ -2,9 +2,10 @@
  * In-widget history shaping. The drawer stack is a pure function of the URL, but
  * *dismissal* is history-aware: every in-widget push stamps an incrementing
  * `location.state.depth`, so closing a drawer can go chronologically back
- * (`navigate(-1)`) when there's in-widget history and fall back to the structural
- * parent only for a fresh deep link. Kept here (pure, no react-router import) so
- * the decision is unit-testable in isolation from the components that apply it.
+ * (`navigate(-1)`) when in-widget history exists, and fall back to the structural
+ * parent only for a fresh deep link. This is kept here (pure, no react-router
+ * import), so the decision is unit-testable in isolation from the components
+ * that apply it.
  */
 
 /** The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). */
@@ -12,9 +13,9 @@ export type AtlasNavState = { depth?: number }
 
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
- * (or any navigation we didn't stamp) has no numeric depth ⇒ 0. Reads defensively:
- * `state` is `unknown` at the react-router boundary and may be anything a host page
- * put there.
+ * (or any navigation we did not stamp) has no numeric depth, so it reads as 0.
+ * This reads defensively: `state` is `unknown` at the react-router boundary, and
+ * may be anything a host page put there.
  */
 export const atlasDepth = (location: { state?: unknown }): number => {
   const state = location.state as { depth?: unknown } | null | undefined
@@ -25,9 +26,9 @@ export const atlasDepth = (location: { state?: unknown }): number => {
 /**
  * The `state` to stamp on an in-widget push: one level deeper than the current
  * entry. The single definition of the depth-stamp convention, shared by the Link
- * atom (declarative `state` prop) and `useAtlasNavigate` (imperative) so the two
- * paths can't silently diverge. Pair it with `rememberCamera(location.key)` at
- * click time so a later back restores the camera — that stays a separate call
+ * atom (declarative `state` prop) and `useAtlasNavigate` (imperative), so the two
+ * paths cannot silently diverge. Pair it with `rememberCamera(location.key)` at
+ * click time, so a later back restores the camera. That stays a separate call,
  * because Link stamps `state` at render but can only capture the live camera on click.
  */
 export const atlasPushState = (location: { state?: unknown }): AtlasNavState => ({
@@ -43,8 +44,8 @@ export type DismissAction =
 /**
  * Resolve the dismiss behaviour from whether a structural parent exists and the
  * current in-widget depth. `back` (never at depth 0) is what keeps the embedded
- * widget from navigating the *host page* away — at depth 0 there's no in-widget
- * entry to pop, so we climb structurally instead.
+ * widget from navigating the *host page* away. At depth 0 there is no in-widget
+ * entry to pop, so this climbs structurally instead.
  */
 export const dismissAction = ({
   hasParent,

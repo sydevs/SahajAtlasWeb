@@ -2,20 +2,20 @@
  * Hover intent + a concurrency ceiling for speculative prefetching.
  *
  * The problem it exists for: warming an event's detail on `mouseenter` is free when the
- * pointer is *arriving* at a card and pure waste when it is merely *passing over* one.
+ * pointer is *arriving* at a card, and pure waste when it is merely *passing over* one.
  * A results list pages to hundreds of rows, so dragging the cursor down it fires one
- * `GET /events/:id` per row traversed — distinct keys, so React Query's dedup can't
- * help — and the widget is embedded on pages we don't own, so that burst lands on
- * SahajCloud multiplied by however many visitors are sweeping a list at once.
+ * `GET /events/:id` per row traversed. These are distinct keys, so React Query's dedup
+ * cannot help. The widget is also embedded on pages we do not own, so that burst lands
+ * on SahajCloud multiplied by however many visitors are sweeping a list at once.
  *
  * Two independent bounds, because either alone leaks:
  *
  * - **Dwell.** A warm fires only after the pointer (or focus) has rested on one row for
- *   `HOVER_DWELL_MS`. Crossing a ~72 px row in a sweep takes tens of milliseconds; a
+ *   `HOVER_DWELL_MS`. Crossing a ~72 px row in a sweep takes tens of milliseconds. A
  *   deliberate hover before a click lasts several hundred. The delay sits in the gap,
  *   so a sweep fires nothing and a real hover still warms well before the click lands.
  * - **Concurrency.** Even deliberate hovering, held long enough, walks a list one warm
- *   at a time. `maxInFlight` caps how many can be outstanding; over the cap a warm is
+ *   at a time. `maxInFlight` caps how many can be outstanding. Over the cap a warm is
  *   *dropped*, never queued — a queue would just deliver the storm late, and the one
  *   card the viewer actually opens fetches through its own suspense read anyway.
  *
@@ -37,9 +37,9 @@ export const HOVER_DWELL_MS = 150
 /**
  * How many speculative warms may be outstanding at once.
  *
- * One would be defensible; two covers the real pattern where someone moves on to the
- * next card while the first is still in flight. Beyond that the requests are speculation
- * the API pays for and the viewer can't use — they can only open one event.
+ * One would be defensible. Two covers the real pattern where someone moves on to the
+ * next card while the first is still in flight. Beyond that, the requests are
+ * speculation the API pays for and the viewer cannot use. They can only open one event.
  */
 export const MAX_CONCURRENT_PREFETCH = 2
 
@@ -52,14 +52,14 @@ export type PrefetchIntentOptions = {
 
 export type PrefetchIntent = {
   /**
-   * The pointer/focus arrived on `key`. Starts the dwell; supersedes any row still
-   * waiting out its own dwell, since only one row can be hovered at a time.
+   * The pointer/focus arrived on `key`. This starts the dwell, and supersedes any row
+   * still waiting out its own dwell, since only one row can be hovered at a time.
    */
   enter: (key: number, run: () => unknown) => void
   /**
-   * The pointer/focus left `key`. Cancels its pending warm — but only if `key` is still
-   * the pending one, so a late `mouseleave` for the row already moved past can't cancel
-   * the warm for the row now under the cursor.
+   * The pointer/focus left `key`. This cancels its pending warm, but only if `key` is
+   * still the pending one. So a late `mouseleave` for the row already moved past cannot
+   * cancel the warm for the row now under the cursor.
    */
   leave: (key: number) => void
   /** Drop any pending dwell (teardown). In-flight warms are left to settle. */
