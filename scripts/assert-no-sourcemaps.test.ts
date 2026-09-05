@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import { SCANNED_EXTENSIONS, auditOutput } from './assert-no-sourcemaps.mjs'
 
-/** Drive the audit over an in-memory build output. */
+/** Drives the audit over an in-memory build output. */
 const audit = (files: Record<string, string>) =>
   auditOutput(Object.keys(files), (name) => files[name])
 
-// A minimal but realistic chunk, so the "clean build passes" case is not a trivially
-// empty one — the gate's whole risk is passing for the wrong reason.
+// A minimal but realistic chunk, so the "clean build passes" case is not a
+// trivially empty one — the gate's whole risk is passing for the wrong
+// reason.
 const CLEAN_CHUNK = 'import{a as e}from"./shared-BcnT2Sen.js";const t=()=>e();export{t};'
 
 describe('auditOutput', () => {
@@ -32,9 +33,9 @@ describe('auditOutput', () => {
     expect(failures[0]).toContain('embed.js.map')
   })
 
-  // The check that a .map-file scan cannot make. `sourcemap: 'inline'` emits NO .map file
-  // and embeds every original source as base64 inside the shipped JS, so without this the
-  // whole repo could ship inside embed.js with the gate green.
+  // This is the check that a .map-file scan cannot make. `sourcemap: 'inline'` emits NO
+  // .map file and embeds every original source as base64 inside the shipped JS, so
+  // without this the whole repo could ship inside embed.js with the gate green.
   it('rejects an INLINE map, which leaves no .map file behind', () => {
     const { failures } = audit({
       'embed.js': `${CLEAN_CHUNK}\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozfQ==`,
@@ -55,8 +56,8 @@ describe('auditOutput', () => {
     expect(failures).toHaveLength(1)
   })
 
-  // The silent-green failure mode: a gate that reads nothing reports success. Mirrors the
-  // `sheets === 0` guard in assert-css-scoped.mjs.
+  // This is the silent-green failure mode: a gate that reads nothing reports success.
+  // Mirrors the `sheets === 0` guard in assert-css-scoped.mjs.
   it('fails when it found nothing to scan', () => {
     const { failures, scanned } = audit({ _headers: '/*\n  X-Robots-Tag: noindex' })
 
@@ -77,15 +78,16 @@ describe('auditOutput', () => {
   })
 
   it('looks for no secret when the build is uncredentialed', () => {
-    // The uncredentialed path passes `undefined`; an empty-string token (how a declared-
-    // but-blank Cloudflare variable arrives) must not match every file either.
+    // The uncredentialed path passes `undefined`. An empty-string token
+    // (how a declared-but-blank Cloudflare variable arrives) must not
+    // match every file either.
     expect(auditOutput(['embed.js'], () => CLEAN_CHUNK, undefined).failures).toEqual([])
     expect(auditOutput(['embed.js'], () => CLEAN_CHUNK, '').failures).toEqual([])
   })
 
   it('scans every extension the build actually emits', () => {
-    // `.js` and `.html` are what this build writes today; the rest are covered so a
-    // future emit shape does not slip past unread.
+    // `.js` and `.html` are what this build writes today. The rest are
+    // covered so a future emit shape does not slip past unread.
     expect(SCANNED_EXTENSIONS).toEqual(expect.arrayContaining(['.js', '.html', '.css']))
   })
 })

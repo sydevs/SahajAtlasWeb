@@ -8,10 +8,10 @@ import prettier from 'eslint-plugin-prettier'
 import tsParser from '@typescript-eslint/parser'
 import tsPlugin from '@typescript-eslint/eslint-plugin'
 
-// Flat config — aligned with the other SY projects (WeMeditateWeb / sy-devs-cms).
-// Shared formatting is delegated to Prettier via `.prettierrc`; lint rules below
-// mirror the project's long-standing conventions (import order, jsx-sort-props,
-// padding lines, unused-imports auto-removal).
+// This is a flat config. It matches the other SY projects: WeMeditateWeb and
+// sy-devs-cms. Prettier handles formatting through `.prettierrc`. The lint
+// rules below match this project's existing conventions: import order,
+// jsx-sort-props, padding lines, and automatic removal of unused imports.
 export default [
   {
     ignores: [

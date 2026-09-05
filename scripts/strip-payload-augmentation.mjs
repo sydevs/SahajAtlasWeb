@@ -3,27 +3,29 @@
  * `types:cms` script) by stripping the trailing `declare module 'payload'`
  * augmentation.
  *
- * Upstream (SahajCloud) emits this block so the Payload *backend* can wire its
- * generated `Config` into Payload's `GeneratedTypes`:
+ * Upstream (SahajCloud) emits this block so the Payload *backend* can wire
+ * its generated `Config` into Payload's `GeneratedTypes`:
  *
  *     declare module 'payload' {
  *       export interface GeneratedTypes extends Config {}
  *     }
  *
- * This widget talks to SahajCloud over plain axios + zod and does NOT depend on
- * the `payload` package (the synced types are supplementary compile-time types
- * used to keep our zod schemas and `select`/`populate` objects honest). With
- * `payload` absent, the augmentation fails to compile (`TS2664: module 'payload'
- * cannot be found`). Removing it has no effect on the exported interfaces — it
- * only clears that error.
+ * This widget talks to SahajCloud over plain axios and zod, and does NOT
+ * depend on the `payload` package (the synced types are supplementary
+ * compile-time types, used to keep our zod schemas and
+ * `select`/`populate` objects honest). With `payload` absent, the
+ * augmentation fails to compile (`TS2664: module 'payload' cannot be
+ * found`). Removing it has no effect on the exported interfaces — it only
+ * clears that error.
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
 
 const TYPES_PATH = new URL('../src/types/payload/payload-types.ts', import.meta.url)
 
-// Matches the augmentation block (and any whitespace preceding it) through EOF.
-// The block is always emitted last, so removing to end-of-file is safe.
+// Matches the augmentation block (and any whitespace preceding it) through
+// EOF. The block is always emitted last, so removing to end-of-file is
+// safe.
 const AUGMENTATION_RE = /\s*declare module 'payload'[\s\S]*$/
 
 const source = await readFile(TYPES_PATH, 'utf8')

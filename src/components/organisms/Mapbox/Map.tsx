@@ -46,16 +46,18 @@ const MAP_STYLES = {
 }
 
 /**
- * How long after the style loads to reveal the map even though nothing has framed it.
+ * How long after the style loads to reveal the map even though nothing has
+ * framed it.
  *
- * The canvas is held behind a frosted overlay until the camera arrives (`useCameraSettled`), so
- * the boot-time world view is never painted on a deep link. Most routes frame promptly, but not
- * all of them do: CalendarView deliberately never touches the camera, so a `/calendar` deep link
- * would otherwise hide the map for the whole session.
+ * The canvas is held behind a frosted overlay until the camera arrives
+ * (`useCameraSettled`), so the boot-time world view is never painted on a
+ * deep link. Most routes frame promptly, but not all of them do: CalendarView
+ * deliberately never touches the camera, so a `/calendar` deep link would
+ * otherwise hide the map for the whole session.
  *
- * The coupling to the flag is a feature rather than a leak — after this long showing the world,
- * the next camera command flying IS the honest transition, because the visitor has now seen
- * where it is starting from.
+ * The coupling to the flag is a feature, rather than a leak — after this
+ * long showing the world, the next camera command flying IS the honest
+ * transition, because the visitor has now seen where it is starting from.
  */
 const REVEAL_TIMEOUT_MS = 1500
 
@@ -76,12 +78,12 @@ const MAP_WORLDVIEWS: Record<string, string> = {
   default: 'US', // Default
 }
 
-// Mapbox renders geometry and injects its own cluster properties; the click handler
-// needs only `id` + `webPath`. Strip every other feature property before handing the
-// collection to the vector source, so the map holds a lean geometry source — the
-// agnostic feed's card fields (address/schedule/languages/region) never reach Mapbox.
-// Confirms the spike finding: map-source leanness is a client-side trim, not a reason
-// for a separate lean feed query.
+// Mapbox renders geometry and injects its own cluster properties. The click handler
+// needs only `id` + `webPath`. This strips every other feature property before
+// handing the collection to the vector source, so the map holds a lean geometry
+// source — the agnostic feed's card fields (address/schedule/languages/region) never
+// reach Mapbox. It confirms the spike finding: map-source leanness is a client-side
+// trim, not a reason for a separate lean feed query.
 const toMapSource = (features: Geojson['features']): FeatureCollection<Geometry | null> => ({
   type: 'FeatureCollection',
   features: features.map((feature) => ({
@@ -128,8 +130,8 @@ function PointSource({
 }
 
 // The card shown inside the hover popover: a calendar glyph beside the event's
-// timing, with the recurrence (e.g. "Every Thursday") stacked above its start
-// time so the card stays narrow. It renders the SAME calendar parts the list
+// timing, with the recurrence (for example, "Every Thursday") stacked above its
+// start time so the card stays narrow. It renders the SAME calendar parts the list
 // card's `composeCalendarLine` joins (via the shared `calendarLineParts` gate),
 // stacked across two lines instead of joined with a `·`, so the two never drift
 // (#72).
@@ -161,11 +163,11 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
 // sliver).
 //
 // Rendered only for `unclustered-point` pins (never clusters — one recurrence
-// line is meaningless for a cluster of events); the caller re-joins the hovered
+// line is meaningless for a cluster of events). The caller re-joins the hovered
 // pin's id to the full feed event and mounts this once for the one hovered pin (a
-// hook can't run per-feature in a loop). `pointer-events: none` (set on the popup
-// in globals.css) keeps it from stealing hover from the pin beneath it or blocking
-// tap-to-open, and `focusAfterOpen={false}` stops it grabbing focus.
+// hook cannot run per-feature in a loop). `pointer-events: none` (set on the
+// popup in globals.css) keeps it from stealing hover from the pin beneath it or
+// blocking tap-to-open, and `focusAfterOpen={false}` stops it grabbing focus.
 function EventPinPopover({
   event,
   longitude,
@@ -205,22 +207,23 @@ export function Mapbox() {
       setViewState: s.setViewState,
     })),
   )
-  // `t` from `useLocale` — it already holds one for the default (`common`) namespace, and
+  // `t` comes off `useLocale` — it already holds one for the default (`common`) namespace, and
   // a second `useTranslation` here would double the i18next subscription on the app's
   // hottest render path.
   const { t, locale, languageCode } = useLocale()
   const { theme } = useTheme()
 
   // Mapbox's own control strings, which are otherwise English on every embed — the
-  // GeolocateControl below is the only control we render, and its whole accessible
-  // name comes from these two (issue #102).
+  // GeolocateControl below is the only control this app renders, and its whole
+  // accessible name comes from these two (issue #102).
   //
   // Two things to know before extending this. It is CONSTRUCTION-ONLY: `locale` is
   // absent from react-map-gl's reconciliation whitelist (`settingNames` in its
   // mapbox module) and mapbox-gl exposes no `setLocale`, so like the `language` prop
-  // below it is read once and a mid-session language switch does not relabel the
-  // control. And the keys are Mapbox's, not ours — the full set is `defaultLocale`
-  // in mapbox-gl; anything not overridden here silently stays English.
+  // below it is read once, and a mid-session language switch does not relabel the
+  // control. And the keys are Mapbox's, not this app's — the full set is
+  // `defaultLocale` in mapbox-gl. Anything not overridden here silently stays
+  // English.
   const mapLocale = useMemo(
     () => ({
       'GeolocateControl.FindMyLocation': t('map.find_my_location'),
@@ -230,10 +233,10 @@ export function Mapbox() {
   )
 
   // The active filters (stable identity — this is the hot render path). Applied to
-  // the feed below so the pins + cluster counts match the list.
+  // the feed below, so the pins and cluster counts match the list.
   const filters = useEventFilters()
-  // The region cut (self + descendants), resolved from the cache-once region tree.
-  // Undefined unless a region is selected, so pan/zoom never rebuilds it.
+  // The region cut (self plus descendants), resolved from the cache-once region
+  // tree. Undefined unless a region is selected, so pan/zoom never rebuilds it.
   const matchesRegion = useRegionMatcher(filters.region)
 
   const { data } = useQuery({
@@ -242,21 +245,21 @@ export function Mapbox() {
     staleTime: GEOJSON_STALE_TIME,
   })
 
-  // "Find my location" opens the results centred on the visitor rather than just moving the
+  // "Find my location" opens the results centred on the visitor, rather than just moving the
   // camera — see the hook, and the `followUserLocation` note on the control below. The feed is
-  // passed down because it is already held here; the hook frames around the nearest classes in it.
+  // passed down because it is already held here. The hook frames around the nearest classes in it.
   const geolocateToSearch = useGeolocateToSearch(data)
 
-  // Supply the app's own pin/cluster images; markers.ts owns the why and the
+  // Supplies the app's own pin/cluster images. `markers.ts` owns the why and the
   // theme-switch handling. One subscription per map instance.
   useEffect(() => {
     if (mapbox) return registerMarkerImages(mapbox)
   }, [mapbox])
 
-  // Hold the canvas until the camera has arrived somewhere, so a deep link never paints the
-  // boot-time world view before jumping off it. `MapCurtain` draws the frost over the top; this
-  // is the canvas's own half. Fading rather than toggling `visibility` so the arrival reads as
-  // the map resolving, not as a panel being swapped out.
+  // Holds the canvas until the camera has arrived somewhere, so a deep link never paints the
+  // boot-time world view before jumping off it. `MapCurtain` draws the frost over the top. This
+  // is the canvas's own half. This fades, rather than toggling `visibility`, so the arrival reads
+  // as the map resolving, not as a panel being swapped out.
   const settled = useCameraSettled((s) => s.settled)
   const reveal = useCameraSettled((s) => s.markSettled)
   const canvasStyle = useMemo(
@@ -278,7 +281,7 @@ export function Mapbox() {
     [settled],
   )
 
-  // Armed on style load and cleared on unmount, so a map torn down inside the timeout can't
+  // Armed on style load and cleared on unmount, so a map torn down inside the timeout cannot
   // mark a camera that no longer exists as arrived.
   const armReveal = useCallback(() => {
     revealTimer.current = window.setTimeout(reveal, REVEAL_TIMEOUT_MS)
@@ -298,13 +301,15 @@ export function Mapbox() {
 
   // The individual event pin (unclustered-point) currently under the pointer, for
   // the timing popover — never a cluster. Cleared when the pointer moves to empty
-  // map or leaves the canvas. Local state (not zustand): purely a map-view detail.
+  // map or leaves the canvas. This is local state (not zustand): purely a map-view
+  // detail.
   const [hoveredId, setHoveredId] = useState<number | null>(null)
 
-  // Filter the feed before it feeds the clustering source, so cluster counts
-  // reflect the filters (a layer-level `filter` would leave stale counts), then trim
-  // to a geometry-only source. Recomputes only when the feed or filters change — not
-  // on pan/zoom — so the Mapbox source identity stays stable across camera moves.
+  // Filters the feed before it feeds the clustering source, so cluster counts
+  // reflect the filters (a layer-level `filter` would leave stale counts), then
+  // trims it to a geometry-only source. This recomputes only when the feed or
+  // filters change — not on pan/zoom — so the Mapbox source identity stays stable
+  // across camera moves.
   const filtered = useMemo(() => {
     if (!data) return undefined
 
@@ -316,10 +321,11 @@ export function Mapbox() {
     return toMapSource(features)
   }, [data, filters, matchesRegion])
 
-  // Re-join the hovered pin's id to the FULL feed event (the map source is trimmed
-  // to id + webPath), reading the same `['geojson']` cache the pins come from, and
-  // read its coordinates for the popover anchor. Only events with a Point geometry
-  // are pinnable, so a geometry-less (online) event can never be hovered here.
+  // Re-joins the hovered pin's id to the FULL feed event (the map source is
+  // trimmed to id plus webPath), reading the same `['geojson']` cache the pins
+  // come from, and reads its coordinates for the popover anchor. Only events with
+  // a Point geometry are pinnable, so a geometry-less (online) event can never be
+  // hovered here.
   const hovered = useMemo(() => {
     if (hoveredId == null || !data) return undefined
 
@@ -337,8 +343,9 @@ export function Mapbox() {
       if (!evt.features || !evt.features.length || !mapbox) return
       const feature = evt.features[0]
 
-      // Dismiss the transient hover popover on any pin/cluster click (desktop
-      // click-through, or tap-to-open on touch) so it can't linger over the pin.
+      // Dismisses the transient hover popover on any pin/cluster click (desktop
+      // click-through, or tap-to-open on touch), so it cannot linger over the
+      // pin.
       setHoveredId(null)
 
       if (feature.layer?.id === clusterLayer.id) {
@@ -367,13 +374,14 @@ export function Mapbox() {
 
       const feature = evt.features?.[0]
 
-      // Clickable cursor over any interactive feature (a pin OR a cluster).
+      // A clickable cursor over any interactive feature (a pin OR a cluster).
       mapbox.getCanvas().style.cursor = feature ? 'pointer' : ''
 
-      // Track the hovered INDIVIDUAL pin for the timing popover — never a cluster
-      // (one recurrence line is meaningless for a cluster of events), and null over
-      // a cluster or empty map. React bails out of a re-render when the id is
-      // unchanged (Object.is), so this stays a no-op while the pointer sits on one pin.
+      // Tracks the hovered INDIVIDUAL pin for the timing popover — never a
+      // cluster (one recurrence line is meaningless for a cluster of events),
+      // and null over a cluster or empty map. React bails out of a re-render
+      // when the id is unchanged (Object.is), so this stays a no-op while the
+      // pointer sits on one pin.
       const pinId =
         feature?.layer?.id === unclusteredPointLayer.id ? Number(feature.properties?.id) : NaN
 
@@ -391,11 +399,11 @@ export function Mapbox() {
     <ReactMapGL
       reuseMaps
       attributionControl={false}
-      // Symbols (pins, clusters, the selection + hover highlights) appear
-      // instantly instead of Mapbox's default ~300ms icon fade-in — the card-hover
-      // highlight must track the pointer immediately. fadeDuration is a global map
-      // option (no per-layer control), so this also removes the fade on the base
-      // pins/clusters and the selection pin.
+      // Symbols (pins, clusters, the selection and hover highlights) appear
+      // instantly instead of Mapbox's default ~300ms icon fade-in — the
+      // card-hover highlight must track the pointer immediately. `fadeDuration`
+      // is a global map option (no per-layer control), so this also removes
+      // the fade on the base pins/clusters and the selection pin.
       fadeDuration={0}
       id="mapbox"
       interactiveLayerIds={[clusterLayer.id, unclusteredPointLayer.id]}
@@ -411,9 +419,9 @@ export function Mapbox() {
       // one that deliberately doesn't — must not leave the map hidden for the whole session.
       onLoad={armReveal}
       onMouseMove={hoverOnFeature}
-      // Dismiss the timing popover when the pointer leaves the canvas. `mouseout`
-      // (react-map-gl `onMouseOut`) is the canvas-exit event; moving between pins
-      // or onto empty map is handled by `hoverOnFeature` above.
+      // Dismisses the timing popover when the pointer leaves the canvas.
+      // `mouseout` (react-map-gl `onMouseOut`) is the canvas-exit event. Moving
+      // between pins or onto empty map is handled by `hoverOnFeature` above.
       onMouseOut={() => setHoveredId(null)}
       // DELIBERATELY UNCONTROLLED — no `viewState`, and no `initialViewState` either.
       //
@@ -422,7 +430,7 @@ export function Mapbox() {
       // `rememberCamera` and the search ranking read. A controlled `viewState` would put React
       // in the middle of every frame of a fly.
       //
-      // So nothing seeds the initial camera and the map boots at [0, 0] zoom 0. That is why the
+      // So nothing seeds the initial camera, and the map boots at [0, 0] zoom 0. That is why the
       // session's first framing jumps rather than flies (`use-mapbox.ts`) and why the canvas is
       // held until it does — seeding it instead would mean resolving a centre before the map may
       // mount, to save a frame nobody ever sees.
@@ -481,8 +489,8 @@ export function Mapbox() {
           for through the URL. The flag is read in `_onSuccess` and gates only that call:
           `_updateMarker` is separate, so the blue dot, the accuracy circle, the permission flow
           and the localized labels above all stay.
-          ⚠ Mapbox's own .d.ts claims this option still recentres; its source says otherwise.
-          Verified against the running control rather than either. */}
+          ⚠ Mapbox's own .d.ts claims this option still recentres. Its source says otherwise.
+          This was verified against the running control rather than either. */}
       <GeolocateControl followUserLocation={false} onGeolocate={geolocateToSearch} />
     </ReactMapGL>
   )

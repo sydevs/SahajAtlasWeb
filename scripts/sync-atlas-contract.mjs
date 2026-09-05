@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Sync — or just check — the shared canonical-URL contract against SahajCloud's copy.
+ * Syncs — or just checks — the shared canonical-URL contract against SahajCloud's copy.
  *
  *   pnpm sync:atlas-contract          # report drift, exit 1 if there is any
  *   pnpm sync:atlas-contract --write  # overwrite our copy with theirs
  *
- * `atlas-url-contract.json` is byte-identical in SahajCloud, SahajAtlasWeb and WeMeditateWeb.
- * SahajCloud composes canonical Atlas URLs from it; we take them apart again
+ * `atlas-url-contract.json` is byte-identical in SahajCloud, SahajAtlasWeb, and WeMeditateWeb.
+ * SahajCloud composes canonical Atlas URLs from it. We take them apart again
  * (`src/lib/shape/atlas-url-contract.test.ts`). The file's own `$comment` says to sync it by raw
- * URL rather than re-deriving the rules, and this is that, made one command.
+ * URL, rather than re-deriving the rules, and this is that, made one command.
  *
  * **Why a script and not a test.** The unit lane must never touch the network
  * (`docs/testing.md`), and a fixture that fetches on every run would couple `pnpm test` to
@@ -19,8 +19,8 @@
  *
  * ⚠ **A drift is not a merge conflict to resolve — it is a behaviour change to read.** If the
  * `version` moved, SahajCloud changed the shape of a canonical URL, and our parser may no longer
- * restore the view it names. Read their diff before taking `--write`, and expect the spec to go red
- * afterwards: that redness is the point.
+ * restore the view it names. Read their diff before taking `--write`, and expect the spec to go
+ * red afterwards: that redness is the point.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -50,8 +50,9 @@ if (upstream === local) {
   process.exit(0)
 }
 
-// Not a diff library — the interesting question is almost always "did the version move, and did
-// cases appear or vanish", which is answerable from the parsed forms in three lines.
+// This is not a diff library — the interesting question is almost always "did the version
+// move, and did cases appear or vanish", which is answerable from the parsed forms in
+// three lines.
 const summarize = (text, label) => {
   try {
     const { version, cases = [] } = JSON.parse(text)

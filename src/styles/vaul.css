@@ -1,12 +1,12 @@
-/* Vendored from vaul@1.1.2 (node_modules/vaul/style.css) — verbatim except one
+/* This is vendored from vaul@1.1.2 (node_modules/vaul/style.css) — verbatim except one
    corrected upstream typo (flagged inline near [data-vaul-handle-hitarea]).
-   vaul does not expose `./style.css` in its package `exports` map, so it can't be
+   vaul does not expose `./style.css` in its package `exports` map, so it cannot be
    `@import`-ed by specifier under Vite's strict resolution. vaul is pinned exactly
    and unmaintained (see patches/vaul@1.1.2.patch), so this copy will not drift.
-   Provides the [data-vaul-drawer] slide/snap transforms + drag-handle styling that
-   position the drawers; without it, snap-point sheets render off-screen.
-   To refresh: `cp node_modules/vaul/style.css src/styles/vaul.css`, re-add this
-   header, re-fix the [data-vaul-handle-hitarea] colon typo, and re-append the
+   It provides the [data-vaul-drawer] slide/snap transforms and drag-handle styling
+   that position the drawers. Without it, snap-point sheets render off-screen.
+   To refresh: run `cp node_modules/vaul/style.css src/styles/vaul.css`, re-add this
+   header, re-correct the [data-vaul-handle-hitarea] colon typo, and re-append the
    reduced-motion block at the FOOT of this file (it is ours, not vaul's). */
 
 [data-vaul-drawer] {
@@ -185,8 +185,9 @@
 }
 
 @media (pointer: fine) {
-  /* NOTE: corrected one upstream typo — vaul@1.1.2 ships `[data-vaul-handle-hitarea]:`
-     (stray colon), which PostCSS rejects and fails the build. */
+  /* NOTE: this corrects one upstream typo — vaul@1.1.2 ships
+     `[data-vaul-handle-hitarea]:` (a stray colon), which PostCSS rejects and
+     fails the build. */
   [data-vaul-handle-hitarea] {
     width: 100%;
     height: 100%;
@@ -270,22 +271,23 @@
 
 /* ---------------------------------------------------------------------------
    OURS, not vaul's — appended for issue #102. Everything above this line is the
-   vendored upstream stylesheet; keep additions below it so a refresh is a clean
+   vendored upstream stylesheet. Keep additions below it, so a refresh is a clean
    overwrite plus a re-append.
 
    The drawers are the one motion surface framer-motion's MotionConfig cannot
    reach (`src/providers.tsx`): vaul animates in CSS, so it has to be turned off
-   in CSS. Both properties are needed and neither covers the other — the
-   slide-in/out are @keyframes (`animation`), while the snap-point sheets are
-   moved by an inline transform that travels on the `transition` declared at the
-   top of this file. vaul's own `[data-vaul-animate='false']` hook only kills the
+   in CSS too. Both properties are needed, and neither covers the other — the
+   slide-in/out uses @keyframes (`animation`), while the snap-point sheets move
+   by an inline transform that travels on the `transition` declared at the top
+   of this file. vaul's own `[data-vaul-animate='false']` hook only kills the
    former, which is why this is a media block rather than a prop.
 
    Stopping the animation does NOT strand a drawer half-open: the keyframes only
    supply the journey (the resting position is the element's base style), and
    Radix's Presence — which vaul mounts on — reads `animationName: none` as
-   "already finished" and unmounts on close immediately instead of waiting for an
-   animationend that will never fire. Reduced motion here means instant, not absent.
+   "already finished" and unmounts on close immediately, instead of waiting for
+   an animationend that will never fire. Reduced motion here means instant, not
+   absent.
 
    `!important` matches the existing `[data-vaul-animate='false']` rule and beats
    the inline transition vaul writes while dragging. */

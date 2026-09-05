@@ -1,36 +1,41 @@
 import { defineConfig } from 'vitest/config'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
-// Fast local/unit lane: pure, dependency-light specs co-located with the code
-// they cover (`src/**/*.test.ts(x)`). Node-only — component specs assert SSR
-// markup via `renderToStaticMarkup` rather than booting jsdom (mirrors
-// WeMeditateWeb). See `docs/testing.md`.
+// This is the fast local unit lane. Specs sit next to the code they test
+// (`src/**/*.test.ts(x)`) and use no heavy dependencies. This lane runs in
+// node only. Component specs check SSR markup with `renderToStaticMarkup`
+// instead of booting jsdom. WeMeditateWeb uses the same pattern. See
+// `docs/testing.md`.
 //
-// `tsconfigPaths` resolves the `@/…` alias the same way Vite does, so specs and
-// the modules they import can use it. Smoke specs hit a deployed preview over
-// the network and live in their own config (vitest.smoke.config.ts) — they're
-// excluded here so `pnpm test:run` never touches the network.
+// `tsconfigPaths` resolves the `@/…` alias the same way Vite does, so specs
+// and the modules they import can use it. Smoke specs hit a deployed preview
+// over the network and live in their own config (vitest.smoke.config.ts).
+// This config excludes them, so `pnpm test:run` never touches the network.
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     globals: true,
     environment: 'node',
     include: ['**/*.{test,spec}.{ts,tsx}'],
-    // Co-located specs live under src/; smoke specs hit the network and run via
-    // their own config — keep them (and build output) out of the unit lane.
-    // `.claude/worktrees` holds gitignored git worktrees (each a full checkout with
-    // its own node_modules) — never scan those, or the lane runs duplicate/foreign specs.
+    // Co-located specs live under src/. Smoke specs hit the network and run
+    // through their own config. Exclude smoke specs and build output from
+    // this lane. `.claude/worktrees` holds gitignored git worktrees, each a
+    // full checkout with its own node_modules. Never scan that folder — it
+    // would run duplicate or foreign specs.
     exclude: ['node_modules', 'dist', 'build', '.ladle', 'tests/smoke/**', '.claude/worktrees/**'],
-    // ⚠ Raised from vitest's 5 s default because three specs were flaking in the FULL run while
-    // passing in isolation — `href.test.ts`, which TypeScript-AST-walks every `src/**/*.tsx` to pin
-    // the JSX-anchor inventory, and the two jsdom `CompactEmbedView` specs, which each boot a DOM
-    // and mount a Radix dialog. All three finished in 5–7 s under parallel load on a fast laptop,
-    // so a slower CI runner is the case that matters.
+    // Warning: raised from vitest's 5-second default. Three specs flaked in
+    // the full run but passed alone: `href.test.ts` and two jsdom
+    // `CompactEmbedView` specs. `href.test.ts` walks the TypeScript AST of
+    // every `src/**/*.tsx` file to check the JSX-anchor inventory. Each
+    // `CompactEmbedView` spec boots a DOM and mounts a Radix dialog. All
+    // three finished in 5 to 7 seconds under parallel load on a fast
+    // laptop, so a slower CI runner needs more room.
     //
-    // Nothing here is waiting on a network or a timer, so this timeout was never catching a hang —
-    // it was only capping how slow an inherently slow spec may be while the pool is saturated.
-    // Keep the lane itself fast (`docs/testing.md` wants < ~5 s total) by not adding slow
-    // specs; this ceiling exists so the ones that are slow fail for real reasons.
+    // No spec here waits on a network call or a timer, so this timeout
+    // never catches a hang. It only caps how slow a genuinely slow spec may
+    // run while the pool is busy. Keep the lane fast (`docs/testing.md`
+    // wants under 5 seconds total) by not adding slow specs. This ceiling
+    // exists so a slow spec fails for a real reason.
     testTimeout: 20_000,
   },
 })

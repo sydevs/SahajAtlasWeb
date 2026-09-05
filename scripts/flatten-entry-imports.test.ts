@@ -11,8 +11,9 @@ import { flattenedImports, importClosure } from './flatten-entry-imports.mjs'
  */
 const chunk = (imports: string[] = []) => ({ type: 'chunk', imports })
 
-// The real shape as of this writing: the entry imports most chunks directly, but `shared`
-// and `fallbacks` hang off `App` — and `shared` is the largest chunk in the payload.
+// This is the real shape as of this writing: the entry imports most chunks directly, but
+// `shared` and `fallbacks` hang off `App` — and `shared` is the largest chunk in the
+// payload.
 const bundle = {
   'assets/App.js': chunk(['assets/shared.js', 'assets/fallbacks.js', 'assets/runtime.js']),
   'assets/shared.js': chunk(['assets/runtime.js']),
@@ -64,7 +65,7 @@ describe('flattenedImports', () => {
     expect(flattenedImports(bundle, entry).missing).toEqual([])
   })
 
-  // The entry sits at the output root today; `entryFileNames` is free to move it, and a
+  // The entry sits at the output root today. `entryFileNames` is free to move it, and a
   // specifier that is wrong by one directory is a 404 for a third of the payload.
   it('writes specifiers relative to the entry, not the output root', () => {
     const entry = { fileName: 'nested/embed.js', imports: ['assets/App.js'] }

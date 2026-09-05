@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * Post-build gate: prove no source map reaches the deployed output (#130).
+ * A post-build gate: proves no source map reaches the deployed output (#130).
  *
- * `vite.config.ts` emits `sourcemap: 'hidden'` when a build is credentialed to upload to
- * Sentry, and `@sentry/vite-plugin` deletes the maps once they are uploaded. This asserts
- * the RESULT on the emitted bytes rather than trusting the option that produced it — the
- * same standard `assert-css-scoped.mjs` holds the PostCSS pass to, and for the same
- * reason: an option renamed in a future major would otherwise start publishing our source
- * with every gate still green.
+ * `vite.config.ts` emits `sourcemap: 'hidden'` when a build is credentialed
+ * to upload to Sentry, and `@sentry/vite-plugin` deletes the maps once they
+ * are uploaded. This asserts the RESULT on the emitted bytes, rather than
+ * trusting the option that produced it — the same standard
+ * `assert-css-scoped.mjs` holds the PostCSS pass to, and for the same
+ * reason: an option renamed in a future major would otherwise start
+ * publishing our source with every gate still green.
  *
- * What a leak would cost, so the severity isn't re-litigated: `public/_headers` serves
+ * What a leak would cost, so the severity is not re-litigated: `public/_headers` serves
  * `/assets/*` with `Access-Control-Allow-Origin: *` and `max-age=31536000, immutable`. A
  * `.map` that ships is a CORS-open, year-cached copy of this repo's unminified source,
  * fetchable by anyone from a host page we don't own. The URL is content-hashed, so it
@@ -30,7 +31,7 @@
  * `sahajatlas-design` builds `pnpm ladle:build` → `build/`. `pnpm ladle:build` never runs
  * `pnpm build`, and Ladle builds through `.ladle/vite.config.ts` — which does not load
  * this repo's root config, so neither `build.sourcemap` nor the plugin exists there. The
- * playground therefore cannot emit a map *today*; it is wired up anyway because Ladle
+ * playground therefore cannot emit a map *today*. It is wired up anyway, because Ladle
  * stories import the app's real `src/` tree, so anyone who adds `build: { sourcemap: true }`
  * to debug a story would publish that tree under the same `_headers` (`public/` is copied
  * into both outputs) with no gate anywhere in the pipeline. Hence the directory argument.
@@ -48,19 +49,21 @@ import process from 'node:process'
 
 // The output directory to check, relative to this module (not the cwd — matching the other
 // scripts here — so the gate can't pass or fail on where it happened to be invoked from).
-// Defaults to the app's `dist/`; `pnpm ladle:build` passes `../build`.
+// Defaults to the app's `dist/`. `pnpm ladle:build` passes `../build`.
 const OUT_DIR = fileURLToPath(new URL(process.argv[2] ?? '../dist', import.meta.url))
 
-// Only the files a browser is served. `.map` is matched by NAME rather than read, and
-// everything else here is text we scan for an inline map.
+// Only the files a browser is served. `.map` is matched by NAME rather than
+// read, and everything else here is text this script scans for an inline
+// map.
 export const SCANNED_EXTENSIONS = ['.js', '.mjs', '.cjs', '.css', '.html']
 
 /**
  * The whole audit, as a pure function of a file listing and a reader.
  *
- * Separated from the filesystem so both checks can be driven from a spec: their failure
- * mode is that they stop firing, which is invisible on a build that has nothing to find.
- * `assert-no-sourcemaps.test.ts` pins each one, and the `scanned` count with them.
+ * This is separated from the filesystem, so both checks can be driven from
+ * a spec: their failure mode is that they stop firing, which is invisible
+ * on a build that has nothing to find. `assert-no-sourcemaps.test.ts` pins
+ * each one, and the `scanned` count with them.
  *
  * @param {string[]} names Paths relative to the output directory.
  * @param {(name: string) => string | undefined} read Contents, or `undefined` if unreadable.
@@ -92,9 +95,10 @@ export function auditOutput(names, read, secret) {
 
     scanned += 1
 
-    // Deliberately the bare token, not the `//#` comment form. An inline map, a dangling
-    // reference and a `/*# … */` CSS comment are all worth failing on, and none of our own
-    // source has any business containing the string — which the gate passing today asserts.
+    // Deliberately the bare token, not the `//#` comment form. An inline
+    // map, a dangling reference, and a `/*# … */` CSS comment are all worth
+    // failing on, and none of our own source has any business containing
+    // the string — which the gate passing today asserts.
     if (source.includes('sourceMappingURL')) {
       failures.push(
         `${name} references a source map (\`sourceMappingURL\`).\n` +
@@ -108,10 +112,12 @@ export function auditOutput(names, read, secret) {
       )
     }
 
-    // Belt-and-braces on the one secret this build reads. Vite cannot inline a variable
-    // without a `VITE_` prefix, so this should be unreachable — but "should be" is what
-    // this whole file exists to replace, and a leaked auth token is worse than a leaked
-    // map. Costs nothing on an uncredentialed build, where there is no secret to look for.
+    // This is belt-and-braces on the one secret this build reads. Vite
+    // cannot inline a variable without a `VITE_` prefix, so this should be
+    // unreachable — but "should be" is what this whole file exists to
+    // replace, and a leaked auth token is worse than a leaked map. It costs
+    // nothing on an uncredentialed build, where there is no secret to look
+    // for.
     if (secret && source.includes(secret)) {
       failures.push(
         `${name} contains the value of SENTRY_AUTH_TOKEN.\n` +
@@ -121,8 +127,9 @@ export function auditOutput(names, read, secret) {
     }
   }
 
-  // A gate that scanned nothing passes for the wrong reason — the same silent-green
-  // failure mode `assert-css-scoped.mjs` guards with its `sheets === 0` check.
+  // A gate that scanned nothing passes for the wrong reason — the same
+  // silent-green failure mode `assert-css-scoped.mjs` guards with its
+  // `sheets === 0` check.
   if (scanned === 0) {
     failures.push('found no scannable output — the build emitted nothing this gate reads')
   }
@@ -145,8 +152,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { failures, scanned } = auditOutput(
     readdirSync(OUT_DIR, { recursive: true, encoding: 'utf8' }),
     (name) => {
-      // `readdirSync({ recursive: true })` lists directories too, and a directory named
-      // `foo.js` would throw EISDIR here rather than failing the check it belongs to.
+      // `readdirSync({ recursive: true })` lists directories too, and a
+      // directory named `foo.js` would throw EISDIR here, rather than
+      // failing the check it belongs to.
       try {
         return readFileSync(join(OUT_DIR, name), 'utf8')
       } catch {

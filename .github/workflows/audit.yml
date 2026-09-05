@@ -1,36 +1,51 @@
 name: Audit
 
-# The scheduled half of the dependency-vulnerability check (issue #99).
+# This is the scheduled half of the dependency-vulnerability check (issue #99).
 #
-# The PR gate in `ci.yml` fails on a high/critical advisory that isn't pinned in
-# scripts/audit-baseline.json. It deliberately tolerates two softer states, so a
-# PR is never blocked by something it didn't cause:
+# The PR gate in `ci.yml` is a hard gate, but a scoped one. A plain
+# `pnpm audit --audit-level high` would fail on day one: the lockfile
+# already held 1 critical and 24 high advisories, and 64 had built up while
+# every gate stayed green. That would block every unrelated PR until the
+# dependency-update tickets landed. A purely scheduled report cannot stop a
+# regression from merging, and is exactly the kind of check nobody reads.
 #
-#   - a baselined advisory that has since been FIXED but not pruned, and
-#   - an audit that couldn't run at all (registry outage, pnpm output change).
+# So the PR gate fails only on a high or critical advisory that
+# scripts/audit-baseline.json does not already pin. Each pinned entry names
+# the ticket that owns it. The gate stays green until a genuinely new
+# advisory appears.
 #
-# Both matter — an unpruned baseline slowly turns into a blanket allowlist, and a
-# permanently broken audit is a green check that checks nothing. This weekly run
-# is where they're enforced (`--strict`), because here a failure interrupts
-# nobody's work; it just shows up red in the Actions tab.
+# This weekly run adds `--strict` and enforces two softer states the PR
+# gate deliberately tolerates, so a PR is never blocked by something it did
+# not cause:
 #
-# Advisories arrive on their own schedule, not ours, which is the other reason to
-# run this independently of PR traffic: a quiet week shouldn't mean a blind one.
+#   - a baselined advisory that has since been fixed but not pruned, and
+#   - an audit that could not run at all (a registry outage, or a change to
+#     pnpm's output format).
 #
-# Two known gaps, recorded so they aren't mistaken for coverage:
+# Both matter. An unpruned baseline slowly turns into a blanket allowlist.
+# A permanently broken audit is a green check that checks nothing. A
+# failure here interrupts nobody's work. It only turns red in the Actions
+# tab.
 #
-#   - Scope is `--prod`, matching the readiness report, so the build toolchain
-#     (vite, vitest, eslint, @ladle/react, jsdom, typescript) is not gated even
-#     though it executes on developer machines and CI runners. This used to cost
-#     8 further high advisories; as of #101 a FULL `pnpm audit` reports 0 at
-#     every severity across all 1103 packages, the same as `--prod` across 417.
-#     So widening the scope now needs no baseline entries at all — the cheapest
-#     it will ever be, and cheaper than it will be after the next dev-tool
-#     advisory lands. Left as a deliberate decision rather than folded into a
-#     dependency bump.
-#   - GitHub disables scheduled workflows after 60 days without repo activity.
-#     If this stops appearing in the Actions tab, that is why — re-enable it
-#     there; the PR gate keeps working regardless.
+# Advisories arrive on their own schedule, not ours. That is the other
+# reason this run is independent of PR traffic: a quiet week should not
+# mean a blind one.
+#
+# Two known gaps, recorded so nobody mistakes them for coverage:
+#
+#   - Scope is `--prod`, matching the readiness report. So the build
+#     toolchain (vite, vitest, eslint, @ladle/react, jsdom, typescript) is
+#     not gated, even though it runs on developer machines and CI runners.
+#     This gap used to cost 8 further high advisories. As of #101, a full
+#     `pnpm audit` reports 0 advisories at every severity, across all 1103
+#     packages, the same as `--prod` reports across 417 packages. So
+#     widening the scope today needs no new baseline entries at all — the
+#     cheapest this will ever be, cheaper than after the next dev-tool
+#     advisory lands. This stays a deliberate, separate decision, not
+#     folded into a routine dependency bump.
+#   - GitHub disables a scheduled workflow after 60 days with no repository
+#     activity. If this run stops appearing in the Actions tab, that is why.
+#     Re-enable it there. The PR gate keeps working regardless.
 
 on:
   schedule:

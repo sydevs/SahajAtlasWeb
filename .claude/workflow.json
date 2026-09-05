@@ -1,5 +1,5 @@
 {
-  "$comment": "Per-repo values read by the sydevs `workflow` plugin and its skills. Values only \u2014 the rules that consume them live in the skills, the stories in docs/.",
+  "$comment": "This file holds only per-repo values, for the sydevs `workflow` plugin and its skills. The skills hold the rules. docs/ holds the reasoning.",
   "packageManager": "pnpm",
   "leanGate": {
     "command": ".claude/skills/pr-prep/check.sh",
@@ -7,7 +7,7 @@
     "contents": "lint + typecheck + test:run"
   },
   "contractStep": {
-    "description": "Refresh the generated CMS + OpenAPI contracts from SahajCloud main.",
+    "description": "Refresh the generated CMS and OpenAPI contracts from SahajCloud main.",
     "command": "pnpm types:cms && pnpm types:openapi"
   },
   "securityReview": {
@@ -21,7 +21,7 @@
   "worktreeSetup": [
     "pnpm install"
   ],
-  "worktreeNotes": "Copy .env.local from the main checkout if the branch needs it.",
+  "worktreeNotes": "Copy .env.local from the main checkout when the branch needs it.",
   "deployTarget": "Cloudflare Pages (sahajatlas, sahajatlas-design)",
   "devServer": {
     "command": "pnpm dev --port {port}",

@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Serve the built widget as a REAL embed, on host pages, for browser review.
+ * Serves the built widget as a REAL embed, on host pages, for browser review.
  *
  *   pnpm build && pnpm review:embed
  *
- * Browser verification is where this repo's embedding bugs actually get found — #161's inverted
+ * Browser verification is where this repo's embedding bugs actually get found: #161's inverted
  * bottom sheet, its collapsed card fetching the whole feed, and the `all: revert` that erased every
- * icon were all invisible to lint, typecheck and a green unit lane. This script exists because
+ * icon were all invisible to lint, typecheck, and a green unit lane. This script exists because
  * standing that environment up by hand costs a dozen turns and has four traps in it, every one of
  * which was hit in the session that produced it.
  *
- * ## The four traps, and how this avoids them
+ * ## The four traps, and how this script avoids them
  *
  * **1. `<sahaj-atlas>` observes NO attributes.** Config rides on the *script URL* — `auto.js?key=…&
  * map=…` — and is parsed once at load (`src/loader/config.ts`). A hand-written
@@ -21,20 +21,20 @@
  * **2. Locales are fetched from `VITE_HOST`, not from wherever the page is served.** The built
  * bundle hard-codes that origin, so a host page on another port fetches
  * `http://localhost:5174/locales/en/common.json` regardless. If nothing serves it, i18next retries
- * forever and the widget renders NOTHING — no error, no fallback, just an empty element.
+ * forever, and the widget renders NOTHING — no error, no fallback, just an empty element.
  *
  * **3. `python3 -m http.server` sends no CORS headers.** So even with the locales served, a host
- * page on a *different* origin has them blocked and you are back to trap 2 with a different error
- * in the console. Production is fine — `public/_headers` adds the CORS the widget needs (#91) —
- * which is exactly why this only bites locally.
+ * page on a *different* origin has them blocked, and the result is trap 2 again with a different
+ * error in the console. Production is fine — `public/_headers` adds the CORS the widget needs
+ * (#91) — which is exactly why this only bites locally.
  *
  * Traps 2 and 3 are why this serves everything from ONE origin (`dist/`, on `VITE_HOST`'s port):
  * same-origin needs no CORS, and the locales are already in `dist/`.
  *
  * **4. A stale server on the port you guessed.** `dist/_redirects` is `/* /index.html 200`, and any
  * leftover `vite preview` honours it — so a request for a host page that server does not have
- * returns **200 with the app shell**, and you review the wrong document without noticing. This
- * refuses to start on an occupied port rather than assuming the occupant is ours.
+ * returns **200 with the app shell**, and a reviewer reads the wrong document without noticing.
+ * This script refuses to start on an occupied port, rather than assuming the occupant is ours.
  *
  * ## What you still need, and what currently blocks it
  *
@@ -60,10 +60,10 @@ import { loadEnv } from 'vite'
 const DIST = resolve('dist')
 
 /**
- * Vite's own env loader, not a hand-rolled one: it applies `.env` → `.env.local` precedence and
- * handles quoting and inline comments correctly. A 15-line reader here got both subtly wrong, and
- * `fallback-url.ts` on this same branch is the cautionary tale for validating one string and using
- * another.
+ * This uses Vite's own env loader, not a hand-rolled one: it applies `.env` then `.env.local`
+ * precedence and handles quoting and inline comments correctly. A 15-line reader here got both
+ * subtly wrong, and `fallback-url.ts` on this same branch is the cautionary tale for validating
+ * one string and using another.
  */
 const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
 
@@ -94,10 +94,11 @@ const MIME = {
 /**
  * ⚠ `full` is not cosmetic. The normal shell centres content in a `max-width: 1100px` column, which
  * makes `<sahaj-atlas>`'s parent 1164px — and since an empty custom element measures 0×0, that
- * parent IS the slot `decideSlot` reads. Above a ~1455px viewport, 1164 is meaningfully smaller
- * than the window, so a MAP page rendered in the normal shell correctly resolves to the compact
- * card and shows no map at all. The one page whose whole purpose is "map mode owns the viewport"
- * has to be full-bleed, or it demonstrates the opposite of its own note on any large monitor.
+ * parent IS the slot `decideSlot` reads. Above a roughly 1455px viewport, 1164 is meaningfully
+ * smaller than the window, so a MAP page rendered in the normal shell correctly resolves to the
+ * compact card and shows no map at all. The one page whose whole purpose is "map mode owns the
+ * viewport" has to be full-bleed, or it demonstrates the opposite of its own note on any large
+ * monitor.
  */
 const page = (title, body, note, full = false) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>${title}</title>
@@ -115,7 +116,7 @@ function pages(src) {
   const loader = (params) => `<script type="module" src="${src}?${params}"></script>`
 
   return {
-    // The default product. Map mode owns the viewport; at phone width the drawer is a bottom
+    // The default product. Map mode owns the viewport. At phone width the drawer is a bottom
     // sheet with snap points — the shape whose offsets #161 inverted by handing vaul a
     // `display: contents` element to measure. Resize to ~390px wide to see it.
     'full-map.html': page(
@@ -207,7 +208,7 @@ function pages(src) {
     // everything under `/__review/pathmode`, because that wildcard IS what path routing asks of a
     // host. The exception is narrow on purpose: exactly this prefix, nothing else.
     //
-    // It will still fall back to query until a client record carries a matching `canonical.embed`
+    // It still falls back to query until a client record carries a matching `canonical.embed`
     // (`localhost:<port>/__review/pathmode`), which the seeded backend does not. To see path mode
     // actually engage, stub `clients/me` — see `docs/rules/mapbox.md`.
     'pathmode.html': page(
@@ -216,7 +217,7 @@ function pages(src) {
       'served for the whole /__review/pathmode subtree. Expect a console warning naming the missing canonical embed, unless you stub clients/me.',
     ),
 
-    // A deep link on the PAGE url: eager mount + auto-open. The script-URL `atlas` param is a
+    // A deep link on the PAGE url: eager mount plus auto-open. The script-URL `atlas` param is a
     // configured default and must do neither.
     'deep-link.html': page(
       'Deep link on the page URL',
@@ -243,10 +244,10 @@ if (!key) console.warn('⚠ No VITE_SAHAJCLOUD_API_KEY in .env.local — the wid
 
 const written = pages(`http://localhost:${port}/auto.js`)
 
-// Served from memory, never written to disk. An earlier version wrote the index into `dist/`,
-// which left a stray file for `assert-no-sourcemaps` to scan on the next build and implied the
-// same-origin property came from living there — it comes from the server, as the other six pages
-// already demonstrate.
+// This is served from memory, never written to disk. An earlier version wrote the index into
+// `dist/`, which left a stray file for `assert-no-sourcemaps` to scan on the next build, and
+// implied the same-origin property came from living there — it comes from the server, as the
+// other six pages already demonstrate.
 const index = page(
   'Embed review',
   '<ul>' +
@@ -300,11 +301,11 @@ const server = createServer((req, res) => {
 
   const file = join(DIST, normalize(pathname).replace(/^(\.\.[/\\])+/, ''))
 
-  // ⚠ `isFile`, not `existsSync`: a directory EXISTS, so `existsSync` waves it through, we send a
-  // 200, and `createReadStream(dir)` then emits an unhandled EISDIR — an uncaughtException that
-  // kills the server. `/assets` and `/locales` are both real directories in `dist/`, so one
-  // speculative fetch was enough. Same dead-port-and-no-message failure as the malformed escape
-  // above; this was the second of the two crash paths.
+  // ⚠ Checks `isFile`, not `existsSync`: a directory EXISTS, so `existsSync` waves it through, this
+  // code sends a 200, and `createReadStream(dir)` then emits an unhandled EISDIR — an
+  // uncaughtException that kills the server. `/assets` and `/locales` are both real directories in
+  // `dist/`, so one speculative fetch was enough. Same dead-port-and-no-message failure as the
+  // malformed escape above. This was the second of the two crash paths.
   if (!file.startsWith(DIST) || !existsSync(file) || !statSync(file).isFile()) {
     // Deliberately NOT the SPA fallback: a 404 that says so beats a 200 of the wrong document.
     res.writeHead(404, { 'content-type': 'text/plain' })
@@ -313,7 +314,7 @@ const server = createServer((req, res) => {
   }
 
   res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
-  // Backstop: a read that fails after the headers are out must not become an uncaughtException.
+  // A backstop: a read that fails after the headers are out must not become an uncaughtException.
   createReadStream(file)
     .on('error', () => res.end())
     .pipe(res)
@@ -331,7 +332,7 @@ server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {
   process.exit(1)
 })
 
-// ⚠ Loopback ONLY. Without the host argument Node binds 0.0.0.0, and every page here has the
+// ⚠ Loopback ONLY. Without the host argument, Node binds 0.0.0.0, and every page here has the
 // client API key substituted into it — so on shared Wi-Fi the whole subnet could read the key and
 // browse `dist/`. The key is a published client credential rather than a secret, but there is no
 // reason to hand it out, and a bind that answers only 127.0.0.1 costs nothing.

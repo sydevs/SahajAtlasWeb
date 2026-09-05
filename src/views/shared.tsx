@@ -40,19 +40,21 @@ import {
   topViewKey,
 } from '@/lib/shape'
 
-// Collapse/expand + dismiss control for the sheet, provided by DrawerStack. Views
-// use it for their close / list-toggle buttons, so those act on the ONE persistent
-// vaul sheet directly (a plain navigation) rather than opening/closing a drawer —
-// which is what kept the sheet from sliding out and back in on every transition.
+// The collapse/expand and dismiss control for the sheet, provided by DrawerStack.
+// Views use it for their close and list-toggle buttons, so those act on the ONE
+// persistent vaul sheet directly (a plain navigation), rather than opening or
+// closing a drawer — which is what kept the sheet from sliding out and back in on
+// every transition.
 export type DrawerControl = {
   collapsed: boolean
   canCollapse: boolean
   /**
-   * Whether `dismiss()` would actually go somewhere. False only at the root, where there
-   * is no parent to climb to and `navigate(-1)` would take the HOST page back. Read by the
-   * error/loading chrome, which renders its own header and must not offer a dead control
-   * (issue #89); the views' own headers don't need it, since a view that rendered at all
-   * has a working stack around it.
+   * Whether `dismiss()` would actually go somewhere. This is false only at the
+   * root, where there is no parent to climb to and `navigate(-1)` would take the
+   * HOST page back. It is read by the error/loading chrome, which renders its own
+   * header and must not offer a dead control (issue #89). The views' own headers
+   * do not need it, since a view that rendered at all has a working stack around
+   * it.
    */
   canDismiss: boolean
   toggle: () => void
@@ -69,29 +71,31 @@ export const DrawerControlContext = createContext<DrawerControl>({
 
 export const useDrawerControl = () => useContext(DrawerControlContext)
 
-// The close affordance for the drawer views. Dismisses via the control seam (a
-// navigation to the parent) rather than vaul's Close — closing the real drawer made
-// the sheet animate shut and then re-open with the parent, which read as jarring.
+// The close affordance for the drawer views. This dismisses via the control seam
+// (a navigation to the parent), rather than vaul's Close — closing the real drawer
+// made the sheet animate shut and then re-open with the parent, which read as
+// jarring.
 export type DrawerTitleProps = {
   /** The drawer's visible heading. */
   title: ReactNode
-  /** Optional muted line under it (region subtitle, event date, …). */
+  /** An optional muted line under it (region subtitle, event date, and similar). */
   subtitle?: ReactNode
   /**
-   * A smaller standing note below the subtitle (e.g. "All events are free").
-   * Distinct from `subtitle` in rank, not just size: the subtitle says which
-   * thing this drawer is about, the note is a fact that holds for the whole list.
+   * A smaller standing note below the subtitle (for example, "All events are
+   * free"). Distinct from `subtitle` in rank, not just size: the subtitle says
+   * which thing this drawer is about, and the note is a fact that holds for the
+   * whole list.
    */
   note?: ReactNode
 }
 
 /**
- * The title block every drawer header opens with. Previously copy-pasted across
- * five views, which let the weight drift (`font-bold` here vs the event panel's
- * `font-semibold`) and left all five as plain <div>s — so screen-reader users had
- * no heading to navigate the drawer content by. Renders a real <h2>: the dialog
- * itself is named by the sr-only Vaul.Title, so this is the content heading below
- * it, not a competing label.
+ * The title block every drawer header opens with. This used to be copy-pasted
+ * across five views, which let the weight drift (`font-bold` here versus the event
+ * panel's `font-semibold`) and left all five as plain `<div>`s — so screen-reader
+ * users had no heading to navigate the drawer content by. This renders a real
+ * `<h2>`: the dialog itself is named by the sr-only Vaul.Title, so this is the
+ * content heading below it, not a competing label.
  */
 export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
   return (
@@ -105,15 +109,15 @@ export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
 
 /**
  * The drawer header's icon controls (close, list-toggle, filter) are all the same
- * Button preset, kept here as values rather than a wrapper component so the three
- * provably render identical chrome — the header reads as one set of buttons.
+ * Button preset, kept here as values, rather than as a wrapper component, so the
+ * three provably render identical chrome — the header reads as one set of buttons.
  */
 const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' } as const
 
 export function CloseButton({ className }: { className?: string }) {
-  // `useSuspense: false` — this renders inside the error/loading chrome, where suspending
-  // on an in-flight namespace (a language switch mid-error) would escape the boundary and
-  // blank the widget instead of showing the failure.
+  // `useSuspense: false` — this renders inside the error/loading chrome, where
+  // suspending on an in-flight namespace (a language switch mid-error) would
+  // escape the boundary and blank the widget instead of showing the failure.
   const { t } = useTranslation('common', { useSuspense: false })
   const { dismiss } = useDrawerControl()
 
@@ -126,12 +130,13 @@ export function CloseButton({ className }: { className?: string }) {
 
 // The calendar affordance for region headers (RegionView): opens the full-width
 // calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). Same header-control chrome as the close control, so the header reads
-// as one set of buttons.
+// Region filter). This uses the same header-control chrome as the close control,
+// so the header reads as one set of buttons.
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
-  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
-  // where suspending on an in-flight namespace would escape the boundary and blank the
-  // widget instead of showing the failure. See CloseButton.
+  // `useSuspense: false` — also rendered by the fallback chrome
+  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
+  // escape the boundary and blank the widget instead of showing the failure. See
+  // CloseButton.
   const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
 
@@ -147,12 +152,13 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
 }
 
 // The search affordance for region headers (RegionView): jumps to the
-// distance-ranked search view. Renders the same header-control chrome as the
-// close/filter controls so the header reads as one set of buttons.
+// distance-ranked search view. This renders the same header-control chrome as the
+// close/filter controls, so the header reads as one set of buttons.
 export function SearchButton() {
-  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
-  // where suspending on an in-flight namespace would escape the boundary and blank the
-  // widget instead of showing the failure. See CloseButton.
+  // `useSuspense: false` — also rendered by the fallback chrome
+  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
+  // escape the boundary and blank the widget instead of showing the failure. See
+  // CloseButton.
   const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
 
@@ -163,18 +169,19 @@ export function SearchButton() {
   )
 }
 
-// The stacked-list toggle in CountriesView's header: expands the collapsed peek into
-// the country list, or collapses the open list back to the peek. Hidden where the
-// sheet can't collapse (desktop / map-less).
+// The stacked-list toggle in CountriesView's header: expands the collapsed peek
+// into the country list, or collapses the open list back to the peek. Hidden where
+// the sheet cannot collapse (desktop or map-less).
 export function CollapseToggle() {
-  // See CloseButton: also rendered by the error/loading chrome, so it must not suspend.
+  // See CloseButton: also rendered by the error/loading chrome, so it must not
+  // suspend.
   const { t } = useTranslation('common', { useSuspense: false })
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
   if (!canCollapse) return null
 
-  // At the peek it's a list toggle (expand the countries list); once opened past the
-  // peek it becomes the usual close control (collapse back to the peek).
+  // At the peek, it is a list toggle (expand the countries list). Once opened past
+  // the peek it becomes the usual close control (collapse back to the peek).
   return (
     <Button
       {...HEADER_CONTROL}
@@ -188,15 +195,17 @@ export function CollapseToggle() {
 }
 
 // The event-filters trigger that opens the filter drawer by navigating to
-// `<current>/filters` (root → `/filters`, `/search` → `/search/filters`), preserving the
-// search query so closing returns to the same search. Two shapes over one nav + count:
-// the labeled ghost button for the list toolbar (SearchView), and — with `iconOnly` — an
-// icon-only header control carrying the active count as a badge (CountriesView's header),
-// so it reads as one set with the close/collapse chrome.
+// `<current>/filters` (root to `/filters`, `/search` to `/search/filters`),
+// preserving the search query so closing returns to the same search. Two shapes
+// over one nav plus count: the labeled ghost button for the list toolbar
+// (SearchView), and — with `iconOnly` — an icon-only header control carrying the
+// active count as a badge (CountriesView's header), so it reads as one set with
+// the close/collapse chrome.
 export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
-  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
-  // where suspending on an in-flight namespace would escape the boundary and blank the
-  // widget instead of showing the failure. See CloseButton.
+  // `useSuspense: false` — also rendered by the fallback chrome
+  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
+  // escape the boundary and blank the widget instead of showing the failure. See
+  // CloseButton.
   const { t } = useTranslation('common', { useSuspense: false })
   const navigate = useAtlasNavigate()
   const location = useLocation()
@@ -231,9 +240,9 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 }
 
 // The geocoder search field used by CountriesView/SearchView headers. Selecting a
-// place navigates to /search with the geocoded bbox + centre (the SearchView
-// ranks events by distance from there). Carries the geocode→search behaviour that
-// used to live in the removed SearchBar.
+// place navigates to /search with the geocoded bbox and centre (the SearchView
+// ranks events by distance from there). This carries the geocode-to-search
+// behaviour that used to live in the removed SearchBar.
 export function SearchField({
   label,
   syncToUrl,
@@ -244,16 +253,18 @@ export function SearchField({
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
       navigate(
-        // `placeSearchPath` carries the active filters + sort across and resets the searched
-        // location — one builder shared with the IP suggestion and the geolocate control, so
-        // none of the three can forget half of it.
+        // `placeSearchPath` carries the active filters and sort across and
+        // resets the searched location — one builder shared with the IP
+        // suggestion and the geolocate control, so none of the three can
+        // forget half of it.
         placeSearchPath(searchParams, {
           q: value.properties.full_address ?? '',
           center: [value.properties.coordinates.longitude, value.properties.coordinates.latitude],
           bbox: geocodeBounds(value),
-          // The country the place sits in, so an empty result set can offer that country's own
-          // site (issue #82). Present for a country-level result and for a town within one;
-          // absent for an ocean or a country-less feature.
+          // The country the place sits in, so an empty result set can offer
+          // that country's own site (issue #82). Present for a country-level
+          // result and for a town within one. It is absent for an ocean or a
+          // country-less feature.
           countryCode: geocodeCountryCode(value),
         }),
       )
@@ -268,43 +279,47 @@ export function SearchField({
   )
 }
 
-// Context handed to a top view's frame callback. `isEntry` is true when the view is
-// the session entry point (a fresh deep link / structural climb — depth 0) rather than
-// an in-session push; a placeless view (OnlineView) frames its parent only then, so it
-// never needs to re-derive history-awareness itself.
+// Context handed to a top view's frame callback. `isEntry` is true when the view
+// is the session entry point (a fresh deep link or structural climb — depth 0),
+// rather than an in-session push. A placeless view (OnlineView) frames its parent
+// only then, so it never needs to re-derive history-awareness itself.
 export type FrameContext = { isEntry: boolean }
 
-// Only the top (active) view is rendered — ancestors are peek panels, not views — so
-// each view frames the map for its level unconditionally on mount / when its inputs
-// change. Centralized so the call sites are one line and their deps arrays stay honest:
-// `deps` is spread into the effect's own array, so a per-view length is fine (it's
-// fixed for any given call site across renders).
+// Only the top (active) view is rendered — ancestors are peek panels, not views —
+// so each view frames the map for its level unconditionally on mount, and when
+// its inputs change. This is centralized, so the call sites are one line and their
+// deps arrays stay honest: `deps` is spread into the effect's own array, so a
+// per-view length is fine (it is fixed for any given call site across renders).
 export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: DependencyList) {
   const location = useLocation()
   const navigationType = useNavigationType()
   const { hasMap, restore } = useMapController()
-  // Which view the base drawer is showing NOW, against which one this hook belongs to. A ref
-  // because the latter is this view's identity, fixed for its lifetime — recomputing it would
-  // only ever compare the live value with itself.
+  // Which view the base drawer is showing NOW, checked against the one this hook
+  // belongs to. This is a ref, because the latter is this view's identity, fixed
+  // for its lifetime — recomputing it would only ever compare the live value
+  // with itself.
   const activeView = topViewKey(location.pathname, hasMap)
   const ownView = useRef(activeView)
 
   useEffect(() => {
-    // An EXITING view does not own the camera. DrawerStack keeps it mounted for its 150ms exit
-    // and router context still reaches it, so a view whose deps come from the URL re-renders
-    // under the NEXT route and re-runs this effect for a level it no longer shows. That is how
-    // tapping a pin from a search used to reset the camera to the world a beat before the event
-    // framed — read as a zoom-out followed by a long fly back in. See `topViewKey` for why this
-    // is not a `location.pathname` comparison, and why it must not be "did the location change"
-    // (a re-search moves `?center` and legitimately re-frames the SAME view).
+    // An EXITING view does not own the camera. DrawerStack keeps it mounted for
+    // its 150ms exit, and router context still reaches it, so a view whose deps
+    // come from the URL re-renders under the NEXT route and re-runs this effect
+    // for a level it no longer shows. That is how tapping a pin from a search
+    // used to reset the camera to the world a beat before the event framed —
+    // read as a zoom-out followed by a long fly back in. See `topViewKey` for
+    // why this is not a `location.pathname` comparison, and why it must not be
+    // "did the location change" (a re-search moves `?center` and legitimately
+    // re-frames the SAME view).
     if (activeView !== ownView.current) return
 
-    // On a POP back to a remembered entry, restore the camera the user left rather
-    // than re-deriving the framing — so closing an event returns to the prior
-    // viewport/zoom (browser back/forward get this for free). Otherwise (a PUSH, or a
-    // fresh deep link with no snapshot) frame normally, telling the view whether it's
-    // the session entry point. `deps` is the caller's own list; location/navigationType/
-    // hasMap/restore are stable for a mounted view.
+    // On a POP back to a remembered entry, this restores the camera the user
+    // left, rather than re-deriving the framing — so closing an event returns to
+    // the prior viewport/zoom (browser back/forward get this for free).
+    // Otherwise (a PUSH, or a fresh deep link with no snapshot) it frames
+    // normally, telling the view whether it is the session entry point. `deps`
+    // is the caller's own list. `location`, navigationType, hasMap, and restore
+    // stay stable for a mounted view.
     const snapshot =
       navigationType === 'POP' ? useCameraHistory.getState().read(location.key) : undefined
 
@@ -314,14 +329,15 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
 }
 
 // RegistrationView and ShareView both resolve an event from its route path and
-// suspense-fetch it — shared here so the resolvePath + queryKey convention stays
-// in one place. (EventView, one level up in the stack, already fetches the same
-// event; TanStack Query's `['event', id, locale]` cache serves this call from that
-// fetch, not a fresh network round trip.) `resolveStack` derives `eventPath` from
-// the raw preceding URL segment without checking it's actually an event — a
-// hand-typed `/india/register` would otherwise reach here as a region path — so
-// bail out before firing a request for a non-existent `NaN` id; the nearest
-// ErrorBoundary (DrawerErrorFallback) renders the not-found state instead.
+// suspense-fetch it — shared here, so the resolvePath-plus-queryKey convention
+// stays in one place. (EventView, one level up in the stack, already fetches the
+// same event. TanStack Query's `['event', id, locale]` cache serves this call from
+// that fetch, not a fresh network round trip.) `resolveStack` derives `eventPath`
+// from the raw preceding URL segment without checking that it is actually an
+// event — a hand-typed `/india/register` would otherwise reach here as a region
+// path — so this bails out before firing a request for a non-existent `NaN` id.
+// the nearest ErrorBoundary (DrawerErrorFallback) renders the not-found state
+// instead.
 export function useEventFromPath(eventPath: string) {
   const { locale } = useLocale()
   const resolved = resolvePath(eventPath)
@@ -337,26 +353,31 @@ export function useEventFromPath(eventPath: string) {
 }
 
 /**
- * The "no events" state for the region/online drawers when their list comes back empty: a
- * region whose events have all ended, or an online roll-up reached by a hand-typed URL.
+ * The "no events" state for the region/online drawers when their list comes back
+ * empty: a region whose events have all ended, or an online roll-up reached by a
+ * hand-typed URL.
  *
- * The SAME component a dead link renders, on the `empty` row of the same table (issue #89)
- * — so it gets the same way out: the nearest ancestor that does list classes, then a field
- * to name somewhere else. The ladder reads the URL's ancestry, so a 0-event Antwerpen
- * offers Belgium rather than offering itself back.
+ * This is the SAME component a dead link renders, on the `empty` row of the same
+ * table (issue #89), so it gets the same way out: the nearest ancestor that does
+ * list classes, then a field to name somewhere else. The ladder reads the URL's
+ * ancestry, so a 0-event Antwerpen offers Belgium, rather than offering itself
+ * back.
  *
- * Search keeps its own filter-aware empty states, which have better reasons available
- * (DynamicEventsList's EmptyResults) — but renders them through this same panel.
+ * Search keeps its own filter-aware empty states, which have better reasons
+ * available (DynamicEventsList's EmptyResults) — but renders them through this
+ * same panel.
  */
 export function EmptyEventList() {
-  // `useSuspense: false` — also rendered by the fallback chrome (views/fallbacks.tsx),
-  // where suspending on an in-flight namespace would escape the boundary and blank the
-  // widget instead of showing the failure. See CloseButton.
+  // `useSuspense: false` — also rendered by the fallback chrome
+  // (views/fallbacks.tsx), where suspending on an in-flight namespace would
+  // escape the boundary and blank the widget instead of showing the failure. See
+  // CloseButton.
   const { t } = useTranslation('common', { useSuspense: false })
 
   return (
-    // `align="start"`: this stands in for the region's list, which begins at the top-left
-    // of the body — the same posture `fallbackAlign` gives these views' error states.
+    // `align="start"`: this stands in for the region's list, which begins at the
+    // top-left of the body — the same posture `fallbackAlign` gives these
+    // views' error states.
     <FallbackPanel align="start" kind="empty">
       {/* `label` is the field's accessible name AND its placeholder, so it does the whole
           job of prompting: dropped out of a header, the default "search for events near…"
@@ -369,16 +390,17 @@ export function EmptyEventList() {
   )
 }
 
-// The single shared wiring for the IP-geolocation nearby suggestion, rendered above
-// the list on CountriesView / RegionView / SearchView so the behaviour isn't
-// triplicated. Reads the passive IP location (one lookup per session; fails silently
-// ⇒ nothing renders) and, on accept, navigates into the distance-ranked search
-// centred on the guess — preserving the active URL filters exactly as SearchField
-// does, plus a synthesized city-sized bbox so SearchView frames a neighbourhood
-// rather than the pinpoint zoom it uses for a bare centre. `shouldShowGeolocationPrompt`
-// (src/lib/geolocation.ts, fully unit-tested) owns the visibility conditions. Only the ×
-// persists a (session-scoped) dismissal; accepting merely navigates — the prompt
-// self-hides while you're viewing that area but returns once you leave it.
+// The single shared wiring for the IP-geolocation nearby suggestion, rendered
+// above the list on CountriesView, RegionView, and SearchView, so the behaviour is
+// not triplicated. This reads the passive IP location (one lookup per session.
+// It fails silently, so nothing renders) and, on accept, navigates into the
+// distance-ranked search centred on the guess — preserving the active URL filters
+// exactly as SearchField does, plus a synthesized city-sized bbox, so SearchView
+// frames a neighbourhood rather than the pinpoint zoom it uses for a bare centre.
+// `shouldShowGeolocationPrompt` (src/lib/geolocation.ts, fully unit-tested) owns
+// the visibility conditions. Only the close button persists a (session-scoped)
+// dismissal. Accepting merely navigates — the prompt self-hides while you are
+// viewing that area, but returns once you leave it.
 export function GeolocationSuggestion({
   regionCenter,
 }: {
@@ -387,8 +409,9 @@ export function GeolocationSuggestion({
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const [dismissed, setDismissed] = useState(readGeolocationDismissed)
-  // Skip the passive lookup when it couldn't be shown anyway — dismissed, or a place
-  // search is already active — so those cases never ping the third-party service.
+  // Skips the passive lookup when it could not be shown anyway — dismissed, or a
+  // place search is already active — so those cases never ping the third-party
+  // service.
   const activeSearch = hasActivePlaceSearch(searchParams)
   const ipLocation = useIpLocation(!dismissed && !activeSearch)
 
@@ -414,23 +437,26 @@ export function GeolocationSuggestion({
   const handleSelect = useCallback(() => {
     if (!ipLocation) return
 
-    // Accepting must NOT persist a dismissal — only the × does (handleDismiss).
-    // Zooming to the guess already hides the prompt on its own: the new URL carries
-    // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while you're looking at
-    // that area. Leaving the area (clearing the search) brings the suggestion back,
-    // so it keeps offering until the user actually dismisses it.
+    // Accepting must NOT persist a dismissal — only the close button does
+    // (handleDismiss). Zooming to the guess already hides the prompt on its
+    // own: the new URL carries `?center`/`?q`, so `hasActivePlaceSearch`
+    // suppresses it while you are looking at that area. Leaving the area
+    // (clearing the search) brings the suggestion back, so it keeps offering
+    // until the user actually dismisses it.
     navigate(
       placeSearchPath(searchParams, {
         q: `${ipLocation.city}, ${ipLocation.country}`,
         center: [ipLocation.longitude, ipLocation.latitude],
-        // A synthesized city-sized box, so the search frames a neighbourhood rather than the
-        // pinpoint zoom a bare centre gets. The device fix uses the same floor — see
-        // `nearbyBounds`, which additionally reaches out to the classes themselves, because
-        // there the point is precise enough for that to mean something.
+        // A synthesized city-sized box, so the search frames a neighbourhood
+        // rather than the pinpoint zoom a bare centre gets. The device fix
+        // uses the same floor — see `nearbyBounds`, which additionally
+        // extends to the classes themselves, because there the point is
+        // precise enough for that to mean something.
         bbox: approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM),
-        // Same searched-country marker SearchField writes — the guess already carries the
-        // code (it also orders an event's share targets), so an accepted suggestion that
-        // lands in a program-less country gets the offer too.
+        // The same searched-country marker SearchField writes — the guess
+        // already carries the code (it also orders an event's share
+        // targets), so an accepted suggestion that lands in a program-less
+        // country gets the offer too.
         countryCode: isoCountryCode(ipLocation.country_code),
       }),
     )

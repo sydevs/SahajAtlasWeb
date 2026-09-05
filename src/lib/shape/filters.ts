@@ -11,17 +11,17 @@ import { type RegionTreeNode, indexRegions, subtreeIds } from './hierarchy'
  * `matchesFilters` is the single predicate both the list and the map apply, so a
  * filtered list and the filtered pins/clusters always agree.
  *
- * All fields have a "no restriction" default (`DEFAULT_FILTERS`); with every
- * field at its default, `matchesFilters` passes every event.
+ * All fields have a "no restriction" default (`DEFAULT_FILTERS`). With every field
+ * at its default, `matchesFilters` passes every event.
  */
 
-/** Event format filter — `any`, or one of the `eventType` values. */
+/** The event format filter — `any`, or one of the `eventType` values. */
 export type EventFormat = 'any' | EventType
 
 /**
- * Event cadence filter, derived from `schedule.recurrenceType`. `once` matches
- * events with no recurrence (a null `recurrenceType`); `WEEKLY`/`MONTHLY` match
- * that recurrence directly.
+ * The event cadence filter, derived from `schedule.recurrenceType`. `once`
+ * matches events with no recurrence (a null `recurrenceType`). `WEEKLY`/`MONTHLY`
+ * match that recurrence directly.
  */
 export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
@@ -29,9 +29,9 @@ export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
 export const TIME_PERIODS = ['morning', 'afternoon', 'evening', 'night'] as const
 
-// Each period's local-hour half-open interval(s) `[start, end)`. Night wraps
-// midnight, so it's two intervals. `matchesFilters` tests an occurrence's start
-// hour against these; `timePeriodRanges` coalesces them for display.
+// Each period's local-hour half-open interval(s), `[start, end)`. Night wraps
+// midnight, so it is two intervals. `matchesFilters` tests an occurrence's start
+// hour against these. `timePeriodRanges` coalesces them for display.
 export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, number])[]> = {
   morning: [[6, 12]],
   afternoon: [[12, 17]],
@@ -42,8 +42,8 @@ export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, n
   ],
 }
 
-// Selected periods in canonical day order (morning → night), de-duped — keeps the
-// URL param and the query key stable regardless of selection order.
+// Selected periods in canonical day order (morning to night), de-duped — keeps
+// the URL param and the query key stable regardless of selection order.
 const sortPeriods = (periods: readonly TimePeriod[]): TimePeriod[] =>
   TIME_PERIODS.filter((period) => periods.includes(period))
 
@@ -51,26 +51,27 @@ const sortPeriods = (periods: readonly TimePeriod[]): TimePeriod[] =>
 export const DATE_WINDOW_MONTHS = 12
 
 /**
- * A calendar-date window: each bound an independent `yyyy-MM-dd` string, or `null`
- * for an open side. `{ start: null, end: null }` = no restriction.
+ * A calendar-date window: each bound an independent `yyyy-MM-dd` string, or
+ * `null` for an open side. `{ start: null, end: null }` means no restriction.
  */
 export type DateRange = { start: string | null; end: string | null }
 
 export type EventFilters = {
   format: EventFormat
-  /** Selected times of day; an event matches if a start falls in any. Empty = no restriction. */
+  /** Selected times of day. An event matches if a start falls in any. Empty means no restriction. */
   timeOfDay: TimePeriod[]
-  /** Luxon weekday numbers, 1 (Mon)–7 (Sun). Empty = no restriction. */
+  /** Luxon weekday numbers, 1 (Mon) to 7 (Sun). Empty means no restriction. */
   daysOfWeek: number[]
-  /** Language codes; an event matches if it offers any selected language. Empty = no restriction. */
+  /** Language codes. An event matches if it offers any selected language. Empty means no restriction. */
   languages: string[]
   cadence: EventCadence
   /** Keep only events with an upcoming occurrence in this calendar-date window. */
   dateRange: DateRange
   /**
-   * Region slug to scope to, or `null` for no restriction. An event matches when its
-   * region is this region *or a descendant* of it (see `buildRegionMatcher`), so
-   * selecting a country keeps every event in its regions/areas/venues.
+   * The region slug to scope to, or `null` for no restriction. An event matches
+   * when its region is this region *or a descendant* of it (see
+   * `buildRegionMatcher`), so selecting a country keeps every event in its
+   * regions, areas, and venues.
    */
   region: string | null
 }
@@ -85,7 +86,7 @@ export const DEFAULT_FILTERS: EventFilters = {
   region: null,
 }
 
-// Freeze the singleton and its arrays so the store can safely seed/clear by
+// Freezes the singleton and its arrays, so the store can safely seed or clear by
 // aliasing these references — nothing can mutate the shared default in place.
 Object.freeze(DEFAULT_FILTERS.timeOfDay)
 Object.freeze(DEFAULT_FILTERS.daysOfWeek)
@@ -93,14 +94,15 @@ Object.freeze(DEFAULT_FILTERS.languages)
 Object.freeze(DEFAULT_FILTERS.dateRange)
 Object.freeze(DEFAULT_FILTERS)
 
-/** Whether any time-of-day period is selected (i.e. the filter narrows the day). */
+/** Whether any time-of-day period is selected (that is, the filter narrows the day). */
 export const isTimeRestricted = (timeOfDay: readonly TimePeriod[]): boolean => timeOfDay.length > 0
 
 /**
  * The selected periods as coalesced `[start, end)` hour ranges for display —
- * adjacent/overlapping intervals fused, and a pair spanning midnight (…–24 and
- * 0–…) shown as one wrapping range (e.g. night alone → `[21, 6]`). Empty when
- * nothing is selected. Shared by the filter form's readout and the active pill.
+ * adjacent or overlapping intervals are fused, and a pair spanning midnight
+ * (…-24 and 0-…) displays as one wrapping range (for example, night alone becomes
+ * `[21, 6]`). This is empty when nothing is selected. Shared by the filter
+ * form's readout and the active pill.
  */
 export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, number][] => {
   const intervals = sortPeriods(periods)
@@ -117,21 +119,21 @@ export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, numbe
     else merged.push([start, end])
   }
 
-  // Fuse a midnight-spanning pair (…–24 and 0–…) into a single wrapping range.
+  // Fuses a midnight-spanning pair (…-24 and 0-…) into a single wrapping range.
   if (merged.length > 1 && merged[0][0] === 0 && merged[merged.length - 1][1] === 24) {
     const head = merged.shift()!
 
     merged[merged.length - 1] = [merged[merged.length - 1][0], head[1]]
   }
 
-  // Every period selected covers the whole day — there's no meaningful window to
-  // show, so callers fall back to their "any time" copy.
+  // Every period selected covers the whole day — there is no meaningful window
+  // to display, so callers default to their "any time" copy.
   if (merged.length === 1 && merged[0][0] === 0 && merged[0][1] === 24) return []
 
   return merged
 }
 
-/** Whether the date range narrows anything (i.e. either bound is set). */
+/** Whether the date range narrows anything (that is, either bound is set). */
 export const isDateRestricted = (dateRange: DateRange): boolean =>
   dateRange.start !== null || dateRange.end !== null
 
@@ -139,9 +141,9 @@ export const isDateRestricted = (dateRange: DateRange): boolean =>
 export const todayISO = (): string => DateTime.now().startOf('day').toISODate() ?? ''
 
 /**
- * The selectable date window — today through today + `DATE_WINDOW_MONTHS`, as
+ * The selectable date window — today through today plus `DATE_WINDOW_MONTHS`, as
  * `yyyy-MM-dd` in the viewer's local zone. It bounds the picker inputs and clamps
- * the URL codec, so a hand-crafted link can't select outside the window.
+ * the URL codec, so a hand-crafted link cannot select outside the window.
  */
 export const dateWindow = (): { min: string; max: string } => {
   const min = todayISO()
@@ -152,23 +154,25 @@ export const dateWindow = (): { min: string; max: string } => {
 /** The subset of an event `matchesFilters` needs — so it works for `FeedEvent`, `EventSlim`, and `Event`. */
 type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
   schedule?: EventSchedule | null
-  /** Direct region (present on feed features); enables the region-filter cut. */
+  /** The direct region (present on feed features). It enables the region-filter cut. */
   region?: { id: number } | null
 }
 
 /**
  * Decides whether an event falls under the region filter's selection. Built by
- * `buildRegionMatcher` from the `['regions']` tree and passed into `matchesFilters`
- * by the callers that hold that tree (the map, the list fetcher, the filter count).
+ * `buildRegionMatcher` from the `['regions']` tree and passed into
+ * `matchesFilters` by the callers that hold that tree (the map, the list
+ * fetcher, the filter count).
  */
 export type RegionMatcher = (event: FilterableEvent) => boolean
 
 /**
- * A region-filter predicate over the region tree: an event matches when its region is
- * `regionSlug` or any descendant of it. Returns `undefined` — meaning "no region
- * restriction" — when no slug is selected, the tree isn't loaded yet, or the slug isn't
- * a known region (an unknown slug never narrows the set). The descendant set is
- * precomputed once so the returned matcher is O(1) per event on the map's hot path.
+ * A region-filter predicate over the region tree: an event matches when its
+ * region is `regionSlug` or any descendant of it. This returns `undefined` —
+ * meaning "no region restriction" — when no slug is selected, the tree is not
+ * loaded yet, or the slug is not a known region (an unknown slug never narrows
+ * the set). The descendant set is precomputed once, so the returned matcher is
+ * O(1) per event on the map's hot path.
  */
 export const buildRegionMatcher = (
   regions: RegionTreeNode[] | undefined,
@@ -187,18 +191,20 @@ export const buildRegionMatcher = (
 }
 
 /**
- * The date lower bound for the range filter, floored at today so an open-ended "until Y"
- * never matches a past occurrence (a set start is already >= today). Empty string when no
- * date filter is active. Shared so `matchesFilters` and the calendar floor identically.
+ * The date lower bound for the range filter, floored at today so an open-ended
+ * "until Y" never matches a past occurrence (a set start is already at or
+ * after today). This is an empty string when no date filter is active. Shared
+ * so `matchesFilters` and the calendar floor identically.
  */
 export const dateFloor = (filters: EventFilters, today?: string): string =>
   isDateRestricted(filters.dateRange) ? (filters.dateRange.start ?? today ?? todayISO()) : ''
 
 /**
- * Whether one occurrence — already resolved to the event's display zone — satisfies the
- * active day / time / date filters. This is the PER-OCCURRENCE half of `matchesFilters`,
- * exported so the calendar's occurrence expansion applies the EXACT same cut: an event's
- * list/map card and its individual calendar entries then agree on which occurrences count.
+ * Whether one occurrence — already resolved to the event's display zone —
+ * satisfies the active day, time, and date filters. This is the
+ * PER-OCCURRENCE half of `matchesFilters`, exported so the calendar's
+ * occurrence expansion applies the EXACT same cut: an event's list/map card
+ * and its individual calendar entries then agree on which occurrences count.
  * `floor` is the pre-resolved date lower bound (from `dateFloor`).
  */
 export const occurrenceMatchesFilters = (
@@ -218,8 +224,8 @@ export const occurrenceMatchesFilters = (
   }
 
   if (isDateRestricted(filters.dateRange)) {
-    // Compare calendar dates in the event's own frame. `yyyy-MM-dd` strings are
-    // fixed-width, so lexicographic order is chronological.
+    // Compares calendar dates in the event's own frame. `yyyy-MM-dd` strings
+    // are fixed-width, so lexicographic order is chronological.
     const date = local.toISODate() ?? ''
 
     if (date < floor) return false
@@ -230,27 +236,28 @@ export const occurrenceMatchesFilters = (
 }
 
 /**
- * Does an event pass the given filters? Pure and timezone-correct:
+ * Does an event pass the given filters? This is pure and timezone-correct:
  *
- * - **Day, time, and date range are evaluated together, per occurrence.** An event
- *   matches only if some `schedule.upcomingDates` occurrence falls on a selected
- *   weekday *and* starts within the time range *and* lands in the date window — a
- *   Monday-morning and a Wednesday-evening occurrence don't combine to satisfy
- *   "Wednesday morning", nor a Jul-20 and a Jul-27 occurrence to satisfy a
- *   single-day range.
- * - The date range floors at `today` (the passed-in day, else the viewer's): no
- *   upcoming occurrence predates today, so an open-ended "until Y" can't surface a
- *   stale or timezone-shifted past occurrence, and a set start is already clamped
- *   to >= today by the codec.
+ * - **Day, time, and date range are evaluated together, per occurrence.** An
+ *   event matches only if some `schedule.upcomingDates` occurrence falls on a
+ *   selected weekday *and* starts within the time range *and* lands in the
+ *   date window — a Monday-morning and a Wednesday-evening occurrence do not
+ *   combine to satisfy "Wednesday morning", nor do a Jul-20 and a Jul-27
+ *   occurrence combine to satisfy a single-day range.
+ * - The date range floors at `today` (the passed-in day, else the viewer's):
+ *   no upcoming occurrence predates today, so an open-ended "until Y" cannot
+ *   surface a stale or timezone-shifted past occurrence, and a set start is
+ *   already clamped to at or after today by the codec.
  * - Each occurrence is read in the **event's own frame** via `eventTimeZone`
- *   (the viewer's zone for online events, UTC when `firstDate_tz` is null — the
- *   same fallback the display path uses, so a null-tz occurrence is read as UTC
- *   wall-clock here too).
- * - When a day, time, or date filter is active, an event with no `upcomingDates`
- *   is excluded (its occurrences can't be verified).
- * - The region cut (selected region + descendants) is applied via the optional
- *   `matchesRegion` resolver, so region stays the single predicate the list, map,
- *   and filter count share rather than a separate pass that could drift.
+ *   (the viewer's zone for online events, UTC when `firstDate_tz` is null —
+ *   the same fallback the display path uses, so a null-tz occurrence is read
+ *   as UTC wall-clock here too).
+ * - When a day, time, or date filter is active, an event with no
+ *   `upcomingDates` is excluded (its occurrences cannot be verified).
+ * - The region cut (selected region plus descendants) is applied via the
+ *   optional `matchesRegion` resolver, so region stays the single predicate
+ *   the list, map, and filter count share, rather than a separate pass that
+ *   could drift.
  */
 export function matchesFilters(
   event: FilterableEvent,
@@ -260,10 +267,10 @@ export function matchesFilters(
 ): boolean {
   if (filters.format !== 'any' && event.eventType !== filters.format) return false
 
-  // Region cut: narrows only when a region is selected AND a resolver is supplied
-  // (the resolver carries the region tree). A selected region with no resolver is
-  // treated as no restriction, so a caller lacking the tree degrades gracefully
-  // instead of excluding every event.
+  // The region cut narrows only when a region is selected AND a resolver is
+  // supplied (the resolver carries the region tree). A selected region with
+  // no resolver is treated as no restriction, so a caller lacking the tree
+  // degrades gracefully instead of excluding every event.
   if (filters.region && matchesRegion && !matchesRegion(event)) return false
 
   if (
@@ -274,8 +281,9 @@ export function matchesFilters(
   }
 
   if (filters.cadence !== 'any') {
-    // `once` = a schedule with no recurrence; a schedule-less event is unknown
-    // cadence, not one-time, so it doesn't match a specific cadence.
+    // `once` means a schedule with no recurrence. A schedule-less event has
+    // unknown cadence, not one-time cadence, so it does not match a specific
+    // cadence.
     const recurrence = event.schedule?.recurrenceType ?? null
     const matches =
       filters.cadence === 'once'
@@ -292,15 +300,16 @@ export function matchesFilters(
   if (dayActive || timeActive || dateActive) {
     const occurrences = event.schedule?.upcomingDates
 
-    // Can't verify a day/time/date match without occurrence data.
+    // Cannot verify a day/time/date match without occurrence data.
     if (!occurrences || occurrences.length === 0) return false
 
     const zone = eventTimeZone(event)
     const floor = dateFloor(filters, today)
 
-    // An event matches when SOME occurrence satisfies day + time + date together — the
-    // Monday-morning and Wednesday-evening occurrences don't combine. The calendar reuses
-    // `occurrenceMatchesFilters` per occurrence to keep only the matching ones.
+    // An event matches when SOME occurrence satisfies day, time, and date
+    // together — the Monday-morning and Wednesday-evening occurrences do not
+    // combine. The calendar reuses `occurrenceMatchesFilters` per occurrence
+    // to keep only the matching ones.
     const matches = occurrences.some((occurrence) =>
       occurrenceMatchesFilters(DateTime.fromJSDate(occurrence, { zone }), filters, floor),
     )
@@ -330,9 +339,9 @@ export const activeFilterCount = (filters: EventFilters): number => {
 }
 
 /**
- * A stable string identity for a filter set, for use in a React Query key. Arrays
- * are sorted so element order never varies the key (the list would otherwise
- * refetch on a no-op reorder).
+ * A stable string identity for a filter set, for use in a React Query key.
+ * Arrays are sorted, so element order never varies the key (the list would
+ * otherwise refetch on a no-op reorder).
  */
 export const filtersKey = (filters: EventFilters): string =>
   JSON.stringify({
@@ -346,8 +355,9 @@ export const filtersKey = (filters: EventFilters): string =>
   })
 
 // ── URL serialization (the query params ARE the applied filters) ────────────────
-// The filters live in the URL so a filtered view is linkable/shareable. One compact
-// key per group; a default (unrestricted) group is omitted so links stay clean.
+// The filters live in the URL, so a filtered view is linkable and shareable. One
+// compact key per group. A default (unrestricted) group is omitted so links stay
+// clean.
 
 /**
  * Every query-parameter name the filters own.
@@ -386,10 +396,11 @@ const parsePeriods = (value: string | null): TimePeriod[] =>
     : []
 
 /**
- * Decode the `dates` param (`start,end`, either side blank for an open bound) into a
- * `DateRange`. Defensive like `parsePeriods`/`parseDays`: each side must be a strict
- * `yyyy-MM-dd`, is clamped into `[today, today + DATE_WINDOW_MONTHS]`, and a reversed
- * range collapses to no restriction — so a hand-crafted URL can't escape the window.
+ * Decodes the `dates` param (`start,end`, either side blank for an open bound)
+ * into a `DateRange`. This is defensive like `parsePeriods`/`parseDays`: each
+ * side must be a strict `yyyy-MM-dd`, it is clamped into
+ * `[today, today + DATE_WINDOW_MONTHS]`, and a reversed range collapses to no
+ * restriction — so a hand-crafted URL cannot escape the window.
  */
 const parseDates = (value: string | null): DateRange => {
   if (!value) return { start: null, end: null }
@@ -399,7 +410,7 @@ const parseDates = (value: string | null): DateRange => {
   const clamp = (raw: string | undefined): string | null => {
     if (!raw) return null
 
-    // Reject anything but a canonical calendar date (`toISODate` round-trips it).
+    // Rejects anything but a canonical calendar date (`toISODate` round-trips it).
     const date = DateTime.fromISO(raw, { zone: 'utc' })
 
     if (!date.isValid || date.toISODate() !== raw) return null
@@ -413,7 +424,7 @@ const parseDates = (value: string | null): DateRange => {
   const start = clamp(rawStart)
   const end = clamp(rawEnd)
 
-  // A reversed range is contradictory — treat it as no restriction (like `parsePeriods`).
+  // A reversed range is contradictory — this treats it as no restriction (like `parsePeriods`).
   if (start && end && start > end) return { start: null, end: null }
 
   return { start, end }
@@ -430,17 +441,19 @@ export const filtersFromParams = (params: URLSearchParams): EventFilters => {
     cadence: CADENCES.includes(cadence ?? '') ? (cadence as EventCadence) : 'any',
     daysOfWeek: parseDays(params.get('days')),
     timeOfDay: parsePeriods(params.get('time')),
-    // Cap the list like the other groups are bounded — a hand-crafted URL can't
-    // balloon it (values only feed `matchesFilters` includes + re-serialization).
+    // Caps the list like the other groups are bounded — a hand-crafted URL
+    // cannot balloon it (values only feed `matchesFilters` includes and
+    // re-serialization).
     languages: langs ? [...new Set(langs.split(',').filter(Boolean))].sort().slice(0, 50) : [],
     dateRange: parseDates(params.get('dates')),
-    // Raw slug, length-capped defensively; validated against the loaded region set
-    // downstream — an unknown slug resolves to no restriction in `buildRegionMatcher`.
+    // A raw slug, length-capped defensively. It is verified against the loaded
+    // region set downstream — an unknown slug resolves to no restriction in
+    // `buildRegionMatcher`.
     region: params.get('region')?.slice(0, 128) || null,
   }
 }
 
-/** Encode `filters` into a copy of `base`, preserving non-filter params (`q`/`center`/…). */
+/** Encodes `filters` into a copy of `base`, preserving non-filter params (`q`/`center`/…). */
 export const filtersToParams = (filters: EventFilters, base?: URLSearchParams): URLSearchParams => {
   const params = new URLSearchParams(base)
 
