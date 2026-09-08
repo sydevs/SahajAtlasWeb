@@ -305,10 +305,14 @@ Three facts to remember:
   bug fix, so a green deploy alone does not prove the maps got there — only `assert:maps`
   and the build log do. Deletion runs in `writeBundle`'s `finally` block, the one path a
   map could reach the output by, and the gate closes it.
-- **`pnpm size` in CI reads about 2.1 KiB under production**, because the Sentry plugin
-  needs credentials CI lacks — that gap is its per-chunk debug-ID snippet. Do not lower
-  `BUDGET_KIB` to within 2.1 KiB of the CI number. That would fail production on a gate CI
-  cannot reproduce.
+- **`pnpm size` in CI reads under production**, because the Sentry plugin needs credentials
+  CI lacks — that gap is its per-chunk debug-ID snippet. **The gap is per-graph, not a
+  constant**: it scales with chunk count, not bytes. Measured on the same commit
+  (uncredentialed vs the offline dry run below): **`standalone` +1.1 KiB, `embed` +1.2 KiB,
+  `loader` +0.3 KiB**. So never lower a budget to within *that graph's own measured gap* of
+  the CI number, and record both numbers beside the budget in
+  `scripts/check-bundle-size.mjs`. A flat figure is wrong in both directions — read as
+  2.1 KiB the loader's 3.5 KiB budget would have to be ≥ 4.7, above the 3.8 it already had.
 - **A credentialed build still runs in CI, offline.** The "Source-map upload chain
   (offline dry run)" step in `ci.yml` builds with a dummy token against a closed port, so
   emission, the non-fatal handler, deletion, and the gate are all proven on a runner
