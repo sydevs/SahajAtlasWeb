@@ -62,8 +62,9 @@ import { annotate, report } from './_ci-output.mjs'
 // catches unnoticed *growth* without failing on the day this comment was
 // written. The headroom is about 3%. That is enough to absorb a
 // dependency patch bump, and tight enough that a newly-eager view still
-// trips it. It also sits comfortably above the roughly 2.1 KiB a
-// credentialed build adds that CI cannot see (see SLACK_FLOOR_KIB below).
+// trips it. It also sits comfortably above the 1.1-1.2 KiB a credentialed
+// build adds to these two graphs that CI cannot see — a per-graph gap,
+// measured, not a constant (see SLACK_FLOOR_KIB below).
 //
 //   standalone  297.2 KiB  →  308
 //   embed       299.8 KiB  →  308
@@ -97,9 +98,23 @@ import { annotate, report } from './_ci-output.mjs'
 // only on reveal, so it is a deferred cost rather than an eager one. This
 // script still budgets it, though, because "deferred" does not mean
 // "free". It is the cost a visitor who does look at the widget waits for.
+//
+// The loader budget was 3.8 against a measured 2.9 (#199's routine
+// dependency batch took 0.3 KiB off the graph, which tripped the ratchet
+// below). It is 3.5 now, against these two builds of the same commit:
+//
+//   loader   2.6 KiB  uncredentialed  ← the number CI measures
+//   loader   2.9 KiB  credentialed    ← what production ships
+//
+// Both numbers matter, and neither alone is enough. `ci.yml:32-38` runs
+// `pnpm build` then `pnpm size` with no Sentry token, so the gate reads
+// 2.6 and needs 3.5 to stay inside the slack window. Production ships 2.9,
+// so the budget must stay above that too. 3.6 would put the CI number on
+// the slack boundary exactly; 3.5 is strictly inside it either way the
+// comparison at `line 402` is read.
 const BUDGET_KIB = {
   standalone: 308,
-  loader: 3.8,
+  loader: 3.5,
   embed: 308,
 }
 
@@ -122,15 +137,17 @@ const SLACK_RATIO = 0.15
 //
 // `AGENTS.md` records that a credentialed build ships more than CI
 // measures. `@sentry/vite-plugin` injects a debug-ID snippet into every
-// chunk, and CI has no token to trigger that. Measured on this build:
-// +2.1 KiB on `standalone` and `embed`, and **+0.5 KiB on `loader`**. The
-// absolute cost is small. The RATIO is not small, because it scales with
-// chunk count, not bytes. 0.5 KiB is 17% of the 3.0 KiB loader graph. The
-// same 0.5 KiB is only 0.6% of the embed graph.
+// chunk, and CI has no token to trigger that. The gap is therefore
+// per-graph, not a constant: it scales with chunk count, not bytes.
+// Measured on this build: **+1.1 KiB on `standalone`, +1.2 KiB on
+// `embed`, +0.3 KiB on `loader`**. The absolute cost is small. The RATIO
+// is not small: 0.3 KiB is 12% of the 2.6 KiB loader graph, while 1.2 KiB
+// is 0.4% of the embed graph.
 //
 // So on a graph this small, the two rules collide head-on. A budget high
-// enough to clear the credentialed build (above 3.5 KiB) leaves spare
-// space. A flat 15% rule then calls that spare space "far under budget".
+// enough to clear the credentialed build leaves spare space against the
+// uncredentialed one CI measures. A flat 15% rule then calls that spare
+// space "far under budget".
 // The only numbers that satisfy both rules sit in a window about 0.03 KiB
 // wide. That is not a budget — it is a knife edge, and the next person to
 // touch the loader would have hit it.
