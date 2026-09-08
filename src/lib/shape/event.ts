@@ -279,7 +279,10 @@ export function resolveEventDisplay(
   // Occurrence instants in the event's zone. `upcomingDates` is precomputed
   // server-side, with exclusions applied. This falls back to `firstDate` itself
   // when the list is empty but the first session has not finished (defensive).
-  let candidates = (schedule.upcomingDates ?? []).map((date) =>
+  // The annotation is load-bearing. `@types/luxon` 3.7.5 narrows `setZone`'s
+  // return to `DateTime<true> | DateTime<false>`, so an inferred array cannot
+  // hold `scheduleStart`'s plain `DateTime` in the fallback below.
+  let candidates: DateTime[] = (schedule.upcomingDates ?? []).map((date) =>
     DateTime.fromJSDate(date).setZone(eventTz),
   )
 
