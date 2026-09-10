@@ -66,5 +66,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
+          package-manager-cache: false
       # No `pnpm install`: `pnpm audit` resolves from the lockfile alone.
       - run: pnpm audit:check --strict
