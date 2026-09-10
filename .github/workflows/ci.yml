@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4 # reads packageManager from package.json
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5 # reads packageManager from package.json
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -75,11 +75,12 @@ jobs:
     permissions:
       contents: read # the four read scopes above exist for preview discovery, not this
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
+          package-manager-cache: false
       - run: pnpm audit:check
 
   # Smoke specs run against the Cloudflare Pages PR preview. This job finds
@@ -94,9 +95,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
