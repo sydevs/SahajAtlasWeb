@@ -7,6 +7,7 @@ import snapshot from './translations.en.json'
 import { TRANSLATION_SELECT } from './api/fetch'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
+import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
 
 /**
  * This replaces the bundle-parity gate `public/locales/` used to need (#198).
@@ -24,9 +25,15 @@ import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
  * ⚠ **The second direction is the one that needs the dynamic families spelled out.** A key built
  * at runtime — `filters.time.${period}`, a `messageKey` out of `ERROR_POLICY` — appears in no
  * literal, so a referenced-key sweep that only reads `t('…')` would call every one of them dead
- * and delete perfectly live copy. Each family below is derived from the constant that generates
- * it, never from a hand-written list, so adding an option to one of those tables keeps the two
- * sides in step with no edit here.
+ * and delete perfectly live copy. Each family below reads the OPTIONS out of the constant that
+ * generates them, either by import or out of the source of the module that holds them, so
+ * adding a filter format, a sort order or a registration question keeps the two sides in step
+ * with no edit here. Only the fixed chrome each group also owns — its `label`, and the `any`
+ * that clears it — is written down, because neither is an option in any of those tables.
+ *
+ * ⚠ **A table read out of source that stops matching goes vacuously green**, which is the one
+ * way this file can lie. `derives each dynamic family from a table it actually found` below is
+ * what stops that, so keep a new regex-read family listed there.
  */
 const sourceDir = fileURLToPath(new URL('..', import.meta.url))
 
@@ -68,8 +75,8 @@ const literalOptions = (source: string, name: string): string[] => {
 /**
  * The array form of the same idea, for a table written `= [...]` rather than `= {...}`.
  *
- * The literal class is not lower-case-only here, unlike `literalOptions`: the tables this reads
- * hold the CMS's own `DAILY` / `WEEKLY` spellings alongside lower-case ones.
+ * `CADENCE_OPTIONS` is why the literal class is not lower-case-only here: its members are the
+ * CMS's own `DAILY` / `WEEKLY` spellings, which the call site lower-cases into the key.
  */
 const arrayLiterals = (source: string, name: string): string[] => {
   const table = new RegExp(`${name}[^[]*\\[([^\\]]*)\\]`, 's').exec(source)
@@ -77,13 +84,27 @@ const arrayLiterals = (source: string, name: string): string[] => {
   return table ? [...table[1].matchAll(/['"]([A-Za-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]) : []
 }
 
+// `FORMAT_OPTIONS` and `CADENCE_OPTIONS` are module-local to the component that renders them —
+// exporting a list only a spec reads would be the wrong trade — so they are read out of its
+// source, the way `WEEK_NUMBERS` reads `use-event-display.ts`. `TIME_PERIODS` and `SORT_ORDERS`
+// are already exported from `lib/shape`, so those import.
+const filtersSource = readFileSync(
+  `${sourceDir}/components/molecules/SearchFilters/SearchFilters.tsx`,
+  'utf8',
+)
+
+const FORMATS = arrayLiterals(filtersSource, 'const FORMAT_OPTIONS[^=]*=')
+const CADENCES = arrayLiterals(filtersSource, 'const CADENCE_OPTIONS[^=]*=').map((o) =>
+  o.toLowerCase(),
+)
+
 const FILTER_OPTIONS = [
-  ...['label', 'any', 'offline', 'online'].map((o) => `filters.format.${o}`),
-  ...['label', 'any', 'daily', 'weekly', 'monthly', 'once'].map((o) => `filters.cadence.${o}`),
-  ...['label', 'morning', 'afternoon', 'evening', 'night'].map((o) => `filters.time.${o}`),
+  ...['label', 'any', ...FORMATS].map((o) => `filters.format.${o}`),
+  ...['label', 'any', ...CADENCES].map((o) => `filters.cadence.${o}`),
+  ...['label', ...TIME_PERIODS].map((o) => `filters.time.${o}`),
 ]
 
-const SORT_ORDERS = ['label', 'recommended', 'closest', 'soonest'].map((o) => `search.sort.${o}`)
+const SORT_KEYS = ['label', ...SORT_ORDERS].map((o) => `search.sort.${o}`)
 
 const QUESTIONS = REGISTRATION_QUESTION_NAMES.map((name) => `registration.questions.${name}`)
 
@@ -109,7 +130,7 @@ const REFUSAL_KEYS = [
 
 const DYNAMIC_KEYS = [
   ...FILTER_OPTIONS,
-  ...SORT_ORDERS,
+  ...SORT_KEYS,
   ...QUESTIONS,
   ...WEEK_NUMBERS,
   ...POLICY_KEYS,
@@ -165,6 +186,27 @@ describe('the tab list the widget reads', () => {
 })
 
 describe('every key a call site asks for', () => {
+  it('derives each dynamic family from a table it actually found', () => {
+    // A regex that stops matching — a constant renamed, a table reformatted — returns `[]`, and
+    // every assertion below it then passes for a reason that has nothing to do with the copy.
+    // The sharp case is `DYNAMIC_KEYS` clearing its own floor on the strength of the families
+    // that still match, while a silently empty one covers nothing at all.
+    //
+    // Emptiness is the whole assertion. Pinning the CONTENTS here would put the hand-written
+    // list back, one file over from the one it was just taken out of.
+    for (const [name, family] of Object.entries({
+      FORMATS,
+      CADENCES,
+      WEEK_NUMBERS,
+      REFUSAL_KEYS,
+      POLICY_KEYS,
+    })) {
+      expect(family, `${name} read no table — its regex no longer matches the source`).not.toEqual(
+        [],
+      )
+    }
+  })
+
   it('resolves in the snapshot, for a literal key', () => {
     expect(LITERAL_KEYS.length).toBeGreaterThan(100)
 
