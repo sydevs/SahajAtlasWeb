@@ -5,14 +5,16 @@ import { useQuery } from '@tanstack/react-query'
 import { atlasConfigQuery } from '@/config/api/fetch'
 import { queryClient } from '@/config/query-client'
 
+// Both module-local: this file answers the set two ways, and `localesFrom` is what stops the two
+// from disagreeing. Neither is a second way for a caller to ask — there are exactly two of those,
+// `useAvailableLocales` for a render and `currentLocales` for an event handler.
 /** English alone, which is what the widget offers whenever the set cannot be proven. */
-export const FALLBACK_LOCALES = ['en']
+const FALLBACK_LOCALES = ['en']
 
-/** The one rule, so the hook and the imperative read below cannot answer differently. */
-export const localesFrom = (config: AtlasConfig | undefined): string[] => {
-  const available = config?.availableLocales?.filter((locale) => locale.trim() !== '')
+const localesFrom = (config: AtlasConfig | undefined): string[] => {
+  const offered = config?.availableLocales?.filter((locale) => locale.trim() !== '')
 
-  return available?.length ? available : FALLBACK_LOCALES
+  return offered?.length ? offered : FALLBACK_LOCALES
 }
 
 /**
