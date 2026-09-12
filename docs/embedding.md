@@ -131,7 +131,7 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | Parameter | Default                       | What it does                                                                                                                                                                                                                                                                          |
 | --------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `key`     | —                             | **Required.** Your published SahajCloud client key. An invalid key shows the widget's configuration-error screen, and the loader logs an error naming the problem.                                                                                                                   |
-| `locale`  | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. Precedence: **`?locale=` on the page URL** → this parameter → **your page's `<html lang>`** → the browser's language → English. ⚠ A `?locale=` the atlas ships **outranks** this parameter, because the widget writes that parameter itself (below). |
+| `locale`  | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. A language we do not offer falls back to English — the set is managed in SahajCloud, not by this parameter. Precedence: **`?locale=` on the page URL** → this parameter → **your page's `<html lang>`** → the browser's language → English. ⚠ A `?locale=` the atlas ships **outranks** this parameter, because the widget writes that parameter itself (below). |
 | `map`     | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all**. No Mapbox, no map token, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                                                          |
 | `routing` | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                |
 | `atlas`   | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                       |
@@ -546,15 +546,15 @@ child-src   blob:
 style-src   'unsafe-inline'
 font-src    https://sahajatlas.com
 img-src     data: https://api.mapbox.com https://imagedelivery.net https://cloud.sydevelopers.com https://react-circle-flags.pages.dev
-connect-src https://sahajatlas.com https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://challenges.cloudflare.com https://cdn.usefathom.com https://*.sentry.io
+connect-src https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://challenges.cloudflare.com https://cdn.usefathom.com https://*.sentry.io
 frame-src   https://challenges.cloudflare.com
 ```
 
 **One line per directive, deliberately: CSP ignores every repeat of a directive name after the
 first**, so splitting `script-src` across two lines silently drops the second, leaving you
 believing you allowed something you hadn't. Loading the script from `sahajatlas.pages.dev`? Add
-that host too, but keep `https://sahajatlas.com` in `connect-src` regardless — the locale JSON
-comes from there either way.
+that host to `script-src` and `font-src`. It does not belong in `connect-src`: the widget
+fetches no data from wherever its script was served.
 
 ### Why each one, and what breaks without it
 
@@ -571,8 +571,7 @@ comes from there either way.
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than a bundle-pinned value. Production serves the Cloudflare Images CDN (`imagedelivery.net`) today. Any relative URL resolves against the API origin.        | images only                                                                                   |
 |                            | `react-circle-flags.pages.dev`                | country flag SVGs on the country list and the country-website offer, sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed.                                                                                                | the flag glyphs only, the lists still render                                                  |
-| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue**, plus the one-per-load [embed report](#what-the-loader-reports-back). Same origin, so no addition is needed for it.                                                                                      | **the widget has no data and shows an error screen**                                          |
-|                            | `sahajatlas.com`                              | the locale JSON, from a different origin than the script                                                                                                                                                                                              | every string renders as its raw dotted key                                                    |
+| `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue, and since 2026-09 every UI string and the list of languages offered**, plus the one-per-load [embed report](#what-the-loader-reports-back).                                                                                      | **the widget has no data and shows an error screen**                                          |
 |                            | `api.mapbox.com`                              | tile and style requests. Also the place-search geocoder, and the reverse lookup naming the visitor's own location for "find my location".                                                                                                            | the map and search fail                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                     | nothing visible                                                                               |
 |                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                         | **degrades**: the nearby suggestion and localized online times are skipped                    |
@@ -657,16 +656,11 @@ Two hosts serve the identical bundle:
 | `https://sahajatlas.com`       | the production domain — **use this one**               |
 | `https://sahajatlas.pages.dev` | the Cloudflare Pages default host for the same project |
 
-**The origin you load the script from is not the only origin the widget contacts, and one of
-them is fixed regardless of your choice.** The bundle has the locale-JSON host compiled into it:
-whichever host you fetch `auto.js` from, the widget's UI strings are fetched from
-`https://sahajatlas.com/locales/…`. That matters only for your CSP, where `connect-src` has to
-name it — see the table below. If those requests are blocked, every string in the widget renders
-as its raw dotted key name (`events.title`, `nav.search`), which looks like a broken translation
-rather than a blocked request.
-
-That host is **compiled in from `VITE_HOST` at build time**, a property of the deployment rather
-than of the source — a local build carries whatever the checked-in `.env` says.
+**Whichever of the two you load the script from, the widget's data all comes from one other
+origin: `cloud.sydevelopers.com`.** That is the only host `connect-src` has to name for the atlas
+itself. Its UI strings come from there too, alongside the events — the widget ships an English
+copy compiled in and fetches every other language from the CMS, so a blocked `connect-src` leaves
+a non-English page reading English rather than showing raw key names.
 
 Two files sit at that origin's root, and only the first is one you reference:
 
@@ -674,13 +668,6 @@ Two files sit at that origin's root, and only the first is one you reference:
 | ---------- | -------------------------------------------------- |
 | `auto.js`  | the loader — the one you install                   |
 | `embed.js` | the widget itself, fetched by the loader on demand |
-
-To confirm the locale origin rather than trusting this page, read it out of the shipped bundle:
-
-```bash
-curl -s https://sahajatlas.com/embed.js | grep -o 'assets/api-[^"]*\.js'
-curl -s https://sahajatlas.com/assets/api-<hash>.js | grep -o 'https://[a-z.]*/locales/'
-```
 
 ## Browser support
 
@@ -876,7 +863,7 @@ Three things to check when you migrate:
 | **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                   |
 | **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                            |
 | **The widget renders completely unstyled**                            | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                                                                 |
-| **Every label reads like `events.title`**                             | The locale JSON is blocked. Add `https://sahajatlas.com` to `connect-src` — a different origin from the script even when you load it from `pages.dev`.                                                                |
+| **Labels are English on a non-English page**                          | Either `connect-src https://cloud.sydevelopers.com` is missing, or that language is not switched on in the CMS. The widget carries English compiled in, so this is what a blocked or unavailable language looks like — ask us to enable the language you need. |
 | **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                              |
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |

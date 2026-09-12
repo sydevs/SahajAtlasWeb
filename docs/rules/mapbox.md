@@ -215,7 +215,7 @@ one over asking the user.
 **For anything about the widget as an EMBED** — chunk loading, the slot
 decision, CSS scoping in a host's cascade — run `pnpm build && pnpm
 review:embed` rather than hand-rolling a host page. It serves `dist/` on
-`VITE_HOST`'s port (same-origin, so locales resolve) in the shapes that have
+port 5174, one origin for the built app and every review page, in the shapes that have
 produced real bugs. Its header documents the four traps a hand-rolled version
 costs an afternoon on — chiefly that `<sahaj-atlas>` observes **no
 attributes**, so config must ride on the script URL, and that
@@ -223,7 +223,7 @@ attributes**, so config must ride on the script URL, and that
 page it does not have.
 
 For everything else — driving the map itself — serve the app the usual way
-(`pnpm dev`, or an alt port with a matching `VITE_HOST` under the worktree
+(`pnpm dev`, or an alt port under the worktree
 pattern) against the seeded local backend.
 
 - **The backend is not a prerequisite — stub `clients/me`.** The widget

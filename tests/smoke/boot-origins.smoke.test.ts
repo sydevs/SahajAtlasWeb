@@ -154,5 +154,4 @@ describe('boot origins', () => {
       expect(offenders).toEqual([])
     },
   )
-
 })

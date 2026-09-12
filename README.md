@@ -124,8 +124,8 @@ the browser.
   [`@payloadcms/sdk`](https://payloadcms.com) against SahajCloud
 - [vaul](https://vaul.emilkowal.ski) for the drawer stack, and `react-router`
   over a hand-written query-param history for routing
-- [i18next](https://www.i18next.com), with locale JSON from
-  `public/locales/`
+- [i18next](https://www.i18next.com), with every string served by SahajCloud
+  and an English snapshot compiled in
 
 ## Getting started
 

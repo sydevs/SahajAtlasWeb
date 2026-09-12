@@ -23,6 +23,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **`https://sahajatlas.com` is no longer needed in `connect-src`.** ([#205]) Every UI string
+  now comes from `cloud.sydevelopers.com`, alongside the events — the widget used to fetch
+  locale JSON from wherever the bundle was deployed, and nothing connects there any more.
+  `script-src` and `font-src` still need it. Leaving it in `connect-src` breaks nothing; it is
+  simply now unused.
+- **The languages the widget offers are managed in SahajCloud**, not compiled into the bundle.
+  ([#205]) The picker lists exactly the languages published there, and a `locale` naming one
+  that is not falls back to English. The widget carries English compiled in, so a blocked
+  `connect-src` or an unavailable language shows English copy rather than raw key names — ask
+  us to switch a language on rather than pinning `locale` to it.
+
 - ⚠ **`challenges.cloudflare.com` is now REQUIRED in your Content-Security-Policy, not
   optional.** ([#184]) It was previously a degradation — a page that blocked Cloudflare
   Turnstile got a working atlas whose report form offered an email address instead of a submit
