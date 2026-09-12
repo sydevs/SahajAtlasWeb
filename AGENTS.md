@@ -190,7 +190,7 @@ src/
   `src/config/translations.en.json`, which `pnpm sync:translations --write` generates. To add,
   rename or remove a key, open an issue on `sydevs/SahajCloud` (search the open ones first), and
   once the CMS ships it, sync and wire the `t()`. The offered languages come from
-  `sy-atlas-config.availableLocales` at runtime (`src/hooks/use-languages.ts`), not from a list
+  `sy-atlas-config.availableLocales` at runtime (`src/hooks/use-available-locales.ts`), not from a list
   in this repo. `src/config/translations.test.ts` pins the snapshot against every call site, in
   both directions. Key shape and the single-writer rule live in
   `docs/rules/i18n-and-state.md`.

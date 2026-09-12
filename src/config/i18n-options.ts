@@ -9,10 +9,10 @@
 //
 // ⚠ **There is no `supportedLanguages` list here any more, and that is the point of #198.**
 // Which languages the widget offers is an operator's decision, held in SahajCloud's
-// `sy-atlas-config.availableLocales` and read at runtime (`hooks/use-languages.ts`). A list
+// `sy-atlas-config.availableLocales` and read at runtime (`hooks/use-available-locales.ts`). A list
 // compiled in here could only ever be a second opinion about it, and a stale one: this repo would
 // have to deploy before a language an operator had already published could be chosen.
-// `supportedLngs` went with it, for the same reason — `preferredLanguage` below does the
+// `supportedLngs` went with it, for the same reason — `preferredLocale` below does the
 // narrowing that option used to, against the set the CMS actually answered.
 import { LOCALE_PARAM } from '@/lib/shape/locale-param'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
@@ -97,28 +97,25 @@ export const i18nSharedOptions = {
  *    it, so this is a floor rather than a hope.
  *
  * This is pure, and takes the set as an argument rather than reading it. So it is testable with
- * no i18next instance and no network, and `use-languages.ts` stays the only place that decides
+ * no i18next instance and no network, and `use-offered-locales.ts` stays the only place that decides
  * what the set IS.
  */
-export function preferredLanguage(
-  requested: string | null | undefined,
-  available: string[],
-): string {
-  const fallback = available.find((locale) => locale.toLowerCase() === 'en') ?? 'en'
+export function preferredLocale(requested: string | null | undefined, offered: string[]): string {
+  const fallback = offered.find((locale) => locale.toLowerCase() === 'en') ?? 'en'
   const wanted = requested?.trim().toLowerCase()
 
   if (!wanted) return fallback
 
-  const exact = available.find((locale) => locale.toLowerCase() === wanted)
+  const exact = offered.find((locale) => locale.toLowerCase() === wanted)
 
   if (exact) return exact
 
   const base = wanted.split('-')[0]
-  const baseMatch = available.find((locale) => locale.toLowerCase() === base)
+  const baseMatch = offered.find((locale) => locale.toLowerCase() === base)
 
   if (baseMatch) return baseMatch
 
-  return available.find((locale) => locale.toLowerCase().split('-')[0] === base) ?? fallback
+  return offered.find((locale) => locale.toLowerCase().split('-')[0] === base) ?? fallback
 }
 
 // NB: the widget theme root's `dir` attribute derives from `i18n.dir(locale)` in `Widget.tsx`.

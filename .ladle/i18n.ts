@@ -13,7 +13,7 @@ import { i18nSharedOptions } from '@/config/i18n-options'
 // from, and it is the same text the widget boots with.
 //
 // It offers English only, on purpose. The language picker's rows come from
-// `sy-atlas-config.availableLocales` at runtime (`hooks/use-languages.ts`), so in a Ladle story
+// `sy-atlas-config.availableLocales` at runtime (`hooks/use-available-locales.ts`), so in a Ladle story
 // the menu shows the one language it can actually resolve, rather than ten rows that do nothing
 // when a reviewer clicks them.
 //

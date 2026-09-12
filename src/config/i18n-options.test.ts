@@ -1,7 +1,7 @@
 import { createInstance } from 'i18next'
 import { describe, it, expect, beforeAll } from 'vitest'
 
-import { i18nDetectionOptions, i18nSharedOptions, preferredLanguage } from './i18n-options'
+import { i18nDetectionOptions, i18nSharedOptions, preferredLocale } from './i18n-options'
 
 // `i18n-options` is the side-effect-free config shared by the app's instance, `i18n.ts`, and the Ladle story instance.
 // So its Ruby-style `%{...}` interpolation, shared with SahajCloud, which owns every string, and its `en` fallback can never drift between the two.
@@ -39,39 +39,39 @@ describe('i18nSharedOptions', () => {
 })
 
 /**
- * `preferredLanguage` replaced i18next's `supportedLngs` when #198 moved the offered set into
+ * `preferredLocale` replaced i18next's `supportedLngs` when #198 moved the offered set into
  * SahajCloud. The narrowing it does is the same, but it happens against a runtime list and BEFORE
  * the per-locale fetch, so these cases are the ones that used to be the library's problem.
  */
-describe('preferredLanguage', () => {
+describe('preferredLocale', () => {
   const available = ['en', 'de', 'fr', 'pt-BR']
 
   it('takes an exact match, whatever its case', () => {
-    expect(preferredLanguage('PT-br', available)).toBe('pt-BR')
+    expect(preferredLocale('PT-br', available)).toBe('pt-BR')
   })
 
   it('resolves a regional tag to its base language', () => {
-    expect(preferredLanguage('de-DE', available)).toBe('de')
+    expect(preferredLocale('de-DE', available)).toBe('de')
   })
 
   it('resolves a base tag to the only regional variant on offer', () => {
     // The alternative is English. `pt` asked for Portuguese, and pt-BR is Portuguese.
-    expect(preferredLanguage('pt', available)).toBe('pt-BR')
+    expect(preferredLocale('pt', available)).toBe('pt-BR')
   })
 
   it('falls back to English for a language nobody publishes', () => {
-    expect(preferredLanguage('it', available)).toBe('en')
+    expect(preferredLocale('it', available)).toBe('en')
   })
 
   it('falls back to English for nothing at all', () => {
-    expect(preferredLanguage(undefined, available)).toBe('en')
-    expect(preferredLanguage('   ', available)).toBe('en')
+    expect(preferredLocale(undefined, available)).toBe('en')
+    expect(preferredLocale('   ', available)).toBe('en')
   })
 
   it('never invents a locale the set does not contain', () => {
     // The set decides. `en` is only a safe floor because SahajCloud refuses to save a set
     // without it — this asserts the function does not reach past what it was handed.
-    expect(available).toContain(preferredLanguage('ru', available))
+    expect(available).toContain(preferredLocale('ru', available))
   })
 })
 

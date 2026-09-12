@@ -771,7 +771,7 @@ const getTranslations = async (locale: string): Promise<TranslationTree> => {
  *
  * `retryOnMount: false` matters here and nowhere else. A failed translations read must not
  * re-fire on every remount of every component that reads a string: the widget already renders
- * in English when a bundle does not arrive (`applyLanguage`), so a retry storm would buy a
+ * in English when a bundle does not arrive (`applyLocale`), so a retry storm would buy a
  * viewer nothing they can see.
  */
 export const ATLAS_CONFIG_STALE_TIME = REGIONS_STALE_TIME
@@ -843,8 +843,8 @@ const warmCaches = (): void => {
  *
  * They are best-effort and idempotent, like `warmCaches`: React Query merges an in-flight fetch
  * for the same key, so firing both from both places costs one request each. A failure is
- * swallowed here and answered where it matters — `use-languages` offers English only, and
- * `applyLanguage` stays on English.
+ * swallowed here and answered where it matters — `use-available-locales` offers English only, and
+ * `applyLocale` stays on English.
  */
 const warmConfig = (): void => {
   void queryClient.prefetchQuery(atlasConfigQuery()).catch(() => {})

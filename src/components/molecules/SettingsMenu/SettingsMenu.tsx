@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
-import { useLanguages } from '@/hooks/use-languages'
+import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
 import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
@@ -47,7 +47,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const { locale, setLocale } = useLocale()
   // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
   // is a locale the CMS has proven it can answer in, so the menu cannot offer a dead end.
-  const languages = useLanguages()
+  const locales = useAvailableLocales()
   const { preference, setPreference } = useThemePreference()
   const { linkable } = useWidgetMode()
   const openReport = useReportModal((state) => state.openReport)
@@ -122,7 +122,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
                     français, русский). It applies per word, so "português
                     (Brasil)" survives it intact. */}
                 <DropdownMenu.RadioGroup value={locale} onValueChange={chooseLocale}>
-                  {languages.map((lng) => (
+                  {locales.map((lng) => (
                     <DropdownMenu.RadioItem key={lng} className={item} lang={lng} value={lng}>
                       <ItemCheck />
                       <span className="capitalize">{nativeLanguageLabel(lng)}</span>

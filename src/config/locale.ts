@@ -1,7 +1,7 @@
 import type { TranslationTree } from '@/types'
 
 import i18n from './i18n'
-import { preferredLanguage } from './i18n-options'
+import { preferredLocale } from './i18n-options'
 import { translationsQuery } from './api/fetch'
 import { queryClient } from './query-client'
 
@@ -10,31 +10,31 @@ import { reportInternalError } from '@/lib/report'
 
 /**
  * This is the locale the boot warm-up fetches, and its whole job is to AGREE with what
- * `applyLanguage` asks for a beat later. A warm-up that fills a different query key pays for a
+ * `applyLocale` asks for a beat later. A warm-up that fills a different query key pays for a
  * request nobody reads, and the visible flip #168 measured happens anyway.
  *
  * `i18n.language` alone does not agree, which is what this replaces. That is the raw detected
  * tag — `querystring → hostHtmlLang → navigator` — while `AppShell` resolves
- * `pageLocaleOverride(search) ?? defaultLocale ?? i18n.language` through `preferredLanguage`.
+ * `pageLocaleOverride(search) ?? defaultLocale ?? i18n.language` through `preferredLocale`.
  * Two ordinary cases diverge: a host passing `locale="fr"` (an attribute no detector reads, so
  * the browser's tag gets warmed while French is fetched), and a browser reporting `en-US` (which
- * `preferredLanguage` narrows to `en`, so the warmed key is never read on most loads).
+ * `preferredLocale` narrows to `en`, so the warmed key is never read on most loads).
  *
  * ⚠ **`availableLocales` has not arrived yet** — it is the other half of the same warm-up — so
- * this cannot run `preferredLanguage`'s narrowing, which takes the offered set. It narrows the
+ * this cannot run `preferredLocale`'s narrowing, which takes the offered set. It narrows the
  * one way that needs no set:
  *
  * - **`?locale=` is warmed verbatim.** The widget writes that parameter itself, out of the
  *   offered set (`publishLocale`), so it already names a locale the CMS answers — and
- *   `preferredLanguage` step 1 takes an exact match before any base tag.
+ *   `preferredLocale` step 1 takes an exact match before any base tag.
  * - **Everything else is base-tagged.** The `locale` attribute and the browser's own preference
  *   are statements about a page or a visitor, not about what an operator published, and a
  *   regional tag from either resolves through step 2 (`de-DE` → `de`).
  *
  * A locale nobody published still misses, as it always did. That costs one speculative prefetch,
- * and `applyLanguage` lands on English regardless.
+ * and `applyLocale` lands on English regardless.
  */
-export function bootLanguage(search: string, defaultLocale?: string | null): string {
+export function bootLocale(search: string, defaultLocale?: string | null): string {
   const fromPage = new URLSearchParams(search).get(LOCALE_PARAM)?.trim()
 
   if (fromPage) return fromPage
@@ -56,8 +56,8 @@ export function bootLanguage(search: string, defaultLocale?: string | null): str
  *
  * ⚠ **One writer is not the same as one call at a time**, which is what `generation` below is
  * for. `AppShell`'s effect runs twice by design — once before `sy-atlas-config` lands, with
- * `useLanguages()` still answering `['en']`, then again on the real set — so a `?locale=fr` page
- * issues `applyLanguage('fr', ['en'])` and `applyLanguage('fr', [...])` within a frame. Both
+ * `useAvailableLocales()` still answering `['en']`, then again on the real set — so a `?locale=fr` page
+ * issues `applyLocale('fr', ['en'])` and `applyLocale('fr', [...])` within a frame. Both
  * await a bundle, and without the counter whichever request settles LAST wins: an English read
  * that came back slow would pin the widget to English under a French `<html lang>`, which is
  * #168's failure reached through one function instead of three.
@@ -69,8 +69,8 @@ export function bootLanguage(search: string, defaultLocale?: string | null): str
  */
 let generation = 0
 
-export async function applyLanguage(requested: string | null | undefined, available: string[]) {
-  const preferred = preferredLanguage(requested, available)
+export async function applyLocale(requested: string | null | undefined, offered: string[]) {
+  const preferred = preferredLocale(requested, offered)
   // Claimed BEFORE the first await, so the ordering this establishes is call order, not
   // settle order. A request that is no longer the newest one applies nothing at all.
   const request = ++generation

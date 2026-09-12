@@ -6,13 +6,13 @@ import { atlasConfigQuery } from '@/config/api/fetch'
 import { queryClient } from '@/config/query-client'
 
 /** English alone, which is what the widget offers whenever the set cannot be proven. */
-export const FALLBACK_LANGUAGES = ['en']
+export const FALLBACK_LOCALES = ['en']
 
 /** The one rule, so the hook and the imperative read below cannot answer differently. */
-export const languagesFrom = (config: AtlasConfig | undefined): string[] => {
+export const localesFrom = (config: AtlasConfig | undefined): string[] => {
   const available = config?.availableLocales?.filter((locale) => locale.trim() !== '')
 
-  return available?.length ? available : FALLBACK_LANGUAGES
+  return available?.length ? available : FALLBACK_LOCALES
 }
 
 /**
@@ -23,8 +23,8 @@ export const languagesFrom = (config: AtlasConfig | undefined): string[] => {
  * and only read here inside an event handler — the viewer picking a language from a menu the hook
  * below rendered, which means the data is already there.
  */
-export const currentLanguages = (): string[] =>
-  languagesFrom(queryClient.getQueryData<AtlasConfig>(atlasConfigQuery().queryKey))
+export const currentLocales = (): string[] =>
+  localesFrom(queryClient.getQueryData<AtlasConfig>(atlasConfigQuery().queryKey))
 
 /**
  * This is the set of languages the widget offers, as an operator chose it.
@@ -43,8 +43,8 @@ export const currentLanguages = (): string[] =>
  * This is a plain `useQuery`, not a suspense read. The language picker is chrome — it must never
  * hold up the interface, and a widget with one language in its menu still works perfectly.
  */
-export function useLanguages(): string[] {
+export function useAvailableLocales(): string[] {
   const { data } = useQuery(atlasConfigQuery())
 
-  return languagesFrom(data)
+  return localesFrom(data)
 }

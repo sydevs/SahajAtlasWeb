@@ -36,8 +36,8 @@ i18n
      *
      * The English snapshot is bundled, so i18next has a complete resource set the instant this
      * module evaluates. Every string the widget can render is already here before the first
-     * paint, and SahajCloud's own copy arrives later through `applyLanguage`
-     * (`config/language.ts`), which is the only writer.
+     * paint, and SahajCloud's own copy arrives later through `applyLocale`
+     * (`config/locale.ts`), which is the only writer.
      *
      * The HTTP backend this replaced made boot depend on a second origin answering. When that
      * origin was wrong — `VITE_HOST` unset on Cloudflare's Preview environment — `init` never
@@ -53,7 +53,7 @@ i18n
     // `useSuspense: false` escape hatches.
     initImmediate: false,
     react: {
-      // `applyLanguage` ADDS a locale's bundle after init, so components must re-render when a
+      // `applyLocale` ADDS a locale's bundle after init, so components must re-render when a
       // bundle lands, not only when the language changes. Without this, a `?locale=fr` page whose
       // French bundle arrives a beat after mount would keep painting English until something else
       // happened to re-render it.

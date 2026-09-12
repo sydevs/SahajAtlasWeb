@@ -8,14 +8,28 @@ paths:
   - 'src/hooks/use-reveal.ts'
   - 'src/hooks/use-sort.ts'
   - 'src/config/translations.en.json'
-  - 'src/config/language.ts'
-  - 'src/hooks/use-languages.ts'
+  - 'src/config/locale.ts'
+  - 'src/hooks/use-available-locales.ts'
 ---
 
 # i18n & State
 
 ## i18next (`src/config/i18n.ts`) — the CMS owns every string (#198)
 
+- **Three words, three meanings. Do not mix them.**
+  - **Locale** is a BCP-47 tag the widget can render in (`en`, `pt-BR`). It is the
+    unit of everything on this path: `?locale=`, the `locale` attribute,
+    `availableLocales`, a query key, i18next's active language. Every symbol that
+    handles one is named for it — `applyLocale`, `bootLocale`, `preferredLocale`,
+    `useAvailableLocales`, `currentLocales`.
+  - **Language** is a human language as CONTENT — an event's spoken language in a
+    filter, or a display name for one (`languageLabel`, `nativeLanguageLabel`), plus
+    `useLocale().languageCode`, the base subtag a font subset keys on.
+  - **Translations** are the strings themselves: one bundle per locale
+    (`TranslationTree`, `translationsQuery`, `translations.en.json`).
+
+  The rename that established this is only worth keeping if it holds. A new symbol
+  that resolves, narrows, stores or fetches a tag says `locale`, never `language`.
 - **Translations are CMS-owned.** All Sahaj Atlas UI copy lives in SahajCloud's
   `sy-atlas-translations` global — do not hand-edit strings in this app;
   `src/config/translations.en.json` is generated. To add, rename or remove a key,
@@ -36,7 +50,7 @@ paths:
   against it, Ladle and the node lane read it, and it is what a viewer sees when a
   CMS read fails. It is checked against the CMS's own generated types with
   `satisfies`, so a group renamed upstream fails `pnpm typecheck`.
-- **`applyLanguage` (`src/config/language.ts`) is the ONE writer of the active
+- **`applyLocale` (`src/config/locale.ts`) is the ONE writer of the active
   language.** Exactly two callers: `AppShell`'s layout effect and
   `useLocale().setLocale`. Never call `i18n.changeLanguage` anywhere else — a
   language change is a fetch, a resource write and a switch in that order, and PR
@@ -47,15 +61,15 @@ paths:
   offered set, which answers `['en']` until the config lands, so a `?locale=fr`
   page has two calls in flight within a frame. A module-level generation counter
   in `language.ts` makes the last CALL win rather than the last read to settle —
-  keep any new await inside `applyLanguage` behind that check.
-- **The boot warm-up must fetch the key `applyLanguage` will read.** Use
-  `bootLanguage` (`src/config/language.ts`), never `i18n.language`: that is the
+  keep any new await inside `applyLocale` behind that check.
+- **The boot warm-up must fetch the key `applyLocale` will read.** Use
+  `bootLocale` (`src/config/locale.ts`), never `i18n.language`: that is the
   raw detected tag, and it answers neither a host's `locale` attribute (in no
-  detector) nor `preferredLanguage`'s narrowing of a regional tag. Both callers —
+  detector) nor `preferredLocale`'s narrowing of a regional tag. Both callers —
   `App`'s mount effect and `PathBoot` — must pass the same thing, or React Query
   merges nothing and one of the two requests is read by nobody.
 - **The offered set is `sy-atlas-config.availableLocales`**, read at runtime through
-  `useLanguages()`. SahajCloud refuses to save a locale there until its translations
+  `useAvailableLocales()`. SahajCloud refuses to save a locale there until its translations
   are published, so the picker may render it verbatim. Anything unusable — a failed
   read, an empty array, a missing field — answers `['en']`: never offer a language
   whose publication cannot be proven.
@@ -69,7 +83,7 @@ paths:
   `useLocale()`, never `i18n.language` directly. `?locale=cimode` is refused
   (`convertDetectedLanguage`) — it is i18next's translator-debug pseudo-language, and
   a link carrying it would render someone's embed as raw dotted key names.
-- **`preferredLanguage` replaced `supportedLngs`** (`src/config/i18n-options.ts`). It
+- **`preferredLocale` replaced `supportedLngs`** (`src/config/i18n-options.ts`). It
   narrows a requested tag against the runtime set, before the fetch: exact match
   case-folded, then base tag (`de-DE` → `de`), then a regional variant of that base
   (`pt` → `pt-BR`), then English.

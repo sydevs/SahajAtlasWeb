@@ -29,7 +29,7 @@ import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
  * card starts rendering them, all three regress at once, and nothing else in the lane goes red.
  */
 
-// `initReactI18next` is part of this mock because `useLocale` now reaches `config/language`,
+// `initReactI18next` is part of this mock because `useLocale` now reaches `config/locale`,
 // which imports the i18next singleton — the single writer #198 introduced. Without it the real
 // `config/i18n` boots inside this file and its `.use()` call throws on the mocked module.
 vi.mock('react-i18next', () => ({

@@ -64,7 +64,7 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 | UI          | `src/components/`                   | Atomic components (atoms/molecules/organisms), Radix + Tailwind |
 | Data        | `src/config/api/`                   | shared `PayloadSDK` client, zod-validated fetchers, mutations |
 | State       | `src/config/store.ts`               | zustand: view / camera-history / calendar-position / results-reveal / report-modal / registration-draft (filters + sort live in the URL) |
-| i18n        | `src/config/i18n.ts`, `src/config/language.ts`, `src/config/translations.en.json` | i18next, one namespace, served by SahajCloud |
+| i18n        | `src/config/i18n.ts`, `src/config/locale.ts`, `src/config/translations.en.json` | i18next, one namespace, served by SahajCloud |
 | Types       | `src/types/`                        | zod schemas + inferred entity types |
 
 ## Data flow

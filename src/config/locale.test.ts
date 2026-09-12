@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { preferredLanguage } from './i18n-options'
-import { applyLanguage, bootLanguage } from './language'
+import { preferredLocale } from './i18n-options'
+import { applyLocale, bootLocale } from './locale'
 
 // The single writer's job is a SEQUENCE — fetch, write the resource, switch — so what this
 // suite drives is two of them overlapping. Everything at the boundary is mocked: i18next (whose
 // real instance boots a detector), the shared QueryClient, and the fetcher module (which pulls
-// the SDK in). `preferredLanguage` is left real, because which locale each call resolves to is
+// the SDK in). `preferredLocale` is left real, because which locale each call resolves to is
 // the input the ordering test depends on.
 const {
   changeLanguage,
@@ -18,7 +18,7 @@ const {
 } = vi.hoisted(() => ({
   changeLanguage: vi.fn(async (_locale: string) => undefined),
   addResourceBundle: vi.fn(),
-  // i18next's raw detected tag, which `bootLanguage` exists to stop trusting on its own.
+  // i18next's raw detected tag, which `bootLocale` exists to stop trusting on its own.
   detected: { language: 'en-US' },
   getQueryData: vi.fn(),
   ensureQueryData: vi.fn(),
@@ -47,7 +47,7 @@ const deferred = <T>() => {
     settle = { resolve, reject }
   })
 
-  // An unhandled rejection here would fail the run before the assertion does; `applyLanguage`
+  // An unhandled rejection here would fail the run before the assertion does; `applyLocale`
   // is the only consumer that matters.
   promise.catch(() => {})
 
@@ -66,11 +66,11 @@ beforeEach(() => {
   reportInternalError.mockClear()
 })
 
-describe('applyLanguage', () => {
+describe('applyLocale', () => {
   it('applies a cached bundle with no await in between', async () => {
     getQueryData.mockReturnValue({ common: { ok: 'Fine' } })
 
-    await applyLanguage('fr', ['en', 'fr'])
+    await applyLocale('fr', ['en', 'fr'])
 
     expect(ensureQueryData).not.toHaveBeenCalled()
     expect(addResourceBundle).toHaveBeenCalledWith(
@@ -87,7 +87,7 @@ describe('applyLanguage', () => {
     getQueryData.mockReturnValue(undefined)
     ensureQueryData.mockRejectedValue(new Error('502'))
 
-    await applyLanguage('fr', ['en', 'fr'])
+    await applyLocale('fr', ['en', 'fr'])
 
     expect(reportInternalError).toHaveBeenCalled()
     expect(switches()).toEqual(['en'])
@@ -111,8 +111,8 @@ describe('applyLanguage', () => {
 
     // The first effect pass: the offered set is still the `['en']` floor, so `fr` narrows to
     // English. The second pass has the real set and resolves to French.
-    const first = applyLanguage('fr', ['en'])
-    const second = applyLanguage('fr', ['en', 'fr'])
+    const first = applyLocale('fr', ['en'])
+    const second = applyLocale('fr', ['en', 'fr'])
 
     french.resolve({ common: { ok: 'Bien' } })
     english.resolve({ common: { ok: 'Fine' } })
@@ -131,8 +131,8 @@ describe('applyLanguage', () => {
       queryKey[1] === 'fr' ? french.promise : english.promise,
     )
 
-    const first = applyLanguage('fr', ['en'])
-    const second = applyLanguage('fr', ['en', 'fr'])
+    const first = applyLocale('fr', ['en'])
+    const second = applyLocale('fr', ['en', 'fr'])
 
     french.resolve({ common: { ok: 'Bien' } })
     english.reject(new Error('502'))
@@ -149,38 +149,38 @@ describe('applyLanguage', () => {
 // ── What the boot warm-up should fetch (#205 review) ────────────────────────────────
 //
 // The property under test is AGREEMENT: the key `warmTranslations` fills must be the key
-// `applyLanguage` reads a beat later. Every case below picks values that differ from each
+// `applyLocale` reads a beat later. Every case below picks values that differ from each
 // other, so an implementation that simply returned one of its inputs fails rather than
 // passing by coincidence.
 
-describe('bootLanguage', () => {
+describe('bootLocale', () => {
   it('takes `?locale=` verbatim, over the attribute and the browser', () => {
     // Written by the widget itself out of the offered set, so it already names a published
-    // locale — and `preferredLanguage` prefers an exact match to a base tag.
+    // locale — and `preferredLocale` prefers an exact match to a base tag.
     detected.language = 'ru'
 
-    expect(bootLanguage('?locale=pt-BR', 'de')).toBe('pt-BR')
+    expect(bootLocale('?locale=pt-BR', 'de')).toBe('pt-BR')
   })
 
   it('falls through an empty `?locale=` to the host attribute', () => {
     detected.language = 'ru'
 
-    expect(bootLanguage('?locale=%20&q=paris', 'de')).toBe('de')
+    expect(bootLocale('?locale=%20&q=paris', 'de')).toBe('de')
   })
 
   it('base-tags the host attribute, which no detector reads', () => {
     detected.language = 'ru'
 
-    expect(bootLanguage('?q=paris', 'de-DE')).toBe('de')
+    expect(bootLocale('?q=paris', 'de-DE')).toBe('de')
   })
 
   it('base-tags the browser tag when nothing else asks', () => {
     detected.language = 'en-US'
 
-    expect(bootLanguage('')).toBe('en')
+    expect(bootLocale('')).toBe('en')
   })
 
-  it('warms the key applyLanguage reads, in the two cases the raw tag missed', () => {
+  it('warms the key applyLocale reads, in the two cases the raw tag missed', () => {
     // The whole point: a warm-up that disagrees with the effect pays for a request nobody
     // reads. Both of these resolved to `en-US` before, and neither is what gets applied.
     const offered = ['en', 'de', 'fr']
@@ -188,9 +188,9 @@ describe('bootLanguage', () => {
     detected.language = 'en-US'
 
     // A host passing `locale="fr"`. The attribute is in no detector.
-    expect(bootLanguage('', 'fr')).toBe(preferredLanguage('fr', offered))
+    expect(bootLocale('', 'fr')).toBe(preferredLocale('fr', offered))
 
-    // A browser reporting a regional tag, which `preferredLanguage` narrows to its base.
-    expect(bootLanguage('')).toBe(preferredLanguage(detected.language, offered))
+    // A browser reporting a regional tag, which `preferredLocale` narrows to its base.
+    expect(bootLocale('')).toBe(preferredLocale(detected.language, offered))
   })
 })

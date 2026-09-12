@@ -14,7 +14,7 @@ import api, { clientQuery } from './config/api'
 import embed from './config/embed'
 import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
-import { bootLanguage } from './config/language'
+import { bootLocale } from './config/locale'
 import { useLocale } from './hooks/use-locale'
 import { getInitialTheme } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
@@ -122,13 +122,13 @@ function PathBoot({ apiKey }: { apiKey: string }) {
   // free where `App` also fires them: React Query merges an in-flight fetch by key.
   //
   // It must warm the SAME key `App` does, or the merge is two requests and one of them is
-  // read by nobody — hence `bootLanguage` and the boot singleton's own `locale`, exactly as
+  // read by nobody — hence `bootLocale` and the boot singleton's own `locale`, exactly as
   // `App` resolves it from its `defaultLocale` prop.
   useEffect(() => {
     if (!apiKey) return
 
     api.warmConfig()
-    api.warmTranslations(bootLanguage(window.location.search, embed.config.locale))
+    api.warmTranslations(bootLocale(window.location.search, embed.config.locale))
   }, [apiKey])
 
   if (resolved) return <Atlas prefix={resolved.value} />

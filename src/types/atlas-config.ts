@@ -10,7 +10,7 @@ import { z } from 'zod'
  *
  * The field is `nullish` on purpose. A config row saved before the field existed, or one a
  * `select` trimmed, answers `undefined`, and that is not a failure worth an error boundary.
- * `use-languages.ts` turns anything unusable into `['en']`.
+ * `use-available-locales.ts` turns anything unusable into `['en']`.
  */
 export const AtlasConfigSchema = z.object({
   availableLocales: z.array(z.string()).nullish(),

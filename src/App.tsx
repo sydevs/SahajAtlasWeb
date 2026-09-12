@@ -44,8 +44,8 @@ import '@/styles/globals.css'
 import '@/styles/fonts'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
-import { applyLanguage, bootLanguage } from '@/config/language'
-import { useLanguages } from '@/hooks/use-languages'
+import { applyLocale, bootLocale } from '@/config/locale'
+import { useAvailableLocales } from '@/hooks/use-available-locales'
 
 // Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
 // the controller land in their own chunk, at zero cost to normal standalone/embedded
@@ -198,15 +198,15 @@ export default function App({
   // visible. `PathBoot` in `Widget.tsx` fires the same pair, because in path mode it reads the
   // client record above this component.
   //
-  // ⚠ **`bootLanguage`, not `i18n.language`.** The detected tag is not what `AppShell` will
+  // ⚠ **`bootLocale`, not `i18n.language`.** The detected tag is not what `AppShell` will
   // ask for: `locale="fr"` reaches it as `defaultLocale`, which no detector reads, and a
-  // browser's `en-US` narrows to `en` in `preferredLanguage`. Warming the raw tag in either
+  // browser's `en-US` narrows to `en` in `preferredLocale`. Warming the raw tag in either
   // case fills a key nothing reads, which is the flip this effect exists to prevent, paid for.
   useEffect(() => {
     if (!apiKey) return
 
     api.warmConfig()
-    api.warmTranslations(bootLanguage(window.location.search, defaultLocale))
+    api.warmTranslations(bootLocale(window.location.search, defaultLocale))
   }, [apiKey, defaultLocale])
 
   return (
@@ -347,7 +347,7 @@ function AppShell({
   // worse answer than either party asked for. It reads `window.location` directly,
   // because this is the HOST's URL, which no router of ours describes.
   //
-  // ⚠ **This is one of exactly two callers of `applyLanguage`** (`config/language.ts`), the
+  // ⚠ **This is one of exactly two callers of `applyLocale`** (`config/locale.ts`), the
   // other being `useLocale().setLocale`. A language change is a fetch, a resource write and a
   // `changeLanguage` in that order, and #168 found what happens when more than one place owns
   // that sequence: two of them disagree within a frame, and which one wins is whichever effect
@@ -362,16 +362,14 @@ function AppShell({
   // page this widget booted on; re-running on a later change would yank the language back from
   // under a viewer who has since chosen one in the settings menu.
   const initialLocale = useRef(defaultLocale)
-  const languages = useLanguages()
+  const locales = useAvailableLocales()
 
   useLayoutEffect(() => {
     const requested =
-      pageLocaleOverride(window.location.search, languages) ??
-      initialLocale.current ??
-      i18n.language
+      pageLocaleOverride(window.location.search, locales) ?? initialLocale.current ?? i18n.language
 
-    void applyLanguage(requested, languages)
-  }, [languages.join(',')])
+    void applyLocale(requested, locales)
+  }, [locales.join(',')])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side
   // opt-out: `analytics="false"` was one, but the element observes no attributes at
