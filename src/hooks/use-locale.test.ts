@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { nativeLanguageLabel } from './use-locale'
 
-import { supportedLanguages } from '@/config/i18n-options'
+// The offered set is an operator's, held in SahajCloud and read at runtime (#198). This is a
+// stand-in for one, so the assertions below describe behaviour rather than today's CMS row.
+const OFFERED_LOCALES = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt-BR', 'ru', 'uk']
 
 // This suite does not exercise the hook itself, since it needs a React tree and an i18next instance.
 // This covers the pure label helper beside it, where the reported bug lived.
@@ -35,7 +37,7 @@ describe('nativeLanguageLabel', () => {
   })
 
   it('returns a non-empty label for every language the picker offers', () => {
-    for (const code of supportedLanguages) {
+    for (const code of OFFERED_LOCALES) {
       expect(nativeLanguageLabel(code).length).toBeGreaterThan(0)
     }
   })

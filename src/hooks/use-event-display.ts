@@ -54,11 +54,11 @@ export type EventDisplayStrings = {
 }
 
 const WEEK_NUMBER_KEYS = {
-  '1': 'recurrence.monthly_1st',
-  '2': 'recurrence.monthly_2nd',
-  '3': 'recurrence.monthly_3rd',
-  '4': 'recurrence.monthly_4th',
-  '-1': 'recurrence.monthly_last',
+  '1': 'event.recurrence.monthly_1st',
+  '2': 'event.recurrence.monthly_2nd',
+  '3': 'event.recurrence.monthly_3rd',
+  '4': 'event.recurrence.monthly_4th',
+  '-1': 'event.recurrence.monthly_last',
 } as const
 
 type CalendarLineArgs = {
@@ -108,7 +108,7 @@ export function composeCalendarLine(args: CalendarLineArgs): string {
  * So type, status, and time copy can never diverge between surfaces. See issue #52.
  */
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { locale } = useLocale()
   // Only ONLINE events name the viewer's place in their converted time.
   // So the third-party IP lookup gates on that. A list of in-person events never pings it.
@@ -133,27 +133,29 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const shortDate = (dt: DateTime) =>
       dt.setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
 
-    const sessionsLabel = sessions != null ? t('display.sessions_count', { count: sessions }) : null
+    const sessionsLabel =
+      sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
 
     // ── Type label (derived, never host-set) ──
     let typeLabel: string
 
-    if (kind === 'oneoff') typeLabel = t('display.type_oneoff')
+    if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
     else if (kind === 'course')
       typeLabel = sessionsLabel
-        ? `${t('display.type_course')} · ${sessionsLabel}`
-        : t('display.type_course')
+        ? `${t('event.display.type_course')} · ${sessionsLabel}`
+        : t('event.display.type_course')
     else {
       const interval = schedule?.interval ?? 1
 
       if (schedule?.recurrenceType === 'DAILY' && interval === 1)
-        typeLabel = t('display.type_class_daily')
+        typeLabel = t('event.display.type_class_daily')
       else if (schedule?.recurrenceType === 'WEEKLY' && interval === 1)
-        typeLabel = t('display.type_class_weekly')
+        typeLabel = t('event.display.type_class_weekly')
       else if (schedule?.recurrenceType === 'WEEKLY' && interval === 2)
-        typeLabel = t('display.type_class_fortnightly')
-      else if (schedule?.recurrenceType === 'MONTHLY') typeLabel = t('display.type_class_monthly')
-      else typeLabel = t('display.type_class')
+        typeLabel = t('event.display.type_class_fortnightly')
+      else if (schedule?.recurrenceType === 'MONTHLY')
+        typeLabel = t('event.display.type_class_monthly')
+      else typeLabel = t('event.display.type_class')
     }
 
     // The plain weekly class is the default shape.
@@ -165,15 +167,15 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const chipDate = firstSession ?? next
     let statusChip: string | null = null
 
-    if (full) statusChip = t('display.chip_full')
-    else if (status === 'today') statusChip = t('display.chip_today')
+    if (full) statusChip = t('event.display.chip_full')
+    else if (status === 'today') statusChip = t('event.display.chip_today')
     // The upcoming state announces the occurrence that is actually coming, `next`.
     // Under `firstDate` and `upcomingDates` drift, `firstSession` can be a stale past instant.
     else if (status === 'upcoming' && next)
-      statusChip = t('display.chip_starts', { date: shortDate(next) })
+      statusChip = t('event.display.chip_starts', { date: shortDate(next) })
     else if (status === 'started' && chipDate)
-      statusChip = t('display.chip_started', { date: shortDate(chipDate) })
-    else if (status === 'ended') statusChip = t('display.chip_ended')
+      statusChip = t('event.display.started_on', { date: shortDate(chipDate) })
+    else if (status === 'ended') statusChip = t('event.display.chip_ended')
 
     // ── Recurrence pattern line (weekday labels from display-zone instants) ──
     let recurrenceLine: string | null = null
@@ -190,42 +192,42 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
       if (recurrence === 'DAILY')
         recurrenceLine =
-          interval > 1 ? t('recurrence.daily_n', { interval }) : t('recurrence.daily')
+          interval > 1 ? t('event.recurrence.daily_n', { interval }) : t('event.recurrence.daily')
       else if (recurrence === 'WEEKLY') {
-        if (interval === 2) recurrenceLine = t('recurrence.weekly_2', { weekday: weekdays })
+        if (interval === 2) recurrenceLine = t('event.recurrence.weekly_2', { weekday: weekdays })
         else if (interval > 2)
-          recurrenceLine = t('recurrence.weekly_n', { interval, weekday: weekdays })
+          recurrenceLine = t('event.recurrence.weekly_n', { interval, weekday: weekdays })
         else
           recurrenceLine =
             weekdayNames.length > 1
-              ? t('recurrence.weekly_multi', { weekdays })
-              : t('recurrence.weekly_1', { weekday: weekdays })
+              ? t('event.recurrence.weekly_multi', { weekdays })
+              : t('event.recurrence.weekly_1', { weekday: weekdays })
       } else if (schedule?.monthlyMode === 'weekday' && schedule.weekNumber)
         recurrenceLine = t(WEEK_NUMBER_KEYS[schedule.weekNumber], {
           weekday: next.setLocale(locale).toLocaleString({ weekday: 'long' }),
         })
-      else recurrenceLine = t('recurrence.monthly_date', { day: next.day })
+      else recurrenceLine = t('event.recurrence.monthly_date', { day: next.day })
     }
 
     // ── The authoritative when-line ──
     let whenLine: string
 
-    if (status === 'inactive') whenLine = t('details.contact_for_timing')
-    else if (status === 'ended') whenLine = t('display.event_ended')
-    else if (status === 'today') whenLine = t('display.chip_today')
+    if (status === 'inactive') whenLine = t('event.display.contact_for_timing')
+    else if (status === 'ended') whenLine = t('event.display.event_ended')
+    else if (status === 'today') whenLine = t('event.display.chip_today')
     else if (status === 'upcoming')
       whenLine =
         kind === 'oneoff' && next
           ? date(next)
-          : t('display.first_session', { date: next ? date(next) : '' })
+          : t('event.display.first_session', { date: next ? date(next) : '' })
     else if (status === 'started')
       whenLine = [
-        t('display.started_on', { date: chipDate ? shortDate(chipDate) : '' }),
+        t('event.display.started_on', { date: chipDate ? shortDate(chipDate) : '' }),
         sessionsLabel,
       ]
         .filter(Boolean)
         .join(' · ')
-    else whenLine = t('display.next_session', { date: next ? date(next) : '' })
+    else whenLine = t('event.display.next_session', { date: next ? date(next) : '' })
 
     // ── Times ──
     // These are ALWAYS the event's own local time, with no label. Issue #52 dropped the local-versus-your-time labels.
@@ -244,7 +246,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // An inactive venue has no precise location.
     // This shows only the municipality, city or region name, never the street address.
     const whereLine = display.online
-      ? `${t('display.online')} • ${t('display.hosted_from', { city: originCity })}`
+      ? `${t('event.display.online')} • ${t('event.display.hosted_from', { city: originCity })}`
       : display.status === 'inactive'
         ? event.address?.city || event.region?.name || ''
         : [event.address?.street, event.address?.city].filter(Boolean).join(', ') ||
@@ -278,42 +280,42 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       const viewerPlace = reconciledViewerPlace(viewerIp?.region, viewerIp?.timezone?.id, next)
 
       whereSubtext = viewerPlace
-        ? t('display.time_in_place', { time: clock, city: viewerPlace })
+        ? t('event.display.time_in_place', { time: clock, city: viewerPlace })
         : clock
     }
 
     // ── Register slot ──
     const registerLabel = t(
       display.registration === 'closed'
-        ? 'display.registration_closed'
-        : 'registration.register_now',
+        ? 'event.display.registration_closed'
+        : 'event.display.register_now',
     )
     const microcopy: string[] = []
 
-    if (full) microcopy.push(t('display.event_full'))
+    if (full) microcopy.push(t('event.display.event_full'))
     else if (display.registration === 'open') {
       // The course note leads. The online mechanics note renders second. See issue #52.
-      if (kind === 'course') microcopy.push(t('display.registration_required'))
-      if (display.online) microcopy.push(t('display.online_joining_note'))
+      if (kind === 'course') microcopy.push(t('event.display.registration_required'))
+      if (display.online) microcopy.push(t('event.display.online_joining_note'))
     }
 
     const hasContact = Boolean(event.contactPhone)
     const contactHelper =
       full && hasContact
-        ? t('display.contact_to_join_full')
+        ? t('event.display.contact_to_join_full')
         : display.registration === 'closed' && hasContact
-          ? t('display.contact_to_join_late')
+          ? t('event.display.contact_to_join_late')
           : null
 
     // This is one state-to-copy mapping for every surface that blocks registration.
     const blockedMessage = full
-      ? t('display.event_full')
+      ? t('event.display.event_full')
       : display.status === 'ended'
-        ? t('display.event_ended')
+        ? t('event.display.event_ended')
         : display.registration === 'closed'
-          ? t('display.registration_closed')
+          ? t('event.display.registration_closed')
           : display.registration === 'hidden'
-            ? t('details.contact_for_timing')
+            ? t('event.display.contact_for_timing')
             : null
 
     return {

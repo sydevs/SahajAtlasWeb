@@ -1,18 +1,19 @@
-import { readFileSync } from 'node:fs'
-
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CompactEmbedView } from './CompactEmbedView'
 
+import snapshot from '@/config/translations.en.json'
+
 // Node-only SSR assertions (`docs/testing.md`). What matters here is what a visitor reads off
 // it. The one control must name the TASK, not the product. That is because it is the
 // accessible name, and because the atlas has to read as the host's own events feature.
 //
-// `t` resolves through the real `en/common.json`, rather than echoing keys back, so these are
-// about the copy that actually ships. A key deleted from the bundle fails here, instead of
-// rendering as its own dotted name on somebody's page.
-const en = JSON.parse(readFileSync('public/locales/en/common.json', 'utf8'))
+// `t` resolves through the committed English snapshot, rather than echoing keys back, so these
+// are about the copy that actually ships — it is the resource `config/i18n.ts` boots with. A key
+// the CMS no longer answers fails here, instead of rendering as its own dotted name on
+// somebody's page.
+const en = snapshot as Record<string, unknown>
 const copy = (key: string): string =>
   key
     .split('.')

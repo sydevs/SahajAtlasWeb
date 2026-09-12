@@ -41,13 +41,6 @@
   Cache-Control: public, max-age=0, must-revalidate
 
 
-# The locale JSON is fetched cross-origin from every host page (src/config/i18n.ts builds
-# the URL from VITE_HOST), and it needs CORS for the same reason the font does — with a
-# worse failure: a blocked font degrades to the system sans, blocked locales render every
-# string as its raw key. Hand-edited and unhashed, so no long cache.
-/locales/*
-  Access-Control-Allow-Origin: *
-
 # Resist direct indexing (issue #106). The policy and the robots.txt interaction are
 # written down once, in public/robots.txt; what follows is only why this half exists.
 #

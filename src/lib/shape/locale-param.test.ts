@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { LOCALE_PARAM, localeHref, pageLocaleOverride, publishLocale } from './locale-param'
 
-import { supportedLanguages } from '@/config/i18n-options'
+// The offered set is an operator's, held in SahajCloud and read at runtime (#198). This is a
+// stand-in for one, so the assertions below describe behaviour rather than today's CMS row.
+const OFFERED_LOCALES = ['cs', 'de', 'en', 'es', 'fr', 'hu', 'nl', 'pt-BR', 'ru', 'uk']
 
 const HOST = 'https://example.org/classes'
 
@@ -116,7 +118,7 @@ describe('publishLocale', () => {
 })
 
 describe('pageLocaleOverride', () => {
-  const override = (search: string) => pageLocaleOverride(search, supportedLanguages)
+  const override = (search: string) => pageLocaleOverride(search, OFFERED_LOCALES)
 
   it('is undefined when the page names no language', () => {
     expect(override('')).toBeUndefined()

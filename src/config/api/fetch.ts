@@ -1,4 +1,5 @@
 import type {
+  AtlasConfig,
   Event,
   EventDoc,
   EventSlim,
@@ -7,6 +8,7 @@ import type {
   Region,
   RegionListItem,
   RegionNode,
+  TranslationTree,
 } from '@/types'
 import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
@@ -42,6 +44,7 @@ import {
   todayISO,
 } from '@/lib/shape'
 import {
+  AtlasConfigSchema,
   ClientSchema,
   EventDocSchema,
   EventSlimSchema,
@@ -50,6 +53,8 @@ import {
   RegionListItemSchema,
   RegionNodeSchema,
   RegionSchema,
+  TRANSLATION_METADATA_KEYS,
+  TranslationBundleSchema,
 } from '@/types'
 
 // These are the region fields for the geojson feed and the event reads.
@@ -683,6 +688,104 @@ const getClient = async () => {
   return ClientSchema.parse(user)
 }
 
+// ── UI copy and the language set (issue #198) ────────────────────────────────────
+
+// These are the translation groups the widget renders. `emails` and `event.title` are
+// deliberately absent: both hold live production data SahajCloud itself reads, and neither has
+// a widget surface, so asking for them would ship a registrant email template into a public
+// bundle for nothing. `src/types/translations.ts` states the same list for the type side.
+const TRANSLATION_SELECT = {
+  common: true,
+  countries: true,
+  search: true,
+  filters: true,
+  online: true,
+  event: { display: true, actions: true, recurrence: true },
+  calendar: true,
+  registration: true,
+  share: true,
+  compact: true,
+} as const
+
+// This drops Payload's own document metadata before the bundle reaches i18next.
+// `id` is a number and `_status`/`createdAt`/`updatedAt` are strings, so left in place i18next
+// would resolve them as translation keys, and the snapshot gate in `translations.test.ts` would
+// be reconciling four keys nothing can ever render.
+const stripMetadata = (bundle: unknown): unknown => {
+  if (!bundle || typeof bundle !== 'object') return bundle
+
+  return Object.fromEntries(
+    Object.entries(bundle as Record<string, unknown>).filter(
+      ([key]) =>
+        !TRANSLATION_METADATA_KEYS.includes(key as (typeof TRANSLATION_METADATA_KEYS)[number]),
+    ),
+  )
+}
+
+const getAtlasConfig = async (): Promise<AtlasConfig> => {
+  const config = validateSDKResponse(
+    await sdk.findGlobal({
+      slug: 'sy-atlas-config',
+      depth: 0,
+      select: { availableLocales: true },
+    }),
+    'sy-atlas-config',
+  )
+
+  return AtlasConfigSchema.parse(config)
+}
+
+// This reads ONE locale's bundle, naming the locale explicitly.
+// The explicit `?locale=` is the reason `applyRequestContext` only fills the parameter in when
+// it is absent: this is the one request in the app whose locale is not the active UI language.
+// Fetching `fr` while the widget still shows English is the normal case — it is how the widget
+// gets to French at all.
+const getTranslations = async (locale: string): Promise<TranslationTree> => {
+  const bundle = validateSDKResponse(
+    await sdk.findGlobal({
+      slug: 'sy-atlas-translations',
+      locale: locale as Parameters<typeof sdk.findGlobal>[0]['locale'],
+      depth: 0,
+      select: TRANSLATION_SELECT,
+    }),
+    `sy-atlas-translations (${locale})`,
+  )
+
+  return TranslationBundleSchema.parse(stripMetadata(bundle))
+}
+
+/**
+ * These two contracts live here, beside their fetchers, for the reason `eventTitlesQuery` does:
+ * `config/api/index.ts` imports this module, so declaring them there would close a cycle. That
+ * module re-exports both, so callers still find every factory in one place.
+ *
+ * Both windows match the region tree's. This is operator-set copy on a human editing cadence,
+ * not event data, and `WHOLESALE_GC_TIME` keeps a bundle for the session rather than re-reading
+ * it after every idle gap — the same reasoning `regionsQuery` spells out.
+ *
+ * `retryOnMount: false` matters here and nowhere else. A failed translations read must not
+ * re-fire on every remount of every component that reads a string: the widget already renders
+ * in English when a bundle does not arrive (`applyLanguage`), so a retry storm would buy a
+ * viewer nothing they can see.
+ */
+export const ATLAS_CONFIG_STALE_TIME = REGIONS_STALE_TIME
+
+export const atlasConfigQuery = () => ({
+  queryKey: ['atlas-config'] as const,
+  queryFn: getAtlasConfig,
+  staleTime: ATLAS_CONFIG_STALE_TIME,
+  gcTime: WHOLESALE_GC_TIME,
+  retryOnMount: false,
+})
+
+export const translationsQuery = (locale: string) => ({
+  queryKey: ['translations', locale] as const,
+  queryFn: () => getTranslations(locale),
+  staleTime: ATLAS_CONFIG_STALE_TIME,
+  gcTime: WHOLESALE_GC_TIME,
+  retryOnMount: false,
+})
+
 // ── Live-preview populate (issue #40) ────────────────────────────────────────────
 
 // This renders an unsaved edit.
@@ -722,6 +825,29 @@ const warmCaches = (): void => {
   void loadRegions().catch(() => {})
 }
 
+/**
+ * These two warm the boot reads that decide what the viewer READS, rather than what they see.
+ *
+ * They are separate from `warmCaches` because they are fired from a different place, for a
+ * different reason. `warmCaches` fills locale-agnostic data caches once the API key is set.
+ * These run beside `clients/me` — from `App`'s mount effect and, in path mode, from `PathBoot`,
+ * which reads the client record above `App`. PR #168 measured the difference: warmed in
+ * parallel the config settled 1 ms after `clients/me`; serialized behind it, the language
+ * flipped in front of the viewer.
+ *
+ * They are best-effort and idempotent, like `warmCaches`: React Query merges an in-flight fetch
+ * for the same key, so firing both from both places costs one request each. A failure is
+ * swallowed here and answered where it matters — `use-languages` offers English only, and
+ * `applyLanguage` stays on English.
+ */
+const warmConfig = (): void => {
+  void queryClient.prefetchQuery(atlasConfigQuery()).catch(() => {})
+}
+
+const warmTranslations = (locale: string): void => {
+  void queryClient.prefetchQuery(translationsQuery(locale)).catch(() => {})
+}
+
 export default {
   getGeojson,
   getRegions,
@@ -734,5 +860,9 @@ export default {
   getEventDoc,
   populatePreviewDoc,
   getClient,
+  getAtlasConfig,
+  getTranslations,
   warmCaches,
+  warmConfig,
+  warmTranslations,
 }

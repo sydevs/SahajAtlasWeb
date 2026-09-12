@@ -6,6 +6,13 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+export type Subtitles = {
+  content: string;
+  startTimeMs: number;
+  endTimeMs: number;
+  durationMs?: number;
+  [k: string]: unknown;
+}[];
 /**
  * Supported timezones in IANA format.
  *
@@ -64,27 +71,20 @@ export type SupportedTimezones =
   | 'Pacific/Pago_Pago'
   | 'US/Samoa'
   | 'Pacific/Samoa'
+  | 'America/Adak'
+  | 'US/Aleutian'
+  | 'America/Atka'
   | 'US/Hawaii'
   | 'Pacific/Johnston'
   | 'HST'
   | 'Pacific/Tahiti'
   | 'Pacific/Marquesas'
-  | 'America/Adak'
-  | 'US/Aleutian'
-  | 'America/Atka'
   | 'America/Juneau'
   | 'America/Metlakatla'
   | 'America/Nome'
   | 'America/Sitka'
   | 'America/Yakutat'
   | 'US/Alaska'
-  | 'Pacific/Pitcairn'
-  | 'America/Hermosillo'
-  | 'America/Mazatlan'
-  | 'Mexico/BajaSur'
-  | 'MST'
-  | 'US/Arizona'
-  | 'America/Creston'
   | 'US/Pacific'
   | 'PST8PDT'
   | 'Mexico/BajaNorte'
@@ -92,43 +92,30 @@ export type SupportedTimezones =
   | 'America/Santa_Isabel'
   | 'America/Vancouver'
   | 'Canada/Pacific'
-  | 'America/Whitehorse'
-  | 'America/Dawson'
-  | 'America/Dawson_Creek'
-  | 'America/Fort_Nelson'
-  | 'Canada/Yukon'
-  | 'America/Belize'
-  | 'America/Managua'
-  | 'America/Mexico_City'
-  | 'America/Bahia_Banderas'
-  | 'America/Chihuahua'
-  | 'America/Merida'
-  | 'America/Monterrey'
-  | 'Mexico/General'
-  | 'America/Costa_Rica'
-  | 'America/El_Salvador'
-  | 'America/Regina'
-  | 'America/Swift_Current'
-  | 'Canada/Saskatchewan'
-  | 'America/Tegucigalpa'
-  | 'Pacific/Easter'
-  | 'Chile/EasterIsland'
-  | 'Pacific/Galapagos'
-  | 'America/Edmonton'
-  | 'America/Cambridge_Bay'
-  | 'America/Inuvik'
-  | 'Canada/Mountain'
-  | 'America/Yellowknife'
+  | 'Pacific/Pitcairn'
   | 'America/Ciudad_Juarez'
   | 'America/Boise'
   | 'MST7MDT'
   | 'Navajo'
   | 'US/Mountain'
   | 'America/Shiprock'
-  | 'America/Rio_Branco'
-  | 'America/Eirunepe'
-  | 'Brazil/Acre'
-  | 'America/Porto_Acre'
+  | 'America/Edmonton'
+  | 'America/Cambridge_Bay'
+  | 'America/Inuvik'
+  | 'Canada/Mountain'
+  | 'America/Yellowknife'
+  | 'America/Hermosillo'
+  | 'America/Mazatlan'
+  | 'Mexico/BajaSur'
+  | 'MST'
+  | 'US/Arizona'
+  | 'America/Creston'
+  | 'America/Whitehorse'
+  | 'America/Dawson'
+  | 'America/Dawson_Creek'
+  | 'America/Fort_Nelson'
+  | 'Canada/Yukon'
+  | 'America/Belize'
   | 'America/Indiana/Knox'
   | 'America/Indiana/Tell_City'
   | 'America/Menominee'
@@ -139,57 +126,39 @@ export type SupportedTimezones =
   | 'US/Central'
   | 'US/Indiana-Starke'
   | 'America/Knox_IN'
+  | 'America/Costa_Rica'
+  | 'America/El_Salvador'
+  | 'America/Managua'
   | 'America/Matamoros'
   | 'America/Ojinaga'
+  | 'America/Mexico_City'
+  | 'America/Bahia_Banderas'
+  | 'America/Chihuahua'
+  | 'America/Merida'
+  | 'America/Monterrey'
+  | 'Mexico/General'
+  | 'America/Regina'
+  | 'America/Swift_Current'
+  | 'Canada/Saskatchewan'
+  | 'America/Tegucigalpa'
   | 'America/Winnipeg'
   | 'America/Rankin_Inlet'
   | 'America/Resolute'
   | 'Canada/Central'
   | 'America/Rainy_River'
+  | 'Pacific/Easter'
+  | 'Chile/EasterIsland'
+  | 'Pacific/Galapagos'
   | 'America/Atikokan'
   | 'America/Cancun'
   | 'America/Cayman'
-  | 'America/Jamaica'
-  | 'Jamaica'
-  | 'America/Panama'
-  | 'EST'
-  | 'America/Coral_Harbour'
+  | 'America/Grand_Turk'
   | 'America/Guayaquil'
-  | 'America/Lima'
-  | 'America/Manaus'
-  | 'America/Boa_Vista'
-  | 'America/Campo_Grande'
-  | 'America/Cuiaba'
-  | 'America/Porto_Velho'
-  | 'Brazil/West'
-  | 'America/St_Kitts'
-  | 'America/Blanc-Sablon'
-  | 'America/Montserrat'
-  | 'America/Barbados'
-  | 'America/Port_of_Spain'
-  | 'America/Martinique'
-  | 'America/St_Lucia'
-  | 'America/St_Barthelemy'
-  | 'America/St_Vincent'
-  | 'America/Kralendijk'
-  | 'America/Guadeloupe'
-  | 'America/Marigot'
-  | 'America/Aruba'
-  | 'America/Lower_Princes'
-  | 'America/Tortola'
-  | 'America/Dominica'
-  | 'America/St_Thomas'
-  | 'America/Grenada'
-  | 'America/Antigua'
-  | 'America/Puerto_Rico'
-  | 'America/Virgin'
-  | 'America/Anguilla'
-  | 'America/Curacao'
-  | 'America/Santo_Domingo'
-  | 'America/La_Paz'
-  | 'Chile/Continental'
   | 'America/Havana'
   | 'Cuba'
+  | 'America/Jamaica'
+  | 'Jamaica'
+  | 'America/Lima'
   | 'America/Nassau'
   | 'America/Detroit'
   | 'America/Indiana/Indianapolis'
@@ -207,8 +176,14 @@ export type SupportedTimezones =
   | 'America/Louisville'
   | 'EST5EDT'
   | 'US/Eastern'
+  | 'America/Panama'
+  | 'EST'
+  | 'America/Coral_Harbour'
   | 'America/Port-au-Prince'
-  | 'America/Grand_Turk'
+  | 'America/Rio_Branco'
+  | 'America/Eirunepe'
+  | 'Brazil/Acre'
+  | 'America/Porto_Acre'
   | 'America/Toronto'
   | 'America/Iqaluit'
   | 'America/Pangnirtung'
@@ -216,7 +191,48 @@ export type SupportedTimezones =
   | 'America/Montreal'
   | 'America/Nipigon'
   | 'America/Thunder_Bay'
+  | 'America/Anguilla'
+  | 'America/Antigua'
+  | 'America/Aruba'
+  | 'America/Barbados'
+  | 'America/Blanc-Sablon'
+  | 'America/Curacao'
+  | 'America/Dominica'
+  | 'America/Grenada'
+  | 'America/Guadeloupe'
   | 'America/Guyana'
+  | 'America/Halifax'
+  | 'America/Glace_Bay'
+  | 'America/Goose_Bay'
+  | 'America/Moncton'
+  | 'Canada/Atlantic'
+  | 'America/Kralendijk'
+  | 'America/La_Paz'
+  | 'America/Lower_Princes'
+  | 'America/Manaus'
+  | 'America/Boa_Vista'
+  | 'America/Campo_Grande'
+  | 'America/Cuiaba'
+  | 'America/Porto_Velho'
+  | 'Brazil/West'
+  | 'America/Marigot'
+  | 'America/Martinique'
+  | 'America/Montserrat'
+  | 'America/Port_of_Spain'
+  | 'America/Puerto_Rico'
+  | 'America/Virgin'
+  | 'America/St_Barthelemy'
+  | 'America/St_Kitts'
+  | 'America/St_Lucia'
+  | 'America/St_Thomas'
+  | 'America/St_Vincent'
+  | 'America/Tortola'
+  | 'Chile/Continental'
+  | 'America/Santo_Domingo'
+  | 'America/Thule'
+  | 'Atlantic/Bermuda'
+  | 'America/St_Johns'
+  | 'Canada/Newfoundland'
   | 'America/Argentina/Buenos_Aires'
   | 'America/Argentina/Catamarca'
   | 'America/Argentina/Cordoba'
@@ -235,13 +251,13 @@ export type SupportedTimezones =
   | 'America/Rosario'
   | 'America/Jujuy'
   | 'America/Mendoza'
-  | 'America/Halifax'
-  | 'America/Glace_Bay'
-  | 'America/Goose_Bay'
-  | 'America/Moncton'
-  | 'Canada/Atlantic'
-  | 'Atlantic/Bermuda'
-  | 'America/Thule'
+  | 'America/Asuncion'
+  | 'America/Cayenne'
+  | 'America/Miquelon'
+  | 'America/Montevideo'
+  | 'America/Paramaribo'
+  | 'America/Punta_Arenas'
+  | 'America/Coyhaique'
   | 'America/Araguaina'
   | 'America/Bahia'
   | 'America/Belem'
@@ -252,18 +268,9 @@ export type SupportedTimezones =
   | 'Brazil/East'
   | 'Antarctica/Palmer'
   | 'Antarctica/Rothera'
-  | 'America/Punta_Arenas'
-  | 'America/Coyhaique'
   | 'Atlantic/Stanley'
-  | 'America/Cayenne'
-  | 'America/Asuncion'
-  | 'America/Paramaribo'
-  | 'America/Montevideo'
-  | 'America/St_Johns'
-  | 'Canada/Newfoundland'
   | 'America/Noronha'
   | 'Brazil/DeNoronha'
-  | 'America/Miquelon'
   | 'America/Nuuk'
   | 'America/Scoresbysund'
   | 'America/Godthab'
@@ -282,49 +289,42 @@ export type SupportedTimezones =
   | 'Atlantic/St_Helena'
   | 'Africa/Timbuktu'
   | 'Africa/Bissau'
-  | 'America/Danmarkshavn'
-  | 'Africa/Monrovia'
-  | 'Africa/Sao_Tome'
-  | 'Africa/Algiers'
-  | 'Africa/Tunis'
-  | 'Europe/Isle_of_Man'
-  | 'Europe/Dublin'
-  | 'Eire'
-  | 'GB'
-  | 'GB-Eire'
-  | 'Europe/Guernsey'
-  | 'Europe/Jersey'
-  | 'Europe/Belfast'
-  | 'Africa/Bangui'
-  | 'Africa/Malabo'
-  | 'Africa/Brazzaville'
-  | 'Africa/Porto-Novo'
-  | 'Africa/Douala'
-  | 'Africa/Kinshasa'
-  | 'Africa/Libreville'
-  | 'Africa/Luanda'
-  | 'Africa/Niamey'
-  | 'Africa/Ndjamena'
   | 'Africa/Casablanca'
   | 'Africa/El_Aaiun'
+  | 'Africa/Monrovia'
+  | 'Africa/Sao_Tome'
+  | 'America/Danmarkshavn'
+  | 'Antarctica/Troll'
   | 'Atlantic/Canary'
+  | 'Atlantic/Faroe'
+  | 'Atlantic/Faeroe'
+  | 'Europe/Dublin'
+  | 'Eire'
+  | 'Europe/Guernsey'
+  | 'Europe/Isle_of_Man'
+  | 'Europe/Jersey'
   | 'Europe/Lisbon'
   | 'Atlantic/Madeira'
   | 'Portugal'
   | 'WET'
-  | 'Atlantic/Faroe'
-  | 'Atlantic/Faeroe'
-  | 'Africa/Bujumbura'
-  | 'Africa/Gaborone'
-  | 'Africa/Harare'
-  | 'Africa/Juba'
-  | 'Africa/Khartoum'
-  | 'Africa/Kigali'
-  | 'Africa/Blantyre'
-  | 'Africa/Lubumbashi'
-  | 'Africa/Lusaka'
-  | 'Africa/Maputo'
+  | 'GB'
+  | 'GB-Eire'
+  | 'Europe/Belfast'
+  | 'Africa/Algiers'
+  | 'Africa/Bangui'
+  | 'Africa/Brazzaville'
+  | 'Africa/Douala'
+  | 'Africa/Kinshasa'
+  | 'Africa/Libreville'
+  | 'Africa/Luanda'
+  | 'Africa/Malabo'
+  | 'Africa/Niamey'
+  | 'Africa/Porto-Novo'
+  | 'Africa/Ndjamena'
+  | 'Africa/Tunis'
   | 'Africa/Windhoek'
+  | 'Arctic/Longyearbyen'
+  | 'Europe/Amsterdam'
   | 'Europe/Andorra'
   | 'Europe/Belgrade'
   | 'Europe/Ljubljana'
@@ -333,7 +333,6 @@ export type SupportedTimezones =
   | 'Europe/Skopje'
   | 'Europe/Zagreb'
   | 'Europe/Busingen'
-  | 'Arctic/Longyearbyen'
   | 'Europe/Copenhagen'
   | 'Europe/Oslo'
   | 'Europe/Stockholm'
@@ -342,179 +341,190 @@ export type SupportedTimezones =
   | 'Europe/Brussels'
   | 'CET'
   | 'MET'
-  | 'Europe/Amsterdam'
   | 'Europe/Luxembourg'
   | 'Europe/Budapest'
   | 'Europe/Gibraltar'
   | 'Europe/Madrid'
   | 'Africa/Ceuta'
+  | 'Europe/Malta'
   | 'Europe/Monaco'
   | 'Europe/Paris'
   | 'Europe/Prague'
   | 'Europe/Rome'
   | 'Europe/San_Marino'
   | 'Europe/Vatican'
-  | 'Europe/Malta'
   | 'Europe/Tirane'
   | 'Europe/Vaduz'
   | 'Europe/Vienna'
   | 'Europe/Warsaw'
   | 'Poland'
   | 'Europe/Zurich'
-  | 'Europe/Kaliningrad'
-  | 'Africa/Tripoli'
-  | 'Libya'
-  | 'Antarctica/Troll'
+  | 'Africa/Blantyre'
+  | 'Africa/Bujumbura'
+  | 'Egypt'
+  | 'Africa/Gaborone'
+  | 'Africa/Harare'
   | 'Africa/Johannesburg'
   | 'Africa/Maseru'
   | 'Africa/Mbabane'
-  | 'Asia/Kuwait'
-  | 'Asia/Bahrain'
-  | 'Asia/Baghdad'
-  | 'Asia/Qatar'
-  | 'Antarctica/Syowa'
-  | 'Asia/Aden'
-  | 'Asia/Amman'
-  | 'Asia/Damascus'
-  | 'Africa/Addis_Ababa'
-  | 'Indian/Antananarivo'
-  | 'Africa/Asmara'
-  | 'Africa/Dar_es_Salaam'
-  | 'Africa/Djibouti'
-  | 'Africa/Kampala'
-  | 'Indian/Mayotte'
-  | 'Africa/Mogadishu'
-  | 'Indian/Comoro'
-  | 'Africa/Nairobi'
-  | 'Africa/Asmera'
-  | 'EET'
+  | 'Africa/Juba'
+  | 'Africa/Khartoum'
+  | 'Africa/Kigali'
+  | 'Africa/Lubumbashi'
+  | 'Africa/Lusaka'
+  | 'Africa/Maputo'
+  | 'Africa/Tripoli'
+  | 'Libya'
   | 'Asia/Beirut'
-  | 'Europe/Bucharest'
-  | 'Egypt'
-  | 'Europe/Chisinau'
-  | 'Europe/Tiraspol'
   | 'Asia/Hebron'
   | 'Asia/Gaza'
+  | 'Asia/Jerusalem'
+  | 'Israel'
+  | 'Asia/Tel_Aviv'
+  | 'Asia/Nicosia'
+  | 'Asia/Famagusta'
+  | 'Europe/Nicosia'
+  | 'EET'
+  | 'Europe/Bucharest'
+  | 'Europe/Chisinau'
+  | 'Europe/Tiraspol'
   | 'Europe/Helsinki'
   | 'Europe/Mariehamn'
+  | 'Europe/Kaliningrad'
   | 'Europe/Kyiv'
   | 'Europe/Uzhgorod'
   | 'Europe/Zaporozhye'
   | 'Europe/Kiev'
-  | 'Asia/Nicosia'
-  | 'Asia/Famagusta'
-  | 'Europe/Nicosia'
   | 'Europe/Riga'
   | 'Europe/Sofia'
   | 'Europe/Tallinn'
   | 'Europe/Vilnius'
-  | 'Asia/Jerusalem'
-  | 'Israel'
-  | 'Asia/Tel_Aviv'
+  | 'Africa/Addis_Ababa'
+  | 'Africa/Asmara'
+  | 'Africa/Dar_es_Salaam'
+  | 'Africa/Djibouti'
+  | 'Africa/Kampala'
+  | 'Africa/Mogadishu'
+  | 'Africa/Nairobi'
+  | 'Indian/Antananarivo'
+  | 'Indian/Comoro'
+  | 'Indian/Mayotte'
+  | 'Africa/Asmera'
+  | 'Antarctica/Syowa'
+  | 'Asia/Aden'
+  | 'Asia/Amman'
+  | 'Asia/Baghdad'
+  | 'Asia/Bahrain'
+  | 'Asia/Damascus'
+  | 'Asia/Kuwait'
+  | 'Asia/Qatar'
+  | 'Europe/Istanbul'
+  | 'Turkey'
+  | 'Asia/Istanbul'
   | 'Europe/Minsk'
   | 'Europe/Kirov'
   | 'Europe/Volgograd'
   | 'W-SU'
   | 'Europe/Simferopol'
-  | 'Europe/Istanbul'
-  | 'Turkey'
-  | 'Asia/Istanbul'
   | 'Asia/Tehran'
   | 'Iran'
-  | 'Asia/Yerevan'
-  | 'Asia/Tbilisi'
   | 'Asia/Muscat'
   | 'Indian/Mahe'
   | 'Indian/Reunion'
-  | 'Indian/Mauritius'
+  | 'Asia/Tbilisi'
+  | 'Asia/Yerevan'
   | 'Europe/Samara'
   | 'Europe/Astrakhan'
   | 'Europe/Saratov'
   | 'Europe/Ulyanovsk'
+  | 'Indian/Mauritius'
   | 'Asia/Kabul'
-  | 'Indian/Kerguelen'
+  | 'Antarctica/Mawson'
+  | 'Antarctica/Vostok'
   | 'Asia/Aqtau'
   | 'Asia/Aqtobe'
   | 'Asia/Atyrau'
   | 'Asia/Oral'
   | 'Asia/Qostanay'
   | 'Asia/Qyzylorda'
-  | 'Indian/Maldives'
-  | 'Antarctica/Mawson'
-  | 'Antarctica/Vostok'
-  | 'Asia/Dushanbe'
   | 'Asia/Ashgabat'
   | 'Asia/Ashkhabad'
+  | 'Asia/Dushanbe'
   | 'Asia/Samarkand'
   | 'Asia/Yekaterinburg'
+  | 'Indian/Kerguelen'
+  | 'Indian/Maldives'
   | 'Asia/Colombo'
   | 'Asia/Kolkata'
   | 'Asia/Kathmandu'
   | 'Asia/Katmandu'
+  | 'Asia/Bishkek'
   | 'Asia/Dacca'
+  | 'Asia/Omsk'
   | 'Asia/Thimphu'
   | 'Asia/Thimbu'
   | 'Asia/Urumqi'
   | 'Asia/Kashgar'
   | 'Indian/Chagos'
-  | 'Asia/Bishkek'
-  | 'Asia/Omsk'
-  | 'Indian/Cocos'
   | 'Asia/Yangon'
+  | 'Indian/Cocos'
   | 'Asia/Rangoon'
-  | 'Indian/Christmas'
   | 'Antarctica/Davis'
-  | 'Asia/Hovd'
   | 'Asia/Phnom_Penh'
   | 'Asia/Vientiane'
+  | 'Indian/Christmas'
   | 'Asia/Ho_Chi_Minh'
   | 'Asia/Saigon'
+  | 'Asia/Hovd'
+  | 'Asia/Pontianak'
   | 'Asia/Novosibirsk'
   | 'Asia/Barnaul'
   | 'Asia/Krasnoyarsk'
   | 'Asia/Novokuznetsk'
   | 'Asia/Tomsk'
-  | 'Asia/Pontianak'
   | 'Antarctica/Casey'
-  | 'Australia/Perth'
-  | 'Australia/West'
   | 'Asia/Brunei'
-  | 'Asia/Makassar'
-  | 'Asia/Ujung_Pandang'
-  | 'Asia/Macau'
-  | 'Asia/Macao'
-  | 'PRC'
-  | 'Asia/Chongqing'
-  | 'Asia/Harbin'
-  | 'Asia/Chungking'
   | 'Asia/Hong_Kong'
   | 'Hongkong'
   | 'Asia/Irkutsk'
   | 'Asia/Kuala_Lumpur'
   | 'Asia/Kuching'
+  | 'Asia/Macau'
+  | 'Asia/Macao'
+  | 'Asia/Makassar'
+  | 'Asia/Ujung_Pandang'
   | 'Asia/Manila'
+  | 'PRC'
+  | 'Asia/Chongqing'
+  | 'Asia/Harbin'
+  | 'Asia/Chungking'
   | 'Singapore'
   | 'Asia/Taipei'
   | 'ROC'
   | 'Asia/Ulaanbaatar'
   | 'Asia/Choibalsan'
   | 'Asia/Ulan_Bator'
+  | 'Australia/Perth'
+  | 'Australia/West'
   | 'Australia/Eucla'
-  | 'Asia/Jayapura'
-  | 'Japan'
-  | 'Asia/Pyongyang'
-  | 'ROK'
-  | 'Pacific/Palau'
-  | 'Asia/Dili'
   | 'Asia/Chita'
   | 'Asia/Khandyga'
   | 'Asia/Yakutsk'
+  | 'Asia/Dili'
+  | 'Asia/Jayapura'
+  | 'Asia/Pyongyang'
+  | 'ROK'
+  | 'Japan'
+  | 'Pacific/Palau'
   | 'Australia/Adelaide'
   | 'Australia/Broken_Hill'
   | 'Australia/South'
   | 'Australia/Yancowinna'
   | 'Australia/Darwin'
   | 'Australia/North'
+  | 'Antarctica/DumontDUrville'
+  | 'Asia/Vladivostok'
+  | 'Asia/Ust-Nera'
   | 'Australia/Lindeman'
   | 'Australia/Queensland'
   | 'Antarctica/Macquarie'
@@ -526,45 +536,42 @@ export type SupportedTimezones =
   | 'Australia/ACT'
   | 'Australia/NSW'
   | 'Australia/Canberra'
-  | 'Pacific/Saipan'
   | 'Pacific/Chuuk'
-  | 'Antarctica/DumontDUrville'
+  | 'Pacific/Saipan'
   | 'Pacific/Port_Moresby'
   | 'Pacific/Yap'
   | 'Pacific/Truk'
-  | 'Asia/Vladivostok'
-  | 'Asia/Ust-Nera'
   | 'Australia/Lord_Howe'
   | 'Australia/LHI'
-  | 'Pacific/Bougainville'
-  | 'Pacific/Kosrae'
-  | 'Pacific/Pohnpei'
-  | 'Pacific/Norfolk'
   | 'Asia/Sakhalin'
   | 'Asia/Magadan'
   | 'Asia/Srednekolymsk'
-  | 'Pacific/Guadalcanal'
-  | 'Pacific/Ponape'
+  | 'Pacific/Bougainville'
   | 'Pacific/Efate'
-  | 'Pacific/Tarawa'
-  | 'Pacific/Funafuti'
-  | 'Pacific/Majuro'
-  | 'Pacific/Wake'
-  | 'Pacific/Wallis'
+  | 'Pacific/Guadalcanal'
+  | 'Pacific/Pohnpei'
+  | 'Pacific/Ponape'
+  | 'Pacific/Kosrae'
+  | 'Pacific/Norfolk'
+  | 'Antarctica/McMurdo'
   | 'Asia/Kamchatka'
   | 'Asia/Anadyr'
+  | 'NZ'
+  | 'Antarctica/South_Pole'
+  | 'Pacific/Funafuti'
+  | 'Pacific/Majuro'
   | 'Pacific/Kwajalein'
   | 'Kwajalein'
   | 'Pacific/Nauru'
-  | 'NZ'
-  | 'Antarctica/McMurdo'
-  | 'Antarctica/South_Pole'
+  | 'Pacific/Tarawa'
+  | 'Pacific/Wake'
+  | 'Pacific/Wallis'
   | 'Pacific/Chatham'
   | 'NZ-CHAT'
-  | 'Pacific/Kanton'
-  | 'Pacific/Enderbury'
   | 'Pacific/Apia'
   | 'Pacific/Fakaofo'
+  | 'Pacific/Kanton'
+  | 'Pacific/Enderbury'
   | 'Pacific/Tongatapu'
   | 'Pacific/Kiritimati'
   | 'Etc/GMT-14'
@@ -594,6 +601,63 @@ export type SupportedTimezones =
   | 'Etc/GMT+10'
   | 'Etc/GMT+11'
   | 'Etc/GMT+12';
+export type ScheduleUpcomingDates = string[];
+export type EventQualityReport =
+  | {
+      skipped: true;
+      /**
+       * Why the checks were not run at all.
+       */
+      reason: 'unpublished' | 'finished' | 'expired' | 'denied' | 'trashed';
+    }
+  | {
+      skipped: false;
+      checks: {
+        /**
+         * Stable check id, labelled elsewhere.
+         */
+        key: string;
+        status: 'passed' | 'failed' | 'pending';
+        /**
+         * What went wrong, for a check folding several problems into one.
+         */
+        detail?: string;
+      }[];
+      /**
+       * Failed items — what `qualityOpenCount` stores.
+       */
+      openCount: number;
+    };
+export type MeditationNodeWeights = {
+  [k: string]: number;
+} | null;
+export type TagAssignments = {
+  /**
+   * The UserChoice document id.
+   */
+  id: number;
+  /**
+   * The tag title, in the read locale.
+   */
+  title: string;
+}[];
+export type MeditationFrames = {
+  /**
+   * The Frame document id.
+   */
+  id: number | string;
+  /**
+   * Seconds into the meditation.
+   */
+  timestamp: number;
+  [k: string]: unknown;
+}[];
+export type TableOfContentsHeadings = {
+  slug: string;
+  text: string;
+  level: number;
+  [k: string]: unknown;
+}[];
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ProjectSlug".
@@ -968,15 +1032,7 @@ export interface Image {
         | 'app-card'
       )[]
     | null;
-  fileMetadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  fileMetadata?: FileMetadata;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -989,6 +1045,13 @@ export interface Image {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+export interface FileMetadata {
+  /**
+   * The filename as uploaded, before the adapter replaced it with a provider id.
+   */
+  originalFilename?: string;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1047,25 +1110,9 @@ export interface Video {
    * Video title shown to users
    */
   title: string;
-  subtitles?: {
-    content: string;
-    startTimeMs: number;
-    endTimeMs: number;
-    durationMs?: number;
-  }[];
+  subtitles?: Subtitles;
   tags: 'testimonial' | 'workshop' | 'event' | 'technique';
-  /**
-   * Auto-populated video metadata (duration, format, etc.)
-   */
-  fileMetadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  fileMetadata?: FileMetadata;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1085,7 +1132,7 @@ export interface Video {
 export interface Manager {
   id: number;
   name: string;
-  currentProject?: ('' | 'wemeditate-web' | 'wemeditate-app' | 'sahaj-atlas') | null;
+  currentProject?: ('wemeditate-web' | 'wemeditate-app' | 'sahaj-atlas') | null;
   /**
    * Set the manager's access level. Admin grants full access, Manager uses role-based permissions, Inactive blocks all access.
    */
@@ -1325,18 +1372,7 @@ export interface Manager {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Choose how and how often to receive each kind of notification.
-   */
-  notificationPreferences?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  notificationPreferences?: NotificationPreferences;
   lastRegistrationDigestSentAt?: string | null;
   legacyId?: number | null;
   legacyData?:
@@ -1763,15 +1799,7 @@ export interface Event {
       | null;
     lastDate?: string | null;
     icalRule?: string | null;
-    upcomingDates?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    upcomingDates?: ScheduleUpcomingDates;
   };
   registrationMode: 'sahaj-atlas' | 'external';
   externalRegistrationUrl?: string | null;
@@ -1827,15 +1855,7 @@ export interface Event {
    * How strongly attendees confirm this event is real (0–1). Rises with confirmations, falls with denials, and stays cautious while there are few votes — the Atlas map ranks unverified listings by it. Blank until the first vote.
    */
   confidenceScore?: number | null;
-  qualityReport?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  qualityReport?: EventQualityReport;
   /**
    * Who submitted this listing (record-keeping only).
    */
@@ -1856,7 +1876,7 @@ export interface Event {
    * Check-set version the count was stamped from.
    */
   qualityCheckVersion?: number | null;
-  systemMeta?: HttpsSahajcloudDevSchemasEventSystemMetaJson;
+  systemMeta?: EventSystemMeta;
   legacyId?: number | null;
   legacyData?:
     | {
@@ -1918,24 +1938,7 @@ export interface Registration {
         | 'nl'
       )
     | null;
-  questions?: {
-    /**
-     * Have you practised Sahaja Yoga meditation before?
-     */
-    experience?: string;
-    /**
-     * How did you hear about this event?
-     */
-    referral?: string;
-    /**
-     * What are you hoping to get out of this?
-     */
-    aspirations?: string;
-    /**
-     * Do you have any questions for us?
-     */
-    questions?: string;
-  };
+  questions?: RegistrationQuestions;
   uuid: string;
   mailingListSubscribedAt?: string | null;
   remindersUnsubscribedAt?: string | null;
@@ -2244,10 +2247,10 @@ export interface Client {
      * Which of the embeds this service reported owns the canonical URLs. Domain, mount and routing all come from this one choice.
      */
     embed?: string | null;
-    verification?: HttpsSahajcloudDevSchemasClientCanonicalVerificationJson;
+    verification?: ClientCanonicalVerification;
     nextVerifyAt?: string | null;
   };
-  embedMetadata?: HttpsSahajcloudDevSchemasClientEmbedMetadataJson;
+  embedMetadata?: ClientEmbedMetadata;
   /**
    * Purpose and usage notes for this client
    */
@@ -2276,15 +2279,7 @@ export interface Client {
    * API usage statistics
    */
   usage?: {
-    abuseScore?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    abuseScore?: ClientAbuseScore;
     /**
      * Today's request count
      */
@@ -2332,7 +2327,7 @@ export interface Client {
   apiKeyIndex?: string | null;
   collection: 'clients';
 }
-export interface HttpsSahajcloudDevSchemasClientCanonicalVerificationJson {
+export interface ClientCanonicalVerification {
   verified: {
     domain: string;
     mount: string;
@@ -2347,7 +2342,7 @@ export interface HttpsSahajcloudDevSchemasClientCanonicalVerificationJson {
     reason?: 'dns' | 'http' | 'marker-absent' | 'not-configured' | 'provider-error' | 'quota' | 'bot-challenge';
   }[];
 }
-export interface HttpsSahajcloudDevSchemasClientEmbedMetadataJson {
+export interface ClientEmbedMetadata {
   [k: string]: {
     mode: 'inline' | 'iframe';
     topLevel: boolean;
@@ -2357,7 +2352,49 @@ export interface HttpsSahajcloudDevSchemasClientEmbedMetadataJson {
     lastSeen: string;
   };
 }
-export interface HttpsSahajcloudDevSchemasEventSystemMetaJson {
+export interface ClientAbuseScore {
+  /**
+   * Abuse score from 0-100.
+   */
+  score: number;
+  /**
+   * Severity band the score falls in.
+   */
+  level: 'normal' | 'elevated' | 'high' | 'critical';
+  breakdown: {
+    /**
+     * Frequency contribution (0-40).
+     */
+    frequency: number;
+    /**
+     * Recency contribution (0-30).
+     */
+    recency: number;
+    /**
+     * Current-spike contribution (0-30).
+     */
+    current: number;
+  };
+}
+export interface RegistrationQuestions {
+  /**
+   * Have you practised Sahaja Yoga meditation before?
+   */
+  experience?: string;
+  /**
+   * How did you hear about this event?
+   */
+  referral?: string;
+  /**
+   * What are you hoping to get out of this?
+   */
+  aspirations?: string;
+  /**
+   * Do you have any questions for us?
+   */
+  questions?: string;
+}
+export interface EventSystemMeta {
   communityFeedback?: {
     /**
      * Registrants who confirmed the event exists.
@@ -2371,6 +2408,13 @@ export interface HttpsSahajcloudDevSchemasEventSystemMetaJson {
      * ISO timestamp of the last vote applied.
      */
     updatedAt?: string;
+  };
+}
+export interface NotificationPreferences {
+  [k: string]: {
+    frequency?: string;
+    method?: string;
+    [k: string]: unknown;
   };
 }
 /**
@@ -2409,15 +2453,7 @@ export interface Meditation {
    */
   songTag?: (number | null) | SongTag;
   duration?: number | null;
-  subtleSystemNodeWeights?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  subtleSystemNodeWeights?: MeditationNodeWeights;
   durationMinutes?: number | null;
   /**
    * Optional auto-generated fallback title (e.g. Meditation for Anahat), derived from this meditation's dominant subtle-system node. Front-end clients use it only when they have no composed label of their own.
@@ -2429,52 +2465,12 @@ export interface Meditation {
    * Shows which categories use this meditation for each time of day. Managed from the Categories collection.
    */
   tagAssignments?: {
-    asMorningMeditation?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    asAfternoonMeditation?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    asEveningMeditation?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    asNightMeditation?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    asMorningMeditation?: TagAssignments;
+    asAfternoonMeditation?: TagAssignments;
+    asEveningMeditation?: TagAssignments;
+    asNightMeditation?: TagAssignments;
   };
-  frames?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  frames?: MeditationFrames;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2551,15 +2547,7 @@ export interface Song {
    * Include this song in random selection in meditations. Auto-set to false on creation when the song has the vocals tag, then manually editable.
    */
   includeForMeditations?: boolean | null;
-  fileMetadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  fileMetadata?: FileMetadata;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2615,12 +2603,7 @@ export interface Lesson {
      * Image or video for this panel.
      */
     media?: (number | null) | File;
-    subtitles?: {
-      content: string;
-      startTimeMs: number;
-      endTimeMs: number;
-      durationMs?: number;
-    }[];
+    subtitles?: Subtitles;
     id?: string | null;
   }[];
   /**
@@ -2647,12 +2630,7 @@ export interface Lesson {
    * Audio introduction to this lesson.
    */
   introAudio?: (number | null) | File;
-  introSubtitles?: {
-    content: string;
-    startTimeMs: number;
-    endTimeMs: number;
-    durationMs?: number;
-  }[];
+  introSubtitles?: Subtitles;
   article?: {
     root: {
       type: string;
@@ -2758,18 +2736,7 @@ export interface Lecture {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Auto-populated from Nirmala Vidya API and updated monthly.
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  metadata?: LectureMetadata;
   /**
    * The full lecture this clip is excerpted from. Required for clips (alternatively, supply a Vimeo URL during create to look up or create the parent automatically).
    */
@@ -2797,6 +2764,19 @@ export interface Lecture {
   };
   updatedAt: string;
   createdAt: string;
+}
+export interface LectureMetadata {
+  title?: string;
+  thumbnailUrl?: string | null;
+  hlsUrl?: string;
+  /**
+   * Subtitle track URL per CMS locale, from the NV API language codes.
+   */
+  subtitles?: {
+    [k: string]: string;
+  };
+  duration?: number | null;
+  lastSyncedAt?: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3138,15 +3118,7 @@ export interface AppCard {
   id: number;
   label?: string | null;
   type: 'standard' | 'event';
-  viewSchedule?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  viewSchedule?: AppCardViewSchedule;
   default: {
     /**
      * Shown above the card in hero placement.
@@ -3300,15 +3272,7 @@ export interface AppCard {
       | null;
     lastDate?: string | null;
     icalRule?: string | null;
-    upcomingDates?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    upcomingDates?: ScheduleUpcomingDates;
   };
   /**
    * Target sections where this card should appear on the app homepage.
@@ -3333,6 +3297,18 @@ export interface AppCard {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+export interface AppCardViewSchedule {
+  /**
+   * IANA zone the schedule keys are read in.
+   */
+  timezone: string;
+  /**
+   * HH:MM (24-hour UTC) → the view active from then until the next key.
+   */
+  schedule: {
+    [k: string]: 'startingSoon' | 'liveNow' | 'default';
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3507,15 +3483,7 @@ export interface Frame {
       )[]
     | null;
   duration?: number | null;
-  fileMetadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  fileMetadata?: FileMetadata;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -3623,53 +3591,14 @@ export interface EventSubmission {
  */
 export interface UserMessage {
   id: number;
-  screeningResult?: {
-    /**
-     * `ok`, or why the message was classified spam.
-     */
-    verdict: 'ok' | 'disposable_email' | 'invalid_email' | 'no_mx_records' | 'repeat_sender' | 'duplicate_body';
-    /**
-     * Everything an admin needs, as complete sentences. Each says what happened and what follows from it. A delivered message normally has none.
-     */
-    notes?: string[];
-    /**
-     * A technical detail kept for triage and NOT rendered — an MX lookup that came back inconclusive, or the mail transport’s own error string. Discarding it would leave nothing to look at when delivery goes wrong.
-     */
-    diagnostic?: string;
-    /**
-     * When screening reached this verdict (ISO 8601).
-     */
-    screenedAt: string;
-  };
+  screeningResult?: UserMessageScreeningResult;
   subject?: string | null;
   message: string;
   /**
    * Optional. Becomes the Reply-To of the message we email out.
    */
   senderEmail?: string | null;
-  context?: {
-    /**
-     * Route the sender was on, e.g. `/events/london-meetup`.
-     */
-    path?: string;
-    /**
-     * Absolute URL of the host page embedding the widget.
-     */
-    hostUrl?: string;
-    /**
-     * Locale the sender was browsing in.
-     */
-    locale?: string;
-    /**
-     * Error text/stack the sender was reporting, when the message is a crash report.
-     */
-    error?: string;
-    /**
-     * The sender's user-agent string.
-     */
-    userAgent?: string;
-    [k: string]: unknown;
-  };
+  context?: UserMessageContext;
   client?: (number | null) | Client;
   user?: (number | null) | User;
   status: 'screening' | 'delivered' | 'spam' | 'failed';
@@ -3677,6 +3606,47 @@ export interface UserMessage {
   deliveredAt?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+export interface UserMessageScreeningResult {
+  /**
+   * `ok`, or why the message was classified spam.
+   */
+  verdict: 'ok' | 'disposable_email' | 'invalid_email' | 'no_mx_records' | 'repeat_sender' | 'duplicate_body';
+  /**
+   * Everything an admin needs, as complete sentences. Each says what happened and what follows from it. A delivered message normally has none.
+   */
+  notes?: string[];
+  /**
+   * A technical detail kept for triage and NOT rendered — an MX lookup that came back inconclusive, or the mail transport’s own error string. Discarding it would leave nothing to look at when delivery goes wrong.
+   */
+  diagnostic?: string;
+  /**
+   * When screening reached this verdict (ISO 8601).
+   */
+  screenedAt: string;
+}
+export interface UserMessageContext {
+  /**
+   * Route the sender was on, e.g. `/events/london-meetup`.
+   */
+  path?: string;
+  /**
+   * Absolute URL of the host page embedding the widget.
+   */
+  hostUrl?: string;
+  /**
+   * Locale the sender was browsing in.
+   */
+  locale?: string;
+  /**
+   * Error text/stack the sender was reporting, when the message is a crash report.
+   */
+  error?: string;
+  /**
+   * The sender's user-agent string.
+   */
+  userAgent?: string;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5195,6 +5165,30 @@ export interface WmWebConfig {
   id: number;
   homePage: number | Page;
   /**
+   * Languages We Meditate is offered in. Drives the site’s language picker and the hreflang links on every page. A language can only be selected once the We Meditate Web translations are published in it — publish that global in the language first. Publishing all locales at once includes empty ones, so publish deliberately.
+   */
+  availableLocales: (
+    | 'en'
+    | 'es'
+    | 'de'
+    | 'it'
+    | 'fr'
+    | 'ru'
+    | 'ro'
+    | 'cs'
+    | 'uk'
+    | 'el'
+    | 'hy'
+    | 'pl'
+    | 'pt-BR'
+    | 'fa'
+    | 'bg'
+    | 'tr'
+    | 'en-AU'
+    | 'hu'
+    | 'nl'
+  )[];
+  /**
    * Audience(s) the public We Meditate Web site targets for audience-gated content (e.g. related lectures). The site has no per-user login, so this fixed set is what it passes as the `audiences` param.
    */
   audiences: (number | Audience)[];
@@ -5227,54 +5221,88 @@ export interface WmWebConfig {
  */
 export interface WmWebTranslation {
   id: number;
-  common?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  navigation?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  footer?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  page_tags?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  errors?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  common?: WmWebTranslationsCommonStrings;
+  navigation?: WmWebTranslationsNavigationStrings;
+  footer?: WmWebTranslationsFooterStrings;
+  page_tags?: WmWebTranslationsPageTagsStrings;
+  errors?: WmWebTranslationsErrorsStrings;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+export interface WmWebTranslationsCommonStrings {
+  /**
+   * Loading indicator text shown while content is being fetched.
+   */
+  loading?: string;
+  /**
+   * Generic error message shown when something goes wrong.
+   */
+  error?: string;
+  /**
+   * Button text to retry a failed action.
+   */
+  retry?: string;
+}
+export interface WmWebTranslationsNavigationStrings {
+  /**
+   * Primary navigation link opening the "About Meditation" knowledge section.
+   */
+  about_meditation?: string;
+  /**
+   * Navigation link to educational content and resources.
+   */
+  learn_more?: string;
+  /**
+   * Call-to-action navigation link inviting users to start meditating.
+   */
+  come_meditate?: string;
+  /**
+   * Label for the language selector in the header/navigation.
+   */
+  languages?: string;
+  /**
+   * Action link inviting users to find in-person meditation classes near their location (frontend: "Classes near me").
+   */
+  classes_near_me?: string;
+}
+export interface WmWebTranslationsFooterStrings {
+  /**
+   * Heading for the footer's "Info" column, which lists informational pages (about, contact, privacy, etc.) (frontend: "Info").
+   */
+  info?: string;
+}
+export interface WmWebTranslationsPageTagsStrings {
+  /**
+   * Category label for pages tagged "Wisdom" (frontend: "Wisdom").
+   */
+  wisdom?: string;
+  /**
+   * Category label for pages tagged "Lifestyle" (frontend: "Lifestyle").
+   */
+  lifestyle?: string;
+  /**
+   * Category label for pages tagged "Creativity" (frontend: "Creativity").
+   */
+  creativity?: string;
+  /**
+   * Category label for pages tagged "Event" (frontend: "Event").
+   */
+  event?: string;
+  /**
+   * Category label for pages tagged "Technique" (frontend: "Technique").
+   */
+  technique?: string;
+}
+export interface WmWebTranslationsErrorsStrings {
+  /**
+   * Error shown on a meditation page when the meditation has no playable audio source (frontend: "This meditation is missing a required audio URL.").
+   */
+  meditation_missing_audio?: string;
+  /**
+   * Error shown on a lecture page when the lecture has no playable video source (frontend: "This lecture is missing a playable video source.").
+   */
+  lecture_missing_video?: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5384,15 +5412,7 @@ export interface WmAppConfig {
 export interface WmAppTranslation {
   id: number;
   onboarding?: {
-    welcome?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    welcome?: WmAppTranslationsOnboardingWelcomeStrings;
     /**
      * Inline legal disclaimer below the primary CTAs. Renders two inline links to the in-app Terms and Privacy Policy webviews (URLs use the wemeditate://legal/* scheme — see ticket for full reference). Translators control word order, link placement, and the connector between the two link labels.
      */
@@ -5411,33 +5431,9 @@ export interface WmAppTranslation {
       };
       [k: string]: unknown;
     } | null;
-    name?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    greeting?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    user_type?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    name?: WmAppTranslationsOnboardingNameStrings;
+    greeting?: WmAppTranslationsOnboardingGreetingStrings;
+    user_type?: WmAppTranslationsOnboardingUserTypeStrings;
     /**
      * Screen title prompt (e.g. 'Have you tried Sahaja Yoga before?'). The brand fragment 'Sahaja Yoga' is rendered as a bold inline span; translators may choose a different word to bold or apply no bold per locale convention.
      */
@@ -5456,15 +5452,7 @@ export interface WmAppTranslation {
       };
       [k: string]: unknown;
     } | null;
-    carousel?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    carousel?: WmAppTranslationsOnboardingCarouselStrings;
     /**
      * Slide 2 title (e.g. 'Get to know your true self'). The 'true self' fragment is rendered as a bold inline span; the Flutter renderer may also apply an accent colour to bolded segments on this slide.
      */
@@ -5483,15 +5471,7 @@ export interface WmAppTranslation {
       };
       [k: string]: unknown;
     } | null;
-    consent_modal?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    consent_modal?: WmAppTranslationsOnboardingConsentModalStrings;
     /**
      * Third paragraph listing categories that are never sent for advertising (mood, goals, hand sensations, reflections, class location, spiritual-practice details). Lead phrase 'We'll never share' is rendered as a bold inline span. Must remain consistent with the privacy filter in analytics-simplified/03-marketing-event-taxonomy.md §2.
      */
@@ -5548,192 +5528,32 @@ export interface WmAppTranslation {
     } | null;
   };
   daily?: {
-    main?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    common?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    load_info?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    main?: WmAppTranslationsDailyMainStrings;
+    common?: WmAppTranslationsDailyCommonStrings;
+    load_info?: WmAppTranslationsDailyLoadInfoStrings;
   };
   path?: {
-    overview?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    info?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    step_1?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    step_2?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    step_3?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    step_4?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    step_complete?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    overview?: WmAppTranslationsPathOverviewStrings;
+    info?: WmAppTranslationsPathInfoStrings;
+    step_1?: WmAppTranslationsPathStep1Strings;
+    step_2?: WmAppTranslationsPathStep2Strings;
+    step_3?: WmAppTranslationsPathStep3Strings;
+    step_4?: WmAppTranslationsPathStep4Strings;
+    step_complete?: WmAppTranslationsPathStepCompleteStrings;
   };
   explore?: {
-    overview?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    subtle_system?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    talks_intro?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    talks_list?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    talks_player?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    overview?: WmAppTranslationsExploreOverviewStrings;
+    subtle_system?: WmAppTranslationsExploreSubtleSystemStrings;
+    talks_intro?: WmAppTranslationsExploreTalksIntroStrings;
+    talks_list?: WmAppTranslationsExploreTalksListStrings;
+    talks_player?: WmAppTranslationsExploreTalksPlayerStrings;
   };
   profile?: {
-    main?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    favourites?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    history?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    account?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    privacy?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    main?: WmAppTranslationsProfileMainStrings;
+    favourites?: WmAppTranslationsProfileFavouritesStrings;
+    history?: WmAppTranslationsProfileHistoryStrings;
+    account?: WmAppTranslationsProfileAccountStrings;
+    privacy?: WmAppTranslationsProfilePrivacyStrings;
     /**
      * Third paragraph of the advertising section. Covers both the never-shared categories AND the never-sell statement in a single paragraph with two bold spans ('We'll never share' / 'we never sell'). Must remain consistent with analytics-simplified/03-marketing-event-taxonomy.md §2.
      */
@@ -5770,44 +5590,12 @@ export interface WmAppTranslation {
       };
       [k: string]: unknown;
     } | null;
-    contact?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    contact?: WmAppTranslationsProfileContactStrings;
   };
   meditation?: {
-    intent?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    reminder?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    footsoak?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    intent?: WmAppTranslationsMeditationIntentStrings;
+    reminder?: WmAppTranslationsMeditationReminderStrings;
+    footsoak?: WmAppTranslationsMeditationFootsoakStrings;
     /**
      * Body copy of the foot-soak screen. Contains a short emphasised span (typically italic, e.g. 'really') that translators position freely within the sentence.
      */
@@ -5826,80 +5614,16 @@ export interface WmAppTranslation {
       };
       [k: string]: unknown;
     } | null;
-    player?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    vibes_check?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    feedback?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    player?: WmAppTranslationsMeditationPlayerStrings;
+    vibes_check?: WmAppTranslationsMeditationVibesCheckStrings;
+    feedback?: WmAppTranslationsMeditationFeedbackStrings;
   };
   auth?: {
-    common?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    login?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    restore_password?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    restore_password_email_sent?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    create_account?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    common?: WmAppTranslationsAuthCommonStrings;
+    login?: WmAppTranslationsAuthLoginStrings;
+    restore_password?: WmAppTranslationsAuthRestorePasswordStrings;
+    restore_password_email_sent?: WmAppTranslationsAuthRestorePasswordEmailSentStrings;
+    create_account?: WmAppTranslationsAuthCreateAccountStrings;
     /**
      * Consent checkbox label on the account creation screen. Contains two inline links (Terms & Conditions, Privacy Policy) opening the corresponding in-app webviews (wemeditate://legal/terms, wemeditate://legal/privacy). Independent of the ad-measurement consent.
      */
@@ -5919,27 +5643,1967 @@ export interface WmAppTranslation {
       [k: string]: unknown;
     } | null;
   };
-  navigation?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  general?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  navigation?: WmAppTranslationsNavigationStrings;
+  general?: WmAppTranslationsGeneralStrings;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+export interface WmAppTranslationsOnboardingWelcomeStrings {
+  /**
+   * Hero title on the welcome screen. Short greeting (e.g. 'Welcome, friend').
+   */
+  title?: string;
+  /**
+   * Hero subtitle below the welcome title.
+   */
+  subtitle?: string;
+  /**
+   * Primary CTA that begins onboarding for a new user.
+   */
+  get_started?: string;
+  /**
+   * Secondary CTA for returning users who already have an account.
+   */
+  use_existing_account?: string;
+  /**
+   * Title of the in-app webview screen that displays the Privacy Policy. The Privacy Policy body itself is the CMS page referenced by wm-app-config.privacyPolicyPage, not a translation string.
+   */
+  privacy_policy_title?: string;
+  /**
+   * Title of the in-app webview screen that displays the Terms & Conditions. The body itself is the CMS page referenced by wm-app-config.termsAndConditionsPage.
+   */
+  terms_and_conditions_title?: string;
+  /**
+   * Error toast shown when the OS cannot find an installed email client to handle a mailto: link from the welcome screen.
+   */
+  email_app_unavailable?: string;
+  /**
+   * Generic error toast shown when an inline link on the welcome screen fails to open.
+   */
+  link_open_failed?: string;
+}
+export interface WmAppTranslationsOnboardingNameStrings {
+  /**
+   * Screen prompt asking the user for their name (e.g. “What’s your name?”).
+   */
+  title?: string;
+  /**
+   * Input field placeholder hint for the name field.
+   */
+  placeholder?: string;
+  /**
+   * Primary CTA to confirm the entered name and continue onboarding.
+   */
+  continue?: string;
+}
+export interface WmAppTranslationsOnboardingGreetingStrings {
+  /**
+   * Multi-line greeting prefix shown above the user’s name. Preserve the embedded line breaks (\n) — they control where the text wraps in the hero layout.
+   */
+  message_prefix?: string;
+}
+export interface WmAppTranslationsOnboardingUserTypeStrings {
+  /**
+   * Primary CTA used after the user picks their classification.
+   */
+  get_started?: string;
+  /**
+   * Selectable option for users completely new to meditation. Maps to userType = user-complete-beginner.
+   */
+  option_complete_beginner?: string;
+  /**
+   * Selectable option for users who have tried meditation before but not deeply. Maps to userType = user-tried-before.
+   */
+  option_tried_before?: string;
+  /**
+   * Selectable option for users currently in an in-person or online newcomer class. Maps to userType = user-attending-classes.
+   */
+  option_attending_classes?: string;
+  /**
+   * Selectable option for long-time Sahaja Yoga practitioners. Maps to userType = yogi (excluded from the ad-measurement path).
+   */
+  option_yogi?: string;
+}
+export interface WmAppTranslationsOnboardingCarouselStrings {
+  /**
+   * Slide 1 title (e.g. 'A moment of peace').
+   */
+  page_moment_title?: string;
+  /**
+   * Slide 1 supporting copy.
+   */
+  page_moment_subtitle?: string;
+  /**
+   * Slide 2 supporting copy.
+   */
+  page_true_self_subtitle?: string;
+  /**
+   * Slide 3 title (e.g. 'Unlock your potential').
+   */
+  page_unlock_potential_title?: string;
+  /**
+   * Slide 3 supporting copy.
+   */
+  page_unlock_potential_subtitle?: string;
+}
+export interface WmAppTranslationsOnboardingConsentModalStrings {
+  /**
+   * Modal title (e.g. 'Help spread the word').
+   */
+  title?: string;
+  /**
+   * Second paragraph explaining the benefits of granting consent (improving campaigns, using donations responsibly, suppressing ads to existing users, reaching similar people).
+   */
+  body_benefits?: string;
+  /**
+   * Fifth paragraph telling the user they can change this anytime via Settings → Privacy & advertising. Preserve the arrow character (→) or substitute the locale equivalent.
+   */
+  body_settings_hint?: string;
+  /**
+   * Primary CTA granting consent (sets adsMarketingConsent = true).
+   */
+  allow?: string;
+  /**
+   * Decline CTA. Decline is a single tap and must not block account creation (see analytics-simplified/05-flutter-implementation.md §9).
+   */
+  reject?: string;
+}
+export interface WmAppTranslationsDailyMainStrings {
+  /**
+   * Primary CTA on the hero card that begins the suggested meditation.
+   */
+  start_meditation?: string;
+  /**
+   * Compact CTA used on secondary cards to start a meditation immediately.
+   */
+  start_now?: string;
+  /**
+   * CTA on the Path promo card when the user has not started the course.
+   */
+  start_course?: string;
+  /**
+   * CTA on the Path promo card when the user has progress to resume.
+   */
+  continue_course?: string;
+  /**
+   * Long-form variant of start_course used in alternate layouts.
+   */
+  start_the_course?: string;
+  /**
+   * Long-form variant of continue_course used in alternate layouts.
+   */
+  continue_the_course?: string;
+  /**
+   * Accessibility / link label inviting the user to scroll down to the Path section.
+   */
+  scroll_to_the_path?: string;
+  /**
+   * Eyebrow label above the Path promo block (typically uppercase, e.g. 'THE PATH: GOING DEEPER').
+   */
+  the_path_going_deeper?: string;
+  /**
+   * Hero title used in the morning time-of-day variant.
+   */
+  your_morning_meditation?: string;
+  /**
+   * Hero title used in the afternoon time-of-day variant.
+   */
+  your_afternoon_meditation?: string;
+  /**
+   * Hero title used in the evening time-of-day variant.
+   */
+  your_evening_meditation?: string;
+  /**
+   * Hero subtitle for the morning variant. Preserve the embedded line break (\n) — it controls hero layout.
+   */
+  morning_meditation_subtitle?: string;
+  /**
+   * Hero subtitle for the afternoon variant. Preserve the embedded line break (\n).
+   */
+  afternoon_meditation_subtitle?: string;
+  /**
+   * Hero subtitle for the evening variant.
+   */
+  evening_meditation_subtitle?: string;
+  /**
+   * Title of the Path promo card on Home. Preserve the embedded line break (\n).
+   */
+  path_going_deeper_title?: string;
+  /**
+   * Subtitle of the Path promo card on Home.
+   */
+  path_going_deeper_subtitle?: string;
+  /**
+   * Eyebrow label above the Shri Mataji talks section on Home (typically uppercase).
+   */
+  learn_from_source?: string;
+  /**
+   * Eyebrow chip label on the hero card for pre-activation users (‘Get started’).
+   */
+  hero_label_get_started?: string;
+  /**
+   * Eyebrow chip label on the hero card encouraging variation.
+   */
+  hero_label_try_something_new?: string;
+  /**
+   * Eyebrow chip label on the hero card promoting Shri Mataji content.
+   */
+  hero_label_learn_from_source?: string;
+  /**
+   * Eyebrow chip label on the hero card promoting community sessions.
+   */
+  hero_label_meditate_with_others?: string;
+  /**
+   * Eyebrow chip label on the hero card promoting discovery / Explore.
+   */
+  hero_label_discover?: string;
+  /**
+   * Section title of the Shri Mataji talks block on Home.
+   */
+  shri_mataji_talks_title?: string;
+  /**
+   * Section subtitle of the Shri Mataji talks block on Home.
+   */
+  shri_mataji_talks_subtitle?: string;
+  /**
+   * Inline link/CTA to expand a section or view more items.
+   */
+  see_more?: string;
+  /**
+   * Eyebrow above the priority chooser on Home, daytime variant (typically uppercase).
+   */
+  whats_your_priority_today?: string;
+  /**
+   * Eyebrow above the priority chooser on Home, evening variant (typically uppercase).
+   */
+  whats_your_priority_tonight?: string;
+  /**
+   * Chip tag label categorising priority-chooser cards.
+   */
+  whats_your_priority_tag?: string;
+  /**
+   * Chip tag label categorising community-session cards.
+   */
+  meditate_with_others_tag?: string;
+  /**
+   * Chip tag label categorising improvement / techniques cards.
+   */
+  improve_meditation_tag?: string;
+  /**
+   * Quick-meditation card title (morning). Preserve the embedded line break (\n).
+   */
+  quick_morning?: string;
+  /**
+   * Quick-meditation card title (afternoon). Preserve the embedded line break (\n) and quoted punctuation.
+   */
+  quick_afternoon?: string;
+  /**
+   * Quick-meditation card title (evening). Preserve the embedded line break (\n).
+   */
+  quick_evening?: string;
+  /**
+   * Card title for the longer/personalised session. Preserve the embedded line break (\n).
+   */
+  longer_session?: string;
+  /**
+   * Card title inviting users to find a meditation matched to a current feeling. Preserve the embedded line break (\n).
+   */
+  help_me_deal?: string;
+  /**
+   * Title of the follow-up screen after the user taps the 'Help me deal' card. Preserve the embedded line break (\n).
+   */
+  help_me_deal_custom_title?: string;
+  /**
+   * Card title promoting deeper exploration of the practice. Preserve the embedded line break (\n).
+   */
+  explore_deeper?: string;
+  /**
+   * Locked-state label shown on cards gated behind the first meditation.
+   */
+  unlock_guided_meditations?: string;
+  /**
+   * Eyebrow above the community block on Home (typically uppercase).
+   */
+  meditate_with_others?: string;
+  /**
+   * Community card inviting the user to find a local in-person class. Preserve the embedded line break (\n).
+   */
+  find_class_near_you?: string;
+  /**
+   * Community card inviting the user to join a live online class. Preserve the embedded line break (\n).
+   */
+  join_live_online_class?: string;
+  /**
+   * Eyebrow above the improvement / techniques block on Home (typically uppercase).
+   */
+  improve_your_meditation?: string;
+  /**
+   * Title of the Techniques card in the Improve block.
+   */
+  improve_card_techniques_title?: string;
+  /**
+   * Subtitle of the Techniques card in the Improve block.
+   */
+  improve_card_techniques_subtitle?: string;
+  /**
+   * Title of the Subtle System card in the Improve block.
+   */
+  improve_card_subtle_system_title?: string;
+  /**
+   * Subtitle of the Subtle System card in the Improve block.
+   */
+  improve_card_subtle_system_subtitle?: string;
+  /**
+   * Eyebrow above the Highlights carousel on Home (typically uppercase).
+   */
+  highlights_title?: string;
+  /**
+   * Title used on the resume-card prompting the user back into the flow. Preserve the embedded line break (\n).
+   */
+  get_back_in_the_flow?: string;
+  /**
+   * Badge shown on the live-meditation card when a live session is currently in progress.
+   */
+  live_now?: string;
+  /**
+   * Short abbreviation for minutes used in card chips (e.g. 'min').
+   */
+  minutes_short?: string;
+  /**
+   * Unit label for the days portion of the live-meditation countdown.
+   */
+  live_countdown_days?: string;
+  /**
+   * Unit label for the hours portion of the live-meditation countdown.
+   */
+  live_countdown_hours?: string;
+  /**
+   * Unit label for the minutes portion of the live-meditation countdown.
+   */
+  live_countdown_minutes?: string;
+  /**
+   * Label shown on the live-meditation reminder button when a 30-minute reminder is already scheduled.
+   */
+  live_reminder_button_active?: string;
+  /**
+   * Title of the scheduled local notification that reminds the user about an upcoming live meditation.
+   */
+  live_reminder_notification_title?: string;
+  /**
+   * Body of the scheduled local notification that reminds the user about an upcoming live meditation.
+   */
+  live_reminder_notification_body?: string;
+  /**
+   * Inline message shown after the user denies the notification permission required for live-meditation reminders.
+   */
+  live_reminder_permission_denied?: string;
+  /**
+   * Inline message asking the user to enable notifications in OS Settings to receive live-meditation reminders.
+   */
+  live_reminder_permission_settings?: string;
+}
+export interface WmAppTranslationsDailyCommonStrings {
+  /**
+   * Locked-state message shown on Home cards that are gated behind completing the first meditation.
+   */
+  unlock_after_first_meditation?: string;
+  /**
+   * Placeholder shown when the Path tile on Home is not yet available for the current user/locale.
+   */
+  path_coming_soon?: string;
+  /**
+   * Generic error message shown on Home when a section fails to load.
+   */
+  something_went_wrong?: string;
+  /**
+   * Retry CTA used on Home error states.
+   */
+  retry?: string;
+  /**
+   * Toast shown when an external link card on Home is not yet wired up.
+   */
+  external_link_coming_soon?: string;
+  /**
+   * Toast shown when tapping a Home card whose action is not yet implemented.
+   */
+  card_action_not_available?: string;
+  /**
+   * Placeholder shown for the in-person class finder on Home before the feature ships.
+   */
+  map_coming_soon?: string;
+  /**
+   * Placeholder shown for the music section on Home before the feature ships.
+   */
+  music_coming_soon?: string;
+}
+export interface WmAppTranslationsDailyLoadInfoStrings {
+  /**
+   * Banner shown when the hero Daily meditation could not be resolved at all.
+   */
+  top_daily_unavailable?: string;
+  /**
+   * Banner shown when the hero Daily meditation failed to load due to a network or content error.
+   */
+  top_daily_failed?: string;
+  /**
+   * Banner shown when the hero Daily meditation has been replaced by a random meditation fallback.
+   */
+  top_daily_random?: string;
+  /**
+   * Banner shown when the Quick meditations row could not be resolved.
+   */
+  quick_daily_unavailable?: string;
+  /**
+   * Banner shown when the Quick meditations row failed to load.
+   */
+  quick_daily_failed?: string;
+  /**
+   * Banner shown when the Quick meditations row has been replaced by random fallbacks.
+   */
+  quick_daily_random?: string;
+}
+export interface WmAppTranslationsPathOverviewStrings {
+  /**
+   * Error message shown when the Path tab fails to load.
+   */
+  error_message?: string;
+  /**
+   * Eyebrow label above each unit on the Path overview (typically uppercase, e.g. 'UNIT').
+   */
+  unit?: string;
+  /**
+   * Retry CTA on the Path error state.
+   */
+  retry?: string;
+  /**
+   * Placeholder shown at the bottom of the Path when no further steps are released yet (typically uppercase).
+   */
+  more_steps_coming_soon?: string;
+}
+export interface WmAppTranslationsPathInfoStrings {
+  /**
+   * Carousel slide 1 title.
+   */
+  first_title?: string;
+  /**
+   * Carousel slide 1 body. Two paragraphs separated by \\n\\n in the source.
+   */
+  first_text?: string;
+  /**
+   * Carousel slide 2 title.
+   */
+  second_title?: string;
+  /**
+   * Carousel slide 2 body. Two paragraphs separated by \\n\\n in the source.
+   */
+  second_text?: string;
+  /**
+   * Carousel slide 3 title.
+   */
+  third_title?: string;
+  /**
+   * Carousel slide 3 body. Two paragraphs separated by \\n\\n in the source.
+   */
+  third_text?: string;
+}
+export interface WmAppTranslationsPathStep1Strings {
+  /**
+   * Default intro quote used when no CMS-driven quote is available.
+   */
+  default_intro_quote?: string;
+  /**
+   * Attribution under the intro quote.
+   */
+  author?: string;
+  /**
+   * Primary CTA that begins step 1.
+   */
+  begin?: string;
+  /**
+   * Title of the exit-confirmation prompt shown when the user tries to leave step 1 early.
+   */
+  skip_title?: string;
+  /**
+   * CTA on the exit-confirmation prompt that keeps the user inside step 1.
+   */
+  skip_continue?: string;
+  /**
+   * CTA on the exit-confirmation prompt that returns the user to the Path overview.
+   */
+  back_to_path?: string;
+}
+export interface WmAppTranslationsPathStep2Strings {
+  /**
+   * Continue CTA used in step 2 screens.
+   */
+  continue_button?: string;
+}
+export interface WmAppTranslationsPathStep3Strings {
+  /**
+   * Eyebrow above the step 3 meditation intro (typically uppercase).
+   */
+  meditation_intro?: string;
+  /**
+   * Default calm copy shown before a Path step's meditation or video starts (e.g. 'find a quiet place\ntake a breath'). Used when a step does not override it via the lesson's preMeditationLines field. Preserve the embedded line breaks (\n) — they are intentional and control where each line wraps.
+   */
+  pre_meditation_lines?: string;
+  /**
+   * Inline action that opens the skip-intro confirmation.
+   */
+  skip_intro?: string;
+  /**
+   * Primary CTA that starts the step 3 meditation.
+   */
+  start_meditation?: string;
+  /**
+   * Title of the skip-intro confirmation prompt.
+   */
+  skip_title?: string;
+  /**
+   * Confirm CTA on the skip-intro prompt that jumps to the meditation.
+   */
+  skip_continue?: string;
+  /**
+   * Decline CTA on the skip-intro prompt that returns to the intro.
+   */
+  back_to_intro?: string;
+  /**
+   * Exit CTA used on the step 3 screen.
+   */
+  exit?: string;
+  /**
+   * Back CTA returning the user to the step overview.
+   */
+  back_to_step?: string;
+}
+export interface WmAppTranslationsPathStep4Strings {
+  /**
+   * Eyebrow on the step 4 screen (typically uppercase).
+   */
+  delving_deeper?: string;
+  /**
+   * Prompt above the lecture media inviting the user to keep meditating while listening.
+   */
+  lecture_prompt?: string;
+  /**
+   * Fallback title used on the lecture media card when no CMS-driven title is available. Source uses curly quotes “” intentionally.
+   */
+  media_card_fallback_title?: string;
+  /**
+   * Author label on the lecture media card (e.g. 'Talk by Shri Mataji').
+   */
+  media_card_author?: string;
+  /**
+   * Author subtitle on the lecture media card (e.g. 'The founder of Sahaja Yoga').
+   */
+  media_card_author_subtitle?: string;
+  /**
+   * Secondary CTA on the lecture media card.
+   */
+  media_card_watch_later?: string;
+  /**
+   * Primary CTA that completes step 4.
+   */
+  complete_step?: string;
+}
+export interface WmAppTranslationsPathStepCompleteStrings {
+  /**
+   * Title of the step-complete confirmation.
+   */
+  title?: string;
+  /**
+   * Subtitle of the step-complete confirmation.
+   */
+  subtitle?: string;
+  /**
+   * CTA returning the user to the Path overview after completing a step.
+   */
+  back_to_path?: string;
+}
+export interface WmAppTranslationsExploreOverviewStrings {
+  /**
+   * Eyebrow label for the embedded Explore block.
+   */
+  section_label?: string;
+  /**
+   * Section header for the Meditate column.
+   */
+  section_meditate_title?: string;
+  /**
+   * Section header for the Learn column.
+   */
+  section_learn_title?: string;
+  /**
+   * Section header for the Join Free Classes column.
+   */
+  section_join_title?: string;
+  /**
+   * Card title for the Daily entry in the Explore block.
+   */
+  card_daily_title?: string;
+  /**
+   * Card subtitle for the Daily entry in the Explore block.
+   */
+  card_daily_subtitle?: string;
+  /**
+   * Card title for the Path entry in the Explore block.
+   */
+  card_path_title?: string;
+  /**
+   * Card subtitle for the Path entry in the Explore block.
+   */
+  card_path_subtitle?: string;
+  /**
+   * Card title for the Techniques entry in the Explore block.
+   */
+  card_techniques_title?: string;
+  /**
+   * Card subtitle for the Techniques entry in the Explore block.
+   */
+  card_techniques_subtitle?: string;
+  /**
+   * Card title for the Vibes Check entry in the Explore block.
+   */
+  card_vibes_check_title?: string;
+  /**
+   * Card subtitle for the Vibes Check entry in the Explore block.
+   */
+  card_vibes_check_subtitle?: string;
+  /**
+   * Card title for the Music for Meditation entry in the Explore block.
+   */
+  card_music_title?: string;
+  /**
+   * Card title for the Challenges entry in the Explore block.
+   */
+  card_challenges_title?: string;
+  /**
+   * Card title for the Shri Mataji Talks entry in the Explore block. Preserve the embedded line break (\n).
+   */
+  card_talks_title?: string;
+  /**
+   * Card title for the Subtle System entry in the Explore block.
+   */
+  card_subtle_system_title?: string;
+  /**
+   * Card title for the 'Who is Shri Mataji' entry in the Explore block. Preserve the embedded line break (\n).
+   */
+  card_who_is_title?: string;
+  /**
+   * Card title for the 'What is Sahaja Yoga?' entry in the Explore block.
+   */
+  card_what_is_title?: string;
+  /**
+   * Card title for the Live Online Classes entry in the Explore block. Preserve the embedded line break (\n).
+   */
+  card_live_online_title?: string;
+  /**
+   * Card title for the in-person class finder entry in the Explore block. Preserve the embedded line break (\n).
+   */
+  card_find_classes_title?: string;
+  /**
+   * Generic 'Coming soon' badge used on locked Explore-block cards.
+   */
+  card_coming_soon?: string;
+}
+export interface WmAppTranslationsExploreSubtleSystemStrings {
+  /**
+   * Eyebrow / route label for the subtle-system screen.
+   */
+  screen_label?: string;
+  /**
+   * Diagram title.
+   */
+  diagram_title?: string;
+  /**
+   * Diagram subtitle prompting the user to tap to learn more.
+   */
+  diagram_subtitle?: string;
+  /**
+   * Tab label switching the diagram to chakra view.
+   */
+  mode_chakras?: string;
+  /**
+   * Tab label switching the diagram to channel view.
+   */
+  mode_channels?: string;
+  /**
+   * Caption clarifying that the diagram shows a front view (left/right are mirrored relative to the viewer).
+   */
+  front_view_mirrored?: string;
+  /**
+   * Filter chip label for the Right channel.
+   */
+  chip_right?: string;
+  /**
+   * Filter chip label for the Center channel.
+   */
+  chip_center?: string;
+  /**
+   * Filter chip label for the Left channel.
+   */
+  chip_left?: string;
+  /**
+   * Detail label for the Right Aspect of a chakra.
+   */
+  aspect_right?: string;
+  /**
+   * Detail label for the Center Aspect of a chakra.
+   */
+  aspect_center?: string;
+  /**
+   * Detail label for the Left Aspect of a chakra.
+   */
+  aspect_left?: string;
+}
+export interface WmAppTranslationsExploreTalksIntroStrings {
+  /**
+   * Inline message when a talk is temporarily unavailable to play.
+   */
+  unavailable?: string;
+  /**
+   * Title of the talks intro screen.
+   */
+  title?: string;
+  /**
+   * Long-form description of Shri Mataji and Sahaja Yoga used as fallback intro copy when a specific talk-clip description is unavailable.
+   */
+  generic_description?: string;
+  /**
+   * Short clip-level description shown before a specific talk clip starts.
+   */
+  clip_description?: string;
+  /**
+   * Speaker name shown on the talk card placed after the first meditation (e.g. 'Shri Mataji,'). The trailing comma is intentional — it precedes the role line.
+   */
+  post_first_meditation_name?: string;
+  /**
+   * Speaker role/subtitle on the post-first-meditation talk card (e.g. 'The founder of Sahaja Yoga').
+   */
+  post_first_meditation_subtitle?: string;
+  /**
+   * Body copy on the post-first-meditation talk card.
+   */
+  post_first_meditation_description?: string;
+  /**
+   * Primary CTA that begins the talk.
+   */
+  start?: string;
+  /**
+   * Decline CTA on the post-first-meditation talk card.
+   */
+  maybe_later?: string;
+  /**
+   * Alternative CTA used on inline talk placements.
+   */
+  watch_now?: string;
+}
+export interface WmAppTranslationsExploreTalksListStrings {
+  /**
+   * Eyebrow / route title for the talks list screen (typically uppercase).
+   */
+  screen_title?: string;
+  /**
+   * Section title above the list.
+   */
+  section_title?: string;
+  /**
+   * Section description above the list.
+   */
+  description?: string;
+  /**
+   * Default filter chip label ('All tags').
+   */
+  all_tags?: string;
+  /**
+   * Inline link/CTA opening more information about a talk.
+   */
+  learn_more?: string;
+  /**
+   * Card CTA that begins a talk.
+   */
+  start?: string;
+  /**
+   * Status label shown on talks that the user has already watched.
+   */
+  watched?: string;
+}
+export interface WmAppTranslationsExploreTalksPlayerStrings {
+  /**
+   * Error message shown when the player cannot load the requested talk.
+   */
+  unavailable?: string;
+  /**
+   * Player play-control label.
+   */
+  play?: string;
+  /**
+   * Player pause-control label.
+   */
+  pause?: string;
+  /**
+   * Player replay-control label.
+   */
+  replay?: string;
+  /**
+   * Title of the subtitles bottom sheet.
+   */
+  subtitles_title?: string;
+  /**
+   * Subtitles option label disabling captions.
+   */
+  subtitles_off?: string;
+  /**
+   * Subtitles language label — English.
+   */
+  subtitles_english?: string;
+  /**
+   * Subtitles language label — Turkish.
+   */
+  subtitles_turkish?: string;
+  /**
+   * Subtitles language label — Bulgarian.
+   */
+  subtitles_bulgarian?: string;
+  /**
+   * Subtitles language label — Brazilian Portuguese.
+   */
+  subtitles_portuguese_brazil?: string;
+  /**
+   * Subtitles language label — French.
+   */
+  subtitles_french?: string;
+  /**
+   * Subtitles language label — Spanish.
+   */
+  subtitles_spanish?: string;
+}
+export interface WmAppTranslationsProfileMainStrings {
+  /**
+   * Eyebrow above the favourites preview block on Profile (typically uppercase).
+   */
+  favourites_header?: string;
+  /**
+   * Inline link expanding a preview block to its full screen.
+   */
+  see_all?: string;
+  /**
+   * Empty-state title in the favourites preview block.
+   */
+  no_favourites_title?: string;
+  /**
+   * Empty-state subtitle in the favourites preview block.
+   */
+  no_favourites_subtitle?: string;
+  /**
+   * Title of the History entry in the Profile menu.
+   */
+  history_title?: string;
+  /**
+   * Subtitle of the History entry in the Profile menu.
+   */
+  history_subtitle?: string;
+  /**
+   * Title of the Account entry in the Profile menu.
+   */
+  account_title?: string;
+  /**
+   * Subtitle of the Account entry in the Profile menu.
+   */
+  account_subtitle?: string;
+  /**
+   * Title of the Privacy & advertising entry in the Profile menu — opens the consent settings screen (see consent.settings).
+   */
+  privacy_and_advertising_title?: string;
+  /**
+   * Subtitle of the Privacy & Advertising entry in the Profile menu (e.g. 'Privacy choices and ad preferences').
+   */
+  privacy_and_advertising_subtitle?: string;
+  /**
+   * Eyebrow above the feedback block on Profile (typically uppercase).
+   */
+  feedback_header?: string;
+  /**
+   * Title of the Contact us entry in the Profile menu.
+   */
+  contact_title?: string;
+  /**
+   * Subtitle of the Contact us entry in the Profile menu.
+   */
+  contact_subtitle?: string;
+  /**
+   * Fallback joined-date string when no usable creation timestamp is available.
+   */
+  joined_fallback?: string;
+  /**
+   * Joined-date string for exactly one month ago (singular).
+   */
+  joined_one_month?: string;
+  /**
+   * Joined-date string for the multi-month range. MUST preserve the {months} placeholder — it is replaced at runtime with the month count.
+   */
+  joined_months?: string;
+  /**
+   * Joined-date string for less than a year ago (fallback before the months-since helper).
+   */
+  joined_less_than_year?: string;
+  /**
+   * Joined-date string for exactly one year ago (singular).
+   */
+  joined_one_year?: string;
+  /**
+   * Joined-date string for multiple years ago. MUST preserve the {years} placeholder — it is replaced at runtime with the year count.
+   */
+  joined_years?: string;
+  /**
+   * Section header above the legal-page navigation rows in the Profile menu (typically capitalised, e.g. 'LEGAL'). Sits between the Contact-us feedback row and the Privacy Policy / Terms & Conditions / Privacy & Advertising rows.
+   */
+  legal_header?: string;
+  /**
+   * Title of the Privacy Policy entry in the Profile menu's Legal section. Tapping opens the Privacy Policy page (CMS page id 73).
+   */
+  privacy_policy_title?: string;
+  /**
+   * Subtitle of the Privacy Policy entry in the Profile menu's Legal section (e.g. 'How we collect and use data').
+   */
+  privacy_policy_subtitle?: string;
+  /**
+   * Title of the Terms & Conditions entry in the Profile menu's Legal section. Tapping opens the Terms & Conditions page (CMS page id 76).
+   */
+  terms_and_conditions_title?: string;
+  /**
+   * Subtitle of the Terms & Conditions entry in the Profile menu's Legal section (e.g. 'Legal terms for using WeMeditate').
+   */
+  terms_and_conditions_subtitle?: string;
+}
+export interface WmAppTranslationsProfileFavouritesStrings {
+  /**
+   * Screen title (typically uppercase).
+   */
+  title?: string;
+  /**
+   * Snackbar shown after a favourite is removed (paired with the global Undo action from the general group).
+   */
+  removed_from_favourites?: string;
+}
+export interface WmAppTranslationsProfileHistoryStrings {
+  /**
+   * Screen title (typically uppercase).
+   */
+  title?: string;
+  /**
+   * Empty-state title when the user has no history entries.
+   */
+  empty_title?: string;
+  /**
+   * Empty-state subtitle when the user has no history entries.
+   */
+  empty_subtitle?: string;
+}
+export interface WmAppTranslationsProfileAccountStrings {
+  /**
+   * Screen title.
+   */
+  title?: string;
+  /**
+   * Eyebrow above the details block (typically uppercase).
+   */
+  details_header?: string;
+  /**
+   * Label for the name input.
+   */
+  name_label?: string;
+  /**
+   * Placeholder hint for the name input.
+   */
+  name_hint?: string;
+  /**
+   * Save CTA used on inline forms.
+   */
+  save?: string;
+  /**
+   * Loading-state label shown on the Save CTA while saving.
+   */
+  saving?: string;
+  /**
+   * Confirmation toast shown after settings are saved.
+   */
+  saved?: string;
+  /**
+   * Label used by the dedicated first-name edit row.
+   */
+  first_name_label?: string;
+  /**
+   * Label used by the email row.
+   */
+  email_label?: string;
+  /**
+   * Label used by the password row.
+   */
+  password_label?: string;
+  /**
+   * Edit CTA used on read-only rows that open an edit modal.
+   */
+  edit_action?: string;
+  /**
+   * Title of the edit-first-name modal.
+   */
+  edit_first_name_title?: string;
+  /**
+   * Title of the edit-email modal.
+   */
+  edit_email_title?: string;
+  /**
+   * Cancel CTA used in edit modals.
+   */
+  cancel?: string;
+  /**
+   * Primary CTA in edit modals.
+   */
+  save_changes?: string;
+  /**
+   * Error shown when saving account settings fails.
+   */
+  save_failed?: string;
+  /**
+   * Title of the reset-password modal.
+   */
+  reset_password_title?: string;
+  /**
+   * Body copy of the reset-password modal.
+   */
+  reset_password_description?: string;
+  /**
+   * Primary CTA in the reset-password modal.
+   */
+  reset_password_action?: string;
+  /**
+   * Confirmation toast shown after the reset link has been emailed.
+   */
+  reset_password_sent?: string;
+  /**
+   * Error shown when sending the reset link fails.
+   */
+  reset_password_error?: string;
+  /**
+   * Toast shown when email editing is not yet available.
+   */
+  email_edit_unavailable?: string;
+  /**
+   * Inline placeholder shown when no email is available for the account.
+   */
+  email_unavailable?: string;
+  /**
+   * CTA shown for guest users prompting them to create an account.
+   */
+  create_account?: string;
+  /**
+   * Title of the delete-account confirmation.
+   */
+  delete_account_title?: string;
+  /**
+   * Body copy of the delete-account confirmation.
+   */
+  delete_account_description?: string;
+  /**
+   * Error shown when delete-account fails.
+   */
+  delete_account_error?: string;
+  /**
+   * Error shown when delete-account requires the user to log in again first.
+   */
+  delete_account_requires_recent_login?: string;
+  /**
+   * Title of the password re-entry modal used before destructive actions.
+   */
+  reauthenticate_title?: string;
+  /**
+   * Body copy of the password re-entry modal.
+   */
+  reauthenticate_description?: string;
+  /**
+   * Validation error shown when the password field is empty in the re-entry modal.
+   */
+  reauthenticate_required?: string;
+  /**
+   * Error shown when the re-entered password is incorrect.
+   */
+  reauthenticate_invalid?: string;
+  /**
+   * Primary CTA on the password re-entry modal.
+   */
+  continue_action?: string;
+  /**
+   * Inline prompt shown on the email row for guest users.
+   */
+  guest_email_prompt?: string;
+  /**
+   * Inline prompt shown on the password row for guest users.
+   */
+  guest_password_prompt?: string;
+  /**
+   * Login CTA used in the guest prompts.
+   */
+  login?: string;
+  /**
+   * Logout CTA in the account screen.
+   */
+  logout?: string;
+  /**
+   * Inline link opening the Privacy Policy webview from the account screen.
+   */
+  privacy_policy?: string;
+  /**
+   * Destructive CTA opening the delete-account flow.
+   */
+  delete_account?: string;
+}
+export interface WmAppTranslationsProfilePrivacyStrings {
+  /**
+   * Screen title (e.g. 'Help spread the word and make the app better').
+   */
+  screen_title?: string;
+  /**
+   * Status label shown next to a toggle that is currently allowed. MUST preserve the {date} placeholder — it is replaced at runtime with the localized date of the most recent consent decision (e.g. '16 May 2026').
+   */
+  status_allowed?: string;
+  /**
+   * Status label shown next to a toggle that is currently disallowed.
+   */
+  status_not_allowed?: string;
+  /**
+   * Section title for the anonymous product analytics toggle (e.g. 'Anonymous product analytics'). Drives productAnalyticsOptOut.
+   */
+  product_analytics_title?: string;
+  /**
+   * Section body explaining anonymous product analytics: we log aggregated usage data to fix bugs and improve We Meditate, no individual data, no advertisers, no user profile. Must remain consistent with the TelemetryDeck posture in analytics-simplified/01-strategy.md §4.
+   */
+  product_analytics_description?: string;
+  /**
+   * Section title for the advertising-measurement toggle (e.g. 'Advertising measurement and improvement'). Drives adsMarketingConsent.
+   */
+  advertising_title?: string;
+  /**
+   * Second paragraph of the advertising section: how granting consent helps WeMeditate use donations responsibly, improve campaigns, suppress ads to existing users, and reach similar people.
+   */
+  advertising_body_benefits?: string;
+  /**
+   * Fourth paragraph of the advertising section explaining that the user can change their choice anytime using the toggle at the top of this screen.
+   */
+  advertising_body_change_hint?: string;
+  /**
+   * Sub-section header listing current advertising platforms (e.g. 'Current advertising platforms').
+   */
+  advertising_platforms_header?: string;
+  /**
+   * Bullet item for Meta (Facebook + Instagram + Audience Network). Brand name — usually kept as 'Meta'.
+   */
+  advertising_platform_meta?: string;
+  /**
+   * Bullet item for Google Ads. Brand name — usually kept as 'Google Ads'.
+   */
+  advertising_platform_google_ads?: string;
+  /**
+   * Bullet item for Apple Search Ads. Brand name — usually kept as 'Apple Search Ads'.
+   */
+  advertising_platform_apple_search_ads?: string;
+  /**
+   * Section header above the legal-page navigation rows at the bottom of the Privacy & Advertising screen (e.g. 'Learn more'). Below this header sit the Privacy Policy and Terms & Conditions rows, which reuse the same labels as the Profile-tab Legal section.
+   */
+  learn_more_header?: string;
+  /**
+   * Title of the Privacy Policy row in the Learn-more section at the bottom of the Privacy & Advertising screen. Tapping opens the Privacy Policy page (CMS page id 73). Reuses the same English label as profile_main.privacy_policy_title.
+   */
+  privacy_policy_title?: string;
+  /**
+   * Subtitle of the Privacy Policy row in the Learn-more section (e.g. 'How we collect and use data').
+   */
+  privacy_policy_subtitle?: string;
+  /**
+   * Title of the Terms & Conditions row in the Learn-more section at the bottom of the Privacy & Advertising screen. Tapping opens the Terms & Conditions page (CMS page id 76).
+   */
+  terms_and_conditions_title?: string;
+  /**
+   * Subtitle of the Terms & Conditions row in the Learn-more section (e.g. 'Legal terms for using WeMeditate').
+   */
+  terms_and_conditions_subtitle?: string;
+}
+export interface WmAppTranslationsProfileContactStrings {
+  /**
+   * Screen title (typically uppercase).
+   */
+  title?: string;
+  /**
+   * Hero copy above the form.
+   */
+  header?: string;
+  /**
+   * Subtitle below the hero copy.
+   */
+  subtitle?: string;
+  /**
+   * Input field placeholder hint for the feedback text area.
+   */
+  placeholder?: string;
+  /**
+   * Submit CTA on the form.
+   */
+  send?: string;
+  /**
+   * Loading-state label shown on the Submit CTA while sending.
+   */
+  sending?: string;
+  /**
+   * Confirmation toast shown after the feedback is sent.
+   */
+  sent?: string;
+  /**
+   * Validation error shown when the feedback field is empty.
+   */
+  empty_error?: string;
+  /**
+   * Validation error shown when the feedback is shorter than the minimum length (50 characters).
+   */
+  min_length_error?: string;
+  /**
+   * Error shown when sending the feedback fails.
+   */
+  send_error?: string;
+}
+export interface WmAppTranslationsMeditationIntentStrings {
+  /**
+   * Continue CTA on the intent carousel.
+   */
+  carousel_continue?: string;
+  /**
+   * Skip-link shown over the intent video that lets the user proceed without watching.
+   */
+  skip_video_and_continue?: string;
+  /**
+   * Replay-link shown after the intent video ends.
+   */
+  repeat_video?: string;
+  /**
+   * Primary CTA that starts the actual meditation after the intent flow.
+   */
+  start_meditation?: string;
+  /**
+   * Tertiary CTA letting a new user skip the first meditation and just browse the app. Tied to the onboarding_ready_action / skip_and_explore_app_press analytics event.
+   */
+  skip_and_explore_the_app?: string;
+  /**
+   * Step indicator (e.g. 'Step 1 of 3') at the top of the intent flow.
+   */
+  step_label?: string;
+  /**
+   * Intent screen title shown during the day. Preserve the embedded line break (\n).
+   */
+  title_today?: string;
+  /**
+   * Intent screen title shown in the evening. Preserve the embedded line break (\n).
+   */
+  title_tonight?: string;
+  /**
+   * Title of the locked first-meditation card before activation.
+   */
+  first_meditation_title?: string;
+  /**
+   * Subtitle of the locked first-meditation card.
+   */
+  first_meditation_subtitle?: string;
+  /**
+   * Title shown when a returning user is invited to repeat the first meditation.
+   */
+  repeat_first_meditation_title?: string;
+  /**
+   * Subtitle shown when a returning user is invited to repeat the first meditation.
+   */
+  repeat_first_meditation_subtitle?: string;
+  /**
+   * Title shown on the 'ready to try?' confirmation step before starting the first meditation.
+   */
+  ready_to_try_title?: string;
+  /**
+   * Subtitle for the 'ready to try?' step, beginner variant.
+   */
+  ready_to_try_subtitle_beginner?: string;
+  /**
+   * Subtitle for the 'ready to try?' step, repeat variant.
+   */
+  ready_to_try_subtitle_repeat?: string;
+  /**
+   * Title of the morning quick-meditation card in the intent flow.
+   */
+  quick_morning_title?: string;
+  /**
+   * Title of the afternoon quick-meditation card in the intent flow.
+   */
+  quick_afternoon_title?: string;
+  /**
+   * Title of the evening quick-meditation card in the intent flow.
+   */
+  quick_evening_title?: string;
+  /**
+   * Subtitle of the morning quick-meditation card.
+   */
+  quick_morning_subtitle?: string;
+  /**
+   * Subtitle of the afternoon quick-meditation card. Preserve the embedded line break (\n).
+   */
+  quick_afternoon_subtitle?: string;
+  /**
+   * Subtitle of the evening quick-meditation card.
+   */
+  quick_evening_subtitle?: string;
+  /**
+   * Title of the personalised long-session card in the intent flow.
+   */
+  personalized_title?: string;
+  /**
+   * Subtitle of the personalised long-session card.
+   */
+  personalized_subtitle?: string;
+  /**
+   * Subtitle shown on cards that are locked until the user completes their first meditation.
+   */
+  locked_subtitle?: string;
+  /**
+   * Inline link/CTA used on intent-flow cards to view more detail.
+   */
+  learn_more?: string;
+  /**
+   * CTA on a locked card that takes the user back to the first meditation flow.
+   */
+  go_to_first_meditation?: string;
+  /**
+   * CTA opening the 'schedule for later' bottom sheet.
+   */
+  set_reminder_for_later?: string;
+  /**
+   * Title shown in the locked-preview card for Quick meditations (‘Start right away’).
+   */
+  locked_quick_start_title?: string;
+  /**
+   * Locked-preview description for morning Quick meditations.
+   */
+  locked_quick_start_description_morning?: string;
+  /**
+   * Locked-preview description for afternoon Quick meditations.
+   */
+  locked_quick_start_description_afternoon?: string;
+  /**
+   * Locked-preview description for evening Quick meditations.
+   */
+  locked_quick_start_description_evening?: string;
+  /**
+   * Title of the custom-time row in the Quick locked preview.
+   */
+  locked_quick_custom_time_title?: string;
+  /**
+   * Description of the custom-time row in the Quick locked preview.
+   */
+  locked_quick_custom_time_description?: string;
+  /**
+   * Title of the feeling-picker row in the Personalised locked preview.
+   */
+  locked_personalized_feeling_title?: string;
+  /**
+   * Description of the feeling-picker row in the Personalised locked preview.
+   */
+  locked_personalized_feeling_description?: string;
+  /**
+   * Title of the custom-time row in the Personalised locked preview.
+   */
+  locked_personalized_custom_time_title?: string;
+  /**
+   * Description of the custom-time row in the Personalised locked preview.
+   */
+  locked_personalized_custom_time_description?: string;
+}
+export interface WmAppTranslationsMeditationReminderStrings {
+  /**
+   * Title of the prompt that suggests scheduling the first meditation for later. Preserve the embedded line break (\n).
+   */
+  prompt_title?: string;
+  /**
+   * Subtitle of the same scheduling prompt. Preserve the embedded line break (\n).
+   */
+  prompt_subtitle?: string;
+  /**
+   * Primary CTA on the scheduling prompt.
+   */
+  prompt_set_reminder?: string;
+  /**
+   * Decline CTA on the scheduling prompt.
+   */
+  prompt_no_thanks?: string;
+  /**
+   * Title of the rationale screen explaining why notification permission is needed before showing the OS prompt.
+   */
+  prompt_allow_notifications_title?: string;
+  /**
+   * Subtitle of the same rationale screen. References the wording on the next (OS) screen — keep 'Allow' consistent with the OS prompt translation if locale-specific.
+   */
+  prompt_allow_notifications_subtitle?: string;
+  /**
+   * Primary CTA on the notification-rationale screen that triggers the OS permission prompt.
+   */
+  prompt_allow_notifications_primary?: string;
+  /**
+   * Decline CTA on the notification-rationale screen.
+   */
+  prompt_not_now?: string;
+  /**
+   * Title shown when notifications were previously denied and need to be re-enabled from OS Settings.
+   */
+  prompt_turn_on_notifications_title?: string;
+  /**
+   * Subtitle of the same 'open Settings' prompt.
+   */
+  prompt_turn_on_notifications_subtitle?: string;
+  /**
+   * CTA that deep-links to the app’s OS notification settings.
+   */
+  prompt_open_settings?: string;
+  /**
+   * Title of the bottom sheet where the user picks a reminder time. Preserve the embedded line break (\n).
+   */
+  sheet_title?: string;
+  /**
+   * Dismiss action on the reminder bottom sheet.
+   */
+  sheet_dont_set?: string;
+  /**
+   * Confirm CTA on the reminder bottom sheet.
+   */
+  sheet_done?: string;
+  /**
+   * CTA letting the user return to the meditation flow from the reminder sheet.
+   */
+  sheet_return_to_meditation?: string;
+  /**
+   * CTA letting the user exit the meditation flow from the reminder sheet.
+   */
+  sheet_leave_meditation?: string;
+  /**
+   * Title of the success confirmation after a reminder is scheduled.
+   */
+  sheet_success_title?: string;
+  /**
+   * Subtitle of the success confirmation after a reminder is scheduled.
+   */
+  sheet_success_subtitle?: string;
+  /**
+   * CTA on the success confirmation suggesting the user explores the app while waiting.
+   */
+  sheet_explore_app?: string;
+  /**
+   * CTA on the success confirmation suggesting the user starts the first meditation immediately instead.
+   */
+  sheet_start_first_meditation?: string;
+  /**
+   * Error toast shown when scheduling the reminder fails.
+   */
+  sheet_error?: string;
+  /**
+   * Preset chip label suggesting a reminder later the same day.
+   */
+  preset_unwind_later_today?: string;
+  /**
+   * Preset chip label suggesting a reminder at the start of the week.
+   */
+  preset_start_your_week_calm?: string;
+  /**
+   * Preset chip label suggesting a reminder midweek.
+   */
+  preset_find_your_midweek_balance?: string;
+  /**
+   * Preset chip label suggesting a recharge break.
+   */
+  preset_pause_and_recharge?: string;
+  /**
+   * Preset chip label suggesting a reminder before the weekend.
+   */
+  preset_mindful_break_before_weekend?: string;
+  /**
+   * Preset chip label suggesting a reminder at the end of the work week.
+   */
+  preset_end_your_week_with_peace?: string;
+  /**
+   * Preset chip label suggesting a weekend slow-down reminder.
+   */
+  preset_slow_down_weekend?: string;
+  /**
+   * Preset chip label suggesting a Sunday reset reminder.
+   */
+  preset_reset_for_week_ahead?: string;
+  /**
+   * Title of the scheduled local notification used by the generic meditation reminder.
+   */
+  notification_title?: string;
+  /**
+   * Notification body used when the meditation is still locked at the time the reminder fires.
+   */
+  notification_body_locked?: string;
+  /**
+   * Notification body used when the reminder is for a previously exited meditation.
+   */
+  notification_body_exit?: string;
+  /**
+   * Title of the dedicated full-screen rationale used when reminder scheduling requires notification permission.
+   */
+  allow_notifications_screen_title?: string;
+  /**
+   * Subtitle of the same full-screen rationale. Preserve the embedded line break (\n) and the trailing sparkle emoji (✨) if used in copy.
+   */
+  allow_notifications_screen_subtitle?: string;
+}
+export interface WmAppTranslationsMeditationFootsoakStrings {
+  /**
+   * Step indicator (e.g. 'Step 3 of 3') at the top of the foot-soak screen.
+   */
+  step_label?: string;
+  /**
+   * Screen title asking whether the user wants to foot-soak with this meditation.
+   */
+  title?: string;
+  /**
+   * Inline link/CTA opening the foot-soak tutorial.
+   */
+  tutorial_cta?: string;
+  /**
+   * Primary CTA that starts the meditation with a foot-soak.
+   */
+  start_with_footsoak?: string;
+  /**
+   * Secondary CTA that starts the meditation without a foot-soak.
+   */
+  start_meditation?: string;
+}
+export interface WmAppTranslationsMeditationPlayerStrings {
+  /**
+   * Error title shown when the meditation track fails to load in the player.
+   */
+  load_error_title?: string;
+}
+export interface WmAppTranslationsMeditationVibesCheckStrings {
+  /**
+   * Initial Vibes Check question shown before the per-hand prompt. Preserve the embedded line break (\n).
+   */
+  intro_question?: string;
+  /**
+   * Per-hand question prefix; combined with left_hand or right_hand and question_suffix to form the full prompt (e.g. 'What do you feel on your left hand?'). Preserve the trailing line break (\n).
+   */
+  question_prefix?: string;
+  /**
+   * Per-hand question suffix (typically ' hand?'). Include the leading space.
+   */
+  question_suffix?: string;
+  /**
+   * Inline noun for the left hand, plugged into the per-hand question template.
+   */
+  left_hand?: string;
+  /**
+   * Inline noun for the right hand, plugged into the per-hand question template.
+   */
+  right_hand?: string;
+  /**
+   * Selectable sensation: cool. Maps to raw selection 'cool' (first-party storage only).
+   */
+  cool?: string;
+  /**
+   * Selectable sensation: warm.
+   */
+  warm?: string;
+  /**
+   * Selectable sensation: fingers tingling.
+   */
+  fingers_tingling?: string;
+  /**
+   * Selectable sensation: nothing felt.
+   */
+  nothing?: string;
+  /**
+   * Primary CTA to confirm the current Vibes Check answer and continue.
+   */
+  continue_action?: string;
+  /**
+   * Skip-like CTA used when the user is unsure what they felt. Maps to derived firstMedExperience = not_sure.
+   */
+  not_sure?: string;
+  /**
+   * Acknowledge CTA at the end of the Vibes Check explanation.
+   */
+  got_it?: string;
+  /**
+   * Reassurance shown when the user selects 'nothing' for both hands.
+   */
+  interpretation_nothing?: string;
+  /**
+   * Intro line of the Vibes Check interpretation screen.
+   */
+  interpretation_intro?: string;
+  /**
+   * Per-hand detail copy in the Vibes Check interpretation screen.
+   */
+  interpretation_detail?: string;
+  /**
+   * Inline action that opens the skip-confirmation prompt.
+   */
+  skip_vibes_check?: string;
+  /**
+   * Title of the skip-confirmation prompt.
+   */
+  skip_prompt_title?: string;
+  /**
+   * Body copy of the skip-confirmation prompt.
+   */
+  skip_prompt_description?: string;
+  /**
+   * CTA returning the user from the skip prompt to the Vibes Check explanation.
+   */
+  back_to_explanation?: string;
+  /**
+   * Title of the prompt offering to restart the first meditation from the beginning.
+   */
+  return_to_meditation_prompt_title?: string;
+  /**
+   * Body copy of the same restart prompt.
+   */
+  return_to_meditation_prompt_description?: string;
+  /**
+   * Primary CTA on the restart prompt.
+   */
+  return_to_meditation_action?: string;
+  /**
+   * Decline CTA on the restart prompt.
+   */
+  skip_it?: string;
+}
+export interface WmAppTranslationsMeditationFeedbackStrings {
+  /**
+   * Form title.
+   */
+  title?: string;
+  /**
+   * Form description / prompt for free-text feedback.
+   */
+  description?: string;
+  /**
+   * Validation error shown when the feedback is shorter than the minimum length (50 characters).
+   */
+  error_length?: string;
+  /**
+   * Input field placeholder hint for the feedback text area.
+   */
+  hint?: string;
+  /**
+   * Submit CTA on the feedback form.
+   */
+  send?: string;
+  /**
+   * Title of the thank-you confirmation after the feedback is submitted.
+   */
+  thank_you?: string;
+  /**
+   * Body of the thank-you confirmation. Preserve the embedded line breaks (\n) — they control the hero layout.
+   */
+  thank_you_description?: string;
+  /**
+   * Close CTA on the thank-you confirmation.
+   */
+  close?: string;
+}
+export interface WmAppTranslationsAuthCommonStrings {
+  /**
+   * Divider label between email and social-provider auth options.
+   */
+  or?: string;
+  /**
+   * Social-auth button label for Apple Sign-In.
+   */
+  continue_with_apple?: string;
+  /**
+   * Social-auth button label for Google Sign-In.
+   */
+  continue_with_google?: string;
+  /**
+   * Social-auth button label for Facebook Sign-In.
+   */
+  continue_with_facebook?: string;
+  /**
+   * Auth-method button label that opens the email/password flow.
+   */
+  continue_with_email?: string;
+  /**
+   * Generic cancel CTA used on auth modals and prompts.
+   */
+  cancel?: string;
+  /**
+   * Validation error shown when the email field is empty.
+   */
+  error_enter_email?: string;
+  /**
+   * Validation error shown when the email field is not a valid email.
+   */
+  error_invalid_email?: string;
+  /**
+   * Validation error shown when the password field is empty.
+   */
+  error_enter_password?: string;
+  /**
+   * Validation error shown when the password is shorter than the minimum length (6 characters).
+   */
+  error_password_min_length?: string;
+}
+export interface WmAppTranslationsAuthLoginStrings {
+  /**
+   * Login screen title.
+   */
+  title?: string;
+  /**
+   * Label for the email input.
+   */
+  email_label?: string;
+  /**
+   * Placeholder hint for the email input.
+   */
+  email_placeholder?: string;
+  /**
+   * Label for the password input.
+   */
+  password_label?: string;
+  /**
+   * Placeholder hint for the password input.
+   */
+  password_placeholder?: string;
+  /**
+   * Primary CTA on the login form.
+   */
+  next?: string;
+  /**
+   * Loading-state label shown on the primary CTA while sign-in is in flight.
+   */
+  signing_in?: string;
+  /**
+   * Link opening the password recovery flow.
+   */
+  forgot_password?: string;
+  /**
+   * Tertiary link that routes the user to account creation instead of login.
+   */
+  continue_as_new_user?: string;
+  /**
+   * Title of the branch shown when the entered email has no matching account.
+   */
+  account_not_found_title?: string;
+  /**
+   * Subtitle of the same branch.
+   */
+  account_not_found_subtitle?: string;
+  /**
+   * Title of the branch shown when the entered email matches an account that uses a different sign-in method.
+   */
+  account_exists_title?: string;
+  /**
+   * Subtitle of the same branch. MUST preserve the {providers} placeholder — it is replaced at runtime with the localized provider list (e.g. 'Google or Apple').
+   */
+  account_exists_subtitle?: string;
+  /**
+   * CTA on the account-not-found branch routing the user to account creation.
+   */
+  create_new_account?: string;
+  /**
+   * CTA on the account-not-found branch letting the user re-enter a different email.
+   */
+  try_different_account?: string;
+  /**
+   * Fallback value injected into the {providers} placeholder when the existing provider list is empty or unresolved.
+   */
+  account_exists_existing_provider_fallback?: string;
+  /**
+   * CTA on the account-exists branch that reopens the login flow.
+   */
+  open_login?: string;
+  /**
+   * Error shown when the email-continuation branch cannot proceed.
+   */
+  error_cannot_continue_with_email?: string;
+  /**
+   * Error shown for invalid email/password combinations.
+   */
+  error_invalid_credentials?: string;
+  /**
+   * Error shown when sign-in is rate-limited.
+   */
+  error_too_many_requests?: string;
+  /**
+   * Error shown when sign-in succeeds at Firebase but the local session cannot be persisted.
+   */
+  error_session_persistence?: string;
+  /**
+   * Generic sign-in failure error.
+   */
+  error_generic?: string;
+}
+export interface WmAppTranslationsAuthRestorePasswordStrings {
+  /**
+   * Password recovery screen title.
+   */
+  title?: string;
+  /**
+   * Body copy explaining the recovery-link flow.
+   */
+  description?: string;
+  /**
+   * Label for the email input on the recovery form.
+   */
+  email_label?: string;
+  /**
+   * Placeholder hint for the email input on the recovery form.
+   */
+  email_placeholder?: string;
+  /**
+   * Primary CTA submitting the recovery request.
+   */
+  submit?: string;
+  /**
+   * Validation error on the recovery form for an invalid email.
+   */
+  error_invalid_email?: string;
+}
+export interface WmAppTranslationsAuthRestorePasswordEmailSentStrings {
+  /**
+   * Confirmation message. Preserve the embedded line break (\n).
+   */
+  message?: string;
+  /**
+   * Acknowledge CTA on the confirmation.
+   */
+  ok?: string;
+}
+export interface WmAppTranslationsAuthCreateAccountStrings {
+  /**
+   * Sheet / modal title shown in the navigation chrome.
+   */
+  title?: string;
+  /**
+   * Hero title on the account creation screen.
+   */
+  screen_title?: string;
+  /**
+   * Hero subtitle on the account creation screen.
+   */
+  screen_subtitle?: string;
+  /**
+   * Tertiary action allowing a guest user to skip account creation.
+   */
+  skip_and_explore?: string;
+  /**
+   * Validation error shown when the user tries to submit without checking the consent box.
+   */
+  error_check_consent?: string;
+  /**
+   * Label for the email input.
+   */
+  email_label?: string;
+  /**
+   * Placeholder hint for the email input.
+   */
+  email_placeholder?: string;
+  /**
+   * Label for the password input.
+   */
+  password_label?: string;
+  /**
+   * Placeholder hint for the password input.
+   */
+  password_placeholder?: string;
+  /**
+   * Primary CTA submitting account creation.
+   */
+  submit?: string;
+  /**
+   * Loading-state label shown on the primary CTA while account creation is in flight.
+   */
+  creating?: string;
+  /**
+   * Error shown when the email is already associated with an account.
+   */
+  error_email_in_use?: string;
+  /**
+   * CTA on the email-in-use branch redirecting to login.
+   */
+  login_with_existing_account?: string;
+  /**
+   * Validation error for an invalid email.
+   */
+  error_invalid_email?: string;
+  /**
+   * Validation error for a password shorter than the minimum length.
+   */
+  error_weak_password?: string;
+  /**
+   * Error shown when account creation is rate-limited.
+   */
+  error_too_many_requests?: string;
+  /**
+   * Error shown when the account is created but the local session cannot be persisted.
+   */
+  error_session_persistence?: string;
+  /**
+   * Generic account-creation failure error.
+   */
+  error_generic?: string;
+  /**
+   * Error shown when Google sign-in fails during account creation.
+   */
+  error_google_failed?: string;
+  /**
+   * Error shown when Apple sign-in fails during account creation.
+   */
+  error_apple_failed?: string;
+  /**
+   * Error shown when Facebook sign-in fails during account creation.
+   */
+  error_facebook_failed?: string;
+  /**
+   * Message shown when the user cancels the social-auth flow.
+   */
+  error_provider_cancelled?: string;
+}
+export interface WmAppTranslationsNavigationStrings {
+  /**
+   * Bottom-nav label for the Daily tab (home / today’s meditations).
+   */
+  daily?: string;
+  /**
+   * Bottom-nav label for the Path tab (guided learning course).
+   */
+  path?: string;
+  /**
+   * Bottom-nav label for the Explore tab (library of meditations, talks, techniques).
+   */
+  explore?: string;
+  /**
+   * Bottom-nav label for the Profile tab (account, history, favourites, settings).
+   */
+  profile?: string;
+}
+export interface WmAppTranslationsGeneralStrings {
+  /**
+   * Generic back action label (used as accessibility text and as a back button label).
+   */
+  back?: string;
+  /**
+   * Generic retry action label used on error states across the app.
+   */
+  retry?: string;
+  /**
+   * Generic undo action label used on snackbars and other transient confirmations.
+   */
+  undo?: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5947,90 +7611,13 @@ export interface WmAppTranslation {
  */
 export interface WmAppStatus {
   id: number;
-  /**
-   * Computed launch-readiness report for the userChoices section in the current locale.
-   */
-  userChoices?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Computed launch-readiness report for the lessons section in the current locale.
-   */
-  lessons?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Computed launch-readiness report for the lectures section in the current locale.
-   */
-  lectures?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Computed launch-readiness report for the pages section in the current locale.
-   */
-  pages?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Computed launch-readiness report for the appConfig section in the current locale.
-   */
-  appConfig?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Computed launch-readiness report for the translations section in the current locale.
-   */
-  translations?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Computed launch-readiness report for the appCards section in the current locale.
-   */
-  appCards?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  userChoices?: ReadinessReport;
+  lessons?: ReadinessReport;
+  lectures?: ReadinessReport;
+  pages?: ReadinessReport;
+  appConfig?: ReadinessReport;
+  translations?: ReadinessReport;
+  appCards?: ReadinessReport;
   /**
    * App cards that must be ready before launch. All other app cards roll up under the optional "other-cards" group.
    */
@@ -6291,6 +7878,74 @@ export interface WmAppStatus {
   updatedAt?: string | null;
   createdAt?: string | null;
 }
+export interface ReadinessReport {
+  groups: (
+    | {
+        type: 'documents';
+        key: string;
+        optional?: boolean;
+        documents: {
+          id: number | string;
+          label: string;
+          checks: {
+            key: string;
+            passed: boolean;
+          }[];
+        }[];
+        summary: {
+          total: number;
+          passing: number;
+        };
+        passing: boolean;
+        counter: {
+          current: number;
+          total: number;
+        };
+      }
+    | {
+        type: 'aggregate';
+        key: string;
+        optional?: boolean;
+        passed: boolean;
+        actual: number;
+        threshold: number;
+        items?: {
+          id: number | string;
+          label: string;
+          checks: {
+            key: string;
+            passed: boolean;
+          }[];
+        }[];
+        passing: boolean;
+        counter: {
+          current: number;
+          total: number;
+        };
+      }
+    | {
+        type: 'errored';
+        key: string;
+        optional?: boolean;
+        error: string;
+        passing: false;
+        counter: null;
+      }
+  )[];
+  summary: {
+    total: number;
+    passing: number;
+  };
+  optionalSummary?: {
+    total: number;
+    passing: number;
+  };
+  passing: boolean;
+  progress: {
+    passing: number;
+    total: number;
+  };
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sy-atlas-config".
@@ -6298,31 +7953,33 @@ export interface WmAppStatus {
 export interface SyAtlasConfig {
   id: number;
   /**
-   * Languages the atlas is offered in. Drives the widget’s language picker and the hreflang links on every atlas page, so removing one tells search engines that language is gone. Adding one needs a matching translation bundle in the widget — check with a developer first.
+   * Languages the atlas is offered in. Drives the widget’s language picker and the hreflang links on every atlas page. A language can only be selected once the Sahaj Atlas translations are published in it. Adding one also needs a matching translation bundle in the widget — check with a developer first.
    */
-  languages: {
-    code:
-      | 'en'
-      | 'es'
-      | 'de'
-      | 'it'
-      | 'fr'
-      | 'ru'
-      | 'ro'
-      | 'cs'
-      | 'uk'
-      | 'el'
-      | 'hy'
-      | 'pl'
-      | 'pt-BR'
-      | 'fa'
-      | 'bg'
-      | 'tr'
-      | 'en-AU'
-      | 'hu'
-      | 'nl';
-    id?: string | null;
-  }[];
+  availableLocales: (
+    | 'en'
+    | 'es'
+    | 'de'
+    | 'it'
+    | 'fr'
+    | 'ru'
+    | 'ro'
+    | 'cs'
+    | 'uk'
+    | 'el'
+    | 'hy'
+    | 'pl'
+    | 'pt-BR'
+    | 'fa'
+    | 'bg'
+    | 'tr'
+    | 'en-AU'
+    | 'hu'
+    | 'nl'
+  )[];
+  /**
+   * The client that owns every atlas page no other client claims — normally We Meditate. It must be published, have canonical ownership switched on, and have a verified embed; until all three hold, those pages keep the built-in We Meditate URLs and appear in no sitemap. Once all three hold, this also moves those pages’ canonical URLs onto the address that client’s embed was last verified at, in place of the built-in one — most of the atlas at once, and with no preview. Leave this empty to keep the built-in behaviour.
+   */
+  canonicalFallbackClient?: (number | null) | Client;
   defaultMapCenter: {
     latitude: number;
     longitude: number;
@@ -6337,123 +7994,1062 @@ export interface SyAtlasConfig {
  */
 export interface SyAtlasTranslation {
   id: number;
-  common?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  region?: {
-    locations?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    venues?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+  common?: {
+    chrome?: SyAtlasTranslationsCommonChromeStrings;
+    settings?: SyAtlasTranslationsCommonSettingsStrings;
+    errors?: SyAtlasTranslationsCommonErrorsStrings;
+    report?: SyAtlasTranslationsCommonReportStrings;
+    report_errors?: SyAtlasTranslationsCommonReportErrorsStrings;
+    map?: SyAtlasTranslationsCommonMapStrings;
+    feedback?: SyAtlasTranslationsCommonFeedbackStrings;
   };
+  countries?: SyAtlasTranslationsCountriesStrings;
+  search?: {
+    chrome?: SyAtlasTranslationsSearchChromeStrings;
+    results?: SyAtlasTranslationsSearchResultsStrings;
+    sort?: SyAtlasTranslationsSearchSortStrings;
+    country_site?: SyAtlasTranslationsSearchCountrySiteStrings;
+    nearby_prompt?: SyAtlasTranslationsSearchNearbyPromptStrings;
+  };
+  filters?: {
+    chrome?: SyAtlasTranslationsFiltersChromeStrings;
+    format?: SyAtlasTranslationsFiltersFormatStrings;
+    cadence?: SyAtlasTranslationsFiltersCadenceStrings;
+    days?: SyAtlasTranslationsFiltersDaysStrings;
+    time?: SyAtlasTranslationsFiltersTimeStrings;
+    language?: SyAtlasTranslationsFiltersLanguageStrings;
+    dates?: SyAtlasTranslationsFiltersDatesStrings;
+    region?: SyAtlasTranslationsFiltersRegionStrings;
+  };
+  online?: SyAtlasTranslationsOnlineStrings;
   event?: {
-    details?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    recurrence?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    timing?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    title?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    display?: SyAtlasTranslationsEventDisplayStrings;
+    actions?: SyAtlasTranslationsEventActionsStrings;
+    recurrence?: SyAtlasTranslationsEventRecurrenceStrings;
+    title?: SyAtlasTranslationsEventTitleStrings;
   };
+  calendar?: SyAtlasTranslationsCalendarStrings;
   registration?: {
-    form?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    errors?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    questions?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    form?: SyAtlasTranslationsRegistrationFormStrings;
+    errors?: SyAtlasTranslationsRegistrationErrorsStrings;
+    questions?: SyAtlasTranslationsRegistrationQuestionsStrings;
   };
-  share?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  emails?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  share?: SyAtlasTranslationsShareStrings;
+  compact?: SyAtlasTranslationsCompactStrings;
+  emails?: SyAtlasTranslationsEmailsStrings;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+export interface SyAtlasTranslationsCommonChromeStrings {
+  /**
+   * Peek-strip name for the root drawer, shown when a deeper view is open.
+   */
+  back?: string;
+  /**
+   * Peek-strip name that names its target view. `%{title}` = the parent view’s title.
+   */
+  back_to?: string;
+  /**
+   * Close control on every drawer, the report modal, the compact dialog, and the feedback banner.
+   */
+  close?: string;
+  /**
+   * Accessible label (aria-label) of the collapsed base drawer’s toggle.
+   */
+  explore?: string;
+  /**
+   * Screen-reader label of every loading spinner.
+   */
+  loading?: string;
+  /**
+   * Cancel button, shared by the registration form and the report form.
+   */
+  cancel?: string;
+  /**
+   * Landmark name (role="region") of the widget root, and the compact card’s heading. Must never be blank — it is how a screen-reader user finds the widget.
+   */
+  widget_label?: string;
+  /**
+   * Subtitle under the Region, Online, and Registration headers.
+   */
+  all_classes_free?: string;
+}
+export interface SyAtlasTranslationsCommonSettingsStrings {
+  /**
+   * Accessible label (aria-label) of the settings cog, and the settings drawer heading.
+   */
+  title?: string;
+  /**
+   * Theme row: follow the operating system’s light/dark setting.
+   */
+  theme_auto?: string;
+  /**
+   * Theme row: always dark.
+   */
+  theme_dark?: string;
+  /**
+   * Theme row: always light.
+   */
+  theme_light?: string;
+}
+export interface SyAtlasTranslationsCommonErrorsStrings {
+  /**
+   * Fallback message for an unclassified failure (ERROR_POLICY.unknown).
+   */
+  generic?: string;
+  /**
+   * Retry action on an error fallback.
+   */
+  retry?: string;
+  /**
+   * Message when the browser reports no network (ERROR_POLICY.offline).
+   */
+  offline?: string;
+  /**
+   * Message for a 5xx response from the API (ERROR_POLICY.server).
+   */
+  server?: string;
+  /**
+   * Message for an unrecognised route (ERROR_POLICY['not-found']).
+   */
+  not_found?: string;
+  /**
+   * Message shown when an event link points at an event that no longer exists.
+   */
+  not_found_event?: string;
+  /**
+   * Message shown when a region link points at a place that no longer exists.
+   */
+  not_found_region?: string;
+  /**
+   * Message when the host page embedded the widget without a usable API key (ERROR_POLICY.config).
+   */
+  config?: string;
+  /**
+   * Default reason shown in the registration-blocked row when no more specific reason applies.
+   */
+  unavailable?: string;
+  /**
+   * Message in the Share view when the event has no shareable URL.
+   */
+  share_unavailable?: string;
+  /**
+   * Message when the host page’s Content-Security-Policy blocked the Turnstile security check.
+   */
+  captcha_blocked?: string;
+  /**
+   * Empty-list message in the Region and Online views, when the place itself has no events.
+   */
+  no_events?: string;
+  /**
+   * Onward link back to the containing region. `%{region}` = region name.
+   */
+  back_to_region?: string;
+  /**
+   * Onward link to events near the visitor. `%{city}` = detected city name.
+   */
+  near_city?: string;
+  /**
+   * Onward link to the country list — the last rung of every error fallback.
+   */
+  browse_countries?: string;
+  /**
+   * Placeholder of the geocoder offered inside an error fallback.
+   */
+  search_label?: string;
+}
+export interface SyAtlasTranslationsCommonReportStrings {
+  /**
+   * Settings row, error-fallback action, and the report modal’s heading.
+   */
+  title?: string;
+  /**
+   * Introductory line under the report modal’s heading.
+   */
+  description?: string;
+  /**
+   * Label of the message textarea.
+   */
+  message_label?: string;
+  /**
+   * Placeholder of the message textarea.
+   */
+  message_placeholder?: string;
+  /**
+   * Label of the optional email field.
+   */
+  email_label?: string;
+  /**
+   * Helper text under the email field, explaining it is optional.
+   */
+  email_help?: string;
+  /**
+   * Placeholder of the email field — an example address.
+   */
+  email_placeholder?: string;
+  /**
+   * Submit button of the report form.
+   */
+  submit?: string;
+  /**
+   * Thank-you state shown after the report is accepted.
+   */
+  sent?: string;
+  /**
+   * Shown in place of the form when the security check could not load at all.
+   */
+  blocked?: string;
+}
+export interface SyAtlasTranslationsCommonReportErrorsStrings {
+  /**
+   * Validation: the email field holds something that is not an address.
+   */
+  email?: string;
+  /**
+   * Validation: the message is too short. `%{min}` = minimum character count.
+   */
+  message?: string;
+  /**
+   * Validation: the message is too long. `%{max}` = maximum character count.
+   */
+  message_max?: string;
+  /**
+   * Refusal: the security check was unavailable, or the send failed for an unnamed reason.
+   */
+  send_failed?: string;
+  /**
+   * Refusal: the security check expired and must be redone before sending.
+   */
+  captcha?: string;
+  /**
+   * Refusal: the email address belongs to a disposable-address provider.
+   */
+  disposable_email?: string;
+  /**
+   * Refusal: the message contains links, which are rejected as spam.
+   */
+  urls_not_allowed?: string;
+}
+export interface SyAtlasTranslationsCommonMapStrings {
+  /**
+   * Label of the geolocate control.
+   */
+  find_my_location?: string;
+  /**
+   * Label of the geolocate control once the browser has refused or failed to supply a location.
+   */
+  location_not_available?: string;
+}
+export interface SyAtlasTranslationsCommonFeedbackStrings {
+  /**
+   * Banner heading after the registrant confirms the class took place.
+   */
+  confirmed_title?: string;
+  /**
+   * Banner body after the registrant confirms the class took place.
+   */
+  confirmed_body?: string;
+  /**
+   * Banner heading after the registrant reports the class could not be found.
+   */
+  denied_title?: string;
+  /**
+   * Banner body after the registrant reports the class could not be found.
+   */
+  denied_body?: string;
+  /**
+   * Banner link to other nearby classes, on the Event and Region views.
+   */
+  nearby?: string;
+  /**
+   * Banner line pointing at the list already on screen, on the Region view.
+   */
+  below?: string;
+}
+export interface SyAtlasTranslationsCountriesStrings {
+  /**
+   * Heading of the base drawer, and the drawer stack’s document title.
+   */
+  title?: string;
+}
+export interface SyAtlasTranslationsSearchChromeStrings {
+  /**
+   * Search view heading, and its peek-strip name.
+   */
+  title?: string;
+  /**
+   * Placeholder of the geocoder input, in every header that carries one.
+   */
+  placeholder?: string;
+}
+export interface SyAtlasTranslationsSearchResultsStrings {
+  /**
+   * Button that reveals the next page of results.
+   */
+  more?: string;
+  /**
+   * Button that widens the search radius beyond the nearby band.
+   */
+  farther?: string;
+  /**
+   * Result-count line. `%{shown}` = results rendered, `%{total}` = results found.
+   */
+  showing?: string;
+  /**
+   * Message when a search found nothing inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres.
+   */
+  no_nearby?: string;
+}
+export interface SyAtlasTranslationsSearchSortStrings {
+  /**
+   * Label of the sort menu.
+   */
+  label?: string;
+  /**
+   * Sort option: the default blend of distance and imminence.
+   */
+  recommended?: string;
+  /**
+   * Sort option: nearest first.
+   */
+  closest?: string;
+  /**
+   * Sort option: next to start first.
+   */
+  soonest?: string;
+}
+export interface SyAtlasTranslationsSearchCountrySiteStrings {
+  /**
+   * Message that the country has no listings here yet. `%{country}` = country name.
+   */
+  title?: string;
+  /**
+   * Onward link to that country’s own website. `%{country}` = country name.
+   */
+  cta?: string;
+}
+export interface SyAtlasTranslationsSearchNearbyPromptStrings {
+  /**
+   * Prompt question. `%{city}` = detected city name.
+   */
+  title?: string;
+  /**
+   * Control that hides the prompt for this visit.
+   */
+  dismiss?: string;
+}
+export interface SyAtlasTranslationsFiltersChromeStrings {
+  /**
+   * Filter view heading, and its peek-strip name.
+   */
+  title?: string;
+  /**
+   * Button that closes the drawer and applies the selection.
+   */
+  apply?: string;
+  /**
+   * Action that clears every filter at once.
+   */
+  clear?: string;
+  /**
+   * Action that clears a single filter section.
+   */
+  clear_one?: string;
+  /**
+   * Accessible label of an active-filter chip’s remove button. `%{label}` = the filter’s own label.
+   */
+  remove?: string;
+  /**
+   * Chip text when no time-of-day filter is set.
+   */
+  any_time?: string;
+  /**
+   * Empty-list message when the filters, rather than the place, excluded everything.
+   */
+  no_results?: string;
+}
+export interface SyAtlasTranslationsFiltersFormatStrings {
+  /**
+   * Section label of the format filter.
+   */
+  label?: string;
+  /**
+   * Format option: no preference.
+   */
+  any?: string;
+  /**
+   * Format option: classes with a physical venue.
+   */
+  offline?: string;
+  /**
+   * Format option: classes held online.
+   */
+  online?: string;
+}
+export interface SyAtlasTranslationsFiltersCadenceStrings {
+  /**
+   * Section label of the frequency filter.
+   */
+  label?: string;
+  /**
+   * Frequency option: no preference.
+   */
+  any?: string;
+  /**
+   * Frequency option: repeats every day.
+   */
+  daily?: string;
+  /**
+   * Frequency option: repeats weekly.
+   */
+  weekly?: string;
+  /**
+   * Frequency option: repeats monthly.
+   */
+  monthly?: string;
+  /**
+   * Frequency option: a single occasion, not a series.
+   */
+  once?: string;
+}
+export interface SyAtlasTranslationsFiltersDaysStrings {
+  /**
+   * Section label of the day-of-week filter.
+   */
+  label?: string;
+}
+export interface SyAtlasTranslationsFiltersTimeStrings {
+  /**
+   * Section label of the time-of-day filter.
+   */
+  label?: string;
+  /**
+   * Time-of-day option: morning.
+   */
+  morning?: string;
+  /**
+   * Time-of-day option: afternoon.
+   */
+  afternoon?: string;
+  /**
+   * Time-of-day option: evening.
+   */
+  evening?: string;
+  /**
+   * Time-of-day option: night.
+   */
+  night?: string;
+}
+export interface SyAtlasTranslationsFiltersLanguageStrings {
+  /**
+   * Section label of the language filter.
+   */
+  label?: string;
+  /**
+   * Language option: no preference.
+   */
+  all?: string;
+  /**
+   * Shown when no class in view declares a language.
+   */
+  empty?: string;
+}
+export interface SyAtlasTranslationsFiltersDatesStrings {
+  /**
+   * Section label of the date filter.
+   */
+  label?: string;
+  /**
+   * Label of the range’s start input.
+   */
+  from?: string;
+  /**
+   * Label of the range’s end input.
+   */
+  to?: string;
+  /**
+   * Chip for an open-ended range with a start. `%{date}` = start date.
+   */
+  pill_from?: string;
+  /**
+   * Chip for an open-ended range with an end. `%{date}` = end date.
+   */
+  pill_until?: string;
+  /**
+   * Chip for a closed range. `%{start}` = start date, `%{end}` = end date.
+   */
+  pill_range?: string;
+}
+export interface SyAtlasTranslationsFiltersRegionStrings {
+  /**
+   * Section label of the region filter.
+   */
+  label?: string;
+  /**
+   * Region option: no preference.
+   */
+  all?: string;
+  /**
+   * Placeholder of the region search input.
+   */
+  search?: string;
+  /**
+   * Shown when the region search matches nothing.
+   */
+  empty?: string;
+}
+export interface SyAtlasTranslationsOnlineStrings {
+  /**
+   * Online view heading, its row on the Countries list, its link on a Region, and its peek-strip name.
+   */
+  title?: string;
+}
+export interface SyAtlasTranslationsEventDisplayStrings {
+  /**
+   * Section heading above the event description.
+   */
+  about?: string;
+  /**
+   * Suffix appended after the event title in the standalone page <title>.
+   */
+  free_meditation_class?: string;
+  /**
+   * Status chip: the event has no places left.
+   */
+  chip_full?: string;
+  /**
+   * Status chip and when-line: the next session is today.
+   */
+  chip_today?: string;
+  /**
+   * Status chip: the event is over.
+   */
+  chip_ended?: string;
+  /**
+   * Status chip for an event that has not begun. `%{date}` = start date.
+   */
+  chip_starts?: string;
+  /**
+   * Status chip and when-line for a series already under way. `%{date}` = start date.
+   */
+  started_on?: string;
+  /**
+   * When-line for a course that has not begun. `%{date}` = first session’s date and time.
+   */
+  first_session?: string;
+  /**
+   * When-line for a series under way. `%{date}` = next session’s date and time.
+   */
+  next_session?: string;
+  /**
+   * When-line and registration-blocked message for a finished event.
+   */
+  event_ended?: string;
+  /**
+   * Microcopy and registration-blocked message when the event has no places left.
+   */
+  event_full?: string;
+  /**
+   * Register-slot label and blocked message when registration has closed.
+   */
+  registration_closed?: string;
+  /**
+   * Microcopy on a course, saying a place must be booked in advance.
+   */
+  registration_required?: string;
+  /**
+   * Refusal shown when registration is handled on another website.
+   */
+  registration_external?: string;
+  /**
+   * Microcopy on an online class, saying the joining link arrives by email.
+   */
+  online_joining_note?: string;
+  /**
+   * Helper under a full event, offering the host as a way in.
+   */
+  contact_to_join_full?: string;
+  /**
+   * Helper under a series already under way, offering the host as a way in.
+   */
+  contact_to_join_late?: string;
+  /**
+   * When-line for a listing with no schedule, and the message shown when registration is hidden.
+   */
+  contact_for_timing?: string;
+  /**
+   * Where-line badge, and the Calendar entry badge, for an online class.
+   */
+  online?: string;
+  /**
+   * Where-line for an online class, naming the host’s city. `%{city}` = host city.
+   */
+  hosted_from?: string;
+  /**
+   * Viewer-local time under the where-line. `%{time}` = local time, `%{city}` = the event’s city.
+   */
+  time_in_place?: string;
+  /**
+   * List card distance from the visitor. `%{distance}` = formatted distance.
+   */
+  distance_away?: string;
+  /**
+   * List card distance from a named place. `%{distance}` = formatted distance, `%{place}` = place name.
+   */
+  distance_from_place?: string;
+  /**
+   * List card distance from the searched point. `%{distance}` = formatted distance.
+   */
+  distance_from_search?: string;
+  /**
+   * Type label: a class with no stated cadence.
+   */
+  type_class?: string;
+  /**
+   * Type label: a class held every day.
+   */
+  type_class_daily?: string;
+  /**
+   * Type label: a class held weekly.
+   */
+  type_class_weekly?: string;
+  /**
+   * Type label: a class held every second week.
+   */
+  type_class_fortnightly?: string;
+  /**
+   * Type label: a class held monthly.
+   */
+  type_class_monthly?: string;
+  /**
+   * Type label: a limited run of sessions.
+   */
+  type_course?: string;
+  /**
+   * Type label: a single occasion.
+   */
+  type_oneoff?: string;
+  /**
+   * Session count beside a course’s schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_one?: string;
+  /**
+   * Session count beside a course’s schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_few?: string;
+  /**
+   * Session count beside a course’s schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_many?: string;
+  /**
+   * Session count beside a course’s schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_other?: string;
+  /**
+   * Register-slot link offered when this event cannot be joined.
+   */
+  see_nearby?: string;
+  /**
+   * Label of the register button in the register slot.
+   */
+  register_now?: string;
+}
+export interface SyAtlasTranslationsEventActionsStrings {
+  /**
+   * Action circle that opens the host’s contact details; also the fallback contact label.
+   */
+  contact?: string;
+  /**
+   * Action circle that opens directions to the venue.
+   */
+  directions?: string;
+  /**
+   * Action circle that opens the event’s own website.
+   */
+  website?: string;
+  /**
+   * Action circle that opens the Share view.
+   */
+  share?: string;
+  /**
+   * Add-to-calendar action, offered on the registration thank-you screen.
+   */
+  add_calendar?: string;
+  /**
+   * Add-to-calendar menu item that downloads an .ics file.
+   */
+  download_ics?: string;
+  /**
+   * Image carousel: open the photo full size.
+   */
+  view_photo?: string;
+  /**
+   * Image carousel: stop it advancing on its own.
+   */
+  pause_slideshow?: string;
+}
+export interface SyAtlasTranslationsEventRecurrenceStrings {
+  /**
+   * Repeats every day.
+   */
+  daily?: string;
+  /**
+   * Repeats every few days. `%{interval}` = number of days.
+   */
+  daily_n?: string;
+  /**
+   * Repeats every week on one weekday. `%{weekday}` = localized day name.
+   */
+  weekly_1?: string;
+  /**
+   * Repeats every second week. `%{weekday}` = localized day name.
+   */
+  weekly_2?: string;
+  /**
+   * Repeats every few weeks. `%{interval}` = number of weeks, `%{weekday}` = localized day name.
+   */
+  weekly_n?: string;
+  /**
+   * Repeats on several weekdays. `%{weekdays}` = a browser-formatted list of day names.
+   */
+  weekly_multi?: string;
+  /**
+   * Repeats on the first given weekday of each month. `%{weekday}` = localized day name.
+   */
+  monthly_1st?: string;
+  /**
+   * Repeats on the second given weekday of each month. `%{weekday}` = localized day name.
+   */
+  monthly_2nd?: string;
+  /**
+   * Repeats on the third given weekday of each month. `%{weekday}` = localized day name.
+   */
+  monthly_3rd?: string;
+  /**
+   * Repeats on the fourth given weekday of each month. `%{weekday}` = localized day name.
+   */
+  monthly_4th?: string;
+  /**
+   * Repeats on the last given weekday of each month. `%{weekday}` = localized day name.
+   */
+  monthly_last?: string;
+  /**
+   * Repeats on a fixed day number each month. `%{day}` = day of the month.
+   */
+  monthly_date?: string;
+}
+export interface SyAtlasTranslationsEventTitleStrings {
+  /**
+   * Auto-title for an event starting between 05:00 and 11:59 local time. `%{place}` = venue or street.
+   */
+  morning?: string;
+  /**
+   * Auto-title for an event starting between 12:00 and 16:59 local time. `%{place}` = venue or street.
+   */
+  afternoon?: string;
+  /**
+   * Auto-title for an event starting between 17:00 and 21:59 local time. `%{place}` = venue or street.
+   */
+  evening?: string;
+  /**
+   * Auto-title used when the start time is late (22:00–04:59) or the event has no schedule at all. `%{place}` = venue or street.
+   */
+  default?: string;
+}
+export interface SyAtlasTranslationsCalendarStrings {
+  /**
+   * Calendar view heading, and its peek-strip name.
+   */
+  title?: string;
+  /**
+   * Control that steps back one month, week, or page.
+   */
+  previous?: string;
+  /**
+   * Control that steps forward one month, week, or page.
+   */
+  next?: string;
+  /**
+   * Control that opens the date picker.
+   */
+  pick_date?: string;
+  /**
+   * View switch: the month grid.
+   */
+  view_month?: string;
+  /**
+   * View switch: the week grid.
+   */
+  view_week?: string;
+  /**
+   * View switch: the agenda list.
+   */
+  view_list?: string;
+}
+export interface SyAtlasTranslationsRegistrationFormStrings {
+  /**
+   * Registration view heading, and its peek-strip name. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
+   */
+  title?: string;
+  /**
+   * Label of the name field.
+   */
+  name?: string;
+  /**
+   * Label of the email field.
+   */
+  email?: string;
+  /**
+   * Label of the starting-date chooser.
+   */
+  starting_date?: string;
+  /**
+   * Control that reveals further start dates.
+   */
+  show_more_dates?: string;
+  /**
+   * Submit button of the registration form.
+   */
+  submit?: string;
+  /**
+   * Acknowledgement button that dismisses the thank-you screen.
+   */
+  okay?: string;
+  /**
+   * Thank-you screen line promising a confirmation email.
+   */
+  followup?: string;
+  /**
+   * Thank-you screen line encouraging the registrant to bring someone.
+   */
+  invite_friend?: string;
+  /**
+   * Notice on an online class, saying the joining link arrives by email.
+   */
+  online_notice?: string;
+  /**
+   * Heading of the online-class notice.
+   */
+  online_notice_title?: string;
+  /**
+   * Consent text beside the submit button.
+   */
+  privacy_policy?: string;
+  /**
+   * Heading of the form’s error state.
+   */
+  error_title?: string;
+  /**
+   * Refusal: the security check expired and must be redone before registering.
+   */
+  captcha_retry?: string;
+}
+export interface SyAtlasTranslationsRegistrationErrorsStrings {
+  /**
+   * Validation: the email field holds something that is not an address.
+   */
+  email?: string;
+  /**
+   * Validation: the name field is empty or incomplete.
+   */
+  name?: string;
+  /**
+   * Validation: no starting date was chosen.
+   */
+  starting_at?: string;
+}
+export interface SyAtlasTranslationsRegistrationQuestionsStrings {
+  /**
+   * Question `experience`: whether the registrant has meditated with Sahaja Yoga before.
+   */
+  experience?: string;
+  /**
+   * Question `referral`: how the registrant heard about the event.
+   */
+  referral?: string;
+  /**
+   * Question `aspirations`: what the registrant hopes to get out of it.
+   */
+  aspirations?: string;
+  /**
+   * Question `questions`: anything the registrant wants to ask beforehand.
+   */
+  questions?: string;
+}
+export interface SyAtlasTranslationsShareStrings {
+  /**
+   * Share view heading, and its peek-strip name. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
+   */
+  title?: string;
+  /**
+   * Label of one share target. `%{platform}` = the platform’s name.
+   */
+  share_on?: string;
+  /**
+   * Label of the device’s own share sheet.
+   */
+  native?: string;
+  /**
+   * Action that copies the event link to the clipboard.
+   */
+  copy_link?: string;
+  /**
+   * Confirmation shown after the link is copied.
+   */
+  copied?: string;
+}
+export interface SyAtlasTranslationsCompactStrings {
+  /**
+   * The card’s one button, which opens the atlas.
+   */
+  open?: string;
+}
+export interface SyAtlasTranslationsEmailsStrings {
+  /**
+   * Subject line of the registration confirmation email. `%{event}` = event title.
+   */
+  confirmation_subject?: string;
+  /**
+   * Main heading inside the confirmation email, e.g. "You're registered".
+   */
+  confirmation_heading?: string;
+  /**
+   * Opening line addressing the registrant. `%{name}` = registrant's name.
+   */
+  confirmation_intro?: string;
+  /**
+   * Section label above the date/time of the class.
+   */
+  when_label?: string;
+  /**
+   * Section label above the address or joining link.
+   */
+  where_label?: string;
+  /**
+   * Call-to-action button label for joining an online class.
+   */
+  online_cta?: string;
+  /**
+   * Line introducing the plain-text join URL, shown for email clients that strip buttons.
+   */
+  online_link_hint?: string;
+  /**
+   * Call-to-action button label that opens the venue address in a maps app, for an in-person class.
+   */
+  directions_cta?: string;
+  /**
+   * Section label above the event description ("What to expect").
+   */
+  about_label?: string;
+  /**
+   * Section label above the host's name and phone number.
+   */
+  contact_label?: string;
+  /**
+   * Session count appended to a limited-run course's schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_one?: string;
+  /**
+   * Session count appended to a limited-run course's schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_few?: string;
+  /**
+   * Session count appended to a limited-run course's schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_many?: string;
+  /**
+   * Session count appended to a limited-run course's schedule, entered per plural form. `%{count}` = number of sessions.
+   */
+  sessions_count_other?: string;
+  /**
+   * Footer line explaining why the registrant received this email.
+   */
+  footer_reason?: string;
+  /**
+   * Footer link label pointing at the client service's website. `%{name}` = service name.
+   */
+  footer_website?: string;
+  /**
+   * Subject line of the session reminder email (sent 24h before a class). `%{event}` = event title.
+   */
+  reminder_subject?: string;
+  /**
+   * Main heading inside the reminder email, e.g. "Your class is tomorrow".
+   */
+  reminder_heading?: string;
+  /**
+   * Opening line of the reminder email. `%{name}` = registrant's name.
+   */
+  reminder_intro?: string;
+  /**
+   * Footer line explaining why the registrant received the reminder.
+   */
+  reminder_footer_reason?: string;
+  /**
+   * Subject line of the post-event follow-up email. `%{event}` = event title.
+   */
+  followup_subject?: string;
+  /**
+   * Main heading inside the follow-up email. `%{event}` = event title.
+   */
+  followup_heading?: string;
+  /**
+   * Opening line of the follow-up email. `%{name}` = registrant, `%{event}` = event title.
+   */
+  followup_intro?: string;
+  /**
+   * The confirm/deny question: why the registrant's answer matters for an unverified listing.
+   */
+  followup_ask?: string;
+  /**
+   * Button label confirming the class took place.
+   */
+  followup_confirm_cta?: string;
+  /**
+   * Button label reporting that the class could not be found.
+   */
+  followup_deny_cta?: string;
+  /**
+   * Footer line explaining why the registrant received the follow-up.
+   */
+  followup_footer_reason?: string;
+  /**
+   * Footer link label in the reminder email that opens the unsubscribe page.
+   */
+  unsubscribe_cta?: string;
+  /**
+   * Heading on the unsubscribe landing page.
+   */
+  unsubscribe_heading?: string;
+  /**
+   * Prompt on the unsubscribe page confirming what stops. `%{event}` = event title.
+   */
+  unsubscribe_intro?: string;
+  /**
+   * Button label that confirms unsubscribing from reminders.
+   */
+  unsubscribe_confirm_cta?: string;
+  /**
+   * Button label shown while the unsubscribe request is in flight.
+   */
+  unsubscribe_working?: string;
+  /**
+   * Title of the success card after unsubscribing.
+   */
+  unsubscribe_done_title?: string;
+  /**
+   * Body of the success card after unsubscribing.
+   */
+  unsubscribe_done_message?: string;
+  /**
+   * Title of the error card when unsubscribing fails.
+   */
+  unsubscribe_error_title?: string;
+  /**
+   * Body of the error card when unsubscribing fails.
+   */
+  unsubscribe_error_message?: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6479,6 +9075,7 @@ export interface PayloadJobsStat {
  */
 export interface WmWebConfigSelect<T extends boolean = true> {
   homePage?: T;
+  availableLocales?: T;
   audiences?: T;
   featuredPages?: T;
   featuredArticles?: T;
@@ -6651,12 +9248,8 @@ export interface WmAppStatusSelect<T extends boolean = true> {
  * via the `definition` "sy-atlas-config_select".
  */
 export interface SyAtlasConfigSelect<T extends boolean = true> {
-  languages?:
-    | T
-    | {
-        code?: T;
-        id?: T;
-      };
+  availableLocales?: T;
+  canonicalFallbackClient?: T;
   defaultMapCenter?:
     | T
     | {
@@ -6673,21 +9266,49 @@ export interface SyAtlasConfigSelect<T extends boolean = true> {
  * via the `definition` "sy-atlas-translations_select".
  */
 export interface SyAtlasTranslationsSelect<T extends boolean = true> {
-  common?: T;
-  region?:
+  common?:
     | T
     | {
-        locations?: T;
-        venues?: T;
+        chrome?: T;
+        settings?: T;
+        errors?: T;
+        report?: T;
+        report_errors?: T;
+        map?: T;
+        feedback?: T;
       };
+  countries?: T;
+  search?:
+    | T
+    | {
+        chrome?: T;
+        results?: T;
+        sort?: T;
+        country_site?: T;
+        nearby_prompt?: T;
+      };
+  filters?:
+    | T
+    | {
+        chrome?: T;
+        format?: T;
+        cadence?: T;
+        days?: T;
+        time?: T;
+        language?: T;
+        dates?: T;
+        region?: T;
+      };
+  online?: T;
   event?:
     | T
     | {
-        details?: T;
+        display?: T;
+        actions?: T;
         recurrence?: T;
-        timing?: T;
         title?: T;
       };
+  calendar?: T;
   registration?:
     | T
     | {
@@ -6696,6 +9317,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
         questions?: T;
       };
   share?: T;
+  compact?: T;
   emails?: T;
   _status?: T;
   updatedAt?: T;
@@ -6728,15 +9350,8 @@ export interface CollectionsWidget {
  */
 export interface TaskCleanupOrphanedMedia {
   input: {
-    testDateRange?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    rangeStart?: string | null;
+    rangeEnd?: string | null;
     maxOperations?: number | null;
   };
   output: {
@@ -6844,15 +9459,7 @@ export interface TaskSendSessionReminders {
  */
 export interface TaskSyncLectureMetadata {
   input: {
-    lectureIds?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
+    lectureIds?: number[] | null;
   };
   output: {
     totalProcessed: number;
@@ -7045,18 +9652,7 @@ export interface TableOfContentsBlock {
    * Optional heading displayed above the list (e.g. "In this article")
    */
   title?: string | null;
-  /**
-   * Select headings above to include in the table of contents
-   */
-  headings?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  headings?: TableOfContentsHeadings;
   id?: string | null;
   blockName?: string | null;
   blockType: 'table-of-contents';

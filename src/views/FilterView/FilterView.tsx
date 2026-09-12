@@ -33,7 +33,7 @@ import { CloseButton, DrawerTitle } from '@/views/shared'
 // filled, unapplied "dirty" state. The app itself renders `<FilterView />` starting from the
 // applied filters.
 export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {}) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const applied = useEventFilters()
@@ -87,7 +87,7 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   return (
     <>
       <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('filters.title')} />
+        <DrawerTitle title={t('filters.chrome.title')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">
@@ -97,12 +97,14 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
         <DrawerFooter className="flex items-center gap-2 p-3">
           {draftActive && (
             <Button className="flex-1" variant="flat" onClick={() => commit(DEFAULT_FILTERS)}>
-              {t('filters.clear')}
+              {t('filters.chrome.clear')}
             </Button>
           )}
           {hasChanges && (
             <Button className="flex-1" color="primary" onClick={() => commit(draft)}>
-              {count === undefined ? t('filters.apply') : `${t('filters.apply')} (${count})`}
+              {count === undefined
+                ? t('filters.chrome.apply')
+                : `${t('filters.chrome.apply')} (${count})`}
             </Button>
           )}
         </DrawerFooter>

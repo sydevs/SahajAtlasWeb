@@ -98,7 +98,7 @@ function toPlacement(side: DropdownSide, align: DropdownAlign): Placement {
  * shell deliberately does not.
  *
  * @example
- * <Dropdown aria-label={t('filters.title')} role="dialog" trigger={<FilterButton />}>
+ * <Dropdown aria-label={t('filters.chrome.title')} role="dialog" trigger={<FilterButton />}>
  *   <FilterCheckboxes />
  * </Dropdown>
  */

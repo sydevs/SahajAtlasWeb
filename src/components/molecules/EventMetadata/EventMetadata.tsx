@@ -21,7 +21,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
   // a metadata block from ever becoming a fetch. `DrawerChrome` uses the
   // same contract for the event-titles sliver.
   const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
 
   const online = isOnline(event)
   const url = event.webUrl ?? ''
@@ -102,7 +102,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
 
   return (
     <Helmet htmlAttributes={{ lang: locale }}>
-      <title>{`${event.title} - ${t('free_meditation_class')}`}</title>
+      <title>{`${event.title} - ${t('event.display.free_meditation_class')}`}</title>
       {url && <link href={url} rel="canonical" />}
       <meta content={description} name="description" />
       <meta content="event" property="og:type" />

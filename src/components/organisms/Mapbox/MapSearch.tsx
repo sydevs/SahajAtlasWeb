@@ -60,8 +60,8 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
-  const { t } = useTranslation('common')
-  const fieldLabel = label ?? t('search_placeholder')
+  const { t } = useTranslation()
+  const fieldLabel = label ?? t('search.chrome.placeholder')
 
   // This merges `q` into the existing query, so the active filters (and
   // bbox and center) survive typing — they live only in the URL now.

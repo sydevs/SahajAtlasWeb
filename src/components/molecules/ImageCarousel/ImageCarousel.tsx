@@ -31,7 +31,7 @@ export type ImageCarouselProps = {
 }
 
 export function ImageCarousel({ slides }: ImageCarouselProps) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [swiper, setSwiper] = useState<SwiperClass | null>(null)
@@ -111,7 +111,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
             // them butted against the image's edge.
             <SwiperSlide key={slide.src}>
               <button
-                aria-label={slide.alt ?? t('details.view_photo')}
+                aria-label={slide.alt ?? t('event.actions.view_photo')}
                 className="block w-full cursor-zoom-in"
                 type="button"
                 onClick={() => openAt(index)}
@@ -150,7 +150,7 @@ export function ImageCarousel({ slides }: ImageCarouselProps) {
         {autoplays && (
           <button
             data-vaul-no-drag
-            aria-label={t('details.pause_slideshow')}
+            aria-label={t('event.actions.pause_slideshow')}
             aria-pressed={paused}
             className="absolute bottom-2 end-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white outline-none transition-colors hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-focus"
             type="button"

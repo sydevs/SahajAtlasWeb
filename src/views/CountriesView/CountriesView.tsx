@@ -29,7 +29,7 @@ import {
 // the sheet. This view is handled like every other one. It is simply the one with no parent, so
 // dismissing it collapses the sheet to its peek.
 export function CountriesView() {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { reset } = useMapController()
@@ -72,7 +72,7 @@ export function CountriesView() {
     <>
       {standalone && (
         <Helmet>
-          <title>{t('free_meditation_classes')}</title>
+          <title>{t('countries.title')}</title>
           {canonicalUrl && <link href={canonicalUrl} rel="canonical" />}
           {canonicalUrl && <meta content={canonicalUrl} property="og:url" />}
         </Helmet>
@@ -95,7 +95,7 @@ export function CountriesView() {
               count={onlineCount}
               href={onlineSearch}
               icon={<Monitor size={24} />}
-              label={t('online_classes')}
+              label={t('online.title')}
             />
           )}
           {sortedCountries.map((country) => (

@@ -2,7 +2,16 @@ import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
 import type { CompactState } from '@/lib/slot-decision'
 
-import { type ReactNode, type RefObject, Suspense, lazy, useEffect, useMemo } from 'react'
+import {
+  type ReactNode,
+  type RefObject,
+  Suspense,
+  lazy,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -35,7 +44,8 @@ import '@/styles/globals.css'
 import '@/styles/fonts'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
-import { supportedLanguages } from '@/config/i18n-options'
+import { applyLanguage } from '@/config/language'
+import { useLanguages } from '@/hooks/use-languages'
 
 // Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
 // the controller land in their own chunk, at zero cost to normal standalone/embedded
@@ -180,6 +190,20 @@ export default function App({
     if (apiKey && !compact) api.warmCaches()
   }, [apiKey, compact])
 
+  // ⚠ **Ungated by `compact`, unlike the warm-up above.** The compact card is one localized
+  // sentence, so it needs the language set and the copy as much as the full interface does —
+  // and it needs them at the same moment, beside `clients/me`, or the card paints in English and
+  // then switches in front of the viewer. That is the boot order PR #168 measured: warmed in
+  // parallel, the config settled 1 ms after `clients/me`; serialized behind it, the flip was
+  // visible. `PathBoot` in `Widget.tsx` fires the same pair, because in path mode it reads the
+  // client record above this component.
+  useEffect(() => {
+    if (!apiKey) return
+
+    api.warmConfig()
+    api.warmTranslations(i18n.language)
+  }, [apiKey])
+
   return (
     <RootBoundary>
       <Providers>
@@ -317,10 +341,32 @@ function AppShell({
   // through `supportedLngs`, and letting that suppress a host's `locale=fr` would be a
   // worse answer than either party asked for. It reads `window.location` directly,
   // because this is the HOST's URL, which no router of ours describes.
-  useEffect(() => {
-    if (pageLocaleOverride(window.location.search, supportedLanguages)) return
-    if (defaultLocale) i18n.changeLanguage(defaultLocale)
-  }, [defaultLocale])
+  //
+  // ⚠ **This is one of exactly two callers of `applyLanguage`** (`config/language.ts`), the
+  // other being `useLocale().setLocale`. A language change is a fetch, a resource write and a
+  // `changeLanguage` in that order, and #168 found what happens when more than one place owns
+  // that sequence: two of them disagree within a frame, and which one wins is whichever effect
+  // React happened to run last.
+  //
+  // It is a LAYOUT effect, so the switch is decided before the browser paints rather than a
+  // frame after it. The bundle may still arrive later — that is a network fact no hook ordering
+  // changes — but a cached one (the warm-up above, on this same mount) applies with no paint in
+  // between.
+  //
+  // `defaultLocale` is read through a ref and the effect runs once. The parameter describes the
+  // page this widget booted on; re-running on a later change would yank the language back from
+  // under a viewer who has since chosen one in the settings menu.
+  const initialLocale = useRef(defaultLocale)
+  const languages = useLanguages()
+
+  useLayoutEffect(() => {
+    const requested =
+      pageLocaleOverride(window.location.search, languages) ??
+      initialLocale.current ??
+      i18n.language
+
+    void applyLanguage(requested, languages)
+  }, [languages.join(',')])
 
   // Fathom injects OUR tracker script into the HOST's page. ⚠ There is NO host-side
   // opt-out: `analytics="false"` was one, but the element observes no attributes at

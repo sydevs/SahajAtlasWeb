@@ -30,7 +30,7 @@ export type ReportIssueModalProps = {
  * suspending or throwing a second time.
  */
 export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { locale } = useLocale()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -50,9 +50,9 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
     <Modal open={open} onOpenChange={(next) => !next && closeReport()}>
       {open && (
         <ModalContent
-          closeLabel={t('close')}
-          description={t('report.description')}
-          title={t('report.title')}
+          closeLabel={t('common.chrome.close')}
+          description={t('common.report.description')}
+          title={t('common.report.title')}
           onCloseAutoFocus={(event) => {
             const opener = reportReturnFocus()
 

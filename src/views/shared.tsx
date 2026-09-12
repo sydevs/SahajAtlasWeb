@@ -118,11 +118,16 @@ export function CloseButton({ className }: { className?: string }) {
   // `useSuspense: false` — this renders inside the error/loading chrome, where
   // suspending on an in-flight namespace (a language switch mid-error) would
   // escape the boundary and blank the widget instead of showing the failure.
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   const { dismiss } = useDrawerControl()
 
   return (
-    <Button {...HEADER_CONTROL} aria-label={t('close')} className={className} onClick={dismiss}>
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('common.chrome.close')}
+      className={className}
+      onClick={dismiss}
+    >
       <X size={20} />
     </Button>
   )
@@ -137,7 +142,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure. See
   // CloseButton.
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
   return (
@@ -159,11 +164,15 @@ export function SearchButton() {
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure. See
   // CloseButton.
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
   return (
-    <Button {...HEADER_CONTROL} aria-label={t('search')} onClick={() => navigate(searchPath())}>
+    <Button
+      {...HEADER_CONTROL}
+      aria-label={t('search.chrome.title')}
+      onClick={() => navigate(searchPath())}
+    >
       <Search size={20} />
     </Button>
   )
@@ -175,7 +184,7 @@ export function SearchButton() {
 export function CollapseToggle() {
   // See CloseButton: also rendered by the error/loading chrome, so it must not
   // suspend.
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   const { collapsed, canCollapse, toggle } = useDrawerControl()
 
   if (!canCollapse) return null
@@ -186,7 +195,7 @@ export function CollapseToggle() {
     <Button
       {...HEADER_CONTROL}
       aria-expanded={!collapsed}
-      aria-label={collapsed ? t('explore') : t('close')}
+      aria-label={collapsed ? t('common.chrome.explore') : t('common.chrome.close')}
       onClick={toggle}
     >
       {collapsed ? <Menu size={24} /> : <X size={20} />}
@@ -206,12 +215,12 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure. See
   // CloseButton.
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
   const count = activeFilterCount(useEventFilters())
 
-  const label = count > 0 ? `${t('filters.title')} (${count})` : t('filters.title')
+  const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
   const open = () => navigate({ pathname: to, search: location.search })
 
@@ -370,7 +379,7 @@ export function EmptyEventList() {
   // (views/fallbacks.tsx), where suspending on an in-flight namespace would
   // escape the boundary and blank the widget instead of showing the failure. See
   // CloseButton.
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
 
   return (
     // `align="start"`: this stands in for the region's list, which begins at the
@@ -381,7 +390,7 @@ export function EmptyEventList() {
           job of prompting: dropped out of a header, the default "search for events near…"
           reads on this screen as a promise that there ARE nearby events. */}
       <SearchField
-        label={t('error.search_label', { defaultValue: 'Or search for a place' })}
+        label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
         syncToUrl={false}
       />
     </FallbackPanel>

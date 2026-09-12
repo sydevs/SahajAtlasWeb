@@ -23,7 +23,7 @@ export type GeolocationPromptProps = {
  * navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
  */
 export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
 
   // `px-4` matches the drawer header's horizontal padding, so the
   // prompt's icon and text line up with the header content. The slim `sm`
@@ -31,7 +31,7 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
   return (
     <Alert
       className="px-4"
-      closeLabel={t('nearby_prompt.dismiss')}
+      closeLabel={t('search.nearby_prompt.dismiss')}
       color="secondary"
       icon={<MapPin size={18} />}
       role="status"
@@ -42,7 +42,7 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
           type="button"
           onClick={onAccept}
         >
-          {t('nearby_prompt.title', { city })}
+          {t('search.nearby_prompt.title', { city })}
         </button>
       }
       onClose={onClose}

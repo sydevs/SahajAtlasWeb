@@ -65,13 +65,15 @@ describe('indexing directives', () => {
   })
 
   test.skipIf(skipWithoutPreview)('adds the header without displacing the CORS rules', async () => {
-    // This is the regression this change could realistically cause. `_headers`
-    // already carried `/assets/*` and `/locales/*` CORS rules (issue #91: a font
-    // always fetches in CORS mode, and blocked locale JSON renders every string as
-    // its raw key). Adding the `/*` rule is safe only because Pages applies every
-    // matching rule. This test asserts that fact instead of trusting the comment in
-    // `_headers`.
-    const res = await fetchPreview('/locales/en/common.json')
+    // This is the regression this change could realistically cause. `_headers` already
+    // carried CORS rules (issue #91: a font always fetches in CORS mode), and adding the `/*`
+    // rule is safe only because Pages applies every matching rule. This test asserts that fact
+    // instead of trusting the comment in `_headers`.
+    //
+    // It pins `embed.js` since #198 removed the `/locales/*` rule this used to read. That is
+    // the better subject anyway: it is the one file every host loads by a hardcoded URL, and it
+    // carries both a CORS rule and a cache rule that the `/*` rule could displace.
+    const res = await fetchPreview('/embed.js')
 
     expect(res.headers.get('access-control-allow-origin')).toBe('*')
     expect(res.headers.get('x-robots-tag')).toMatch(/noindex/i)

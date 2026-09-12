@@ -23,22 +23,15 @@
  * CSS injects, and React renders nothing, which reads exactly like a
  * crash. Every page below uses the loader form instead.
  *
- * **2. Locales are fetched from `VITE_HOST`, not from wherever the page
- * is served.** The built bundle hard-codes that origin. So a host page
- * on another port fetches `http://localhost:5174/locales/en/common.json`
- * regardless. If nothing serves that file, i18next retries forever, and
- * the widget renders NOTHING — no error, no fallback, just an empty
- * element.
- *
- * **3. `python3 -m http.server` sends no CORS headers.** So even with
- * the locales served, a host page on a *different* origin has them
- * blocked, and the result is trap 2 again, with a different error in the
- * console. Production is fine — `public/_headers` adds the CORS the
- * widget needs (#91) — which is exactly why this only bites locally.
- *
- * Traps 2 and 3 are why this script serves everything from ONE origin
- * (`dist/`, on `VITE_HOST`'s port). A same-origin request needs no CORS,
- * and the locales are already in `dist/`.
+ * **2. Every string comes from SahajCloud** (#198), not from this
+ * origin. The bundle carries an English snapshot and fetches the rest
+ * from `VITE_SAHAJCLOUD_URL` with the widget's API key, so a review page
+ * must be opened with a key that origin accepts — otherwise the widget
+ * renders its configuration-error screen and nothing below is reviewable.
+ * There is no longer a locale file to serve, which is what traps 2 and 3
+ * used to be about: the bundle hard-coded `VITE_HOST` and fetched
+ * `/locales/<lng>/*.json` from it, so a host page on another port, or one
+ * without CORS, left i18next retrying forever and the element empty.
  *
  * **4. A stale server on the port you guessed.** `dist/_redirects` reads
  * `/* /index.html 200`, and any leftover `vite preview` honors it. So a
@@ -85,11 +78,12 @@ const DIST = resolve('dist')
 const viteEnv = loadEnv('development', process.cwd(), 'VITE_')
 
 /**
- * The port the bundle expects its locales on. Serving anywhere else
- * re-arms trap 2, so this script derives the port rather than choosing
- * one. A `--port` flag here would be a footgun with a friendly name.
+ * One origin for the built app and every host page, which keeps the
+ * review pages same-origin with `embed.js` and `auto.js`. It matches the
+ * dev server's port so a reviewer's bookmarks and any CSP note in
+ * `docs/embedding.md` keep meaning the same thing.
  */
-const port = Number(new URL(viteEnv.VITE_HOST || 'http://localhost:5174').port) || 5174
+const port = 5174
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -378,7 +372,7 @@ server.on('error', (/** @type {NodeJS.ErrnoException} */ error) => {
 // `127.0.0.1` costs nothing.
 server.listen(port, '127.0.0.1', () => {
   console.log(`\n  Embed review → http://localhost:${port}/\n`)
-  console.log(`  Serving dist/ on ${port} (VITE_HOST's port, so locales resolve same-origin).`)
+  console.log(`  Serving dist/ and every host page on ${port}, from one origin.`)
   for (const name of Object.keys(written)) console.log(`    /__review/${name}`)
   console.log('\n  Ctrl-C to stop.\n')
 })

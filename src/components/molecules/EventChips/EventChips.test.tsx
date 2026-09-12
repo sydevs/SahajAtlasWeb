@@ -65,7 +65,7 @@ describe('EventChips', () => {
 
     const html = render(['en'])
 
-    expect(html).toContain('display.chip_today')
+    expect(html).toContain('event.display.chip_today')
     expect(html).toContain('text-contrast-11')
   })
 
@@ -74,7 +74,7 @@ describe('EventChips', () => {
 
     const html = render(['en'])
 
-    expect(html).toContain('display.chip_full')
+    expect(html).toContain('event.display.chip_full')
   })
 
   it('"Full" supersedes "Today" — only one availability chip renders', () => {
@@ -83,8 +83,8 @@ describe('EventChips', () => {
 
     const html = render(['en'])
 
-    expect(html).toContain('display.chip_full')
-    expect(html).not.toContain('display.chip_today')
+    expect(html).toContain('event.display.chip_full')
+    expect(html).not.toContain('event.display.chip_today')
   })
 
   it('compact: a "Full" chip alone is enough to render the row', () => {
@@ -92,6 +92,6 @@ describe('EventChips', () => {
 
     // The plain weekly type and the viewer language are both trimmed in
     // compact. So the row would otherwise be empty.
-    expect(render(['en'], 'compact')).toContain('display.chip_full')
+    expect(render(['en'], 'compact')).toContain('event.display.chip_full')
   })
 })

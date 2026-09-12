@@ -1,9 +1,10 @@
+import type { TranslationKey } from '@/types/i18next'
 import type { StackEntry } from '@/lib/shape'
 
 /**
  * What a peek strip is NAMED.
  *
- * Every strip used to say `t('back')`. So a three-deep stack handed a screen-reader user three
+ * Every strip used to say `t('common.chrome.back')`. So a three-deep stack handed a screen-reader user three
  * identically-named buttons, each going to a different place — the duplicate accessible-name
  * finding in issue #102. A name that does not distinguish its target is worse than a generic
  * one. It reads as a mistake in the page, rather than a limit of it.
@@ -21,10 +22,10 @@ import type { StackEntry } from '@/lib/shape'
  * Only the two shapes of call this module makes.
  *
  * This type is narrower than i18next's `TFunction` on purpose. It accepts the `t` from either
- * `useTranslation('common')` or `useLocale()` — whose type targets the default namespace —
+ * `useTranslation()` or `useLocale()` — whose type targets the default namespace —
  * without either caller casting.
  */
-export type StripTranslate = (key: string, options?: { title: string }) => string
+export type StripTranslate = (key: TranslationKey, options?: { title: string }) => string
 
 export type StripNaming = {
   t: StripTranslate
@@ -46,7 +47,7 @@ export function stripLabel(
   // The root ancestor is the countries index. `resolveStack` has no entry for it. It is also
   // unique within any stack — there is only ever one root — so the bare "Back" it falls
   // through to cannot collide with a sibling strip.
-  if (!entry) return t('back')
+  if (!entry) return t('common.chrome.back')
 
   const title = (() => {
     switch (entry.kind) {
@@ -55,13 +56,13 @@ export function stripLabel(
       case 'event':
         return titles?.get(entry.id)
       case 'online':
-        return t('online_classes')
+        return t('online.title')
       case 'search':
-        return t('search')
+        return t('search.chrome.title')
       case 'calendar':
         return t('calendar.title')
       case 'filters':
-        return t('filters.title')
+        return t('filters.chrome.title')
       // `register` and `share` are leaves — neither can be an ancestor — so there is no
       // name here worth pulling a second namespace into this file for.
       default:
@@ -69,5 +70,5 @@ export function stripLabel(
     }
   })()
 
-  return title ? t('back_to', { title }) : t('back')
+  return title ? t('common.chrome.back_to', { title }) : t('common.chrome.back')
 }

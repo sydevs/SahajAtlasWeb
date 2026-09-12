@@ -2,10 +2,9 @@ import type { FallbackPolicy } from './Fallbacks'
 
 import { describe, expect, it } from 'vitest'
 
-import enCommon from '../../../../public/locales/en/common.json'
-
 import { ERROR_POLICY, visibleActions } from './Fallbacks'
 
+import snapshot from '@/config/translations.en.json'
 import { classifyError } from '@/lib/report'
 import { mockErrorKinds, mockErrors } from '@/mocks/errors'
 
@@ -20,13 +19,13 @@ const waysOut = (policy: FallbackPolicy) => ({
   report: policy.report,
 })
 
-/** `filters.no_events` resolves to the shipped English, or `undefined` if the key is dead. */
+/** `common.errors.no_events` resolves to the shipped English, or `undefined` if the key is dead. */
 const enCopy = (dottedKey: string): unknown =>
   dottedKey
     .split('.')
     .reduce<unknown>(
       (node, key) => (node && typeof node === 'object' ? (node as never)[key] : undefined),
-      enCommon,
+      snapshot,
     )
 
 // These are the acceptance criteria of issue #89, as assertions. Each

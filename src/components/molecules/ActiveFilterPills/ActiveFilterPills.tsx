@@ -1,3 +1,5 @@
+import type { TranslationKey } from '@/types/i18next'
+
 import { useMemo } from 'react'
 import { DateTime, Info } from 'luxon'
 import { useQuery } from '@tanstack/react-query'
@@ -24,7 +26,7 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  * (see `revealRows` in `@/lib/shape/reveal`).
  */
 export function ActiveFilterPills() {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
   const {
@@ -62,7 +64,7 @@ export function ActiveFilterPills() {
   if (cadence !== 'any') {
     pills.push({
       key: 'cadence',
-      label: t(`filters.cadence.${cadence.toLowerCase()}`),
+      label: t(`filters.cadence.${cadence.toLowerCase()}` as TranslationKey),
       onRemove: () => setCadence('any'),
     })
   }
@@ -77,7 +79,7 @@ export function ActiveFilterPills() {
     pills.push({
       key: 'time',
       // This is empty when every period is selected, a whole-day cover. It then reads as "any time".
-      label: formatTimePeriods(locale, timeOfDay) || t('filters.any_time'),
+      label: formatTimePeriods(locale, timeOfDay) || t('filters.chrome.any_time'),
       onRemove: () => setTimeOfDay([]),
     })
   }
@@ -108,7 +110,7 @@ export function ActiveFilterPills() {
       {pills.map((pill) => (
         <Chip
           key={pill.key}
-          closeLabel={t('filters.remove', { label: pill.label })}
+          closeLabel={t('filters.chrome.remove', { label: pill.label })}
           color="neutral"
           radius="full"
           onClose={pill.onRemove}

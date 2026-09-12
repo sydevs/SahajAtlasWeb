@@ -1,3 +1,4 @@
+import type { TranslationKey } from '@/types/i18next'
 import type { IcsEventInput } from '@/lib/ics'
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
 
@@ -40,11 +41,11 @@ import { useViewerCountry } from '@/hooks/use-viewer-country'
  * reuse the display copy the panel already shows for the same state, so the
  * form and the panel cannot word it differently.
  */
-const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, string> = {
-  external_registration: 'display.registration_external',
-  event_ended: 'display.event_ended',
-  registration_closed: 'display.registration_closed',
-  event_full: 'display.event_full',
+const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, TranslationKey> = {
+  external_registration: 'event.display.registration_external',
+  event_ended: 'event.display.event_ended',
+  registration_closed: 'event.display.registration_closed',
+  event_full: 'event.display.event_full',
 }
 
 /**
@@ -58,9 +59,9 @@ const STATE_MESSAGE_KEYS: Record<EventRegistrationErrorCode, string> = {
  * Folding a code from a different layer into it would lose that check.
  * SahajCloud's write guard throws `captcha_failed` one layer up.
  */
-const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, string> = {
+const REFUSAL_MESSAGE_KEYS: Record<RegistrationErrorCode, TranslationKey> = {
   ...STATE_MESSAGE_KEYS,
-  captcha_failed: 'registration.captcha_retry',
+  captcha_failed: 'registration.form.captcha_retry',
 }
 
 /**
@@ -137,7 +138,7 @@ export function RegistrationForm({
   initialSubmitted = false,
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(initialSubmitted)
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   // The viewer's region orders the share targets on the thank-you screen (resolved
   // here so ShareContent stays a pure, prop-driven molecule).
@@ -239,7 +240,7 @@ export function RegistrationForm({
     >
       {submitted ? (
         <div className="flex flex-col gap-3 text-center">
-          <p>{t('registration.followup')}</p>
+          <p>{t('registration.form.followup')}</p>
 
           {/* This is the moment calendar export is most wanted (issue #105).
               `calendar` is optional, so the form stays generic: it takes
@@ -250,7 +251,7 @@ export function RegistrationForm({
               being previewed rather than earned. */}
           {calendar && (
             <>
-              <div className="mt-2 font-semibold">{t('actions.add_calendar')}</div>
+              <div className="mt-2 font-semibold">{t('event.actions.add_calendar')}</div>
               <AddToCalendar
                 event={{ ...calendar, from: mutation.variables?.registration.startingAt }}
               />
@@ -262,7 +263,7 @@ export function RegistrationForm({
               than one that simply does not offer it. */}
           {eventUrl && (
             <>
-              <div className="mt-2 font-semibold">{t('registration.invite_friend')}</div>
+              <div className="mt-2 font-semibold">{t('registration.form.invite_friend')}</div>
               <ShareContent country={country} label={eventTitle} url={eventUrl} />
             </>
           )}
@@ -295,7 +296,7 @@ export function RegistrationForm({
               color="secondary"
               description={refusalMessage ? undefined : mutation.error.message}
               role="alert"
-              title={refusalMessage ?? t('registration.error_title')}
+              title={refusalMessage ?? t('registration.form.error_title')}
             />
           )}
         </>
@@ -305,9 +306,9 @@ export function RegistrationForm({
         <Alert
           className="mt-3"
           color="primary"
-          description={t('registration.online_notice')}
+          description={t('registration.form.online_notice')}
           icon={false}
-          title={t('registration.online_notice_title')}
+          title={t('registration.form.online_notice_title')}
           variant="bordered"
         />
       )}
@@ -315,12 +316,12 @@ export function RegistrationForm({
       <div className="mt-2 flex justify-end gap-2">
         {submitted ? (
           <Button color="primary" variant="flat" onClick={onClose}>
-            {t('registration.okay')}
+            {t('registration.form.okay')}
           </Button>
         ) : (
           <>
             <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
-              {t('registration.cancel')}
+              {t('common.chrome.cancel')}
             </Button>
             {/* No token means no registration the server would accept. So the
                 button stays disabled until the challenge is solved — the
@@ -334,7 +335,7 @@ export function RegistrationForm({
               type="submit"
               variant="flat"
             >
-              {t('registration.submit')}
+              {t('registration.form.submit')}
             </Button>
           </>
         )}
@@ -418,7 +419,7 @@ function RegistrationFields({
   control,
   errors,
 }: RegistrationFieldsProps) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { locale } = useLocale()
 
   const startingDates = useMemo(
@@ -439,8 +440,8 @@ function RegistrationFields({
         render={({ field }) => (
           <FormField
             required
-            error={errors.startingAt && t('errors.starting_at')}
-            label={t('registration.starting_date')}
+            error={errors.startingAt && t('registration.errors.starting_at')}
+            label={t('registration.form.starting_date')}
           >
             {/* `field.ref` is what makes a failed submit MOVE (issue #102).
                 react-hook-form focuses the first invalid field itself. That
@@ -456,10 +457,10 @@ function RegistrationFields({
                 `register`ed inputs, and were always covered. */}
             <RadioGroup
               ref={field.ref}
-              aria-label={t('registration.starting_date')}
+              aria-label={t('registration.form.starting_date')}
               collapseAfter={VISIBLE_DATES}
               isInvalid={!!errors.startingAt}
-              moreLabel={t('registration.show_more_dates')}
+              moreLabel={t('registration.form.show_more_dates')}
               name={field.name}
               options={startingDates}
               value={field.value as unknown as string}
@@ -473,16 +474,16 @@ function RegistrationFields({
 
       <LabeledInput
         required
-        error={errors.name && t('errors.name')}
-        label={t('registration.name')}
+        error={errors.name && t('registration.errors.name')}
+        label={t('registration.form.name')}
         registration={register('name', { required: true })}
         type="text"
       />
 
       <LabeledInput
         required
-        error={errors.email && t('errors.email')}
-        label={t('registration.email')}
+        error={errors.email && t('registration.errors.email')}
+        label={t('registration.form.email')}
         registration={register('email', { required: true })}
         type="email"
       />
@@ -491,12 +492,12 @@ function RegistrationFields({
         <LabeledTextarea
           key={index}
           error={errors.questions?.[question]?.message}
-          label={t(`questions.${question}`)}
+          label={t(`registration.questions.${question}`)}
           registration={register(`questions.${question}`)}
         />
       ))}
 
-      <p className="text-center text-xs">{t('registration.privacy_policy')}</p>
+      <p className="text-center text-xs">{t('registration.form.privacy_policy')}</p>
     </div>
   )
 }

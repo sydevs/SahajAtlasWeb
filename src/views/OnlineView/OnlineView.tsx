@@ -17,8 +17,7 @@ import { CloseButton, DrawerTitle, EmptyEventList, useFrameOnTop } from '@/views
 // have no location of their own. `path` is this drawer's own route, so each event nests under
 // it, and dismissing an event returns here.
 export function OnlineView({ regionSlug, path }: { regionSlug: string; path: string }) {
-  const { t } = useTranslation('common')
-  const { t: tEvents } = useTranslation('events')
+  const { t } = useTranslation()
   const { regionNames, locale } = useLocale()
   const { frameRegion } = useMapController()
 
@@ -52,8 +51,8 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         {/* The region name is the subtitle. "All classes are free" only fills in when
             a region has none — no Free chips on the cards (issue #52). */}
         <DrawerTitle
-          subtitle={regionName || tEvents('display.all_events_free')}
-          title={t('online_classes')}
+          subtitle={regionName || t('common.chrome.all_classes_free')}
+          title={t('online.title')}
         />
         <CloseButton />
       </DrawerHeader>

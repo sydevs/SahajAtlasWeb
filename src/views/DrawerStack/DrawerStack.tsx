@@ -620,7 +620,7 @@ export function DrawerStack() {
   const sheetDismissible = hasMap || parentPaths.length > 0
   const sheet = (
     <DrawerContent
-      aria-label={t('free_meditation_classes')}
+      aria-label={t('countries.title')}
       handle={direction === 'bottom' && sheetDismissible}
       /**
        * The last rung of the Escape ladder, and the only place it can be built.
@@ -690,7 +690,7 @@ export function DrawerStack() {
         handleOnly={isWide}
         onOpenChange={(o) => !o && overlayControl.dismiss()}
       >
-        <DrawerContent aria-label={t('filters.title')}>
+        <DrawerContent aria-label={t('filters.chrome.title')}>
           {/* The one drawer in the app with no fence of its own — a throw here used to
               escape to the app-level boundary and blank the whole widget on the host
               page. This stays safe today only because FilterView reads exclusively

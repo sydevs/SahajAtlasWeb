@@ -31,7 +31,12 @@ export const activeLocale = (): Config['locale'] =>
  * `atlasAuth.apiKey` is set from the widget's prop AFTER this module loads, in `auth.ts`, wired in `Widget.tsx`.
  */
 export const applyRequestContext = (url: URL, headers: Headers): void => {
-  url.searchParams.set('locale', activeLocale())
+  // ⚠ **Only when absent.** Every other read wants the active UI language, and gets it here.
+  // The translations read (`getTranslations`, `fetch.ts`) is the one request whose locale is not
+  // the active language — it is how the widget REACHES a language, so it names its own and must
+  // win. Overwriting it here would make a `?locale=fr` page fetch the French bundle URL and be
+  // served English, forever, because the resolved language never changes.
+  if (!url.searchParams.has('locale')) url.searchParams.set('locale', activeLocale())
 
   if (atlasAuth.apiKey) {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)

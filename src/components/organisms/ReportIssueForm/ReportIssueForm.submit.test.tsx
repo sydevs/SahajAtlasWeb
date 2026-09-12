@@ -42,10 +42,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) =>
       ({
-        'report.sent': 'THANKYOU',
-        'report.errors.send_failed': 'SEND_FAILED',
-        'report.errors.captcha': 'CAPTCHA_FAILED',
-        'report.submit': 'Send report',
+        'common.report.sent': 'THANKYOU',
+        'common.report_errors.send_failed': 'SEND_FAILED',
+        'common.report_errors.captcha': 'CAPTCHA_FAILED',
+        'common.report.submit': 'Send report',
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),

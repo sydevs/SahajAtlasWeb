@@ -10,7 +10,7 @@ import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
 import atlasAuth from './config/api/auth'
-import { clientQuery } from './config/api'
+import api, { clientQuery } from './config/api'
 import embed from './config/embed'
 import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
@@ -112,6 +112,19 @@ function PathBoot({ apiKey }: { apiKey: string }) {
   // `undefined` means "not answered yet". `{ value: undefined }` means "answered: no
   // usable prefix", which is a real answer and must not be mistaken for still waiting.
   const [resolved, setResolved] = useState<{ value?: string }>()
+
+  // ⚠ **Path mode warms the language reads HERE, not only in `App`** (#198). This
+  // component reads `clients/me` above `App`, so in path mode the whole widget waits
+  // on that request before `App`'s own warm-up effect exists — and the config and the
+  // translations would then queue behind it instead of beside it, which is the
+  // serialized order PR #168 measured as a visible language flip. Firing both here is
+  // free where `App` also fires them: React Query merges an in-flight fetch by key.
+  useEffect(() => {
+    if (!apiKey) return
+
+    api.warmConfig()
+    api.warmTranslations(i18n.language)
+  }, [apiKey])
 
   if (resolved) return <Atlas prefix={resolved.value} />
 
@@ -339,7 +352,7 @@ function Atlas({ prefix }: { prefix?: string }) {
       // to a screen-reader user than omitting a name that is redundant on the
       // tenant's own site anyway. It must never resolve empty: WebKit drops the role
       // entirely when it does.
-      aria-label={t('widget.label')}
+      aria-label={t('common.chrome.widget_label')}
       className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`}
       dir={i18n.dir(activeLocale)}
       lang={activeLocale}

@@ -5,6 +5,9 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { applyLanguage } from '@/config/language'
+import { currentLanguages } from '@/hooks/use-languages'
+
 // This holds one `Intl.DisplayNames` per locale and type, for the widget's lifetime.
 // This is keyed here, not held in a component memo, because every list card calls `useLocale`.
 // A deep results list would otherwise construct a pair per row.
@@ -91,9 +94,14 @@ export function useLocale() {
     [languageNames],
   )
 
-  // This just changes the language.
+  // This is the viewer's own pick, from the settings menu.
+  // It goes through `applyLanguage`, the single writer (`config/language.ts`), which fetches the
+  // locale's bundle from SahajCloud before it switches — so a language is never made active with
+  // nothing behind it but the English snapshot.
   // The subscription above re-snapshots every consumer, so there is no local state to keep in sync.
-  const setLocale = useCallback((next: string) => void i18n.changeLanguage(next), [i18n])
+  const setLocale = useCallback((next: string) => {
+    void applyLanguage(next, currentLanguages())
+  }, [])
 
   return {
     t,

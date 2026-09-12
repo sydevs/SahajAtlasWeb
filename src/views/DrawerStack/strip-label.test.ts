@@ -9,16 +9,16 @@ import { stripLabel } from './strip-label'
 // reaches, so the assertions read as the sentence a screen reader would speak, not a key.
 const t = ((key: string, opts?: { title?: string }) => {
   const copy: Record<string, string> = {
-    back: 'Back',
-    back_to: `Back to ${opts?.title}`,
-    search: 'Search',
-    online_classes: 'Online Classes',
+    'common.chrome.back': 'Back',
+    'common.chrome.back_to': `Back to ${opts?.title}`,
+    'search.chrome.title': 'Search',
+    'online.title': 'Online Classes',
     'calendar.title': 'Calendar',
-    'filters.title': 'Filters',
+    'filters.chrome.title': 'Filters',
   }
 
   return copy[key] ?? key
-}) as unknown as TFunction<'common'>
+}) as unknown as TFunction
 
 const regionNames = new Map([
   ['gb', 'United Kingdom'],

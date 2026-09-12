@@ -41,7 +41,7 @@ function ItemCheck() {
  * model a checked selection. SettingsMenu makes the same choice.
  */
 export function SortMenu() {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const order = useSortOrder()
   const setOrder = useSetSortOrder()
   const container = overlayContainer()
@@ -54,7 +54,7 @@ export function SortMenu() {
       <DropdownMenu.Trigger asChild>
         <Button size="sm" variant="ghost">
           <span>
-            {t('sort.label')}: {t(`sort.${order}`)}
+            {t('search.sort.label')}: {t(`search.sort.${order}`)}
           </span>
           <ChevronDown size={16} />
         </Button>
@@ -69,7 +69,7 @@ export function SortMenu() {
             {SORT_ORDERS.map((value) => (
               <DropdownMenu.RadioItem key={value} className={item} value={value}>
                 <ItemCheck />
-                <span>{t(`sort.${value}`)}</span>
+                <span>{t(`search.sort.${value}`)}</span>
               </DropdownMenu.RadioItem>
             ))}
           </DropdownMenu.RadioGroup>

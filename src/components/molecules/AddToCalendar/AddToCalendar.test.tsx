@@ -10,7 +10,7 @@ import { AddToCalendar } from './AddToCalendar'
 // This is the node lane, with no jsdom. See docs/testing.md.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => (key === 'actions.download_ics' ? 'Download .ics file' : key),
+    t: (key: string) => (key === 'event.actions.download_ics' ? 'Download .ics file' : key),
   }),
 }))
 

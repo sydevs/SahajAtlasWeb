@@ -28,7 +28,7 @@ const nearbyPath = (event: Event, basePath: string): string => {
 
 /** This is the escape hatch out of terminal states, back into live inventory. */
 function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
 
   return (
@@ -38,7 +38,7 @@ function SeeNearbyLink({ event, basePath }: { event: Event; basePath: string }) 
       variant="flat"
       onClick={() => navigate(nearbyPath(event, basePath))}
     >
-      {t('display.see_nearby')}
+      {t('event.display.see_nearby')}
     </Button>
   )
 }
