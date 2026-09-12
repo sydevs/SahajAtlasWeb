@@ -226,6 +226,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **`?locale=` on your page URL now matches whatever the casing.** ([#205]) `?locale=PT-br` was
+  treated as naming no language at all, so it fell through to the `locale` parameter on your
+  snippet — a page URL asking for Portuguese could open in the language you had pinned instead.
+  Links the widget writes itself were never affected; this is about a link you or a visitor wrote.
+
 - **Registration forms ask the event's questions again.** ([#192]) A class whose organiser had
   enabled questions like "How did you hear about this event?" showed a form with none of them for
   roughly four weeks — the visitor was asked only for a name and an email, and the organiser

@@ -184,7 +184,8 @@ a third, `feedback` — see [below](#feedback-on-a-page-the-atlas-links-to).)
   mechanism, so the choice lasts exactly as long as the address that carries it.
 
 An unrecognised `?locale=` is ignored rather than honoured — it falls through the precedence
-chain instead of forcing English.
+chain instead of forcing English. **Case does not matter**: `?locale=PT-br` and `?locale=pt-BR`
+both resolve, so a tag that has been through a CMS or a browser's own normalisation still counts.
 
 #### `?feedback=` on a page the atlas links to
 
