@@ -41,10 +41,17 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  *
  * ── What ships ──
  *
- * One variable face per subset, limited to what `public/locales` needs — latin,
+ * One variable face per subset, limited to what the offered languages need — latin,
  * latin-ext (cs/hu diacritics) and cyrillic (ru/uk). Cyrillic-ext and vietnamese are
  * dropped. NORMAL ONLY: italic would double the download for the one `<em>` a CMS
  * author can put in an event description, so those render as synthetic oblique.
+ *
+ * ⚠ **That set is no longer this repo's to read.** It came from the `public/locales/`
+ * directory listing until #198, so a new language and its subset arrived in the same
+ * commit. The offered languages now come from `sy-atlas-config.availableLocales` at
+ * runtime, so publishing a Greek or Hebrew locale in SahajCloud would render here in
+ * the visitor's system sans, with nothing in this repo failing. Adding a script to the
+ * CMS means adding its subset here, in the same breath.
  *
  * ⚠ TWO typefaces, under ONE family name, split by `unicode-range`. Rethink Sans has
  * no Cyrillic subset — the package ships latin and latin-ext only — and the widget
