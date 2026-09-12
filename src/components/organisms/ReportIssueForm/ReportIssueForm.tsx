@@ -1,3 +1,4 @@
+import type { TranslationKey } from '@/types/i18next'
 import type { UserMessageErrorCode } from '@/config/api/mutate'
 import type { ReportContext, ReportPayload } from '@/lib/report'
 
@@ -42,12 +43,12 @@ import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } fro
  *   and worth saying precisely. The generic "wait for the security check"
  *   is actively misleading here, since waiting will never help.
  */
-const REFUSAL_MESSAGE_KEYS: Record<UserMessageErrorCode, string> = {
-  captcha_failed: 'report.errors.captcha',
-  captcha_unavailable: 'report.errors.send_failed',
-  invalid_email: 'report.errors.email',
-  disposable_email: 'report.errors.disposable_email',
-  urls_not_allowed: 'report.errors.urls_not_allowed',
+const REFUSAL_MESSAGE_KEYS: Record<UserMessageErrorCode, TranslationKey> = {
+  captcha_failed: 'common.report_errors.captcha',
+  captcha_unavailable: 'common.report_errors.send_failed',
+  invalid_email: 'common.report_errors.email',
+  disposable_email: 'common.report_errors.disposable_email',
+  urls_not_allowed: 'common.report_errors.urls_not_allowed',
 }
 
 export type ReportIssueFormProps = {
@@ -99,7 +100,7 @@ export function ReportIssueForm({
   captchaUnavailable = false,
   initialValues,
 }: ReportIssueFormProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const {
     challengeRef,
     token,
@@ -179,11 +180,11 @@ export function ReportIssueForm({
     return (
       <>
         <ModalBody>
-          <p className="py-2 text-sm">{t('report.sent')}</p>
+          <p className="py-2 text-sm">{t('common.report.sent')}</p>
         </ModalBody>
         <ModalFooter>
           <Button color="primary" variant="flat" onClick={onClose}>
-            {t('close')}
+            {t('common.chrome.close')}
           </Button>
         </ModalFooter>
       </>
@@ -196,8 +197,8 @@ export function ReportIssueForm({
   // is wrong.
   const messageError =
     errors.message?.type === 'too_big'
-      ? t('report.errors.message_max', { max: REPORT_MESSAGE_MAX })
-      : t('report.errors.message', { min: REPORT_MESSAGE_MIN })
+      ? t('common.report_errors.message_max', { max: REPORT_MESSAGE_MAX })
+      : t('common.report_errors.message', { min: REPORT_MESSAGE_MIN })
 
   // A named refusal gets its own sentence. Everything else — offline, 5xx,
   // a 502 from the mailer — gets the generic one. The thrown message never
@@ -214,7 +215,7 @@ export function ReportIssueForm({
       ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
       : undefined
 
-  const failureMessage = refusalKey ? t(refusalKey) : t('report.errors.send_failed')
+  const failureMessage = refusalKey ? t(refusalKey) : t('common.report_errors.send_failed')
 
   const failed = initialFailed || mutation.isError
 
@@ -254,7 +255,7 @@ export function ReportIssueForm({
             announceError={false}
             error={errors.message && messageError}
             htmlFor="report-message"
-            label={t('report.message_label')}
+            label={t('common.report.message_label')}
           >
             <Textarea
               aria-describedby={fieldDescribedBy({
@@ -268,7 +269,7 @@ export function ReportIssueForm({
               // A hard stop at the schema's ceiling. Without it, pasting a long stack
               // trace — the very report this exists for — just disables submit.
               maxLength={REPORT_MESSAGE_MAX}
-              placeholder={t('report.message_placeholder')}
+              placeholder={t('common.report.message_placeholder')}
               rows={5}
               {...register('message')}
             />
@@ -276,10 +277,10 @@ export function ReportIssueForm({
 
           <FormField
             announceError={false}
-            error={errors.email && t('report.errors.email')}
-            help={t('report.email_help')}
+            error={errors.email && t('common.report_errors.email')}
+            help={t('common.report.email_help')}
             htmlFor="report-email"
-            label={t('report.email_label')}
+            label={t('common.report.email_label')}
           >
             <Input
               // Describe by the help line as well as any error, so the "optional, and we
@@ -292,7 +293,7 @@ export function ReportIssueForm({
               aria-invalid={errors.email ? true : undefined}
               id="report-email"
               isInvalid={Boolean(errors.email)}
-              placeholder={t('report.email_placeholder')}
+              placeholder={t('common.report.email_placeholder')}
               type="email"
               {...register('email')}
             />
@@ -303,7 +304,12 @@ export function ReportIssueForm({
           <div ref={challengeRef} />
 
           {blocked && (
-            <Alert align="start" color="secondary" description={t('report.blocked')} role="alert" />
+            <Alert
+              align="start"
+              color="secondary"
+              description={t('common.report.blocked')}
+              role="alert"
+            />
           )}
 
           {/* A failed submit is the one thing here worth interrupting a screen
@@ -323,7 +329,7 @@ export function ReportIssueForm({
             unmounts the form while the POST continues, so the viewer
             would never learn whether the report they just sent arrived. */}
         <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
-          {t('report.cancel')}
+          {t('common.chrome.cancel')}
         </Button>
         {/* `!token` disables: a solved challenge is what makes the submit sendable. */}
         <Button
@@ -333,7 +339,7 @@ export function ReportIssueForm({
           type="submit"
           variant="flat"
         >
-          {t('report.submit')}
+          {t('common.report.submit')}
         </Button>
       </ModalFooter>
     </form>

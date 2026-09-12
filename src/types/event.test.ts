@@ -1,6 +1,3 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
 import { describe, it, expect } from 'vitest'
 
 import {
@@ -184,29 +181,10 @@ describe('registration question names', () => {
     expect(enabledQuestions({ registrationQuestions })).toEqual([])
   })
 
-  // Every question renders its label from `events:questions.<name>`, so a bundle key
-  // outside the CMS set is copy nothing can reach and a missing one is a raw key on
-  // screen. Both directions, over every locale — `en` carried five unreachable keys
-  // for the whole of #191, which is what made the rename look already-adopted.
-  it('gives every locale bundle exactly the CMS question keys', () => {
-    const localesDir = fileURLToPath(new URL('../../public/locales', import.meta.url))
-    const expected = [...REGISTRATION_QUESTION_NAMES].sort()
-
-    const languages = readdirSync(localesDir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-
-    expect(languages.length).toBeGreaterThan(0)
-
-    for (const language of languages) {
-      const bundle = JSON.parse(
-        readFileSync(`${localesDir}/${language}/events.json`, 'utf8'),
-      ) as Record<string, Record<string, string>>
-
-      expect(
-        Object.keys(bundle.questions).sort(),
-        `public/locales/${language}/events.json`,
-      ).toEqual(expected)
-    }
-  })
+  // Every question renders its label from `registration.questions.<name>`, so a key outside the
+  // CMS set is copy nothing can reach and a missing one is a raw key on screen. Since #198 that
+  // pairing is asserted against the committed snapshot rather than ten hand-maintained bundles,
+  // and it lives with the rest of the key gate — `src/config/translations.test.ts`, which derives
+  // its expectation from `REGISTRATION_QUESTION_NAMES` exactly as this did. SahajCloud pins the
+  // same list on its own side (its `atlas-translations-schema` spec).
 })

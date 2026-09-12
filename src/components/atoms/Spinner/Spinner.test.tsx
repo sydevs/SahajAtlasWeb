@@ -9,7 +9,7 @@ import { Spinner } from '.'
 
 describe('Spinner screen-reader text', () => {
   it('falls back to English rather than a raw key when the caller has no translation', () => {
-    // The default has to be a real word, not `t('loading')`. A Suspense
+    // The default has to be a real word, not `t('common.chrome.loading')`. A Suspense
     // fallback can run before the translation bundles load, and English is
     // the app's fallbackLng.
     const html = renderToStaticMarkup(<Spinner />)

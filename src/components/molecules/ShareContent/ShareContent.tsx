@@ -19,7 +19,7 @@ const copyField = tv({
 // flash. The text stays selectable as a fallback. This is exported for
 // the event panel's desktop contact popover (issue #52).
 export function CopyField({ value }: { value: string }) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   const copy = () => {

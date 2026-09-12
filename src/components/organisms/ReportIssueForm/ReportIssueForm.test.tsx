@@ -29,17 +29,17 @@ vi.mock('react-i18next', () => ({
     t: (key: string, opts?: { min?: number; email?: string }) =>
       ({
         close: 'Close',
-        'report.message_label': 'What went wrong?',
-        'report.message_placeholder': 'Describe what you were doing and what looked wrong.',
-        'report.email_label': 'Email',
-        'report.email_help': 'Optional — we can only reply if you leave one.',
-        'report.email_placeholder': 'you@example.com',
-        'report.submit': 'Send report',
-        'report.cancel': 'Cancel',
-        'report.sent': 'Thank you — your report is on its way to the team.',
-        'report.blocked': "The security check couldn't load, so this form can't be sent.",
-        'report.errors.message': `Please write at least ${opts?.min} characters.`,
-        // This has no `report.errors.captcha` entry. Reaching that branch
+        'common.report.message_label': 'What went wrong?',
+        'common.report.message_placeholder': 'Describe what you were doing and what looked wrong.',
+        'common.report.email_label': 'Email',
+        'common.report.email_help': 'Optional — we can only reply if you leave one.',
+        'common.report.email_placeholder': 'you@example.com',
+        'common.report.submit': 'Send report',
+        'common.chrome.cancel': 'Cancel',
+        'common.report.sent': 'Thank you — your report is on its way to the team.',
+        'common.report.blocked': "The security check couldn't load, so this form can't be sent.",
+        'common.report_errors.message': `Please write at least ${opts?.min} characters.`,
+        // This has no `common.report_errors.captcha` entry. Reaching that branch
         // needs a REJECTED mutation, and the node lane renders SSR markup
         // once, so `initialFailed` can only stage the generic failure. The
         // branch is a compile-time total Record over the synced code union,
@@ -48,7 +48,7 @@ vi.mock('react-i18next', () => ({
         // "…or email us at %{email}," which is the `mailto:` escape issue
         // #182 removed. It now tells the viewer to retry, and names no
         // inbox.
-        'report.errors.send_failed': `Your report wasn't sent. Wait for the security check to refresh, then try again.`,
+        'common.report_errors.send_failed': `Your report wasn't sent. Wait for the security check to refresh, then try again.`,
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),

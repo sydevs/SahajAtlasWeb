@@ -118,7 +118,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
             fallback={
               <Spinner
                 className="mx-auto my-16"
-                srLabel={t('loading', { defaultValue: 'Loading…' })}
+                srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
               />
             }
           >
@@ -136,14 +136,14 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
                   then stands on its own, rather than rendering a link to nowhere. */}
               {feedback === 'confirmed' && (
                 <Alert
-                  closeLabel={t('close')}
+                  closeLabel={t('common.chrome.close')}
                   color="primary"
                   description={
                     <>
-                      {t('feedback.confirmed.body')}
+                      {t('common.feedback.confirmed_body')}
                       {onwardHref && (
                         <Link className="mt-1 block underline" href={onwardHref}>
-                          {t('feedback.nearby')}
+                          {t('common.feedback.nearby')}
                         </Link>
                       )}
                     </>
@@ -151,7 +151,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
                   icon={<Check size={18} />}
                   role="status"
                   size="sm"
-                  title={t('feedback.confirmed.title')}
+                  title={t('common.feedback.confirmed_title')}
                   onClose={dismissFeedback}
                 />
               )}

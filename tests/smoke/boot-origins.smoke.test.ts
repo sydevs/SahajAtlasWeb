@@ -42,8 +42,14 @@ const PRIVATE_HOST =
   /^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|\[::1\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)(?::\d+)?/
 
 /**
- * The two origins this build actually requests from. Each pattern finds one by the path
- * it composes: `${VITE_HOST}/locales/…` and `${VITE_SAHAJCLOUD_URL}/api`.
+ * The origin this build actually requests from, found by the path it composes:
+ * `${VITE_SAHAJCLOUD_URL}/api`.
+ *
+ * ⚠ **This was two origins until #198.** The other was `${VITE_HOST}/locales/…`, and it is the
+ * one the original defect was about — but the widget no longer fetches locale JSON at all. Every
+ * string now comes from SahajCloud, over the same origin checked below, and an English snapshot
+ * is compiled in. The class of failure this spec exists for has not gone away, though: it just
+ * has one door left instead of two, and that door is now load-bearing for copy as well as data.
  *
  * Warning: this check targets those two origins. It does not sweep for any private
  * host. A first draft of this spec swept broadly and produced a false positive.
@@ -54,7 +60,6 @@ const PRIVATE_HOST =
  * name those two origins directly.
  */
 const REQUEST_ORIGINS = [
-  { label: 'locale JSON (VITE_HOST)', pattern: /(https?:\/\/[^"'`\s\\)]+?)\/locales\// },
   {
     label: 'SahajCloud API (VITE_SAHAJCLOUD_URL)',
     pattern: /(https?:\/\/[^"'`\s\\)]+?)\/api["'`]/,
@@ -149,64 +154,4 @@ describe('boot origins', () => {
       expect(offenders).toEqual([])
     },
   )
-
-  test.skipIf(skipWithoutPreview)(
-    'serves the locale JSON from the origin the bundle will actually request',
-    async () => {
-      // Reads the origin out of the bundle. It does not assume the origin is the
-      // preview's own. Both answers are valid: production bakes in `sahajatlas.com`,
-      // and a preview bakes in its own deployment host. What must hold is that
-      // whatever origin was baked in actually resolves.
-      //
-      // Warning: this is not a guard against a localhost origin. Do not treat it as
-      // one. Calling the baked origin depends on the local environment. Anyone running
-      // `pnpm dev` has something answering on port 5174. Against the deploy that
-      // shipped this bug, this call would have passed on a developer's machine and
-      // failed only on a CI runner. This test verifies the call. It does not assume
-      // the result. The private-host test above owns that case: it reads the string
-      // instead of calling it, so a locally listening port cannot fool it. This test
-      // owns a different half: an origin that is public but wrong, such as a typo or a
-      // retired host. No amount of string inspection can catch that case.
-      const locale = (await requestOrigins()).find((o) => o.label.startsWith('locale'))!
-      const res = await fetch(`${locale.origin}/locales/en/common.json`)
-
-      expect(res.status).toBe(200)
-
-      // This is parsed, not just checked for a 200 status. `_redirects` sets `/*
-      // /index.html 200`, so a missing file also answers 200 with `text/html`. Only
-      // the body can tell the two cases apart. This is the lane's second invariant: a
-      // status code alone is not a result.
-      const common = JSON.parse(await res.text())
-
-      expect(common.widget?.label).toBeTruthy()
-    },
-  )
-
-  test.skipIf(skipWithoutPreview)(
-    'reaches its own translations, so the widget can finish booting',
-    async () => {
-      // The deploy must also serve the translation files, apart from what the bundle
-      // requests. A bundle that points somewhere valid and a deploy missing
-      // `public/locales/` are different faults with the same blank-page symptom.
-      for (const ns of ['common', 'events']) {
-        const res = await fetchPreview(`/locales/en/${ns}.json`)
-
-        expect(res.status).toBe(200)
-        // Parsed for the same reason as above. The SPA fallback answers 200
-        // `text/html` for a missing file, so only the body tells the two cases apart.
-        expect(Object.keys(JSON.parse(await res.text())).length).toBeGreaterThan(0)
-      }
-    },
-  )
-
-  test.skipIf(skipWithoutPreview)('serves those translations CORS-open', async () => {
-    // When embedded, the widget runs on the host's page and fetches locales
-    // cross-origin. The `/locales/*` rule in `public/_headers` is what makes that
-    // fetch succeed. Without it, the widget renders every string as its raw dotted key
-    // (issue #91). `robots.smoke.test.ts` pins the rule itself against displacement.
-    // This spec pins that the rule works on the real deployed file.
-    const res = await fetchPreview('/locales/en/common.json')
-
-    expect(res.headers.get('access-control-allow-origin')).toBe('*')
-  })
 })

@@ -16,10 +16,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { country?: string; region?: string }) =>
       ({
-        'country_site.cta': `Visit the ${opts?.country} website`,
-        'error.back_to_region': `See events in ${opts?.region}`,
-        'error.retry': 'Try again',
-        'report.title': 'Report an issue',
+        'search.country_site.cta': `Visit the ${opts?.country} website`,
+        'common.errors.back_to_region': `See events in ${opts?.region}`,
+        'common.errors.retry': 'Try again',
+        'common.report.title': 'Report an issue',
       })[key] ?? key,
     i18n: { resolvedLanguage: 'en', on: () => {}, off: () => {} },
   }),

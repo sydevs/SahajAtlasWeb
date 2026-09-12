@@ -49,7 +49,7 @@ const MIN_DISTANCE_KM = 5
  * none of the value.
  */
 function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { locale } = useLocale()
   const { highlightEvent } = useMapController()
   const prefetch = useHoverPrefetch()
@@ -81,10 +81,10 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
       : null
   const distanceText = distance
     ? searchedPlace
-      ? t('display.distance_from_place', { distance, place: searchedPlace })
-      : t('display.distance_away', { distance })
+      ? t('event.display.distance_from_place', { distance, place: searchedPlace })
+      : t('event.display.distance_away', { distance })
     : null
-  const distanceLabel = distance ? t('display.distance_from_search', { distance }) : undefined
+  const distanceLabel = distance ? t('event.display.distance_from_search', { distance }) : undefined
 
   // Hover or focus: highlight this card's pin, AND warm its detail query,
   // so opening it becomes a cache hit. Pointer and keyboard entry share

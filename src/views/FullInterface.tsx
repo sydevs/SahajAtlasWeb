@@ -118,7 +118,7 @@ function useAnalytics(primaryDomain: string, pathname: string) {
  */
 function MapCurtain() {
   const settled = useCameraSettled((s) => s.settled)
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
 
   if (settled) return null
 
@@ -130,7 +130,11 @@ function MapCurtain() {
       className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/20 backdrop-blur-sm"
     >
       <span className="sy-map-curtain-spinner">
-        <Spinner decorative size="lg" srLabel={t('loading', { defaultValue: 'Loading' })} />
+        <Spinner
+          decorative
+          size="lg"
+          srLabel={t('common.chrome.loading', { defaultValue: 'Loading' })}
+        />
       </span>
     </div>
   )

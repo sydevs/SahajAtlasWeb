@@ -57,7 +57,7 @@ experience, with a country → region → area → venue → event hierarchy.
 | Routing | `react-router` v7 over a hand-written history (`src/router.tsx`, `src/lib/shape/routing.ts`). The route is the `?atlas=` query parameter on the host's page URL — indexable, shareable, and it never touches `#anchor`. `routing=path` puts it in the pathname instead, under a prefix from the client record's `canonical.embed`, so path mode waits for that record before it routes. It uses in-memory routing only where the document refuses `replaceState` (#154). |
 | Data | **TanStack Query** plus **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-checked responses. |
 | State | **zustand** (`src/config/store.ts`) plus URL query (search filters). |
-| i18n | `i18next` plus `react-i18next`. The HTTP backend loads `public/locales/<lng>/<ns>.json`. |
+| i18n | `i18next` plus `react-i18next`. One namespace, served per locale by SahajCloud's `sy-atlas-translations` global; `src/config/translations.en.json` is the committed English snapshot i18next boots from (#198). |
 | Forms | `react-hook-form` plus `zod` (`@hookform/resolvers`). |
 | Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid. Our own header replaces SX's, via the `calendar-controls` plugin. |
 | Misc | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets). |
@@ -169,9 +169,10 @@ src/
                       # reportInternalError). Failure KIND is domain — its copy and
                       # buttons are UI, so ERROR_POLICY lives with the fallbacks
   types/              # zod schemas + inferred types per entity
-public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained). DATA, not source —
-                      # the directory listing IS `supportedLanguages`. Rules for these
-                      # bundles: `docs/rules/i18n-and-state.md`
+                      # config/translations.en.json = the committed English snapshot of
+                      # SahajCloud's `sy-atlas-translations`, written by
+                      # `pnpm sync:translations`. DATA, not source — never hand-edited.
+                      # Rules: `docs/rules/i18n-and-state.md`
 ```
 
 ## Conventions (see the nested `AGENTS.md` files and `docs/rules/` for detail)
@@ -184,11 +185,15 @@ public/locales/<lng>/ # translation JSON (en, fr, … hand-maintained). DATA, no
   map view and the registration draft. Search filters and the list sort order live in the
   URL query instead (`use-filters.ts`, `use-sort.ts`). Read stores with `useShallow`
   selectors in hot paths, such as the map. See `docs/rules/i18n-and-state.md`.
-- **i18n**: `supportedLanguages` (`src/config/i18n-options.ts`) and the bundles in
-  `public/locales/<lng>/` are pinned to each other in both directions by
-  `i18n-options.test.ts` — adding a locale means adding both. Add keys with
-  `pnpm i18n:add`, never by hand-editing ten files. Namespaces, key shape, and copy
-  budgets live in `docs/rules/i18n-and-state.md`.
+- **i18n**: **translations are CMS-owned.** Every string lives in SahajCloud's
+  `sy-atlas-translations` global — do not hand-edit copy here, and never hand-edit
+  `src/config/translations.en.json`, which `pnpm sync:translations --write` generates. To add,
+  rename or remove a key, open an issue on `sydevs/SahajCloud` (search the open ones first), and
+  once the CMS ships it, sync and wire the `t()`. The offered languages come from
+  `sy-atlas-config.availableLocales` at runtime (`src/hooks/use-available-locales.ts`), not from a list
+  in this repo. `src/config/translations.test.ts` pins the snapshot against every call site, in
+  both directions. Key shape and the single-writer rule live in
+  `docs/rules/i18n-and-state.md`.
 - **Navigation**: the UI is a URL-driven drawer stack (`src/views/`). `resolveStack`
   (`src/lib/shape/path.ts`) turns the pathname into open drawers, and `DrawerStack`
   renders `CountriesView` as the base plus one nested vaul drawer per ancestor — there is
@@ -239,7 +244,6 @@ vars used in this repo:
 - `VITE_SAHAJCLOUD_URL` — SahajCloud origin. The client appends `/api` (default
   `https://cloud.sydevelopers.com`).
 - `VITE_MAPBOX_ACCESSTOKEN` — Mapbox GL public token (`pk.…`).
-- `VITE_HOST` — origin used to load `public/locales` over HTTP.
 - `VITE_SAHAJCLOUD_API_KEY` — published `sahaj-atlas-client` API key passed to the widget
   in dev.
 - `VITE_FATHOM_ID` — Fathom analytics site id (optional).
@@ -275,9 +279,9 @@ and Pages reads all three from the build output:
 - **`_redirects`** (`/* /index.html 200`) — the SPA deep-link fallback for the standalone
   `BrowserRouter` build. The embeddable widget routes off a query parameter instead, so
   only the standalone build depends on this file.
-- **`_headers`** — CORS on `/assets/*` and `/locales/*` (#91: a font always fetches in
-  CORS mode, and blocked locale JSON renders every string as its raw key), plus
-  `X-Robots-Tag: noindex` on `/*` (#106). Pages applies every matching rule, so a broad
+- **`_headers`** — CORS on `/assets/*` and the two unhashed entry files (#91: a font always
+  fetches in CORS mode), plus `X-Robots-Tag: noindex` on `/*` (#106). The `/locales/*` rule went
+  with the bundles in #198. Pages applies every matching rule, so a broad
   rule never displaces a specific one.
 - **`robots.txt`** — `Disallow: /`, with an allow-group for link-preview scrapers (#106).
   WeMeditate and the other embedding sites own search, and this build's canonicals point
@@ -329,8 +333,9 @@ This repo once ran two Accent translation workflows
 (`.github/workflows/{push,sync}-accent.yml`, `accent.json`). #99 deleted them: every run
 had failed since 2026-06-22 on EOL Node 16, so the sync was already dead, and reviving it
 would have re-armed a push-to-`main` job with repo write access running an unpinned
-global install alongside `ACCENT_API_KEY`. Locale JSON under `public/locales/` is now
-hand-maintained only (`pnpm i18n:add`).
+global install alongside `ACCENT_API_KEY`. Locale JSON under `public/locales/` is gone
+altogether since #198 — SahajCloud owns the copy, and its own translator tooling owns the
+workflow those two workflows were for.
 
 ## Git / PR workflow
 

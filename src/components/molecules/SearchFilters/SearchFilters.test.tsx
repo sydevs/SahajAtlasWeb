@@ -47,7 +47,7 @@ const render = (filters = DEFAULT_FILTERS) =>
 // restyling can reintroduce the jump.
 describe('SearchFilters — the per-group Clear reserves its space', () => {
   const clearButtons = (html: string) =>
-    html.match(/<button[^>]*>filters\.clear_one<\/button>/g) ?? []
+    html.match(/<button[^>]*>filters\.chrome\.clear_one<\/button>/g) ?? []
 
   it('renders the same number of Clear buttons with nothing selected as with a selection', () => {
     const idle = clearButtons(render())

@@ -27,7 +27,7 @@ export type EventChipsProps = {
  * drift. `compact` trims the redundant chips on the card.
  */
 export function EventChips({ event, variant = 'default', className }: EventChipsProps) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { languageCode: uiLanguage, languageLabel } = useLocale()
   const { display, typeLabel, isDefaultType } = useEventDisplay(event)
 
@@ -62,8 +62,8 @@ export function EventChips({ event, variant = 'default', className }: EventChips
     <div className={clsx('flex flex-wrap items-center gap-1', className)}>
       {showType && <Chip color="primary">{typeLabel}</Chip>}
       {languageText && <Chip color="secondary">{languageText}</Chip>}
-      {full && <Chip color="neutral">{t('display.chip_full')}</Chip>}
-      {today && <Chip color="contrast">{t('display.chip_today')}</Chip>}
+      {full && <Chip color="neutral">{t('event.display.chip_full')}</Chip>}
+      {today && <Chip color="contrast">{t('event.display.chip_today')}</Chip>}
     </div>
   )
 }

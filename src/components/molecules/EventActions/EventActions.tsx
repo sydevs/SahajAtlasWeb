@@ -89,7 +89,7 @@ export type EventActionsProps = {
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   // The one responsive decision in the app that is about the DEVICE, not
   // the space (issue #107). Whether a `tel:` link reaches anything is a
@@ -112,7 +112,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 isExternal
                 href={mapsUrl}
                 icon={<Milestone className="rtl:-scale-x-100" />}
-                label={t('actions.directions')}
+                label={t('event.actions.directions')}
                 variant="bordered"
               />,
             ]
@@ -125,14 +125,14 @@ export function EventActions({ event, basePath }: EventActionsProps) {
                 isExternal
                 href={event.website}
                 icon={<Globe />}
-                label={t('actions.website')}
+                label={t('event.actions.website')}
                 variant="bordered"
               />,
             ]
           : []
       case 'contact': {
         if (!event.contactPhone) return []
-        const label = t('actions.contact')
+        const label = t('event.actions.contact')
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
         if (canDial) {
@@ -161,7 +161,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
           <ActionCircle
             key="share"
             icon={<Share size={20} />}
-            label={t('actions.share')}
+            label={t('event.actions.share')}
             variant="bordered"
             onClick={() => navigate(`${basePath}/share`)}
           />,

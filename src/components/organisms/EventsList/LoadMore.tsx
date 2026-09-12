@@ -70,7 +70,7 @@ export function LoadMore({
   loading = false,
   onReveal,
 }: LoadMoreProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   // `onReveal` is a fresh closure every render, since it reads the current
@@ -132,11 +132,11 @@ export function LoadMore({
           onClick={() => onReveal('press')}
         >
           {loading && <Spinner decorative color="current" size="sm" />}
-          {more === 'farther' ? t('results.farther') : t('results.more')}
+          {more === 'farther' ? t('search.results.farther') : t('search.results.more')}
         </Button>
       )}
       <span aria-live="polite" className="sr-only" role="status">
-        {announce ? t('results.showing', { shown, total }) : ''}
+        {announce ? t('search.results.showing', { shown, total }) : ''}
       </span>
     </div>
   )

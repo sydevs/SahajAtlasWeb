@@ -62,7 +62,7 @@ export type LoadingFallbackProps = {
 }
 
 export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
 
   return (
     <div className={unboxed ? APP_SURFACE_UNBOXED : APP_SURFACE}>
@@ -70,7 +70,7 @@ export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
           on screen. `DrawerLoadingBody` makes the same choice. A visible "Loading…"
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
-      <Spinner color="secondary" srLabel={t('loading')} />
+      <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
     </div>
   )
 }
@@ -177,7 +177,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // This row also has no onward link and no geocoder. Both need the network that just
   // failed. Offering them would only produce the same failure one press later.
   offline: {
-    messageKey: 'error.offline',
+    messageKey: 'common.errors.offline',
     fallbackText: 'You appear to be offline.',
     color: 'danger',
     retry: true,
@@ -188,7 +188,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     report: false,
   },
   server: {
-    messageKey: 'error.server',
+    messageKey: 'common.errors.server',
     fallbackText: 'Our servers are having trouble right now.',
     color: 'danger',
     retry: true,
@@ -202,21 +202,21 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // state's wording and its way out. `not-found` is the honest generic case. The
   // drawer usually knows more: the URL shows whether the viewer opened an event or
   // a place. `<event>/register` still counts as the event.
-  'not-found': { ...DEAD_END, messageKey: 'error.not_found', fallbackText: NOT_FOUND_TEXT },
+  'not-found': { ...DEAD_END, messageKey: 'common.errors.not_found', fallbackText: NOT_FOUND_TEXT },
   'not-found-event': {
     ...DEAD_END,
-    messageKey: 'error.not_found_event',
+    messageKey: 'common.errors.not_found_event',
     fallbackText: "We couldn't find that event.",
   },
   'not-found-region': {
     ...DEAD_END,
-    messageKey: 'error.not_found_region',
+    messageKey: 'common.errors.not_found_region',
     fallbackText: "We couldn't find that place.",
   },
   // The embed is misconfigured, or SahajCloud's data shape drifted. Both need a
   // human to fix them. No button here fixes either one.
   config: {
-    messageKey: 'error.config',
+    messageKey: 'common.errors.config',
     fallbackText: "This Atlas isn't set up correctly on this page.",
     color: 'danger',
     retry: false,
@@ -251,7 +251,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // again the same way, which costs the viewer one press. A `config` failure has
   // no such recoverable half, so it withholds the retry. This row does not.
   'captcha-blocked': {
-    messageKey: 'error.captcha_blocked',
+    messageKey: 'common.errors.captcha_blocked',
     fallbackText: "This Atlas can't run on this page: its security check was blocked.",
     color: 'danger',
     retry: true,
@@ -267,7 +267,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // which carries the thrown message. It does not belong on a screen where the
   // viewer can do nothing about it.
   unknown: {
-    messageKey: 'error.generic',
+    messageKey: 'common.errors.generic',
     fallbackText: 'Something went wrong.',
     color: 'danger',
     retry: true,
@@ -280,7 +280,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // This row used to offer no action, on the idea that an empty region is
   // nobody's mistake. That is true, but it still left one sentence and nothing to
   // press. That is the same dead end whether the URL was wrong or just empty.
-  empty: { ...DEAD_END, messageKey: 'filters.no_events', fallbackText: 'No events found.' },
+  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No events found.' },
   // A class that exists and runs, but cannot be joined: full, ended, or
   // registration closed. Not an error, and not empty. This is the one row whose
   // best next step is a PERSON. It leads with the organiser's number, and falls
@@ -293,7 +293,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // `event.test.ts` checks it. The text here shows only if that lookup ever comes
   // back empty.
   unavailable: {
-    messageKey: 'error.unavailable',
+    messageKey: 'common.errors.unavailable',
     fallbackText: 'This program can’t be joined right now.',
     color: 'neutral',
     retry: false,
@@ -323,7 +323,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // neither a public page nor a contact IS a gap worth a report. That beats a
   // sentence with nothing else beside it.
   'share-unavailable': {
-    messageKey: 'error.share_unavailable',
+    messageKey: 'common.errors.share_unavailable',
     fallbackText: 'There is no link to share for this meditation yet.',
     color: 'neutral',
     retry: false,
@@ -338,14 +338,14 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // knows a better next step than the recovery ladder does, and passes it in.
   'country-site': {
     ...DEAD_END,
-    messageKey: 'country_site.title',
+    messageKey: 'search.country_site.title',
     fallbackText: 'No classes listed in %{country} yet.',
   },
   // Filters are both the explanation and the way out. So this row keeps "Clear
   // all" and nothing else. An onward link would compete with the one action that
   // actually restores results here.
   'no-results': {
-    messageKey: 'filters.no_results',
+    messageKey: 'filters.chrome.no_results',
     fallbackText: 'No events match your filters.',
     color: 'neutral',
     retry: false,
@@ -360,7 +360,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // "Show distant events" control sits right below it saying so. `visibleActions`
   // leaves this row alone, since it promised nothing for a surface to remove.
   'no-nearby': {
-    messageKey: 'filters.no_nearby',
+    messageKey: 'search.results.no_nearby',
     fallbackText: 'No events within %{km} km.',
     color: 'neutral',
     retry: false,
@@ -395,7 +395,7 @@ export type FallbackValues = Record<string, string | number>
  * label beats a blank widget, when the whole point is to show the failure.
  */
 export function useFallbackDisplay(kind: FallbackKind, values?: FallbackValues) {
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   // `?? unknown` stops the lookup from returning undefined and breaking the
   // next line. Callers name the kind from a union type. But `classifyError`'s
   // own-property check resolves `hasOwnProperty` at call time, and this widget
@@ -502,16 +502,19 @@ export const visibleActions = (
 const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOffer) => {
   switch (offer.kind) {
     case 'countries':
-      return t('error.browse_countries', { defaultValue: 'Browse all countries' })
+      return t('common.errors.browse_countries', { defaultValue: 'Browse all countries' })
     case 'city':
-      return t('error.near_city', { city: offer.name, defaultValue: 'See events near %{city}' })
+      return t('common.errors.near_city', {
+        city: offer.name,
+        defaultValue: 'See events near %{city}',
+      })
     case 'country-site':
-      return t('country_site.cta', {
+      return t('search.country_site.cta', {
         country: offer.name,
         defaultValue: 'Visit the %{country} website',
       })
     default:
-      return t('error.back_to_region', {
+      return t('common.errors.back_to_region', {
         region: offer.name,
         defaultValue: 'See events in %{region}',
       })
@@ -531,7 +534,7 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
  * camera that the drawer stack's back-navigation depends on.
  */
 export function OnwardLink({ offer }: { offer: RecoveryOffer }) {
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
 
   return (
     <Link
@@ -615,8 +618,7 @@ export function FallbackActions({
   // this can render before any locale JSON arrives. `defaultValue` on each label,
   // for the same reason again. A raw "error.retry" on a button is worse than an
   // untranslated one.
-  const { t } = useTranslation('common', { useSuspense: false })
-  const { t: tEvents } = useTranslation('events', { useSuspense: false })
+  const { t } = useTranslation()
   const openReport = useReportModal((state) => state.openReport)
 
   // `visibleActions` is the single answer for what shows. It already accounts
@@ -638,7 +640,7 @@ export function FallbackActions({
         // one more likely to help must carry more weight than the one of last
         // resort.
         <Button color="primary" variant="flat" onClick={resetErrorBoundary}>
-          {t('error.retry', { defaultValue: 'Try again' })}
+          {t('common.errors.retry', { defaultValue: 'Try again' })}
         </Button>
       )}
       {actions.contact && contact && (
@@ -651,8 +653,8 @@ export function FallbackActions({
         <Link
           aria-label={
             contact.name
-              ? `${tEvents('actions.contact', { defaultValue: 'Contact' })} — ${contact.name}`
-              : tEvents('actions.contact', { defaultValue: 'Contact' })
+              ? `${t('event.actions.contact', { defaultValue: 'Contact' })} — ${contact.name}`
+              : t('event.actions.contact', { defaultValue: 'Contact' })
           }
           className={callSkin}
           color="neutral"
@@ -667,7 +669,7 @@ export function FallbackActions({
       )}
       {actions.clearFilters && (
         <Button color="primary" variant="flat" onClick={onClearFilters}>
-          {t('filters.clear', { defaultValue: 'Clear all' })}
+          {t('filters.chrome.clear', { defaultValue: 'Clear all' })}
         </Button>
       )}
       {/* A way to tell us, when the fault is ours rather than the link's. It
@@ -680,7 +682,7 @@ export function FallbackActions({
         // would read as disabled next to a filled one. `neutral` keeps its lower
         // weight instead.
         <Button color="neutral" variant="flat" onClick={() => openReport(reportContext)}>
-          {t('report.title', { defaultValue: 'Report an issue' })}
+          {t('common.report.title', { defaultValue: 'Report an issue' })}
         </Button>
       )}
     </div>

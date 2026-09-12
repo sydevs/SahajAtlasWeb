@@ -92,16 +92,28 @@ export function publishLocale(locale: string, win: Window = window): void {
  * `locale=fr` in favour of English — a worse answer than either party asked for. Regional tags
  * resolve by base tag the same way i18next does (`de-DE` → `de`), so a link that survives a
  * round trip through a browser's language list still counts.
+ *
+ * ⚠ **This is the second answer to "does this tag resolve against the offered set."**
+ * `preferredLocale` (`config/i18n-options.ts`) is the first, and the two cannot share code: the
+ * module docblock above explains why nothing in `lib/shape` may import from `config/`. They must
+ * therefore be kept in agreement by hand, and a case-sensitive match here was the one place they
+ * had drifted — `preferredLocale` case-folds, so `?locale=PT-br` resolved there and missed here.
+ * A miss is not a fall back to English: it hands the decision to `defaultLocale`, so the host's
+ * language would have beaten the page URL's. Case-fold both sides of every comparison below.
  */
 export function pageLocaleOverride(
   search: string,
   supported: readonly string[],
 ): string | undefined {
-  const raw = new URLSearchParams(search).get(LOCALE_PARAM)?.trim()
+  const raw = new URLSearchParams(search).get(LOCALE_PARAM)?.trim().toLowerCase()
 
   if (!raw) return undefined
 
   const base = raw.split('-')[0]
 
-  return supported.find((code) => code === raw || code.split('-')[0] === base)
+  return supported.find((code) => {
+    const offered = code.toLowerCase()
+
+    return offered === raw || offered.split('-')[0] === base
+  })
 }

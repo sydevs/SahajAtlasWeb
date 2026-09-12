@@ -64,7 +64,7 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 | UI          | `src/components/`                   | Atomic components (atoms/molecules/organisms), Radix + Tailwind |
 | Data        | `src/config/api/`                   | shared `PayloadSDK` client, zod-validated fetchers, mutations |
 | State       | `src/config/store.ts`               | zustand: view / camera-history / calendar-position / results-reveal / report-modal / registration-draft (filters + sort live in the URL) |
-| i18n        | `src/config/i18n.ts`, `public/locales/` | i18next + HTTP backend |
+| i18n        | `src/config/i18n.ts`, `src/config/locale.ts`, `src/config/translations.en.json` | i18next, one namespace, served by SahajCloud |
 | Types       | `src/types/`                        | zod schemas + inferred entity types |
 
 ## Data flow
@@ -108,7 +108,7 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
   Vite copies into `dist/`. The widget build routes off a query parameter on
   the host's page, so it needs no fallback of its own.
 - **Translations**: there is no sync pipeline. Locale JSON under
-  `public/locales/` is hand-maintained (`pnpm i18n:add`). The two **Accent**
+  SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
   translation-sync workflows were removed in #99 (see `AGENTS.md` →
   Deployment).
 

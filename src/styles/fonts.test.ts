@@ -59,7 +59,8 @@ describe('fontFaceCss', () => {
   it('subsets each face by unicode-range so only what is rendered is fetched', () => {
     expect(css.match(/unicode-range:/g)).toHaveLength(3)
     // Cyrillic (ru/uk) and latin-ext (cs/hu diacritics) are the two beyond plain latin
-    // that public/locales needs.
+    // that the offered languages need. Which languages those are is the CMS's answer
+    // since #198, not a directory listing here — see the warning in `fonts.ts`.
     expect(css).toContain('U+0400-045F')
     expect(css).toContain('U+1E00-1E9F')
   })

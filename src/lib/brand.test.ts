@@ -1,5 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
@@ -28,22 +27,17 @@ import { describe, expect, it } from 'vitest'
  */
 const BRAND = /sahaj\s*atlas|we\s?meditate/i
 
-/** Every locale bundle: this is the file translators read, so a brand key is a brand reference. */
-function localeFiles(): string[] {
-  const root = 'public/locales'
-
-  // Directories only. `public/locales/` is a pure set of locale bundles — the directory
-  // listing IS `supportedLanguages` (`i18n-options.test.ts`) and the whole tree is copied
-  // verbatim into both build outputs — but a stray `.DS_Store` would still make
-  // `readdirSync` throw ENOTDIR here rather than fail an assertion.
-  return readdirSync(root, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .flatMap((lng) =>
-      readdirSync(join(root, lng.name))
-        .filter((f) => f.endsWith('.json'))
-        .map((f) => join(root, lng.name, f)),
-    )
-}
+/**
+ * The committed English snapshot: what `pnpm sync:translations --write` pulls out of SahajCloud,
+ * and the copy the widget boots with (#198).
+ *
+ * ⚠ **This checks one locale where it used to check ten, and that is a real narrowing.** The nine
+ * other languages now live in the CMS, where nothing here can read them — a brand name typed into
+ * the French copy is caught by a SahajCloud-side gate or not at all. What this still holds is the
+ * direction that matters most: English is the source every translator works from, so a brand name
+ * reaches the other nine through it.
+ */
+const copySnapshot = () => 'src/config/translations.en.json'
 
 /**
  * Source files that carry user-visible copy.
@@ -66,8 +60,8 @@ const COPY_FILES = [
 ]
 
 describe('no brand names reach a visitor', () => {
-  it.each(localeFiles())('%s', (file) => {
-    expect(readFileSync(file, 'utf8')).not.toMatch(BRAND)
+  it(copySnapshot(), () => {
+    expect(readFileSync(copySnapshot(), 'utf8')).not.toMatch(BRAND)
   })
 
   it.each(COPY_FILES)('%s', (file) => {

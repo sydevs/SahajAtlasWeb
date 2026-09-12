@@ -34,7 +34,7 @@ export function RegistrationView({
   /** Preview-only: start the native form on its confirmation screen (see stories). */
   initialSubmitted?: boolean
 }) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { dismiss } = useDrawerControl()
   const { frameEvent } = useMapController()
 
@@ -103,8 +103,8 @@ export function RegistrationView({
     <>
       <DrawerHeader className="justify-between">
         <DrawerTitle
-          subtitle={t('display.all_events_free')}
-          title={t('registration.register_meditation')}
+          subtitle={t('common.chrome.all_classes_free')}
+          title={t('registration.form.title')}
         />
         <CloseButton />
       </DrawerHeader>

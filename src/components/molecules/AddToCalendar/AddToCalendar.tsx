@@ -38,7 +38,7 @@ export type AddToCalendarProps = {
  * `renderToStaticMarkup`, without a DOM.
  */
 export function AddToCalendar({ event }: AddToCalendarProps) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
 
   const downloadIcs = () => {
     const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
@@ -78,7 +78,7 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
           satisfies WCAG 2.5.3, while still telling a screen-reader user
           that this one downloads a file. */}
       <Button
-        aria-label={`Apple · ${t('actions.download_ics')}`}
+        aria-label={`Apple · ${t('event.actions.download_ics')}`}
         color="primary"
         size="sm"
         variant="flat"

@@ -27,7 +27,7 @@ describe('ImageCarousel', () => {
   it('offers a localized, pressable pause control when the carousel autoplays', () => {
     const html = renderToStaticMarkup(<ImageCarousel slides={slides} />)
 
-    expect(html).toContain('aria-label="details.pause_slideshow"')
+    expect(html).toContain('aria-label="event.actions.pause_slideshow"')
     // This is a toggle button. The name stays put, and the state rides on
     // aria-pressed, which starts unpressed because the carousel starts
     // playing.
@@ -46,7 +46,7 @@ describe('ImageCarousel', () => {
     const html = renderToStaticMarkup(<ImageCarousel slides={[slides[0]]} />)
 
     expect(html).toContain('<img')
-    expect(html).not.toContain('details.pause_slideshow')
+    expect(html).not.toContain('event.actions.pause_slideshow')
     expect(html).not.toContain('aria-pressed')
   })
 

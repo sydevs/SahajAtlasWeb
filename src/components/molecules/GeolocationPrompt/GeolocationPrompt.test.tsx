@@ -10,8 +10,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: { city?: string }) =>
       ({
-        'nearby_prompt.title': `Looking for classes near ${opts?.city}?`,
-        'nearby_prompt.dismiss': 'Dismiss',
+        'search.nearby_prompt.title': `Looking for classes near ${opts?.city}?`,
+        'search.nearby_prompt.dismiss': 'Dismiss',
       })[key] ?? key,
   }),
 }))

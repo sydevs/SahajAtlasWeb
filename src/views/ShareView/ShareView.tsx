@@ -17,7 +17,7 @@ import { CloseButton, DrawerTitle, useEventFromPath, useFrameOnTop } from '@/vie
 // title, chips, when, where — above the share block. A direct-link visitor then sees what
 // they are sharing, without any other Atlas chrome (issue #52).
 export function ShareView({ eventPath }: { eventPath: string }) {
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { frameEvent } = useMapController()
   // Order the share targets to the viewer's region. This is resolved here, so ShareContent
   // stays a pure, prop-driven molecule.
@@ -34,7 +34,7 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   return (
     <>
       <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('details.share_meditation')} />
+        <DrawerTitle title={t('share.title')} />
         <CloseButton />
       </DrawerHeader>
       <DrawerBody className="p-4">

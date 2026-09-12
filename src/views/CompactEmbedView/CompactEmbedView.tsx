@@ -60,7 +60,7 @@ type CardAction = { kind: 'overlay'; onOpen: () => void } | { kind: 'link'; href
  * easiest place in the app to forget it.
  */
 function Card({ action }: { action: CardAction }) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
 
   return (
     <div className="flex w-full flex-col items-center gap-2 overflow-hidden bg-background p-3 text-foreground">
@@ -70,7 +70,7 @@ function Card({ action }: { action: CardAction }) {
         {/* The same key the widget's landmark uses, deliberately: two keys for one
             phrase, differing only in casing, is a drift waiting to happen across ten
             locales. */}
-        <h2 className="text-sm font-semibold">{t('widget.label')}</h2>
+        <h2 className="text-sm font-semibold">{t('common.chrome.widget_label')}</h2>
         {/* Two JSX branches, not a conditional `href`: `ButtonProps` is a discriminated
             union, so a maybe-undefined href does not narrow into the anchor arm. The
             anchor form is also why this is the `Button` atom rather than a hand-rolled
@@ -334,19 +334,19 @@ export function CompactEmbedView({ compact, children }: CompactEmbedViewProps) {
 
 /** Inside the provider, so it can read the seam the provider supplies. */
 function Expandable({ children }: { children: ReactNode }) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { expanded, expand, collapse } = useExpansion()
 
   return (
     <>
       <Card action={{ kind: 'overlay', onOpen: expand }} />
       <ExpandedDialog
-        closeLabel={t('close')}
+        closeLabel={t('common.chrome.close')}
         open={expanded}
         // The same name the widget's own landmark carries, for the same reason: a
         // dialog whose accessible name resolves empty is announced as an unlabelled
         // group.
-        title={t('widget.label')}
+        title={t('common.chrome.widget_label')}
         onOpenChange={(next) => {
           if (next) return
 

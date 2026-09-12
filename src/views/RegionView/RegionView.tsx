@@ -35,8 +35,7 @@ import {
 // stack. There is no canonicalization redirect. The URL stays where the user navigated. The
 // canonical tag is standalone-only.
 export function RegionView({ slug }: { slug: string }) {
-  const { t } = useTranslation('events')
-  const { t: tCommon } = useTranslation('common')
+  const { t } = useTranslation()
   const { regionNames, locale } = useLocale()
   const { standalone } = useWidgetMode()
   const { frameRegion } = useMapController()
@@ -79,7 +78,7 @@ export function RegionView({ slug }: { slug: string }) {
   // takes the slot when present.
   const subheader =
     (region.level === 'city' ? region.subtitle : undefined) ??
-    (hasEventList ? t('display.all_events_free') : undefined)
+    (hasEventList ? t('common.chrome.all_classes_free') : undefined)
 
   return (
     <>
@@ -108,7 +107,7 @@ export function RegionView({ slug }: { slug: string }) {
         {feedback === 'denied' && (
           <Alert
             className="mb-4"
-            closeLabel={tCommon('close')}
+            closeLabel={t('common.chrome.close')}
             color="neutral"
             description={
               // Normally the onward step is the list directly below. So the banner names it,
@@ -120,19 +119,19 @@ export function RegionView({ slug }: { slug: string }) {
               // belongs to the clause, not to the body. The link is a block, and wants no
               // leading space.
               <>
-                {tCommon('feedback.denied.body')}
+                {t('common.feedback.denied_body')}
                 {isEmpty ? (
                   <Link className="mt-1 block underline" href={searchPath()}>
-                    {tCommon('feedback.nearby')}
+                    {t('common.feedback.nearby')}
                   </Link>
                 ) : (
-                  ` ${tCommon('feedback.below')}`
+                  ` ${t('common.feedback.below')}`
                 )}
               </>
             }
             role="status"
             size="sm"
-            title={tCommon('feedback.denied.title')}
+            title={t('common.feedback.denied_title')}
             onClose={dismissFeedback}
           />
         )}
@@ -151,7 +150,7 @@ export function RegionView({ slug }: { slug: string }) {
                 count={region.onlineEvents.length}
                 href={childRoute(region.path, 'online')}
                 icon={<Monitor size={24} />}
-                label={tCommon('online_classes')}
+                label={t('online.title')}
               />
             )}
             {/* Sub-regions (venues/centres, child areas) then this region's own located

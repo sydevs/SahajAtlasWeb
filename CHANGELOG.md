@@ -23,6 +23,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **`https://sahajatlas.com` is no longer needed in `connect-src`.** ([#205]) Every UI string
+  now comes from `cloud.sydevelopers.com`, alongside the events — the widget used to fetch
+  locale JSON from wherever the bundle was deployed, and nothing connects there any more.
+  `script-src` and `font-src` still need it. Leaving it in `connect-src` breaks nothing; it is
+  simply now unused.
+- **The languages the widget offers are managed in SahajCloud**, not compiled into the bundle.
+  ([#205]) The picker lists exactly the languages published there, and a `locale` naming one
+  that is not falls back to English. The widget carries English compiled in, so a blocked
+  `connect-src` or an unavailable language shows English copy rather than raw key names — ask
+  us to switch a language on rather than pinning `locale` to it.
+
 - ⚠ **`challenges.cloudflare.com` is now REQUIRED in your Content-Security-Policy, not
   optional.** ([#184]) It was previously a degradation — a page that blocked Cloudflare
   Turnstile got a working atlas whose report form offered an email address instead of a submit
@@ -214,6 +225,11 @@ cover everything a host would notice since the widget was first deployed.
   custom property. No extra request, no CSP change; unset, it uses the self-hosted face as before.
 
 ### Fixed
+
+- **`?locale=` on your page URL now matches whatever the casing.** ([#205]) `?locale=PT-br` was
+  treated as naming no language at all, so it fell through to the `locale` parameter on your
+  snippet — a page URL asking for Portuguese could open in the language you had pinned instead.
+  Links the widget writes itself were never affected; this is about a link you or a visitor wrote.
 
 - **Registration forms ask the event's questions again.** ([#192]) A class whose organiser had
   enabled questions like "How did you hear about this event?" showed a form with none of them for
@@ -512,6 +528,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
 [#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
+[#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small

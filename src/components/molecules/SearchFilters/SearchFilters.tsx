@@ -1,3 +1,5 @@
+import type { TranslationKey } from '@/types/i18next'
+
 import { type ReactNode, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Info } from 'luxon'
@@ -64,7 +66,7 @@ function FilterGroup({
   onClear?: () => void
   children: ReactNode
 }) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
 
   return (
     <section className="flex flex-col gap-2">
@@ -87,7 +89,7 @@ function FilterGroup({
               type="button"
               onClick={onClear}
             >
-              {t('filters.clear_one')}
+              {t('filters.chrome.clear_one')}
             </button>
           )}
         </div>
@@ -163,7 +165,7 @@ export type SearchFiltersProps = {
  * feed, labelled per locale.
  */
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { locale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = value
 
@@ -286,7 +288,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         >
           {CADENCE_OPTIONS.map((option) => (
             <ToggleGroupItem key={option} value={option}>
-              {t(`filters.cadence.${option.toLowerCase()}`)}
+              {t(`filters.cadence.${option.toLowerCase()}` as TranslationKey)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

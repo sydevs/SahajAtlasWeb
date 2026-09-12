@@ -70,7 +70,7 @@ const leadsWithGeocoder = (
  * mounting a custom element that is about to be thrown away.
  */
 function SearchFieldSkeleton() {
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
 
   return (
     <div className="min-w-0 flex-1">
@@ -78,7 +78,7 @@ function SearchFieldSkeleton() {
         disabled
         readOnly
         className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 text-sm text-foreground placeholder:text-gray-11"
-        placeholder={t('search_placeholder', { defaultValue: 'Search for events near…' })}
+        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
         type="search"
         value=""
       />
@@ -111,8 +111,7 @@ function SearchFieldSkeleton() {
  * decision, not this component's.
  */
 export function DrawerChrome({ interactive = true }: { interactive?: boolean }) {
-  const { t } = useTranslation('common', { useSuspense: false })
-  const { t: tEvents } = useTranslation('events', { useSuspense: false })
+  const { t } = useTranslation()
   const { locale } = useLocale()
   const { hasMap } = useWidgetMode()
   const location = useLocation()
@@ -146,21 +145,21 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
       case 'region':
         return regionName
       case 'online':
-        return t('online_classes', { defaultValue: 'Online Classes' })
+        return t('online.title', { defaultValue: 'Online Classes' })
       case 'event':
         return titles?.get(entry.id)
       case 'search':
-        return t('search', { defaultValue: 'Search' })
+        return t('search.chrome.title', { defaultValue: 'Search' })
       case 'calendar':
         return t('calendar.title', { defaultValue: 'Calendar' })
       case 'filters':
-        return t('filters.title', { defaultValue: 'Filters' })
+        return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
-        return tEvents('registration.register_meditation', {
+        return t('registration.form.title', {
           defaultValue: 'Register for Meditation',
         })
       case 'share':
-        return tEvents('details.share_meditation', { defaultValue: 'Share Meditation' })
+        return t('share.title', { defaultValue: 'Share Meditation' })
       default:
         return undefined
     }
@@ -250,7 +249,7 @@ export function DrawerLoading() {
  * same reason.
  */
 export function DrawerLoadingBody() {
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
 
   return (
     <DrawerBody className={CENTERED_BODY}>
@@ -259,7 +258,10 @@ export function DrawerLoadingBody() {
           the glyph itself off centre — the column centres, so the label's height sits half
           of it below the middle. Screen readers still get it through the Spinner's own
           `role="status"`. */}
-      <Spinner color="secondary" srLabel={t('loading', { defaultValue: 'Loading…' })} />
+      <Spinner
+        color="secondary"
+        srLabel={t('common.chrome.loading', { defaultValue: 'Loading…' })}
+      />
     </DrawerBody>
   )
 }
@@ -323,7 +325,7 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
  * knows: which entity the dead link named, and a geocoder to name another one.
  */
 export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
-  const { t } = useTranslation('common', { useSuspense: false })
+  const { t } = useTranslation()
   const { hasMap } = useWidgetMode()
   const location = useLocation()
   const kind = classifyError(error)
@@ -351,7 +353,7 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
           it lives in the host page's `#!` fragment, so writing keystrokes into it spreads a
           broken link into anything the visitor copies. */}
       <SearchField
-        label={t('error.search_label', { defaultValue: 'Or search for a place' })}
+        label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
         syncToUrl={false}
       />
     </FallbackPanel>

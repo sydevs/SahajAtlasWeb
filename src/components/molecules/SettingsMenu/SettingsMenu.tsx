@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, Info, Languages, Monitor, Moon, Settings, Sun } from 'lucide-react'
 
 import { frameCollision } from '@/lib/overlay'
-import { supportedLanguages } from '@/config/i18n-options'
+import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
 import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
@@ -43,8 +43,11 @@ export type SettingsMenuProps = {
 }
 
 export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
+  // The set an operator publishes in SahajCloud, never a list compiled in here (#198). Every row
+  // is a locale the CMS has proven it can answer in, so the menu cannot offer a dead end.
+  const locales = useAvailableLocales()
   const { preference, setPreference } = useThemePreference()
   const { linkable } = useWidgetMode()
   const openReport = useReportModal((state) => state.openReport)
@@ -71,9 +74,9 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   }
 
   const themes: { value: ThemePreference; label: string; icon: ReactNode }[] = [
-    { value: 'light', label: t('theme.light'), icon: <Sun size={18} /> },
-    { value: 'dark', label: t('theme.dark'), icon: <Moon size={18} /> },
-    { value: 'auto', label: t('theme.auto'), icon: <Monitor size={18} /> },
+    { value: 'light', label: t('common.settings.theme_light'), icon: <Sun size={18} /> },
+    { value: 'dark', label: t('common.settings.theme_dark'), icon: <Moon size={18} /> },
+    { value: 'auto', label: t('common.settings.theme_auto'), icon: <Monitor size={18} /> },
   ]
   const currentTheme = themes.find((th) => th.value === preference) ?? themes[0]
 
@@ -81,7 +84,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          aria-label={t('settings')}
+          aria-label={t('common.settings.title')}
           className={`flex h-8 w-8 items-center justify-center rounded-full border border-divider bg-background text-gray-11 shadow-lg transition-colors hover:text-foreground ${className ?? ''}`}
           type="button"
         >
@@ -119,7 +122,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
                     français, русский). It applies per word, so "português
                     (Brasil)" survives it intact. */}
                 <DropdownMenu.RadioGroup value={locale} onValueChange={chooseLocale}>
-                  {supportedLanguages.map((lng) => (
+                  {locales.map((lng) => (
                     <DropdownMenu.RadioItem key={lng} className={item} lang={lng} value={lng}>
                       <ItemCheck />
                       <span className="capitalize">{nativeLanguageLabel(lng)}</span>
@@ -161,7 +164,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
               list (issue #79). */}
           <DropdownMenu.Item className={item} onSelect={() => openReport()}>
             <Info size={18} />
-            <span>{t('report.title')}</span>
+            <span>{t('common.report.title')}</span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

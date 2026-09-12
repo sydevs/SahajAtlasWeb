@@ -61,7 +61,7 @@ const controller = (restore = vi.fn()): MapController =>
 function SearchLike({ onFrame }: { onFrame: (label: string) => void }) {
   const [searchParams] = useSearchParams()
 
-  useFrameOnTop(() => onFrame('search'), [onFrame, searchParams.get('center')])
+  useFrameOnTop(() => onFrame('search.chrome.title'), [onFrame, searchParams.get('center')])
 
   return null
 }

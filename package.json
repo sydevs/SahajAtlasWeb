@@ -25,7 +25,7 @@
     "preview": "vite preview",
     "review:embed": "node scripts/serve-embed-review.mjs",
     "sync:atlas-contract": "node scripts/sync-atlas-contract.mjs",
-    "i18n:add": "node scripts/add-locale-key.mjs",
+    "sync:translations": "node scripts/sync-translations.mjs",
     "types:cms": "mkdir -p src/types/payload && curl -fsSL -o src/types/payload/payload-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/payload-types.ts && curl -fsSL -o src/types/payload/response-types.ts https://raw.githubusercontent.com/sydevs/SahajCloud/refs/heads/main/src/collections/Events/endpoints/responseTypes.ts && node scripts/strip-payload-augmentation.mjs",
     "types:openapi": "node scripts/fetch-openapi.mjs"
   },
@@ -68,7 +68,6 @@
     "framer-motion": "^11.18.2",
     "i18next": "^24.2.3",
     "i18next-browser-languagedetector": "^8.2.1",
-    "i18next-http-backend": "^3.0.6",
     "lucide-react": "1.35.0",
     "luxon": "^3.7.2",
     "mapbox-gl": "^3.30.0",

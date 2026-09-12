@@ -230,8 +230,8 @@ export function Mapbox() {
   // stays English.
   const mapLocale = useMemo(
     () => ({
-      'GeolocateControl.FindMyLocation': t('map.find_my_location'),
-      'GeolocateControl.LocationNotAvailable': t('map.location_not_available'),
+      'GeolocateControl.FindMyLocation': t('common.map.find_my_location'),
+      'GeolocateControl.LocationNotAvailable': t('common.map.location_not_available'),
     }),
     [t],
   )

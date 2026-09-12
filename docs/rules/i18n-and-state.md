@@ -7,61 +7,89 @@ paths:
   - 'src/hooks/use-locale.ts'
   - 'src/hooks/use-reveal.ts'
   - 'src/hooks/use-sort.ts'
-  - 'public/locales/**'
+  - 'src/config/translations.en.json'
+  - 'src/config/locale.ts'
+  - 'src/hooks/use-available-locales.ts'
 ---
 
 # i18n & State
 
-## i18next (`src/config/i18n.ts`)
+## i18next (`src/config/i18n.ts`) — the CMS owns every string (#198)
 
-- `i18next-http-backend` loads translations over HTTP from
-  `public/locales/<lng>/<ns>.json` (`loadPath` uses `VITE_HOST`). Namespaces:
-  `common`, `events` (default `common`).
+- **Three words, three meanings. Do not mix them.**
+  - **Locale** is a BCP-47 tag the widget can render in (`en`, `pt-BR`). It is the
+    unit of everything on this path: `?locale=`, the `locale` attribute,
+    `availableLocales`, a query key, i18next's active language. Every symbol that
+    handles one is named for it — `applyLocale`, `bootLocale`, `preferredLocale`,
+    `useAvailableLocales`, `currentLocales`.
+  - **Language** is a human language as CONTENT — an event's spoken language in a
+    filter, or a display name for one (`languageLabel`, `nativeLanguageLabel`), plus
+    `useLocale().languageCode`, the base subtag a font subset keys on.
+  - **Translations** are the strings themselves: one bundle per locale
+    (`TranslationTree`, `translationsQuery`, `translations.en.json`).
+
+  The rename that established this is only worth keeping if it holds. A new symbol
+  that resolves, narrows, stores or fetches a tag says `locale`, never `language`.
+- **Translations are CMS-owned.** All Sahaj Atlas UI copy lives in SahajCloud's
+  `sy-atlas-translations` global — do not hand-edit strings in this app;
+  `src/config/translations.en.json` is generated. To add, rename or remove a key,
+  open an issue on `sydevs/SahajCloud` — search the open ones first and update the
+  outstanding request rather than duplicating it. Once the CMS ships the key, run
+  `pnpm sync:translations --write` and wire the `t()` here.
+- **One namespace, nested keys** (`event.display.chip_full`). i18next resolves the
+  nesting natively, so there is no `common`/`events` split any more and every hook
+  call is a bare `useTranslation()`.
 - **Interpolation uses Ruby-style delimiters** `%{var}`, not i18next's default
-  `{{var}}` — these JSON files are shared with a Rails backend. Match that syntax
-  in both code and locale files.
-- **`count` is a reserved plural trigger.** Do not pass it for a plain number.
-  `t()` treats an option named `count` as a pluralization trigger: it resolves
-  `key_one` / `key_other` instead of the base key, and logs a missing-key warning
-  under `debug: true` when those forms do not exist. For a non-plural number (a
-  result count in a button), name the variable something else — `t('x', { total
-  })` with `%{total}` — or build the string in code. Pass `count` only when the
-  key genuinely has `_one` / `_other` forms (see `locations.description_one` /
-  `venues.description_one`).
-- **Detection persists nothing** (`i18nDetectionOptions`,
-  `src/config/i18n-options.ts`): `order: ['querystring', 'navigator']`,
-  `caches: []`. The library's defaults would read cookies and localStorage, and
-  write `i18nextLng` onto the HOST page's own origin — undeclared storage on a
-  domain that is not ours (#95). The widget's `locale` prop or the client's
-  `client.locale` can still override it (see `App.tsx`). Read the active locale
-  with `useLocale()`, never `i18n.language` directly.
-  `?locale=cimode` is refused (`convertDetectedLanguage`) — it is i18next's
-  translator-debug pseudo-language, and a link carrying it would render someone's
-  embed as raw dotted key names.
-- **`supportedLanguages` (`src/config/i18n-options.ts`) is both the picker's list
-  and i18next's `supportedLngs`.** `i18n-options.test.ts` pins it to
-  `public/locales/` in both directions, so a bundle nobody can select and a code
-  with no bundle both fail. To add a language: add the `public/locales/<lng>/`
-  JSON files (both namespaces), add the code to that one array, check that
-  SahajCloud is translated into it (`activeLocale()` sends the resolved language
-  straight through), add the bundle to `.ladle/i18n.ts`, and check
-  `MAP_WORLDVIEWS` in `Mapbox/Map.tsx` for whether it needs a worldview.
-  Do **not** reach for `load: 'languageOnly'` to stop a regional tag fetching —
-  it strips `pt-BR` (a bundle we ship) down to a `pt` we do not ship.
-  `supportedLngs` already resolves `en-US` → `en` and `de-DE` → `de` without
-  fetching either.
-- **`common` has full parity across all ten locales, checked per locale.**
-  `events` carries a short, ratcheting list of known-untranslated keys
-  (`UNTRANSLATED_EVENT_KEYS`). A missing key is not always cosmetic —
-  `widget.label` names the widget root's `role="region"` landmark, and WebKit
-  drops the role entirely when it resolves empty.
-- Locale JSON under `public/locales/` is hand-maintained. Keep keys in sync
-  across languages (`en` is the `fallbackLng`). Add a key everywhere with `pnpm
-  i18n:add <dotted.key> '<{lng:value}>' [ns]`, never by hand-editing ten files.
-- **A new locale key needs a full page reload in dev, not just HMR.** HMR reloads
-  the component but not i18next's already-fetched translations, so the key
-  renders as its raw name (e.g. `online_classes`) until you reload. A raw key
-  right after `pnpm i18n:add` is almost always this, not a missing key.
+  `{{var}}` — the CMS stores the copy in that form. Match it in code and in the CMS.
+- **`count` is a reserved plural trigger.** Do not pass it for a plain number: `t()`
+  resolves `key_one` / `key_other` instead of the base key. Pass it only for a key
+  the CMS declares `plural: true` (`event.display.sessions_count` is the one today).
+  For a non-plural number, name the variable something else.
+- **`src/config/translations.en.json` is the boot resource**, not a cache: i18next
+  initialises from it synchronously, `src/types/i18next.d.ts` types every `t()` key
+  against it, Ladle and the node lane read it, and it is what a viewer sees when a
+  CMS read fails. It is checked against the CMS's own generated types with
+  `satisfies`, so a group renamed upstream fails `pnpm typecheck`.
+- **`applyLocale` (`src/config/locale.ts`) is the ONE writer of the active
+  language.** Exactly two callers: `AppShell`'s layout effect and
+  `useLocale().setLocale`. Never call `i18n.changeLanguage` anywhere else — a
+  language change is a fetch, a resource write and a switch in that order, and PR
+  #168 found that two owners of that sequence disagree within a frame, with the
+  winner decided by effect ordering. `en` goes through the same path, which is what
+  lets an English copy edit in the CMS reach a live widget with no deploy.
+  ⚠ **One writer is not one call at a time.** `AppShell`'s effect keys on the
+  offered set, which answers `['en']` until the config lands, so a `?locale=fr`
+  page has two calls in flight within a frame. A module-level generation counter
+  in `language.ts` makes the last CALL win rather than the last read to settle —
+  keep any new await inside `applyLocale` behind that check.
+- **The boot warm-up must fetch the key `applyLocale` will read.** Use
+  `bootLocale` (`src/config/locale.ts`), never `i18n.language`: that is the
+  raw detected tag, and it answers neither a host's `locale` attribute (in no
+  detector) nor `preferredLocale`'s narrowing of a regional tag. Both callers —
+  `App`'s mount effect and `PathBoot` — must pass the same thing, or React Query
+  merges nothing and one of the two requests is read by nobody.
+- **The offered set is `sy-atlas-config.availableLocales`**, read at runtime through
+  `useAvailableLocales()`. SahajCloud refuses to save a locale there until its translations
+  are published, so the picker may render it verbatim. Anything unusable — a failed
+  read, an empty array, a missing field — answers `['en']`: never offer a language
+  whose publication cannot be proven.
+- **`applyRequestContext` sets `?locale=` only when it is absent**
+  (`src/config/api/client.ts`). The translations read names its own locale, and it is
+  the one request whose locale is deliberately not the active language.
+- **Detection persists nothing** (`i18nDetectionOptions`): `order: ['querystring',
+  'hostHtmlLang', 'navigator']`, `caches: []`. The library's defaults would read
+  cookies and localStorage, and write `i18nextLng` onto the HOST page's own origin —
+  undeclared storage on a domain that is not ours (#95). Read the active locale with
+  `useLocale()`, never `i18n.language` directly. `?locale=cimode` is refused
+  (`convertDetectedLanguage`) — it is i18next's translator-debug pseudo-language, and
+  a link carrying it would render someone's embed as raw dotted key names.
+- **`preferredLocale` replaced `supportedLngs`** (`src/config/i18n-options.ts`). It
+  narrows a requested tag against the runtime set, before the fetch: exact match
+  case-folded, then base tag (`de-DE` → `de`), then a regional variant of that base
+  (`pt` → `pt-BR`), then English.
+- **Copy budgets live in the CMS**, as `maxLength` plus `strict` on the key
+  (sydevs/SahajCloud#705), which blocks the save. There is no budget spec here any
+  more — a gate in this repo could only ever see English.
 
 ## zustand stores (`src/config/store.ts`)
 

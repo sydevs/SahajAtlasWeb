@@ -1,14 +1,11 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
 import { createInstance } from 'i18next'
 import { describe, it, expect, beforeAll } from 'vitest'
 
-import { i18nDetectionOptions, i18nSharedOptions, supportedLanguages } from './i18n-options'
+import { i18nDetectionOptions, i18nSharedOptions, preferredLocale } from './i18n-options'
 
-// `i18n-options` is the side-effect-free config shared by the app's HTTP-backed instance, `i18n.ts`, and the Ladle story instance.
-// So its Ruby-style `%{...}` interpolation, shared with the Rails backend that owns the locale JSON, and its `en` fallback can never drift between the two.
-// This suite boots a standalone instance with inline resources, no HTTP backend, to lock that contract.
+// `i18n-options` is the side-effect-free config shared by the app's instance, `i18n.ts`, and the Ladle story instance.
+// So its Ruby-style `%{...}` interpolation, shared with SahajCloud, which owns every string, and its `en` fallback can never drift between the two.
+// This suite boots a standalone instance with inline resources to lock that contract.
 
 let i18n: ReturnType<typeof createInstance>
 
@@ -18,19 +15,19 @@ beforeAll(async () => {
     ...i18nSharedOptions,
     lng: 'fr',
     resources: {
-      en: { common: { greeting: 'Hello %{name}', onlyEnglish: 'English only' } },
-      fr: { common: { greeting: 'Bonjour %{name}' } },
+      en: { translation: { greeting: 'Hello %{name}', onlyEnglish: 'English only' } },
+      fr: { translation: { greeting: 'Bonjour %{name}' } },
     },
   })
 })
 
 describe('i18nSharedOptions', () => {
   it('interpolates Ruby-style %{var} placeholders, not the i18next default {{var}}', () => {
-    expect(i18n.t('greeting', { name: 'Atlas' })).toBe('Bonjour Atlas')
+    expect(i18n.t('greeting' as never, { name: 'Atlas' })).toBe('Bonjour Atlas')
   })
 
   it('falls back to en for keys missing in the active language', () => {
-    expect(i18n.t('onlyEnglish')).toBe('English only')
+    expect(i18n.t('onlyEnglish' as never)).toBe('English only')
   })
 
   it('resolves text direction via i18next (feeds the widget root dir attr)', () => {
@@ -41,96 +38,40 @@ describe('i18nSharedOptions', () => {
   })
 })
 
-// The settings picker is built from `supportedLanguages`.
-// The HTTP backend fetches `public/locales/<lng>/<ns>.json`.
-// Nothing else connects the two.
-// Before issue #95, eight of the ten shipped bundles were unreachable, with every gate green.
-// This pins the parity in both directions.
-const localesDir = fileURLToPath(new URL('../../public/locales', import.meta.url))
-
-const shippedLocales = readdirSync(localesDir, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .sort()
-
-describe('supportedLanguages', () => {
-  it('offers exactly the locale bundles that ship in public/locales', () => {
-    expect([...supportedLanguages].sort()).toEqual(shippedLocales)
-  })
-
-  it('ships every configured namespace for every offered language', () => {
-    const missing = supportedLanguages.flatMap((lng) => {
-      const files = readdirSync(`${localesDir}/${lng}`)
-
-      return i18nSharedOptions.ns
-        .filter((ns) => !files.includes(`${ns}.json`))
-        .map((ns) => `${lng}/${ns}.json`)
-    })
-
-    expect(missing).toEqual([])
-  })
-
-  it('keeps the en fallback in the offered set', () => {
-    expect(supportedLanguages).toContain(i18nSharedOptions.fallbackLng)
-  })
-})
-
-// Widening the picker from two languages to ten makes the `en` fallback visible where it never was.
-// Eight more audiences now see whatever their bundle is missing.
-// `hu` shipped with no `widget.label` at all, the accessible name of the widget root's `role="region"` landmark. See #92.
-// So a Hungarian embed announced an English name under `lang="hu"`, the exact WCAG 3.1.2 mispronunciation that `lang` was added to prevent.
-// WebKit also drops the landmark entirely if that name ever resolves empty.
-const flatEntries = (value: unknown, prefix = ''): [string, unknown][] =>
-  typeof value === 'object' && value !== null
-    ? Object.entries(value).flatMap(([key, child]) => flatEntries(child, `${prefix}${key}.`))
-    : [[prefix.slice(0, -1), value]]
-
-const bundle = (locale: string, ns: string): unknown =>
-  JSON.parse(readFileSync(`${localesDir}/${locale}/${ns}.json`, 'utf8'))
-
-/** These are `en` keys with no non-blank translation in `locale`. Extra keys are fine.
- *  A language with more plural categories than English, such as `cs`, `ru`, or `uk` with `_few` and `_many`, needs them. */
-const untranslated = (locale: string, ns: string): string[] => {
-  const translated = new Map(flatEntries(bundle(locale, ns)))
-
-  return flatEntries(bundle('en', ns))
-    .map(([key]) => key)
-    .filter((key) => !String(translated.get(key) ?? '').trim())
-}
-
-const offeredButNotEnglish = supportedLanguages.filter((lng) => lng !== 'en')
-
 /**
- * This is event-domain copy that landed after the last translation pass, and renders the `en` fallback in every language.
- * This list enumerates it, rather than ignoring it, so the debt is a reviewable list naming what is missing.
- * The second test below ratchets it: translate one key everywhere, and the gate tells you to delete the line.
+ * `preferredLocale` replaced i18next's `supportedLngs` when #198 moved the offered set into
+ * SahajCloud. The narrowing it does is the same, but it happens against a runtime list and BEFORE
+ * the per-locale fetch, so these cases are the ones that used to be the library's problem.
  */
-const UNTRANSLATED_EVENT_KEYS = ['details.share_meditation', 'registration.register_meditation']
+describe('preferredLocale', () => {
+  const available = ['en', 'de', 'fr', 'pt-BR']
 
-describe('locale key parity', () => {
-  it.each(offeredButNotEnglish)('%s: answers every common-namespace key', (lng) => {
-    // `common` is the widget's own chrome: controls, settings labels, accessible names.
-    // It is small, and nothing in it should ever answer in English to someone who picked another language.
-    expect(untranslated(lng, 'common')).toEqual([])
+  it('takes an exact match, whatever its case', () => {
+    expect(preferredLocale('PT-br', available)).toBe('pt-BR')
   })
 
-  it.each(offeredButNotEnglish)('%s: answers every event key but the known gaps', (lng) => {
-    // This is deliberately a SUPERSET check.
-    // Translations land one language at a time, and a gate that goes red when German fills one of them in would punish the fix.
-    // Shrinking the list is the ratchet's job, below.
-    const unexpected = untranslated(lng, 'events').filter(
-      (key) => !UNTRANSLATED_EVENT_KEYS.includes(key),
-    )
-
-    expect(unexpected).toEqual([])
+  it('resolves a regional tag to its base language', () => {
+    expect(preferredLocale('de-DE', available)).toBe('de')
   })
 
-  it('lists no key that has since been translated everywhere', () => {
-    const stale = UNTRANSLATED_EVENT_KEYS.filter((key) =>
-      offeredButNotEnglish.every((lng) => !untranslated(lng, 'events').includes(key)),
-    )
+  it('resolves a base tag to the only regional variant on offer', () => {
+    // The alternative is English. `pt` asked for Portuguese, and pt-BR is Portuguese.
+    expect(preferredLocale('pt', available)).toBe('pt-BR')
+  })
 
-    expect(stale, 'translated everywhere — remove from UNTRANSLATED_EVENT_KEYS').toEqual([])
+  it('falls back to English for a language nobody publishes', () => {
+    expect(preferredLocale('it', available)).toBe('en')
+  })
+
+  it('falls back to English for nothing at all', () => {
+    expect(preferredLocale(undefined, available)).toBe('en')
+    expect(preferredLocale('   ', available)).toBe('en')
+  })
+
+  it('never invents a locale the set does not contain', () => {
+    // The set decides. `en` is only a safe floor because SahajCloud refuses to save a set
+    // without it — this asserts the function does not reach past what it was handed.
+    expect(available).toContain(preferredLocale('ru', available))
   })
 })
 
@@ -160,49 +101,5 @@ describe('i18nDetectionOptions', () => {
     expect(convert('dev')).toBe('en')
     expect(convert('de')).toBe('de')
     expect(convert('pt-BR')).toBe('pt-BR')
-  })
-})
-
-// `supportedLngs` is where the picker's list becomes a runtime contract.
-// What it does is i18next's business, not ours.
-// So this asserts the round trip against the library, rather than the option's value. See `docs/testing.md`.
-// The backend below is a stub. It answers only for a shipped bundle, and records what was asked for, exactly what the HTTP backend does over the network.
-const resolveThrough = async (lng: string) => {
-  const requested = new Set<string>()
-  const instance = createInstance()
-
-  await instance
-    .use({
-      type: 'backend',
-      init: () => {},
-      read: (language: string, _ns: string, done: (err: unknown, data: unknown) => void) => {
-        requested.add(language)
-
-        const ships = supportedLanguages.includes(language)
-
-        done(ships ? null : new Error('404'), ships ? { greeting: 'hello' } : false)
-      },
-    })
-    .init({ ...i18nSharedOptions, lng })
-
-  return { fetched: [...requested], resolved: instance.resolvedLanguage }
-}
-
-describe('supportedLngs', () => {
-  it('fetches only bundles that ship, for a regional tag we do and do not ship', async () => {
-    // `en-US` is what a US browser reports.
-    // The deployed widget was seen fetching it, two 404s per page load before this option, on every host page.
-    expect(await resolveThrough('en-US')).toEqual({ fetched: ['en'], resolved: 'en' })
-    // `de` ships, and `de-DE` does not, so a German browser's tag resolves to the bundle we have.
-    // `pt-BR` ships, and bare `pt` does not, so this must NOT ask for `pt`.
-    // That is why `load: 'languageOnly'` would be the wrong fix here.
-    expect(await resolveThrough('de-DE')).toEqual({ fetched: ['de', 'en'], resolved: 'de' })
-    expect(await resolveThrough('pt-BR')).toEqual({ fetched: ['pt-BR', 'en'], resolved: 'pt-BR' })
-  })
-
-  it('falls back to en without fetching a language we do not ship', async () => {
-    // `resolvedLanguage` stays `en`.
-    // That is what `activeLocale()` sends SahajCloud, so restricting the set changes nothing at that boundary.
-    expect(await resolveThrough('ja')).toEqual({ fetched: ['en'], resolved: 'en' })
   })
 })

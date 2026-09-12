@@ -89,7 +89,7 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
 // plugin is a public API (`setView`/`setDate`/`getRange`/…), so the header uses this project's
 // own atoms — one consistent drawer header — and SX's header bar stays hidden in globals.css.
 function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { locale } = useLocale()
   const view = useCalendarPosition((s) => s.view) ?? VIEW_MONTH
   const date = useCalendarPosition((s) => s.date)
@@ -148,9 +148,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         value={view}
         onValueChange={selectView}
       >
-        <ToggleGroupItem value={VIEW_MONTH}>{t('calendar.views.month')}</ToggleGroupItem>
-        <ToggleGroupItem value={VIEW_WEEK}>{t('calendar.views.week')}</ToggleGroupItem>
-        <ToggleGroupItem value={VIEW_LIST}>{t('calendar.views.list')}</ToggleGroupItem>
+        <ToggleGroupItem value={VIEW_MONTH}>{t('calendar.view_month')}</ToggleGroupItem>
+        <ToggleGroupItem value={VIEW_WEEK}>{t('calendar.view_week')}</ToggleGroupItem>
+        <ToggleGroupItem value={VIEW_LIST}>{t('calendar.view_list')}</ToggleGroupItem>
       </ToggleGroup>
 
       {/* Nav + filter — wraps to a second line on narrow widths, one line on large. */}
@@ -265,7 +265,7 @@ function CalendarGrid({
 }) {
   // The "Online" term is the SAME one the list/detail views show for an online event's
   // location (`events:display.online`) — no calendar-specific duplicate.
-  const { t } = useTranslation('events')
+  const { t } = useTranslation()
   const { locale } = useLocale()
   const { theme } = useTheme()
   const navigate = useAtlasNavigate()
@@ -275,7 +275,7 @@ function CalendarGrid({
     queryFn: () => api.getCalendarEvents(filters),
   })
 
-  const onlineLabel = t('display.online')
+  const onlineLabel = t('event.display.online')
   const events = useMemo(
     () => eventsToCalendarEntries(source, filters, { onlineLabel }),
     [source, filters, onlineLabel],

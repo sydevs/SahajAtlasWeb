@@ -117,9 +117,13 @@ every component reading a translation suspends forever: no canvas, no content, n
 marker. A spec looking for missing strings would find nothing wrong, because there was no page to
 look at.
 
-So the spec reads the eager graph back off the deploy and checks the two origins the app will
-actually request — `${VITE_HOST}/locales/` and `${VITE_SAHAJCLOUD_URL}/api` — naming the
-variable, not just the string, since "which env var produced this" is the useful next question.
+So the spec reads the eager graph back off the deploy and checks the origin the app will actually
+request — `${VITE_SAHAJCLOUD_URL}/api` — naming the variable, not just the string, since "which
+env var produced this" is the useful next question. ⚠ **It checked two origins until #198.** The
+other was `${VITE_HOST}/locales/`, the one this whole story is about, and the widget no longer
+fetches locale JSON at all: every string comes from SahajCloud over the API origin, with an
+English snapshot compiled in. The failure class is unchanged — one door instead of two, and that
+door now carries the copy as well as the data.
 
 - **It is targeted, not a sweep.** A first draft flagged any private host anywhere in the graph
   and produced a false positive on a healthy deploy: react-router carries its own literal
