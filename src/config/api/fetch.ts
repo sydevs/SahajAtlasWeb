@@ -693,8 +693,14 @@ const getClient = async () => {
 // These are the translation groups the widget renders. `emails` and `event.title` are
 // deliberately absent: both hold live production data SahajCloud itself reads, and neither has
 // a widget surface, so asking for them would ship a registrant email template into a public
-// bundle for nothing. `src/types/translations.ts` states the same list for the type side.
-const TRANSLATION_SELECT = {
+// bundle for nothing.
+//
+// ⚠ **Spelled out, not built from `WIDGET_TRANSLATION_TABS`, and exported so a spec can hold
+// the two together.** The SDK type-checks a `select` against the generated CMS types, which
+// needs these `true` literals — an object composed at runtime widens to `Record<string,
+// unknown>` and the check is gone. So the list stays duplicated here and
+// `src/config/translations.test.ts` pins it against the constant instead.
+export const TRANSLATION_SELECT = {
   common: true,
   countries: true,
   search: true,

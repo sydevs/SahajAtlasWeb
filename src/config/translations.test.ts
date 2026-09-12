@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 
 import snapshot from './translations.en.json'
+import { TRANSLATION_SELECT } from './api/fetch'
 
-import { REGISTRATION_QUESTION_NAMES } from '@/types'
+import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
 
 /**
  * This replaces the bundle-parity gate `public/locales/` used to need (#198).
@@ -62,6 +63,18 @@ const literalOptions = (source: string, name: string): string[] => {
   const table = new RegExp(`${name}[^{]*\\{([^}]*)\\}`, 's').exec(source)
 
   return table ? [...table[1].matchAll(/['"]([a-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]) : []
+}
+
+/**
+ * The array form of the same idea, for a table written `= [...]` rather than `= {...}`.
+ *
+ * The literal class is not lower-case-only here, unlike `literalOptions`: the tables this reads
+ * hold the CMS's own `DAILY` / `WEEKLY` spellings alongside lower-case ones.
+ */
+const arrayLiterals = (source: string, name: string): string[] => {
+  const table = new RegExp(`${name}[^[]*\\[([^\\]]*)\\]`, 's').exec(source)
+
+  return table ? [...table[1].matchAll(/['"]([A-Za-z_][a-zA-Z0-9_.]*)['"]/g)].map((m) => m[1]) : []
 }
 
 const FILTER_OPTIONS = [
@@ -132,6 +145,22 @@ describe('the English snapshot', () => {
     // shipped in a public bundle.
     expect([...keys].filter((key) => key.startsWith('emails.'))).toEqual([])
     expect([...keys].filter((key) => key.startsWith('event.title.'))).toEqual([])
+  })
+})
+
+describe('the tab list the widget reads', () => {
+  it('is the same list in the type, the select, and the sync script', () => {
+    // Three statements, in three places that cannot import one another: the constant, the SDK
+    // `select` (which must stay a literal for its own type-check), and a node script with no
+    // compiler. Before this, adding a tab to one left the others silently behind — the sync
+    // script fetches everything and strips, so a group the CMS added reached the snapshot
+    // without ever being requested at runtime.
+    expect(Object.keys(TRANSLATION_SELECT).sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())
+
+    const script = readFileSync(`${sourceDir}/../scripts/sync-translations.mjs`, 'utf8')
+    const tabs = arrayLiterals(script, 'const WIDGET_TABS[^=]*=')
+
+    expect(tabs.sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())
   })
 })
 

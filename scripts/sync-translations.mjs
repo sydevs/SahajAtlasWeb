@@ -53,6 +53,22 @@ const resolveKey = (env) => {
   throw new Error('No API key. Set ATLAS_API_KEY to a production `sahaj-atlas-client` key.')
 }
 
+// The tabs the widget reads. This is the third statement of that list, and the one node runs
+// with no compiler in front of it — `WIDGET_TRANSLATION_TABS` in `src/types/translations.ts` is
+// the source of truth, and `src/config/translations.test.ts` pins this copy against it.
+const WIDGET_TABS = [
+  'common',
+  'countries',
+  'search',
+  'filters',
+  'online',
+  'event',
+  'calendar',
+  'registration',
+  'share',
+  'compact',
+]
+
 const strip = (node) => {
   const out = {}
 
@@ -101,9 +117,7 @@ const main = async () => {
   // A missing tab is the failure this script exists to make loud. Every one of them is copy the
   // widget renders, so a snapshot without it would boot a widget showing raw keys in English —
   // the one language that is supposed to be impossible to get wrong.
-  const missing = ['common', 'countries', 'search', 'filters', 'online', 'event', 'calendar']
-    .concat(['registration', 'share', 'compact'])
-    .filter((tab) => !bundle[tab])
+  const missing = WIDGET_TABS.filter((tab) => !bundle[tab])
 
   if (missing.length) throw new Error(`SahajCloud answered without: ${missing.join(', ')}`)
 

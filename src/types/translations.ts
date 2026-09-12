@@ -26,6 +26,13 @@ export const TranslationBundleSchema: z.ZodType<TranslationTree> = z.lazy(() =>
  * These are the tabs the widget reads. `emails` (SahajCloud sends registrant mail) and
  * `event.title` (the CMS's own auto-titles) are the two groups with live production data and
  * no widget surface, so neither is requested, committed to the snapshot, or typed into `t()`.
+ *
+ * **This is the one statement of that list.** `WidgetTranslations` below is `Pick`ed by it, and
+ * the two runtime copies that cannot import it — `TRANSLATION_SELECT` in `config/api/fetch.ts`,
+ * which has to stay a literal for the SDK's typed `select`, and the check in
+ * `scripts/sync-translations.mjs`, which node runs without a compiler — are pinned against it by
+ * `src/config/translations.test.ts`. Before that, a tab added here reached the snapshot without
+ * ever being requested at runtime, and nothing failed.
  */
 export const WIDGET_TRANSLATION_TABS = [
   'common',
@@ -53,18 +60,10 @@ type WidgetEventStrings = Required<
  * `translations.en.json` is checked against it with `satisfies`, so a snapshot that has drifted
  * from the CMS — a group renamed upstream, a key dropped — fails `pnpm typecheck` rather than
  * rendering a raw key in front of a visitor.
+ *
+ * `event` is excluded from the `Pick` and re-added narrowed, because it is the one tab the
+ * widget reads only PART of: `event.title` is the CMS's own auto-titles.
  */
 export type WidgetTranslations = Required<
-  Pick<
-    SyAtlasTranslation,
-    | 'common'
-    | 'countries'
-    | 'search'
-    | 'filters'
-    | 'online'
-    | 'calendar'
-    | 'registration'
-    | 'share'
-    | 'compact'
-  >
+  Pick<SyAtlasTranslation, Exclude<(typeof WIDGET_TRANSLATION_TABS)[number], 'event'>>
 > & { event: WidgetEventStrings }
