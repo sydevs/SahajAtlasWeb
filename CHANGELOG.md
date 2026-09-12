@@ -523,6 +523,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
 [#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
+[#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
