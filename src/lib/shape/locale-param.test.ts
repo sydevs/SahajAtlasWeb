@@ -144,4 +144,17 @@ describe('pageLocaleOverride', () => {
     expect(override('?locale=zz')).toBeUndefined()
     expect(override('?locale=klingon')).toBeUndefined()
   })
+
+  // This function and `preferredLocale` (`config/i18n-options.ts`) answer the same question —
+  // does this tag resolve against the offered set — and they cannot share code, because
+  // `lib/shape` imports nothing from `config/` (see the module docblock). Two copies of one rule
+  // is a standing invitation to drift, and they HAD drifted on exactly one input: case.
+  // `preferredLocale` case-folds, so `PT-br` resolves to `pt-BR` there and its spec says so.
+  // Here it used to miss, and a miss is not "fall back to English" — it hands the decision to
+  // `defaultLocale`, so a host's `locale="fr"` would win over a page URL asking for Portuguese.
+  it('matches case-insensitively, as preferredLocale does', () => {
+    expect(override('?locale=PT-br')).toBe('pt-BR')
+    expect(override('?locale=FR')).toBe('fr')
+    expect(override('?locale=DE-de')).toBe('de')
+  })
 })
