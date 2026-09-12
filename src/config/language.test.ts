@@ -1,22 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { applyLanguage } from './language'
+import { preferredLanguage } from './i18n-options'
+import { applyLanguage, bootLanguage } from './language'
 
 // The single writer's job is a SEQUENCE — fetch, write the resource, switch — so what this
 // suite drives is two of them overlapping. Everything at the boundary is mocked: i18next (whose
 // real instance boots a detector), the shared QueryClient, and the fetcher module (which pulls
 // the SDK in). `preferredLanguage` is left real, because which locale each call resolves to is
 // the input the ordering test depends on.
-const { changeLanguage, addResourceBundle, getQueryData, ensureQueryData, reportInternalError } =
-  vi.hoisted(() => ({
-    changeLanguage: vi.fn(async () => undefined),
-    addResourceBundle: vi.fn(),
-    getQueryData: vi.fn(),
-    ensureQueryData: vi.fn(),
-    reportInternalError: vi.fn(),
-  }))
+const {
+  changeLanguage,
+  addResourceBundle,
+  detected,
+  getQueryData,
+  ensureQueryData,
+  reportInternalError,
+} = vi.hoisted(() => ({
+  changeLanguage: vi.fn(async (_locale: string) => undefined),
+  addResourceBundle: vi.fn(),
+  // i18next's raw detected tag, which `bootLanguage` exists to stop trusting on its own.
+  detected: { language: 'en-US' },
+  getQueryData: vi.fn(),
+  ensureQueryData: vi.fn(),
+  reportInternalError: vi.fn(),
+}))
 
-vi.mock('./i18n', () => ({ default: { changeLanguage, addResourceBundle } }))
+vi.mock('./i18n', () => ({
+  default: {
+    changeLanguage,
+    addResourceBundle,
+    get language() {
+      return detected.language
+    },
+  },
+}))
 vi.mock('./query-client', () => ({ queryClient: { getQueryData, ensureQueryData } }))
 vi.mock('./api/fetch', () => ({
   translationsQuery: (locale: string) => ({ queryKey: ['translations', locale] }),
@@ -41,6 +58,7 @@ const deferred = <T,>() => {
 const switches = () => changeLanguage.mock.calls.map(([locale]) => locale)
 
 beforeEach(() => {
+  detected.language = 'en-US'
   changeLanguage.mockClear()
   addResourceBundle.mockClear()
   getQueryData.mockReset()
@@ -125,5 +143,54 @@ describe('applyLanguage', () => {
     // English fallback belongs to the request that is still current, and this one is not.
     expect(reportInternalError).toHaveBeenCalled()
     expect(switches()).toEqual(['fr'])
+  })
+})
+
+// ── What the boot warm-up should fetch (#205 review) ────────────────────────────────
+//
+// The property under test is AGREEMENT: the key `warmTranslations` fills must be the key
+// `applyLanguage` reads a beat later. Every case below picks values that differ from each
+// other, so an implementation that simply returned one of its inputs fails rather than
+// passing by coincidence.
+
+describe('bootLanguage', () => {
+  it('takes `?locale=` verbatim, over the attribute and the browser', () => {
+    // Written by the widget itself out of the offered set, so it already names a published
+    // locale — and `preferredLanguage` prefers an exact match to a base tag.
+    detected.language = 'ru'
+
+    expect(bootLanguage('?locale=pt-BR', 'de')).toBe('pt-BR')
+  })
+
+  it('falls through an empty `?locale=` to the host attribute', () => {
+    detected.language = 'ru'
+
+    expect(bootLanguage('?locale=%20&q=paris', 'de')).toBe('de')
+  })
+
+  it('base-tags the host attribute, which no detector reads', () => {
+    detected.language = 'ru'
+
+    expect(bootLanguage('?q=paris', 'de-DE')).toBe('de')
+  })
+
+  it('base-tags the browser tag when nothing else asks', () => {
+    detected.language = 'en-US'
+
+    expect(bootLanguage('')).toBe('en')
+  })
+
+  it('warms the key applyLanguage reads, in the two cases the raw tag missed', () => {
+    // The whole point: a warm-up that disagrees with the effect pays for a request nobody
+    // reads. Both of these resolved to `en-US` before, and neither is what gets applied.
+    const offered = ['en', 'de', 'fr']
+
+    detected.language = 'en-US'
+
+    // A host passing `locale="fr"`. The attribute is in no detector.
+    expect(bootLanguage('', 'fr')).toBe(preferredLanguage('fr', offered))
+
+    // A browser reporting a regional tag, which `preferredLanguage` narrows to its base.
+    expect(bootLanguage('')).toBe(preferredLanguage(detected.language, offered))
   })
 })

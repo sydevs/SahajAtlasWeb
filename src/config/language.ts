@@ -5,7 +5,42 @@ import { preferredLanguage } from './i18n-options'
 import { translationsQuery } from './api/fetch'
 import { queryClient } from './query-client'
 
+import { LOCALE_PARAM } from '@/lib/shape/locale-param'
 import { reportInternalError } from '@/lib/report'
+
+/**
+ * This is the locale the boot warm-up fetches, and its whole job is to AGREE with what
+ * `applyLanguage` asks for a beat later. A warm-up that fills a different query key pays for a
+ * request nobody reads, and the visible flip #168 measured happens anyway.
+ *
+ * `i18n.language` alone does not agree, which is what this replaces. That is the raw detected
+ * tag — `querystring → hostHtmlLang → navigator` — while `AppShell` resolves
+ * `pageLocaleOverride(search) ?? defaultLocale ?? i18n.language` through `preferredLanguage`.
+ * Two ordinary cases diverge: a host passing `locale="fr"` (an attribute no detector reads, so
+ * the browser's tag gets warmed while French is fetched), and a browser reporting `en-US` (which
+ * `preferredLanguage` narrows to `en`, so the warmed key is never read on most loads).
+ *
+ * ⚠ **`availableLocales` has not arrived yet** — it is the other half of the same warm-up — so
+ * this cannot run `preferredLanguage`'s narrowing, which takes the offered set. It narrows the
+ * one way that needs no set:
+ *
+ * - **`?locale=` is warmed verbatim.** The widget writes that parameter itself, out of the
+ *   offered set (`publishLocale`), so it already names a locale the CMS answers — and
+ *   `preferredLanguage` step 1 takes an exact match before any base tag.
+ * - **Everything else is base-tagged.** The `locale` attribute and the browser's own preference
+ *   are statements about a page or a visitor, not about what an operator published, and a
+ *   regional tag from either resolves through step 2 (`de-DE` → `de`).
+ *
+ * A locale nobody published still misses, as it always did. That costs one speculative prefetch,
+ * and `applyLanguage` lands on English regardless.
+ */
+export function bootLanguage(search: string, defaultLocale?: string | null): string {
+  const fromPage = new URLSearchParams(search).get(LOCALE_PARAM)?.trim()
+
+  if (fromPage) return fromPage
+
+  return (defaultLocale?.trim() || i18n.language).split('-')[0]
+}
 
 /**
  * This is the ONE writer of i18next's active language. Everything else asks it to switch.

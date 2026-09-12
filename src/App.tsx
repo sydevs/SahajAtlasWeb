@@ -44,7 +44,7 @@ import '@/styles/globals.css'
 import '@/styles/fonts'
 import '@/config/i18n'
 import i18n from '@/config/i18n'
-import { applyLanguage } from '@/config/language'
+import { applyLanguage, bootLanguage } from '@/config/language'
 import { useLanguages } from '@/hooks/use-languages'
 
 // Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
@@ -197,12 +197,17 @@ export default function App({
   // parallel, the config settled 1 ms after `clients/me`; serialized behind it, the flip was
   // visible. `PathBoot` in `Widget.tsx` fires the same pair, because in path mode it reads the
   // client record above this component.
+  //
+  // ⚠ **`bootLanguage`, not `i18n.language`.** The detected tag is not what `AppShell` will
+  // ask for: `locale="fr"` reaches it as `defaultLocale`, which no detector reads, and a
+  // browser's `en-US` narrows to `en` in `preferredLanguage`. Warming the raw tag in either
+  // case fills a key nothing reads, which is the flip this effect exists to prevent, paid for.
   useEffect(() => {
     if (!apiKey) return
 
     api.warmConfig()
-    api.warmTranslations(i18n.language)
-  }, [apiKey])
+    api.warmTranslations(bootLanguage(window.location.search, defaultLocale))
+  }, [apiKey, defaultLocale])
 
   return (
     <RootBoundary>
