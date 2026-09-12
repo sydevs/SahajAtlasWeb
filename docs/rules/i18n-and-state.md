@@ -43,6 +43,17 @@ paths:
   #168 found that two owners of that sequence disagree within a frame, with the
   winner decided by effect ordering. `en` goes through the same path, which is what
   lets an English copy edit in the CMS reach a live widget with no deploy.
+  ⚠ **One writer is not one call at a time.** `AppShell`'s effect keys on the
+  offered set, which answers `['en']` until the config lands, so a `?locale=fr`
+  page has two calls in flight within a frame. A module-level generation counter
+  in `language.ts` makes the last CALL win rather than the last read to settle —
+  keep any new await inside `applyLanguage` behind that check.
+- **The boot warm-up must fetch the key `applyLanguage` will read.** Use
+  `bootLanguage` (`src/config/language.ts`), never `i18n.language`: that is the
+  raw detected tag, and it answers neither a host's `locale` attribute (in no
+  detector) nor `preferredLanguage`'s narrowing of a regional tag. Both callers —
+  `App`'s mount effect and `PathBoot` — must pass the same thing, or React Query
+  merges nothing and one of the two requests is read by nobody.
 - **The offered set is `sy-atlas-config.availableLocales`**, read at runtime through
   `useLanguages()`. SahajCloud refuses to save a locale there until its translations
   are published, so the picker may render it verbatim. Anything unusable — a failed
