@@ -41,7 +41,7 @@ vi.mock('./api/fetch', () => ({
 vi.mock('@/lib/report', () => ({ reportInternalError }))
 
 /** A bundle whose arrival the test, not the network, decides. */
-const deferred = <T,>() => {
+const deferred = <T>() => {
   let settle!: { resolve: (value: T) => void; reject: (error: unknown) => void }
   const promise = new Promise<T>((resolve, reject) => {
     settle = { resolve, reject }
