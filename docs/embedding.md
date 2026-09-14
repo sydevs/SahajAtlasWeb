@@ -103,6 +103,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 | Your page to send a Content-Security-Policy                           | [Content-Security-Policy](#content-security-policy)                     |
 | The locate, copy-link or share buttons to work behind a policy header | [Permissions Policy](#permissions-policy)                               |
 | Clean paths instead of `?atlas=`                                      | [The URL](#the-url)                                                     |
+| A `<title>` and description that match the route the widget opened at | [Metadata for your page's `<head>`](#metadata-for-your-pages-head)      |
 | To know what the widget touches on your page                          | [What the widget does to your page](#what-the-widget-does-to-your-page) |
 | To answer a privacy question                                          | [Privacy](#privacy-storage-and-third-party-requests)                    |
 
@@ -113,6 +114,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 - [Sizing the element](#sizing-the-element)
 - [Embedding in an iframe](#embedding-in-an-iframe)
 - [The URL](#the-url)
+- [Metadata for your page's `<head>`](#metadata-for-your-pages-head)
 - [Content-Security-Policy](#content-security-policy)
 - [Permissions Policy](#permissions-policy)
 - [Where to load it from](#where-to-load-it-from)
@@ -534,6 +536,202 @@ works normally, but its route is not in the address bar, so it cannot be deep-li
 page, and browser Back leaves your page rather than stepping back through the widget. Where the
 widget would offer a share link it offers the event's canonical page instead, and where there is
 honestly no link, it offers none rather than handing somebody your page's URL.
+
+## Metadata for your page's `<head>`
+
+**Your page's metadata describes the atlas route the widget mounted with.** Not the atlas in
+general, and not your site in general: a page mounting `/gb/london` is a page about meditation
+classes in London, so its `<title>`, `<meta name="description">`, canonical and structured data
+should say London. The route is the [`atlas` parameter](#atlas-and-how-the-route-is-chosen) on the
+script URL, or the pathname under `routing=path` (see [The URL](#the-url)).
+
+**You do not have to write any of it.** SahajCloud answers metadata for every route the widget can
+mount with, the atlas root included:
+
+```
+GET https://cloud.sydevelopers.com/api/atlas/seo?route=/gb/london&locale=en
+Authorization: clients API-Key <your published client key>
+```
+
+| Parameter | Required | What it is                                                                                             |
+| --------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `route`   | yes      | The atlas route, the same string you pass as `atlas` or read off your path prefix. `/` is the root.   |
+| `locale`  | no       | Defaults to `en`. Send the language your page declares in `<html lang>`.                               |
+
+**The key is the published client key your embed already uses** — the same `key` from the
+[snippet](#the-two-embed-codes), sent as an `Authorization` header instead of a query parameter.
+There is no second credential to obtain.
+
+### Three worked examples
+
+Each of these is a real response, taken with a key that publishes no canonical page of its own —
+so `canonical` here is the fallback surface described under [The canonical, and what it depends
+on](#the-canonical-and-what-it-depends-on). **Yours will be your own mounted page.** Everything
+else is the shape you will get.
+
+**A region route** — `?route=/gb/london&locale=en`. Abridged: `jsonLd`, `breadcrumbs` and
+`content.events` carry every class in the city.
+
+```json
+{
+  "type": "region",
+  "id": 21,
+  "route": "/gb/south-east/london",
+  "locale": "en",
+  "title": "London, United Kingdom",
+  "description": null,
+  "canonical": "https://wemeditate-web.contact-c66.workers.dev/map/gb/south-east/london",
+  "alternates": [
+    { "hreflang": "en", "href": "…/map/gb/south-east/london?locale=en" },
+    { "hreflang": "x-default", "href": "…/map/gb/south-east/london" }
+  ],
+  "openGraph": {
+    "og:type": "website",
+    "og:title": "London, United Kingdom",
+    "og:locale": "en",
+    "og:url": "https://wemeditate-web.contact-c66.workers.dev/map/gb/south-east/london"
+  },
+  "jsonLd": "{\"@context\":\"https://schema.org\",\"@graph\":[{\"@type\":\"City\",…}]}",
+  "breadcrumbs": [
+    { "name": "United Kingdom", "route": "/gb", "url": "…/map/gb" },
+    { "name": "South East", "route": "/gb/south-east", "url": "…/map/gb/south-east" },
+    { "name": "London", "route": "/gb/south-east/london", "url": "…/map/gb/south-east/london" }
+  ],
+  "content": { "name": "London", "subtitle": null, "level": "city", "events": [ … ], "eventCount": 18 }
+}
+```
+
+⚠ **`route` comes back normalized, and may differ from what you sent.** We asked for `/gb/london`
+and got `/gb/south-east/london` — the region's full ancestry. Compare your page against the
+returned `route`, not the one you sent.
+
+**The root** — `?route=/&locale=en`, the ordinary "here is our class finder" page:
+
+```json
+{
+  "type": "root",
+  "id": null,
+  "route": "/",
+  "locale": "en",
+  "title": "Free Meditation Classes",
+  "description": null,
+  "canonical": "https://wemeditate-web.contact-c66.workers.dev/map",
+  "alternates": [
+    { "hreflang": "en", "href": "https://wemeditate-web.contact-c66.workers.dev/map?locale=en" },
+    { "hreflang": "x-default", "href": "https://wemeditate-web.contact-c66.workers.dev/map" }
+  ],
+  "openGraph": {
+    "og:type": "website",
+    "og:title": "Free Meditation Classes",
+    "og:locale": "en",
+    "og:url": "https://wemeditate-web.contact-c66.workers.dev/map"
+  },
+  "jsonLd": "{\"@context\":\"https://schema.org\",\"@graph\":[{\"@type\":\"WebSite\",\"name\":\"Free Meditation Classes\",\"url\":\"https://wemeditate-web.contact-c66.workers.dev/map\"}]}",
+  "breadcrumbs": [],
+  "content": { "paragraphs": [] }
+}
+```
+
+The root's structured data is a `WebSite` node and there is **no `BreadcrumbList`** — a trail of
+one rung tells a crawler nothing. `id` is `null`, because no row is being described.
+
+**A bare view route** — `?route=/search&locale=en` returns that same root document, byte for byte,
+with `route` normalized back to `/`. So does `/calendar`, `/filters`, `/online`, `/share`, and
+`/events/areas`.
+
+### Which routes answer as the root
+
+**A route answers as the root when nothing is left after the widget's own view and legacy
+segments are dropped.** That is the rule; the list below is what it is made of, not a list of
+five special cases.
+
+| Segments dropped wherever they appear                                | Why                                        |
+| --------------------------------------------------------------------- | -------------------------------------------- |
+| `search`, `calendar`, `filters`, `register`, `share`, `online`, `preview` | the widget's own views — a view *of* something |
+| `events`, `areas`, `regions`, `venues`                                | legacy Atlas URL prefixes, carrying no view |
+
+Eleven in all, matched case-insensitively. Dropping them is what makes `/gb/london/1204/register`
+describe event 1204 rather than 404, and what makes `/events/areas` — every segment reserved —
+reduce to the root. **A region slug can never collide with one of these**; the same list is
+reserved on our side.
+
+### Emitting it
+
+- **`title` is always a string. `description` can be `null`** — see below.
+- **`jsonLd` arrives already serialized and escaped.** Emit it verbatim inside
+  `<script type="application/ld+json">`. Do not re-escape it, and do not parse and re-stringify
+  it: it is a JSON string whose `<` characters are already safe to place in markup.
+- **`canonical` is locale-free**, and so is the `x-default` alternate. Emit `alternates` as
+  `<link rel="alternate" hreflang="…">` rows.
+- **`openGraph`** is a flat map of property name to content, ready for `<meta property="…">`.
+
+### Fetch it on your server, and cache it
+
+**Fetch it server-side, at render time.** `<head>` metadata has to be in the HTML a crawler
+receives, so a fetch from the browser is not an option — by the time it resolves, the crawler has
+already read the page. A server-side fetch also sends no `Origin` or `Referer`, which is fine:
+the API key is the gate there, and the allowed-domains list on your client record does not refuse
+a server-to-server call.
+
+**Then cache it, for up to 300 seconds, keyed by route and locale.** That is the endpoint's own
+freshness, and it says so:
+
+```
+Cache-Control: public, max-age=300, s-maxage=300
+Vary: Authorization
+```
+
+⚠ **`Vary: Authorization` costs you nothing, despite how it reads.** The credential is your
+site's own published client key — the same value on every request your server makes, never a
+visitor's. So it splits the cache **one variant per site, not one per visitor**. Do not read it as
+"this response is per-user, do not cache".
+
+### The canonical, and what it depends on
+
+**For the root, `canonical` is your own verified mount page** — read off your client record, the
+same canonical embed that [`routing=path`](#the-url) takes its prefix from. It is therefore
+per-API-key by design: two sites asking for `/` get two different canonicals, each naming its own
+page.
+
+**A caller that can publish no canonical of its own gets the We Meditate surface instead**, the
+page that already indexes the atlas. That is what the worked examples above show. If you want your
+own page named there, ask the maintainers to set the canonical embed on your client record.
+
+For a region or an event, `canonical` is that document's own URL, resolved through region
+ownership, and is not recomputed per caller.
+
+### When `description` is `null`
+
+**A locale with no operator-written description returns `description: null`.** It never falls back
+to English: an untranslated English sentence in a Dutch page's `<head>` is worse than none. Region
+and event routes follow the same rule.
+
+**When you get `null`, write your own one-line description, in your page's own language**, and
+emit a self-referencing `<link rel="canonical">` on the URL the widget is mounted at. Do not leave
+the tag out, and do not fall back to your site's global description — that is the failure this
+whole section exists to prevent: an atlas page presenting to a crawler as a duplicate of your
+homepage.
+
+`title` behaves the opposite way, and always resolves: for the root it falls back **within the
+locale first**, to the widget's own name for itself in that language, and only then to English and
+a built-in constant. A locale nobody has written root copy for is still named in its own language.
+
+### What a refusal means
+
+| Response                                                | What happened                                                                   |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **400**                                                 | `route` was empty or over 512 characters. Your request is malformed.            |
+| **404** `That is not a valid atlas route.`              | `route` carried a `?`, `#` or whitespace, or more than twelve segments. Probably your page's full URL spliced in by mistake. |
+| **404** `That route does not name a region or an event.` | A well-formed route naming nothing we have. A city that closed, or a typo.     |
+
+**The two 404s are deliberately different sentences.** "You sent nonsense" and "no such city" want
+different fixes, and collapsing them would answer a malformed URL with a real page.
+
+### Your CSP does not change
+
+**Nothing in this section adds a line to the [CSP table](#content-security-policy) below.** Your
+server makes this request, not your visitor's browser, so no `connect-src` directive is involved —
+and `cloud.sydevelopers.com` is in `connect-src` already, for the widget's own reads.
 
 ## Content-Security-Policy
 
