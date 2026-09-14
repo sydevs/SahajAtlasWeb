@@ -580,6 +580,11 @@ so `canonical` here is the fallback surface described under [The canonical, and 
 on](#the-canonical-and-what-it-depends-on). **Yours will be your own mounted page.** Everything
 else is the shape you will get.
 
+**`…` stands for an elided origin**, in `canonical`, `alternates`, `og:url`, `jsonLd` and
+`breadcrumbs` alike. The real responses carry an absolute URL in every one of those fields, and so
+will yours — but the host a canonical-less caller resolves to is not part of this contract and has
+changed before, so printing it here would date the page.
+
 **A region route** — `?route=/gb/london&locale=en`. Abridged: `jsonLd`, `breadcrumbs` and
 `content.events` carry every class in the city.
 
@@ -591,7 +596,7 @@ else is the shape you will get.
   "locale": "en",
   "title": "London, United Kingdom",
   "description": null,
-  "canonical": "https://wemeditate-web.contact-c66.workers.dev/map/gb/south-east/london",
+  "canonical": "…/map/gb/south-east/london",
   "alternates": [
     { "hreflang": "en", "href": "…/map/gb/south-east/london?locale=en" },
     { "hreflang": "x-default", "href": "…/map/gb/south-east/london" }
@@ -600,7 +605,7 @@ else is the shape you will get.
     "og:type": "website",
     "og:title": "London, United Kingdom",
     "og:locale": "en",
-    "og:url": "https://wemeditate-web.contact-c66.workers.dev/map/gb/south-east/london"
+    "og:url": "…/map/gb/south-east/london"
   },
   "jsonLd": "{\"@context\":\"https://schema.org\",\"@graph\":[{\"@type\":\"City\",…}]}",
   "breadcrumbs": [
@@ -626,18 +631,18 @@ returned `route`, not the one you sent.
   "locale": "en",
   "title": "Free Meditation Classes",
   "description": null,
-  "canonical": "https://wemeditate-web.contact-c66.workers.dev/map",
+  "canonical": "…/map",
   "alternates": [
-    { "hreflang": "en", "href": "https://wemeditate-web.contact-c66.workers.dev/map?locale=en" },
-    { "hreflang": "x-default", "href": "https://wemeditate-web.contact-c66.workers.dev/map" }
+    { "hreflang": "en", "href": "…/map?locale=en" },
+    { "hreflang": "x-default", "href": "…/map" }
   ],
   "openGraph": {
     "og:type": "website",
     "og:title": "Free Meditation Classes",
     "og:locale": "en",
-    "og:url": "https://wemeditate-web.contact-c66.workers.dev/map"
+    "og:url": "…/map"
   },
-  "jsonLd": "{\"@context\":\"https://schema.org\",\"@graph\":[{\"@type\":\"WebSite\",\"name\":\"Free Meditation Classes\",\"url\":\"https://wemeditate-web.contact-c66.workers.dev/map\"}]}",
+  "jsonLd": "{\"@context\":\"https://schema.org\",\"@graph\":[{\"@type\":\"WebSite\",\"name\":\"Free Meditation Classes\",\"url\":\"…/map\"}]}",
   "breadcrumbs": [],
   "content": { "paragraphs": [] }
 }
