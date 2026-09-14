@@ -660,7 +660,8 @@ reserved on our side.
 - **`title` is always a string. `description` can be `null`** — see below.
 - **`jsonLd` arrives already serialized and escaped.** Emit it verbatim inside
   `<script type="application/ld+json">`. Do not re-escape it, and do not parse and re-stringify
-  it: it is a JSON string whose `<` characters are already safe to place in markup.
+  it: `<`, `>`, `&` and the two Unicode line separators are already escaped in it, and
+  re-stringifying loses exactly that.
 - **`canonical` is locale-free**, and so is the `x-default` alternate. Emit `alternates` as
   `<link rel="alternate" hreflang="…">` rows.
 - **`openGraph`** is a flat map of property name to content, ready for `<meta property="…">`.
@@ -698,7 +699,8 @@ page that already indexes the atlas. That is what the worked examples above show
 own page named there, ask the maintainers to set the canonical embed on your client record.
 
 For a region or an event, `canonical` is that document's own URL, resolved through region
-ownership, and is not recomputed per caller.
+ownership rather than per caller — and `null` where no site publishes one. Treat `null` the same
+way you treat a `null` description: write your own self-referencing canonical.
 
 ### When `description` is `null`
 
