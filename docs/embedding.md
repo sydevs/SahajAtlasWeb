@@ -651,6 +651,11 @@ returned `route`, not the one you sent.
 The root's structured data is a `WebSite` node and there is **no `BreadcrumbList`** — a trail of
 one rung tells a crawler nothing. `id` is `null`, because no row is being described.
 
+⚠ **`Free Meditation Classes` is the built-in constant, not operator copy.** It is the bottom of
+the [fallback chain](#when-description-is-null), reached because no root title has been written
+in the CMS yet — in any language, so `locale=de` returns that same English string today. Expect a
+real title here once the copy lands, and do not hard-code this one.
+
 **A bare view route** — `?route=/search&locale=en` returns that same root document, byte for byte,
 with `route` normalized back to `/`. So does `/calendar`, `/filters`, `/online`, `/share`, and
 `/events/areas`.
