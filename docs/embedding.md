@@ -556,7 +556,18 @@ Authorization: clients API-Key <your published client key>
 | Parameter | Required | What it is                                                                                             |
 | --------- | -------- | ------------------------------------------------------------------------------------------------------ |
 | `route`   | yes      | The atlas route, the same string you pass as `atlas` or read off your path prefix. `/` is the root.   |
-| `locale`  | no       | Defaults to `en`. Send the language your page declares in `<html lang>`.                               |
+| `locale`  | no       | Defaults to `en`. One of the nineteen codes below, matched exactly.                                     |
+
+⚠ **`locale` is matched exactly, and an unknown code is a 400 — never a fallback to `en`.** The
+accepted set is:
+
+`en`, `en-AU`, `es`, `de`, `it`, `fr`, `ru`, `ro`, `cs`, `uk`, `el`, `hy`, `pl`, `pt-BR`, `fa`,
+`bg`, `tr`, `hu`, `nl`
+
+So do not pass your page's `<html lang>` through untouched: `en-GB`, `en-US` and `pt` are each
+refused. **Map a regional tag down to its base language** — `en-GB` → `en` — and send `en` when
+the base language is not in the set either. Only `en-AU` and `pt-BR` carry a region, and `pt-BR`
+is the only Portuguese offered.
 
 **The key is the published client key your embed already uses** — the same `key` from the
 [snippet](#the-two-embed-codes), sent as an `Authorization` header instead of a query parameter.
@@ -722,7 +733,7 @@ a built-in constant. A locale nobody has written root copy for is still named in
 
 | Response                                                | What happened                                                                   |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **400**                                                 | `route` was empty or over 512 characters. Your request is malformed.            |
+| **400**                                                 | `route` was empty or over 512 characters, **or `locale` was not one of the nineteen codes above**. Your request is malformed. |
 | **404** `That is not a valid atlas route.`              | `route` carried a `?`, `#` or whitespace, or more than twelve segments. Probably your page's full URL spliced in by mistake. |
 | **404** `That route does not name a region or an event.` | A well-formed route naming nothing we have. A city that closed, or a typo.     |
 
