@@ -91,6 +91,20 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **You can now get your page's `<head>` metadata from us, per atlas route.** ([#173])
+  `GET /api/atlas/seo?route=/gb/london&locale=en`, authorised with the published client key your
+  embed already uses, answers with the title, description, canonical, `hreflang` alternates, Open
+  Graph properties and JSON-LD for the route the widget mounted with — **including the atlas
+  root** and every bare view route such as `/search`. Fetch it from your server at render time,
+  since `<head>` metadata has to reach a crawler, and cache it for up to 300 seconds per route and
+  locale. `Vary: Authorization` splits that cache **per site, not per visitor**: the credential is
+  your own client key, identical on every request your server makes. A locale with no
+  operator-written description returns `description: null` rather than an English sentence — write
+  your own line in your own language, and emit a self-referencing canonical. **Your CSP does not
+  change**, because your server makes this request rather than your visitor's browser. Full
+  contract, with worked responses:
+  [Metadata for your page's `<head>`](docs/embedding.md#metadata-for-your-pages-head).
+
 - **A reader answering a post-event feedback email now lands in the atlas, not on a dead-end
   card.** ([#181]) People who register for a class get a follow-up asking whether it took place;
   both answers now redirect to your site — the class's own page for "yes", its region page for
@@ -526,6 +540,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#137]: https://github.com/sydevs/SahajAtlasWeb/pull/137
 [#164]: https://github.com/sydevs/SahajAtlasWeb/pull/164
 [#170]: https://github.com/sydevs/SahajAtlasWeb/pull/170
+[#173]: https://github.com/sydevs/SahajAtlasWeb/issues/173
 [#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
 [#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
