@@ -5,7 +5,7 @@ import { PayloadSDK } from '@payloadcms/sdk'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
-import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
+import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
 import { atlasError } from '@/lib/report'
 
 // This is the SahajCloud locale for the active UI language.
@@ -22,8 +22,8 @@ export const activeLocale = (): Config['locale'] =>
  * This is the cross-cutting request context applied to every SahajCloud request.
  * It is the SDK equivalent of the old single axios interceptor.
  * It attaches API-key auth and the active locale to every call.
- * During a live-preview session, issue #40, it also attaches the preview secret header and `draft=true`, to unlock draft documents and bypass the CMS read cache.
- * A published-only read ignores `draft` harmlessly. The secret only ever rides a preview request.
+ * During a VERIFIED live-preview session, issue #40, it also attaches the token header and `draft=true`, to unlock draft documents and bypass the CMS read cache.
+ * A published-only read ignores `draft` harmlessly. The token only ever rides a request made inside a session whose signature already held.
  * This mutates the passed `url` and `headers`, and does no IO.
  * So it is unit-testable without a network round trip.
  *
@@ -42,8 +42,11 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)
   }
 
-  if (preview.active && preview.secret) {
-    headers.set(PREVIEW_SECRET_HEADER, preview.secret)
+  // ⚠ **`active` is the gate, and it is only ever true once the token has been VERIFIED.**
+  // A stashed-but-unproven token must send nothing: this is the one place a forged parameter
+  // would reach SahajCloud. See `config/live-preview/boot.ts`.
+  if (livePreview.active && livePreview.token) {
+    headers.set(LIVE_PREVIEW_HEADER, livePreview.token)
     url.searchParams.set('draft', 'true')
   }
 }
@@ -61,13 +64,22 @@ export const interceptFetch: typeof fetch = (input, init) => {
   return fetch(url, { ...init, headers })
 }
 
+/**
+ * The REST root every SahajCloud request hangs off.
+ *
+ * Exported because the SDK is not the only caller: the live-preview populate request is built
+ * by a handler Payload's own hook owns, and it must address the same root through the same
+ * `interceptFetch` — a second spelling would be a second place for the `/api` suffix to drift.
+ */
+export const API_BASE_URL = `${import.meta.env.VITE_SAHAJCLOUD_URL}/api`
+
 // This is one shared, typed SahajCloud client, `baseURL = ${VITE_SAHAJCLOUD_URL}/api`.
 // Both `fetch.ts` and `mutate.ts` use it.
 // `PayloadSDK<Config>` type-checks every `find`, `findByID`, `select`, `populate`, and `where` value against the generated CMS types.
 // The `payload` package it references is types-only, with no runtime import in its dist.
 // So only the SDK and `qs-esm` land in the public bundle. axios and qs are gone.
 const sdk = new PayloadSDK<Config>({
-  baseURL: `${import.meta.env.VITE_SAHAJCLOUD_URL}/api`,
+  baseURL: API_BASE_URL,
   fetch: interceptFetch,
 })
 
@@ -88,7 +100,7 @@ export const validateSDKResponse = <T>(value: T | null | undefined, context: str
 
 /**
  * This calls a custom, non-CRUD SahajCloud endpoint through the SDK's raw `request` helper, and returns its parsed JSON.
- * This covers endpoints that are not collection reads: `GET /events/geojson`, `POST /events/:id/register`, the live-preview populate POST-as-GET, and `GET /clients/me`, whose `select` the bare `sdk.me()` cannot carry.
+ * This covers endpoints that are not collection reads: `GET /events/geojson`, `POST /events/:id/register`, and `GET /clients/me`, whose `select` the bare `sdk.me()` cannot carry.
  * `request` throws on a non-2xx response. `validateSDKResponse` covers a null body.
  */
 export const requestJson = async <T = unknown>(

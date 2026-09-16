@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventListItem, List } from '@/components/molecules'
-import api from '@/config/api'
+import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { childRoute } from '@/lib/shape'
@@ -21,10 +21,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
   const { regionNames, locale } = useLocale()
   const { frameRegion } = useMapController()
 
-  const { data: region } = useSuspenseQuery({
-    queryKey: ['region', regionSlug, locale],
-    queryFn: () => api.getRegion(regionSlug),
-  })
+  const { data: region } = useSuspenseQuery(regionQuery(regionSlug, locale))
 
   // Frame the parent region only when this drawer is the session entry point, meaning a
   // fresh deep link. Opening it in-session leaves the camera where it is. Online events have

@@ -36,6 +36,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@mapbox/search-js-core": "1.0.0-beta.24",
     "@mapbox/search-js-react": "1.0.0-beta.24",
+    "@payloadcms/live-preview-react": "3.88.0",
     "@payloadcms/sdk": "^3.88.0",
     "@r2wc/react-to-web-component": "^2.1.1",
     "@radix-ui/colors": "^3.0.0",

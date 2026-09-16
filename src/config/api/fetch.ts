@@ -196,17 +196,6 @@ const loadRegions = (): Promise<RegionNode[]> =>
     revalidateIfStale: true,
   })
 
-// This finds one region by id in the wholesale tree.
-// The live-preview boot in issue #40 supplies an id, not a slug.
-// So this looks up the node instead of adding a separate per-region read.
-const getRegionNodeById = async (id: number): Promise<RegionNode> => {
-  const node = (await loadRegions()).find((region) => region.id === id)
-
-  if (!node) throw atlasError('not-found', `Region not found: ${id}`)
-
-  return node
-}
-
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
@@ -792,29 +781,6 @@ export const translationsQuery = (locale: string) => ({
   retryOnMount: false,
 })
 
-// ── Live-preview populate (issue #40) ────────────────────────────────────────────
-
-// This renders an unsaved edit.
-// It pushes the admin's form-state document through Payload's populate endpoint.
-// That endpoint is a GET request sent through a method override.
-// So it resolves relations and computed fields, such as `upcomingDates`, without saving.
-// The shared interceptor authenticates the request with our API key and the preview secret.
-// This function returns the raw document. The caller parses it.
-// This request uses plain, non-credentialed CORS, with no admin-cookie round trip.
-// So the CMS only needs the header allow-list from #575.
-const populatePreviewDoc = async (
-  collection: 'events' | 'regions',
-  id: number,
-  data: unknown,
-  locale?: string,
-): Promise<unknown> =>
-  requestJson({
-    method: 'POST',
-    path: `/${collection}/${id}`,
-    json: { data, depth: 1, flattenLocales: false, ...(locale ? { locale } : {}) },
-    init: { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
-  })
-
 // ── Bootstrap warm-up (break the clients/me → data waterfall) ────────────────────
 
 // This starts warming the locale-agnostic caches, the region tree and the geojson feed, as soon as the API key is set.
@@ -861,10 +827,8 @@ export default {
   getEvents,
   getCalendarEvents,
   getRegion,
-  getRegionNodeById,
   getEvent,
   getEventDoc,
-  populatePreviewDoc,
   getClient,
   getAtlasConfig,
   getTranslations,

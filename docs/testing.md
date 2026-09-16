@@ -165,7 +165,9 @@ path fast — booting a DOM costs about 1s against the whole lane's ~1.5s.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
 with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**
-Seven specs qualify today:
+These are the reference cases — the shapes of argument that qualify. The lane carries a few
+more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this list said
+"seven" while there were sixteen, so it is a set of precedents rather than a census.
 
 - `src/views/reset-boundary.test.tsx` — proves a `resetKeys` change clears an already-thrown
   ErrorBoundary. Load-bearing because body-level boundaries reset on the query string while the
@@ -195,6 +197,20 @@ Seven specs qualify today:
 - `src/lib/overlay.test.ts` — the portal target, and its one piece of module state (#161). It
   tests whether the expanded surface stays connected to the theme root — a detached target
   silently swallows every portal in the app.
+- `src/config/live-preview/boot.test.ts` — the live-preview URL scrub IS
+  `history.replaceState` over `window.location`, so there is no pure half left once
+  `stripLivePreviewToken` is extracted (and that half is tested in the same file, with no DOM).
+  What the DOM buys is the assertion that matters: that the scrub takes the token and leaves
+  the path, the other parameters and the hash — the old version replaced the whole URL.
+- `src/components/live-preview/LivePreviewController.transport.test.tsx` — the library case, in
+  its purest form: `@payloadcms/live-preview-react` IS a `window` message listener installed in
+  an effect, and everything worth asserting is a property of the request that listener produces
+  — the populate depth, the endpoint it is addressed at, the headers. The component renders
+  `null`, so an SSR spec could only assert the absence of markup that was never going to exist.
+  It also covers the two things the library omits, and each needed the right assertion to be
+  non-vacuous: a refusal body is kept off the screen by the write-side zod parse either way, so
+  what the spec pins is that the NEXT edit still renders — the library caches the merged result
+  and addresses the following populate at `<collection>/<that result's id>`.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 

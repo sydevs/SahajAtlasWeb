@@ -27,8 +27,9 @@ import { createContext, useContext } from 'react'
 //    What remains is the honest residue: in memory mode, an in-widget href still resolves against the host origin.
 //
 // Live preview, issue #40, is NOT a mode axis.
-// It is boot session-state, only ever in the standalone `/preview` iframe, never the web component.
-// It lives in the `config/preview.ts` singleton, and code reads it directly where needed, such as in `config/api/auth.ts`.
+// It is boot session-state, only ever in the standalone build's iframe, never the web component.
+// It lives in the `config/live-preview/protocol.ts` singleton, and code reads it directly where needed.
+// ⚠ Keep it off this type. An axis here is a prop every entry passes, and `Widget.tsx` would then be passing one — which is the shape of the mistake `Widget.standalone.test.ts` exists to prevent.
 export type WidgetMode = {
   standalone: boolean
   hasMap: boolean

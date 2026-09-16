@@ -86,8 +86,8 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 5. Views drive the camera only through `useMapController()`, never the map
    or a store directly, so map-less mode needs no view-level branching.
 6. Every SahajCloud request carries `Authorization: clients API-Key
-   <apiKey>` and `?locale=<resolved language>`, plus a preview secret header
-   and `draft=true` during live preview. There is no interceptor: the shared
+   <apiKey>` and `?locale=<resolved language>`, plus the live-preview token
+   header and `draft=true` during a VERIFIED live-preview session. There is no interceptor: the shared
    `PayloadSDK<Config>` wraps `fetch` (`interceptFetch`) to run
    `applyRequestContext` on every call, so auth and locale attach once, never
    per fetcher. See `docs/rules/data-layer.md`.

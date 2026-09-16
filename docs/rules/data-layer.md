@@ -36,8 +36,9 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
   keep its `true` literals.
 - Route every request through a custom `fetch` that runs **`applyRequestContext`**.
   It attaches `Authorization: clients API-Key <atlasAuth.apiKey>` and the resolved
-  i18next locale to every call, plus the live-preview secret header and `draft=true`
-  during a preview session (#40).
+  i18next locale to every call, plus the live-preview token header and `draft=true`
+  during a VERIFIED preview session (#40). It gates on `livePreview.active`, never on a
+  token being present — the stash between capture and verification must send nothing.
 - Never re-attach auth or locale per call — `applyRequestContext` already does it,
   and the apiKey is **late-bound** in the fetch wrapper, not baked into `baseInit`.
 - Use `sdk.find` / `sdk.findByID` for collection reads (typed). Nested `select`,
@@ -60,7 +61,7 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
 
 ## Fetchers: raw reads plus client-derived shaping
 
-SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the live-preview populate). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
+SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
 or HTML descriptions — the client derives all of these:
 
 - **`getGeojson`** → `/events/geojson`, the single source of map points, counts, and

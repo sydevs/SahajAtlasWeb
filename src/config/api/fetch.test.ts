@@ -4,7 +4,7 @@ import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
-import preview from '@/config/preview'
+import livePreview from '@/config/live-preview/protocol'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
@@ -39,8 +39,8 @@ beforeEach(() => {
   sdk.findByID.mockReset()
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
-  preview.active = false
-  preview.secret = null
+  livePreview.active = false
+  livePreview.token = null
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
@@ -81,22 +81,22 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     expect(context().headers.get('Authorization')).toBeNull()
   })
 
-  it('forwards the preview secret header and draft=true for an active preview session', () => {
+  it('forwards the live-preview token header and draft=true for an active session', () => {
     atlasAuth.apiKey = 'k'
-    preview.active = true
-    preview.secret = 'preview-secret'
+    livePreview.active = true
+    livePreview.token = 'preview-token'
 
     const { url, headers } = context()
 
-    expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-secret')
+    expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-token')
     expect(url.searchParams.get('draft')).toBe('true')
     expect(url.searchParams.get('locale')).toBe('fr')
   })
 
-  it('does not forward draft/secret when the session carries no secret', () => {
+  it('does not forward draft/token when the session carries no token', () => {
     atlasAuth.apiKey = 'k'
-    preview.active = true
-    preview.secret = null
+    livePreview.active = true
+    livePreview.token = null
 
     const { url, headers } = context()
 

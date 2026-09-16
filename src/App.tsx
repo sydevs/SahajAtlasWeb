@@ -36,7 +36,7 @@ import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
-import preview from '@/config/preview'
+import livePreview from '@/config/live-preview/protocol'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). This is a side-effect import beside the
 // stylesheet, because that is what it is — the part of our CSS a `url()` in an
@@ -47,14 +47,15 @@ import i18n from '@/config/i18n'
 import { applyLocale, bootLocale } from '@/config/locale'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 
-// Preview mode is admin-only and lazy-loaded, so `@payloadcms/live-preview-react` and
-// the controller land in their own chunk, at zero cost to normal standalone/embedded
-// use. This is lazy on purpose — see the module's own docblock. This is the boundary
-// that keeps `react-map-gl` (and therefore mapbox-gl) out of a compact embed's payload.
+// This is the boundary that keeps `react-map-gl` (and therefore mapbox-gl) out of a
+// compact embed's payload. Live preview is lazy for its own reason: it is admin-only, so
+// the controller lands in a chunk nobody else fetches.
 const FullInterface = lazy(() => import('@/views/FullInterface'))
 
-const PreviewController = lazy(() =>
-  import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
+const LivePreviewController = lazy(() =>
+  import('@/components/live-preview/LivePreviewController').then((m) => ({
+    default: m.LivePreviewController,
+  })),
 )
 
 // ===== APP ===== //
@@ -429,9 +430,9 @@ function AppShell({
           <meta content={locale} property="og:locale" />
         </Helmet>
       )}
-      {preview.active && (
+      {livePreview.active && (
         <Suspense fallback={null}>
-          <PreviewController />
+          <LivePreviewController />
         </Suspense>
       )}
       {compact ? (

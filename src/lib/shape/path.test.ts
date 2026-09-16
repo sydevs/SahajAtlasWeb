@@ -185,7 +185,7 @@ describe('resolveStack', () => {
     ])
   })
 
-  it('skips the /preview boot route (no drawer — PreviewController navigates on)', () => {
+  it('skips the /preview boot route (no drawer — it names no document)', () => {
     expect(resolveStack('/preview')).toEqual([])
   })
 
