@@ -1,7 +1,8 @@
 /**
- * Pure navigation guards for live preview (issue #40). The React wrappers (a
- * capture-phase anchor guard + a route lock) live in `<PreviewController>`. These are
- * the testable predicates behind them.
+ * Pure navigation guards for live preview (issue #40). The React wrappers — a capture-phase
+ * anchor guard and a route lock — live in `<LivePreviewController>`. These are the testable
+ * predicates behind them. The names match WeMeditateWeb's `lib/live-preview/navigation.ts`,
+ * which guards the same session against the same CMS.
  */
 
 /**
@@ -23,7 +24,7 @@ export function shouldBlockPreviewLink(rawHref: string | null | undefined): bool
  * is pinned to its own page. Anything else — a subregion, another event, a dismissed
  * drawer landing on a parent — snaps back to `previewPath`.
  */
-export function allowedPreviewPaths(
+export function allowedLivePreviewPaths(
   previewPath: string,
   collection: 'events' | 'regions',
 ): string[] {

@@ -25,7 +25,7 @@ import { FormField, fieldErrorId } from '@/components/molecules/FormField'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
 import { type RegistrationErrorCode, RegistrationRefusedError } from '@/config/api/mutate'
-import preview from '@/config/preview'
+import livePreview from '@/config/live-preview/session'
 import { useRegistrationDraft } from '@/config/store'
 import { RecurrenceType, Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
 import { useLocale } from '@/hooks/use-locale'
@@ -146,7 +146,7 @@ export function RegistrationForm({
   // In live preview, the event is a draft. Previewing must never create a
   // real registration, so this disables the submit and short-circuits
   // `mutate()`.
-  const isPreview = preview.active
+  const isPreview = livePreview.active
 
   // This restores any in-progress values for this event once, so a drawer
   // remount (for example, the md-crossing direction remount) cannot drop a

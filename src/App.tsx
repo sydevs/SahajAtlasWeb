@@ -36,7 +36,7 @@ import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
-import preview from '@/config/preview'
+import livePreview from '@/config/live-preview/session'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). This is a side-effect import beside the
 // stylesheet, because that is what it is — the part of our CSS a `url()` in an
@@ -53,8 +53,10 @@ import { useAvailableLocales } from '@/hooks/use-available-locales'
 // that keeps `react-map-gl` (and therefore mapbox-gl) out of a compact embed's payload.
 const FullInterface = lazy(() => import('@/views/FullInterface'))
 
-const PreviewController = lazy(() =>
-  import('@/components/preview/PreviewController').then((m) => ({ default: m.PreviewController })),
+const LivePreviewController = lazy(() =>
+  import('@/components/live-preview/LivePreviewController').then((m) => ({
+    default: m.LivePreviewController,
+  })),
 )
 
 // ===== APP ===== //
@@ -429,9 +431,9 @@ function AppShell({
           <meta content={locale} property="og:locale" />
         </Helmet>
       )}
-      {preview.active && (
+      {livePreview.active && (
         <Suspense fallback={null}>
-          <PreviewController />
+          <LivePreviewController />
         </Suspense>
       )}
       {compact ? (

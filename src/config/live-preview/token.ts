@@ -6,10 +6,9 @@
  *
  * ## Why verification, and not just "a parameter is present"
  *
- * The existing session (`config/preview.ts`) validates nothing — it reads
- * `secret` off the URL and trusts it, gated only by the pathname being
- * `/preview`. Widening that gate to every route without verifying would turn
- * any atlas URL into a denial of service: `preview.active` inerts every link,
+ * The session this opens (`session.ts`) is destructive to an ordinary
+ * visitor. Gating it on a parameter being PRESENT would turn any atlas URL
+ * into a denial of service: `livePreview.active` inerts every link,
  * snaps navigation back, pins all queries to `staleTime: Infinity` and adds
  * `draft=true` to every request — and `public/_redirects` serves the SPA shell
  * for any path, so `sahajatlas.com/anything?live-preview=x` would qualify.
@@ -33,9 +32,6 @@
  * and `live-preview.test.ts` mints with the construction the CMS uses, so a
  * drift fails a test here first.
  */
-
-/** The query parameter carrying the token. Matches WeMeditateWeb's spelling. */
-export const LIVE_PREVIEW_PARAM = 'live-preview'
 
 /** Ed25519 public key, base64. Not a secret — see the module docblock. */
 const VERIFY_KEY = '0Ux5Hp4TiloiW6C/SFgGJEmJGiOLcMS5U52D/TbKKyQ='

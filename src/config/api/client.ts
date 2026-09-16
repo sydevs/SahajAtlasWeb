@@ -5,7 +5,8 @@ import { PayloadSDK } from '@payloadcms/sdk'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
-import preview, { PREVIEW_SECRET_HEADER } from '@/config/preview'
+import livePreview from '@/config/live-preview/session'
+import { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
 import { atlasError } from '@/lib/report'
 
 // This is the SahajCloud locale for the active UI language.
@@ -42,8 +43,11 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)
   }
 
-  if (preview.active && preview.secret) {
-    headers.set(PREVIEW_SECRET_HEADER, preview.secret)
+  // ⚠ **`active` is the gate, and it is only ever true once the token has been VERIFIED.**
+  // A stashed-but-unproven token must send nothing: this is the one place a forged parameter
+  // would reach SahajCloud. See `config/live-preview/boot.ts`.
+  if (livePreview.active && livePreview.token) {
+    headers.set(LIVE_PREVIEW_HEADER, livePreview.token)
     url.searchParams.set('draft', 'true')
   }
 }

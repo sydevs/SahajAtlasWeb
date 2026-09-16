@@ -7,9 +7,9 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
 import api, { eventQuery, regionQuery } from '@/config/api'
 import { regionRoute, shapeEventDoc } from '@/config/api/fetch'
-import preview from '@/config/preview'
+import livePreview from '@/config/live-preview/session'
 import { useLocale } from '@/hooks/use-locale'
-import { allowedPreviewPaths, shouldBlockPreviewLink } from '@/lib/preview'
+import { allowedLivePreviewPaths, shouldBlockPreviewLink } from '@/lib/live-preview'
 import { isCanonicalPath, safePath } from '@/lib/shape'
 import { EventDocSchema, RegionNodeSchema } from '@/types'
 
@@ -27,7 +27,9 @@ const SERVER_ORIGIN = new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin
  * re-populates each edit through the CMS with our own API key and secret
  * (`populatePreviewDoc`), which works over plain CORS.
  */
-function usePreviewMessages(onDoc: (data: Record<string, unknown>, locale?: string) => void): void {
+function useLivePreviewMessages(
+  onDoc: (data: Record<string, unknown>, locale?: string) => void,
+): void {
   // Keep the latest callback without re-subscribing the listener each render.
   const latest = useRef(onDoc)
 
@@ -67,7 +69,7 @@ function usePreviewMessages(onDoc: (data: Record<string, unknown>, locale?: stri
  * with `navigate` in its dependencies would snap register or share
  * straight back.
  */
-function usePreviewRouteLock(previewPath: string, collection: 'events' | 'regions'): void {
+function useLivePreviewRouteLock(previewPath: string, collection: 'events' | 'regions'): void {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -76,7 +78,7 @@ function usePreviewRouteLock(previewPath: string, collection: 'events' | 'region
     // accented slugs (for example, `/li%C3%A8ge/...`), while the allowed
     // set is decoded, built from webPath. So a raw `includes` would miss,
     // and snap every accented-slug preview back on each navigation.
-    const allowed = allowedPreviewPaths(previewPath, collection)
+    const allowed = allowedLivePreviewPaths(previewPath, collection)
 
     if (!allowed.some((path) => isCanonicalPath(pathname, path))) {
       navigate(previewPath, { replace: true })
@@ -89,11 +91,11 @@ function usePreviewRouteLock(previewPath: string, collection: 'events' | 'region
  * inert, except a same-page `#hash`, so a card, description, or CTA link
  * cannot navigate off the previewed doc. Register and Share are
  * `<button>`s, not anchors, so they stay live. This is ported from
- * WeMeditateWeb's `usePreviewLinkGuard`. It uses capture phase plus
+ * WeMeditateWeb's `useLivePreviewLinkGuard`. It uses capture phase plus
  * `stopPropagation`, so it runs before react-router's own click handler,
  * and `auxclick` covers middle-click.
  */
-function usePreviewLinkGuard(): void {
+function useLivePreviewLinkGuard(): void {
   useEffect(() => {
     const block = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return
@@ -178,7 +180,7 @@ function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
   // with our auth — then shapes and injects the result. On an invalid
   // mid-edit state or a hiccup, this simply skips, leaving the cache on its
   // last good doc.
-  usePreviewMessages((data, editLocale) => {
+  useLivePreviewMessages((data, editLocale) => {
     api
       .populatePreviewDoc('events', initialDoc.id, data, editLocale)
       .then((doc) => {
@@ -192,12 +194,12 @@ function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
   // The route lock performs the initial /preview-to-event hop, then pins it.
   // The normal resolveStack and DrawerStack machinery renders the map and
   // drawer from the seeded cache.
-  usePreviewRouteLock(previewPath, 'events')
+  useLivePreviewRouteLock(previewPath, 'events')
 
   return null
 }
 
-function EventPreview({ id }: { id: number }) {
+function EventLivePreviewBoot({ id }: { id: number }) {
   const { data: doc } = useSuspenseQuery({
     queryKey: ['preview-event-doc', id],
     queryFn: () => api.getEventDoc(id),
@@ -217,7 +219,7 @@ function RegionLivePreview({ initialDoc }: { initialDoc: RegionNode }) {
 
   // This is live: regions have no drafts, so only editable scalars change.
   // This re-populates the edit for a validated RegionNode, then overlays it.
-  usePreviewMessages((data, editLocale) => {
+  useLivePreviewMessages((data, editLocale) => {
     api
       .populatePreviewDoc('regions', initialDoc.id, data, editLocale)
       .then((doc) => {
@@ -230,12 +232,12 @@ function RegionLivePreview({ initialDoc }: { initialDoc: RegionNode }) {
 
   // The route lock performs the initial /preview-to-region hop — the normal
   // region read then fills the drawer's cache — and pins it thereafter.
-  usePreviewRouteLock(previewPath, 'regions')
+  useLivePreviewRouteLock(previewPath, 'regions')
 
   return null
 }
 
-function RegionPreview({ id }: { id: number }) {
+function RegionLivePreviewBoot({ id }: { id: number }) {
   const { data: doc } = useSuspenseQuery({
     queryKey: ['preview-region-doc', id],
     queryFn: () => api.getRegionNodeById(id),
@@ -246,7 +248,7 @@ function RegionPreview({ id }: { id: number }) {
 
 // A brand-new unsaved doc has no id — a standard Payload limitation. This
 // shows a hint instead of crashing on the fetch.
-function PreviewFallback() {
+function LivePreviewFallback() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 text-center">
       <p className="rounded-medium shadow-medium bg-background/90 px-4 py-3 text-sm text-gray-11">
@@ -265,7 +267,7 @@ function PreviewFallback() {
  * client's `DEFAULT_STALE_TIME` only postpones that. A preview session
  * needs `Infinity`, and these prefix defaults outrank the client's.
  */
-function usePinnedPreviewQueries(): void {
+function usePinnedLivePreviewQueries(): void {
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -276,19 +278,19 @@ function usePinnedPreviewQueries(): void {
 
 /**
  * This is the live-preview controller (issue #40). It mounts only in
- * preview mode, lazily, from AppShell. It renders no drawer of its own.
+ * a live-preview session, lazily, from AppShell. It renders no drawer of its own.
  * Instead, it drives the drawer cache and map camera from the live doc,
  * and disables navigation. It dispatches on the previewed collection.
  */
-export function PreviewController() {
-  usePreviewLinkGuard()
-  usePinnedPreviewQueries()
+export function LivePreviewController() {
+  useLivePreviewLinkGuard()
+  usePinnedLivePreviewQueries()
 
-  const id = preview.id ? Number(preview.id) : NaN
+  const id = livePreview.id ? Number(livePreview.id) : NaN
 
-  if (!preview.id || Number.isNaN(id)) return <PreviewFallback />
-  if (preview.collection === 'events') return <EventPreview id={id} />
-  if (preview.collection === 'regions') return <RegionPreview id={id} />
+  if (!livePreview.id || Number.isNaN(id)) return <LivePreviewFallback />
+  if (livePreview.collection === 'events') return <EventLivePreviewBoot id={id} />
+  if (livePreview.collection === 'regions') return <RegionLivePreviewBoot id={id} />
 
-  return <PreviewFallback />
+  return <LivePreviewFallback />
 }

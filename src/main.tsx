@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router'
 import { RoutingContext } from './config/routing'
 import App from './App.tsx'
 import atlasAuth from './config/api/auth'
-import { capturePreview } from './config/preview'
+import { captureLivePreview } from './config/live-preview/boot'
 import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
@@ -21,11 +21,11 @@ if (!atlasAuth.apiKey) {
 const hasMap = attributeEnabled(searchParams.get('map'))
 
 // SahajCloud live-preview boot (issue #40): if the URL is `/preview?…`, capture
-// collection/id/secret and scrub the secret from the address bar before React mounts
+// collection/id/token and scrub the token from the address bar before React mounts
 // (BrowserRouter snapshots window.location on mount). No-op on every other route, so
 // normal standalone use is unaffected. `key`/`map` above are read first, off the
 // original URL, so scrubbing the query string doesn't drop them.
-capturePreview()
+captureLivePreview()
 
 // Restore the persisted (or default) theme before first paint to avoid a flash.
 initTheme()

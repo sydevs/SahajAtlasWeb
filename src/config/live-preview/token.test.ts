@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { verifyLivePreviewToken } from './live-preview'
+import { verifyLivePreviewToken } from './token'
 
 /**
  * The consumer half of a cross-repo format.

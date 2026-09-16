@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { allowedPreviewPaths, shouldBlockPreviewLink } from './navigation'
+import { allowedLivePreviewPaths, shouldBlockPreviewLink } from './navigation'
 
 describe('shouldBlockPreviewLink', () => {
   it('blocks internal routes, external, mailto, and tel links', () => {
@@ -20,9 +20,9 @@ describe('shouldBlockPreviewLink', () => {
   })
 })
 
-describe('allowedPreviewPaths', () => {
+describe('allowedLivePreviewPaths', () => {
   it('lets an event stay on its page plus register/share', () => {
-    expect(allowedPreviewPaths('/india/pune/507', 'events')).toEqual([
+    expect(allowedLivePreviewPaths('/india/pune/507', 'events')).toEqual([
       '/india/pune/507',
       '/india/pune/507/register',
       '/india/pune/507/share',
@@ -30,6 +30,6 @@ describe('allowedPreviewPaths', () => {
   })
 
   it('pins a region to its own page only', () => {
-    expect(allowedPreviewPaths('/india/pune', 'regions')).toEqual(['/india/pune'])
+    expect(allowedLivePreviewPaths('/india/pune', 'regions')).toEqual(['/india/pune'])
   })
 })
