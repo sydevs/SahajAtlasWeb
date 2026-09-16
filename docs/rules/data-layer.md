@@ -94,6 +94,13 @@ or HTML descriptions — the client derives all of these:
   `dangerouslySetInnerHTML`. Keep that allowlist a **superset** of what the
   serializer emits — its spec round-trips `lexicalToHtml`'s own output, because a
   tag the sanitizer drops keeps its text and goes missing in silence (#101).
+- **`getImages`** → raw `/api/images` by id (`imagesQuery(ids, locale)`), for the
+  live-preview proposal arm alone (#163). A fetched event arrives with its images
+  populated; a submission's merged event arrives over `postMessage` with bare ids,
+  and the populate endpoint that would resolve them is closed — API clients hold
+  create-only on `user-submissions`. `url` is virtual, so the `select` must carry
+  `filename` too, exactly as `getEvent`'s populate does. The key carries the locale
+  because `alt` is localized.
 - **`getClient`** → `/api/clients/me` via the raw `request` helper (the bare
   `sdk.me()` cannot carry the required `select`). An API-key self-read of locale,
   theme colors, and home `region`.
