@@ -2,6 +2,7 @@ import type {
   AtlasConfig,
   Event,
   EventDoc,
+  EventImageDoc,
   EventSlim,
   GeoFeature,
   Geojson,
@@ -47,6 +48,7 @@ import {
   AtlasConfigSchema,
   ClientSchema,
   EventDocSchema,
+  EventImageDocSchema,
   EventSlimSchema,
   EventTitleSchema,
   GeojsonSchema,
@@ -638,6 +640,29 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
   return EventDocSchema.parse(doc)
 }
 
+// The live-preview proposal arm's own relationship read (#163).
+// SahajCloud posts a submission's merged event with bare image ids, and the populate endpoint
+// that would resolve them is closed: API clients hold create-only on `user-submissions`.
+// The `images` collection itself is readable, so this reads them directly instead.
+// `url` is virtual, derived from `filename` — the select must carry both, as `getEventDoc`'s
+// populate does.
+const getImages = async (ids: number[]): Promise<EventImageDoc[]> => {
+  if (ids.length === 0) return []
+
+  const result = validateSDKResponse(
+    await sdk.find({
+      collection: 'images',
+      depth: 0,
+      limit: ids.length,
+      select: { url: true, filename: true, alt: true },
+      where: { id: { in: ids } },
+    }),
+    `images ${ids.join(',')}`,
+  )
+
+  return EventImageDocSchema.array().parse(result.docs)
+}
+
 // This raw fetch stays a separate function.
 // Live preview in issue #40 seeds `useLivePreview` with the unshaped document.
 // It also merges live messages against that unshaped document.
@@ -829,6 +854,7 @@ export default {
   getRegion,
   getEvent,
   getEventDoc,
+  getImages,
   getClient,
   getAtlasConfig,
   getTranslations,

@@ -1,20 +1,30 @@
 import type { QueryClient } from '@tanstack/react-query'
-import type { EventDoc, Region, RegionNode } from '@/types'
+import type { Event, EventDoc, Region, RegionNode } from '@/types'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useLivePreview } from '@payloadcms/live-preview-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { eventQuery, regionQuery } from '@/config/api'
+import { Spinner } from '@/components/atoms/Spinner'
+import { eventQuery, imagesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { API_BASE_URL, interceptFetch } from '@/config/api/client'
 import { shapeEventDoc } from '@/config/api/fetch'
+import livePreview, { LIVE_PREVIEW_COLLECTION } from '@/config/live-preview/protocol'
 import { useLocale } from '@/hooks/use-locale'
 import {
+  PREVIEW_EVENT_ID,
+  PreviewEventSchema,
+  SUBMISSION_PREVIEW_PATH,
   allowedLivePreviewPaths,
+  previewImageIds,
+  readPreviewEvent,
   resolveLivePreviewTarget,
+  shapePreviewEvent,
   shouldBlockPreviewLink,
 } from '@/lib/live-preview'
+import { overlayContainer } from '@/lib/overlay'
 import { isCanonicalPath } from '@/lib/shape'
 import { EventDocSchema, RegionNodeSchema } from '@/types'
 
@@ -38,9 +48,18 @@ type PopulateRequest = { data: Record<string, unknown>; endpoint: string }
  * An absent id refuses everything, which is what a region wants before its own read has
  * landed: the endpoint would otherwise address `regions/undefined`.
  */
-export function namesPreviewedDoc(endpoint: string, collection: string, id?: number): boolean {
-  return id !== undefined && endpoint === `${collection}/${id}`
+export function namesPreviewedDoc(
+  endpoint: string,
+  collection: string,
+  // A submission's id arrives as the `?id=` string off the boot URL, an event's as a number
+  // off the cache. The endpoint is a string either way.
+  id?: number | string,
+): boolean {
+  return id !== undefined && id !== '' && endpoint === `${collection}/${id}`
 }
+
+const jsonResponse = (body: unknown) =>
+  new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } })
 
 /**
  * The populate handler `useLivePreview` calls for each accepted message. It pushes the admin's
@@ -61,8 +80,7 @@ export function namesPreviewedDoc(endpoint: string, collection: string, id?: num
  * right id.
  */
 function populateHandler(collection: 'events' | 'regions', id?: number) {
-  const seed = () =>
-    new Response(JSON.stringify({ id }), { headers: { 'Content-Type': 'application/json' } })
+  const seed = () => jsonResponse({ id })
 
   return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
     if (!namesPreviewedDoc(endpoint, collection, id)) return seed()
@@ -267,6 +285,116 @@ function RegionLivePreview({ slug, previewPath }: { slug: string; previewPath: s
   return null
 }
 
+// ── Submission preview (issue #163) ──────────────────────────────────────────────
+
+/**
+ * The populate handler for a proposal — the one that never leaves the browser.
+ *
+ * `mergeData` is only ever `requestHandler(…).then((res) => res.json())`, so answering it
+ * locally is what turns the library's populate round trip into a pure read of the message.
+ * That is not an optimization: API clients hold **create-only** on `user-submissions`, so
+ * posting the form state back for population is a certain 403, and a new-event proposal has
+ * no Event id to fetch instead.
+ *
+ * ⚠ **The answer keeps the SUBMISSION's id and nests the event under it.** The library caches
+ * what it returns and addresses the next populate at `<collection>/<that result's id>`, so
+ * answering with the merged event directly would re-address the second message at the event's
+ * id and `namesPreviewedDoc` would refuse every edit after the first.
+ *
+ * `readPreviewEvent` is the PII containment — see its own note.
+ */
+function submissionHandler(submissionId: string) {
+  return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
+    if (!namesPreviewedDoc(endpoint, LIVE_PREVIEW_COLLECTION, submissionId)) {
+      return jsonResponse({ id: submissionId })
+    }
+
+    return jsonResponse({ id: submissionId, previewEvent: readPreviewEvent(data) })
+  }
+}
+
+/**
+ * What the reviewer sees before the first message lands. There is no document to fetch and no
+ * route to resolve, so the ordinary atlas underneath would read as the answer rather than as
+ * the wait.
+ */
+function SubmissionPreviewSkeleton() {
+  const container = overlayContainer()
+
+  if (!container) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+      <Spinner />
+    </div>,
+    container,
+  )
+}
+
+/**
+ * Puts the merged proposal where the drawer stack reads an event from, then pins the route to
+ * it.
+ *
+ * ⚠ **The seed is a LAYOUT effect and the route lock is a passive one**, so the cache entry
+ * always exists before the navigation that renders `EventView` against it. Reversed, the
+ * view's suspense read would miss and fetch `events/0`, which is a 404.
+ */
+function SubmissionPreviewRoute({ event }: { event: Event }) {
+  const queryClient = useQueryClient()
+  const { locale } = useLocale()
+
+  useLayoutEffect(() => {
+    queryClient.setQueryData(eventQuery(PREVIEW_EVENT_ID, locale).queryKey, event)
+  }, [event, locale, queryClient])
+
+  useLivePreviewRouteLock(SUBMISSION_PREVIEW_PATH, 'event')
+
+  return null
+}
+
+function SubmissionLivePreview({ submissionId }: { submissionId: string }) {
+  const initialData = useMemo(() => ({ id: submissionId }), [submissionId])
+  const requestHandler = useMemo(() => submissionHandler(submissionId), [submissionId])
+
+  // Depth 0: nothing is populated server-side here, so this only rides along in a request
+  // body the handler above answers without sending.
+  const { data } = useLivePreview<{ id: string; previewEvent?: unknown }>({
+    depth: 0,
+    initialData,
+    requestHandler,
+    serverURL: SERVER_ORIGIN,
+  })
+
+  // On a half-typed proposal the parse simply fails and the last good preview stays on
+  // screen, exactly as the event arm's write-side parse does.
+  const preview = useMemo(() => {
+    const parsed = PreviewEventSchema.safeParse(data?.previewEvent)
+
+    return parsed.success ? parsed.data : null
+  }, [data])
+
+  // The relationships the message carries as bare ids. The tree is already cached on any
+  // session that rendered the atlas; this read is what makes a cold one correct.
+  const { data: regions } = useQuery(regionsQuery())
+  const imageIds = useMemo(() => (preview ? previewImageIds(preview) : []), [preview])
+  const { data: images } = useQuery({ ...imagesQuery(imageIds), enabled: imageIds.length > 0 })
+
+  const event = useMemo(() => {
+    if (!preview) return null
+
+    // `shapeEventDoc` resolves the image URLs, and keys the path off `webPath` — which names
+    // the TARGET event's page, not this proposal. The route is the reserved preview one.
+    return {
+      ...shapeEventDoc(shapePreviewEvent(preview, { images, regions })),
+      path: SUBMISSION_PREVIEW_PATH,
+    }
+  }, [preview, images, regions])
+
+  if (!event) return <SubmissionPreviewSkeleton />
+
+  return <SubmissionPreviewRoute event={event} />
+}
+
 /**
  * This pins event and region query freshness while previewing. The
  * controller live-overlays the drawer's own cache entries via setQueryData.
@@ -317,11 +445,16 @@ export function LivePreviewController() {
   const previewPath = useRef(pathname).current
   const target = useRef(resolveLivePreviewTarget(previewPath)).current
 
-  // No document in the path means only the guards above are in force, and the reviewer gets
-  // the ordinary atlas rather than a broken fetch. `/preview` lands here: it is the boot route
-  // for `event-submissions`, the one collection with no page of its own, whose render-ready
-  // shape rides the message payload's `previewEvent`. Nothing here consumes that yet —
-  // `SahajCloud#723` owns it.
+  // `/preview` is the boot route for `user-submissions`, the one collection with no page of
+  // its own: a proposal is not published anywhere, and a new-event one has no Event id to
+  // fetch. Its identity comes from the session the boot URL opened, not from the path, and
+  // its content rides the message payload's `previewEvent` (#163).
+  if (livePreview.collection === LIVE_PREVIEW_COLLECTION && livePreview.id) {
+    return <SubmissionLivePreview submissionId={livePreview.id} />
+  }
+
+  // No document in the path and no submission session means only the guards above are in
+  // force, and the reviewer gets the ordinary atlas rather than a broken fetch.
   if (!target) return null
 
   if (target.kind === 'event') {

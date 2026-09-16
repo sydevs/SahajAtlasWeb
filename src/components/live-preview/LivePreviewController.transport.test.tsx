@@ -7,10 +7,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LivePreviewController } from './LivePreviewController'
 
-import { regionQuery } from '@/config/api'
+import { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
-import { mockLeafRegion } from '@/mocks/regions'
+import livePreview, {
+  LIVE_PREVIEW_COLLECTION,
+  LIVE_PREVIEW_HEADER,
+  LIVE_PREVIEW_PATH,
+} from '@/config/live-preview/protocol'
+import { PREVIEW_EVENT_ID } from '@/lib/live-preview'
+import { mockLeafRegion, mockRegionNodes } from '@/mocks/regions'
 
 /**
  * The transport, end to end: a `postMessage` from the CMS panel to the request that leaves the
@@ -102,6 +107,7 @@ const sentHeaders = () => new Headers(fetchMock.mock.calls[0][1].headers)
 beforeEach(() => {
   queryClient = new QueryClient()
   queryClient.setQueryData(regionQuery(mockLeafRegion.slug, 'fr').queryKey, mockLeafRegion)
+  queryClient.setQueryData(regionsQuery().queryKey, mockRegionNodes)
 
   fetchMock.mockReset()
   fetchMock.mockResolvedValue(
@@ -125,6 +131,8 @@ afterEach(() => {
   atlasAuth.apiKey = null
   livePreview.active = false
   livePreview.token = null
+  livePreview.collection = null
+  livePreview.id = null
 })
 
 describe('the region arm', () => {
@@ -255,5 +263,100 @@ describe('the event arm', () => {
 
     expect(sentBody().depth).toBe(1)
     expect(sentUrl().pathname).toBe('/api/events/507')
+  })
+})
+
+describe('the submission arm (issue #163)', () => {
+  const SUBMISSION_ID = '42'
+
+  /** A proposal row as the panel broadcasts it: whole form state, PII included. */
+  const proposal = (over: Record<string, unknown> = {}) => ({
+    type: 'payload-live-preview',
+    collectionSlug: LIVE_PREVIEW_COLLECTION,
+    locale: 'fr',
+    data: {
+      id: Number(SUBMISSION_ID),
+      type: 'proposal',
+      senderEmail: 'seeker@example.com',
+      submissionData: [{ field: 'name', value: 'A Seeker' }],
+      screeningResult: { verdict: 'clean' },
+      previewEvent: {
+        id: 651,
+        title: 'Evening Meditation',
+        eventType: 'offline',
+        languages: ['en'],
+        registrationMode: 'sahaj-atlas',
+        region: 8000,
+        ...over,
+      },
+    },
+  })
+
+  const previewed = () =>
+    queryClient.getQueryData(eventQuery(PREVIEW_EVENT_ID, 'fr').queryKey) as
+      | Record<string, unknown>
+      | undefined
+
+  function mountSubmission() {
+    livePreview.collection = LIVE_PREVIEW_COLLECTION
+    livePreview.id = SUBMISSION_ID
+    mount(LIVE_PREVIEW_PATH)
+  }
+
+  it('sends no request at all — the populate that would 403 never leaves the browser', async () => {
+    // API clients hold create-only on this collection, so there is no request to make. The
+    // event arm's spec above asserts the opposite for its own path, which is what makes this
+    // a claim about the wiring rather than about an idle component.
+    mountSubmission()
+    await post(proposal())
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('renders the merged event under the reserved id', async () => {
+    mountSubmission()
+    await post(proposal())
+
+    expect(previewed()).toMatchObject({ id: PREVIEW_EVENT_ID, title: 'Evening Meditation' })
+  })
+
+  it('resolves the region id off the cached tree', async () => {
+    mountSubmission()
+    await post(proposal())
+
+    expect(previewed()?.region).toMatchObject({ id: 8000, slug: 'cambridgeshire' })
+  })
+
+  it('carries none of the submission itself into the cache', async () => {
+    mountSubmission()
+    await post(proposal())
+
+    expect(JSON.stringify(previewed())).not.toContain('seeker@example.com')
+    expect(JSON.stringify(previewed())).not.toContain('screeningResult')
+  })
+
+  it('still renders the SECOND edit', async () => {
+    // The library caches what the handler returns and addresses the next populate at
+    // `<collection>/<that result's id>`. Answering with the merged event directly would
+    // re-address message two at the EVENT's id, `namesPreviewedDoc` would refuse it, and
+    // live preview would freeze on the first keystroke while every other assertion stayed
+    // green.
+    mountSubmission()
+    await post(proposal())
+    await post(proposal({ title: 'Evening Meditation (edited)' }))
+
+    expect(previewed()).toMatchObject({ title: 'Evening Meditation (edited)' })
+  })
+
+  it('refuses a proposal message from any origin but the CMS', async () => {
+    mountSubmission()
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent('message', { data: proposal(), origin: 'https://evil.example' }),
+      )
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+
+    expect(previewed()).toBeUndefined()
   })
 })

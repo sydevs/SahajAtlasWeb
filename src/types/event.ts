@@ -77,6 +77,13 @@ export const EventImageSchema = z.object({
 })
 export type EventImage = z.infer<typeof EventImageSchema>
 
+// An Image document read on its own, by id. A fetched event arrives with its images already
+// populated; only the live-preview proposal arm resolves them itself, because the CMS posts
+// bare ids in the message payload and the populate endpoint is closed to it (#163). The id is
+// what orders them back into the event's own `images` list.
+export const EventImageDocSchema = EventImageSchema.extend({ id: z.number() })
+export type EventImageDoc = z.infer<typeof EventImageDocSchema>
+
 // The registration questions a manager can enable per event — SahajCloud's
 // EVENT_REGISTRATION_QUESTIONS contract. The key set is DERIVED from the synced CMS
 // types (`pnpm types:cms`) rather than hardcoded, so it cannot drift from the backend.
@@ -201,7 +208,11 @@ export const EventDocSchema = z.object({
   // count stays server-side).
   registrationsFull: z.boolean().nullish(),
   registrationQuestions: RegistrationQuestionsSchema.nullish(),
-  region: RegionRefSchema,
+  // Nullish, unlike the feed's, because a live-preview proposal for a NEW event has no
+  // region until a manager accepts it — SahajCloud resolves one from the submission row at
+  // that moment (`applyReview`), so the merged `previewEvent` it posts carries none (#163).
+  // Every fetched event still has one. Read it optionally.
+  region: RegionRefSchema.nullish(),
   webPath: z.string().nullish(),
   webUrl: SafeUrlSchema,
 })

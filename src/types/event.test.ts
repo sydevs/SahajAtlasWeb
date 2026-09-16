@@ -93,7 +93,16 @@ describe('EventSchema', () => {
     const parsed = EventSchema.parse(mockEvent)
 
     expect(parsed.id).toBe(mockEvent.id)
-    expect(parsed.region.slug).toBe('cambridge')
+    expect(parsed.region?.slug).toBe('cambridge')
+  })
+
+  // A live-preview proposal for a NEW event carries no region: SahajCloud resolves one from
+  // the submission row only when a manager accepts it (#163). Every fetched event still has
+  // one, so this tolerance is the preview's, not a relaxed contract for the feed.
+  it('parses an event with no region, for the live-preview proposal arm', () => {
+    const parsed = EventSchema.parse({ ...mockEvent, region: undefined })
+
+    expect(parsed.region).toBeUndefined()
   })
 
   it('rejects a missing required field', () => {
