@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
+import type { PreviewEvent } from '@/lib/live-preview'
 import type { Event, EventDoc, Region, RegionNode } from '@/types'
 
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
@@ -304,12 +305,18 @@ function RegionLivePreview({ slug, previewPath }: { slug: string; previewPath: s
  * `readPreviewEvent` is the PII containment — see its own note.
  */
 function submissionHandler(submissionId: string) {
-  return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
-    if (!namesPreviewedDoc(endpoint, LIVE_PREVIEW_COLLECTION, submissionId)) {
-      return jsonResponse({ id: submissionId })
-    }
+  const seed = () => jsonResponse({ id: submissionId })
 
-    return jsonResponse({ id: submissionId, previewEvent: readPreviewEvent(data) })
+  return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
+    if (!namesPreviewedDoc(endpoint, LIVE_PREVIEW_COLLECTION, submissionId)) return seed()
+
+    try {
+      return jsonResponse({ id: submissionId, previewEvent: readPreviewEvent(data) })
+    } catch {
+      // A structured clone can carry a cycle, and `JSON.stringify` throws on one. The
+      // library's listener holds no catch, so a throw here would end the subscription.
+      return seed()
+    }
   }
 }
 
@@ -353,8 +360,10 @@ function SubmissionPreviewRoute({ event }: { event: Event }) {
 }
 
 function SubmissionLivePreview({ submissionId }: { submissionId: string }) {
+  const { locale } = useLocale()
   const initialData = useMemo(() => ({ id: submissionId }), [submissionId])
   const requestHandler = useMemo(() => submissionHandler(submissionId), [submissionId])
+  const lastPreview = useRef<PreviewEvent | null>(null)
 
   // Depth 0: nothing is populated server-side here, so this only rides along in a request
   // body the handler above answers without sending.
@@ -365,19 +374,27 @@ function SubmissionLivePreview({ submissionId }: { submissionId: string }) {
     serverURL: SERVER_ORIGIN,
   })
 
-  // On a half-typed proposal the parse simply fails and the last good preview stays on
-  // screen, exactly as the event arm's write-side parse does.
+  // ⚠ **A refused message must not un-render the previous one.** The event arm's parse gates
+  // a cache WRITE, so a failure there simply leaves the last good document alone. Here the
+  // parse feeds render state, so returning null would put the skeleton back over an event the
+  // reviewer was reading — and `previewEvent` is absent from every message about a row that
+  // is not a proposal.
   const preview = useMemo(() => {
     const parsed = PreviewEventSchema.safeParse(data?.previewEvent)
 
-    return parsed.success ? parsed.data : null
+    if (parsed.success) lastPreview.current = parsed.data
+
+    return lastPreview.current
   }, [data])
 
   // The relationships the message carries as bare ids. The tree is already cached on any
   // session that rendered the atlas; this read is what makes a cold one correct.
   const { data: regions } = useQuery(regionsQuery())
   const imageIds = useMemo(() => (preview ? previewImageIds(preview) : []), [preview])
-  const { data: images } = useQuery({ ...imagesQuery(imageIds), enabled: imageIds.length > 0 })
+  const { data: images } = useQuery({
+    ...imagesQuery(imageIds, locale),
+    enabled: imageIds.length > 0,
+  })
 
   const event = useMemo(() => {
     if (!preview) return null

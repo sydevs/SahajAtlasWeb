@@ -38,8 +38,9 @@ export const eventQuery = (id: number, locale: string) => ({
 // Nothing else reads images on their own — a fetched event arrives with its own populated.
 // The key sorts the ids, so two proposals naming the same images in a different order share
 // one entry rather than issuing the same read twice.
-export const imagesQuery = (ids: number[]) => ({
-  queryKey: ['images', [...ids].sort((a, b) => a - b)],
+// Locale is part of the key, because `alt` is localized.
+export const imagesQuery = (ids: number[], locale: string) => ({
+  queryKey: ['images', [...ids].sort((a, b) => a - b), locale],
   queryFn: () => api.getImages(ids),
 })
 

@@ -297,6 +297,9 @@ describe('the submission arm (issue #163)', () => {
       | Record<string, unknown>
       | undefined
 
+  /** The waiting overlay, by the only thing it puts in the document: the Spinner's status. */
+  const skeleton = () => document.querySelector('[role="status"]')
+
   function mountSubmission() {
     livePreview.collection = LIVE_PREVIEW_COLLECTION
     livePreview.id = SUBMISSION_ID
@@ -346,6 +349,35 @@ describe('the submission arm (issue #163)', () => {
     await post(proposal({ title: 'Evening Meditation (edited)' }))
 
     expect(previewed()).toMatchObject({ title: 'Evening Meditation (edited)' })
+  })
+
+  it('shows the skeleton until the first message, and not after', async () => {
+    // There is no document to fetch, so the ordinary atlas underneath would read as the
+    // answer rather than as the wait.
+    mountSubmission()
+
+    expect(skeleton()).not.toBeNull()
+
+    await post(proposal())
+
+    expect(skeleton()).toBeNull()
+  })
+
+  it('keeps the rendered event when a later message carries no previewEvent', async () => {
+    // The field is absent from every message about a row that is not a proposal, and from a
+    // read the projection's access refuses. Putting the skeleton back would drop an opaque
+    // overlay over an event the reviewer was reading — and the cache still holds the event
+    // either way, so only the screen shows this.
+    mountSubmission()
+    await post(proposal())
+    await post({
+      type: 'payload-live-preview',
+      collectionSlug: LIVE_PREVIEW_COLLECTION,
+      data: { id: Number(SUBMISSION_ID), type: 'proposal' },
+    })
+
+    expect(skeleton()).toBeNull()
+    expect(previewed()).toMatchObject({ title: 'Evening Meditation' })
   })
 
   it('refuses a proposal message from any origin but the CMS', async () => {
