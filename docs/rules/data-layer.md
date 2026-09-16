@@ -36,8 +36,9 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
   keep its `true` literals.
 - Route every request through a custom `fetch` that runs **`applyRequestContext`**.
   It attaches `Authorization: clients API-Key <atlasAuth.apiKey>` and the resolved
-  i18next locale to every call, plus the live-preview secret header and `draft=true`
-  during a preview session (#40).
+  i18next locale to every call, plus the live-preview token header and `draft=true`
+  during a VERIFIED preview session (#40). It gates on `livePreview.active`, never on a
+  token being present — the stash between capture and verification must send nothing.
 - Never re-attach auth or locale per call — `applyRequestContext` already does it,
   and the apiKey is **late-bound** in the fetch wrapper, not baked into `baseInit`.
 - Use `sdk.find` / `sdk.findByID` for collection reads (typed). Nested `select`,

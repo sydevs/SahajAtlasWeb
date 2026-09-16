@@ -787,7 +787,7 @@ export const translationsQuery = (locale: string) => ({
 // It pushes the admin's form-state document through Payload's populate endpoint.
 // That endpoint is a GET request sent through a method override.
 // So it resolves relations and computed fields, such as `upcomingDates`, without saving.
-// The shared interceptor authenticates the request with our API key and the preview secret.
+// The shared interceptor authenticates the request with our API key and the live-preview token.
 // This function returns the raw document. The caller parses it.
 // This request uses plain, non-credentialed CORS, with no admin-cookie round trip.
 // So the CMS only needs the header allow-list from #575.

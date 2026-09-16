@@ -56,9 +56,9 @@ function base64UrlDecode(value: string): Uint8Array | null {
  * the same construction the minter uses, so a drift on either side fails a test
  * before it breaks live preview.
  *
- * Returns false for every failure — bad shape, bad signature, wrong role,
- * expired — and never says which. A caller learning WHY its token was refused
- * learns how to forge a better one.
+ * Returns false for every failure — bad shape, bad signature, expired — and
+ * never says which. A caller learning WHY its token was refused learns how to
+ * forge a better one.
  */
 export async function verifyLivePreviewToken(
   token: string,

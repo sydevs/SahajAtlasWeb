@@ -23,8 +23,8 @@ export const activeLocale = (): Config['locale'] =>
  * This is the cross-cutting request context applied to every SahajCloud request.
  * It is the SDK equivalent of the old single axios interceptor.
  * It attaches API-key auth and the active locale to every call.
- * During a live-preview session, issue #40, it also attaches the preview secret header and `draft=true`, to unlock draft documents and bypass the CMS read cache.
- * A published-only read ignores `draft` harmlessly. The secret only ever rides a preview request.
+ * During a VERIFIED live-preview session, issue #40, it also attaches the token header and `draft=true`, to unlock draft documents and bypass the CMS read cache.
+ * A published-only read ignores `draft` harmlessly. The token only ever rides a request made inside a session whose signature already held.
  * This mutates the passed `url` and `headers`, and does no IO.
  * So it is unit-testable without a network round trip.
  *
