@@ -24,19 +24,18 @@
  * publishing it costs nothing. A symmetric secret here would BE the signing
  * key.
  *
- * ## The token names a role
+ * ## Why this is hand-written, when the CMS uses `jose`
  *
- * It carries the API-client role that may redeem it, and SahajCloud matches
- * that against the roles on the key the request authenticates with. Checking it
- * here too means a token minted for We Meditate Web never opens a session on
- * the atlas.
+ * `jwtVerify` costs about 5.75 KiB gzipped in a browser build. This widget
+ * ships to host pages under a hard size budget with single-digit KiB spare,
+ * for one verify on a rarely-taken path. The format is a standard compact JWS,
+ * so what is written here is a reading of a spec rather than an invention —
+ * and `live-preview.test.ts` mints with the construction the CMS uses, so a
+ * drift fails a test here first.
  */
 
 /** The query parameter carrying the token. Matches WeMeditateWeb's spelling. */
 export const LIVE_PREVIEW_PARAM = 'live-preview'
-
-/** The API-client role this widget's key holds. */
-const CLIENT_ROLE = 'sahaj-atlas-client'
 
 /** Ed25519 public key, base64. Not a secret — see the module docblock. */
 const VERIFY_KEY = '0Ux5Hp4TiloiW6C/SFgGJEmJGiOLcMS5U52D/TbKKyQ='
@@ -72,15 +71,29 @@ export async function verifyLivePreviewToken(
 ): Promise<boolean> {
   if (!verifyKeyBase64) return false
 
-  const [body, signature] = token.split('.')
+  // A compact JWS: header, payload, signature — and the signature covers
+  // `header.payload`, not the payload alone.
+  const parts = token.split('.')
 
-  if (!body || !signature) return false
+  if (parts.length !== 3) return false
 
+  const [header, payload, signature] = parts
   const keyBytes = base64UrlDecode(verifyKeyBase64.replace(/\s/g, ''))
   const signatureBytes = base64UrlDecode(signature)
-  const claimsBytes = base64UrlDecode(body)
+  const headerBytes = base64UrlDecode(header)
+  const payloadBytes = base64UrlDecode(payload)
 
-  if (!keyBytes || !signatureBytes || !claimsBytes) return false
+  if (!keyBytes || !signatureBytes || !headerBytes || !payloadBytes) return false
+
+  // ⚠ The header is attacker-controlled, so it must not be allowed to name the
+  // algorithm the verify uses. Pin it before touching the signature.
+  try {
+    const declared = JSON.parse(new TextDecoder().decode(headerBytes)) as { alg?: unknown }
+
+    if (declared.alg !== 'EdDSA') return false
+  } catch {
+    return false
+  }
 
   let key: CryptoKey
 
@@ -96,23 +109,20 @@ export async function verifyLivePreviewToken(
     'Ed25519',
     key,
     signatureBytes as BufferSource,
-    new TextEncoder().encode(body) as BufferSource,
+    new TextEncoder().encode(`${header}.${payload}`) as BufferSource,
   )
 
   if (!valid) return false
 
   // Parsed only after the signature holds, so nothing downstream ever reads
   // unauthenticated JSON.
-  let claims: { role?: unknown; exp?: unknown }
+  let claims: { exp?: unknown }
 
   try {
-    claims = JSON.parse(new TextDecoder().decode(claimsBytes)) as typeof claims
+    claims = JSON.parse(new TextDecoder().decode(payloadBytes)) as typeof claims
   } catch {
     return false
   }
 
-  if (claims.role !== CLIENT_ROLE) return false
-  if (typeof claims.exp !== 'number' || claims.exp <= nowSeconds) return false
-
-  return true
+  return typeof claims.exp === 'number' && claims.exp > nowSeconds
 }
