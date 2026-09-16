@@ -65,13 +65,22 @@ export const interceptFetch: typeof fetch = (input, init) => {
   return fetch(url, { ...init, headers })
 }
 
+/**
+ * The REST root every SahajCloud request hangs off.
+ *
+ * Exported because the SDK is not the only caller: the live-preview populate request is built
+ * by a handler Payload's own hook owns, and it must address the same root through the same
+ * `interceptFetch` — a second spelling would be a second place for the `/api` suffix to drift.
+ */
+export const API_BASE_URL = `${import.meta.env.VITE_SAHAJCLOUD_URL}/api`
+
 // This is one shared, typed SahajCloud client, `baseURL = ${VITE_SAHAJCLOUD_URL}/api`.
 // Both `fetch.ts` and `mutate.ts` use it.
 // `PayloadSDK<Config>` type-checks every `find`, `findByID`, `select`, `populate`, and `where` value against the generated CMS types.
 // The `payload` package it references is types-only, with no runtime import in its dist.
 // So only the SDK and `qs-esm` land in the public bundle. axios and qs are gone.
 const sdk = new PayloadSDK<Config>({
-  baseURL: `${import.meta.env.VITE_SAHAJCLOUD_URL}/api`,
+  baseURL: API_BASE_URL,
   fetch: interceptFetch,
 })
 
@@ -92,7 +101,7 @@ export const validateSDKResponse = <T>(value: T | null | undefined, context: str
 
 /**
  * This calls a custom, non-CRUD SahajCloud endpoint through the SDK's raw `request` helper, and returns its parsed JSON.
- * This covers endpoints that are not collection reads: `GET /events/geojson`, `POST /events/:id/register`, the live-preview populate POST-as-GET, and `GET /clients/me`, whose `select` the bare `sdk.me()` cannot carry.
+ * This covers endpoints that are not collection reads: `GET /events/geojson`, `POST /events/:id/register`, and `GET /clients/me`, whose `select` the bare `sdk.me()` cannot carry.
  * `request` throws on a non-2xx response. `validateSDKResponse` covers a null body.
  */
 export const requestJson = async <T = unknown>(

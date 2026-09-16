@@ -1,4 +1,4 @@
-import type { LivePreviewTarget } from './messages'
+import type { ResolvedPath } from '@/lib/shape'
 
 import { RESERVED_SLUGS, resolvePath } from '@/lib/shape'
 
@@ -8,6 +8,9 @@ import { RESERVED_SLUGS, resolvePath } from '@/lib/shape'
  * predicates behind them. The names match WeMeditateWeb's `lib/live-preview/navigation.ts`,
  * which guards the same session against the same CMS.
  */
+
+/** The document a preview route names. Exactly what `resolvePath` already answers. */
+export type LivePreviewTarget = NonNullable<ResolvedPath>
 
 /**
  * Whether an anchor's raw `href` should be inerted in preview. Everything navigates

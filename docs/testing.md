@@ -202,6 +202,15 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   `stripLivePreviewToken` is extracted (and that half is tested in the same file, with no DOM).
   What the DOM buys is the assertion that matters: that the scrub takes the token and leaves
   the path, the other parameters and the hash — the old version replaced the whole URL.
+- `src/components/live-preview/LivePreviewController.transport.test.tsx` — the library case, in
+  its purest form: `@payloadcms/live-preview-react` IS a `window` message listener installed in
+  an effect, and everything worth asserting is a property of the request that listener produces
+  — the populate depth, the endpoint it is addressed at, the headers. The component renders
+  `null`, so an SSR spec could only assert the absence of markup that was never going to exist.
+  It also covers the two things the library omits, and each needed the right assertion to be
+  non-vacuous: a refusal body is kept off the screen by the write-side zod parse either way, so
+  what the spec pins is that the NEXT edit still renders — the library caches the merged result
+  and addresses the following populate at `<collection>/<that result's id>`.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 

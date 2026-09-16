@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 
-import { writeEventEdit, writeRegionEdit } from './LivePreviewController'
+import { namesPreviewedDoc, writeEventEdit, writeRegionEdit } from './LivePreviewController'
 
 import { eventQuery, regionQuery } from '@/config/api'
 import { mockLeafRegion } from '@/mocks/regions'
@@ -124,5 +124,45 @@ describe('writeRegionEdit', () => {
     queryClient.setQueryData(['region', mockLeafRegion.slug], mockLeafRegion)
 
     expect(writeRegionEdit(queryClient, LOCALE, mockLeafRegion.slug, node)).toBe(false)
+  })
+})
+
+/**
+ * The document filter, as a pure predicate.
+ *
+ * ⚠ **Every `false` here is a populate that would otherwise fetch, and write, the wrong
+ * document.** `useLivePreview` takes no collection, no id and no predicate: it merges any
+ * message carrying a slug, and composes the endpoint from the panel's `collectionSlug` joined
+ * to our own `initialData.id`. The collection half is therefore whatever the editor happens to
+ * have open, and this is the only thing that reads it.
+ *
+ * The wiring — that each arm actually hands this predicate to the hook, at the right depth —
+ * is covered in `LivePreviewController.transport.test.tsx`, which a pure spec cannot see.
+ */
+describe('namesPreviewedDoc', () => {
+  it('accepts the endpoint composed for the document on screen', () => {
+    expect(namesPreviewedDoc('events/507', 'events', 507)).toBe(true)
+    expect(namesPreviewedDoc('regions/42', 'regions', 42)).toBe(true)
+  })
+
+  it('refuses another collection, including the two that are not documents here', () => {
+    expect(namesPreviewedDoc('regions/507', 'events', 507)).toBe(false)
+    expect(namesPreviewedDoc('events/42', 'regions', 42)).toBe(false)
+    expect(namesPreviewedDoc('event-submissions/507', 'events', 507)).toBe(false)
+    expect(namesPreviewedDoc('globals/sy-atlas-config', 'regions', 42)).toBe(false)
+  })
+
+  it('refuses a sibling document of the same collection', () => {
+    // The library cannot compose this from our id — but a `globalSlug` message, or any future
+    // change to how it builds the endpoint, can. The check is on the whole string for that
+    // reason: what we authorized is one endpoint, not a prefix.
+    expect(namesPreviewedDoc('events/508', 'events', 507)).toBe(false)
+  })
+
+  it('refuses everything while the id is still unknown', () => {
+    // A region route carries a slug, so its id arrives with the drawer's own read. Until then
+    // the composed endpoint is `regions/undefined`, and a request for it would 404 at best.
+    expect(namesPreviewedDoc('regions/undefined', 'regions', undefined)).toBe(false)
+    expect(namesPreviewedDoc('regions/42', 'regions', undefined)).toBe(false)
   })
 })

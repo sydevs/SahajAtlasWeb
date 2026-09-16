@@ -61,7 +61,7 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
 
 ## Fetchers: raw reads plus client-derived shaping
 
-SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the live-preview populate). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
+SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
 or HTML descriptions — the client derives all of these:
 
 - **`getGeojson`** → `/events/geojson`, the single source of map points, counts, and

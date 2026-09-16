@@ -1,73 +1,87 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { EventDoc, Region, RegionNode } from '@/types'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { useLivePreview } from '@payloadcms/live-preview-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import api, { eventQuery, regionQuery } from '@/config/api'
+import { eventQuery, regionQuery } from '@/config/api'
+import { API_BASE_URL, interceptFetch } from '@/config/api/client'
 import { shapeEventDoc } from '@/config/api/fetch'
 import { useLocale } from '@/hooks/use-locale'
 import {
   allowedLivePreviewPaths,
-  editedDocumentId,
   resolveLivePreviewTarget,
   shouldBlockPreviewLink,
 } from '@/lib/live-preview'
 import { isCanonicalPath } from '@/lib/shape'
 import { EventDocSchema, RegionNodeSchema } from '@/types'
 
-// The CMS admin posts live edits from the SahajCloud origin. This checks
-// every message against it. (A trailing path or slash on the env value is
+// The CMS admin posts live edits from the SahajCloud origin, and `isLivePreviewEvent` compares
+// `event.origin` against this exact string. (A trailing path or slash on the env value is
 // tolerated via `.origin`.)
 const SERVER_ORIGIN = new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin
 
-/** One unsaved edit, as Payload's live-preview transport delivers it. */
-type LivePreviewMessage = {
-  collectionSlug?: string
-  data: Record<string, unknown>
-  locale?: string
+/** What `mergeData` hands the request handler, narrowed to the two fields this reads. */
+type PopulateRequest = { data: Record<string, unknown>; endpoint: string }
+
+/**
+ * Whether the populate endpoint the library composed names the document on screen.
+ *
+ * ⚠ **This is the whole document filter.** `useLivePreview` takes no collection, no id and no
+ * predicate: it merges any message carrying a slug, and builds `endpoint` as
+ * `<the message's collectionSlug>/<our initialData.id>` — so the collection half is whatever
+ * the panel happens to be editing while the id half is ours. A missed check populates one
+ * document's unsaved edits into the page showing another.
+ *
+ * An absent id refuses everything, which is what a region wants before its own read has
+ * landed: the endpoint would otherwise address `regions/undefined`.
+ */
+export function namesPreviewedDoc(endpoint: string, collection: string, id?: number): boolean {
+  return id !== undefined && endpoint === `${collection}/${id}`
 }
 
 /**
- * This is a minimal PayloadCMS live-preview transport, replacing
- * @payloadcms/live-preview-react. It announces `ready` to the admin
- * iframe, then hands each incoming form-state message to `onMessage`. It is
- * origin-locked to the CMS. This deliberately does not use the library's
- * credentialed cookie-auth relation re-population. Instead, the controller
- * re-populates each edit through the CMS with our own API key and token
- * (`populatePreviewDoc`), which works over plain CORS.
+ * The populate handler `useLivePreview` calls for each accepted message. It pushes the admin's
+ * unsaved form state through Payload's populate endpoint — a GET behind a method override — so
+ * relations and computed fields like `upcomingDates` resolve server-side, without saving.
  *
- * The whole message is handed on, not just its `data`. `collectionSlug` is
- * what names the document an edit is about, and it is the only thing that
- * can: the panel is free to be editing something other than what this route
- * renders.
+ * It goes through `interceptFetch`, so the API key, the live-preview token header and
+ * `draft=true` attach in the one place every other SahajCloud request gets them. Payload's own
+ * default handler is what this replaces: it sends `credentials: 'include'` for an admin cookie,
+ * which a cross-origin widget has none of.
+ *
+ * ⚠ **It must never reject, and must always resolve JSON.** `mergeData` is
+ * `requestHandler(…).then((res) => res.json())` with no catch and no status check, so a
+ * rejection silently takes the subscription's callback with it, and an `{errors:[…]}` body
+ * becomes the document the library caches and merges the next edit onto. Every refusal
+ * therefore answers with the seed: `{ id }` alone fails the schema parse at the call site, so
+ * the last good document stays on screen while the next message still populates under the
+ * right id.
  */
-function useLivePreviewMessages(onMessage: (message: LivePreviewMessage) => void): void {
-  // Keep the latest callback without re-subscribing the listener each render.
-  const latest = useRef(onMessage)
+function populateHandler(collection: 'events' | 'regions', id?: number) {
+  const seed = () =>
+    new Response(JSON.stringify({ id }), { headers: { 'Content-Type': 'application/json' } })
 
-  latest.current = onMessage
+  return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
+    if (!namesPreviewedDoc(endpoint, collection, id)) return seed()
 
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      if (event.origin !== SERVER_ORIGIN) return
-      const message = event.data
+    try {
+      const response = await interceptFetch(`${API_BASE_URL}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Payload-HTTP-Method-Override': 'GET',
+        },
+        body: JSON.stringify(data),
+      })
 
-      if (message?.type !== 'payload-live-preview' || !message.data) return
-
-      latest.current(message as LivePreviewMessage)
+      return response.ok ? response : seed()
+    } catch {
+      return seed()
     }
-
-    window.addEventListener('message', listener)
-    // Announce readiness to the admin (iframe parent, or popup opener).
-    ;(window.opener || window.parent)?.postMessage(
-      { type: 'payload-live-preview', ready: true },
-      SERVER_ORIGIN,
-    )
-
-    return () => window.removeEventListener('message', listener)
-  }, [])
+  }
 }
 
 /**
@@ -182,27 +196,30 @@ function EventLivePreview({ id, previewPath }: { id: number; previewPath: string
   // this names the key the drawer on screen reads.
   const { locale } = useLocale()
 
+  const initialData = useMemo(() => ({ id }), [id])
+  const requestHandler = useMemo(() => populateHandler('events', id), [id])
+
   // There is no seed and no boot fetch. The route names the event, so `EventView`'s own
   // suspense read has already put the saved draft in the cache — under `draft=true`, because
-  // the session is active. This only has to overlay what is not saved yet.
+  // the session is active. `initialData` only has to carry the id the endpoint is addressed
+  // by; the populate response is a whole document, not a patch.
   //
-  // This is live: it pushes each edit through the CMS populate endpoint —
-  // relations and computed fields like upcomingDates, resolved server-side
-  // with our auth — then shapes and injects the result. On an invalid
-  // mid-edit state or a hiccup, this simply skips, leaving the cache on its
-  // last good doc.
-  useLivePreviewMessages(({ collectionSlug, data, locale: editLocale }) => {
-    if (editedDocumentId({ kind: 'event', id }, { collectionSlug, data }) === null) return
-
-    api
-      .populatePreviewDoc('events', id, data, editLocale)
-      .then((doc) => {
-        const parsed = EventDocSchema.safeParse(doc)
-
-        if (parsed.success) writeEventEdit(queryClient, locale, parsed.data)
-      })
-      .catch(() => undefined)
+  // Depth 1 brings the region and images back as objects, which is what `EventDocSchema`
+  // expects.
+  const { data } = useLivePreview({
+    depth: 1,
+    initialData,
+    requestHandler,
+    serverURL: SERVER_ORIGIN,
   })
+
+  // On an invalid mid-edit state, a refused endpoint or a hiccup, the parse simply fails and
+  // this writes nothing, leaving the cache on its last good doc.
+  useEffect(() => {
+    const parsed = EventDocSchema.safeParse(data)
+
+    if (parsed.success) writeEventEdit(queryClient, locale, parsed.data)
+  }, [data, locale, queryClient])
 
   useLivePreviewRouteLock(previewPath, 'event')
 
@@ -215,26 +232,35 @@ function RegionLivePreview({ slug, previewPath }: { slug: string; previewPath: s
   const queryClient = useQueryClient()
   const { locale } = useLocale()
 
-  // This is live: regions have no drafts, so only editable scalars change.
-  // This re-populates the edit for a validated RegionNode, then overlays it.
+  // The route carries a slug, and the populate endpoint is `POST /regions/:id`. This reads the
+  // id off the drawer's own cache entry rather than fetching one: it is the same entry
+  // `writeRegionEdit` overlays, so there is never a populate whose result has nowhere to go.
+  // `enabled: false` subscribes without issuing a request — the drawer's read owns that.
+  const { data: cached } = useQuery({ ...regionQuery(slug, locale), enabled: false })
+  const id = cached?.id
+
+  const initialData = useMemo(() => ({ id }), [id])
+  const requestHandler = useMemo(() => populateHandler('regions', id), [id])
+
+  // Regions have no drafts, so only editable scalars change, and this re-populates the edit for
+  // a validated RegionNode before overlaying it.
   //
-  // The id comes off the message rather than the route, because a slug is what a path
-  // carries and `POST /regions/:id` is what the populate endpoint is. The slug is still what
-  // decides whether the edit is about THIS region.
-  useLivePreviewMessages(({ collectionSlug, data, locale: editLocale }) => {
-    const id = editedDocumentId({ kind: 'region', slug }, { collectionSlug, data })
-
-    if (id === null) return
-
-    api
-      .populatePreviewDoc('regions', id, data, editLocale)
-      .then((doc) => {
-        const parsed = RegionNodeSchema.safeParse(doc)
-
-        if (parsed.success) writeRegionEdit(queryClient, locale, slug, parsed.data)
-      })
-      .catch(() => undefined)
+  // ⚠ **Depth MUST stay 0.** `RegionNodeSchema` types `parent` as `z.number().nullish()` — the
+  // wholesale-tree shape. At depth 1 the CMS returns it populated, the whole document fails the
+  // parse, and the overlay drops every message without a word. A region edit needs no relation
+  // anyway.
+  const { data } = useLivePreview({
+    depth: 0,
+    initialData,
+    requestHandler,
+    serverURL: SERVER_ORIGIN,
   })
+
+  useEffect(() => {
+    const parsed = RegionNodeSchema.safeParse(data)
+
+    if (parsed.success) writeRegionEdit(queryClient, locale, slug, parsed.data)
+  }, [data, locale, queryClient, slug])
 
   useLivePreviewRouteLock(previewPath, 'region')
 
@@ -271,6 +297,14 @@ function usePinnedLivePreviewQueries(): void {
  * the URL, and then fetching a document the route was not showing.
  *
  * The one exception is `/preview`, where there is no document in the path — see below.
+ *
+ * ⚠ **`useLivePreview` cannot be told which document the page shows, and holds its merge cache
+ * at module scope.** Both are safe here only because there is never more than one subscriber:
+ * this returns `EventLivePreview` **or** `RegionLivePreview`, and the route lock plus
+ * `allowedLivePreviewPaths` confine navigation to sub-paths of that same document, so the
+ * target cannot change mid-session. Mounting a second arm — or keying one off anything but the
+ * route — would put two subscriptions on one shared `previousData`. `namesPreviewedDoc` is
+ * what each arm filters on in the meantime.
  */
 export function LivePreviewController() {
   useLivePreviewLinkGuard()

@@ -502,37 +502,3 @@ describe('eventsQuery (the results-list query contract)', () => {
     expect(key(51.5072, -0.1276)).not.toContain('soonest')
   })
 })
-
-describe('populatePreviewDoc (the live-edit round trip)', () => {
-  const sentBody = () => (sdk.request.mock.calls[0][0] as { json: Record<string, unknown> }).json
-
-  it('populates an event edit at depth 1, so its region and images come back as objects', async () => {
-    sdk.request.mockResolvedValue(jsonResponse({ id: 7 }))
-
-    await api.populatePreviewDoc('events', 7, { title: 'x' })
-
-    expect(sentBody().depth).toBe(1)
-  })
-
-  it('populates a region edit at depth 0, or RegionNodeSchema rejects the whole document', async () => {
-    // `parent` is `z.number().nullish()` — the wholesale-tree shape. At depth 1 the CMS returns
-    // it as a populated object, the parse fails, and the overlay drops every live edit in
-    // silence. This is the one assertion standing between that and a shipped no-op.
-    sdk.request.mockResolvedValue(jsonResponse({ id: 7 }))
-
-    await api.populatePreviewDoc('regions', 7, { subtitle: 'x' })
-
-    expect(sentBody().depth).toBe(0)
-  })
-
-  it('carries the edited locale only when the message names one', async () => {
-    sdk.request.mockResolvedValue(jsonResponse({ id: 7 }))
-
-    await api.populatePreviewDoc('regions', 7, {}, 'fr')
-    expect(sentBody().locale).toBe('fr')
-
-    sdk.request.mockClear()
-    await api.populatePreviewDoc('regions', 7, {})
-    expect(sentBody()).not.toHaveProperty('locale')
-  })
-})

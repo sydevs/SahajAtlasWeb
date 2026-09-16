@@ -781,39 +781,6 @@ export const translationsQuery = (locale: string) => ({
   retryOnMount: false,
 })
 
-// ── Live-preview populate (issue #40) ────────────────────────────────────────────
-
-// This renders an unsaved edit.
-// It pushes the admin's form-state document through Payload's populate endpoint.
-// That endpoint is a GET request sent through a method override.
-// So it resolves relations and computed fields, such as `upcomingDates`, without saving.
-// The shared interceptor authenticates the request with our API key and the live-preview token.
-// This function returns the raw document. The caller parses it.
-// This request uses plain, non-credentialed CORS, with no admin-cookie round trip.
-// So the CMS only needs the header allow-list from #575.
-const populatePreviewDoc = async (
-  collection: 'events' | 'regions',
-  id: number,
-  data: unknown,
-  locale?: string,
-): Promise<unknown> =>
-  requestJson({
-    method: 'POST',
-    path: `/${collection}/${id}`,
-    json: {
-      data,
-      // ⚠ **Per collection, and a region MUST stay at 0.** An event needs its region and
-      // images as objects, which is what `EventDocSchema` expects. `RegionNodeSchema` is the
-      // wholesale-tree shape, where `parent` is `z.number().nullish()` — at depth 1 the CMS
-      // returns it populated, the whole document fails the parse, and the overlay skips every
-      // message without a word. A region edit needs no relation anyway.
-      depth: collection === 'events' ? 1 : 0,
-      flattenLocales: false,
-      ...(locale ? { locale } : {}),
-    },
-    init: { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
-  })
-
 // ── Bootstrap warm-up (break the clients/me → data waterfall) ────────────────────
 
 // This starts warming the locale-agnostic caches, the region tree and the geojson feed, as soon as the API key is set.
@@ -862,7 +829,6 @@ export default {
   getRegion,
   getEvent,
   getEventDoc,
-  populatePreviewDoc,
   getClient,
   getAtlasConfig,
   getTranslations,

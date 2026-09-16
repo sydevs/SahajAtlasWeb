@@ -116,15 +116,39 @@ describe('the widget entry', () => {
   })
 })
 
+/** Every non-spec module under `src/`, as a `/`-joined path relative to it. */
+const SOURCES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
+  .map((path) => path.split(sep).join('/'))
+  .filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path))
+
+/**
+ * Payload's own live-preview hook is admin-only, and must stay behind the one lazy seam.
+ *
+ * The graph walk above cannot see this: a package specifier resolves to nothing there, by
+ * design. Nor can `pnpm size` — 1.6 KiB gzipped disappears inside the embed graph's spare
+ * budget, and the gate would pass while every host on every page view paid for a hook only a
+ * CMS editor can ever trigger. A closed importer list is what makes the seam enforceable, in
+ * the manner of `config/responsive.test.ts`. A second importer is not automatically wrong, but
+ * it is always a decision somebody has to make deliberately, and this is where they are asked.
+ */
+describe('the Payload live-preview library', () => {
+  const importers = SOURCES.filter((path) =>
+    specifiers(readFileSync(join(SRC, path), 'utf8')).some((specifier) =>
+      specifier.startsWith('@payloadcms/live-preview'),
+    ),
+  )
+
+  it('is imported by the lazily-mounted controller and by nothing else', () => {
+    expect(importers).toEqual(['components/live-preview/LivePreviewController.tsx'])
+  })
+})
+
 describe('the live-preview boot module', () => {
-  const importers = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
-    .map((path) => path.split(sep).join('/'))
-    .filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path))
-    .filter((path) =>
-      specifiers(readFileSync(join(SRC, path), 'utf8')).some(
-        (specifier) => resolveModule(specifier, join(SRC, path)) === join(SRC, STANDALONE_ONLY[0]),
-      ),
-    )
+  const importers = SOURCES.filter((path) =>
+    specifiers(readFileSync(join(SRC, path), 'utf8')).some(
+      (specifier) => resolveModule(specifier, join(SRC, path)) === join(SRC, STANDALONE_ONLY[0]),
+    ),
+  )
 
   it('is imported by main.tsx and by nothing else', () => {
     // A closed list, in the manner of `config/responsive.test.ts`. A second importer is not

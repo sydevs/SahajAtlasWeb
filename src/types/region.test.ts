@@ -81,7 +81,7 @@ describe('RegionNodeSchema', () => {
     // `parent` is an id here, because this is the wholesale-tree shape. Ask the CMS to populate
     // a region at depth 1 and it hands the parent back as a document, the safeParse in the
     // live-preview overlay fails, and every keystroke is dropped without a word. See
-    // `populatePreviewDoc` in `config/api/fetch.ts`.
+    // `RegionLivePreview` in `components/live-preview/LivePreviewController.tsx`.
     expect(RegionNodeSchema.safeParse({ ...regionNode, parent: { id: 28 } }).success).toBe(false)
   })
 })
