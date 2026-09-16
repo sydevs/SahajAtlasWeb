@@ -76,6 +76,14 @@ describe('RegionNodeSchema', () => {
   it('rejects an unknown level', () => {
     expect(() => RegionNodeSchema.parse({ ...regionNode, level: 'planet' })).toThrow()
   })
+
+  it('rejects a POPULATED parent, which is why the live-preview populate runs at depth 0', () => {
+    // `parent` is an id here, because this is the wholesale-tree shape. Ask the CMS to populate
+    // a region at depth 1 and it hands the parent back as a document, the safeParse in the
+    // live-preview overlay fails, and every keystroke is dropped without a word. See
+    // `populatePreviewDoc` in `config/api/fetch.ts`.
+    expect(RegionNodeSchema.safeParse({ ...regionNode, parent: { id: 28 } }).success).toBe(false)
+  })
 })
 
 describe('RegionListItemSchema', () => {

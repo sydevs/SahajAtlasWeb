@@ -7,7 +7,7 @@ import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { EventListItem, List, ListItem } from '@/components/molecules'
-import api from '@/config/api'
+import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
@@ -44,10 +44,7 @@ export function RegionView({ slug }: { slug: string }) {
   // `confirmed` renders nothing here, while the hook still takes the parameter out of the URL.
   const { answer: feedback, dismiss: dismissFeedback } = usePostEventFeedback()
 
-  const { data: region } = useSuspenseQuery({
-    queryKey: ['region', slug, locale],
-    queryFn: () => api.getRegion(slug),
-  })
+  const { data: region } = useSuspenseQuery(regionQuery(slug, locale))
 
   useFrameOnTop(() => frameRegion(region), [region, frameRegion])
 

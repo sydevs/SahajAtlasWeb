@@ -11,7 +11,7 @@ import { CalendarDays, Funnel, Menu, Search, X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api from '@/config/api'
+import api, { eventQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useCameraHistory } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -353,10 +353,7 @@ export function useEventFromPath(eventPath: string) {
     throw atlasError('not-found', `Not an event: ${eventPath}`)
   }
 
-  return useSuspenseQuery({
-    queryKey: ['event', resolved.id, locale],
-    queryFn: () => api.getEvent(resolved.id),
-  })
+  return useSuspenseQuery(eventQuery(resolved.id, locale))
 }
 
 /**

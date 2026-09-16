@@ -1,12 +1,14 @@
+import type { QueryClient } from '@tanstack/react-query'
 import type { EventDoc, Region, RegionNode } from '@/types'
 
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 
-import api from '@/config/api'
+import api, { eventQuery, regionQuery } from '@/config/api'
 import { regionRoute, shapeEventDoc } from '@/config/api/fetch'
 import preview from '@/config/preview'
+import { useLocale } from '@/hooks/use-locale'
 import { allowedPreviewPaths, shouldBlockPreviewLink } from '@/lib/preview'
 import { isCanonicalPath, safePath } from '@/lib/shape'
 import { EventDocSchema, RegionNodeSchema } from '@/types'
@@ -113,32 +115,76 @@ function usePreviewLinkGuard(): void {
   }, [])
 }
 
+// ── Cache writes ─────────────────────────────────────────────────────────────────
+
+/**
+ * This writes a live edit onto the key the drawer reads.
+ *
+ * ⚠ **A `setQueryData` under the wrong key is SILENT.** It creates the entry it was handed, no
+ * reader ever asks for it, and nothing anywhere reports a miss. That is how the whole live-edit
+ * pipeline shipped dead: the drawer keys were suffixed with the locale, these writes were not,
+ * and every keystroke landed in an entry no view had ever subscribed to.
+ * So both sides build the key from the same factory in `config/api`, and these are functions
+ * rather than inline effects so the node lane can drive them against a real `QueryClient`.
+ */
+export function writeEventEdit(queryClient: QueryClient, locale: string, doc: EventDoc): void {
+  queryClient.setQueryData(eventQuery(doc.id, locale).queryKey, shapeEventDoc(doc))
+}
+
+/**
+ * This overlays a region's editable scalars onto the drawer's already-shaped `Region`.
+ * Counts, bounds, and lists are geojson-derived, and cannot move from a form edit.
+ * This returns false, and writes nothing, until the region read has populated the cache.
+ */
+export function writeRegionEdit(
+  queryClient: QueryClient,
+  locale: string,
+  slug: string,
+  node: RegionNode,
+): boolean {
+  const { queryKey } = regionQuery(slug, locale)
+  const cached = queryClient.getQueryData<Region>(queryKey)
+
+  if (!cached) return false
+
+  queryClient.setQueryData<Region>(queryKey, {
+    ...cached,
+    name: node.name ?? cached.name,
+    subtitle: node.subtitle,
+    level: node.level,
+  })
+
+  return true
+}
+
 // ── Event preview ────────────────────────────────────────────────────────────────
 
 function EventLivePreview({ initialDoc }: { initialDoc: EventDoc }) {
   const queryClient = useQueryClient()
+  // The widget's own locale, which the boot URL's `locale` parameter has already set to the
+  // one the admin is editing in. NOT the locale a message carries: that names the edit, while
+  // this names the key the drawer on screen reads.
+  const { locale } = useLocale()
 
   const previewPath = safePath(initialDoc.webPath) ?? `/${initialDoc.id}`
 
   // Seed the drawer cache from the initial fetched doc.
   useEffect(() => {
-    queryClient.setQueryData(['event', initialDoc.id], shapeEventDoc(initialDoc))
-  }, [initialDoc, queryClient])
+    writeEventEdit(queryClient, locale, initialDoc)
+  }, [initialDoc, locale, queryClient])
 
   // This is live: it pushes each edit through the CMS populate endpoint —
   // relations and computed fields like upcomingDates, resolved server-side
   // with our auth — then shapes and injects the result. On an invalid
   // mid-edit state or a hiccup, this simply skips, leaving the cache on its
   // last good doc.
-  usePreviewMessages((data, locale) => {
+  usePreviewMessages((data, editLocale) => {
     api
-      .populatePreviewDoc('events', initialDoc.id, data, locale)
+      .populatePreviewDoc('events', initialDoc.id, data, editLocale)
       .then((doc) => {
         const parsed = EventDocSchema.safeParse(doc)
 
-        if (parsed.success) {
-          queryClient.setQueryData(['event', parsed.data.id], shapeEventDoc(parsed.data))
-        }
+        if (parsed.success) writeEventEdit(queryClient, locale, parsed.data)
       })
       .catch(() => undefined)
   })
@@ -164,36 +210,26 @@ function EventPreview({ id }: { id: number }) {
 
 function RegionLivePreview({ initialDoc }: { initialDoc: RegionNode }) {
   const queryClient = useQueryClient()
+  const { locale } = useLocale()
 
   const { slug } = initialDoc
   const previewPath = regionRoute(initialDoc)
 
   // This is live: regions have no drafts, so only editable scalars change.
-  // This re-populates the edit for a validated RegionNode, and overlays
-  // name, subtitle, and level onto the cached shaped Region. Counts,
-  // bounds, and lists are geojson-derived, and cannot move from a form
-  // edit. This skips until the region read has populated the cache.
-  usePreviewMessages((data, locale) => {
+  // This re-populates the edit for a validated RegionNode, then overlays it.
+  usePreviewMessages((data, editLocale) => {
     api
-      .populatePreviewDoc('regions', initialDoc.id, data, locale)
+      .populatePreviewDoc('regions', initialDoc.id, data, editLocale)
       .then((doc) => {
         const parsed = RegionNodeSchema.safeParse(doc)
-        const cached = queryClient.getQueryData<Region>(['region', slug])
 
-        if (parsed.success && cached) {
-          queryClient.setQueryData<Region>(['region', slug], {
-            ...cached,
-            name: parsed.data.name ?? cached.name,
-            subtitle: parsed.data.subtitle,
-            level: parsed.data.level,
-          })
-        }
+        if (parsed.success) writeRegionEdit(queryClient, locale, slug, parsed.data)
       })
       .catch(() => undefined)
   })
 
   // The route lock performs the initial /preview-to-region hop — the normal
-  // getRegion(slug) then fills ['region', slug] — and pins it thereafter.
+  // region read then fills the drawer's cache — and pins it thereafter.
   usePreviewRouteLock(previewPath, 'regions')
 
   return null
@@ -222,8 +258,8 @@ function PreviewFallback() {
 
 /**
  * This pins event and region query freshness while previewing. The
- * controller seeds and live-overlays `['event', id]` and `['region', slug]`
- * via setQueryData. Without this, a drawer's suspense query
+ * controller seeds and live-overlays the drawer's own cache entries via
+ * setQueryData. Without this, a drawer's suspense query
  * background-refetches on remount — for example, after closing register or
  * share — and overwrites unsaved live edits with the last-saved doc. The
  * client's `DEFAULT_STALE_TIME` only postpones that. A preview session

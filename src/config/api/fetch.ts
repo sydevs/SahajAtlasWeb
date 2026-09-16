@@ -811,7 +811,17 @@ const populatePreviewDoc = async (
   requestJson({
     method: 'POST',
     path: `/${collection}/${id}`,
-    json: { data, depth: 1, flattenLocales: false, ...(locale ? { locale } : {}) },
+    json: {
+      data,
+      // ⚠ **Per collection, and a region MUST stay at 0.** An event needs its region and
+      // images as objects, which is what `EventDocSchema` expects. `RegionNodeSchema` is the
+      // wholesale-tree shape, where `parent` is `z.number().nullish()` — at depth 1 the CMS
+      // returns it populated, the whole document fails the parse, and the overlay skips every
+      // message without a word. A region edit needs no relation anyway.
+      depth: collection === 'events' ? 1 : 0,
+      flattenLocales: false,
+      ...(locale ? { locale } : {}),
+    },
     init: { headers: { 'X-Payload-HTTP-Method-Override': 'GET' } },
   })
 

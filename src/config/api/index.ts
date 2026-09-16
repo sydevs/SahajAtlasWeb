@@ -34,6 +34,17 @@ export const eventQuery = (id: number, locale: string) => ({
   queryFn: () => api.getEvent(id),
 })
 
+// This is the single-region query contract, in one place.
+// RegionView's suspense read, OnlineView's re-read of the same parent, and the live-preview overlay all share it.
+// So the key and fetcher can never drift.
+// Locale is part of the key, since a region's name and subtitle are localized.
+// ⚠ A writer under a divergent key is SILENT: `setQueryData` creates the entry it was handed and no reader ever asks for it.
+// That is how live preview shipped writing `['region', slug]` while the drawer read `['region', slug, locale]`, and no live edit rendered.
+export const regionQuery = (slug: string, locale: string) => ({
+  queryKey: ['region', slug, locale] as const,
+  queryFn: () => api.getRegion(slug),
+})
+
 // This is the distance-ranked events query contract, in one place.
 // The results list's suspense read and the SearchView story's cache seed both share it.
 // So the key can never drift.
