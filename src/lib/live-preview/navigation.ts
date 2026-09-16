@@ -51,7 +51,7 @@ export function allowedLivePreviewPaths(previewPath: string, kind: 'event' | 're
  * route and `/…/register` and `/…/share` at the same time.
  *
  * `/preview` resolving to nothing is the CORRECT answer, not a gap: it is the boot route for
- * `event-submissions`, whose render-ready shape rides the message payload rather than the
+ * `user-submissions`, whose render-ready shape rides the message payload rather than the
  * path (`config/live-preview/protocol.ts`). There is no document in that URL to key on.
  */
 export function resolveLivePreviewTarget(pathname: string): LivePreviewTarget | null {

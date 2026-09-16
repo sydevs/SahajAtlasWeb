@@ -1,4 +1,5 @@
 import livePreview, {
+  LIVE_PREVIEW_COLLECTION,
   LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PARAM,
   LIVE_PREVIEW_PATH,
@@ -95,7 +96,7 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
   return {
     active: false,
     token,
-    collection: collection === 'event-submissions' ? collection : null,
+    collection: collection === LIVE_PREVIEW_COLLECTION ? collection : null,
     id: onBootRoute ? params.get('id') : null,
   }
 }

@@ -45,14 +45,20 @@ export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 /**
  * The one collection still previewed at a dedicated route rather than at its own page.
  *
- * A submission is a proposal, so it has no page to preview at — and `event-submissions` is
+ * A submission is a proposal, so it has no page to preview at — and `user-submissions` is
  * create-only for API clients, so a new-event proposal has no Event id the widget could fetch
  * back either. SahajCloud sends that one collection to `/preview?collection=…&id=…` and posts
  * the render-ready shape in the message payload's `previewEvent` instead. Every other document
  * is now previewed at the path it will publish at. `SahajCloud#723` owns retiring this last
  * one; until it does, `'preview'` stays in `RESERVED_SLUGS`.
+ *
+ * ⚠ **The literal is the whole gate.** `readLivePreviewParams` nulls any other value, so a
+ * slug this spelling does not match makes the `/preview` arm dead rather than loud — which it
+ * silently was while SahajCloud#801 renamed `event-submissions` out from under it.
  */
-export type LivePreviewCollection = 'event-submissions'
+export const LIVE_PREVIEW_COLLECTION = 'user-submissions'
+
+export type LivePreviewCollection = typeof LIVE_PREVIEW_COLLECTION
 
 /** The live-preview boot route. `RESERVED_SLUGS` reserves it, so it never reads as a region. */
 export const LIVE_PREVIEW_PATH = '/preview'
