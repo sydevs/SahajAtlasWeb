@@ -5,11 +5,11 @@
  *
  * - **`protocol.ts`** — parameter and header names, and the shape of a session. No state, no
  *   `window`, no `crypto`. Everything here is safe for any graph.
- * - **`session.ts`** — the in-memory singleton, and the pure reader that builds one. The
- *   request interceptor (`config/api/client.ts`) and `App` read it, so it is in the embedded
- *   widget's graph as well as the standalone one.
+ * - **`session.ts`** — the in-memory singleton, and nothing else. The request interceptor
+ *   (`config/api/client.ts`) and `App` read it, so it is in the embedded widget's graph as
+ *   well as the standalone one, which is why it holds no behaviour at all.
  * - **`token.ts`** — the signature check.
- * - **`boot.ts`** — capture and activation, called from `main.tsx`.
+ * - **`boot.ts`** — reading the URL, capture, and activation. Called from `main.tsx`.
  *
  * ⚠ **That last pair is standalone-only, and the split is what keeps them there.** The
  * embedded `<sahaj-atlas>` element must carry no verification and no `history.replaceState`:
