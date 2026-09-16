@@ -9,8 +9,7 @@ import { LivePreviewController } from './LivePreviewController'
 
 import { regionQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
-import livePreview from '@/config/live-preview/session'
+import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
 import { mockLeafRegion } from '@/mocks/regions'
 
 /**

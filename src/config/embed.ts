@@ -1,7 +1,7 @@
 /**
  * This holds the configuration the loader handed us, and what it observed about the host page. See #149.
  *
- * This is a mutable module singleton, mirroring `config/api/auth.ts` and `config/live-preview/session.ts`.
+ * This is a mutable module singleton, mirroring `config/api/auth.ts` and `config/live-preview/protocol.ts`.
  * It is page-global boot state, read where it is needed, rather than threaded through component signatures.
  * It is not a `WidgetMode` axis, for the same reason live preview is not one.
  * This is BOOT SESSION-STATE, decided once before React exists, not a runtime mode the tree branches on.

@@ -1,10 +1,9 @@
-import {
+import livePreview, {
   LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PARAM,
   LIVE_PREVIEW_PATH,
   type LivePreviewSession,
 } from './protocol'
-import livePreview from './session'
 import { verifyLivePreviewToken } from './token'
 
 /**

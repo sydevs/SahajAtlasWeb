@@ -22,10 +22,10 @@ import { describe, expect, it } from 'vitest'
  * still the widget reaching it, just later — and the size gate cannot see this class of
  * mistake at all, because a shared chunk costs no bytes.
  *
- * `config/live-preview/session.ts` and `protocol.ts` are deliberately absent from the list.
- * The request interceptor and `App` both read the session, so those two ARE in both graphs —
- * which is why the split in that folder exists, and why those two hold nothing but the state
- * and the names. Everything that BEHAVES is on the other side of this line.
+ * `config/live-preview/protocol.ts` is deliberately absent from the list. The request
+ * interceptor and `App` both read the session it holds, so it IS in both graphs — which is why
+ * that folder is split at all, and why it holds nothing but the state and the names.
+ * Everything that BEHAVES is on the other side of this line.
  */
 
 const SRC = dirname(fileURLToPath(import.meta.url))
@@ -107,11 +107,10 @@ describe('the widget entry', () => {
     expect(widgetGraph).not.toContain('main.tsx')
   })
 
-  it('does reach the session and the protocol, which both entries share', () => {
+  it('does reach the protocol, which carries the session both entries share', () => {
     // The negative assertions above are worth nothing unless this walker can actually see a
     // live-preview module. Without this they would pass just as happily against a broken
     // resolver that found nothing at all.
-    expect(widgetGraph).toContain('config/live-preview/session.ts')
     expect(widgetGraph).toContain('config/live-preview/protocol.ts')
   })
 })

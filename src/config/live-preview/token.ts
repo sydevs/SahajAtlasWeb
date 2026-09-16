@@ -6,7 +6,7 @@
  *
  * ## Why verification, and not just "a parameter is present"
  *
- * The session this opens (`session.ts`) is destructive to an ordinary
+ * The session this opens (`protocol.ts`) is destructive to an ordinary
  * visitor. Gating it on a parameter being PRESENT would turn any atlas URL
  * into a denial of service: `livePreview.active` inerts every link,
  * snaps navigation back, pins all queries to `staleTime: Infinity` and adds

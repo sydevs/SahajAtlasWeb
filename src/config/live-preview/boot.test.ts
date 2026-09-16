@@ -7,8 +7,7 @@ import {
   readLivePreviewParams,
   stripLivePreviewToken,
 } from './boot'
-import { LIVE_PREVIEW_INACTIVE } from './protocol'
-import livePreview from './session'
+import livePreview, { LIVE_PREVIEW_INACTIVE } from './protocol'
 
 /**
  * The boot half of live preview: what a URL may switch on, and when.

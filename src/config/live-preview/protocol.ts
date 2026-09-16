@@ -1,20 +1,24 @@
 /**
- * Live preview: the vocabulary every half shares.
+ * Live preview: the vocabulary and the session state every half shares.
  *
- * Live preview is split across four modules, and this is what they agree on.
+ * Live preview is split across three modules, and this is the one both graphs reach.
  *
- * - **`protocol.ts`** — parameter and header names, and the shape of a session. No state, no
- *   `window`, no `crypto`. Everything here is safe for any graph.
- * - **`session.ts`** — the in-memory singleton, and nothing else. The request interceptor
- *   (`config/api/client.ts`) and `App` read it, so it is in the embedded widget's graph as
- *   well as the standalone one, which is why it holds no behaviour at all.
+ * - **`protocol.ts`** — parameter and header names, the shape of a session, and the session
+ *   itself. No `window`, no `crypto`, nothing that acts. Everything here is safe for any graph.
  * - **`token.ts`** — the signature check.
  * - **`boot.ts`** — reading the URL, capture, and activation. Called from `main.tsx`.
  *
- * ⚠ **That last pair is standalone-only, and the split is what keeps them there.** The
- * embedded `<sahaj-atlas>` element must carry no verification and no `history.replaceState`:
- * scrubbing an address bar the widget does not own would rewrite the HOST page's URL. Nothing
- * in `Widget.tsx`'s graph may reach `boot.ts` — `Widget.standalone.test.ts` asserts it.
+ * ⚠ **The line is STATE versus BEHAVIOUR, and the file count is not the point.** The request
+ * interceptor (`config/api/client.ts`) and `App` read the session, so this module is in the
+ * embedded widget's import graph as well as the standalone one — which is why it holds no
+ * behaviour at all. Even the pure reader that builds a session out of a URL lives in `boot.ts`,
+ * because a widget that never boots a preview has no use for it, and a module in a shared chunk
+ * is carried whole.
+ *
+ * ⚠ **The other two are standalone-only, and that line is what keeps them there.** The embedded
+ * `<sahaj-atlas>` element must carry no verification and no `history.replaceState`: scrubbing
+ * an address bar the widget does not own would rewrite the HOST page's URL. Nothing in
+ * `Widget.tsx`'s graph may reach `boot.ts` — `Widget.standalone.test.ts` asserts it.
  *
  * The names match WeMeditateWeb's `lib/live-preview/`, which verifies the same token minted by
  * the same CMS. Two consumers reading one credential should not spell it two ways.
@@ -81,3 +85,15 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   collection: null,
   id: null,
 }
+
+/**
+ * The session the widget is in, right now.
+ *
+ * A mutable in-memory singleton, mirroring `config/api/auth.ts` and `config/embed.ts`. It is
+ * boot session-state, read where it is needed rather than threaded through signatures. The
+ * token lives here and nowhere else — not in the bundle, not in storage, not in the address
+ * bar once `boot.ts` has scrubbed it.
+ */
+const livePreview: LivePreviewSession = { ...LIVE_PREVIEW_INACTIVE }
+
+export default livePreview

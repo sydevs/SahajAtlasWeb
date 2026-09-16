@@ -36,7 +36,7 @@ import { ReportIssueModal } from '@/components/organisms/ReportIssueForm'
 import { NoExpansionProvider } from '@/hooks/use-expansion'
 import { CompactEmbedView } from '@/views/CompactEmbedView'
 import { WidgetModeContext } from '@/config/mode'
-import livePreview from '@/config/live-preview/session'
+import livePreview from '@/config/live-preview/protocol'
 import '@/styles/globals.css'
 // Registers the self-hosted Raleway faces (#91). This is a side-effect import beside the
 // stylesheet, because that is what it is — the part of our CSS a `url()` in an

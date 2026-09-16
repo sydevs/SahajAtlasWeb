@@ -5,8 +5,7 @@ import { PayloadSDK } from '@payloadcms/sdk'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
-import livePreview from '@/config/live-preview/session'
-import { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
+import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
 import { atlasError } from '@/lib/report'
 
 // This is the SahajCloud locale for the active UI language.

@@ -4,7 +4,7 @@ import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
-import livePreview from '@/config/live-preview/session'
+import livePreview from '@/config/live-preview/protocol'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
