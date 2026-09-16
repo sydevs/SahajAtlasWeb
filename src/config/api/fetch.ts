@@ -196,17 +196,6 @@ const loadRegions = (): Promise<RegionNode[]> =>
     revalidateIfStale: true,
   })
 
-// This finds one region by id in the wholesale tree.
-// The live-preview boot in issue #40 supplies an id, not a slug.
-// So this looks up the node instead of adding a separate per-region read.
-const getRegionNodeById = async (id: number): Promise<RegionNode> => {
-  const node = (await loadRegions()).find((region) => region.id === id)
-
-  if (!node) throw atlasError('not-found', `Region not found: ${id}`)
-
-  return node
-}
-
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
@@ -871,7 +860,6 @@ export default {
   getEvents,
   getCalendarEvents,
   getRegion,
-  getRegionNodeById,
   getEvent,
   getEventDoc,
   populatePreviewDoc,

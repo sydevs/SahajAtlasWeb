@@ -1,1 +1,6 @@
-export { allowedLivePreviewPaths, shouldBlockPreviewLink } from './navigation'
+export { editedDocumentId, type LivePreviewTarget } from './messages'
+export {
+  allowedLivePreviewPaths,
+  resolveLivePreviewTarget,
+  shouldBlockPreviewLink,
+} from './navigation'

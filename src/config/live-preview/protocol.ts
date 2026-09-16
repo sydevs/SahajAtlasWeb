@@ -13,7 +13,8 @@
  *
  * ⚠ **That last pair is standalone-only, and the split is what keeps them there.** The
  * embedded `<sahaj-atlas>` element must carry no verification and no `history.replaceState`:
- * scrubbing an address bar the widget does not own would rewrite the HOST page's URL.
+ * scrubbing an address bar the widget does not own would rewrite the HOST page's URL. Nothing
+ * in `Widget.tsx`'s graph may reach `boot.ts` — `Widget.standalone.test.ts` asserts it.
  *
  * The names match WeMeditateWeb's `lib/live-preview/`, which verifies the same token minted by
  * the same CMS. Two consumers reading one credential should not spell it two ways.
@@ -37,8 +38,17 @@ export const LIVE_PREVIEW_PARAM = 'live-preview'
  */
 export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 
-/** The collections the admin panel can open a preview for. */
-export type LivePreviewCollection = 'events' | 'regions'
+/**
+ * The one collection still previewed at a dedicated route rather than at its own page.
+ *
+ * A submission is a proposal, so it has no page to preview at — and `event-submissions` is
+ * create-only for API clients, so a new-event proposal has no Event id the widget could fetch
+ * back either. SahajCloud sends that one collection to `/preview?collection=…&id=…` and posts
+ * the render-ready shape in the message payload's `previewEvent` instead. Every other document
+ * is now previewed at the path it will publish at. `SahajCloud#723` owns retiring this last
+ * one; until it does, `'preview'` stays in `RESERVED_SLUGS`.
+ */
+export type LivePreviewCollection = 'event-submissions'
 
 /** The live-preview boot route. `RESERVED_SLUGS` reserves it, so it never reads as a region. */
 export const LIVE_PREVIEW_PATH = '/preview'
@@ -46,16 +56,21 @@ export const LIVE_PREVIEW_PATH = '/preview'
 /**
  * What the widget knows about the session it is rendering under.
  *
- * ⚠ **Everything gated on `active` is destructive to an ordinary visitor**: every `<a>` goes
- * inert, navigation snaps back, all queries pin to `staleTime: Infinity`, and every request —
- * `POST /events/:id/register` included — gains `draft=true` and the header above.
+ * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
+ * destructive to an ordinary visitor: every `<a>` goes inert, navigation snaps back, all
+ * queries pin to `staleTime: Infinity`, and every request — `POST /events/:id/register`
+ * included — gains `draft=true` and the header above. Since any path can now carry a token,
+ * and `public/_redirects` answers the SPA shell for every path, a parameter being PRESENT
+ * would make `sahajatlas.com/anything?live-preview=x` a link that silently bricks the page for
+ * whoever it was sent to. See `boot.ts`.
  */
 export type LivePreviewSession = {
   active: boolean
   /** The credential, held in memory only — never in the bundle, never in storage. */
   token: string | null
-  /** An unknown or absent collection reads as `null`, and opens no document. */
+  /** The `/preview` arm only. `null` on every document previewed at its own path. */
   collection: LivePreviewCollection | null
+  /** The `/preview` arm only: the submission being reviewed. */
   id: string | null
 }
 

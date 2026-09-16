@@ -84,7 +84,14 @@ export type SlotDecision = {
   warning: string | null
 }
 
-const FULL: SlotDecision = { compact: null, contained: false, warning: null }
+/**
+ * The full interface, unconditionally — what a caller returns when the question does not apply.
+ *
+ * Exported for `main.tsx`, which takes it during a live-preview session: SahajCloud's preview
+ * panel has nowhere bigger to send an editor, so the comparison this module is built on has no
+ * second box. Also the `catch` below: a measurement must never break what it measures.
+ */
+export const FULL_SLOT: SlotDecision = { compact: null, contained: false, warning: null }
 
 /**
  * Whether we are inside a frame. Exported so `main.tsx` shares this definition rather than keeping
@@ -181,6 +188,6 @@ export function decideSlot({ element, hasMap, fromPage }: SlotInput): SlotDecisi
       warning: reason ? COMPACT_MESSAGE[reason] : null,
     }
   } catch {
-    return FULL
+    return FULL_SLOT
   }
 }
