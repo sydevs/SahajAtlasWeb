@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest'
  * gone — a token on any URL opens a session — and nothing structural replaced it. The two
  * standalone-only modules would both misbehave inside a host page, and neither would say so:
  *
- * - **`config/live-preview/boot.ts`** writes the address bar. Embedded, that address bar is
- *   the HOST's, and the widget would be rewriting a URL it does not own — on their analytics,
- *   in their `document.referrer`, in whatever their page does with `location`.
+ * - **`config/live-preview/boot.ts`** rewrites `window.location`. Embedded, that URL is the
+ *   HOST's, and the widget would be rewriting a URL it does not own — in their address bar, on
+ *   their analytics, in their `document.referrer`, in whatever their page does with `location`.
  * - **`config/live-preview/token.ts`** is bytes the widget has no use for, in a graph with a
  *   hard budget and single-digit KiB spare.
  *

@@ -16,8 +16,8 @@
  * is carried whole.
  *
  * ⚠ **The other two are standalone-only, and that line is what keeps them there.** The embedded
- * `<sahaj-atlas>` element must carry no verification and no `history.replaceState`: scrubbing
- * an address bar the widget does not own would rewrite the HOST page's URL. Nothing in
+ * `<sahaj-atlas>` element must carry no verification and no `history.replaceState`: rewriting
+ * `window.location` from inside a host page would rewrite the HOST page's URL. Nothing in
  * `Widget.tsx`'s graph may reach `boot.ts` — `Widget.standalone.test.ts` asserts it.
  *
  * The names match WeMeditateWeb's `lib/live-preview/`, which verifies the same token minted by
@@ -91,8 +91,8 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
  *
  * A mutable in-memory singleton, mirroring `config/api/auth.ts` and `config/embed.ts`. It is
  * boot session-state, read where it is needed rather than threaded through signatures. The
- * token lives here and nowhere else — not in the bundle, not in storage, not in the address
- * bar once `boot.ts` has scrubbed it.
+ * token lives here and nowhere else — not in the bundle, not in storage, and out of
+ * `location.href` again once `boot.ts` has scrubbed it.
  */
 const livePreview: LivePreviewSession = { ...LIVE_PREVIEW_INACTIVE }
 

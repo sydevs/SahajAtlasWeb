@@ -22,7 +22,7 @@ if (!atlasAuth.apiKey) {
 const hasMap = attributeEnabled(searchParams.get('map'))
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
-// job: this stashes the token and takes it out of the address bar before React mounts
+// job: this stashes the token and takes it out of `location.href` before React mounts
 // (BrowserRouter snapshots window.location then), and opens nothing. `key`/`map` above are
 // read first, off the original URL, so the scrub cannot drop them. No-op on every other
 // page load, which is all of them.

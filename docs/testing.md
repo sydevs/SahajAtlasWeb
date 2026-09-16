@@ -197,7 +197,7 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
 - `src/lib/overlay.test.ts` — the portal target, and its one piece of module state (#161). It
   tests whether the expanded surface stays connected to the theme root — a detached target
   silently swallows every portal in the app.
-- `src/config/live-preview/boot.test.ts` — the live-preview address-bar scrub IS
+- `src/config/live-preview/boot.test.ts` — the live-preview URL scrub IS
   `history.replaceState` over `window.location`, so there is no pure half left once
   `stripLivePreviewToken` is extracted (and that half is tested in the same file, with no DOM).
   What the DOM buys is the assertion that matters: that the scrub takes the token and leaves

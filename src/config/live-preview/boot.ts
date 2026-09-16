@@ -24,9 +24,24 @@ import { verifyLivePreviewToken } from './token'
  * merely stashed. `main.tsx` additionally holds the render back until activation settles, so
  * in practice nothing has even mounted to make a request.
  *
- * ⚠ **`main.tsx` is the only caller, and that is a rule, not an accident.** The scrub writes
- * the address bar. From inside the embedded `<sahaj-atlas>` element that address bar belongs
- * to the HOST page, and rewriting it would be this widget vandalising somebody else's URL.
+ * ## What the scrub is actually for
+ *
+ * ⚠ **Not "the token is out of the address bar" — in an iframe there is no address bar to be
+ * out of.** Preview renders inside the CMS admin's frame, so the browser shows the admin's URL
+ * and this page's own URL is never displayed to anyone. What the scrub buys is that the token
+ * leaves `location.href`, which in-page JavaScript reads freely — any analytics or
+ * error-reporting script, ours or a dependency's, that attaches the current URL to what it
+ * sends.
+ *
+ * **A leaked token grants nothing by itself**, which is what bounds this. SahajCloud's
+ * `createAccessConfig` runs `hasPermission` first, and the token only lifts the published-only
+ * clause for a request already authenticated as a `clients` user. So the exposure is a leaked
+ * token COMBINED with an API key — and that is the combination worth guarding against here in
+ * particular, because this widget ships a browser-usable key.
+ *
+ * ⚠ **`main.tsx` is the only caller, and that is a rule, not an accident.** The scrub rewrites
+ * `window.location`. From inside the embedded `<sahaj-atlas>` element that URL is the HOST
+ * page's, and rewriting it would be this widget vandalising somebody else's URL.
  * Nothing structural stops a future edit from importing this into `Widget.tsx` now that the
  * gate is no longer "the pathname is `/preview`", so `Widget.standalone.test.ts` asserts it.
  */
@@ -86,7 +101,7 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
 }
 
 /**
- * Stashes the token and takes it out of the address bar. Opens no session.
+ * Stashes the token and takes it out of `location.href`. Opens no session.
  *
  * Returns whether there is a token to verify — which is the only thing a caller may act on
  * before {@link activateLivePreview} has answered.
