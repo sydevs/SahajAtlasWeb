@@ -80,17 +80,10 @@ export function previewImageIds(preview: PreviewEvent): number[] {
   return (preview.images ?? []).filter((image): image is number => typeof image === 'number')
 }
 
-/** The region id a proposal still carries unresolved, or `null` when it names no region. */
-export function previewRegionId(preview: PreviewEvent): number | null {
-  return typeof preview.region === 'number' ? preview.region : null
-}
-
 function resolveRegion(preview: PreviewEvent, regions?: RegionNode[]): RegionRef | null {
   if (preview.region && typeof preview.region === 'object') return preview.region
 
-  const id = previewRegionId(preview)
-
-  return regions?.find((node) => node.id === id) ?? null
+  return regions?.find((node) => node.id === preview.region) ?? null
 }
 
 /**

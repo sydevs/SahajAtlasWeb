@@ -7,7 +7,6 @@ import {
   PreviewEventSchema,
   SUBMISSION_PREVIEW_PATH,
   previewImageIds,
-  previewRegionId,
   readPreviewEvent,
   shapePreviewEvent,
 } from './submission'
@@ -103,11 +102,11 @@ describe('PreviewEventSchema', () => {
   })
 
   it('reads a relationship as an id or as a document', () => {
-    expect(previewRegionId(PreviewEventSchema.parse(mergedEvent))).toBe(7)
     expect(previewImageIds(PreviewEventSchema.parse(mergedEvent))).toEqual([11, 12])
-    expect(previewRegionId(PreviewEventSchema.parse({ ...mergedEvent, region: cambridge }))).toBe(
-      null,
-    )
+    // Only the ids are a gap the caller has to read back — one already populated is not.
+    const mixed = { ...mergedEvent, images: [11, { url: '/media/two.jpg', alt: 'Two' }] }
+
+    expect(previewImageIds(PreviewEventSchema.parse(mixed))).toEqual([11])
   })
 })
 
@@ -123,6 +122,14 @@ describe('shapePreviewEvent', () => {
     const shaped = shapePreviewEvent(PreviewEventSchema.parse(mergedEvent), {
       regions: [cambridge],
     })
+
+    expect(shaped.region?.slug).toBe('cambridge')
+  })
+
+  it('keeps a region the message already populated, without consulting the tree', () => {
+    const shaped = shapePreviewEvent(
+      PreviewEventSchema.parse({ ...mergedEvent, region: cambridge }),
+    )
 
     expect(shaped.region?.slug).toBe('cambridge')
   })
