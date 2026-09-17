@@ -8,13 +8,43 @@ import z from 'zod'
 
 import { activeLocale, requestJson } from './client'
 
-// This is the confirmation `POST /api/events/:id/register` returns, `EventRegistrationResponse`.
-const RegistrationResponseSchema = z.object({
-  ok: z.literal(true),
-  registration: z.object({ id: z.number(), uuid: z.string() }),
+/**
+ * This is the one public intake. Registrations, issue reports, mailing-list opt-ins and event
+ * proposals are all rows on it, told apart by `type`. See sydevs/SahajCloud#695 and #800.
+ */
+const SUBMISSIONS_PATH = '/user-submissions'
+
+/**
+ * This is Payload's create envelope, `201 { doc, message }`.
+ *
+ * **This pins only `doc.id`, deliberately.** Nothing here renders any of it. Pinning a field this
+ * code never reads would turn a harmless CMS-side rename into a failed submission for every
+ * sender. `id` is the one member that cannot be renamed, since it is Payload's primary key, and
+ * requiring it is what distinguishes a real create from any other 2xx body.
+ *
+ * `uuid` is the submission's own handle. The create issues it in the same request, rather than a
+ * later job, so a registrant has it the moment the promise resolves. It is optional here for the
+ * reason above: nothing reads it yet.
+ */
+const SubmissionResponseSchema = z.object({
+  doc: z.object({ id: z.number(), uuid: z.string().optional() }),
 })
 
-export type RegistrationResponse = z.infer<typeof RegistrationResponseSchema>
+export type SubmissionResponse = z.infer<typeof SubmissionResponseSchema>
+
+/**
+ * This is everything a submission carries beyond its own columns, as the collection wants it:
+ * `[{ field, value }]` rather than an object.
+ *
+ * SahajCloud bounds the keys per `type` and refuses an unknown one with a 400 naming it. So a key
+ * added here has to exist in that collection's `submissionData.ts` first.
+ *
+ * A blank value is dropped rather than sent. Every key is optional, and an empty answer is not one.
+ */
+const submissionData = (entries: Record<string, string | undefined>) =>
+  Object.entries(entries)
+    .filter((entry): entry is [string, string] => Boolean(entry[1]))
+    .map(([field, value]) => ({ field, value }))
 
 /**
  * These are the codes a registration write can be refused with.
@@ -58,14 +88,11 @@ export class RegistrationRefusedError extends Error {
  * This schema duck-types the error, instead of checking `instanceof PayloadSDKError`.
  * So this code depends on the shape, not the class identity.
  *
- * ⚠ **The code sits in one of two places, and both are live.**
- * SahajCloud's collection-backed routes go through Payload's own `formatErrors`, which nests the `APIError` payload under `data`.
- * So `POST /user-messages` refuses with `errors[].data.code`.
- * `POST /events/{id}/register` is a hand-written endpoint that still builds `{ errors: [{ message, code }] }` itself, with the code at the top level.
- *
- * So this schema accepts BOTH positions, instead of moving from one to the other.
- * Switching would silently stop recognizing every registration refusal.
- * Each refusal would fall through `asRefusal` untouched, and the form would show its generic "try again" sentence instead of the copy written for each case.
+ * ⚠ **The code sits in one of two places, and this schema accepts both.**
+ * Every route the widget writes to is collection-backed now, so it goes through Payload's own `formatErrors`, which nests the `APIError` payload under `data`.
+ * The flat `errors[].code` is what the hand-written register endpoint built before SahajCloud#800 deleted it.
+ * Dropping either position would silently stop recognizing a whole class of refusal.
+ * Each one would fall through `asRefusal` untouched, and the form would show its generic "try again" sentence instead of the copy written for each case.
  * A regression test pins this behavior.
  */
 const RefusalBodySchema = z.object({
@@ -118,11 +145,19 @@ const asRefusal = <Code extends string>(
  */
 export const TURNSTILE_HEADER = 'x-turnstile-token'
 
+/**
+ * This registers a viewer for one occurrence of an event.
+ *
+ * ⚠ **The refusal is still synchronous, and that is what makes this usable.**
+ * `gateRegistration` runs as a `beforeValidate` on the create, so a full, ended, closed or
+ * external event is refused by the request that tried to register — not screened out later by a
+ * job. The form can therefore say why, and the confirmation means a real row.
+ */
 const createRegistration = async (
   eventId: number,
   data: Registration,
   turnstileToken: string,
-): Promise<RegistrationResponse> => {
+): Promise<SubmissionResponse> => {
   // Only the REQUEST is guarded here.
   // A `.parse()` call inside this try would hand `asRefusal` a `ZodError`.
   // A `ZodError`'s `.errors` field is `{ message, code }`, the very shape a refusal body has.
@@ -130,29 +165,34 @@ const createRegistration = async (
   let response: unknown
 
   try {
-    // This is a custom, non-CRUD endpoint, so it uses the SDK's raw `request` helper.
     // `request` throws a `PayloadSDKError` on a non-2xx response.
     // So a failed registration still rejects to the caller.
     response = await requestJson({
       method: 'POST',
-      path: `/events/${eventId}/register`,
+      path: SUBMISSIONS_PATH,
       // `sdk.request` merges these headers over its `baseInit` headers.
       // `interceptFetch` then adds auth and the locale on top.
       // So the token rides alongside them, and replaces nothing. See `applyRequestContext`.
       init: { headers: { [TURNSTILE_HEADER]: turnstileToken } },
       json: {
-        email: data.email,
-        name: data.name,
+        type: 'registration',
+        event: eventId,
         startingAt: data.startingAt.toISOString(),
-        questions: data.questions,
-        // This is the registrant's language.
-        // So SahajCloud sends the confirmation email, and its reminders, in the language they registered in.
-        // The endpoint otherwise falls back to its own default, English for everyone.
-        // This is the same resolved language the request's `locale` param carries.
-        // So there is one definition of "what language is this."
-        // SahajCloud REJECTS an unknown code, rather than defaulting.
-        // So this value must stay a subset of SahajCloud's LOCALES. All ten widget languages have been in it since SahajCloud#578.
-        locale: activeLocale(),
+        // The collection's own column for who sent this. It is what the confirmation goes to,
+        // and what the sender's history across all four intakes is keyed on.
+        senderEmail: data.email,
+        submissionData: submissionData({
+          name: data.name,
+          // This is the registrant's language.
+          // So SahajCloud sends the confirmation email, and its reminders, in the language they registered in.
+          // The CMS otherwise falls back to its own default, English for everyone.
+          // This is the same resolved language the request's `locale` param carries.
+          // So there is one definition of "what language is this."
+          // SahajCloud REJECTS an unknown code, rather than defaulting.
+          // So this value must stay a subset of SahajCloud's LOCALES. All ten widget languages have been in it since SahajCloud#578.
+          locale: activeLocale(),
+          ...data.questions,
+        }),
       },
     })
   } catch (error) {
@@ -163,24 +203,11 @@ const createRegistration = async (
     )
   }
 
-  return RegistrationResponseSchema.parse(response)
+  return SubmissionResponseSchema.parse(response)
 }
 
 /**
- * This is the confirmation `POST /api/user-messages` returns: Payload's create envelope, `201 { doc, message }`.
- *
- * **This schema pins only `doc.id`, deliberately**, the same way `reportEmbed` does.
- * Nothing here renders any of it.
- * Pinning a field this code never reads would turn a harmless CMS-side rename into a failed report for every sender.
- * `id` is the one member that cannot be renamed, since it is Payload's primary key.
- * Requiring it is what distinguishes a real create from any other 2xx body.
- */
-const UserMessageResponseSchema = z.object({ doc: z.object({ id: z.number() }) })
-
-export type UserMessageResponse = z.infer<typeof UserMessageResponseSchema>
-
-/**
- * These are the codes a `user-messages` create can be refused with.
+ * These are the codes an issue report can be refused with.
  *
  * This mirrors `AntiSpamCode` in SahajCloud's `src/lib/antiSpam/antiSpamGuard.ts`, which is the real definition.
  * The write-guard plugin sitting above the collection raises every one of these, not the collection itself.
@@ -192,7 +219,7 @@ export type UserMessageResponse = z.infer<typeof UserMessageResponseSchema>
  * `invalid_email` is belt-and-braces. The widget validates the address with zod before sending.
  * But the guard checks `senderEmail` itself, so this code can still come back.
  */
-export type UserMessageErrorCode =
+export type ReportErrorCode =
   | 'captcha_failed'
   | 'captcha_unavailable'
   | 'invalid_email'
@@ -200,17 +227,17 @@ export type UserMessageErrorCode =
   | 'urls_not_allowed'
 
 /**
- * This is a message SahajCloud refused for a reason it named.
+ * This is a report SahajCloud refused for a reason it named.
  * So the caller can render its own localized copy instead of the guard's English prose.
  * This arrives as a 403 for `captcha_failed`, a 400 for the email and URL checks, or a 500 for `captcha_unavailable`.
  * The code always sits at `errors[].data.code`. See `RefusalBodySchema`.
  */
-export class UserMessageRefusedError extends Error {
-  readonly code: UserMessageErrorCode
+export class ReportRefusedError extends Error {
+  readonly code: ReportErrorCode
 
-  constructor(code: UserMessageErrorCode, message: string) {
+  constructor(code: ReportErrorCode, message: string) {
     super(message)
-    this.name = 'UserMessageRefusedError'
+    this.name = 'ReportRefusedError'
     this.code = code
   }
 }
@@ -221,28 +248,31 @@ const REPORT_SUBJECT = 'Issue report'
 /**
  * This trims a context value to the collection's own bound for that field.
  *
- * The server bounds every `context` string, and an over-long one gets a 400 FOR THE WHOLE MESSAGE.
+ * The server bounds every `submissionData` value, and an over-long one gets a 400 FOR THE WHOLE REPORT.
  * This codebase builds `path` and `locale`, so those are belt-and-braces.
  * The value that matters is foreign input, `userAgent`.
  * Losing a bug report to a long browser string would be the worst possible trade.
  * A truncated user agent still identifies the browser.
  *
- * The bound is 2000 on every key, from the `context` JSON schema in SahajCloud's `src/collections/UserMessages/UserMessages.ts`.
- * The deleted endpoint's bounds were tighter and uneven: 500 on `path`, `hostUrl`, and `userAgent`, and 20 on `locale`.
- * Nothing relied on that difference.
- * So this follows the collection, instead of keeping a stricter local copy that would silently truncate what the server accepts.
+ * The bound is `DEFAULT_MAX_VALUE_LENGTH` in SahajCloud's `src/collections/UserSubmissions/submissionData.ts`.
+ * `message` and `error` are allowed 5000 there, and this stays at the lower figure for both:
+ * the form already bounds the message, and `buildReportContext` already caps `error` at 500.
  */
 const CONTEXT_MAX = 2000
 
 const clamp = (value: string, max: number) => value.slice(0, max)
 
 /**
- * This sends a viewer's issue report to `POST /api/user-messages`.
- * See sydevs/SahajCloud#632, PR #653, and issues #80, #103, and #171.
+ * This sends a viewer's issue report as a `contact` submission.
+ * See sydevs/SahajCloud#632, #695 and #800, and issues #80, #103, and #171.
  * This is a shared, general-purpose intake.
  * The write-guard Turnstile-verifies it and screens it for spam synchronously.
  * A background job then screens it more deeply and delivers it to `contact@sydevelopers.com`, with the sender's address as `Reply-To`.
  * This caller supplies the Atlas framing, the subject. The collection carries none of it.
+ *
+ * **No `form` is named, deliberately.** A form would decide the recipient and add its author's own
+ * fields to what this may send. This channel has one fixed destination, so it takes the CMS contact
+ * address by omission.
  *
  * ⚠ **A 201 means ACCEPTED, not delivered.**
  * This replaced a root endpoint whose email WAS the deliverable, and which answered 502 rather than a false 200 when the send failed.
@@ -253,16 +283,17 @@ const clamp = (value: string, max: number) => value.slice(0, max)
  * It is still true that the form must never show its "sent" screen off anything but a resolved promise.
  * Every non-2xx response reaches the caller as a throw.
  */
-const sendUserMessage = async (payload: ReportPayload): Promise<UserMessageResponse> => {
+const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> => {
   const { context } = payload
 
   const json = {
-    message: payload.message,
+    type: 'contact',
     // A blank optional input registers as `''`.
     // This omits it, instead of sending an empty Reply-To. The guard validates the address on anything present.
     ...(payload.email ? { senderEmail: payload.email } : {}),
-    subject: REPORT_SUBJECT,
-    context: {
+    submissionData: submissionData({
+      subject: REPORT_SUBJECT,
+      message: payload.message,
       path: clamp(context.path, CONTEXT_MAX),
       // Our field is `pageUrl`. The collection's field is `hostUrl`. Both carry the same value.
       // That value is the host page as origin plus path.
@@ -271,8 +302,8 @@ const sendUserMessage = async (payload: ReportPayload): Promise<UserMessageRespo
       locale: clamp(context.locale, CONTEXT_MAX),
       userAgent: clamp(context.userAgent, CONTEXT_MAX),
       // `buildReportContext` already caps this at 500.
-      ...(context.error ? { error: clamp(context.error, CONTEXT_MAX) } : {}),
-    },
+      error: context.error && clamp(context.error, CONTEXT_MAX),
+    }),
     // This deliberately does NOT send `context.client`.
     // The collection derives the client from the authenticated API key.
     // So passing our cached copy would be a second, forgeable source for the same row.
@@ -285,7 +316,7 @@ const sendUserMessage = async (payload: ReportPayload): Promise<UserMessageRespo
   try {
     response = await requestJson({
       method: 'POST',
-      path: '/user-messages',
+      path: SUBMISSIONS_PATH,
       // The token moved out of the body and onto the shared header.
       // The guard that reads it is a plugin above every collection, so it cannot know one body shape from another.
       // This is the same header `createRegistration` already sends.
@@ -293,14 +324,14 @@ const sendUserMessage = async (payload: ReportPayload): Promise<UserMessageRespo
       json,
     })
   } catch (error) {
-    throw asRefusal<UserMessageErrorCode>(
+    throw asRefusal<ReportErrorCode>(
       error,
-      (code, message) => new UserMessageRefusedError(code, message),
-      'Message refused',
+      (code, message) => new ReportRefusedError(code, message),
+      'Report refused',
     )
   }
 
-  return UserMessageResponseSchema.parse(response)
+  return SubmissionResponseSchema.parse(response)
 }
 
 /**
@@ -351,6 +382,6 @@ const reportEmbed = async (body: EmbedReportBody): Promise<EmbedReportResponse> 
 
 export default {
   createRegistration,
-  sendUserMessage,
+  sendReport,
   reportEmbed,
 }

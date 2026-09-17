@@ -240,6 +240,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Registering for an event, and reporting an issue, work again.** ([#195]) Both forms posted to
+  addresses the CMS had removed, so every attempt failed: a visitor filling in the registration
+  form got the generic "Something went wrong" panel, and an issue report reached nobody. Both now
+  go to the CMS's single intake. A full or ended event still says so specifically, rather than
+  failing generically, and a registration confirmation still arrives on the same request. Nothing
+  about the snippet, the origins the widget contacts or your CSP changes.
+
 - **`?locale=` on your page URL now matches whatever the casing.** ([#205]) `?locale=PT-br` was
   treated as naming no language at all, so it fell through to the `locale` parameter on your
   snippet — a page URL asking for Portuguese could open in the language you had pinned instead.
@@ -543,6 +550,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#173]: https://github.com/sydevs/SahajAtlasWeb/issues/173
 [#181]: https://github.com/sydevs/SahajAtlasWeb/pull/181
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
+[#195]: https://github.com/sydevs/SahajAtlasWeb/issues/195
 [#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element

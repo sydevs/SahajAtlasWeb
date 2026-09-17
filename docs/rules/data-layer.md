@@ -61,7 +61,7 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
 
 ## Fetchers: raw reads plus client-derived shaping
 
-SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
+SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
 or HTML descriptions — the client derives all of these:
 
 - **`getGeojson`** → `/events/geojson`, the single source of map points, counts, and
@@ -186,27 +186,44 @@ that looks correct for its one call site.
 
 ## Mutations (`src/config/api/mutate.ts`)
 
-- **`createRegistration`** → `POST /api/events/:id/register` with `{ email, name,
-  startingAt?, questions? }`. Parse the confirmation through
-  `RegistrationResponseSchema`.
-- **`sendUserMessage`** → `POST /api/user-messages` (SahajCloud#632, #171), the
-  shared captcha-gated intake behind the report-issue form.
+**Both public intakes are one collection.** `POST /api/user-submissions` takes
+registrations, issue reports, mailing-list opt-ins and event proposals, told apart
+by `type` (SahajCloud#695, #800). `POST /api/events/:id/register` and `POST
+/api/user-messages` are both **deleted upstream** — do not reintroduce either.
+
+Everything a submission carries beyond its own columns rides as
+**`submissionData: [{ field, value }]`**, not an object. SahajCloud bounds those
+keys *per type* and answers a 400 naming the offending key, so a new key must
+exist in its `src/collections/UserSubmissions/submissionData.ts` first. The
+columns a client may write are `type`, `event`, `startingAt`, `senderEmail`,
+`form` and the blob; `uuid`, `client`, `status` and `subject` are hook-composed
+and refused from a client body.
+
+- **`createRegistration`** → a `registration` row: `{ type, event, startingAt,
+  senderEmail }` plus `name`, `locale` and the question answers as pairs. The
+  event gate is a `beforeValidate` hook, so a full, ended, closed or external
+  event is still refused **synchronously**, by the request that tried to register.
+- **`sendReport`** → a `contact` row (SahajCloud#632, #171), the captcha-gated
+  intake behind the report-issue form. It names **no `form`**: a form would decide
+  the recipient and widen the keys it may send, and this channel has one fixed
+  destination, so it takes the CMS contact address by omission.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.
-  - Clamp each `context` value to 2000 characters. An over-long value 400s the
-    whole message.
+  - Clamp each context value to 2000 characters. An over-long value 400s the
+    whole report.
   - ⚠ **A 201 means ACCEPTED, not delivered.** This narrows what the old endpoint
     promised (it sent the email inline and answered 502 rather than a false 200).
     Delivery is now a background job — a failed send reaches SahajCloud admins as
     a `failed` row and never reaches the sender. Derive the thank-you screen only
     from the resolved promise (#103), and word its copy as receipt, not arrival.
   - ⚠ Read a refusal's code from **`errors[].data.code`**, not `errors[].code`.
-    Payload's own `formatErrors` nests the `APIError` payload under `data` for
-    every collection-backed route, while the hand-written register endpoint still
-    builds the flat shape. `asRefusal` reads **both** positions — switching to
-    `data.code` alone would silently stop recognizing every registration refusal,
-    and each would fall through to a generic "try again."
+    Payload's own `formatErrors` nests the `APIError` payload under `data`, and
+    every route the widget writes to is collection-backed now. `asRefusal` still
+    reads **both** positions: the flat shape is what the hand-written register
+    endpoint built before it was deleted, and dropping either one would silently
+    stop recognizing a whole class of refusal, each falling through to a generic
+    "try again."
 - **`reportEmbed`** → `POST /api/clients/report` (SahajCloud#633, #153) — what the
   widget observed about the host page it mounted on. Send it once per page from
   `lib/embed-announce.ts`, never from a component and never through React Query:
