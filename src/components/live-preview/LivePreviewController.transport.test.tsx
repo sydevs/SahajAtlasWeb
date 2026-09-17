@@ -364,16 +364,31 @@ describe('the submission arm (issue #163)', () => {
   })
 
   it('keeps the rendered event when a later message carries no previewEvent', async () => {
-    // The field is absent from every message about a row that is not a proposal, and from a
-    // read the projection's access refuses. Putting the skeleton back would drop an opaque
-    // overlay over an event the reviewer was reading — and the cache still holds the event
-    // either way, so only the screen shows this.
+    // Putting the skeleton back would drop an opaque overlay over an event the reviewer was
+    // reading — and the cache still holds the event either way, so only the screen shows this.
     mountSubmission()
     await post(proposal())
     await post({
       type: 'payload-live-preview',
       collectionSlug: LIVE_PREVIEW_COLLECTION,
       data: { id: Number(SUBMISSION_ID), type: 'proposal' },
+    })
+
+    expect(skeleton()).toBeNull()
+    expect(previewed()).toMatchObject({ title: 'Evening Meditation' })
+  })
+
+  it('keeps it through a message naming another collection', async () => {
+    // The producer for the rule above. `mergeData` builds the endpoint from the MESSAGE's slug
+    // and our own id, so a message about any other document reaches `namesPreviewedDoc` as
+    // `<its slug>/42`, is refused, and comes back as the bare seed — which the library then
+    // hands on as the whole of `data`, merging nothing.
+    mountSubmission()
+    await post(proposal())
+    await post({
+      type: 'payload-live-preview',
+      collectionSlug: 'events',
+      data: { id: Number(SUBMISSION_ID), title: 'Another document entirely' },
     })
 
     expect(skeleton()).toBeNull()

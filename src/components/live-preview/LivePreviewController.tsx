@@ -375,10 +375,11 @@ function SubmissionLivePreview({ submissionId }: { submissionId: string }) {
   })
 
   // ⚠ **A refused message must not un-render the previous one.** The event arm's parse gates
-  // a cache WRITE, so a failure there simply leaves the last good document alone. Here the
-  // parse feeds render state, so returning null would put the skeleton back over an event the
-  // reviewer was reading — and `previewEvent` is absent from every message about a row that
-  // is not a proposal.
+  // a cache WRITE, so a failure there leaves the last good document alone. Here it feeds
+  // render state instead. `mergeData` hands back whatever the handler answered and merges
+  // nothing of its own, so every `seed()` above — a message naming another collection, a
+  // payload `JSON.stringify` refuses — arrives as `{ id }` and would otherwise drop the
+  // skeleton over an event the reviewer was reading.
   const preview = useMemo(() => {
     const parsed = PreviewEventSchema.safeParse(data?.previewEvent)
 
