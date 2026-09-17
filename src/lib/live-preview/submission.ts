@@ -59,12 +59,16 @@ export function readPreviewEvent(populateBody: unknown): unknown {
  * bare ids. So each of those is optional here and filled in by {@link shapePreviewEvent} —
  * relaxing `EventDocSchema` itself would drop the contract check every fetched event depends
  * on.
+ *
+ * ⚠ **Relax nothing else.** `newEventDefaults` supplies `eventType` and `languages` on a
+ * new-event proposal, and an update proposal inherits its target's, so a message missing one
+ * is a cleared required field — which Accept would refuse to write. Refusing the parse holds
+ * the last good preview (see `<SubmissionLivePreview>`); a fallback would show the reviewer a
+ * value nobody is going to get.
  */
 export const PreviewEventSchema = EventDocSchema.extend({
   id: z.number().nullish(),
   title: z.string().nullish(),
-  eventType: EventDocSchema.shape.eventType.nullish(),
-  languages: z.array(z.string()).nullish(),
   registrationMode: EventDocSchema.shape.registrationMode.nullish(),
   region: z.union([z.number(), RegionRefSchema]).nullish(),
   images: z.array(z.union([z.number(), EventImageSchema])).nullish(),
@@ -120,8 +124,6 @@ export function shapePreviewEvent(
     ...preview,
     id: PREVIEW_EVENT_ID,
     title: preview.title ?? '',
-    eventType: preview.eventType ?? 'offline',
-    languages: preview.languages ?? [],
     registrationMode: preview.registrationMode ?? 'sahaj-atlas',
     region: resolveRegion(preview, relations.regions),
     images: resolveImages(preview, relations.images),

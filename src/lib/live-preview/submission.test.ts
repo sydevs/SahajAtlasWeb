@@ -101,6 +101,14 @@ describe('PreviewEventSchema', () => {
     expect(parsed.title).toBe('Evening Meditation')
   })
 
+  it('refuses a proposal that cleared a field the producer always supplies', () => {
+    // `newEventDefaults` sets both, and an update proposal inherits its target's, so an absent
+    // one is a clear — which Accept would refuse to write. Refusing here holds the last good
+    // preview rather than inventing a value nobody is going to get.
+    expect(PreviewEventSchema.safeParse({ ...mergedEvent, languages: null }).success).toBe(false)
+    expect(PreviewEventSchema.safeParse({ ...mergedEvent, eventType: null }).success).toBe(false)
+  })
+
   it('reads a relationship as an id or as a document', () => {
     expect(previewImageIds(PreviewEventSchema.parse(mergedEvent))).toEqual([11, 12])
     // Only the ids are a gap the caller has to read back — one already populated is not.
@@ -135,13 +143,11 @@ describe('shapePreviewEvent', () => {
   })
 
   it('leaves the region null when the proposal names none, and fills the CMS defaults', () => {
-    const shaped = shapePreviewEvent(PreviewEventSchema.parse({ languages: ['en'] }), {
-      regions: [cambridge],
-    })
+    const newEvent = { eventType: 'online', languages: ['en'] }
+    const shaped = shapePreviewEvent(PreviewEventSchema.parse(newEvent), { regions: [cambridge] })
 
     expect(shaped.region).toBeNull()
     expect(shaped.title).toBe('')
-    expect(shaped.eventType).toBe('offline')
     expect(shaped.registrationMode).toBe('sahaj-atlas')
   })
 
