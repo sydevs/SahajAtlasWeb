@@ -1,137 +1,21 @@
 import type { QueryClient } from '@tanstack/react-query'
-import type { PreviewEvent } from '@/lib/live-preview'
-import type { Event, EventDoc, Region, RegionNode } from '@/types'
+import type { EventDoc, Region, RegionNode } from '@/types'
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { createPortal } from 'react-dom'
-import { useLocation, useNavigate } from 'react-router'
+import { useEffect, useMemo, useRef } from 'react'
+import { useLocation } from 'react-router'
 import { useLivePreview } from '@payloadcms/live-preview-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { Spinner } from '@/components/atoms/Spinner'
-import { eventQuery, imagesQuery, regionQuery, regionsQuery } from '@/config/api'
-import { API_BASE_URL, interceptFetch } from '@/config/api/client'
+import { SERVER_ORIGIN, populateHandler } from './populate'
+import { useLivePreviewRouteLock } from './route-lock'
+import { SubmissionLivePreview } from './SubmissionLivePreview'
+
+import { eventQuery, regionQuery } from '@/config/api'
 import { shapeEventDoc } from '@/config/api/fetch'
 import livePreview, { LIVE_PREVIEW_COLLECTION } from '@/config/live-preview/protocol'
 import { useLocale } from '@/hooks/use-locale'
-import {
-  PREVIEW_EVENT_ID,
-  PreviewEventSchema,
-  SUBMISSION_PREVIEW_PATH,
-  allowedLivePreviewPaths,
-  previewImageIds,
-  readPreviewEvent,
-  resolveLivePreviewTarget,
-  shapePreviewEvent,
-  shouldBlockPreviewLink,
-} from '@/lib/live-preview'
-import { overlayContainer } from '@/lib/overlay'
-import { isCanonicalPath } from '@/lib/shape'
+import { resolveLivePreviewTarget, shouldBlockPreviewLink } from '@/lib/live-preview'
 import { EventDocSchema, RegionNodeSchema } from '@/types'
-
-// The CMS admin posts live edits from the SahajCloud origin, and `isLivePreviewEvent` compares
-// `event.origin` against this exact string. (A trailing path or slash on the env value is
-// tolerated via `.origin`.)
-const SERVER_ORIGIN = new URL(import.meta.env.VITE_SAHAJCLOUD_URL).origin
-
-/** What `mergeData` hands the request handler, narrowed to the two fields this reads. */
-type PopulateRequest = { data: Record<string, unknown>; endpoint: string }
-
-/**
- * Whether the populate endpoint the library composed names the document on screen.
- *
- * ⚠ **This is the whole document filter.** `useLivePreview` takes no collection, no id and no
- * predicate: it merges any message carrying a slug, and builds `endpoint` as
- * `<the message's collectionSlug>/<our initialData.id>` — so the collection half is whatever
- * the panel happens to be editing while the id half is ours. A missed check populates one
- * document's unsaved edits into the page showing another.
- *
- * An absent id refuses everything, which is what a region wants before its own read has
- * landed: the endpoint would otherwise address `regions/undefined`.
- */
-export function namesPreviewedDoc(
-  endpoint: string,
-  collection: string,
-  // A submission's id arrives as the `?id=` string off the boot URL, an event's as a number
-  // off the cache. The endpoint is a string either way.
-  id?: number | string,
-): boolean {
-  return id !== undefined && id !== '' && endpoint === `${collection}/${id}`
-}
-
-const jsonResponse = (body: unknown) =>
-  new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } })
-
-/**
- * The populate handler `useLivePreview` calls for each accepted message. It pushes the admin's
- * unsaved form state through Payload's populate endpoint — a GET behind a method override — so
- * relations and computed fields like `upcomingDates` resolve server-side, without saving.
- *
- * It goes through `interceptFetch`, so the API key, the live-preview token header and
- * `draft=true` attach in the one place every other SahajCloud request gets them. Payload's own
- * default handler is what this replaces: it sends `credentials: 'include'` for an admin cookie,
- * which a cross-origin widget has none of.
- *
- * ⚠ **It must never reject, and must always resolve JSON.** `mergeData` is
- * `requestHandler(…).then((res) => res.json())` with no catch and no status check, so a
- * rejection silently takes the subscription's callback with it, and an `{errors:[…]}` body
- * becomes the document the library caches and merges the next edit onto. Every refusal
- * therefore answers with the seed: `{ id }` alone fails the schema parse at the call site, so
- * the last good document stays on screen while the next message still populates under the
- * right id.
- */
-function populateHandler(collection: 'events' | 'regions', id?: number) {
-  const seed = () => jsonResponse({ id })
-
-  return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
-    if (!namesPreviewedDoc(endpoint, collection, id)) return seed()
-
-    try {
-      const response = await interceptFetch(`${API_BASE_URL}/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Payload-HTTP-Method-Override': 'GET',
-        },
-        body: JSON.stringify(data),
-      })
-
-      return response.ok ? response : seed()
-    } catch {
-      return seed()
-    }
-  }
-}
-
-/**
- * This is a route lock. It keeps the preview pinned to the previewed doc.
- * If navigation lands outside the allowed set — a dismissed drawer
- * stranding on a parent, a button-driven route change — it snaps back to
- * `previewPath`. This effect is conditional, so re-running on an
- * already-allowed path is a no-op. So it never fights a legitimate register
- * or share drawer, even as react-router recreates `navigate` on each
- * navigation. An unconditional effect with `navigate` in its dependencies
- * would snap register or share straight back.
- *
- * It no longer performs an initial hop. The preview URL IS the document's
- * page now, so the widget is already where it belongs at mount.
- */
-function useLivePreviewRouteLock(previewPath: string, kind: 'event' | 'region'): void {
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
-
-  useEffect(() => {
-    // This compares decoded values. `pathname` is percent-encoded for
-    // accented slugs (for example, `/li%C3%A8ge/...`), while the allowed
-    // set is decoded, built from webPath. So a raw `includes` would miss,
-    // and snap every accented-slug preview back on each navigation.
-    const allowed = allowedLivePreviewPaths(previewPath, kind)
-
-    if (!allowed.some((path) => isCanonicalPath(pathname, path))) {
-      navigate(previewPath, { replace: true })
-    }
-  }, [pathname, previewPath, kind, navigate])
-}
 
 /**
  * This is a capture-phase link guard. It makes every `<a>` in the preview
@@ -286,133 +170,6 @@ function RegionLivePreview({ slug, previewPath }: { slug: string; previewPath: s
   return null
 }
 
-// ── Submission preview (issue #163) ──────────────────────────────────────────────
-
-/**
- * The populate handler for a proposal — the one that never leaves the browser.
- *
- * `mergeData` is only ever `requestHandler(…).then((res) => res.json())`, so answering it
- * locally is what turns the library's populate round trip into a pure read of the message.
- * That is not an optimization: API clients hold **create-only** on `user-submissions`, so
- * posting the form state back for population is a certain 403, and a new-event proposal has
- * no Event id to fetch instead.
- *
- * ⚠ **The answer keeps the SUBMISSION's id and nests the event under it.** The library caches
- * what it returns and addresses the next populate at `<collection>/<that result's id>`, so
- * answering with the merged event directly would re-address the second message at the event's
- * id and `namesPreviewedDoc` would refuse every edit after the first.
- *
- * `readPreviewEvent` is the PII containment — see its own note.
- */
-function submissionHandler(submissionId: string) {
-  const seed = () => jsonResponse({ id: submissionId })
-
-  return async ({ data, endpoint }: PopulateRequest): Promise<Response> => {
-    if (!namesPreviewedDoc(endpoint, LIVE_PREVIEW_COLLECTION, submissionId)) return seed()
-
-    try {
-      return jsonResponse({ id: submissionId, previewEvent: readPreviewEvent(data) })
-    } catch {
-      // A structured clone can carry a cycle, and `JSON.stringify` throws on one. The
-      // library's listener holds no catch, so a throw here would end the subscription.
-      return seed()
-    }
-  }
-}
-
-/**
- * What the reviewer sees before the first message lands. There is no document to fetch and no
- * route to resolve, so the ordinary atlas underneath would read as the answer rather than as
- * the wait.
- */
-function SubmissionPreviewSkeleton() {
-  const container = overlayContainer()
-
-  if (!container) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
-      <Spinner />
-    </div>,
-    container,
-  )
-}
-
-/**
- * Puts the merged proposal where the drawer stack reads an event from, then pins the route to
- * it.
- *
- * ⚠ **The seed is a LAYOUT effect and the route lock is a passive one**, so the cache entry
- * always exists before the navigation that renders `EventView` against it. Reversed, the
- * view's suspense read would miss and fetch `events/0`, which is a 404.
- */
-function SubmissionPreviewRoute({ event }: { event: Event }) {
-  const queryClient = useQueryClient()
-  const { locale } = useLocale()
-
-  useLayoutEffect(() => {
-    queryClient.setQueryData(eventQuery(PREVIEW_EVENT_ID, locale).queryKey, event)
-  }, [event, locale, queryClient])
-
-  useLivePreviewRouteLock(SUBMISSION_PREVIEW_PATH, 'event')
-
-  return null
-}
-
-function SubmissionLivePreview({ submissionId }: { submissionId: string }) {
-  const { locale } = useLocale()
-  const initialData = useMemo(() => ({ id: submissionId }), [submissionId])
-  const requestHandler = useMemo(() => submissionHandler(submissionId), [submissionId])
-  const lastPreview = useRef<PreviewEvent | null>(null)
-
-  // Depth 0: nothing is populated server-side here, so this only rides along in a request
-  // body the handler above answers without sending.
-  const { data } = useLivePreview<{ id: string; previewEvent?: unknown }>({
-    depth: 0,
-    initialData,
-    requestHandler,
-    serverURL: SERVER_ORIGIN,
-  })
-
-  // ⚠ **A refused message must not un-render the previous one.** The event arm's parse gates
-  // a cache WRITE, so a failure there leaves the last good document alone. Here it feeds
-  // render state instead. `mergeData` hands back whatever the handler answered and merges
-  // nothing of its own, so every `seed()` above — a message naming another collection, a
-  // payload `JSON.stringify` refuses — arrives as `{ id }` and would otherwise drop the
-  // skeleton over an event the reviewer was reading.
-  const preview = useMemo(() => {
-    const parsed = PreviewEventSchema.safeParse(data?.previewEvent)
-
-    if (parsed.success) lastPreview.current = parsed.data
-
-    return lastPreview.current
-  }, [data])
-
-  // The relationships the message carries as bare ids. The tree is already cached on any
-  // session that rendered the atlas; this read is what makes a cold one correct.
-  const { data: regions } = useQuery(regionsQuery())
-  const imageIds = useMemo(() => (preview ? previewImageIds(preview) : []), [preview])
-  const { data: images } = useQuery({
-    ...imagesQuery(imageIds, locale),
-    enabled: imageIds.length > 0,
-  })
-
-  const event = useMemo(() => {
-    if (!preview) return null
-
-    // `shapeEventDoc` resolves the image URLs, and keys the path off `webPath` — which names
-    // the TARGET event's page, not this proposal. The route is the reserved preview one.
-    return {
-      ...shapeEventDoc(shapePreviewEvent(preview, { images, regions })),
-      path: SUBMISSION_PREVIEW_PATH,
-    }
-  }, [preview, images, regions])
-
-  if (!event) return <SubmissionPreviewSkeleton />
-
-  return <SubmissionPreviewRoute event={event} />
-}
-
 /**
  * This pins event and region query freshness while previewing. The
  * controller live-overlays the drawer's own cache entries via setQueryData.
@@ -436,6 +193,10 @@ function usePinnedLivePreviewQueries(): void {
  * lazily, from AppShell. It renders no drawer of its own. Instead, it drives the drawer
  * cache from the live doc, and disables navigation.
  *
+ * It owns the guards every session shares and then picks ONE arm. Each arm is a subscription
+ * with its own populate handler, its own parse and its own place to put the result, so the
+ * choice below is the whole relationship between them.
+ *
  * ⚠ **Identity comes from the ROUTE, not from a boot parameter.** SahajCloud now points every
  * `livePreview.url` at the document's own page, so the path already says which document is on
  * screen and the normal drawer machinery has already fetched it. Taking identity from a
@@ -446,11 +207,10 @@ function usePinnedLivePreviewQueries(): void {
  *
  * ⚠ **`useLivePreview` cannot be told which document the page shows, and holds its merge cache
  * at module scope.** Both are safe here only because there is never more than one subscriber:
- * this returns `EventLivePreview` **or** `RegionLivePreview`, and the route lock plus
- * `allowedLivePreviewPaths` confine navigation to sub-paths of that same document, so the
- * target cannot change mid-session. Mounting a second arm — or keying one off anything but the
- * route — would put two subscriptions on one shared `previousData`. `namesPreviewedDoc` is
- * what each arm filters on in the meantime.
+ * this returns one arm, and the route lock plus `allowedLivePreviewPaths` confine navigation to
+ * sub-paths of that same document, so the target cannot change mid-session. Mounting a second
+ * arm — or keying one off anything but the route — would put two subscriptions on one shared
+ * `previousData`. `namesPreviewedDoc` is what each arm filters on in the meantime.
  */
 export function LivePreviewController() {
   useLivePreviewLinkGuard()
