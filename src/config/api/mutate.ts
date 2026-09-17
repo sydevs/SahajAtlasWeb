@@ -151,7 +151,13 @@ export const TURNSTILE_HEADER = 'x-turnstile-token'
  * ⚠ **The refusal is still synchronous, and that is what makes this usable.**
  * `gateRegistration` runs as a `beforeValidate` on the create, so a full, ended, closed or
  * external event is refused by the request that tried to register — not screened out later by a
- * job. The form can therefore say why, and the confirmation means a real row.
+ * job. The form can therefore say why, and a resolved promise means a real row.
+ *
+ * ⚠ **The confirmation EMAIL is not.** It used to be sent inside the 201, best-effort; it is a
+ * delivery job now, with retries and an activity log. So the same rule `sendReport` has always
+ * carried applies here too: a 201 means the registration was accepted, not that anything reached
+ * the registrant's inbox. `registration.form.followup` already words it as "shortly", which is
+ * still honest — do not tighten that copy into a claim of arrival.
  */
 const createRegistration = async (
   eventId: number,
@@ -270,9 +276,18 @@ const clamp = (value: string, max: number) => value.slice(0, max)
  * A background job then screens it more deeply and delivers it to `contact@sydevelopers.com`, with the sender's address as `Reply-To`.
  * This caller supplies the Atlas framing, the subject. The collection carries none of it.
  *
- * **No `form` is named, deliberately.** A form would decide the recipient and add its author's own
- * fields to what this may send. This channel has one fixed destination, so it takes the CMS contact
- * address by omission.
+ * **No `form` is named.** `deliverContact` resolves a form-less row to the system contact address,
+ * which is exactly this channel's one fixed destination, and a form would otherwise decide the
+ * recipient and widen the keys the row may carry.
+ *
+ * ⚠ **The deployed collection refuses that today, and this call 400s because of it.**
+ * `needsForm` makes `form` required for every `contact` row, so the create is rejected with
+ * `form: This field is required.` — a `ValidationError`, which carries no `errors[].data.code`, so
+ * it reaches the viewer as the generic failure. The CMS contradicts itself here: its delivery
+ * layer documents a form-less contact row as legitimate for this widget while its validator
+ * refuses one. Tracked on sydevs/SahajAtlasWeb#195; the fix belongs in SahajCloud's `needsForm`,
+ * not in a form id invented here. Sending one would need a `forms` read this client cannot make,
+ * and would pick the recipient from the browser.
  *
  * ⚠ **A 201 means ACCEPTED, not delivered.**
  * This replaced a root endpoint whose email WAS the deliverable, and which answered 502 rather than a false 200 when the send failed.

@@ -203,10 +203,20 @@ and refused from a client body.
   senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   event gate is a `beforeValidate` hook, so a full, ended, closed or external
   event is still refused **synchronously**, by the request that tried to register.
+  - ⚠ **A 201 means ACCEPTED, not delivered — for this one too.** The confirmation
+    email was in-request best-effort; it is a delivery job now. The row and its
+    `uuid` are real when the promise resolves; the email is not yet sent.
 - **`sendReport`** → a `contact` row (SahajCloud#632, #171), the captcha-gated
-  intake behind the report-issue form. It names **no `form`**: a form would decide
-  the recipient and widen the keys it may send, and this channel has one fixed
-  destination, so it takes the CMS contact address by omission.
+  intake behind the report-issue form. It names **no `form`**, because
+  `deliverContact` resolves a form-less row to the system contact address, which
+  is this channel's one destination.
+  - ⚠ **The deployed collection refuses a form-less contact row**, so this call
+    400s today with `form: This field is required.` — a `ValidationError`, which
+    carries no code, so it reaches the viewer as the generic failure. The CMS
+    contradicts itself: its delivery layer documents the form-less case as
+    legitimate while `needsForm` refuses it. The fix belongs in SahajCloud. Do
+    not invent a form id here — the client cannot read `forms`, and picking a
+    recipient in the browser is the wrong shape.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.

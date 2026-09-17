@@ -240,12 +240,19 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
-- **Registering for an event, and reporting an issue, work again.** ([#195]) Both forms posted to
-  addresses the CMS had removed, so every attempt failed: a visitor filling in the registration
-  form got the generic "Something went wrong" panel, and an issue report reached nobody. Both now
-  go to the CMS's single intake. A full or ended event still says so specifically, rather than
-  failing generically, and a registration confirmation still arrives on the same request. Nothing
-  about the snippet, the origins the widget contacts or your CSP changes.
+- **Registering for an event works again.** ([#195]) The form posted to an address the CMS had
+  removed, so every attempt failed with the generic "Something went wrong" panel. It now goes to
+  the CMS's single intake. A full or ended event still says so specifically rather than failing
+  generically, and the registration itself is recorded before the form answers. The confirmation
+  email now goes out from a background job a moment later, with retries behind it, rather than
+  being attempted once while the visitor waits. Nothing about the snippet, the origins the widget
+  contacts or your CSP changes.
+
+  ⚠ **Reporting an issue is not fixed yet**, though it moved to the same intake. The CMS currently
+  requires every report to name a form, and this widget's reports have no form to name — they are
+  meant to reach the standard contact address. Until that is resolved on the CMS side, the
+  report-an-issue form still fails. It is a fallback screen visitors reach only when something else
+  has already gone wrong, and nothing else in the widget depends on it.
 
 - **`?locale=` on your page URL now matches whatever the casing.** ([#205]) `?locale=PT-br` was
   treated as naming no language at all, so it fell through to the `locale` parameter on your
