@@ -206,6 +206,12 @@ and refused from a client body.
   - ⚠ **A 201 means ACCEPTED, not delivered — for this one too.** The confirmation
     email was in-request best-effort; it is a delivery job now. The row and its
     `uuid` are real when the promise resolves; the email is not yet sent.
+  - Every free-form value the form puts in the blob — the name and each question
+    answer — carries `maxLength={SUBMISSION_VALUE_MAX}`. One over-long value 400s
+    the whole registration as a `ValidationError`, which carries no code, so the
+    registrant would lose everything they typed to the generic panel. Stop the
+    viewer at the bound rather than truncating prose they wrote: truncation is for
+    the values this code builds, not the ones a person did.
 - **`sendReport`** → a `contact` row (SahajCloud#632, #171), the captcha-gated
   intake behind the report-issue form. It names **no `form`**, because
   `deliverContact` resolves a form-less row to the system contact address, which
@@ -220,8 +226,9 @@ and refused from a client body.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.
-  - Clamp each context value to 2000 characters. An over-long value 400s the
-    whole report.
+  - Clamp each context value to `SUBMISSION_VALUE_MAX`. An over-long value 400s
+    the whole report. The message is bounded at the control instead, since it is
+    prose a person wrote.
   - ⚠ **A 201 means ACCEPTED, not delivered.** This narrows what the old endpoint
     promised (it sent the email inline and answered 502 rather than a false 200).
     Delivery is now a background job — a failed send reaches SahajCloud admins as

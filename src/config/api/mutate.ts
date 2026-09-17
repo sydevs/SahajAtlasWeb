@@ -252,19 +252,22 @@ export class ReportRefusedError extends Error {
 const REPORT_SUBJECT = 'Issue report'
 
 /**
- * This trims a context value to the collection's own bound for that field.
+ * This is the collection's own bound on one `submissionData` value.
  *
- * The server bounds every `submissionData` value, and an over-long one gets a 400 FOR THE WHOLE REPORT.
- * This codebase builds `path` and `locale`, so those are belt-and-braces.
- * The value that matters is foreign input, `userAgent`.
- * Losing a bug report to a long browser string would be the worst possible trade.
- * A truncated user agent still identifies the browser.
+ * The server bounds every value, and an over-long one gets a 400 FOR THE WHOLE SUBMISSION.
+ * That 400 is a `ValidationError`, which carries no code, so it reaches the sender as the generic
+ * failure, with everything they typed lost.
+ *
+ * So both forms stop the viewer AT this figure, rather than truncating prose they wrote and never
+ * saying so. Truncation is for the values this code builds — above all `userAgent`, the one piece
+ * of foreign input in the report's context. Losing a bug report to a long browser string would be
+ * the worst possible trade, and a truncated user agent still identifies the browser.
  *
  * The bound is `DEFAULT_MAX_VALUE_LENGTH` in SahajCloud's `src/collections/UserSubmissions/submissionData.ts`.
  * `message` and `error` are allowed 5000 there, and this stays at the lower figure for both:
  * the form already bounds the message, and `buildReportContext` already caps `error` at 500.
  */
-const CONTEXT_MAX = 2000
+export const SUBMISSION_VALUE_MAX = 2000
 
 const clamp = (value: string, max: number) => value.slice(0, max)
 
@@ -309,15 +312,15 @@ const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> =
     submissionData: submissionData({
       subject: REPORT_SUBJECT,
       message: payload.message,
-      path: clamp(context.path, CONTEXT_MAX),
+      path: clamp(context.path, SUBMISSION_VALUE_MAX),
       // Our field is `pageUrl`. The collection's field is `hostUrl`. Both carry the same value.
       // That value is the host page as origin plus path.
       // `buildReportContext` already strips its query and fragment, since a host's own URL can carry a reset token.
-      hostUrl: clamp(context.pageUrl, CONTEXT_MAX),
-      locale: clamp(context.locale, CONTEXT_MAX),
-      userAgent: clamp(context.userAgent, CONTEXT_MAX),
+      hostUrl: clamp(context.pageUrl, SUBMISSION_VALUE_MAX),
+      locale: clamp(context.locale, SUBMISSION_VALUE_MAX),
+      userAgent: clamp(context.userAgent, SUBMISSION_VALUE_MAX),
       // `buildReportContext` already caps this at 500.
-      error: context.error && clamp(context.error, CONTEXT_MAX),
+      error: context.error && clamp(context.error, SUBMISSION_VALUE_MAX),
     }),
     // This deliberately does NOT send `context.client`.
     // The collection derives the client from the authenticated API key.

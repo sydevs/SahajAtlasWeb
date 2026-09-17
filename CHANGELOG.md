@@ -245,8 +245,9 @@ cover everything a host would notice since the widget was first deployed.
   the CMS's single intake. A full or ended event still says so specifically rather than failing
   generically, and the registration itself is recorded before the form answers. The confirmation
   email now goes out from a background job a moment later, with retries behind it, rather than
-  being attempted once while the visitor waits. Nothing about the snippet, the origins the widget
-  contacts or your CSP changes.
+  being attempted once while the visitor waits. Long answers now stop at the length the CMS
+  accepts, rather than failing the whole registration once it is too late to say so. Nothing about
+  the snippet, the origins the widget contacts or your CSP changes.
 
   ⚠ **Reporting an issue is not fixed yet**, though it moved to the same intake. The CMS currently
   requires every report to name a form, and this widget's reports have no form to name — they are
