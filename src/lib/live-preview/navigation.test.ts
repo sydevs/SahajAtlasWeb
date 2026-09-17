@@ -51,7 +51,7 @@ describe('resolveLivePreviewTarget', () => {
   })
 
   it('names no document on /preview', () => {
-    // The boot route for `event-submissions`. `resolvePath` on its own would read `preview` as
+    // The boot route for `user-submissions`. `resolvePath` on its own would read `preview` as
     // a region slug and the controller would try to render a region that does not exist.
     expect(resolveLivePreviewTarget('/preview')).toBeNull()
   })
