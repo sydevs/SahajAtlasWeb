@@ -319,7 +319,7 @@ export function LivePreviewController() {
 
   // No document in the path means only the guards above are in force, and the reviewer gets
   // the ordinary atlas rather than a broken fetch. `/preview` lands here: it is the boot route
-  // for `event-submissions`, the one collection with no page of its own, whose render-ready
+  // for `user-submissions`, the one collection with no page of its own, whose render-ready
   // shape rides the message payload's `previewEvent`. Nothing here consumes that yet —
   // `SahajCloud#723` owns it.
   if (!target) return null

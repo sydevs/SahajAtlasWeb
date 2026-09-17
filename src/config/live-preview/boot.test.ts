@@ -90,12 +90,12 @@ describe('captureLivePreview', () => {
   })
 
   it('leaves the /preview boot route where it is', () => {
-    at('/preview?collection=event-submissions&id=42&live-preview=t0k3n')
+    at('/preview?collection=user-submissions&id=42&live-preview=t0k3n')
 
     captureLivePreview()
 
     expect(window.location.pathname).toBe('/preview')
-    expect(livePreview.collection).toBe('event-submissions')
+    expect(livePreview.collection).toBe('user-submissions')
     expect(livePreview.id).toBe('42')
   })
 })
@@ -171,7 +171,7 @@ describe('readLivePreviewParams', () => {
     // a link that inerts every control on the page for whoever it was sent to.
     expect(readLivePreviewParams('/', '?live-preview=t0k3n')?.active).toBe(false)
     expect(
-      readLivePreviewParams('/preview', '?live-preview=t0k3n&collection=event-submissions')?.active,
+      readLivePreviewParams('/preview', '?live-preview=t0k3n&collection=user-submissions')?.active,
     ).toBe(false)
   })
 
@@ -180,18 +180,18 @@ describe('readLivePreviewParams', () => {
     expect(readLivePreviewParams('/india/pune/507', '?locale=fr')).toBeNull()
     // Including the route that used to be the entire gate: `/preview` with no token is a
     // stranger typing a URL, not the CMS.
-    expect(readLivePreviewParams('/preview', '?collection=event-submissions&id=42')).toBeNull()
+    expect(readLivePreviewParams('/preview', '?collection=user-submissions&id=42')).toBeNull()
   })
 
   it('reads collection and id ONLY on the /preview boot route', () => {
     const boot = readLivePreviewParams(
       '/preview',
-      '?collection=event-submissions&id=42&live-preview=t0k3n',
+      '?collection=user-submissions&id=42&live-preview=t0k3n',
     )
 
     expect(boot).toEqual({
       active: false,
-      collection: 'event-submissions',
+      collection: 'user-submissions',
       id: '42',
       token: 't0k3n',
     })
@@ -202,7 +202,7 @@ describe('readLivePreviewParams', () => {
     // unauthenticated claim about what is on screen, and the controller must never see it.
     const session = readLivePreviewParams(
       '/india/pune/507',
-      '?collection=event-submissions&id=42&live-preview=t0k3n',
+      '?collection=user-submissions&id=42&live-preview=t0k3n',
     )
 
     expect(session).toMatchObject({ collection: null, id: null })
@@ -210,7 +210,9 @@ describe('readLivePreviewParams', () => {
 
   it('nulls a collection that is not the one route still served by /preview', () => {
     // `events` and `regions` were valid here until their previews moved to their own pages.
-    for (const collection of ['events', 'regions', 'venues']) {
+    // `event-submissions` was THIS route's collection until SahajCloud#800 folded it into
+    // `user-submissions`, so the old spelling has to stop opening a session.
+    for (const collection of ['events', 'regions', 'venues', 'event-submissions']) {
       expect(
         readLivePreviewParams('/preview', `?collection=${collection}&live-preview=t0k3n`)
           ?.collection,

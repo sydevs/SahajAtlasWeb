@@ -45,14 +45,19 @@ export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 /**
  * The one collection still previewed at a dedicated route rather than at its own page.
  *
- * A submission is a proposal, so it has no page to preview at — and `event-submissions` is
- * create-only for API clients, so a new-event proposal has no Event id the widget could fetch
- * back either. SahajCloud sends that one collection to `/preview?collection=…&id=…` and posts
- * the render-ready shape in the message payload's `previewEvent` instead. Every other document
- * is now previewed at the path it will publish at. `SahajCloud#723` owns retiring this last
- * one; until it does, `'preview'` stays in `RESERVED_SLUGS`.
+ * A proposal has no page to preview at — and `user-submissions` is create-only for API clients,
+ * so a new-event proposal has no Event id the widget could fetch back either. SahajCloud sends
+ * that one collection to `/preview?collection=…&id=…` and posts the render-ready shape in the
+ * message payload's `previewEvent` instead. Every other document is now previewed at the path it
+ * will publish at. `SahajCloud#723` owns retiring this last one; until it does, `'preview'` stays
+ * in `RESERVED_SLUGS`.
+ *
+ * ⚠ **The name is the CMS's own slug, so it moved with the collection.** SahajCloud#800 folded
+ * `event-submissions` into `user-submissions`, and its `livePreviewUrl` composes this exact
+ * string. A stale spelling here does not fail a build — it silently reads as no collection at
+ * all, and the reviewer gets the ordinary atlas instead of the proposal.
  */
-export type LivePreviewCollection = 'event-submissions'
+export type LivePreviewCollection = 'user-submissions'
 
 /** The live-preview boot route. `RESERVED_SLUGS` reserves it, so it never reads as a region. */
 export const LIVE_PREVIEW_PATH = '/preview'
@@ -62,8 +67,8 @@ export const LIVE_PREVIEW_PATH = '/preview'
  *
  * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
  * destructive to an ordinary visitor: every `<a>` goes inert, navigation snaps back, all
- * queries pin to `staleTime: Infinity`, and every request — `POST /events/:id/register`
- * included — gains `draft=true` and the header above. Since any path can now carry a token,
+ * queries pin to `staleTime: Infinity`, and every request — the registration create included —
+ * gains `draft=true` and the header above. Since any path can now carry a token,
  * and `public/_redirects` answers the SPA shell for every path, a parameter being PRESENT
  * would make `sahajatlas.com/anything?live-preview=x` a link that silently bricks the page for
  * whoever it was sent to. See `boot.ts`.
