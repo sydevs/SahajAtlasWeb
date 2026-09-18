@@ -220,9 +220,10 @@ and refused from a client body.
     400s today with `form: This field is required.` — a `ValidationError`, which
     carries no code, so it reaches the viewer as the generic failure. The CMS
     contradicts itself: its delivery layer documents the form-less case as
-    legitimate while `needsForm` refuses it. The fix belongs in SahajCloud. Do
-    not invent a form id here — the client cannot read `forms`, and picking a
-    recipient in the browser is the wrong shape.
+    legitimate while `needsForm` refuses it. The fix belongs in SahajCloud, and
+    is tracked as SahajCloud#813. Do not invent a form id here — the client
+    cannot read `forms`, and picking a recipient in the browser is the wrong
+    shape.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.
