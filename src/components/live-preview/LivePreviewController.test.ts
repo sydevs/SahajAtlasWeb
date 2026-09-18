@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient } from '@tanstack/react-query'
 
-import { namesPreviewedDoc, writeEventEdit, writeRegionEdit } from './LivePreviewController'
+import { writeEventEdit, writeRegionEdit } from './LivePreviewController'
+import { namesPreviewedDoc } from './populate'
 
 import { eventQuery, regionQuery } from '@/config/api'
 import { mockLeafRegion } from '@/mocks/regions'

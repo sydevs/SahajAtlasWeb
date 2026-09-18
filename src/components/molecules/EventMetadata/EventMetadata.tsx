@@ -80,7 +80,7 @@ export function EventMetadata({ event }: EventMetadataProps) {
   } else if (event.address) {
     schema.location = {
       '@type': 'Place',
-      name: event.region.name || event.address.street || event.region.slug,
+      name: event.region?.name || event.address.street || event.region?.slug || undefined,
       address: {
         '@type': 'PostalAddress',
         streetAddress: event.address.street || undefined,

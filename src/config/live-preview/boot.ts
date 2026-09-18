@@ -81,8 +81,10 @@ export function stripLivePreviewToken(href: string): string {
  *
  * Pure: no `window`, no mutation, no crypto.
  *
- * The document is named by the PATH now, so no collection or id is read except on
- * `/preview`, the one route SahajCloud still points at a document with no page of its own.
+ * The document is named by the PATH now, so nothing is read off the query but the token — and
+ * the id on `/preview`, the one route SahajCloud still points at a document with no page of its
+ * own. `/preview` serves one collection, so the `?collection=` the CMS sends beside that id
+ * would only be a second, unauthenticated claim about what is on screen.
  */
 export function readLivePreviewParams(pathname: string, search: string): LivePreviewSession | null {
   const params = new URLSearchParams(search)
@@ -90,17 +92,14 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
 
   if (!token) return null
 
-  const onBootRoute = pathname === LIVE_PREVIEW_PATH
-  const collection = onBootRoute ? params.get('collection') : null
-  // Read on every route, where the collection and id are read only on `/preview`: a global is
-  // previewed at whatever path its tab targets, and that path is an ordinary atlas one.
+  // Read on every route, where the id is read only on `/preview`: a global is previewed at
+  // whatever path its tab targets, and that path is an ordinary atlas one.
   const scope = params.get(LIVE_PREVIEW_SCOPE_PARAM)
 
   return {
     active: false,
     token,
-    collection: collection === 'user-submissions' ? collection : null,
-    id: onBootRoute ? params.get('id') : null,
+    id: pathname === LIVE_PREVIEW_PATH ? params.get('id') : null,
     scope: scope === 'sy-atlas-translations' ? scope : null,
   }
 }

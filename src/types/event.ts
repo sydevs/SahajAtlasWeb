@@ -201,7 +201,11 @@ export const EventDocSchema = z.object({
   // count stays server-side).
   registrationsFull: z.boolean().nullish(),
   registrationQuestions: RegistrationQuestionsSchema.nullish(),
-  region: RegionRefSchema,
+  // Nullish, unlike the feed's, because a live-preview proposal for a NEW event has no
+  // region until a manager accepts it — SahajCloud resolves one from the submission row at
+  // that moment (`applyReview`), so the merged `previewEvent` it posts carries none (#163).
+  // Every fetched event still has one. Read it optionally.
+  region: RegionRefSchema.nullish(),
   webPath: z.string().nullish(),
   webUrl: SafeUrlSchema,
 })

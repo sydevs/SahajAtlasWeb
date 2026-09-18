@@ -313,7 +313,7 @@ const slimFrom = (event: Event, overrides: Partial<EventSlim> = {}): EventSlim =
   inactive: event.inactive,
   address: event.address,
   schedule: event.schedule,
-  region: event.region,
+  region: event.region ?? mockRegion,
   registrationsFull: event.registrationsFull,
   webPath: event.webPath,
   path: event.path,

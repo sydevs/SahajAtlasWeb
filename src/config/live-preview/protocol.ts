@@ -46,19 +46,21 @@ export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 /**
  * The one collection still previewed at a dedicated route rather than at its own page.
  *
- * A proposal has no page to preview at — and `user-submissions` is create-only for API clients,
- * so a new-event proposal has no Event id the widget could fetch back either. SahajCloud sends
- * that one collection to `/preview?collection=…&id=…` and posts the render-ready shape in the
- * message payload's `previewEvent` instead. Every other document is now previewed at the path it
- * will publish at. `SahajCloud#723` owns retiring this last one; until it does, `'preview'` stays
- * in `RESERVED_SLUGS`.
+ * A submission is a proposal, so it has no page to preview at — and `user-submissions` is
+ * create-only for API clients, so a new-event proposal has no Event id the widget could fetch
+ * back either. SahajCloud points that one collection at `/preview` and posts the render-ready
+ * shape in the message payload's `previewEvent` instead. Every other document is now previewed
+ * at the path it will publish at. `SahajCloud#723` owns retiring this last one; until it does,
+ * `'preview'` stays in `RESERVED_SLUGS`.
  *
- * ⚠ **The name is the CMS's own slug, so it moved with the collection.** SahajCloud#800 folded
- * `event-submissions` into `user-submissions`, and its `livePreviewUrl` composes this exact
- * string. A stale spelling here does not fail a build — it silently reads as no collection at
- * all, and the reviewer gets the ordinary atlas instead of the proposal.
+ * ⚠ **The name is the CMS's own slug, so it moved with the collection** — SahajCloud#800/#801
+ * folded `event-submissions` into `user-submissions`. Nothing reads it off the URL: `/preview`
+ * serves one collection, so the route already says which, and the `?collection=` the CMS still
+ * sends is ignored. The slug is only what `namesPreviewedDoc` matches the posted message
+ * against. A stale spelling fails no build — read off the URL it was a gate that made the arm
+ * dead rather than loud, which it silently was through that rename.
  */
-export type LivePreviewCollection = 'user-submissions'
+export const LIVE_PREVIEW_COLLECTION = 'user-submissions'
 
 /** The live-preview boot route. `RESERVED_SLUGS` reserves it, so it never reads as a region. */
 export const LIVE_PREVIEW_PATH = '/preview'
@@ -102,9 +104,7 @@ export type LivePreviewSession = {
   active: boolean
   /** The credential, held in memory only — never in the bundle, never in storage. */
   token: string | null
-  /** The `/preview` arm only. `null` on every document previewed at its own path. */
-  collection: LivePreviewCollection | null
-  /** The `/preview` arm only: the submission being reviewed. */
+  /** The `/preview` boot route only: the submission being reviewed. */
   id: string | null
   /** What is being previewed, where no document is. `null` on every document session. */
   scope: LivePreviewScope | null
@@ -114,7 +114,6 @@ export type LivePreviewSession = {
 export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   active: false,
   token: null,
-  collection: null,
   id: null,
   scope: null,
 }

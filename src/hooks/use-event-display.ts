@@ -15,7 +15,7 @@ import { formatTimeRange, reconciledViewerPlace, sameWallClock, zoneCity } from 
  *  region refs that feed the where and origin strings, when the surface has them. */
 export type DisplayableEvent = DisplayEventLike & {
   address?: EventAddress | null
-  region?: RegionRef
+  region?: RegionRef | null
 }
 
 export type EventDisplayStrings = {

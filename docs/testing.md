@@ -211,6 +211,9 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   non-vacuous: a refusal body is kept off the screen by the write-side zod parse either way, so
   what the spec pins is that the NEXT edit still renders — the library caches the merged result
   and addresses the following populate at `<collection>/<that result's id>`.
+  Its submission arm (#163) is the same argument twice over: the waiting overlay is a portal, so
+  only a DOM can say whether it is on screen, and the cache cannot — a later message carrying no
+  `previewEvent` leaves the cache entry exactly as it was while covering it with the skeleton.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 

@@ -95,7 +95,6 @@ describe('captureLivePreview', () => {
     captureLivePreview()
 
     expect(window.location.pathname).toBe('/preview')
-    expect(livePreview.collection).toBe('user-submissions')
     expect(livePreview.id).toBe('42')
   })
 })
@@ -183,35 +182,26 @@ describe('readLivePreviewParams', () => {
     expect(readLivePreviewParams('/preview', '?collection=user-submissions&id=42')).toBeNull()
   })
 
-  it('reads collection and id ONLY on the /preview boot route', () => {
-    const boot = readLivePreviewParams(
-      '/preview',
-      '?collection=user-submissions&id=42&live-preview=t0k3n',
-    )
+  it('reads the id ONLY on the /preview boot route', () => {
+    const boot = readLivePreviewParams('/preview', '?id=42&live-preview=t0k3n')
 
-    expect(boot).toEqual({
-      active: false,
-      collection: 'user-submissions',
-      id: '42',
-      scope: null,
-      token: 't0k3n',
-    })
+    expect(boot).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
   })
 
-  it('ignores a collection and id smuggled onto a document route', () => {
-    // On a document route the path IS the identity. A `?collection=` beside it is a second,
+  it('ignores an id smuggled onto a document route', () => {
+    // On a document route the path IS the identity. An `?id=` beside it is a second,
     // unauthenticated claim about what is on screen, and the controller must never see it.
     const session = readLivePreviewParams(
       '/india/pune/507',
-      '?collection=user-submissions&id=42&live-preview=t0k3n',
+      '?id=42&live-preview=t0k3n&collection=user-submissions',
     )
 
-    expect(session).toMatchObject({ collection: null, id: null })
+    expect(session).toMatchObject({ id: null })
   })
 
   it('reads the scope of a document-less session, on an ordinary atlas path', () => {
     // The translations panel targets a view path, never `/preview`, so a scope read gated on
-    // the boot route the way collection and id are would never fire at all.
+    // the boot route the way the id is would never fire at all.
     expect(
       readLivePreviewParams('/', '?locale=fr&live-preview=t0k3n&scope=sy-atlas-translations')
         ?.scope,
@@ -223,8 +213,8 @@ describe('readLivePreviewParams', () => {
   })
 
   it('reads an unrecognised scope as a document session, never as an error', () => {
-    // The parameter is an unauthenticated claim, and the scoped session is the one holding
-    // fewer restraints. A typo or an older CMS therefore falls back to the stricter reading.
+    // The scoped session is the one holding fewer restraints, so a typo, a renamed global or a
+    // newer CMS falls back to the stricter reading rather than silently dropping the guards.
     for (const scope of ['sy-atlas-config', 'translations', '', 'null']) {
       expect(readLivePreviewParams('/', `?live-preview=t0k3n&scope=${scope}`)?.scope).toBeNull()
     }
@@ -232,15 +222,22 @@ describe('readLivePreviewParams', () => {
     expect(readLivePreviewParams('/', '?live-preview=t0k3n')?.scope).toBeNull()
   })
 
-  it('nulls a collection that is not the one route still served by /preview', () => {
-    // `events` and `regions` were valid here until their previews moved to their own pages.
-    // `event-submissions` was THIS route's collection until SahajCloud#800 folded it into
-    // `user-submissions`, so the old spelling has to stop opening a session.
-    for (const collection of ['events', 'regions', 'venues', 'event-submissions']) {
+  it('reads no collection off the boot URL, whatever the CMS put there', () => {
+    // `/preview` serves one collection, so the route already names it. The CMS still sends the
+    // parameter; a session that carried it would be a second, unauthenticated claim about what
+    // is on screen, and `events` and `regions` were valid values here until their previews
+    // moved to their own pages. `event-submissions` is the spelling SahajCloud#800 folded into
+    // `user-submissions` — it opened a session while it was read, and now neither does.
+    for (const collection of [
+      'user-submissions',
+      'event-submissions',
+      'events',
+      'regions',
+      'venues',
+    ]) {
       expect(
-        readLivePreviewParams('/preview', `?collection=${collection}&live-preview=t0k3n`)
-          ?.collection,
-      ).toBeNull()
+        readLivePreviewParams('/preview', `?collection=${collection}&id=42&live-preview=t0k3n`),
+      ).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
     }
   })
 })

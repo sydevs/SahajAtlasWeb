@@ -137,8 +137,11 @@ describe('the Payload live-preview library', () => {
     ),
   )
 
-  it('is imported by the lazily-mounted controller and by nothing else', () => {
-    expect(importers).toEqual(['components/live-preview/LivePreviewController.tsx'])
+  it('is imported by the lazily-mounted controller, its arms, and nothing else', () => {
+    expect(importers).toEqual([
+      'components/live-preview/LivePreviewController.tsx',
+      'components/live-preview/SubmissionLivePreview.tsx',
+    ])
   })
 })
 
