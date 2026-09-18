@@ -4,7 +4,7 @@ import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
-import livePreview from '@/config/live-preview/protocol'
+import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
@@ -39,9 +39,7 @@ beforeEach(() => {
   sdk.findByID.mockReset()
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
-  livePreview.active = false
-  livePreview.token = null
-  livePreview.scope = null
+  Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()

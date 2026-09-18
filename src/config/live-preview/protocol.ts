@@ -72,18 +72,14 @@ export const LIVE_PREVIEW_PATH = '/preview'
 export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
 
 /**
- * The closed set of scoped, document-less sessions.
+ * The scoped, document-less sessions. The spelling is the CMS global's own slug, as
+ * WeMeditateWeb's `LivePreviewScope` spells it.
  *
- * ⚠ **Closed, because an unrecognised value must read as an ordinary document session.** The
- * parameter arrives on the URL unauthenticated, and a scoped session is the one that keeps
- * fewer restraints. A typo, an older CMS, or a stranger's URL therefore falls back to the
- * stricter reading, never to an error. `boot.ts`'s `readLivePreviewScope` is the one parser.
- *
- * The spelling is the CMS global's own slug, as WeMeditateWeb's `LivePreviewScope` spells it.
+ * ⚠ **A value outside this union must read as an ordinary document session.** The parameter
+ * arrives on the URL unauthenticated, and the scoped session is the one that keeps fewer
+ * restraints, so a typo or an older CMS falls back to the stricter reading, never to an error.
  */
-export const LIVE_PREVIEW_SCOPES = ['sy-atlas-translations'] as const
-
-export type LivePreviewScope = (typeof LIVE_PREVIEW_SCOPES)[number]
+export type LivePreviewScope = 'sy-atlas-translations'
 
 /**
  * What the widget knows about the session it is rendering under.
@@ -130,16 +126,15 @@ const livePreview: LivePreviewSession = { ...LIVE_PREVIEW_INACTIVE }
 export default livePreview
 
 /**
- * Whether a DOCUMENT is being previewed — the only session the document guards belong to.
+ * Whether a DOCUMENT is being previewed, which is what `LivePreviewController` needs to know.
  *
- * ⚠ **The guards are restraints, and a scoped session has nothing for them to restrain.** The
- * link guard keeps a document preview from navigating away from its own document, and the
- * pinned `['event']`/`['region']` defaults keep a live-overlaid document from being refetched
- * out from under an unsaved edit. A translations session has neither, so both only take away
- * the navigation the translator needs to reach the screen their string appears on.
+ * ⚠ **It selects the restraints, never the credential.** A scoped session has no document to
+ * be navigated away from and no overlay to protect, so it takes neither the link guard nor the
+ * pinned query defaults. It still sends `draft=true` (`config/api/client.ts`) and still refuses
+ * a registration (`RegistrationForm`) — an unpublished translation could not be previewed
+ * otherwise, and a preview must never register anyone against a draft event.
  *
- * Mirrors WeMeditateWeb's `useDocumentPreviewActive`, which is the same predicate over the
- * same parameter from the same CMS.
+ * Mirrors WeMeditateWeb's `useDocumentPreviewActive`.
  */
 export function documentPreviewActive(): boolean {
   return livePreview.active && livePreview.scope === null

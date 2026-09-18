@@ -3,8 +3,6 @@ import livePreview, {
   LIVE_PREVIEW_PARAM,
   LIVE_PREVIEW_PATH,
   LIVE_PREVIEW_SCOPE_PARAM,
-  LIVE_PREVIEW_SCOPES,
-  type LivePreviewScope,
   type LivePreviewSession,
 } from './protocol'
 import { verifyLivePreviewToken } from './token'
@@ -72,16 +70,6 @@ export function stripLivePreviewToken(href: string): string {
 }
 
 /**
- * Narrows the `scope` parameter to the closed set, or to `null`.
- *
- * Scope is read on EVERY route, where the collection and id are read only on `/preview`: a
- * global is previewed at whatever path its tab targets, and that path is an ordinary atlas one.
- */
-export function readLivePreviewScope(value: string | null): LivePreviewScope | null {
-  return LIVE_PREVIEW_SCOPES.find((scope) => scope === value) ?? null
-}
-
-/**
  * Reads a boot location into the session the URL is ASKING for, or `null` where it asks for
  * none.
  *
@@ -104,13 +92,16 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
 
   const onBootRoute = pathname === LIVE_PREVIEW_PATH
   const collection = onBootRoute ? params.get('collection') : null
+  // Read on every route, where the collection and id are read only on `/preview`: a global is
+  // previewed at whatever path its tab targets, and that path is an ordinary atlas one.
+  const scope = params.get(LIVE_PREVIEW_SCOPE_PARAM)
 
   return {
     active: false,
     token,
     collection: collection === 'user-submissions' ? collection : null,
     id: onBootRoute ? params.get('id') : null,
-    scope: readLivePreviewScope(params.get(LIVE_PREVIEW_SCOPE_PARAM)),
+    scope: scope === 'sy-atlas-translations' ? scope : null,
   }
 }
 
