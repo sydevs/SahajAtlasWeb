@@ -1,5 +1,5 @@
 import type { TranslationKey } from '@/types/i18next'
-import type { UserMessageErrorCode } from '@/config/api/mutate'
+import type { UserSubmissionErrorCode } from '@/config/api/mutate'
 import type { ReportContext, ReportPayload } from '@/lib/report'
 
 import { useEffect } from 'react'
@@ -15,14 +15,14 @@ import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 import api from '@/config/api'
-import { UserMessageRefusedError } from '@/config/api/mutate'
+import { UserSubmissionError } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
 
 /**
  * This is our copy for each refusal the intake can name, keyed by its
  * machine-readable code. It is a total `Record` over the union — exactly as
- * `RegistrationForm` does. So ADDING a code to `UserMessageErrorCode` fails
+ * `RegistrationForm` does. So ADDING a code to `UserSubmissionErrorCode` fails
  * the build here, instead of silently routing the new case to the generic
  * "try again" sentence.
  *
@@ -43,7 +43,7 @@ import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } fro
  *   and worth saying precisely. The generic "wait for the security check"
  *   is actively misleading here, since waiting will never help.
  */
-const REFUSAL_MESSAGE_KEYS: Record<UserMessageErrorCode, TranslationKey> = {
+const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   captcha_failed: 'common.report_errors.captcha',
   captcha_unavailable: 'common.report_errors.send_failed',
   invalid_email: 'common.report_errors.email',
@@ -80,9 +80,9 @@ export type ReportIssueFormProps = {
  * address, the message, and a Turnstile challenge, over the auto-attached
  * `context` the viewer never types.
  *
- * Submit POSTs to SahajCloud's shared `/api/user-messages`
- * (sydevs/SahajCloud#632), which verifies the token, screens for spam, and
- * hands the message to a delivery job. **The thank-you screen is derived
+ * Submit POSTs a `contact` row to SahajCloud's shared
+ * `/api/user-submissions` (sydevs/SahajCloud#695), which verifies the token,
+ * screens for spam, and hands the message to a delivery job. **The thank-you screen is derived
  * from the mutation's own success and nothing else.** It used to be set
  * beside a `window.alert`, so every report "sent" successfully and none of
  * them went anywhere. This form is reached BECAUSE something already
@@ -111,7 +111,7 @@ export function ReportIssueForm({
   })
 
   const mutation = useMutation({
-    mutationFn: api.sendUserMessage,
+    mutationFn: api.sendReport,
     /**
      * React Query's default `networkMode: 'online'` **pauses** a mutation
      * fired while the browser reports itself offline: no request, no
@@ -210,7 +210,7 @@ export function ReportIssueForm({
   // place of the failure sentence. `isErrorKind` in lib/report.ts uses the
   // same spelling.
   const refusalKey =
-    mutation.error instanceof UserMessageRefusedError &&
+    mutation.error instanceof UserSubmissionError &&
     Object.prototype.hasOwnProperty.call(REFUSAL_MESSAGE_KEYS, mutation.error.code)
       ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
       : undefined

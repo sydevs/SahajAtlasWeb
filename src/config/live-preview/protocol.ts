@@ -52,11 +52,12 @@ export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
  * at the path it will publish at. `SahajCloud#723` owns retiring this last one; until it does,
  * `'preview'` stays in `RESERVED_SLUGS`.
  *
- * ⚠ **Nothing reads this slug off the URL.** `/preview` serves one collection, so the route
- * already says which; the CMS still sends `?collection=` and the widget ignores it. The slug is
- * what `namesPreviewedDoc` matches the posted message against. Read off the URL it was a gate
- * that made the arm dead rather than loud — which it silently was while SahajCloud#801 renamed
- * `event-submissions` out from under it.
+ * ⚠ **The name is the CMS's own slug, so it moved with the collection** — SahajCloud#800/#801
+ * folded `event-submissions` into `user-submissions`. Nothing reads it off the URL: `/preview`
+ * serves one collection, so the route already says which, and the `?collection=` the CMS still
+ * sends is ignored. The slug is only what `namesPreviewedDoc` matches the posted message
+ * against. A stale spelling fails no build — read off the URL it was a gate that made the arm
+ * dead rather than loud, which it silently was through that rename.
  */
 export const LIVE_PREVIEW_COLLECTION = 'user-submissions'
 
@@ -68,8 +69,8 @@ export const LIVE_PREVIEW_PATH = '/preview'
  *
  * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
  * destructive to an ordinary visitor: every `<a>` goes inert, navigation snaps back, all
- * queries pin to `staleTime: Infinity`, and every request — `POST /events/:id/register`
- * included — gains `draft=true` and the header above. Since any path can now carry a token,
+ * queries pin to `staleTime: Infinity`, and every request — the registration create included —
+ * gains `draft=true` and the header above. Since any path can now carry a token,
  * and `public/_redirects` answers the SPA shell for every path, a parameter being PRESENT
  * would make `sahajatlas.com/anything?live-preview=x` a link that silently bricks the page for
  * whoever it was sent to. See `boot.ts`.

@@ -100,7 +100,7 @@ export const validateSDKResponse = <T>(value: T | null | undefined, context: str
 
 /**
  * This calls a custom, non-CRUD SahajCloud endpoint through the SDK's raw `request` helper, and returns its parsed JSON.
- * This covers endpoints that are not collection reads: `GET /events/geojson`, `POST /events/:id/register`, and `GET /clients/me`, whose `select` the bare `sdk.me()` cannot carry.
+ * This covers what `sdk.find` cannot address: `GET /events/geojson`, the `POST /user-submissions` intake, and `GET /clients/me`, whose `select` the bare `sdk.me()` cannot carry.
  * `request` throws on a non-2xx response. `validateSDKResponse` covers a null body.
  */
 export const requestJson = async <T = unknown>(

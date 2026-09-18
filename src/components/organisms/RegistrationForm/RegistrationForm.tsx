@@ -24,7 +24,11 @@ import { AddToCalendar } from '@/components/molecules/AddToCalendar'
 import { FormField, fieldErrorId } from '@/components/molecules/FormField'
 import { ShareContent } from '@/components/molecules/ShareContent'
 import api from '@/config/api'
-import { type RegistrationErrorCode, RegistrationRefusedError } from '@/config/api/mutate'
+import {
+  type RegistrationErrorCode,
+  RegistrationRefusedError,
+  USER_SUBMISSION_VALUE_MAX,
+} from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { useRegistrationDraft } from '@/config/store'
 import { RecurrenceType, Registration, RegistrationQuestionName, RegistrationSchema } from '@/types'
@@ -352,12 +356,14 @@ export function RegistrationForm({
 
 function LabeledInput({
   label,
+  maxLength,
   required,
   error,
   type = 'text',
   registration,
 }: {
   label: ReactNode
+  maxLength?: number
   required?: boolean
   error?: ReactNode
   type?: string
@@ -370,6 +376,7 @@ function LabeledInput({
         aria-invalid={error ? true : undefined}
         className={fieldChrome({ isInvalid: Boolean(error) })}
         id={registration.name}
+        maxLength={maxLength}
         type={type}
         {...registration}
       />
@@ -379,10 +386,12 @@ function LabeledInput({
 
 function LabeledTextarea({
   label,
+  maxLength,
   error,
   registration,
 }: {
   label: ReactNode
+  maxLength?: number
   error?: ReactNode
   registration: UseFormRegisterReturn
 }) {
@@ -393,6 +402,7 @@ function LabeledTextarea({
         aria-invalid={error ? true : undefined}
         className={fieldChrome({ isInvalid: Boolean(error), multiline: true })}
         id={registration.name}
+        maxLength={maxLength}
         rows={3}
         {...registration}
       />
@@ -476,6 +486,7 @@ function RegistrationFields({
         required
         error={errors.name && t('registration.errors.name')}
         label={t('registration.form.name')}
+        maxLength={USER_SUBMISSION_VALUE_MAX}
         registration={register('name', { required: true })}
         type="text"
       />
@@ -493,6 +504,7 @@ function RegistrationFields({
           key={index}
           error={errors.questions?.[question]?.message}
           label={t(`registration.questions.${question}`)}
+          maxLength={USER_SUBMISSION_VALUE_MAX}
           registration={register(`questions.${question}`)}
         />
       ))}

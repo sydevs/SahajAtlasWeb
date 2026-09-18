@@ -24,7 +24,7 @@ import { ReportIssueForm } from './ReportIssueForm'
 import { type ReportContext } from '@/lib/report'
 
 // This mocks at the SDK boundary, not at our own `api` module. That keeps
-// the real `sendUserMessage` — its body mapping, its zod parse, its
+// the real `sendReport` — its body mapping, its zod parse, its
 // refusal re-cast — inside the system under test. So this spec covers the
 // JOIN between the endpoint and the screen.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
@@ -151,8 +151,11 @@ describe('ReportIssueForm submit', () => {
     await submit()
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
-    expect(sdk.request.mock.calls[0][0].path).toBe('/user-messages')
-    expect(sdk.request.mock.calls[0][0].json.message).toBe(MESSAGE)
+    expect(sdk.request.mock.calls[0][0].path).toBe('/user-submissions')
+    expect(sdk.request.mock.calls[0][0].json.submissionData).toContainEqual({
+      field: 'message',
+      value: MESSAGE,
+    })
     expect(container.textContent).toContain('THANKYOU')
 
     await act(async () => root.unmount())

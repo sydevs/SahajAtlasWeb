@@ -203,8 +203,15 @@ describe('readLivePreviewParams', () => {
     // `/preview` serves one collection, so the route already names it. The CMS still sends the
     // parameter; a session that carried it would be a second, unauthenticated claim about what
     // is on screen, and `events` and `regions` were valid values here until their previews
-    // moved to their own pages.
-    for (const collection of ['user-submissions', 'events', 'regions', 'venues']) {
+    // moved to their own pages. `event-submissions` is the spelling SahajCloud#800 folded into
+    // `user-submissions` — it opened a session while it was read, and now neither does.
+    for (const collection of [
+      'user-submissions',
+      'event-submissions',
+      'events',
+      'regions',
+      'venues',
+    ]) {
       expect(
         readLivePreviewParams('/preview', `?collection=${collection}&id=42&live-preview=t0k3n`),
       ).toEqual({ active: false, id: '42', token: 't0k3n' })

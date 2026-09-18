@@ -61,7 +61,7 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
 
 ## Fetchers: raw reads plus client-derived shaping
 
-SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, `POST /api/events/:id/register`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
+SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,
 or HTML descriptions — the client derives all of these:
 
 - **`getGeojson`** → `/events/geojson`, the single source of map points, counts, and
@@ -193,27 +193,62 @@ that looks correct for its one call site.
 
 ## Mutations (`src/config/api/mutate.ts`)
 
-- **`createRegistration`** → `POST /api/events/:id/register` with `{ email, name,
-  startingAt?, questions? }`. Parse the confirmation through
-  `RegistrationResponseSchema`.
-- **`sendUserMessage`** → `POST /api/user-messages` (SahajCloud#632, #171), the
-  shared captcha-gated intake behind the report-issue form.
+**Both public intakes are one collection.** `POST /api/user-submissions` takes
+registrations, issue reports, mailing-list opt-ins and event proposals, told apart
+by `type` (SahajCloud#695, #800). `POST /api/events/:id/register` and `POST
+/api/user-messages` are both **deleted upstream** — do not reintroduce either.
+
+Everything a submission carries beyond its own columns rides as
+**`submissionData: [{ field, value }]`**, not an object. SahajCloud bounds those
+keys *per type* and answers a 400 naming the offending key, so a new key must
+exist in its `src/collections/UserSubmissions/submissionData.ts` first. The
+columns a client may write are `type`, `event`, `startingAt`, `senderEmail`,
+`form` and the blob; `uuid`, `client`, `status` and `subject` are hook-composed
+and refused from a client body.
+
+- **`createRegistration`** → a `registration` row: `{ type, event, startingAt,
+  senderEmail }` plus `name`, `locale` and the question answers as pairs. The
+  event gate is a `beforeValidate` hook, so a full, ended, closed or external
+  event is still refused **synchronously**, by the request that tried to register.
+  - ⚠ **A 201 means ACCEPTED, not delivered — for this one too.** The confirmation
+    email was in-request best-effort; it is a delivery job now. The row and its
+    `uuid` are real when the promise resolves; the email is not yet sent.
+  - Every free-form value the form puts in the blob — the name and each question
+    answer — carries `maxLength={USER_SUBMISSION_VALUE_MAX}`. One over-long value
+    400s the whole registration as a `ValidationError`, which carries no code, so the
+    registrant would lose everything they typed to the generic panel. Stop the
+    viewer at the bound rather than truncating prose they wrote: truncation is for
+    the values this code builds, not the ones a person did.
+- **`sendReport`** → a `contact` row (SahajCloud#632, #171), the captcha-gated
+  intake behind the report-issue form. It names **no `form`**, because
+  `deliverContact` resolves a form-less row to the system contact address, which
+  is this channel's one destination.
+  - ⚠ **The deployed collection refuses a form-less contact row**, so this call
+    400s today with `form: This field is required.` — a `ValidationError`, which
+    carries no code, so it reaches the viewer as the generic failure. The CMS
+    contradicts itself: its delivery layer documents the form-less case as
+    legitimate while `needsForm` refuses it. The fix belongs in SahajCloud, and
+    is tracked as SahajCloud#813. Do not invent a form id here — the client
+    cannot read `forms`, and picking a recipient in the browser is the wrong
+    shape.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.
-  - Clamp each `context` value to 2000 characters. An over-long value 400s the
-    whole message.
+  - Clamp each context value to `USER_SUBMISSION_VALUE_MAX`. An over-long value
+    400s the whole report. The message is bounded at the control instead, since it is
+    prose a person wrote.
   - ⚠ **A 201 means ACCEPTED, not delivered.** This narrows what the old endpoint
     promised (it sent the email inline and answered 502 rather than a false 200).
     Delivery is now a background job — a failed send reaches SahajCloud admins as
     a `failed` row and never reaches the sender. Derive the thank-you screen only
     from the resolved promise (#103), and word its copy as receipt, not arrival.
   - ⚠ Read a refusal's code from **`errors[].data.code`**, not `errors[].code`.
-    Payload's own `formatErrors` nests the `APIError` payload under `data` for
-    every collection-backed route, while the hand-written register endpoint still
-    builds the flat shape. `asRefusal` reads **both** positions — switching to
-    `data.code` alone would silently stop recognizing every registration refusal,
-    and each would fall through to a generic "try again."
+    Payload's own `formatErrors` nests the `APIError` payload under `data`, and
+    every route the widget writes to is collection-backed now. `asRefusal` still
+    reads **both** positions: the flat shape is what the hand-written register
+    endpoint built before it was deleted, and dropping either one would silently
+    stop recognizing a whole class of refusal, each falling through to a generic
+    "try again."
 - **`reportEmbed`** → `POST /api/clients/report` (SahajCloud#633, #153) — what the
   widget observed about the host page it mounted on. Send it once per page from
   `lib/embed-announce.ts`, never from a component and never through React Query:
