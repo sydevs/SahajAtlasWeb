@@ -193,6 +193,7 @@ describe('readLivePreviewParams', () => {
       active: false,
       collection: 'user-submissions',
       id: '42',
+      scope: null,
       token: 't0k3n',
     })
   })
@@ -206,6 +207,29 @@ describe('readLivePreviewParams', () => {
     )
 
     expect(session).toMatchObject({ collection: null, id: null })
+  })
+
+  it('reads the scope of a document-less session, on an ordinary atlas path', () => {
+    // The translations panel targets a view path, never `/preview`, so a scope read gated on
+    // the boot route the way collection and id are would never fire at all.
+    expect(
+      readLivePreviewParams('/', '?locale=fr&live-preview=t0k3n&scope=sy-atlas-translations')
+        ?.scope,
+    ).toBe('sy-atlas-translations')
+    expect(
+      readLivePreviewParams('/india/pune', '?live-preview=t0k3n&scope=sy-atlas-translations')
+        ?.scope,
+    ).toBe('sy-atlas-translations')
+  })
+
+  it('reads an unrecognised scope as a document session, never as an error', () => {
+    // The parameter is an unauthenticated claim, and the scoped session is the one holding
+    // fewer restraints. A typo or an older CMS therefore falls back to the stricter reading.
+    for (const scope of ['sy-atlas-config', 'translations', '', 'null']) {
+      expect(readLivePreviewParams('/', `?live-preview=t0k3n&scope=${scope}`)?.scope).toBeNull()
+    }
+
+    expect(readLivePreviewParams('/', '?live-preview=t0k3n')?.scope).toBeNull()
   })
 
   it('nulls a collection that is not the one route still served by /preview', () => {

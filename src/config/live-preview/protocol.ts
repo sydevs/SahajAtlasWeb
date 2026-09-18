@@ -63,6 +63,29 @@ export type LivePreviewCollection = 'user-submissions'
 export const LIVE_PREVIEW_PATH = '/preview'
 
 /**
+ * The query parameter naming what a session is previewing when the path cannot say it.
+ *
+ * A document is named by the path it publishes at. A CMS global has no path, so SahajCloud
+ * points its panel at the atlas root and names the global here instead. See the CMS's
+ * `src/globals/SahajAtlasTranslations/SahajAtlasTranslations.ts`.
+ */
+export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
+
+/**
+ * The closed set of scoped, document-less sessions.
+ *
+ * ⚠ **Closed, because an unrecognised value must read as an ordinary document session.** The
+ * parameter arrives on the URL unauthenticated, and a scoped session is the one that keeps
+ * fewer restraints. A typo, an older CMS, or a stranger's URL therefore falls back to the
+ * stricter reading, never to an error. `boot.ts`'s `readLivePreviewScope` is the one parser.
+ *
+ * The spelling is the CMS global's own slug, as WeMeditateWeb's `LivePreviewScope` spells it.
+ */
+export const LIVE_PREVIEW_SCOPES = ['sy-atlas-translations'] as const
+
+export type LivePreviewScope = (typeof LIVE_PREVIEW_SCOPES)[number]
+
+/**
  * What the widget knows about the session it is rendering under.
  *
  * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
@@ -81,6 +104,8 @@ export type LivePreviewSession = {
   collection: LivePreviewCollection | null
   /** The `/preview` arm only: the submission being reviewed. */
   id: string | null
+  /** What is being previewed, where no document is. `null` on every document session. */
+  scope: LivePreviewScope | null
 }
 
 /** A session that unlocks nothing — the state every ordinary page view stays in. */
@@ -89,6 +114,7 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   token: null,
   collection: null,
   id: null,
+  scope: null,
 }
 
 /**
@@ -102,3 +128,19 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
 const livePreview: LivePreviewSession = { ...LIVE_PREVIEW_INACTIVE }
 
 export default livePreview
+
+/**
+ * Whether a DOCUMENT is being previewed — the only session the document guards belong to.
+ *
+ * ⚠ **The guards are restraints, and a scoped session has nothing for them to restrain.** The
+ * link guard keeps a document preview from navigating away from its own document, and the
+ * pinned `['event']`/`['region']` defaults keep a live-overlaid document from being refetched
+ * out from under an unsaved edit. A translations session has neither, so both only take away
+ * the navigation the translator needs to reach the screen their string appears on.
+ *
+ * Mirrors WeMeditateWeb's `useDocumentPreviewActive`, which is the same predicate over the
+ * same parameter from the same CMS.
+ */
+export function documentPreviewActive(): boolean {
+  return livePreview.active && livePreview.scope === null
+}
