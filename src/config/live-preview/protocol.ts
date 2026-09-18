@@ -80,6 +80,10 @@ export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
  * session is the one that keeps fewer restraints, so a typo, a renamed global or a newer CMS
  * falls back to the stricter reading rather than silently dropping the guards, and never to
  * an error.
+ *
+ * ⚠ **The set has a second home.** `readLivePreviewParams` (`boot.ts`) narrows the raw
+ * parameter against the same literal, so a member added here still compiles and is still
+ * never parsed. Add it in both places. `collection` above carries the same split.
  */
 export type LivePreviewScope = 'sy-atlas-translations'
 
