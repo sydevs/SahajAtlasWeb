@@ -12,7 +12,7 @@ import { SubmissionLivePreview } from './SubmissionLivePreview'
 
 import { eventQuery, regionQuery } from '@/config/api'
 import { shapeEventDoc } from '@/config/api/fetch'
-import livePreview, { LIVE_PREVIEW_COLLECTION } from '@/config/live-preview/protocol'
+import livePreview from '@/config/live-preview/protocol'
 import { useLocale } from '@/hooks/use-locale'
 import { resolveLivePreviewTarget, shouldBlockPreviewLink } from '@/lib/live-preview'
 import { EventDocSchema, RegionNodeSchema } from '@/types'
@@ -200,7 +200,7 @@ function usePinnedLivePreviewQueries(): void {
  * ⚠ **Identity comes from the ROUTE, not from a boot parameter.** SahajCloud now points every
  * `livePreview.url` at the document's own page, so the path already says which document is on
  * screen and the normal drawer machinery has already fetched it. Taking identity from a
- * `?collection=&id=` pair instead would mean trusting a second, unauthenticated claim about
+ * `?id=` parameter instead would mean trusting a second, unauthenticated claim about
  * the URL, and then fetching a document the route was not showing.
  *
  * The one exception is `/preview`, where there is no document in the path — see below.
@@ -226,8 +226,9 @@ export function LivePreviewController() {
   // `/preview` is the boot route for `user-submissions`, the one collection with no page of
   // its own: a proposal is not published anywhere, and a new-event one has no Event id to
   // fetch. Its identity comes from the session the boot URL opened, not from the path, and
-  // its content rides the message payload's `previewEvent` (#163).
-  if (livePreview.collection === LIVE_PREVIEW_COLLECTION && livePreview.id) {
+  // its content rides the message payload's `previewEvent` (#163). `id` is read on that route
+  // alone, so holding one is what says the session booted there.
+  if (livePreview.id) {
     return <SubmissionLivePreview submissionId={livePreview.id} />
   }
 

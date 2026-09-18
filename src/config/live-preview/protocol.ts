@@ -47,18 +47,18 @@ export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
  *
  * A submission is a proposal, so it has no page to preview at — and `user-submissions` is
  * create-only for API clients, so a new-event proposal has no Event id the widget could fetch
- * back either. SahajCloud sends that one collection to `/preview?collection=…&id=…` and posts
- * the render-ready shape in the message payload's `previewEvent` instead. Every other document
- * is now previewed at the path it will publish at. `SahajCloud#723` owns retiring this last
- * one; until it does, `'preview'` stays in `RESERVED_SLUGS`.
+ * back either. SahajCloud points that one collection at `/preview` and posts the render-ready
+ * shape in the message payload's `previewEvent` instead. Every other document is now previewed
+ * at the path it will publish at. `SahajCloud#723` owns retiring this last one; until it does,
+ * `'preview'` stays in `RESERVED_SLUGS`.
  *
- * ⚠ **The literal is the whole gate.** `readLivePreviewParams` nulls any other value, so a
- * slug this spelling does not match makes the `/preview` arm dead rather than loud — which it
- * silently was while SahajCloud#801 renamed `event-submissions` out from under it.
+ * ⚠ **Nothing reads this slug off the URL.** `/preview` serves one collection, so the route
+ * already says which; the CMS still sends `?collection=` and the widget ignores it. The slug is
+ * what `namesPreviewedDoc` matches the posted message against. Read off the URL it was a gate
+ * that made the arm dead rather than loud — which it silently was while SahajCloud#801 renamed
+ * `event-submissions` out from under it.
  */
 export const LIVE_PREVIEW_COLLECTION = 'user-submissions'
-
-export type LivePreviewCollection = typeof LIVE_PREVIEW_COLLECTION
 
 /** The live-preview boot route. `RESERVED_SLUGS` reserves it, so it never reads as a region. */
 export const LIVE_PREVIEW_PATH = '/preview'
@@ -78,9 +78,7 @@ export type LivePreviewSession = {
   active: boolean
   /** The credential, held in memory only — never in the bundle, never in storage. */
   token: string | null
-  /** The `/preview` arm only. `null` on every document previewed at its own path. */
-  collection: LivePreviewCollection | null
-  /** The `/preview` arm only: the submission being reviewed. */
+  /** The `/preview` boot route only: the submission being reviewed. */
   id: string | null
 }
 
@@ -88,7 +86,6 @@ export type LivePreviewSession = {
 export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   active: false,
   token: null,
-  collection: null,
   id: null,
 }
 

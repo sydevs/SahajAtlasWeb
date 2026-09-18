@@ -1,5 +1,4 @@
 import livePreview, {
-  LIVE_PREVIEW_COLLECTION,
   LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PARAM,
   LIVE_PREVIEW_PATH,
@@ -81,8 +80,10 @@ export function stripLivePreviewToken(href: string): string {
  *
  * Pure: no `window`, no mutation, no crypto.
  *
- * The document is named by the PATH now, so no collection or id is read except on
- * `/preview`, the one route SahajCloud still points at a document with no page of its own.
+ * The document is named by the PATH now, so nothing is read off the query but the token — and
+ * the id on `/preview`, the one route SahajCloud still points at a document with no page of its
+ * own. `/preview` serves one collection, so the `?collection=` the CMS sends beside that id
+ * would only be a second, unauthenticated claim about what is on screen.
  */
 export function readLivePreviewParams(pathname: string, search: string): LivePreviewSession | null {
   const params = new URLSearchParams(search)
@@ -90,14 +91,10 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
 
   if (!token) return null
 
-  const onBootRoute = pathname === LIVE_PREVIEW_PATH
-  const collection = onBootRoute ? params.get('collection') : null
-
   return {
     active: false,
     token,
-    collection: collection === LIVE_PREVIEW_COLLECTION ? collection : null,
-    id: onBootRoute ? params.get('id') : null,
+    id: pathname === LIVE_PREVIEW_PATH ? params.get('id') : null,
   }
 }
 

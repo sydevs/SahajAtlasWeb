@@ -131,7 +131,6 @@ afterEach(() => {
   atlasAuth.apiKey = null
   livePreview.active = false
   livePreview.token = null
-  livePreview.collection = null
   livePreview.id = null
 })
 
@@ -301,7 +300,6 @@ describe('the submission arm (issue #163)', () => {
   const skeleton = () => document.querySelector('[role="status"]')
 
   function mountSubmission() {
-    livePreview.collection = LIVE_PREVIEW_COLLECTION
     livePreview.id = SUBMISSION_ID
     mount(LIVE_PREVIEW_PATH)
   }

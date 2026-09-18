@@ -95,7 +95,6 @@ describe('captureLivePreview', () => {
     captureLivePreview()
 
     expect(window.location.pathname).toBe('/preview')
-    expect(livePreview.collection).toBe('user-submissions')
     expect(livePreview.id).toBe('42')
   })
 })
@@ -183,38 +182,32 @@ describe('readLivePreviewParams', () => {
     expect(readLivePreviewParams('/preview', '?collection=user-submissions&id=42')).toBeNull()
   })
 
-  it('reads collection and id ONLY on the /preview boot route', () => {
-    const boot = readLivePreviewParams(
-      '/preview',
-      '?collection=user-submissions&id=42&live-preview=t0k3n',
-    )
+  it('reads the id ONLY on the /preview boot route', () => {
+    const boot = readLivePreviewParams('/preview', '?id=42&live-preview=t0k3n')
 
-    expect(boot).toEqual({
-      active: false,
-      collection: 'user-submissions',
-      id: '42',
-      token: 't0k3n',
-    })
+    expect(boot).toEqual({ active: false, id: '42', token: 't0k3n' })
   })
 
-  it('ignores a collection and id smuggled onto a document route', () => {
-    // On a document route the path IS the identity. A `?collection=` beside it is a second,
+  it('ignores an id smuggled onto a document route', () => {
+    // On a document route the path IS the identity. An `?id=` beside it is a second,
     // unauthenticated claim about what is on screen, and the controller must never see it.
     const session = readLivePreviewParams(
       '/india/pune/507',
-      '?collection=user-submissions&id=42&live-preview=t0k3n',
+      '?id=42&live-preview=t0k3n&collection=user-submissions',
     )
 
-    expect(session).toMatchObject({ collection: null, id: null })
+    expect(session).toMatchObject({ id: null })
   })
 
-  it('nulls a collection that is not the one route still served by /preview', () => {
-    // `events` and `regions` were valid here until their previews moved to their own pages.
-    for (const collection of ['events', 'regions', 'venues']) {
+  it('reads no collection off the boot URL, whatever the CMS put there', () => {
+    // `/preview` serves one collection, so the route already names it. The CMS still sends the
+    // parameter; a session that carried it would be a second, unauthenticated claim about what
+    // is on screen, and `events` and `regions` were valid values here until their previews
+    // moved to their own pages.
+    for (const collection of ['user-submissions', 'events', 'regions', 'venues']) {
       expect(
-        readLivePreviewParams('/preview', `?collection=${collection}&live-preview=t0k3n`)
-          ?.collection,
-      ).toBeNull()
+        readLivePreviewParams('/preview', `?collection=${collection}&id=42&live-preview=t0k3n`),
+      ).toEqual({ active: false, id: '42', token: 't0k3n' })
     }
   })
 })
