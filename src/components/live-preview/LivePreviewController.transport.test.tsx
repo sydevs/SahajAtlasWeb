@@ -9,7 +9,10 @@ import { LivePreviewController } from './LivePreviewController'
 
 import { regionQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
+import livePreview, {
+  LIVE_PREVIEW_HEADER,
+  LIVE_PREVIEW_INACTIVE,
+} from '@/config/live-preview/protocol'
 import { mockLeafRegion } from '@/mocks/regions'
 
 /**
@@ -123,8 +126,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   vi.unstubAllGlobals()
   atlasAuth.apiKey = null
-  livePreview.active = false
-  livePreview.token = null
+  Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
 })
 
 describe('the region arm', () => {

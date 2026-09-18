@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { eventQuery, regionQuery } from '@/config/api'
 import { API_BASE_URL, interceptFetch } from '@/config/api/client'
 import { shapeEventDoc } from '@/config/api/fetch'
+import { documentPreviewActive } from '@/config/live-preview/protocol'
 import { useLocale } from '@/hooks/use-locale'
 import {
   allowedLivePreviewPaths,
@@ -287,8 +288,21 @@ function usePinnedLivePreviewQueries(): void {
 
 /**
  * This is the live-preview controller (issue #40). It mounts only in a verified session,
- * lazily, from AppShell. It renders no drawer of its own. Instead, it drives the drawer
- * cache from the live doc, and disables navigation.
+ * lazily, from AppShell, and does nothing in one previewing a CMS global rather than a
+ * document (#211).
+ */
+export function LivePreviewController() {
+  // A scoped session — a CMS global rather than a document — takes none of what is below, so
+  // it is turned away here rather than gated hook by hook. Legal before the hooks because this
+  // function calls none, and stable because the session settles before anything renders.
+  if (!documentPreviewActive()) return null
+
+  return <DocumentLivePreview />
+}
+
+/**
+ * The document arm. It renders no drawer of its own. Instead, it drives the drawer cache from
+ * the live doc, and disables navigation.
  *
  * ⚠ **Identity comes from the ROUTE, not from a boot parameter.** SahajCloud now points every
  * `livePreview.url` at the document's own page, so the path already says which document is on
@@ -306,7 +320,7 @@ function usePinnedLivePreviewQueries(): void {
  * route — would put two subscriptions on one shared `previousData`. `namesPreviewedDoc` is
  * what each arm filters on in the meantime.
  */
-export function LivePreviewController() {
+function DocumentLivePreview() {
   useLivePreviewLinkGuard()
   usePinnedLivePreviewQueries()
 

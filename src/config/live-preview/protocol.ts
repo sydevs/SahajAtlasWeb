@@ -10,10 +10,11 @@
  *
  * ⚠ **The line is STATE versus BEHAVIOUR, and the file count is not the point.** The request
  * interceptor (`config/api/client.ts`) and `App` read the session, so this module is in the
- * embedded widget's import graph as well as the standalone one — which is why it holds no
- * behaviour at all. Even the pure reader that builds a session out of a URL lives in `boot.ts`,
- * because a widget that never boots a preview has no use for it, and a module in a shared chunk
- * is carried whole.
+ * embedded widget's import graph as well as the standalone one — which is why nothing here
+ * acts. The one function, `documentPreviewActive`, only reads the session object below it.
+ * Even the pure reader that builds a session out of a URL lives in `boot.ts`, because a widget
+ * that never boots a preview has no use for it, and a module in a shared chunk is carried
+ * whole.
  *
  * ⚠ **The other two are standalone-only, and that line is what keeps them there.** The embedded
  * `<sahaj-atlas>` element must carry no verification and no `history.replaceState`: rewriting
@@ -63,6 +64,30 @@ export type LivePreviewCollection = 'user-submissions'
 export const LIVE_PREVIEW_PATH = '/preview'
 
 /**
+ * The query parameter naming what a session is previewing when the path cannot say it.
+ *
+ * A document is named by the path it publishes at. A CMS global has no path, so SahajCloud
+ * points its panel at the atlas root and names the global here instead. See the CMS's
+ * `src/globals/SahajAtlasTranslations/SahajAtlasTranslations.ts`.
+ */
+export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
+
+/**
+ * The scoped, document-less sessions. The spelling is the CMS global's own slug, as
+ * WeMeditateWeb's `LivePreviewScope` spells it.
+ *
+ * ⚠ **A value outside this union must read as an ordinary document session.** The scoped
+ * session is the one that keeps fewer restraints, so a typo, a renamed global or a newer CMS
+ * falls back to the stricter reading rather than silently dropping the guards, and never to
+ * an error.
+ *
+ * ⚠ **The set has a second home.** `readLivePreviewParams` (`boot.ts`) narrows the raw
+ * parameter against the same literal, so a member added here still compiles and is still
+ * never parsed. Add it in both places. `collection` above carries the same split.
+ */
+export type LivePreviewScope = 'sy-atlas-translations'
+
+/**
  * What the widget knows about the session it is rendering under.
  *
  * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
@@ -81,6 +106,8 @@ export type LivePreviewSession = {
   collection: LivePreviewCollection | null
   /** The `/preview` arm only: the submission being reviewed. */
   id: string | null
+  /** What is being previewed, where no document is. `null` on every document session. */
+  scope: LivePreviewScope | null
 }
 
 /** A session that unlocks nothing — the state every ordinary page view stays in. */
@@ -89,6 +116,7 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   token: null,
   collection: null,
   id: null,
+  scope: null,
 }
 
 /**
@@ -102,3 +130,20 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
 const livePreview: LivePreviewSession = { ...LIVE_PREVIEW_INACTIVE }
 
 export default livePreview
+
+/**
+ * Whether a DOCUMENT is being previewed, which is what `LivePreviewController` needs to know.
+ *
+ * ⚠ **It selects the restraints, never the credential.** A scoped session has no document to
+ * be navigated away from and no overlay to protect, so it takes neither the link guard nor the
+ * pinned query defaults. It still sends `draft=true` (`config/api/client.ts`), which is what
+ * fetches an unpublished translation, and still refuses a registration (`RegistrationForm`),
+ * because no preview may register anyone against a draft event. Scoping `draft` per READ —
+ * drafts for the translations fetch, published for the document ones, as WeMeditateWeb does —
+ * is a separate decision, left open by #211.
+ *
+ * Mirrors WeMeditateWeb's `useDocumentPreviewActive`.
+ */
+export function documentPreviewActive(): boolean {
+  return livePreview.active && livePreview.scope === null
+}
