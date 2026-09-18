@@ -95,8 +95,7 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
   it('keeps draft=true for a SCOPED session, or an unpublished translation cannot be previewed', () => {
     // The guards a translations session drops are UI restraints (#211). This is not one: the
     // translator is previewing a saved-but-unpublished global, and `draft=true` is what fetches
-    // it. Scoping this the way the guards are scoped would leave them previewing what is
-    // already live.
+    // it. Dropping it for a scoped session would leave them previewing what is already live.
     atlasAuth.apiKey = 'k'
     livePreview.active = true
     livePreview.token = 'preview-token'

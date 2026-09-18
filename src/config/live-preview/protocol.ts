@@ -75,9 +75,10 @@ export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
  * The scoped, document-less sessions. The spelling is the CMS global's own slug, as
  * WeMeditateWeb's `LivePreviewScope` spells it.
  *
- * ⚠ **A value outside this union must read as an ordinary document session.** The parameter
- * arrives on the URL unauthenticated, and the scoped session is the one that keeps fewer
- * restraints, so a typo or an older CMS falls back to the stricter reading, never to an error.
+ * ⚠ **A value outside this union must read as an ordinary document session.** The scoped
+ * session is the one that keeps fewer restraints, so a typo, a renamed global or a newer CMS
+ * falls back to the stricter reading rather than silently dropping the guards, and never to
+ * an error.
  */
 export type LivePreviewScope = 'sy-atlas-translations'
 
@@ -130,9 +131,11 @@ export default livePreview
  *
  * ⚠ **It selects the restraints, never the credential.** A scoped session has no document to
  * be navigated away from and no overlay to protect, so it takes neither the link guard nor the
- * pinned query defaults. It still sends `draft=true` (`config/api/client.ts`) and still refuses
- * a registration (`RegistrationForm`) — an unpublished translation could not be previewed
- * otherwise, and a preview must never register anyone against a draft event.
+ * pinned query defaults. It still sends `draft=true` (`config/api/client.ts`), which is what
+ * fetches an unpublished translation, and still refuses a registration (`RegistrationForm`),
+ * because no preview may register anyone against a draft event. Scoping `draft` per READ —
+ * drafts for the translations fetch, published for the document ones, as WeMeditateWeb does —
+ * is a separate decision, left open by #211.
  *
  * Mirrors WeMeditateWeb's `useDocumentPreviewActive`.
  */
