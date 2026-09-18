@@ -3,7 +3,7 @@ import type { ReportContext } from '@/lib/report'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import z from 'zod'
 
-import mutate, { ReportRefusedError, RegistrationRefusedError } from './mutate'
+import mutate, { UserSubmissionError, RegistrationRefusedError } from './mutate'
 
 // This uses the same boundary mock as `fetch.test.ts`.
 // It stubs the SDK, so `requestJson` runs against a controlled Response.
@@ -330,7 +330,7 @@ describe('sendReport', () => {
 
     // Collection-backed routes go through Payload's `formatErrors`, which nests the APIError payload under `data`.
     // So a client reading only `errors[].code` sees an uncoded failure, and shows the generic sentence instead of the captcha copy.
-    await expect(mutate.sendReport(report)).rejects.toBeInstanceOf(ReportRefusedError)
+    await expect(mutate.sendReport(report)).rejects.toBeInstanceOf(UserSubmissionError)
     await expect(mutate.sendReport(report)).rejects.toMatchObject({ code: 'captcha_failed' })
   })
 
@@ -360,12 +360,12 @@ describe('sendReport', () => {
     // Accepting any 2xx response would put the thank-you screen in front of a sender whose message went nowhere.
     sdk.request.mockResolvedValue(jsonResponse({ ok: true }))
 
-    // This must NOT be a `ReportRefusedError`.
+    // This must NOT be a `UserSubmissionError`.
     // A `ZodError`'s `.errors` field is `{ message, code }`, the very shape a refusal body has.
     // So a `.parse()` call inside the request's catch would get re-cast as a server refusal carrying a zod issue code.
     // A bare `.rejects.toThrow()` would pass either way, and would have certified that bug.
     await expect(mutate.sendReport(report)).rejects.toBeInstanceOf(z.ZodError)
-    await expect(mutate.sendReport(report)).rejects.not.toBeInstanceOf(ReportRefusedError)
+    await expect(mutate.sendReport(report)).rejects.not.toBeInstanceOf(UserSubmissionError)
   })
 })
 

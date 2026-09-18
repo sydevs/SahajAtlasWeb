@@ -213,19 +213,22 @@ const createRegistration = async (
 }
 
 /**
- * These are the codes an issue report can be refused with.
+ * These are the codes ANY user submission can be refused with, which is why the name is the
+ * collection's and not one intake's.
  *
  * This mirrors `AntiSpamCode` in SahajCloud's `src/lib/antiSpam/antiSpamGuard.ts`, which is the real definition.
  * The write-guard plugin sitting above the collection raises every one of these, not the collection itself.
+ * So it raises them for a registration too. `RegistrationErrorCode` folds in the one of these the
+ * registration form has copy for, and the rest reach it as an unknown code.
  * `pnpm types:cms` does NOT sync this union.
  * That command covers `responseTypes.ts` and the generated `Config`, and this union lives in neither.
  * So this file restates it, the same way `RegistrationErrorCode` restates `captcha_failed`.
  *
- * All five codes are reachable for this form.
+ * All five codes are reachable for the report form.
  * `invalid_email` is belt-and-braces. The widget validates the address with zod before sending.
  * But the guard checks `senderEmail` itself, so this code can still come back.
  */
-export type ReportErrorCode =
+export type UserSubmissionErrorCode =
   | 'captcha_failed'
   | 'captcha_unavailable'
   | 'invalid_email'
@@ -233,17 +236,19 @@ export type ReportErrorCode =
   | 'urls_not_allowed'
 
 /**
- * This is a report SahajCloud refused for a reason it named.
+ * This is a user submission SahajCloud refused for a reason the write-guard named.
  * So the caller can render its own localized copy instead of the guard's English prose.
+ * The report path throws this. The registration path throws `RegistrationRefusedError` instead,
+ * since its gate adds four codes of its own that this class cannot carry.
  * This arrives as a 403 for `captcha_failed`, a 400 for the email and URL checks, or a 500 for `captcha_unavailable`.
  * The code always sits at `errors[].data.code`. See `RefusalBodySchema`.
  */
-export class ReportRefusedError extends Error {
-  readonly code: ReportErrorCode
+export class UserSubmissionError extends Error {
+  readonly code: UserSubmissionErrorCode
 
-  constructor(code: ReportErrorCode, message: string) {
+  constructor(code: UserSubmissionErrorCode, message: string) {
     super(message)
-    this.name = 'ReportRefusedError'
+    this.name = 'UserSubmissionError'
     this.code = code
   }
 }
@@ -342,9 +347,9 @@ const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> =
       json,
     })
   } catch (error) {
-    throw asRefusal<ReportErrorCode>(
+    throw asRefusal<UserSubmissionErrorCode>(
       error,
-      (code, message) => new ReportRefusedError(code, message),
+      (code, message) => new UserSubmissionError(code, message),
       'Report refused',
     )
   }
