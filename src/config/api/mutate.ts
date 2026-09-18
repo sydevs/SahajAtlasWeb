@@ -12,7 +12,7 @@ import { activeLocale, requestJson } from './client'
  * This is the one public intake. Registrations, issue reports, mailing-list opt-ins and event
  * proposals are all rows on it, told apart by `type`. See sydevs/SahajCloud#695 and #800.
  */
-const SUBMISSIONS_PATH = '/user-submissions'
+const USER_SUBMISSIONS_PATH = '/user-submissions'
 
 /**
  * This is Payload's create envelope, `201 { doc, message }`.
@@ -26,11 +26,11 @@ const SUBMISSIONS_PATH = '/user-submissions'
  * later job, so a registrant has it the moment the promise resolves. It is optional here for the
  * reason above: nothing reads it yet.
  */
-const SubmissionResponseSchema = z.object({
+const UserSubmissionResponseSchema = z.object({
   doc: z.object({ id: z.number(), uuid: z.string().optional() }),
 })
 
-export type SubmissionResponse = z.infer<typeof SubmissionResponseSchema>
+export type UserSubmissionResponse = z.infer<typeof UserSubmissionResponseSchema>
 
 /**
  * This is everything a submission carries beyond its own columns, as the collection wants it:
@@ -163,7 +163,7 @@ const createRegistration = async (
   eventId: number,
   data: Registration,
   turnstileToken: string,
-): Promise<SubmissionResponse> => {
+): Promise<UserSubmissionResponse> => {
   // Only the REQUEST is guarded here.
   // A `.parse()` call inside this try would hand `asRefusal` a `ZodError`.
   // A `ZodError`'s `.errors` field is `{ message, code }`, the very shape a refusal body has.
@@ -175,7 +175,7 @@ const createRegistration = async (
     // So a failed registration still rejects to the caller.
     response = await requestJson({
       method: 'POST',
-      path: SUBMISSIONS_PATH,
+      path: USER_SUBMISSIONS_PATH,
       // `sdk.request` merges these headers over its `baseInit` headers.
       // `interceptFetch` then adds auth and the locale on top.
       // So the token rides alongside them, and replaces nothing. See `applyRequestContext`.
@@ -209,7 +209,7 @@ const createRegistration = async (
     )
   }
 
-  return SubmissionResponseSchema.parse(response)
+  return UserSubmissionResponseSchema.parse(response)
 }
 
 /**
@@ -272,7 +272,7 @@ const REPORT_SUBJECT = 'Issue report'
  * `message` and `error` are allowed 5000 there, and this stays at the lower figure for both:
  * the form already bounds the message, and `buildReportContext` already caps `error` at 500.
  */
-export const SUBMISSION_VALUE_MAX = 2000
+export const USER_SUBMISSION_VALUE_MAX = 2000
 
 const clamp = (value: string, max: number) => value.slice(0, max)
 
@@ -306,7 +306,7 @@ const clamp = (value: string, max: number) => value.slice(0, max)
  * It is still true that the form must never show its "sent" screen off anything but a resolved promise.
  * Every non-2xx response reaches the caller as a throw.
  */
-const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> => {
+const sendReport = async (payload: ReportPayload): Promise<UserSubmissionResponse> => {
   const { context } = payload
 
   const json = {
@@ -317,15 +317,15 @@ const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> =
     submissionData: submissionData({
       subject: REPORT_SUBJECT,
       message: payload.message,
-      path: clamp(context.path, SUBMISSION_VALUE_MAX),
+      path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
       // Our field is `pageUrl`. The collection's field is `hostUrl`. Both carry the same value.
       // That value is the host page as origin plus path.
       // `buildReportContext` already strips its query and fragment, since a host's own URL can carry a reset token.
-      hostUrl: clamp(context.pageUrl, SUBMISSION_VALUE_MAX),
-      locale: clamp(context.locale, SUBMISSION_VALUE_MAX),
-      userAgent: clamp(context.userAgent, SUBMISSION_VALUE_MAX),
+      hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
+      locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
+      userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
       // `buildReportContext` already caps this at 500.
-      error: context.error && clamp(context.error, SUBMISSION_VALUE_MAX),
+      error: context.error && clamp(context.error, USER_SUBMISSION_VALUE_MAX),
     }),
     // This deliberately does NOT send `context.client`.
     // The collection derives the client from the authenticated API key.
@@ -339,7 +339,7 @@ const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> =
   try {
     response = await requestJson({
       method: 'POST',
-      path: SUBMISSIONS_PATH,
+      path: USER_SUBMISSIONS_PATH,
       // The token moved out of the body and onto the shared header.
       // The guard that reads it is a plugin above every collection, so it cannot know one body shape from another.
       // This is the same header `createRegistration` already sends.
@@ -354,7 +354,7 @@ const sendReport = async (payload: ReportPayload): Promise<SubmissionResponse> =
     )
   }
 
-  return SubmissionResponseSchema.parse(response)
+  return UserSubmissionResponseSchema.parse(response)
 }
 
 /**

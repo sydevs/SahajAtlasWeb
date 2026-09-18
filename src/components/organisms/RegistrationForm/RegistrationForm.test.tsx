@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
 
-import { SUBMISSION_VALUE_MAX } from '@/config/api/mutate'
+import { USER_SUBMISSION_VALUE_MAX } from '@/config/api/mutate'
 
 // The SDK is stubbed at the boundary, so importing the form's `api` module cannot
 // reach a network client. `@/config/i18n` is stubbed for the same reason — the real
@@ -41,7 +41,7 @@ const form = (
 
 describe('RegistrationForm', () => {
   // Every free-form answer rides in `submissionData`, where SahajCloud bounds one value
-  // at `SUBMISSION_VALUE_MAX`. An over-long one refuses the WHOLE registration as a
+  // at `USER_SUBMISSION_VALUE_MAX`. An over-long one refuses the WHOLE registration as a
   // `ValidationError` — no `errors[].data.code`, so the registrant gets the generic
   // panel and loses everything they typed. The hard stop is what keeps that unreachable.
   // These checks are case-insensitive: react-dom/server emits the prop name verbatim
@@ -49,7 +49,7 @@ describe('RegistrationForm', () => {
   it('caps every free-form answer at the collection bound', () => {
     const html = render(form)
 
-    const capped = html.match(new RegExp(`maxlength="${SUBMISSION_VALUE_MAX}"`, 'gi')) ?? []
+    const capped = html.match(new RegExp(`maxlength="${USER_SUBMISSION_VALUE_MAX}"`, 'gi')) ?? []
 
     // The name plus both enabled questions — the three values this form puts in the blob.
     expect(capped).toHaveLength(3)
@@ -58,6 +58,6 @@ describe('RegistrationForm', () => {
   it('caps the name, which rides in the blob beside the answers', () => {
     const html = render(form)
 
-    expect(html).toMatch(new RegExp(`id="name"[^>]*maxlength="${SUBMISSION_VALUE_MAX}"`, 'i'))
+    expect(html).toMatch(new RegExp(`id="name"[^>]*maxlength="${USER_SUBMISSION_VALUE_MAX}"`, 'i'))
   })
 })

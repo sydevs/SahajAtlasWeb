@@ -27,7 +27,7 @@ import api from '@/config/api'
 import {
   type RegistrationErrorCode,
   RegistrationRefusedError,
-  SUBMISSION_VALUE_MAX,
+  USER_SUBMISSION_VALUE_MAX,
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { useRegistrationDraft } from '@/config/store'
@@ -486,7 +486,7 @@ function RegistrationFields({
         required
         error={errors.name && t('registration.errors.name')}
         label={t('registration.form.name')}
-        maxLength={SUBMISSION_VALUE_MAX}
+        maxLength={USER_SUBMISSION_VALUE_MAX}
         registration={register('name', { required: true })}
         type="text"
       />
@@ -504,7 +504,7 @@ function RegistrationFields({
           key={index}
           error={errors.questions?.[question]?.message}
           label={t(`registration.questions.${question}`)}
-          maxLength={SUBMISSION_VALUE_MAX}
+          maxLength={USER_SUBMISSION_VALUE_MAX}
           registration={register(`questions.${question}`)}
         />
       ))}
