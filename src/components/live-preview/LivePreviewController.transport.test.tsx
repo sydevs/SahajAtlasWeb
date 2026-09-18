@@ -12,6 +12,7 @@ import atlasAuth from '@/config/api/auth'
 import livePreview, {
   LIVE_PREVIEW_COLLECTION,
   LIVE_PREVIEW_HEADER,
+  LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PATH,
 } from '@/config/live-preview/protocol'
 import { PREVIEW_EVENT_ID } from '@/lib/live-preview'
@@ -129,9 +130,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   vi.unstubAllGlobals()
   atlasAuth.apiKey = null
-  livePreview.active = false
-  livePreview.token = null
-  livePreview.id = null
+  Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
 })
 
 describe('the region arm', () => {

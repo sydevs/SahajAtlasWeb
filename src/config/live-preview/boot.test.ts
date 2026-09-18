@@ -185,7 +185,7 @@ describe('readLivePreviewParams', () => {
   it('reads the id ONLY on the /preview boot route', () => {
     const boot = readLivePreviewParams('/preview', '?id=42&live-preview=t0k3n')
 
-    expect(boot).toEqual({ active: false, id: '42', token: 't0k3n' })
+    expect(boot).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
   })
 
   it('ignores an id smuggled onto a document route', () => {
@@ -197,6 +197,29 @@ describe('readLivePreviewParams', () => {
     )
 
     expect(session).toMatchObject({ id: null })
+  })
+
+  it('reads the scope of a document-less session, on an ordinary atlas path', () => {
+    // The translations panel targets a view path, never `/preview`, so a scope read gated on
+    // the boot route the way the id is would never fire at all.
+    expect(
+      readLivePreviewParams('/', '?locale=fr&live-preview=t0k3n&scope=sy-atlas-translations')
+        ?.scope,
+    ).toBe('sy-atlas-translations')
+    expect(
+      readLivePreviewParams('/india/pune', '?live-preview=t0k3n&scope=sy-atlas-translations')
+        ?.scope,
+    ).toBe('sy-atlas-translations')
+  })
+
+  it('reads an unrecognised scope as a document session, never as an error', () => {
+    // The scoped session is the one holding fewer restraints, so a typo, a renamed global or a
+    // newer CMS falls back to the stricter reading rather than silently dropping the guards.
+    for (const scope of ['sy-atlas-config', 'translations', '', 'null']) {
+      expect(readLivePreviewParams('/', `?live-preview=t0k3n&scope=${scope}`)?.scope).toBeNull()
+    }
+
+    expect(readLivePreviewParams('/', '?live-preview=t0k3n')?.scope).toBeNull()
   })
 
   it('reads no collection off the boot URL, whatever the CMS put there', () => {
@@ -214,7 +237,7 @@ describe('readLivePreviewParams', () => {
     ]) {
       expect(
         readLivePreviewParams('/preview', `?collection=${collection}&id=42&live-preview=t0k3n`),
-      ).toEqual({ active: false, id: '42', token: 't0k3n' })
+      ).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
     }
   })
 })

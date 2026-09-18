@@ -159,3 +159,54 @@ describe('the live-preview boot module', () => {
     expect(importers).toEqual(['main.tsx'])
   })
 })
+
+const PROTOCOL = join(SRC, 'config/live-preview/protocol.ts')
+
+/** The name a module binds the session singleton to, or `null` where it imports no default. */
+function sessionBinding(source: string, fromFile: string): string | null {
+  const code = stripComments(source)
+  const pattern = /\bimport\s+([A-Za-z_$][\w$]*)\s*(?:,[^'"]*?)?\bfrom\s+['"]([^'"]+)['"]/g
+
+  for (const match of code.matchAll(pattern)) {
+    if (resolveModule(match[2], fromFile) === PROTOCOL) return match[1]
+  }
+
+  return null
+}
+
+/** Whether a module MUTATES the session, as against the four that only read it. */
+function writesSession(source: string, binding: string): boolean {
+  const code = stripComments(source)
+
+  return (
+    new RegExp(String.raw`\bObject\.assign\s*\(\s*${binding}\b`).test(code) ||
+    new RegExp(String.raw`\b${binding}\.\w+\s*=(?![=>])`).test(code)
+  )
+}
+
+/**
+ * Who may open a live-preview session.
+ *
+ * The graph walk above keeps `boot.ts` out of the widget, but `protocol.ts` holds the session
+ * itself and IS in both graphs — a mutable singleton any importer can assign to. The request
+ * interceptor (`config/api/client.ts`) is in both graphs too, and attaches the preview
+ * credential and `draft=true` on `active` plus `token` alone. So a single write from
+ * widget-graph code would have the embedded `<sahaj-atlas>` element sending a CMS credential
+ * from a host page we do not own, with every gate above still green.
+ *
+ * `boot.ts` verifies a signature before it flips `active`, and reaches only `main.tsx`. Closing
+ * the writer list to it is what makes "a session is standalone-only" structural rather than
+ * incidental. Reading the session stays open to anyone — four modules do.
+ */
+describe('the live-preview session', () => {
+  const writers = SOURCES.filter((path) => {
+    const source = readFileSync(join(SRC, path), 'utf8')
+    const binding = sessionBinding(source, join(SRC, path))
+
+    return binding !== null && writesSession(source, binding)
+  })
+
+  it('is opened by the standalone boot module and by nothing else', () => {
+    expect(writers).toEqual([STANDALONE_ONLY[0]])
+  })
+})

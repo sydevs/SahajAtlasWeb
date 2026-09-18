@@ -4,7 +4,7 @@ import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
-import livePreview from '@/config/live-preview/protocol'
+import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
@@ -39,8 +39,7 @@ beforeEach(() => {
   sdk.findByID.mockReset()
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
-  livePreview.active = false
-  livePreview.token = null
+  Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
@@ -91,6 +90,21 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-token')
     expect(url.searchParams.get('draft')).toBe('true')
     expect(url.searchParams.get('locale')).toBe('fr')
+  })
+
+  it('keeps draft=true for a SCOPED session, or an unpublished translation cannot be previewed', () => {
+    // The guards a translations session drops are UI restraints (#211). This is not one: the
+    // translator is previewing a saved-but-unpublished global, and `draft=true` is what fetches
+    // it. Dropping it for a scoped session would leave them previewing what is already live.
+    atlasAuth.apiKey = 'k'
+    livePreview.active = true
+    livePreview.token = 'preview-token'
+    livePreview.scope = 'sy-atlas-translations'
+
+    const { url, headers } = context()
+
+    expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-token')
+    expect(url.searchParams.get('draft')).toBe('true')
   })
 
   it('does not forward draft/token when the session carries no token', () => {

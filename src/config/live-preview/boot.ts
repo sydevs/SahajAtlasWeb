@@ -2,6 +2,7 @@ import livePreview, {
   LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PARAM,
   LIVE_PREVIEW_PATH,
+  LIVE_PREVIEW_SCOPE_PARAM,
   type LivePreviewSession,
 } from './protocol'
 import { verifyLivePreviewToken } from './token'
@@ -91,10 +92,15 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
 
   if (!token) return null
 
+  // Read on every route, where the id is read only on `/preview`: a global is previewed at
+  // whatever path its tab targets, and that path is an ordinary atlas one.
+  const scope = params.get(LIVE_PREVIEW_SCOPE_PARAM)
+
   return {
     active: false,
     token,
     id: pathname === LIVE_PREVIEW_PATH ? params.get('id') : null,
+    scope: scope === 'sy-atlas-translations' ? scope : null,
   }
 }
 
