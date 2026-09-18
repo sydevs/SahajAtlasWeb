@@ -41,6 +41,7 @@ beforeEach(() => {
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
   livePreview.active = false
   livePreview.token = null
+  livePreview.scope = null
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
@@ -91,6 +92,22 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-token')
     expect(url.searchParams.get('draft')).toBe('true')
     expect(url.searchParams.get('locale')).toBe('fr')
+  })
+
+  it('keeps draft=true for a SCOPED session, or an unpublished translation cannot be previewed', () => {
+    // The guards a translations session drops are UI restraints (#211). This is not one: the
+    // translator is previewing a saved-but-unpublished global, and `draft=true` is what fetches
+    // it. Scoping this the way the guards are scoped would leave them previewing what is
+    // already live.
+    atlasAuth.apiKey = 'k'
+    livePreview.active = true
+    livePreview.token = 'preview-token'
+    livePreview.scope = 'sy-atlas-translations'
+
+    const { url, headers } = context()
+
+    expect(headers.get('x-sahajcloud-preview-secret')).toBe('preview-token')
+    expect(url.searchParams.get('draft')).toBe('true')
   })
 
   it('does not forward draft/token when the session carries no token', () => {

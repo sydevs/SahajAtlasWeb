@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { eventQuery, regionQuery } from '@/config/api'
 import { API_BASE_URL, interceptFetch } from '@/config/api/client'
 import { shapeEventDoc } from '@/config/api/fetch'
+import { documentPreviewActive } from '@/config/live-preview/protocol'
 import { useLocale } from '@/hooks/use-locale'
 import {
   allowedLivePreviewPaths,
@@ -123,8 +124,10 @@ function useLivePreviewRouteLock(previewPath: string, kind: 'event' | 'region'):
  * `stopPropagation`, so it runs before react-router's own click handler,
  * and `auxclick` covers middle-click.
  */
-function useLivePreviewLinkGuard(): void {
+function useLivePreviewLinkGuard(enabled: boolean): void {
   useEffect(() => {
+    if (!enabled) return
+
     const block = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return
       const anchor = event.target.closest('a')
@@ -142,7 +145,7 @@ function useLivePreviewLinkGuard(): void {
       window.removeEventListener('click', block, true)
       window.removeEventListener('auxclick', block, true)
     }
-  }, [])
+  }, [enabled])
 }
 
 // ── Cache writes ─────────────────────────────────────────────────────────────────
@@ -276,13 +279,15 @@ function RegionLivePreview({ slug, previewPath }: { slug: string; previewPath: s
  * postpones that. A preview session needs `Infinity`, and these prefix
  * defaults outrank the client's.
  */
-function usePinnedLivePreviewQueries(): void {
+function usePinnedLivePreviewQueries(enabled: boolean): void {
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    if (!enabled) return
+
     queryClient.setQueryDefaults(['event'], { staleTime: Infinity })
     queryClient.setQueryDefaults(['region'], { staleTime: Infinity })
-  }, [queryClient])
+  }, [enabled, queryClient])
 }
 
 /**
@@ -307,21 +312,29 @@ function usePinnedLivePreviewQueries(): void {
  * what each arm filters on in the meantime.
  */
 export function LivePreviewController() {
-  useLivePreviewLinkGuard()
-  usePinnedLivePreviewQueries()
+  // ⚠ **Every restraint below belongs to a DOCUMENT session, and a scoped one gets none of
+  // them.** A translations preview has no document to be navigated away from and no overlay to
+  // protect, so the guards would only inert the links the translator needs to reach the screen
+  // their string appears on. The flag cannot change while mounted: it is read off a session
+  // that is settled before anything renders (`config/live-preview/boot.ts`).
+  const documentSession = documentPreviewActive()
+
+  useLivePreviewLinkGuard(documentSession)
+  usePinnedLivePreviewQueries(documentSession)
 
   // Read once, at mount. The route lock below is about to start pinning navigation to this
   // path, so re-deriving the target from a later location would let one stray navigation
   // redefine what is being previewed.
   const { pathname } = useLocation()
   const previewPath = useRef(pathname).current
-  const target = useRef(resolveLivePreviewTarget(previewPath)).current
+  const target = useRef(documentSession ? resolveLivePreviewTarget(previewPath) : null).current
 
-  // No document in the path means only the guards above are in force, and the reviewer gets
-  // the ordinary atlas rather than a broken fetch. `/preview` lands here: it is the boot route
-  // for `user-submissions`, the one collection with no page of its own, whose render-ready
-  // shape rides the message payload's `previewEvent`. Nothing here consumes that yet —
-  // `SahajCloud#723` owns it.
+  // No document to preview means the reviewer gets the ordinary atlas rather than a broken
+  // fetch, with whichever guards above applied to this session. Two ways to land here: a scoped
+  // session, which previews a CMS global and never names a document at all, and `/preview`, the
+  // boot route for `user-submissions` — the one collection with no page of its own, whose
+  // render-ready shape rides the message payload's `previewEvent`. Nothing here consumes that
+  // yet — `SahajCloud#723` owns it.
   if (!target) return null
 
   if (target.kind === 'event') {
