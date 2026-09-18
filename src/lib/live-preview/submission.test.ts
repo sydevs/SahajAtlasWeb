@@ -6,7 +6,6 @@ import {
   PREVIEW_EVENT_ID,
   PreviewEventSchema,
   SUBMISSION_PREVIEW_PATH,
-  previewImageIds,
   readPreviewEvent,
   shapePreviewEvent,
 } from './submission'
@@ -43,14 +42,19 @@ const cambridge: RegionNode = {
   webUrl: 'https://wemeditate.com/gb/east/cambridge',
 }
 
-// An update proposal: the target event merged with the patch, relationships still bare ids.
+// An update proposal: the target event merged with the patch. `images` arrives populated
+// (SahajCloud#816) and `region` stays a bare id, so the reviewer's own diff keeps rendering
+// row ids.
 const mergedEvent = {
   id: 651,
   title: 'Evening Meditation',
   eventType: 'offline',
   languages: ['en'],
   region: 7,
-  images: [11, 12],
+  images: [
+    { url: '/media/one.jpg', alt: 'One' },
+    { url: '/media/two.jpg', alt: 'Two' },
+  ],
   registrationMode: 'sahaj-atlas',
   webPath: '/gb/east/cambridge/651',
 }
@@ -109,12 +113,14 @@ describe('PreviewEventSchema', () => {
     expect(PreviewEventSchema.safeParse({ ...mergedEvent, eventType: null }).success).toBe(false)
   })
 
-  it('reads a relationship as an id or as a document', () => {
-    expect(previewImageIds(PreviewEventSchema.parse(mergedEvent))).toEqual([11, 12])
-    // Only the ids are a gap the caller has to read back — one already populated is not.
-    const mixed = { ...mergedEvent, images: [11, { url: '/media/two.jpg', alt: 'Two' }] }
+  it('drops an image entry it cannot read, and keeps the rest of the proposal', () => {
+    // A CMS that has not shipped SahajCloud#816 still posts bare ids. One costing the whole
+    // array would cost the reviewer every photograph; one costing the parse would blank the
+    // preview entirely.
+    const parsed = PreviewEventSchema.parse({ ...mergedEvent, images: [11, mergedEvent.images[1]] })
 
-    expect(previewImageIds(PreviewEventSchema.parse(mixed))).toEqual([11])
+    expect(parsed.images).toEqual([null, { url: '/media/two.jpg', alt: 'Two' }])
+    expect(parsed.title).toBe('Evening Meditation')
   })
 })
 
@@ -151,12 +157,16 @@ describe('shapePreviewEvent', () => {
     expect(shaped.registrationMode).toBe('sahaj-atlas')
   })
 
-  it('resolves images by id, and drops one whose read has not landed', () => {
-    const shaped = shapePreviewEvent(PreviewEventSchema.parse(mergedEvent), {
-      images: [{ id: 12, url: '/media/two.jpg', alt: 'Two' }],
-    })
+  it('keeps the populated images in the event’s order, and leaves out an unreadable one', () => {
+    const shaped = shapePreviewEvent(PreviewEventSchema.parse(mergedEvent))
 
-    expect(shaped.images).toEqual([{ url: '/media/two.jpg', alt: 'Two' }])
+    expect(shaped.images).toEqual(mergedEvent.images)
+
+    const partial = shapePreviewEvent(
+      PreviewEventSchema.parse({ ...mergedEvent, images: [11, mergedEvent.images[0]] }),
+    )
+
+    expect(partial.images).toEqual([{ url: '/media/one.jpg', alt: 'One' }])
   })
 })
 

@@ -1,4 +1,4 @@
-import type { EventDoc, EventImage, EventImageDoc, RegionNode, RegionRef } from '@/types'
+import type { EventDoc, EventImage, RegionNode, RegionRef } from '@/types'
 
 import z from 'zod'
 
@@ -55,10 +55,10 @@ export function readPreviewEvent(populateBody: unknown): unknown {
  *
  * It is the same document `EventDocSchema` describes, minus the guarantees a SAVED event
  * carries. A new-event proposal starts from SahajCloud's `newEventDefaults`, which sets
- * neither an id, a title, a region nor a registration mode, and its relationships are still
- * bare ids. So each of those is optional here and filled in by {@link shapePreviewEvent} —
- * relaxing `EventDocSchema` itself would drop the contract check every fetched event depends
- * on.
+ * neither an id, a title nor a registration mode, and one whose screening has not anchored a
+ * region yet names none. So each of those is optional here and filled in by
+ * {@link shapePreviewEvent} — relaxing `EventDocSchema` itself would drop the contract check
+ * every fetched event depends on.
  *
  * ⚠ **Relax nothing else.** `newEventDefaults` supplies `eventType` and `languages` on a
  * new-event proposal, and an update proposal inherits its target's, so a message missing one
@@ -71,18 +71,16 @@ export const PreviewEventSchema = EventDocSchema.extend({
   title: z.string().nullish(),
   registrationMode: EventDocSchema.shape.registrationMode.nullish(),
   region: z.union([z.number(), RegionRefSchema]).nullish(),
-  images: z.array(z.union([z.number(), EventImageSchema])).nullish(),
+  // Image documents, in the event's order (SahajCloud#816). One entry that does not parse
+  // drops out rather than costing the reviewer every photograph on the event — the same
+  // reason the producer drops an id whose row has gone.
+  images: z.array(EventImageSchema.nullish().catch(null)).nullish(),
   // A proposal is a patch, so its schedule can be half a schedule — and `firstDate` is the
   // one required field in the group. Dropping an unreadable schedule keeps the rest of the
   // proposal on screen, where failing the whole parse would show the reviewer nothing.
   schedule: EventScheduleSchema.nullish().catch(null),
 })
 export type PreviewEvent = z.infer<typeof PreviewEventSchema>
-
-/** The image ids a proposal still carries unresolved — what the caller has to read back. */
-export function previewImageIds(preview: PreviewEvent): number[] {
-  return (preview.images ?? []).filter((image): image is number => typeof image === 'number')
-}
 
 function resolveRegion(preview: PreviewEvent, regions?: RegionNode[]): RegionRef | null {
   if (preview.region && typeof preview.region === 'object') return preview.region
@@ -91,34 +89,17 @@ function resolveRegion(preview: PreviewEvent, regions?: RegionNode[]): RegionRef
 }
 
 /**
- * Relationships resolve by id, because the populate endpoint is closed to this collection:
- * API clients hold create-only on `user-submissions`, so posting the form state back for
- * population is a certain 403. Regions come off the wholesale tree the widget already holds,
- * and images off their own read — both readable by `sahaj-atlas-client`.
- */
-function resolveImages(preview: PreviewEvent, images?: EventImageDoc[]): EventImage[] {
-  const byId = new Map((images ?? []).map((image) => [image.id, image]))
-
-  return (preview.images ?? []).flatMap((image) => {
-    if (typeof image !== 'number') return [image]
-
-    const resolved = byId.get(image)
-
-    return resolved ? [{ url: resolved.url, alt: resolved.alt }] : []
-  })
-}
-
-/**
  * The merged proposal as an event document — everything but the shaping `fetch.ts` does for a
  * read, so the caller finishes it through `shapeEventDoc` and the two agree on image URLs.
  *
- * An unresolved relationship degrades rather than blocks: an image whose read has not landed
- * is left out, and a region that never resolves stays null. A proposal is a draft, and a
- * reviewer wants to see the parts of it that ARE there.
+ * `region` is the one relationship still arriving as a bare id: SahajCloud sends it that way
+ * so the reviewer's own diff keeps rendering row ids, and the widget already holds the whole
+ * tree, so it costs no read. An unresolved one stays null rather than blocking — a proposal
+ * is a draft, and a reviewer wants to see the parts of it that ARE there.
  */
 export function shapePreviewEvent(
   preview: PreviewEvent,
-  relations: { regions?: RegionNode[]; images?: EventImageDoc[] } = {},
+  relations: { regions?: RegionNode[] } = {},
 ): EventDoc {
   return {
     ...preview,
@@ -126,6 +107,6 @@ export function shapePreviewEvent(
     title: preview.title ?? '',
     registrationMode: preview.registrationMode ?? 'sahaj-atlas',
     region: resolveRegion(preview, relations.regions),
-    images: resolveImages(preview, relations.images),
+    images: (preview.images ?? []).filter((image): image is EventImage => image != null),
   }
 }

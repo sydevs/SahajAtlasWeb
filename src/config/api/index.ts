@@ -34,16 +34,6 @@ export const eventQuery = (id: number, locale: string) => ({
   queryFn: () => api.getEvent(id),
 })
 
-// This is the image-documents query contract, for the live-preview proposal arm (#163).
-// Nothing else reads images on their own — a fetched event arrives with its own populated.
-// The key sorts the ids, so two proposals naming the same images in a different order share
-// one entry rather than issuing the same read twice.
-// Locale is part of the key, because `alt` is localized.
-export const imagesQuery = (ids: number[], locale: string) => ({
-  queryKey: ['images', [...ids].sort((a, b) => a - b), locale],
-  queryFn: () => api.getImages(ids),
-})
-
 // This is the single-region query contract, in one place.
 // RegionView's suspense read, OnlineView's re-read of the same parent, and the live-preview overlay all share it.
 // So the key and fetcher can never drift.

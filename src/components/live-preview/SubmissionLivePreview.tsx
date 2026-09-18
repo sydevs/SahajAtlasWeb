@@ -11,7 +11,7 @@ import { SERVER_ORIGIN, jsonResponse, namesPreviewedDoc } from './populate'
 import { useLivePreviewRouteLock } from './route-lock'
 
 import { Spinner } from '@/components/atoms/Spinner'
-import { eventQuery, imagesQuery, regionsQuery } from '@/config/api'
+import { eventQuery, regionsQuery } from '@/config/api'
 import { shapeEventDoc } from '@/config/api/fetch'
 import { LIVE_PREVIEW_COLLECTION } from '@/config/live-preview/protocol'
 import { useLocale } from '@/hooks/use-locale'
@@ -19,7 +19,6 @@ import {
   PREVIEW_EVENT_ID,
   PreviewEventSchema,
   SUBMISSION_PREVIEW_PATH,
-  previewImageIds,
   readPreviewEvent,
   shapePreviewEvent,
 } from '@/lib/live-preview'
@@ -42,7 +41,8 @@ import { overlayContainer } from '@/lib/overlay'
  * locally is what turns the library's populate round trip into a pure read of the message.
  * That is not an optimization: API clients hold **create-only** on `user-submissions`, so
  * posting the form state back for population is a certain 403, and a new-event proposal has
- * no Event id to fetch instead.
+ * no Event id to fetch instead. SahajCloud populates the message's own relationships instead
+ * (SahajCloud#816).
  *
  * ⚠ **The answer keeps the SUBMISSION's id and nests the event under it.** The library caches
  * what it returns and addresses the next populate at `<collection>/<that result's id>`, so
@@ -107,7 +107,6 @@ function SubmissionPreviewRoute({ event }: { event: Event }) {
 }
 
 export function SubmissionLivePreview({ submissionId }: { submissionId: string }) {
-  const { locale } = useLocale()
   const initialData = useMemo(() => ({ id: submissionId }), [submissionId])
   const requestHandler = useMemo(() => submissionHandler(submissionId), [submissionId])
   const lastPreview = useRef<PreviewEvent | null>(null)
@@ -135,14 +134,10 @@ export function SubmissionLivePreview({ submissionId }: { submissionId: string }
     return lastPreview.current
   }, [data])
 
-  // The relationships the message carries as bare ids. The tree is already cached on any
-  // session that rendered the atlas; this read is what makes a cold one correct.
+  // `region` is the one relationship the message still carries as a bare id. The tree is
+  // already cached on any session that rendered the atlas; this read is what makes a cold one
+  // correct.
   const { data: regions } = useQuery(regionsQuery())
-  const imageIds = useMemo(() => (preview ? previewImageIds(preview) : []), [preview])
-  const { data: images } = useQuery({
-    ...imagesQuery(imageIds, locale),
-    enabled: imageIds.length > 0,
-  })
 
   const event = useMemo(() => {
     if (!preview) return null
@@ -150,10 +145,10 @@ export function SubmissionLivePreview({ submissionId }: { submissionId: string }
     // `shapeEventDoc` resolves the image URLs, and keys the path off `webPath` — which names
     // the TARGET event's page, not this proposal. The route is the reserved preview one.
     return {
-      ...shapeEventDoc(shapePreviewEvent(preview, { images, regions })),
+      ...shapeEventDoc(shapePreviewEvent(preview, { regions })),
       path: SUBMISSION_PREVIEW_PATH,
     }
-  }, [preview, images, regions])
+  }, [preview, regions])
 
   if (!event) return <SubmissionPreviewSkeleton />
 

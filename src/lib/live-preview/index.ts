@@ -8,7 +8,6 @@ export {
   PREVIEW_EVENT_ID,
   PreviewEventSchema,
   SUBMISSION_PREVIEW_PATH,
-  previewImageIds,
   readPreviewEvent,
   shapePreviewEvent,
   type PreviewEvent,
