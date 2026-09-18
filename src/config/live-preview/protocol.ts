@@ -10,10 +10,11 @@
  *
  * ⚠ **The line is STATE versus BEHAVIOUR, and the file count is not the point.** The request
  * interceptor (`config/api/client.ts`) and `App` read the session, so this module is in the
- * embedded widget's import graph as well as the standalone one — which is why it holds no
- * behaviour at all. Even the pure reader that builds a session out of a URL lives in `boot.ts`,
- * because a widget that never boots a preview has no use for it, and a module in a shared chunk
- * is carried whole.
+ * embedded widget's import graph as well as the standalone one — which is why nothing here
+ * acts. The one function, `documentPreviewActive`, only reads the session object below it.
+ * Even the pure reader that builds a session out of a URL lives in `boot.ts`, because a widget
+ * that never boots a preview has no use for it, and a module in a shared chunk is carried
+ * whole.
  *
  * ⚠ **The other two are standalone-only, and that line is what keeps them there.** The embedded
  * `<sahaj-atlas>` element must carry no verification and no `history.replaceState`: rewriting
