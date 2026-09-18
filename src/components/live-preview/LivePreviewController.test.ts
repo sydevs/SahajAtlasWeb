@@ -148,7 +148,7 @@ describe('namesPreviewedDoc', () => {
   it('refuses another collection, including the two that are not documents here', () => {
     expect(namesPreviewedDoc('regions/507', 'events', 507)).toBe(false)
     expect(namesPreviewedDoc('events/42', 'regions', 42)).toBe(false)
-    expect(namesPreviewedDoc('event-submissions/507', 'events', 507)).toBe(false)
+    expect(namesPreviewedDoc('user-submissions/507', 'events', 507)).toBe(false)
     expect(namesPreviewedDoc('globals/sy-atlas-config', 'regions', 42)).toBe(false)
   })
 

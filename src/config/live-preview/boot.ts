@@ -95,7 +95,7 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
   return {
     active: false,
     token,
-    collection: collection === 'event-submissions' ? collection : null,
+    collection: collection === 'user-submissions' ? collection : null,
     id: onBootRoute ? params.get('id') : null,
   }
 }

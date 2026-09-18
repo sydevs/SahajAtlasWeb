@@ -231,7 +231,7 @@ export const resolvePath = (pathname: string): ResolvedPath => {
  * Words that are never a region slug. `search` / `calendar` / `filters` / `register`
  * / `share` / `online` are our own routed views (a CMS region slug can never
  * silently shadow them — this guard prevents that). `preview` is the live-preview
- * boot route, now kept for `event-submissions` alone — every other document previews at
+ * boot route, now kept for `user-submissions` alone — every other document previews at
  * its own page (issue #40, and `config/live-preview/protocol.ts`). It carries no drawer.
  * `events` / `areas` / `regions` / `venues` are legacy URL prefixes that carry no
  * drawer of their own. Kept lowercase. Matched case-insensitively.

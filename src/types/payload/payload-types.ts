@@ -602,6 +602,42 @@ export type SupportedTimezones =
   | 'Etc/GMT+11'
   | 'Etc/GMT+12';
 export type ScheduleUpcomingDates = string[];
+/**
+ * @maxItems 500
+ */
+export type ActivityLog = {
+  /**
+   * ISO 8601. The first column, and the sort key.
+   */
+  at?: string;
+  /**
+   * Stable slug — matched by jobs, never shown.
+   */
+  type?: string;
+  /**
+   * Exactly-once key, scoped to `type`.
+   */
+  key?: string;
+  /**
+   * What the columns read. Everything outside this is machine data.
+   */
+  cells?: {
+    [k: string]:
+      | string
+      | {
+          /**
+           * Muted, inline before the text.
+           */
+          label?: string;
+          text: string;
+          /**
+           * Muted line beneath the text.
+           */
+          sub?: string;
+        };
+  };
+  [k: string]: unknown;
+}[];
 export type EventQualityReport =
   | {
       skipped: true;
@@ -704,12 +740,9 @@ export interface Config {
     'app-cards': AppCard;
     regions: Region;
     events: Event;
-    'event-submissions': EventSubmission;
-    registrations: Registration;
     users: User;
-    'user-messages': UserMessage;
     forms: Form;
-    'form-submissions': FormSubmission;
+    'user-submissions': UserSubmission;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -754,10 +787,10 @@ export interface Config {
       childrenVenues: 'regions';
     };
     events: {
-      registrations: 'registrations';
+      registrations: 'user-submissions';
     };
     users: {
-      registrations: 'registrations';
+      submissions: 'user-submissions';
       submittedEvents: 'events';
     };
   };
@@ -783,12 +816,9 @@ export interface Config {
     'app-cards': AppCardsSelect<false> | AppCardsSelect<true>;
     regions: RegionsSelect<false> | RegionsSelect<true>;
     events: EventsSelect<false> | EventsSelect<true>;
-    'event-submissions': EventSubmissionsSelect<false> | EventSubmissionsSelect<true>;
-    registrations: RegistrationsSelect<false> | RegistrationsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
-    'user-messages': UserMessagesSelect<false> | UserMessagesSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
-    'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
+    'user-submissions': UserSubmissionsSelect<false> | UserSubmissionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -891,10 +921,10 @@ export interface Config {
   jobs: {
     tasks: {
       cleanupOrphanedMedia: TaskCleanupOrphanedMedia;
+      deliverSubmission: TaskDeliverSubmission;
       expireEvents: TaskExpireEvents;
-      purgeUserMessages: TaskPurgeUserMessages;
-      screenEventSubmission: TaskScreenEventSubmission;
-      screenUserMessage: TaskScreenUserMessage;
+      purgeSubmissions: TaskPurgeSubmissions;
+      screenSubmission: TaskScreenSubmission;
       sendPostEventFollowUps: TaskSendPostEventFollowUps;
       sendRegistrationDigests: TaskSendRegistrationDigests;
       sendSessionReminders: TaskSendSessionReminders;
@@ -1822,7 +1852,7 @@ export interface Event {
     questions?: boolean | null;
   };
   registrations?: {
-    docs?: (number | Registration)[];
+    docs?: (number | UserSubmission)[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
@@ -1839,18 +1869,7 @@ export interface Event {
     | 'urgent'
     | 'expired'
     | 'finished';
-  /**
-   * Current verification cycle — the verification that opened it plus each reminder sent. Reset on every verification. Keeps the most recent 50 entries.
-   */
-  activityLog?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  activityLog?: ActivityLog;
   /**
    * How strongly attendees confirm this event is real (0–1). Rises with confirmations, falls with denials, and stays cautious while there are few votes — the Atlas map ranks unverified listings by it. Blank until the first vote.
    */
@@ -1894,73 +1913,43 @@ export interface Event {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "registrations".
+ * via the `definition` "user-submissions".
  */
-export interface Registration {
+export interface UserSubmission {
   id: number;
-  event: number | Event;
+  type: 'contact' | 'subscribe' | 'registration' | 'proposal';
   /**
-   * The registrant.
+   * Composed when the submission arrives.
    */
-  user: number | User;
+  subject?: string | null;
+  form?: (number | null) | Form;
+  submissionData?:
+    | {
+        field: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
   /**
-   * When the registrant is attending.
+   * Who sent this. Normalized.
+   */
+  senderEmail?: string | null;
+  status: 'pending' | 'accepted' | 'rejected' | 'spam' | 'failed';
+  /**
+   * The event this registration attends, this proposal targets, or this subscription came from.
+   */
+  event?: (number | null) | Event;
+  /**
+   * Which occurrence the registrant is attending.
    */
   startingAt?: string | null;
   startingAt_tz?: SupportedTimezones;
   /**
-   * The client service this registration came through. Brands and localizes the emails sent about it.
-   */
-  client?: (number | null) | Client;
-  /**
-   * The registrant's language. Emails about this registration are rendered in it.
-   */
-  locale?:
-    | (
-        | 'en'
-        | 'es'
-        | 'de'
-        | 'it'
-        | 'fr'
-        | 'ru'
-        | 'ro'
-        | 'cs'
-        | 'uk'
-        | 'el'
-        | 'hy'
-        | 'pl'
-        | 'pt-BR'
-        | 'fa'
-        | 'bg'
-        | 'tr'
-        | 'en-AU'
-        | 'hu'
-        | 'nl'
-      )
-    | null;
-  questions?: RegistrationQuestions;
-  uuid: string;
-  mailingListSubscribedAt?: string | null;
-  remindersUnsubscribedAt?: string | null;
-  /**
-   * Everything recorded about this registration, newest first. Keeps the most recent 50 entries.
-   */
-  activityLog?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
    * Registrant’s verdict on an unverified event.
    */
   eventFeedback?: ('confirmed' | 'denied') | null;
-  followUpSentAt?: string | null;
-  legacyId?: number | null;
-  legacyData?:
+  proposed?: SubmissionProposal;
+  proposedChanges?:
     | {
         [k: string]: unknown;
       }
@@ -1969,37 +1958,182 @@ export interface Registration {
     | number
     | boolean
     | null;
+  previewEvent?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Optional. The manager who will look after this event. Assign one to publish it as verified; leave blank and it goes on the map as unverified until a manager takes it on.
+   */
+  manager?: (number | null) | Manager;
+  /**
+   * The city or venue this event belongs to. Resolved by screening — correct it here if it came back empty or wrong.
+   */
+  region?: (number | null) | Region;
+  screeningResult?: SubmissionScreeningResult;
+  activityLog?: ActivityLog;
+  uuid?: string | null;
+  client?: (number | null) | Client;
+  user?: (number | null) | User;
+  unsubscribedAt?: string | null;
+  regionHint?: SubmissionRegionHint;
+  followUpSentAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "forms".
  */
-export interface User {
+export interface Form {
   id: number;
-  name: string;
-  email: string;
-  registrations?: {
-    docs?: (number | Registration)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  submittedEvents?: {
-    docs?: (number | Event)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  legacyId?: number | null;
-  legacyData?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+  title: string;
+  fields?:
+    | (
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            defaultValue?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'checkbox';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'country';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'email';
+          }
+        | {
+            message?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'message';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: number | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'number';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            placeholder?: string | null;
+            options?:
+              | {
+                  label: string;
+                  value: string;
+                  id?: string | null;
+                }[]
+              | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'select';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'state';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'text';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'textarea';
+          }
+      )[]
     | null;
+  submitButtonLabel?: string | null;
+  confirmationType?: ('message' | 'redirect') | null;
+  confirmationMessage?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  redirect?: {
+    url: string;
+  };
+  /**
+   * Contact forms deliver the message to a recipient. Subscribe forms add the sender to a client’s mailing list.
+   */
+  actionType: 'contact' | 'subscribe';
+  /**
+   * Who receives messages from this form. Leave blank to send to contact@sydevelopers.com.
+   */
+  recipient?: (number | null) | Manager;
+  /**
+   * Whose mailing list a subscriber joins.
+   */
+  client?: (number | null) | Client;
   updatedAt: string;
   createdAt: string;
 }
@@ -2236,6 +2370,25 @@ export interface Client {
    */
   region?: (number | null) | Region;
   /**
+   * Where subscribe submissions relayed by this service are delivered. Off by default, and nothing is pushed anywhere until it is switched on.
+   */
+  mailingList?: {
+    enabled?: boolean | null;
+    provider?: ('mailchimp' | 'brevo' | 'klaviyo') | null;
+    /**
+     * Mailchimp’s Audience ID, Brevo’s numeric list id, or Klaviyo’s List ID.
+     */
+    listId?: string | null;
+    /**
+     * The provider secret. Checked against the provider when you save, and never readable by an API client.
+     */
+    apiKey?: string | null;
+    /**
+     * Mailchimp adds the address as `pending` and emails it a confirmation link.
+     */
+    doubleOptIn?: boolean | null;
+  };
+  /**
    * Declares that this service owns the canonical Atlas URLs for its region. Off by default, and nothing resolves differently until it is switched on.
    */
   canonical?: {
@@ -2248,6 +2401,10 @@ export interface Client {
      */
     embed?: string | null;
     verification?: ClientCanonicalVerification;
+    /**
+     * Derived, never chosen: “Path segment” once the CMS has seen this host serve the atlas under the embed’s own subtree, “Query parameter” otherwise.
+     */
+    routing?: ('query' | 'path') | null;
     nextVerifyAt?: string | null;
   };
   embedMetadata?: ClientEmbedMetadata;
@@ -2331,11 +2488,16 @@ export interface ClientCanonicalVerification {
   verified: {
     domain: string;
     mount: string;
-    routing: 'query' | 'path';
+    routing?: 'query' | 'path';
     widgetVersion: number;
     at: string;
   } | null;
   failureCount: number;
+  routingProbe?: {
+    at: string;
+    verdict: 'query' | 'path';
+    failedAttempts: number;
+  };
   attempts: {
     at: string;
     status: 'verified' | 'failed' | 'inconclusive';
@@ -2376,23 +2538,67 @@ export interface ClientAbuseScore {
     current: number;
   };
 }
-export interface RegistrationQuestions {
+export interface SubmissionProposal {
+  [k: string]: unknown;
+}
+export interface SubmissionScreeningResult {
   /**
-   * Have you practised Sahaja Yoga meditation before?
+   * `ok`, or the first check that refused this submission.
    */
-  experience?: string;
+  verdict:
+    | 'ok'
+    | 'disposable_email'
+    | 'invalid_email'
+    | 'no_mx_records'
+    | 'repeat_sender'
+    | 'duplicate_body'
+    | 'content_rejected';
   /**
-   * How did you hear about this event?
+   * Everything an admin needs, as complete sentences: what happened and what follows from it. An accepted submission normally has none.
    */
-  referral?: string;
+  notes?: string[];
   /**
-   * What are you hoping to get out of this?
+   * A technical detail kept for triage and NOT rendered — an inconclusive MX lookup, or a transport’s own error string.
    */
-  aspirations?: string;
+  diagnostic?: string;
   /**
-   * Do you have any questions for us?
+   * When screening reached this verdict (ISO 8601).
    */
-  questions?: string;
+  screenedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  submissions?: {
+    docs?: (number | UserSubmission)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  submittedEvents?: {
+    docs?: (number | Event)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  legacyId?: number | null;
+  legacyData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+export interface SubmissionRegionHint {
+  [k: string]: unknown;
 }
 export interface EventSystemMeta {
   communityFeedback?: {
@@ -3498,340 +3704,6 @@ export interface Frame {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "event-submissions".
- */
-export interface EventSubmission {
-  id: number;
-  screeningResult?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  submitterInfo?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  proposedChanges?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  previewEvent?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * The event this submission proposes changes to. After acceptance it links the created event.
-   */
-  event?: (number | null) | Event;
-  /**
-   * Optional. The manager who will look after this event. Assign one to publish it as verified; leave blank and it goes on the map as unverified until a manager takes it on.
-   */
-  manager?: (number | null) | Manager;
-  /**
-   * The city or venue this event belongs to. Resolved by screening — correct it here if it came back empty or wrong.
-   */
-  region?: (number | null) | Region;
-  /**
-   * Generated from the proposal when the submission arrives.
-   */
-  title?: string | null;
-  /**
-   * The proposed Events field patch, exactly as submitted.
-   */
-  proposed?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  status: 'screening' | 'pending' | 'spam' | 'created' | 'updated' | 'rejected';
-  submitter?: (number | null) | User;
-  /**
-   * Region targeting as submitted (country / state / anchor).
-   */
-  regionHint?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  reviewedBy?: (number | null) | Manager;
-  reviewedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "user-messages".
- */
-export interface UserMessage {
-  id: number;
-  screeningResult?: UserMessageScreeningResult;
-  subject?: string | null;
-  message: string;
-  /**
-   * Optional. Becomes the Reply-To of the message we email out.
-   */
-  senderEmail?: string | null;
-  context?: UserMessageContext;
-  client?: (number | null) | Client;
-  user?: (number | null) | User;
-  status: 'screening' | 'delivered' | 'spam' | 'failed';
-  bodyHash?: string | null;
-  deliveredAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-export interface UserMessageScreeningResult {
-  /**
-   * `ok`, or why the message was classified spam.
-   */
-  verdict: 'ok' | 'disposable_email' | 'invalid_email' | 'no_mx_records' | 'repeat_sender' | 'duplicate_body';
-  /**
-   * Everything an admin needs, as complete sentences. Each says what happened and what follows from it. A delivered message normally has none.
-   */
-  notes?: string[];
-  /**
-   * A technical detail kept for triage and NOT rendered — an MX lookup that came back inconclusive, or the mail transport’s own error string. Discarding it would leave nothing to look at when delivery goes wrong.
-   */
-  diagnostic?: string;
-  /**
-   * When screening reached this verdict (ISO 8601).
-   */
-  screenedAt: string;
-}
-export interface UserMessageContext {
-  /**
-   * Route the sender was on, e.g. `/events/london-meetup`.
-   */
-  path?: string;
-  /**
-   * Absolute URL of the host page embedding the widget.
-   */
-  hostUrl?: string;
-  /**
-   * Locale the sender was browsing in.
-   */
-  locale?: string;
-  /**
-   * Error text/stack the sender was reporting, when the message is a crash report.
-   */
-  error?: string;
-  /**
-   * The sender's user-agent string.
-   */
-  userAgent?: string;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "forms".
- */
-export interface Form {
-  id: number;
-  title: string;
-  fields?:
-    | (
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            defaultValue?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'checkbox';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'country';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'email';
-          }
-        | {
-            message?: {
-              root: {
-                type: string;
-                children: {
-                  type: any;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            } | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'message';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'number';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: string | null;
-            placeholder?: string | null;
-            options?:
-              | {
-                  label: string;
-                  value: string;
-                  id?: string | null;
-                }[]
-              | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'select';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'state';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: string | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'text';
-          }
-        | {
-            name: string;
-            label?: string | null;
-            width?: number | null;
-            defaultValue?: string | null;
-            required?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'textarea';
-          }
-      )[]
-    | null;
-  submitButtonLabel?: string | null;
-  confirmationType?: ('message' | 'redirect') | null;
-  confirmationMessage?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  redirect?: {
-    url: string;
-  };
-  emails?:
-    | {
-        emailTo?: string | null;
-        cc?: string | null;
-        bcc?: string | null;
-        replyTo?: string | null;
-        emailFrom?: string | null;
-        subject: string;
-        message?: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
-              [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        } | null;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form-submissions".
- */
-export interface FormSubmission {
-  id: number;
-  form: number | Form;
-  submissionData?:
-    | {
-        field: string;
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3902,10 +3774,10 @@ export interface PayloadJob {
         taskSlug:
           | 'inline'
           | 'cleanupOrphanedMedia'
+          | 'deliverSubmission'
           | 'expireEvents'
-          | 'purgeUserMessages'
-          | 'screenEventSubmission'
-          | 'screenUserMessage'
+          | 'purgeSubmissions'
+          | 'screenSubmission'
           | 'sendPostEventFollowUps'
           | 'sendRegistrationDigests'
           | 'sendSessionReminders'
@@ -3949,10 +3821,10 @@ export interface PayloadJob {
     | (
         | 'inline'
         | 'cleanupOrphanedMedia'
+        | 'deliverSubmission'
         | 'expireEvents'
-        | 'purgeUserMessages'
-        | 'screenEventSubmission'
-        | 'screenUserMessage'
+        | 'purgeSubmissions'
+        | 'screenSubmission'
         | 'sendPostEventFollowUps'
         | 'sendRegistrationDigests'
         | 'sendSessionReminders'
@@ -4073,28 +3945,16 @@ export interface PayloadLockedDocument {
         value: number | Event;
       } | null)
     | ({
-        relationTo: 'event-submissions';
-        value: number | EventSubmission;
-      } | null)
-    | ({
-        relationTo: 'registrations';
-        value: number | Registration;
-      } | null)
-    | ({
         relationTo: 'users';
         value: number | User;
-      } | null)
-    | ({
-        relationTo: 'user-messages';
-        value: number | UserMessage;
       } | null)
     | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
     | ({
-        relationTo: 'form-submissions';
-        value: number | FormSubmission;
+        relationTo: 'user-submissions';
+        value: number | UserSubmission;
       } | null);
   globalSlug?: string | null;
   user:
@@ -4593,12 +4453,22 @@ export interface ClientsSelect<T extends boolean = true> {
   supportEmail?: T;
   locale?: T;
   region?: T;
+  mailingList?:
+    | T
+    | {
+        enabled?: T;
+        provider?: T;
+        listId?: T;
+        apiKey?: T;
+        doubleOptIn?: T;
+      };
   canonical?:
     | T
     | {
         enabled?: T;
         embed?: T;
         verification?: T;
+        routing?: T;
         nextVerifyAt?: T;
       };
   embedMetadata?: T;
@@ -4860,78 +4730,15 @@ export interface EventsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "event-submissions_select".
- */
-export interface EventSubmissionsSelect<T extends boolean = true> {
-  screeningResult?: T;
-  submitterInfo?: T;
-  proposedChanges?: T;
-  previewEvent?: T;
-  event?: T;
-  manager?: T;
-  region?: T;
-  title?: T;
-  proposed?: T;
-  status?: T;
-  submitter?: T;
-  regionHint?: T;
-  reviewedBy?: T;
-  reviewedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "registrations_select".
- */
-export interface RegistrationsSelect<T extends boolean = true> {
-  event?: T;
-  user?: T;
-  startingAt?: T;
-  startingAt_tz?: T;
-  client?: T;
-  locale?: T;
-  questions?: T;
-  uuid?: T;
-  mailingListSubscribedAt?: T;
-  remindersUnsubscribedAt?: T;
-  activityLog?: T;
-  eventFeedback?: T;
-  followUpSentAt?: T;
-  legacyId?: T;
-  legacyData?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   email?: T;
-  registrations?: T;
+  submissions?: T;
   submittedEvents?: T;
   legacyId?: T;
   legacyData?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "user-messages_select".
- */
-export interface UserMessagesSelect<T extends boolean = true> {
-  screeningResult?: T;
-  subject?: T;
-  message?: T;
-  senderEmail?: T;
-  context?: T;
-  client?: T;
-  user?: T;
-  status?: T;
-  bodyHash?: T;
-  deliveredAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -5053,26 +4860,19 @@ export interface FormsSelect<T extends boolean = true> {
     | {
         url?: T;
       };
-  emails?:
-    | T
-    | {
-        emailTo?: T;
-        cc?: T;
-        bcc?: T;
-        replyTo?: T;
-        emailFrom?: T;
-        subject?: T;
-        message?: T;
-        id?: T;
-      };
+  actionType?: T;
+  recipient?: T;
+  client?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form-submissions_select".
+ * via the `definition` "user-submissions_select".
  */
-export interface FormSubmissionsSelect<T extends boolean = true> {
+export interface UserSubmissionsSelect<T extends boolean = true> {
+  type?: T;
+  subject?: T;
   form?: T;
   submissionData?:
     | T
@@ -5081,6 +4881,25 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  senderEmail?: T;
+  status?: T;
+  event?: T;
+  startingAt?: T;
+  startingAt_tz?: T;
+  eventFeedback?: T;
+  proposed?: T;
+  proposedChanges?: T;
+  previewEvent?: T;
+  manager?: T;
+  region?: T;
+  screeningResult?: T;
+  activityLog?: T;
+  uuid?: T;
+  client?: T;
+  user?: T;
+  unsubscribedAt?: T;
+  regionHint?: T;
+  followUpSentAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -5221,88 +5040,899 @@ export interface WmWebConfig {
  */
 export interface WmWebTranslation {
   id: number;
-  common?: WmWebTranslationsCommonStrings;
+  common?: {
+    general?: WmWebTranslationsCommonGeneralStrings;
+    a11y?: WmWebTranslationsCommonA11YStrings;
+  };
   navigation?: WmWebTranslationsNavigationStrings;
   footer?: WmWebTranslationsFooterStrings;
-  page_tags?: WmWebTranslationsPageTagsStrings;
-  errors?: WmWebTranslationsErrorsStrings;
+  errors?: {
+    general?: WmWebTranslationsErrorsGeneralStrings;
+    a11y?: WmWebTranslationsErrorsA11YStrings;
+  };
+  article?: {
+    general?: WmWebTranslationsArticleGeneralStrings;
+    a11y?: WmWebTranslationsArticleA11YStrings;
+  };
+  meditation?: {
+    general?: WmWebTranslationsMeditationGeneralStrings;
+    a11y?: WmWebTranslationsMeditationA11YStrings;
+  };
+  lecture?: {
+    general?: WmWebTranslationsLectureGeneralStrings;
+    a11y?: WmWebTranslationsLectureA11YStrings;
+  };
+  map?: {
+    general?: WmWebTranslationsMapGeneralStrings;
+    a11y?: WmWebTranslationsMapA11YStrings;
+  };
+  forms?: {
+    general?: WmWebTranslationsFormsGeneralStrings;
+    a11y?: WmWebTranslationsFormsA11YStrings;
+  };
+  media?: {
+    general?: WmWebTranslationsMediaGeneralStrings;
+    a11y?: WmWebTranslationsMediaA11YStrings;
+  };
+  video?: {
+    general?: WmWebTranslationsVideoGeneralStrings;
+    a11y?: WmWebTranslationsVideoA11YStrings;
+  };
+  location?: {
+    general?: WmWebTranslationsLocationGeneralStrings;
+    a11y?: WmWebTranslationsLocationA11YStrings;
+  };
+  blocks?: {
+    general?: WmWebTranslationsBlocksGeneralStrings;
+    a11y?: WmWebTranslationsBlocksA11YStrings;
+  };
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
-export interface WmWebTranslationsCommonStrings {
+export interface WmWebTranslationsCommonGeneralStrings {
   /**
-   * Loading indicator text shown while content is being fetched.
+   * Shown beside a spinner while content is still loading.
    */
   loading?: string;
   /**
-   * Generic error message shown when something goes wrong.
+   * Button that reveals the rest of a truncated grid of cards.
    */
-  error?: string;
+  show_more?: string;
   /**
-   * Button text to retry a failed action.
+   * The browser tab title on any page that carries no title of its own. Also the site name search engines show.
    */
-  retry?: string;
+  site_title?: string;
+  /**
+   * The search-result and social-preview summary for any page that carries no description of its own. Around 160 characters reads best.
+   */
+  site_description?: string;
+}
+export interface WmWebTranslationsCommonA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the button that closes a notification banner.
+   */
+  dismiss?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that closes the full-screen image viewer.
+   */
+  close?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that moves back one item in a carousel or image viewer.
+   */
+  previous?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that moves forward one item in a carousel or image viewer.
+   */
+  next?: string;
+  /**
+   * Not shown on screen; read by screen readers. Describes the "Show More" button. `%{count}` = how many further items it reveals, and selects the plural form.
+   */
+  show_more_items_one?: string;
+  /**
+   * Not shown on screen; read by screen readers. Describes the "Show More" button. `%{count}` = how many further items it reveals, and selects the plural form.
+   */
+  show_more_items_few?: string;
+  /**
+   * Not shown on screen; read by screen readers. Describes the "Show More" button. `%{count}` = how many further items it reveals, and selects the plural form.
+   */
+  show_more_items_many?: string;
+  /**
+   * Not shown on screen; read by screen readers. Describes the "Show More" button. `%{count}` = how many further items it reveals, and selects the plural form.
+   */
+  show_more_items_other?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the trail of parent links above a page title.
+   */
+  breadcrumb?: string;
+  /**
+   * Not shown on screen; read by screen readers. Warns that a link opens a new browser tab. `%{label}` = the destination's own name (a social network, untranslated).
+   */
+  opens_in_new_tab?: string;
 }
 export interface WmWebTranslationsNavigationStrings {
   /**
-   * Primary navigation link opening the "About Meditation" knowledge section.
+   * Header menu item opening the section that explains meditation. Repeated as a footer column heading.
    */
   about_meditation?: string;
   /**
-   * Navigation link to educational content and resources.
+   * Caption under the featured image inside an open header menu. A short evocative line, not a sentence.
    */
-  learn_more?: string;
-  /**
-   * Call-to-action navigation link inviting users to start meditating.
-   */
-  come_meditate?: string;
-  /**
-   * Label for the language selector in the header/navigation.
-   */
-  languages?: string;
-  /**
-   * Action link inviting users to find in-person meditation classes near their location (frontend: "Classes near me").
-   */
-  classes_near_me?: string;
+  featured_caption?: string;
 }
 export interface WmWebTranslationsFooterStrings {
   /**
-   * Heading for the footer's "Info" column, which lists informational pages (about, contact, privacy, etc.) (frontend: "Info").
+   * Heading of the footer column listing informational pages (about, contact, privacy).
    */
   info?: string;
+  /**
+   * Label of the footer's language picker.
+   */
+  languages?: string;
+  /**
+   * The copyright line at the very bottom. `%{year}` = the current year. Keep the © symbol.
+   */
+  copyright?: string;
 }
-export interface WmWebTranslationsPageTagsStrings {
+export interface WmWebTranslationsErrorsGeneralStrings {
   /**
-   * Category label for pages tagged "Wisdom" (frontend: "Wisdom").
+   * Heading above an error shown in place of a meditation or lecture player.
    */
-  wisdom?: string;
+  heading?: string;
   /**
-   * Category label for pages tagged "Lifestyle" (frontend: "Lifestyle").
+   * Error heading when the visitor's device cannot reach the site's servers.
    */
-  lifestyle?: string;
+  network_title?: string;
   /**
-   * Category label for pages tagged "Creativity" (frontend: "Creativity").
+   * Error heading when the servers are reachable but failing.
    */
-  creativity?: string;
+  server_title?: string;
   /**
-   * Category label for pages tagged "Event" (frontend: "Event").
+   * Error heading when the requested page or content does not exist.
    */
-  event?: string;
+  not_found_title?: string;
   /**
-   * Category label for pages tagged "Technique" (frontend: "Technique").
+   * Error heading for a failure that fits none of the other cases.
    */
-  technique?: string;
+  unknown_title?: string;
+  /**
+   * Explanation under `network_title`. Asks the visitor to check their internet connection.
+   */
+  network_message?: string;
+  /**
+   * Explanation under `server_title`. Says the problem is ours and is being worked on.
+   */
+  server_message?: string;
+  /**
+   * Explanation under `not_found_title`. Says the content may have moved or been deleted.
+   */
+  not_found_message?: string;
+  /**
+   * Explanation under `unknown_title`. Asks the visitor to try again.
+   */
+  unknown_message?: string;
+  /**
+   * Line pointing at the service status page. `%{link}` = a link whose text is `status_page_link`.
+   */
+  status_page_hint?: string;
+  /**
+   * The clickable words inside `status_page_hint`. Translate as a noun phrase, not a sentence.
+   */
+  status_page_link?: string;
+  /**
+   * Button that reloads the page after an error.
+   */
+  try_again?: string;
+  /**
+   * Button that leaves an error page for the home page.
+   */
+  back_to_home?: string;
 }
-export interface WmWebTranslationsErrorsStrings {
+export interface WmWebTranslationsErrorsA11YStrings {
   /**
-   * Error shown on a meditation page when the meditation has no playable audio source (frontend: "This meditation is missing a required audio URL.").
+   * Not shown on screen; read by screen readers. Names the warning icon above an error message.
    */
-  meditation_missing_audio?: string;
+  error_icon?: string;
+}
+export interface WmWebTranslationsArticleGeneralStrings {
   /**
-   * Error shown on a lecture page when the lecture has no playable video source (frontend: "This lecture is missing a playable video source.").
+   * Byline above an article's author box. `%{name}` = the author's name, rendered in italics.
    */
-  lecture_missing_video?: string;
+  written_by?: string;
+  /**
+   * An author's name and country on one line. `%{name}` = the author's name, `%{country}` = their country. Adjust the separator to suit the language.
+   */
+  name_with_country?: string;
+  /**
+   * How long an author has meditated, in their author box. `%{count}` = number of years, and selects the plural form.
+   */
+  meditating_years_one?: string;
+  /**
+   * How long an author has meditated, in their author box. `%{count}` = number of years, and selects the plural form.
+   */
+  meditating_years_few?: string;
+  /**
+   * How long an author has meditated, in their author box. `%{count}` = number of years, and selects the plural form.
+   */
+  meditating_years_many?: string;
+  /**
+   * How long an author has meditated, in their author box. `%{count}` = number of years, and selects the plural form.
+   */
+  meditating_years_other?: string;
+  /**
+   * Estimated time to read an article. `%{count}` = number of minutes, and selects the plural form.
+   */
+  reading_time_one?: string;
+  /**
+   * Estimated time to read an article. `%{count}` = number of minutes, and selects the plural form.
+   */
+  reading_time_few?: string;
+  /**
+   * Estimated time to read an article. `%{count}` = number of minutes, and selects the plural form.
+   */
+  reading_time_many?: string;
+  /**
+   * Estimated time to read an article. `%{count}` = number of minutes, and selects the plural form.
+   */
+  reading_time_other?: string;
+  /**
+   * Heading above an author's biography at the end of an article.
+   */
+  about_the_author?: string;
+  /**
+   * The filter chip that clears every tag and shows all articles. Sits in a row of chips, so it must stay short.
+   */
+  filter_all?: string;
+  /**
+   * Name of the "Wisdom" article category, shown as a filter chip and on article cards.
+   */
+  tag_wisdom?: string;
+  /**
+   * Name of the "Lifestyle" article category, shown as a filter chip and on article cards.
+   */
+  tag_lifestyle?: string;
+  /**
+   * Name of the "Creativity" article category, shown as a filter chip and on article cards.
+   */
+  tag_creativity?: string;
+  /**
+   * Name of the "Event" article category, shown as a filter chip and on article cards.
+   */
+  tag_event?: string;
+  /**
+   * Name of the "Technique" article category, shown as a filter chip and on article cards.
+   */
+  tag_technique?: string;
+}
+export interface WmWebTranslationsArticleA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the row of tag filter chips above an article index.
+   */
+  filter_label?: string;
+}
+export interface WmWebTranslationsMeditationGeneralStrings {
+  /**
+   * Word marking the current track as a guided meditation, shown above its title.
+   */
+  label?: string;
+  /**
+   * The name of the founder whose portrait appears in the player. A personal name — transliterate rather than translate.
+   */
+  founder_name?: string;
+  /**
+   * The word under the founder's name describing who she was. Lowercase in English.
+   */
+  founder_role?: string;
+  /**
+   * Label of the volume slider for the spoken guidance.
+   */
+  voice?: string;
+  /**
+   * Label of the volume slider for the background music.
+   */
+  music?: string;
+  /**
+   * Tooltip on the button that swaps the background music for another track.
+   */
+  change_music?: string;
+  /**
+   * Stands in for a meditation's title when it has none.
+   */
+  untitled?: string;
+  /**
+   * Shown in place of the player when a meditation has no audio to play.
+   */
+  missing_audio?: string;
+  /**
+   * Heading above the talks suggested at the end of a meditation.
+   */
+  related_lectures?: string;
+}
+export interface WmWebTranslationsMeditationA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the button that silences the spoken guidance.
+   */
+  mute_voice?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the same button once the guidance is silenced.
+   */
+  unmute_voice?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that silences the background music.
+   */
+  mute_music?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the same button once the music is silenced.
+   */
+  unmute_music?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the slider controlling the spoken guidance.
+   */
+  voice_volume?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the slider controlling the background music.
+   */
+  music_volume?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the panel holding the volume sliders.
+   */
+  audio_settings?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that picks a different background track at random.
+   */
+  shuffle_music?: string;
+  /**
+   * Not shown on screen; read by screen readers. Announced while the suggested talks are still loading.
+   */
+  related_lectures_loading?: string;
+}
+export interface WmWebTranslationsLectureGeneralStrings {
+  /**
+   * Shown in place of the video player when a talk has no video to play.
+   */
+  missing_video?: string;
+  /**
+   * Heading above the meditations suggested at the end of a talk.
+   */
+  related_meditations?: string;
+}
+export interface WmWebTranslationsLectureA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Announced while the suggested meditations are still loading.
+   */
+  related_meditations_loading?: string;
+}
+export interface WmWebTranslationsMapGeneralStrings {
+  /**
+   * Marks a class that meets over video rather than in a venue. Sits in a narrow badge, so an over-long translation will not save.
+   */
+  online?: string;
+  /**
+   * Says how much of a region's class list is on the page. `%{shown}` = how many are listed, `%{count}` = how many exist in total and selects the plural form.
+   */
+  classes_shown_one?: string;
+  /**
+   * Says how much of a region's class list is on the page. `%{shown}` = how many are listed, `%{count}` = how many exist in total and selects the plural form.
+   */
+  classes_shown_few?: string;
+  /**
+   * Says how much of a region's class list is on the page. `%{shown}` = how many are listed, `%{count}` = how many exist in total and selects the plural form.
+   */
+  classes_shown_many?: string;
+  /**
+   * Says how much of a region's class list is on the page. `%{shown}` = how many are listed, `%{count}` = how many exist in total and selects the plural form.
+   */
+  classes_shown_other?: string;
+  /**
+   * Shown instead of a class list when a region has none yet.
+   */
+  no_classes?: string;
+  /**
+   * Link that takes a visitor to an online class's meeting room.
+   */
+  join_online?: string;
+  /**
+   * Link that takes a visitor to a class's own website.
+   */
+  visit_website?: string;
+}
+export interface WmWebTranslationsMapA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the list of classes on a region page.
+   */
+  classes_heading?: string;
+  /**
+   * Not shown on screen; read by screen readers. Introduces a class's day and time.
+   */
+  when?: string;
+  /**
+   * Not shown on screen; read by screen readers. Introduces a class's address.
+   */
+  where?: string;
+  /**
+   * Not shown on screen; read by screen readers. Introduces the languages a class is taught in.
+   */
+  languages?: string;
+}
+export interface WmWebTranslationsFormsGeneralStrings {
+  /**
+   * Validation message under a mandatory field left empty. `%{field}` = that field's own label, which the editor writes and which is translated separately.
+   */
+  field_required?: string;
+  /**
+   * Shown in a dropdown before the visitor picks anything.
+   */
+  select_placeholder?: string;
+  /**
+   * Shown when sending a form fails for a reason the site cannot name.
+   */
+  submit_error?: string;
+  /**
+   * Heading of the confirmation screen after a form is sent.
+   */
+  thank_you?: string;
+  /**
+   * Line under `thank_you` confirming the form arrived.
+   */
+  submitted?: string;
+  /**
+   * The button that sends a form, unless the editor gave it its own label.
+   */
+  submit?: string;
+}
+export interface WmWebTranslationsFormsA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Announced while a form is being sent.
+   */
+  submitting?: string;
+  /**
+   * Not shown on screen; read by screen readers. Replaces the asterisk marking a mandatory field. One word.
+   */
+  required_marker?: string;
+}
+export interface WmWebTranslationsMediaGeneralStrings {
+  /**
+   * Heading above the list of tracks in the music player.
+   */
+  playlist?: string;
+  /**
+   * A length in minutes, on a card or under a talk. `%{count}` = number of minutes, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_minutes_one?: string;
+  /**
+   * A length in minutes, on a card or under a talk. `%{count}` = number of minutes, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_minutes_few?: string;
+  /**
+   * A length in minutes, on a card or under a talk. `%{count}` = number of minutes, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_minutes_many?: string;
+  /**
+   * A length in minutes, on a card or under a talk. `%{count}` = number of minutes, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_minutes_other?: string;
+  /**
+   * A length in seconds, for anything under a minute. `%{count}` = number of seconds, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_seconds_one?: string;
+  /**
+   * A length in seconds, for anything under a minute. `%{count}` = number of seconds, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_seconds_few?: string;
+  /**
+   * A length in seconds, for anything under a minute. `%{count}` = number of seconds, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_seconds_many?: string;
+  /**
+   * A length in seconds, for anything under a minute. `%{count}` = number of seconds, and selects the plural form. Abbreviate — the slot is tiny, and the limit counts `%{count}` itself, so about nine characters are left for your own words.
+   */
+  duration_seconds_other?: string;
+  /**
+   * Button that opens the panel for putting this player on another website.
+   */
+  embed?: string;
+  /**
+   * Heading of that panel when the item has a title. `%{title}` = the item's own title. Use the quotation marks your language uses.
+   */
+  embed_title?: string;
+  /**
+   * Heading of that panel when the item has no title.
+   */
+  embed_player?: string;
+  /**
+   * Button that copies the embed code to the clipboard.
+   */
+  copy?: string;
+  /**
+   * Replaces `copy` for a moment after the code is copied.
+   */
+  copied?: string;
+}
+export interface WmWebTranslationsMediaA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the button that starts playback.
+   */
+  play?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the same button during playback.
+   */
+  pause?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that goes back to the previous track.
+   */
+  previous_track?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that skips to the next track.
+   */
+  next_track?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that turns random order on or off.
+   */
+  toggle_shuffle?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that silences the player.
+   */
+  mute?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the same button once the player is silenced.
+   */
+  unmute?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the player's volume slider.
+   */
+  volume?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the play button on a card. `%{title}` = that item's own title.
+   */
+  play_item?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that opens an image full screen, when the image has no caption.
+   */
+  view_image?: string;
+  /**
+   * Not shown on screen; read by screen readers. The same button when the image has a caption. `%{alt}` = that caption, which the editor writes.
+   */
+  view_image_alt?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the box holding the embed code.
+   */
+  embed_code?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that enlarges an image in the full-screen viewer.
+   */
+  zoom_in?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that shrinks an image in the full-screen viewer.
+   */
+  zoom_out?: string;
+}
+export interface WmWebTranslationsVideoGeneralStrings {
+  /**
+   * Tooltip on the video player's play button while the video is paused. It also names that button for screen readers.
+   */
+  play?: string;
+  /**
+   * Tooltip on the same button while the video is playing.
+   */
+  pause?: string;
+  /**
+   * Tooltip on the video player's sound button while the video can be heard. It also names that button for screen readers.
+   */
+  mute?: string;
+  /**
+   * Tooltip on the same button while the video is silenced.
+   */
+  unmute?: string;
+  /**
+   * Tooltip on the video player's settings button, which opens the gear menu.
+   */
+  settings?: string;
+  /**
+   * Tooltip on the video player's subtitles button while subtitles are showing.
+   */
+  closed_captions_on?: string;
+  /**
+   * Tooltip on the same button while subtitles are hidden.
+   */
+  closed_captions_off?: string;
+  /**
+   * Tooltip on the video player's button that jumps forward a few seconds.
+   */
+  seek_forward?: string;
+  /**
+   * Tooltip on the video player's button that jumps back a few seconds.
+   */
+  seek_backward?: string;
+  /**
+   * Tooltip on the video player's button that pops the video out into a small floating window.
+   */
+  enter_pip?: string;
+  /**
+   * Tooltip on the same button while the video already plays in that floating window.
+   */
+  exit_pip?: string;
+  /**
+   * Tooltip on the video player's button that makes the video fill the screen.
+   */
+  enter_fullscreen?: string;
+  /**
+   * Tooltip on the same button while the video already fills the screen.
+   */
+  exit_fullscreen?: string;
+  /**
+   * Video settings menu: the row that lists the subtitle tracks this video offers.
+   */
+  captions?: string;
+  /**
+   * Video settings menu: the row that lists the picture qualities this video offers.
+   */
+  quality?: string;
+  /**
+   * Video settings menu: the row that sets how fast the video plays.
+   */
+  speed?: string;
+  /**
+   * Video settings menu: the row holding the sound options.
+   */
+  audio?: string;
+  /**
+   * Video settings menu: the row that lists the audio tracks this video offers.
+   */
+  track?: string;
+  /**
+   * Video settings menu: the slider that raises the volume past its normal maximum.
+   */
+  boost?: string;
+  /**
+   * Video settings menu: the row holding the screen-reader and keyboard options.
+   */
+  accessibility?: string;
+  /**
+   * Video settings menu: the switch that lets a screen reader announce playback changes.
+   */
+  announcements?: string;
+  /**
+   * Video settings menu: the switch that flashes an icon when a keyboard shortcut fires.
+   */
+  keyboard_animations?: string;
+  /**
+   * Video settings menu: the quality option that lets the player choose for itself.
+   */
+  auto?: string;
+  /**
+   * Video settings menu: the audio track the video ships with.
+   */
+  default?: string;
+  /**
+   * Video settings menu: the speed option that plays the video as recorded.
+   */
+  normal?: string;
+  /**
+   * Video settings menu: the subtitle option that shows no subtitles.
+   */
+  off?: string;
+  /**
+   * Video settings menu: the row that opens the subtitle appearance options.
+   */
+  caption_styles?: string;
+  /**
+   * Sample sentence in the subtitle appearance options, so the viewer sees each choice applied.
+   */
+  captions_look_like_this?: string;
+  /**
+   * Subtitle appearance options: the heading above the lettering choices.
+   */
+  font?: string;
+  /**
+   * Subtitle appearance options: the typeface the subtitles use.
+   */
+  family?: string;
+  /**
+   * Subtitle appearance options: how large the subtitle lettering is.
+   */
+  size?: string;
+  /**
+   * Subtitle appearance options: the heading above the subtitle lettering's own colour and opacity.
+   */
+  text?: string;
+  /**
+   * Subtitle appearance options: the heading above the band drawn behind the lettering.
+   */
+  text_background?: string;
+  /**
+   * Subtitle appearance options: the heading above the panel drawn behind the whole subtitle area.
+   */
+  display_background?: string;
+  /**
+   * Subtitle appearance options: the colour of the part its heading names. It appears under three headings.
+   */
+  color?: string;
+  /**
+   * Subtitle appearance options: how see-through the part its heading names is. It appears under three headings.
+   */
+  opacity?: string;
+  /**
+   * Subtitle appearance options: the shadow drawn behind the subtitle lettering.
+   */
+  shadow?: string;
+  /**
+   * Button that puts every subtitle appearance option back to its starting value.
+   */
+  reset?: string;
+}
+export interface WmWebTranslationsVideoA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the video player's fullscreen button.
+   */
+  fullscreen?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the video player's button that pops the video into a small floating window.
+   */
+  pip?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the video player's progress bar, which scrubs through the video.
+   */
+  seek?: string;
+}
+export interface WmWebTranslationsLocationGeneralStrings {
+  /**
+   * Shown in the empty search box, before the visitor types a place.
+   */
+  search_placeholder?: string;
+  /**
+   * Button that clears the chosen place and reopens the search box.
+   */
+  change?: string;
+  /**
+   * Shown while the site looks up the exact position of the place just chosen.
+   */
+  getting_coordinates?: string;
+  /**
+   * Shown while place suggestions are being fetched.
+   */
+  searching?: string;
+  /**
+   * Hint in the empty suggestion list, inviting the visitor to start typing.
+   */
+  type_to_search?: string;
+  /**
+   * Shown when no place matches what the visitor typed.
+   */
+  no_results?: string;
+  /**
+   * Error shown when the place suggestions cannot be fetched.
+   */
+  suggestions_failed?: string;
+  /**
+   * Error shown when the position of the chosen place cannot be fetched.
+   */
+  coordinates_failed?: string;
+  /**
+   * The option that searches around the visitor's own position instead of a typed place.
+   */
+  nearby?: string;
+  /**
+   * Shown while the browser is working out where the visitor is.
+   */
+  getting_location?: string;
+  /**
+   * Stands in for a place name once the visitor's own position is used.
+   */
+  current_location?: string;
+  /**
+   * Error shown when the visitor's browser cannot report a position at all.
+   */
+  geolocation_unsupported?: string;
+  /**
+   * Error shown when the visitor refused the browser's request for their position.
+   */
+  permission_denied?: string;
+  /**
+   * Error shown when the browser tried but could not work out a position.
+   */
+  position_unavailable?: string;
+  /**
+   * Error shown when working out the visitor's position took too long.
+   */
+  timed_out?: string;
+  /**
+   * Error shown when finding the visitor's position failed for some other reason.
+   */
+  location_failed?: string;
+}
+export interface WmWebTranslationsLocationA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the place-search input.
+   */
+  search_label?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the box showing the place already chosen.
+   */
+  selected_label?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that changes the chosen place.
+   */
+  change_label?: string;
+}
+export interface WmWebTranslationsBlocksGeneralStrings {
+  /**
+   * Tab of the subtle-system diagram showing the energy centres. A Sanskrit term — keep it if your language uses it.
+   */
+  chakras?: string;
+  /**
+   * Tab of the subtle-system diagram showing the energy channels.
+   */
+  channels?: string;
+  /**
+   * Link from a chakra or channel to its full explanation. Keep the trailing arrow.
+   */
+  learn_more?: string;
+  /**
+   * Label under the hours figure of a countdown.
+   */
+  hours?: string;
+  /**
+   * Label under the minutes figure of a countdown.
+   */
+  minutes?: string;
+  /**
+   * Label under the seconds figure of a countdown.
+   */
+  seconds?: string;
+}
+export interface WmWebTranslationsBlocksA11YStrings {
+  /**
+   * Not shown on screen; read by screen readers. Names the button that opens the subtle-system diagram full screen.
+   */
+  enter_fullscreen?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the same button while the diagram fills the screen.
+   */
+  exit_fullscreen?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the "Learn More" link. `%{title}` = the chakra or channel it leads to.
+   */
+  learn_more_about?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that goes back one slide in a carousel.
+   */
+  previous_slide?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that advances one slide in a carousel.
+   */
+  next_slide?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that scrolls to the previous column. `%{title}` = that column's heading.
+   */
+  previous_column?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the button that scrolls to the next column. `%{title}` = that column's heading.
+   */
+  next_column?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names a dot that jumps to one column. `%{number}` = its position, `%{title}` = its heading.
+   */
+  go_to_column?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names a pull-quote block that carries no heading.
+   */
+  quote?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the in-page contents list when it carries no heading.
+   */
+  table_of_contents?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the whole sharing area at the end of a page.
+   */
+  share_region?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names the row of sharing buttons inside that area.
+   */
+  share_group?: string;
+  /**
+   * Not shown on screen; read by screen readers. Names one sharing button. `%{platform}` = the network's own name, untranslated.
+   */
+  share_on?: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5310,6 +5940,30 @@ export interface WmWebTranslationsErrorsStrings {
  */
 export interface WmAppConfig {
   id: number;
+  /**
+   * Languages the WeMeditate app is offered in. Drives the app’s language picker. A language can only be selected once the WeMeditate App translations are published in it — publish that global in the language first. Publishing all locales at once includes empty ones, so publish deliberately.
+   */
+  availableLocales: (
+    | 'en'
+    | 'es'
+    | 'de'
+    | 'it'
+    | 'fr'
+    | 'ru'
+    | 'ro'
+    | 'cs'
+    | 'uk'
+    | 'el'
+    | 'hy'
+    | 'pl'
+    | 'pt-BR'
+    | 'fa'
+    | 'bg'
+    | 'tr'
+    | 'en-AU'
+    | 'hu'
+    | 'nl'
+  )[];
   classesPage: number | Page;
   liveMeditationsPage: number | Page;
   /**
@@ -8036,6 +8690,7 @@ export interface SyAtlasTranslation {
   };
   share?: SyAtlasTranslationsShareStrings;
   compact?: SyAtlasTranslationsCompactStrings;
+  seo?: SyAtlasTranslationsSeoStrings;
   emails?: SyAtlasTranslationsEmailsStrings;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
@@ -8905,6 +9560,16 @@ export interface SyAtlasTranslationsCompactStrings {
    */
   open?: string;
 }
+export interface SyAtlasTranslationsSeoStrings {
+  /**
+   * `<title>` for the atlas landing page, e.g. "Free Meditation Classes". A result page shows roughly 60 characters.
+   */
+  root_title?: string;
+  /**
+   * `<meta name="description">` for the atlas landing page — one or two sentences about what a visitor finds there. Seeded in all ten locales. Blank in a locale, the endpoint sends no description there rather than an English one, and the host writes its own.
+   */
+  root_description?: string;
+}
 export interface SyAtlasTranslationsEmailsStrings {
   /**
    * Subject line of the registration confirmation email. `%{event}` = event title.
@@ -9091,11 +9756,74 @@ export interface WmWebConfigSelect<T extends boolean = true> {
  * via the `definition` "wm-web-translations_select".
  */
 export interface WmWebTranslationsSelect<T extends boolean = true> {
-  common?: T;
+  common?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
   navigation?: T;
   footer?: T;
-  page_tags?: T;
-  errors?: T;
+  errors?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  article?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  meditation?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  lecture?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  map?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  forms?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  media?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  video?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  location?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
+  blocks?:
+    | T
+    | {
+        general?: T;
+        a11y?: T;
+      };
   _status?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -9106,6 +9834,7 @@ export interface WmWebTranslationsSelect<T extends boolean = true> {
  * via the `definition` "wm-app-config_select".
  */
 export interface WmAppConfigSelect<T extends boolean = true> {
+  availableLocales?: T;
   classesPage?: T;
   liveMeditationsPage?: T;
   explorePage?: T;
@@ -9318,6 +10047,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
       };
   share?: T;
   compact?: T;
+  seo?: T;
   emails?: T;
   _status?: T;
   updatedAt?: T;
@@ -9365,6 +10095,18 @@ export interface TaskCleanupOrphanedMedia {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskDeliverSubmission".
+ */
+export interface TaskDeliverSubmission {
+  input: {
+    submissionId: number;
+  };
+  output: {
+    status: string;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskExpireEvents".
  */
 export interface TaskExpireEvents {
@@ -9380,38 +10122,28 @@ export interface TaskExpireEvents {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskPurgeUserMessages".
+ * via the `definition` "TaskPurgeSubmissions".
  */
-export interface TaskPurgeUserMessages {
+export interface TaskPurgeSubmissions {
   input: {
     now?: string | null;
+    dryRun?: boolean | null;
   };
   output: {
-    deletedDelivered: number;
-    deletedSpam: number;
+    deletedSubmissions: number;
+    deletedUsers: number;
   };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskScreenEventSubmission".
+ * via the `definition` "TaskScreenSubmission".
  */
-export interface TaskScreenEventSubmission {
+export interface TaskScreenSubmission {
   input: {
     submissionId: number;
   };
   output: {
-    status: string;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskScreenUserMessage".
- */
-export interface TaskScreenUserMessage {
-  input: {
-    messageId: number;
-  };
-  output: {
+    verdict: string;
     status: string;
   };
 }
@@ -9480,6 +10212,8 @@ export interface TaskVerifyEmbeds {
     failed: number;
     inconclusive: number;
     disabled: number;
+    pathPromoted: number;
+    pathDemoted: number;
   };
 }
 /**
