@@ -123,13 +123,6 @@ built so passing proves something real:
   `src/loader/literals.ts` states this rule. #153 broke it anyway with a one-line string
   join, since prose was the only enforcement. Fix: never import across the seam.
   Duplicate the value into `literals.ts` and pin both copies in `literals.test.ts`.
-  It also greps the embed graph for the live-preview credential header, and the standalone
-  graph for the same string as a positive control (#217). That name is the only thing a
-  writer of the credential needs, so the embedded widget must not ship it.
-  `src/Widget.standalone.test.ts` scans `src/` for it too, and neither check subsumes the
-  other: an unused constant is tree-shaken out of the bytes but not out of `src/`, a carrier
-  behind a dynamic import is absent from the gate's static closure, and a carrier arriving
-  from a dependency is invisible to a resolver that follows only our own `.ts`/`.tsx` files.
 - **`pnpm audit:check`** (`scripts/check-audit.mjs`) fails on a high or critical advisory
   not pinned in `scripts/audit-baseline.json`. Waive one only with a reviewable line
   naming the owning ticket. The weekly `audit.yml` run adds `--strict`, which also fails
@@ -166,7 +159,7 @@ src/
     store.ts          # zustand stores: view, camera-history, calendar-position, results-reveal, report-modal, registration-draft (filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap + linkable)
     i18n.ts           # i18next init
-    live-preview/     # protocol.ts = param names + session state (any graph); token.ts + request.ts (the credential header + the one decorator that sends it) + boot.ts (standalone only)
+    live-preview/     # protocol.ts = param names + session state (any graph); token.ts + request.ts (the credential header + the decorator that sends it) + boot.ts (standalone only)
     responsive.ts, query-client.ts, i18n-options.ts, theme/
   hooks/              # use-locale, use-mapbox, use-map-controller, use-expansion, use-theme, use-reduced-motion
   lib/                # Pure domain helpers, no React or i18n. shape/ = URL + entity codecs

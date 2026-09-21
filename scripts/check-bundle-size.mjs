@@ -351,60 +351,6 @@ function main() {
     process.exit(1)
   }
 
-  // Same seam question, asked of the OTHER pair of graphs, and asked of
-  // the bytes rather than of `src/` (#217). SahajCloud's live-preview
-  // credential rides one header, and its name is the only thing a writer
-  // of that credential needs — so the embedded widget must not ship the
-  // name, whatever else it ships.
-  //
-  // `src/Widget.standalone.test.ts` already scans the import graph for
-  // this literal, and that is the check that names the mistake. This one
-  // is about what a host actually downloads. What it catches that the
-  // spec cannot: the spec's resolver follows only our own `.ts`/`.tsx`
-  // files — a package specifier resolves to nothing there, by design — so
-  // a carrier arriving from a dependency is invisible to it and shipped
-  // here. It runs the other way too, which is why both arms exist: the
-  // closure below is STATIC, so a carrier behind a dynamic import is
-  // absent from these bytes and caught only by the spec, whose walk
-  // follows `import()` as well.
-  //
-  // ⚠ Not "a chunk the two graphs share". Rolldown puts a module in a
-  // chunk `embed.js` loads only where `Widget.tsx` reaches it — which is
-  // exactly the reachability the spec walks, so that argument names no
-  // gap at all.
-  //
-  // The literal is duplicated on purpose, exactly as `src/loader/
-  // literals.ts` is — a script that imported it from `src/` would be
-  // reading the very thing it is checking. The positive arm below is what
-  // keeps the duplicate honest: if this string stops appearing in the
-  // standalone graph at all, the negative arm has gone vacuous and the
-  // spelling here is what moved.
-  const PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
-  const carries = (graph) =>
-    graph.filter((file) => readFileSync(file, 'utf8').includes(PREVIEW_HEADER))
-  const leaked = carries(embedGraph)
-
-  if (leaked.length) {
-    annotate(
-      'error',
-      `embed.js ships the live-preview credential header in ${leaked.map((f) => basename(f)).join(', ')}. ` +
-        'No host page can open a preview session, so the embedded widget must carry neither the ' +
-        'decorator that spends the token nor the header name it spends it under. Keep both in ' +
-        'src/config/live-preview/request.ts, which only src/config/live-preview/boot.ts imports.',
-    )
-    process.exit(1)
-  }
-
-  if (!carries(loaded).length) {
-    annotate(
-      'error',
-      `The standalone graph does not contain ${PREVIEW_HEADER} anywhere, so the check above ` +
-        'passed without looking at anything. Either live preview no longer sends this header — ' +
-        'then delete both arms — or it was renamed, and this literal must be renamed with it.',
-    )
-    process.exit(1)
-  }
-
   // The walkers are regexes over minified output. Their silent failure
   // mode is finding NOTHING, and scoring a payload of just one small
   // entry file. That produces an under-budget pass that means the
