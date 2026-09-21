@@ -2,6 +2,7 @@
 description: API/data layer — typed PayloadSDK client, zod-checked fetchers, TanStack Query.
 paths:
   - 'src/config/api/**/*.ts'
+  - 'src/config/live-preview/request.ts'
   - 'src/types/**/*.ts'
 ---
 

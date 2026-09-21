@@ -30,12 +30,8 @@ export type RequestDecorator = (url: URL, headers: Headers) => void
 let requestDecorator: RequestDecorator | null = null
 
 /**
- * Registers the live-preview decorator, or clears it with `null`.
- *
- * ⚠ **Standalone-only, and unenforced here.** `config/live-preview/request.ts` holds the
- * decorator and is absent from the widget entry's import graph, which is what actually keeps
- * the credential out of a host page. `Widget.standalone.test.ts` asserts that; this slot is
- * only where the standalone half puts it back, after `boot.ts` has verified the signature.
+ * ⚠ **Standalone-only, and nothing here enforces that.** The widget entry's graph simply cannot
+ * reach `config/live-preview/request.ts`; `Widget.standalone.test.ts` is what holds that line.
  */
 export const setPreviewRequestDecorator = (decorator: RequestDecorator | null): void => {
   requestDecorator = decorator
@@ -45,8 +41,8 @@ export const setPreviewRequestDecorator = (decorator: RequestDecorator | null): 
  * This is the cross-cutting request context applied to every SahajCloud request.
  * It is the SDK equivalent of the old single axios interceptor.
  * It attaches API-key auth and the active locale to every call.
- * Anything a host page may not send rides the decorator above instead — today the live-preview token header and `draft=true`, issue #40, which unlock draft documents and bypass the CMS read cache.
- * A published-only read ignores `draft` harmlessly. The token only ever rides a request made inside a session whose signature already held.
+ * Anything a host page may not send rides the decorator above instead — today the live-preview token header and `draft=true`, issue #40.
+ * The token only ever rides a request made inside a session whose signature already held.
  * This mutates the passed `url` and `headers`, and does no IO.
  * So it is unit-testable without a network round trip.
  *
@@ -65,10 +61,10 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)
   }
 
-  // Last, after auth and locale, so a decorator can read what they set.
-  // ⚠ **Unregistered, this is a silent no-op** — which is exactly what the embedded widget
-  // wants, and a trap for a standalone session whose registration is dropped: it would preview
-  // published content and say nothing. `config/live-preview/boot.ts` is the one registrar.
+  // Last, so a decorator can read what auth and locale set.
+  // ⚠ **Empty, this is a silent no-op** — right for the embedded widget, and a trap for a
+  // standalone session whose registration is dropped: it previews published content and says
+  // nothing.
   requestDecorator?.(url, headers)
 }
 

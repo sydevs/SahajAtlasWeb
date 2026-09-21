@@ -16,11 +16,10 @@
  * reader that builds a session out of a URL lives in `boot.ts`, because a widget that never
  * boots a preview has no use for it, and a module in a shared chunk is carried whole.
  *
- * ⚠ **A NAME is behaviour too, once it is the only thing a writer needs.** The header the
- * credential rides in lived here until #217, and shipped to every host page with it. It is in
- * `request.ts` now, beside the one decorator that sets it. What stays here selects restraints
- * — `App` and `RegistrationForm` read the session to decide what to inert — and a restraint is
- * not the credential.
+ * ⚠ **A NAME is behaviour too, once it is the only thing a writer needs**, so the credential's
+ * header is in `request.ts` and not here (#217). What stays here selects restraints — `App`
+ * and `RegistrationForm` read the session to decide what to inert — and a restraint is not the
+ * credential.
  *
  * ⚠ **The other three are standalone-only, and that line is what keeps them there.** The
  * embedded `<sahaj-atlas>` element must carry no verification, no `history.replaceState`, and

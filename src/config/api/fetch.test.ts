@@ -41,10 +41,8 @@ beforeEach(() => {
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
-  // ⚠ **The REAL decorator, the one `boot.ts` registers — never a stand-in.** The credential no
-  // longer branches inside `applyRequestContext` (#217), so a suite that leaves the slot empty
-  // is asserting an absence: every header expectation below would pass against a seam that
-  // never fires, and the two that expect `null` would pass for the wrong reason entirely.
+  // ⚠ **The REAL decorator, never a stand-in** (#217). With the slot empty, every header
+  // expectation below passes against a seam that never fires.
   setPreviewRequestDecorator(previewRequestDecorator)
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
@@ -136,7 +134,6 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     const { url, headers } = context()
 
     expect(headers.get('x-sahajcloud-preview-secret')).toBeNull()
-    expect(url.searchParams.get('draft')).toBeNull()
     expect([...headers.keys()]).toEqual(['authorization'])
     expect(url.search).toBe('?locale=fr')
   })

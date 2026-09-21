@@ -5,12 +5,9 @@ import livePreview from './protocol'
 /**
  * Live preview: the credential on the wire, standalone-only.
  *
- * ⚠ **This module exists to be absent from the embedded graph.** `protocol.ts` is in both
- * graphs, so a header name or a writer of it left there ships to every host page — which is
- * what the embedded `<sahaj-atlas>` element carried until #217. No host page can open a
- * session (`Widget.standalone.test.ts` closes the writer list to `boot.ts`), so it must not
- * carry the code that would spend one either. `Widget.standalone.test.ts` asserts both halves:
- * the graph walk, and a scan for the literal below.
+ * ⚠ **This module exists to be absent from the embedded graph** (#217) — both the name below
+ * and the one writer of it, since a writer needs nothing else. `Widget.standalone.test.ts`
+ * asserts both halves, and `pnpm size` asserts the same of the shipped bytes.
  */
 
 /**
@@ -26,13 +23,12 @@ import livePreview from './protocol'
 export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 
 /**
- * Attaches the session credential and `draft=true`. `boot.ts` registers it once the signature
- * holds, and `applyRequestContext` calls it last.
+ * Attaches the session credential and `draft=true`, for the slot in `config/api/client.ts`.
  *
  * ⚠ **`active` is the gate, and it is only ever true once the token has been VERIFIED.**
  * A stashed-but-unproven token must send nothing: this is the one place a forged parameter
- * would reach SahajCloud. The gate stays INSIDE the decorator rather than at the registration
- * site, so the seam fails closed on its own. See `config/live-preview/boot.ts`.
+ * would reach SahajCloud. The gate stays here rather than at the registration site, so the
+ * seam fails closed whoever installs it. See `config/live-preview/boot.ts`.
  */
 export const previewRequestDecorator: RequestDecorator = (url, headers) => {
   if (livePreview.active && livePreview.token) {

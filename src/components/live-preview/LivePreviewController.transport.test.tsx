@@ -123,9 +123,8 @@ beforeEach(() => {
   atlasAuth.apiKey = 'test-key'
   livePreview.active = true
   livePreview.token = 'verified-token'
-  // ⚠ **The REAL decorator, as `boot.ts` registers it.** Setting the session no longer arms the
-  // credential on its own (#217), so without this the header assertion below asserts an
-  // absence and stays green against a seam that never fires.
+  // ⚠ **The REAL decorator** — setting the session no longer arms the credential on its own
+  // (#217), so without this the header assertion below stays green against a dead seam.
   setPreviewRequestDecorator(previewRequestDecorator)
 })
 
