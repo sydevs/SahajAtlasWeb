@@ -461,6 +461,44 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents[0].eventType).toBe('online')
   })
 
+  // A region list has no ranking of its own, so moving unverified listings to the end
+  // costs nothing and the feed order inside each group survives. The ids are
+  // deliberately out of order: an assertion on a sorted-looking list could not tell a
+  // stable partition from a sort by id.
+  it('lists a leaf city verified-first, feed order preserved inside each group', async () => {
+    const city = {
+      id: 470,
+      slug: 'brussels',
+      level: 'city',
+      name: 'Brussels',
+      parent: 28,
+      webPath: '/belgium/brussels',
+    }
+    const leafFeed = [
+      feature({ id: 30, regionId: 470, slug: 'brussels', coordinates: [4.35, 50.85] }),
+      feature({
+        id: 12,
+        regionId: 470,
+        slug: 'brussels',
+        coordinates: [4.36, 50.86],
+        verificationStage: 'unverified',
+      }),
+      feature({ id: 21, regionId: 470, slug: 'brussels', coordinates: [4.37, 50.87] }),
+      feature({
+        id: 5,
+        regionId: 470,
+        slug: 'brussels',
+        coordinates: [4.38, 50.88],
+        verificationStage: 'unverified',
+      }),
+    ]
+
+    mockBackend(leafFeed, [city])
+
+    const region = await api.getRegion('brussels')
+
+    expect(region.events.map((event) => event.id)).toEqual([30, 21, 12, 5])
+  })
 })
 
 describe('getEvent', () => {

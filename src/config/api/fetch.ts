@@ -42,6 +42,7 @@ import {
   resolveImageUrl,
   safePath,
   todayISO,
+  verifiedFirst,
 } from '@/lib/shape'
 import {
   AtlasConfigSchema,
@@ -489,7 +490,10 @@ const getRegion = async (slug: string): Promise<Region> => {
     // These are located events directly under this region.
     // For a leaf, these are its own events.
     // A parent region usually has none. A viewer reaches a child's events through the child's card instead.
-    events: direct.map(nest),
+    // Feed order otherwise, with unverified listings moved to the end. `onlineEvents`
+    // below keeps its soonest-first ordering instead: that one is a real ranking, and
+    // a partition would override it the way it would override `?sort=soonest`.
+    events: verifiedFirst(direct.map(nest)),
     // These are placeless online events under the region, ordered by soonest next occurrence.
     onlineEvents: online.map(nest).sort(byNextOccurrence),
   })

@@ -18,6 +18,7 @@ import {
   byNextOccurrence,
   hasActiveFilters,
   isOnline,
+  isUnverified,
   nextOccurrence,
   revealKey,
   revealRows,
@@ -51,6 +52,10 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
   if (language != languageCode) order *= 2
   if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
   if (online) order *= 1.5
+  // One more factor, not a partition: an unverified listing loses ground to an
+  // otherwise-identical verified one while distance and language still decide the
+  // list. A partition would outrank both, which is the opposite of subtle.
+  if (isUnverified(event)) order *= 1.5
 
   return order
 }
@@ -68,7 +73,7 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
 // `?sort=soonest` mean "soonest among the 50 nearest," and it re-ranked
 // `recommended` over an arbitrary subset. The order of operations is filter,
 // then sort, then segment, then slice. `revealRows` owns the last two steps.
-function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
+export function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
   switch (order) {
     case 'closest':
       return [...events].sort(byDistance)
