@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
+import { Alert } from '@/components/atoms/Alert'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { lexicalToHtml } from '@/lib/shape'
+import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -81,6 +82,17 @@ export function EventDetails({
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-6 pt-2 ${hasImages ? '' : 'pb-10'}`}>
+      {/* Event page only. The chips below render on the list card too, so a chip
+          there would badge the surface this deliberately leaves alone. */}
+      {isUnverified(event) && (
+        <Alert
+          description={t('event.display.unverified_note')}
+          size="sm"
+          title={t('event.display.unverified_title')}
+          variant="flat"
+        />
+      )}
+
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. The chips are a short row. The container's `gap-4` and
           the facts' own `my-2` add extra space before the facts. The `-mb-2`

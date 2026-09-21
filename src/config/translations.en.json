@@ -129,7 +129,9 @@
       "type_class_monthly": "Monthly class",
       "type_class_weekly": "Weekly class",
       "type_course": "Course",
-      "type_oneoff": "One-off event"
+      "type_oneoff": "One-off event",
+      "unverified_note": "This listing has not been verified by a local coordinator yet.",
+      "unverified_title": "Unverified listing"
     },
     "recurrence": {
       "daily": "Every Day",
