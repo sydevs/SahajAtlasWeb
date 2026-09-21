@@ -730,8 +730,6 @@ export function buildReportContext({
 export type ReportPayload = {
   form: number
   answers: Record<string, string>
-  /** The first textarea answer, repeated under the one key delivery renders. See `reportMessage`. */
-  message?: string
   /** The `Reply-To` address, when the form asked for one and the viewer filled it in. */
   senderEmail?: string
   turnstileToken: string

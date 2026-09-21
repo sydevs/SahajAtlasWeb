@@ -14,7 +14,7 @@ export type ReportValues = Record<string, string | boolean>
  * ⚠ **Authored names never reach react-hook-form.** A name is operator-typed, and RHF reads `.`
  * and `[]` in one as a PATH, so a field called `user.email` would register a nested object and
  * come back undefined at submit. The index is ours, so it can carry neither character. The
- * authored name is re-attached in `reportAnswers`, which is what the CMS matches on.
+ * authored name is re-attached in `reportAnswers`, which is what SahajCloud matches on.
  */
 export const fieldKey = (index: number): string => `f${index}`
 
@@ -110,32 +110,6 @@ export const reportAnswers = (
       field.blockType === 'message' ? [] : [[field.name, String(values[fieldKey(index)] ?? '')]],
     ),
   )
-
-/**
- * The first authored `textarea` answer, sent as `message`.
- *
- * ⚠ **`message` is the only key that reaches the recipient.** SahajCloud's delivery job renders
- * the email body from `readSubmissionValue(submissionData, 'message')` and rebuilds its context
- * block from five fixed keys (`deliverContact.ts`, `submissionContext.ts`). Every other authored
- * answer reaches the row and stops there. The operator names their own fields, and nothing on
- * either side pins one, so without this the email is blank unless someone happens to type
- * `message`. The answer still travels under its authored name in `reportAnswers`, and
- * `sendReport` lets that copy win the collision — a form that did author `message` keeps its own.
- *
- * Rendering the authored pairs into the email instead is SahajCloud's half of #216.
- */
-export const reportMessage = (
-  fields: ReportFormField[],
-  values: ReportValues,
-): string | undefined => {
-  const index = fields.findIndex((field) => field.blockType === 'textarea')
-
-  if (index === -1) return undefined
-
-  const value = values[fieldKey(index)]
-
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
 
 /**
  * The address a reply goes to: the first authored `email` block, if it was filled in.

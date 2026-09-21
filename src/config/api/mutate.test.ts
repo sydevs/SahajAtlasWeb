@@ -309,44 +309,11 @@ describe('sendReport', () => {
 
     const [options] = sdk.request.mock.calls[0]
 
-    // The CMS allows exactly the authored names plus the base and `contact` keys, and 400s an
+    // SahajCloud allows exactly the authored names plus the base and `contact` keys, and 400s an
     // unknown one naming it. So a renamed or dropped answer loses the whole report.
     expect(pair(options.json, 'message')).toBe('Wrong address.')
     expect(pair(options.json, 'how-urgent')).toBe('today')
     expect(pair(options.json, 'consent')).toBe('true')
-  })
-
-  it('sends the prose as `message` however the operator named the field', async () => {
-    sdk.request.mockResolvedValue(jsonResponse(created))
-
-    await mutate.sendReport({
-      ...report,
-      answers: { 'what-went-wrong': 'The map is wrong.' },
-      message: 'The map is wrong.',
-    })
-
-    const [options] = sdk.request.mock.calls[0]
-
-    // `deliverContact` reads `message` and nothing else for the email body, and rebuilds its
-    // context block from five fixed keys. Without this pair the recipient gets a blank email
-    // while the sender is shown the thank-you screen.
-    expect(pair(options.json, 'message')).toBe('The map is wrong.')
-    // The answer still reaches the row under the question the operator actually asked.
-    expect(pair(options.json, 'what-went-wrong')).toBe('The map is wrong.')
-  })
-
-  it('lets an authored `message` field win over the prose we derive', async () => {
-    sdk.request.mockResolvedValue(jsonResponse(created))
-
-    await mutate.sendReport({
-      ...report,
-      answers: { message: 'the authored answer' },
-      message: 'the first textarea',
-    })
-
-    // A form that names a field `message` already puts its own answer under that key. Ours must
-    // not overwrite it — the operator's second textarea is not the one they chose to deliver.
-    expect(pair(sdk.request.mock.calls[0][0].json, 'message')).toBe('the authored answer')
   })
 
   it('keeps our own context when an authored field claims the same name', async () => {
