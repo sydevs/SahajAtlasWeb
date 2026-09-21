@@ -4,19 +4,24 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { LIVE_PREVIEW_HEADER } from './config/live-preview/request'
+
 /**
  * What the embedded `<sahaj-atlas>` element is not allowed to reach.
  *
  * Live preview was safe by accident until now: capture only fired when the pathname was
  * `/preview`, so wiring it into the widget would have been visibly pointless. That gate is
- * gone — a token on any URL opens a session — and nothing structural replaced it. The two
- * standalone-only modules would both misbehave inside a host page, and neither would say so:
+ * gone — a token on any URL opens a session — and nothing structural replaced it. The three
+ * standalone-only modules would all misbehave inside a host page, and none would say so:
  *
  * - **`config/live-preview/boot.ts`** rewrites `window.location`. Embedded, that URL is the
  *   HOST's, and the widget would be rewriting a URL it does not own — in their address bar, on
  *   their analytics, in their `document.referrer`, in whatever their page does with `location`.
  * - **`config/live-preview/token.ts`** is bytes the widget has no use for, in a graph with a
  *   hard budget and single-digit KiB spare.
+ * - **`config/live-preview/request.ts`** spends the credential. No host page can open a
+ *   session — the writer list below closes that — so it must not carry the code that would
+ *   use one, nor the header name a writer would need (#217).
  *
  * ⚠ **This walks the real import graph, static AND dynamic.** A `lazy(() => import(…))` is
  * still the widget reaching it, just later — and the size gate cannot see this class of
@@ -94,7 +99,17 @@ function importGraph(entry: string): Set<string> {
 }
 
 /** The modules only the standalone entry may reach. */
-const STANDALONE_ONLY = ['config/live-preview/boot.ts', 'config/live-preview/token.ts']
+const STANDALONE_ONLY = [
+  'config/live-preview/boot.ts',
+  'config/live-preview/token.ts',
+  'config/live-preview/request.ts',
+]
+
+/** Which of a set of modules contain a string, in code rather than in a comment about it. */
+const carrying = (modules: Iterable<string>, literal: string) =>
+  [...modules].filter((module) =>
+    stripComments(readFileSync(join(SRC, module), 'utf8')).includes(literal),
+  )
 
 describe('the widget entry', () => {
   const widgetGraph = importGraph(join(SRC, 'Widget.tsx'))
@@ -112,6 +127,20 @@ describe('the widget entry', () => {
     // live-preview module. Without this they would pass just as happily against a broken
     // resolver that found nothing at all.
     expect(widgetGraph).toContain('config/live-preview/protocol.ts')
+  })
+
+  it('spells the preview header name in no module it can reach', () => {
+    // The graph walk above is about behaviour. This is about the WIRE NAME, which is the half
+    // that keeps coming back: a writer needs nothing else, so a constant parked in a shared
+    // module re-arms the whole problem while every import assertion stays green (#217).
+    //
+    // The literal is read off the real constant, not typed here, so a rename cannot quietly
+    // make this scan look at a string nothing uses.
+    expect(carrying(widgetGraph, LIVE_PREVIEW_HEADER)).toEqual([])
+  })
+
+  it('finds that name where it does live, or the scan above proves nothing', () => {
+    expect(carrying(SOURCES, LIVE_PREVIEW_HEADER)).toEqual(['config/live-preview/request.ts'])
   })
 })
 
@@ -157,6 +186,23 @@ describe('the live-preview boot module', () => {
     // automatically wrong — but it is always a decision somebody has to make deliberately,
     // and this is where they are asked to make it.
     expect(importers).toEqual(['main.tsx'])
+  })
+})
+
+describe('the live-preview request decorator', () => {
+  const importers = SOURCES.filter((path) =>
+    specifiers(readFileSync(join(SRC, path), 'utf8')).some(
+      (specifier) =>
+        resolveModule(specifier, join(SRC, path)) === join(SRC, 'config/live-preview/request.ts'),
+    ),
+  )
+
+  it('is imported by the boot module and by nothing else', () => {
+    // The same closed list, one hop further out. `boot.ts` registers the decorator after the
+    // signature holds, and `applyRequestContext` reaches it through a slot rather than an
+    // import — so an importer appearing here is someone re-attaching the credential by hand,
+    // in a graph that may not be the standalone one.
+    expect(importers).toEqual(['config/live-preview/boot.ts'])
   })
 })
 

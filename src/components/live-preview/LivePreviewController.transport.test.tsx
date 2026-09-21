@@ -9,12 +9,13 @@ import { LivePreviewController } from './LivePreviewController'
 
 import { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
+import { setPreviewRequestDecorator } from '@/config/api/client'
 import livePreview, {
   LIVE_PREVIEW_COLLECTION,
-  LIVE_PREVIEW_HEADER,
   LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PATH,
 } from '@/config/live-preview/protocol'
+import { LIVE_PREVIEW_HEADER, previewRequestDecorator } from '@/config/live-preview/request'
 import { PREVIEW_EVENT_ID } from '@/lib/live-preview'
 import { mockLeafRegion, mockRegionNodes } from '@/mocks/regions'
 
@@ -122,6 +123,10 @@ beforeEach(() => {
   atlasAuth.apiKey = 'test-key'
   livePreview.active = true
   livePreview.token = 'verified-token'
+  // ⚠ **The REAL decorator, as `boot.ts` registers it.** Setting the session no longer arms the
+  // credential on its own (#217), so without this the header assertion below asserts an
+  // absence and stays green against a seam that never fires.
+  setPreviewRequestDecorator(previewRequestDecorator)
 })
 
 afterEach(() => {
@@ -131,6 +136,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
   atlasAuth.apiKey = null
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
+  setPreviewRequestDecorator(null)
 })
 
 describe('the region arm', () => {

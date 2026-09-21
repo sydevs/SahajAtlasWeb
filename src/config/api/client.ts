@@ -5,7 +5,6 @@ import { PayloadSDK } from '@payloadcms/sdk'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
-import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
 import { atlasError } from '@/lib/report'
 
 // This is the SahajCloud locale for the active UI language.
@@ -19,10 +18,34 @@ export const activeLocale = (): Config['locale'] =>
   (i18n.resolvedLanguage || 'en') as Config['locale']
 
 /**
+ * One request decorator, for context this graph is not allowed to carry.
+ *
+ * ⚠ **A slot, not a list.** Only one will ever exist, and `applyRequestContext` stays the one
+ * place cross-cutting context attaches (`docs/rules/data-layer.md`). A list would make
+ * iteration order an implicit contract, and a named setter keeps "who can spend the preview
+ * credential" a one-hit grep.
+ */
+export type RequestDecorator = (url: URL, headers: Headers) => void
+
+let requestDecorator: RequestDecorator | null = null
+
+/**
+ * Registers the live-preview decorator, or clears it with `null`.
+ *
+ * ⚠ **Standalone-only, and unenforced here.** `config/live-preview/request.ts` holds the
+ * decorator and is absent from the widget entry's import graph, which is what actually keeps
+ * the credential out of a host page. `Widget.standalone.test.ts` asserts that; this slot is
+ * only where the standalone half puts it back, after `boot.ts` has verified the signature.
+ */
+export const setPreviewRequestDecorator = (decorator: RequestDecorator | null): void => {
+  requestDecorator = decorator
+}
+
+/**
  * This is the cross-cutting request context applied to every SahajCloud request.
  * It is the SDK equivalent of the old single axios interceptor.
  * It attaches API-key auth and the active locale to every call.
- * During a VERIFIED live-preview session, issue #40, it also attaches the token header and `draft=true`, to unlock draft documents and bypass the CMS read cache.
+ * Anything a host page may not send rides the decorator above instead — today the live-preview token header and `draft=true`, issue #40, which unlock draft documents and bypass the CMS read cache.
  * A published-only read ignores `draft` harmlessly. The token only ever rides a request made inside a session whose signature already held.
  * This mutates the passed `url` and `headers`, and does no IO.
  * So it is unit-testable without a network round trip.
@@ -42,13 +65,11 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)
   }
 
-  // ⚠ **`active` is the gate, and it is only ever true once the token has been VERIFIED.**
-  // A stashed-but-unproven token must send nothing: this is the one place a forged parameter
-  // would reach SahajCloud. See `config/live-preview/boot.ts`.
-  if (livePreview.active && livePreview.token) {
-    headers.set(LIVE_PREVIEW_HEADER, livePreview.token)
-    url.searchParams.set('draft', 'true')
-  }
+  // Last, after auth and locale, so a decorator can read what they set.
+  // ⚠ **Unregistered, this is a silent no-op** — which is exactly what the embedded widget
+  // wants, and a trap for a standalone session whose registration is dropped: it would preview
+  // published content and say nothing. `config/live-preview/boot.ts` is the one registrar.
+  requestDecorator?.(url, headers)
 }
 
 // This is a `fetch` that runs `applyRequestContext` on every request, before hitting the network.

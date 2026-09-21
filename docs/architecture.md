@@ -86,11 +86,14 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 5. Views drive the camera only through `useMapController()`, never the map
    or a store directly, so map-less mode needs no view-level branching.
 6. Every SahajCloud request carries `Authorization: clients API-Key
-   <apiKey>` and `?locale=<resolved language>`, plus the live-preview token
-   header and `draft=true` during a VERIFIED live-preview session. There is no interceptor: the shared
+   <apiKey>` and `?locale=<resolved language>`. There is no interceptor: the shared
    `PayloadSDK<Config>` wraps `fetch` (`interceptFetch`) to run
    `applyRequestContext` on every call, so auth and locale attach once, never
-   per fetcher. See `docs/rules/data-layer.md`.
+   per fetcher. It ends in one decorator slot, empty in the embedded graph. The
+   standalone build fills it from `config/live-preview/request.ts` once a
+   live-preview token verifies, which is what adds the token header and
+   `draft=true` — the embedded `<sahaj-atlas>` element carries neither that
+   code nor the header's name. See `docs/rules/data-layer.md`.
 
 ## Build & deploy
 

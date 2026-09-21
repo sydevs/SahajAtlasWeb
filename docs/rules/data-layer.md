@@ -36,9 +36,19 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
   keep its `true` literals.
 - Route every request through a custom `fetch` that runs **`applyRequestContext`**.
   It attaches `Authorization: clients API-Key <atlasAuth.apiKey>` and the resolved
-  i18next locale to every call, plus the live-preview token header and `draft=true`
-  during a VERIFIED preview session (#40). It gates on `livePreview.active`, never on a
-  token being present — the stash between capture and verification must send nothing.
+  i18next locale to every call.
+- Anything a host page may not send attaches through the **one decorator slot**
+  `applyRequestContext` calls last — `setPreviewRequestDecorator`, a named slot rather
+  than a list, so iteration order never becomes a contract. Today it holds exactly one
+  decorator: the live-preview token header and `draft=true` (#40), in
+  `config/live-preview/request.ts`, registered by `config/live-preview/boot.ts` once the
+  signature holds. It gates on `livePreview.active` INSIDE the decorator, never on a
+  token being present — the stash between capture and verification must send nothing,
+  and the seam must fail closed on its own rather than trusting who registered it.
+- **The header name lives with the decorator, not in `protocol.ts`** (#217).
+  `protocol.ts` is in both entry graphs, so a constant left there puts the wire name in
+  every host page's bundle — and a writer needs nothing else.
+  `Widget.standalone.test.ts` scans the widget entry's graph for the literal.
 - Never re-attach auth or locale per call — `applyRequestContext` already does it,
   and the apiKey is **late-bound** in the fetch wrapper, not baked into `baseInit`.
 - Use `sdk.find` / `sdk.findByID` for collection reads (typed). Nested `select`,
