@@ -2,6 +2,7 @@
 description: API/data layer — typed PayloadSDK client, zod-checked fetchers, TanStack Query.
 paths:
   - 'src/config/api/**/*.ts'
+  - 'src/config/live-preview/request.ts'
   - 'src/types/**/*.ts'
 ---
 
@@ -36,9 +37,21 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
   keep its `true` literals.
 - Route every request through a custom `fetch` that runs **`applyRequestContext`**.
   It attaches `Authorization: clients API-Key <atlasAuth.apiKey>` and the resolved
-  i18next locale to every call, plus the live-preview token header and `draft=true`
-  during a VERIFIED preview session (#40). It gates on `livePreview.active`, never on a
-  token being present — the stash between capture and verification must send nothing.
+  i18next locale to every call.
+- Anything a host page may not send attaches through **`livePreview.decorateRequest`**,
+  which `applyRequestContext` calls last. One field, not a list, so iteration order never
+  becomes a contract. It holds exactly one decorator: the live-preview token header and
+  `draft=true` (#40), from `config/live-preview/request.ts`, hung off the session by
+  `config/live-preview/boot.ts` once the signature holds. It gates on `livePreview.active`
+  INSIDE the decorator, never on a token being present — the stash between capture and
+  verification must send nothing, and the seam must fail closed on its own rather than
+  trusting who installed it.
+- **The header name lives with the decorator, not in `protocol.ts`** (#217).
+  `protocol.ts` is in both entry graphs, so a constant left there puts the wire name in
+  every host page's bundle — and a writer needs nothing else. The session carries only a
+  reference to that module's function, and the type the field is declared with is erased.
+  `Widget.standalone.test.ts` scans the widget entry's graph for the literal, and pins the
+  session's writer list, which is what stops widget-graph code filling the field itself.
 - Never re-attach auth or locale per call — `applyRequestContext` already does it,
   and the apiKey is **late-bound** in the fetch wrapper, not baked into `baseInit`.
 - Use `sdk.find` / `sdk.findByID` for collection reads (typed). Nested `select`,

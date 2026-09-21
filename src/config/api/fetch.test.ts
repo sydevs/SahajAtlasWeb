@@ -5,6 +5,7 @@ import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
+import { previewRequestDecorator } from '@/config/live-preview/request'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
@@ -40,6 +41,9 @@ beforeEach(() => {
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
+  // ⚠ **The REAL decorator, never a stand-in** (#217). With the field null, every header
+  // expectation below passes against a seam that never fires.
+  livePreview.decorateRequest = previewRequestDecorator
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
@@ -116,6 +120,22 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
 
     expect(headers.get('x-sahajcloud-preview-secret')).toBeNull()
     expect(url.searchParams.get('draft')).toBeNull()
+  })
+
+  it('sends exactly the same request with no decorator registered, session or not', () => {
+    // This is what the embedded `<sahaj-atlas>` element gets: the field is null in its graph,
+    // which holds no module that could fill it (#217). Driven against a VERIFIED session on
+    // purpose — an inactive one would pass whether the field is consulted or not.
+    atlasAuth.apiKey = 'k'
+    livePreview.active = true
+    livePreview.token = 'preview-token'
+    livePreview.decorateRequest = null
+
+    const { url, headers } = context()
+
+    expect(headers.get('x-sahajcloud-preview-secret')).toBeNull()
+    expect([...headers.keys()]).toEqual(['authorization'])
+    expect(url.search).toBe('?locale=fr')
   })
 
   // This tests the end-to-end seam.

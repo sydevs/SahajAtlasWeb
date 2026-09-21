@@ -5,7 +5,7 @@ import { PayloadSDK } from '@payloadcms/sdk'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
-import livePreview, { LIVE_PREVIEW_HEADER } from '@/config/live-preview/protocol'
+import livePreview from '@/config/live-preview/protocol'
 import { atlasError } from '@/lib/report'
 
 // This is the SahajCloud locale for the active UI language.
@@ -22,8 +22,8 @@ export const activeLocale = (): Config['locale'] =>
  * This is the cross-cutting request context applied to every SahajCloud request.
  * It is the SDK equivalent of the old single axios interceptor.
  * It attaches API-key auth and the active locale to every call.
- * During a VERIFIED live-preview session, issue #40, it also attaches the token header and `draft=true`, to unlock draft documents and bypass the CMS read cache.
- * A published-only read ignores `draft` harmlessly. The token only ever rides a request made inside a session whose signature already held.
+ * Anything a host page may not send rides `livePreview.decorateRequest` instead — today the live-preview token header and `draft=true`, issue #40.
+ * The token only ever rides a request made inside a session whose signature already held.
  * This mutates the passed `url` and `headers`, and does no IO.
  * So it is unit-testable without a network round trip.
  *
@@ -42,13 +42,11 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)
   }
 
-  // ⚠ **`active` is the gate, and it is only ever true once the token has been VERIFIED.**
-  // A stashed-but-unproven token must send nothing: this is the one place a forged parameter
-  // would reach SahajCloud. See `config/live-preview/boot.ts`.
-  if (livePreview.active && livePreview.token) {
-    headers.set(LIVE_PREVIEW_HEADER, livePreview.token)
-    url.searchParams.set('draft', 'true')
-  }
+  // Last, so it can read what auth and locale set.
+  // ⚠ **Null here is a silent no-op** — right for the embedded widget, whose graph holds no
+  // module that could fill this field (#217), and a trap for a standalone session whose
+  // registration is dropped: it previews published content and says nothing.
+  livePreview.decorateRequest?.(url, headers)
 }
 
 // This is a `fetch` that runs `applyRequestContext` on every request, before hitting the network.
