@@ -15,6 +15,7 @@ import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
+import { currentReportEnabled } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
 
@@ -620,10 +621,15 @@ export function FallbackActions({
   // untranslated one.
   const { t } = useTranslation()
   const openReport = useReportModal((state) => state.openReport)
+  // An atlas with no authored report form offers no report path at all (#216). This asks the
+  // config cache, which was warmed at boot and survives whatever failure put this screen up. An
+  // unreadable config answers "no": a `contact` row naming no form is refused, so the button
+  // would lead to a send that cannot succeed.
+  const report = actions.report && currentReportEnabled()
 
   // `visibleActions` is the single answer for what shows. It already accounts
   // for whether a filter set exists to drop. Nothing here re-derives that.
-  if (!actions.retry && !actions.report && !actions.clearFilters && !(actions.contact && contact))
+  if (!actions.retry && !report && !actions.clearFilters && !(actions.contact && contact))
     return null
 
   // This is one wrappable row, not a column. These buttons are peers: a way
@@ -677,7 +683,7 @@ export function FallbackActions({
           `offline`: connectivity is not ours to fix, and the report POST (#80) needs
           the same network that just failed. This suppresses only while something
           else is on offer. */}
-      {actions.report && (
+      {report && (
         // `flat`, not `ghost`. In the same row as another button, a ghost variant
         // would read as disabled next to a filled one. `neutral` keeps its lower
         // weight instead.
