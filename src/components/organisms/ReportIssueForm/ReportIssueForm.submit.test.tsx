@@ -22,6 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReportIssueForm } from './ReportIssueForm'
 
 import { type ReportContext } from '@/lib/report'
+import { mockReportForm } from '@/mocks/report-form'
 
 // This mocks at the SDK boundary, not at our own `api` module. That keeps
 // the real `sendReport` — its body mapping, its zod parse, its
@@ -99,7 +100,7 @@ async function mountForm() {
   await act(async () => {
     root.render(
       <QueryClientProvider client={client}>
-        <ReportIssueForm context={context} onClose={() => {}} />
+        <ReportIssueForm context={context} form={mockReportForm} onClose={() => {}} />
       </QueryClientProvider>,
     )
   })
@@ -143,7 +144,7 @@ describe('ReportIssueForm submit', () => {
 
     const root = await mountForm()
 
-    await type('#report-message', MESSAGE)
+    await type('#report-field-0', MESSAGE)
     // Before the submit there is no thank-you — and the request has not been made.
     expect(container.textContent).not.toContain('THANKYOU')
     expect(sdk.request).not.toHaveBeenCalled()
@@ -156,6 +157,10 @@ describe('ReportIssueForm submit', () => {
       field: 'message',
       value: MESSAGE,
     })
+    // The row names the authored form it was rendered from. Without it the collection refuses
+    // the whole submission (`form: This field is required.`), and that refusal carries no code,
+    // so the sender would see the generic failure with everything they typed lost.
+    expect(sdk.request.mock.calls[0][0].json.form).toBe(mockReportForm.id)
     expect(container.textContent).toContain('THANKYOU')
 
     await act(async () => root.unmount())
@@ -173,14 +178,14 @@ describe('ReportIssueForm submit', () => {
 
     const root = await mountForm()
 
-    await type('#report-message', MESSAGE)
+    await type('#report-field-0', MESSAGE)
     await submit()
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
     expect(container.textContent).not.toContain('THANKYOU')
     expect(container.textContent).toContain('SEND_FAILED')
     // The typed message survives, so the retry costs nothing to compose.
-    expect(container.querySelector<HTMLTextAreaElement>('#report-message')?.value).toBe(MESSAGE)
+    expect(container.querySelector<HTMLTextAreaElement>('#report-field-0')?.value).toBe(MESSAGE)
 
     await act(async () => root.unmount())
   })
@@ -196,7 +201,7 @@ describe('ReportIssueForm submit', () => {
 
     const root = await mountForm()
 
-    await type('#report-message', MESSAGE)
+    await type('#report-field-0', MESSAGE)
     expect(resetCalls).toBe(0)
 
     await submit()
@@ -216,7 +221,7 @@ describe('ReportIssueForm submit', () => {
 
     const root = await mountForm()
 
-    await type('#report-message', MESSAGE)
+    await type('#report-field-0', MESSAGE)
     await submit()
 
     // The one branch the SSR spec cannot reach: it needs a REJECTED mutation carrying the

@@ -11,6 +11,7 @@ import { ReportIssueForm } from './ReportIssueForm'
 
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalContent } from '@/components/atoms/Modal'
+import { mockReportForm, mockRichReportForm } from '@/mocks/report-form'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
@@ -40,16 +41,17 @@ function Panel({ children }: { children: ReactNode }) {
 
 /**
  * ReportIssueForm is the report-issue form, rendered inside the Modal atom
- * (issues #79 and #103). It has an optional reply address, the message, and
- * a Cloudflare Turnstile challenge, over the auto-attached context the
- * viewer never types.
+ * (issues #79, #103 and #216). Its questions are AUTHORED: they come from the
+ * `contact` form an operator named on `sy-atlas-config.reportIssueForm`, over the
+ * auto-attached context the viewer never types, behind a Cloudflare Turnstile
+ * challenge.
  *
  * The live sections render a REAL Turnstile widget against Cloudflare's
- * always-passes test site key, so submit becomes enabled once the message
- * is long enough. Submitting now performs a real `POST /api/contact-admin`.
- * Ladle carries no API key, so it comes back refused, and you land on the
- * failure state. That is the honest outcome, and the point of the ticket:
- * the thank-you screen shows only for a delivered message.
+ * always-passes test site key, so submit becomes enabled once every authored
+ * field answers its own rule. Submitting performs a real
+ * `POST /api/user-submissions`. Ladle carries no API key, so it comes back
+ * refused, and you land on the failure state. That is the honest outcome, and
+ * the point of the ticket: the thank-you screen shows only for a stored message.
  */
 export const Default: Story = () => {
   const [open, setOpen] = useState(false)
@@ -57,11 +59,20 @@ export const Default: Story = () => {
   return (
     <StoryWrapper>
       <StorySection
-        description="The live form. Submit stays disabled until the message reaches 10 characters AND Turnstile has produced a token."
+        description="The live form, on the two fields a plain contact form authors. Submit stays disabled until the message reaches 10 characters AND Turnstile has produced a token."
         title="Default"
       >
         <Panel>
-          <ReportIssueForm context={context} onClose={noop} />
+          <ReportIssueForm context={context} form={mockReportForm} onClose={noop} />
+        </Panel>
+      </StorySection>
+
+      <StorySection
+        description="A richer authored form: prose, a required select, a consent box, and the operator's own submit label. It also carries one block type this build cannot render, which is dropped rather than thrown on."
+        title="Authored fields"
+      >
+        <Panel>
+          <ReportIssueForm context={context} form={mockRichReportForm} onClose={noop} />
         </Panel>
       </StorySection>
 
@@ -72,7 +83,8 @@ export const Default: Story = () => {
         <Panel>
           <ReportIssueForm
             context={context}
-            initialValues={{ email: 'not-an-email', message: 'too short' }}
+            form={mockReportForm}
+            initialValues={{ f0: 'too short', f1: 'not-an-email' }}
             onClose={noop}
           />
         </Panel>
@@ -83,7 +95,12 @@ export const Default: Story = () => {
         title="Captcha blocked"
       >
         <Panel>
-          <ReportIssueForm captchaUnavailable context={context} onClose={noop} />
+          <ReportIssueForm
+            captchaUnavailable
+            context={context}
+            form={mockReportForm}
+            onClose={noop}
+          />
         </Panel>
       </StorySection>
 
@@ -92,16 +109,21 @@ export const Default: Story = () => {
         title="Send failed"
       >
         <Panel>
-          <ReportIssueForm initialFailed context={context} onClose={noop} />
+          <ReportIssueForm initialFailed context={context} form={mockReportForm} onClose={noop} />
         </Panel>
       </StorySection>
 
       <StorySection
-        description="After a DELIVERED report — this screen is derived from the mutation's success and nothing else. The modal unmounts its content on close, so reopening always starts on a fresh form with a new challenge."
+        description="After a STORED report — this screen is derived from the mutation's success and nothing else, and it shows the operator's own confirmation copy when they authored one. The modal unmounts its content on close, so reopening always starts on a fresh form with a new challenge."
         title="Thank you"
       >
         <Panel>
-          <ReportIssueForm initialSubmitted context={context} onClose={noop} />
+          <ReportIssueForm
+            initialSubmitted
+            context={context}
+            form={mockRichReportForm}
+            onClose={noop}
+          />
         </Panel>
       </StorySection>
 
@@ -121,7 +143,11 @@ export const Default: Story = () => {
             description="Tell us what's wrong and we'll pass it on to the team."
             title="Report an issue"
           >
-            <ReportIssueForm context={context} onClose={() => setOpen(false)} />
+            <ReportIssueForm
+              context={context}
+              form={mockReportForm}
+              onClose={() => setOpen(false)}
+            />
           </ModalContent>
         </Modal>
       </StorySection>
