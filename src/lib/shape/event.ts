@@ -32,9 +32,9 @@ export const isOnline = (event: EventLike): boolean => event.eventType === 'onli
 type StagedEventLike = { verificationStage?: string | null }
 
 /**
- * Published with nobody vouching for it. Every other published stage is a rung of the
- * managed reminder ladder, so the match is exact and an absent or unrecognised value
- * reads as verified — never badged, never ranked down.
+ * Published with nobody vouching for it — the one stage that means that. The reminder
+ * rungs are all managed, and `finished` is published only so old links still resolve, so
+ * the match is exact: an absent or unrecognised value is never badged or ranked down.
  */
 export const isUnverified = (event: StagedEventLike): boolean =>
   event.verificationStage === UNVERIFIED_STAGE
