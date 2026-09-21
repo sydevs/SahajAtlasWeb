@@ -40,16 +40,6 @@ export const isUnverified = (event: StagedEventLike): boolean =>
   event.verificationStage === UNVERIFIED_STAGE
 
 /**
- * Verified listings first, relative order preserved inside each group. Two passes,
- * not a comparator, because the callers have no ordering of their own to sort
- * within — the region list renders in feed order.
- */
-export const verifiedFirst = <T extends StagedEventLike>(events: T[]): T[] => [
-  ...events.filter((event) => !isUnverified(event)),
-  ...events.filter(isUnverified),
-]
-
-/**
  * The registration questions enabled on an event (each `true` boolean maps to one
  * field), in `REGISTRATION_QUESTION_NAMES` order. These are the CMS names, so the
  * form registers `questions.<name>` field paths and labels them from
