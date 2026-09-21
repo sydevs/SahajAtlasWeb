@@ -81,6 +81,10 @@ export const eventsQuery = (
 // This re-exports it here with the rest, so callers still find every factory in one place.
 export { eventTitlesQuery } from './fetch'
 
+// Declared in `fetch.ts` beside its fetcher, for the same reason, and re-exported here so every
+// factory stays findable in one place.
+export { reportFormQuery } from './fetch'
+
 // This is the wholesale region-tree query contract, in one place.
 // The region matcher, the Region filter's options, and the region-pill name lookup all share it.
 // So the key, fetcher, and stale window can never drift.

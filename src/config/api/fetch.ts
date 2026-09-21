@@ -8,6 +8,7 @@ import type {
   Region,
   RegionListItem,
   RegionNode,
+  ReportForm,
   TranslationTree,
 } from '@/types'
 import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
@@ -53,6 +54,7 @@ import {
   RegionListItemSchema,
   RegionNodeSchema,
   RegionSchema,
+  ReportFormSchema,
   TRANSLATION_METADATA_KEYS,
   TranslationBundleSchema,
 } from '@/types'
@@ -722,12 +724,41 @@ const getAtlasConfig = async (): Promise<AtlasConfig> => {
     await sdk.findGlobal({
       slug: 'sy-atlas-config',
       depth: 0,
-      select: { availableLocales: true },
+      // `depth: 0` keeps `reportIssueForm` a bare id. The form itself is a separate read, so
+      // that one can select its own fields — and so it never populates `recipient`.
+      select: { availableLocales: true, reportIssueForm: true },
     }),
     'sy-atlas-config',
   )
 
   return AtlasConfigSchema.parse(config)
+}
+
+/**
+ * This reads the authored report-issue form named on `sy-atlas-config` (issue #216).
+ *
+ * ⚠ **The `select` must never name `recipient` or `client`.** `recipient` is a relationship to a
+ * manager, so a populated read would hand a person's name and email address to every browser on
+ * every host page. SahajCloud locks that field against client reads (SahajCloud#813), and this
+ * list is the half of that lock we own: it asks for nothing but what the form renders.
+ */
+const getReportForm = async (id: number): Promise<ReportForm> => {
+  const form = validateSDKResponse(
+    await sdk.findByID({
+      collection: 'forms',
+      id,
+      depth: 0,
+      select: {
+        fields: true,
+        submitButtonLabel: true,
+        confirmationType: true,
+        confirmationMessage: true,
+      },
+    }),
+    `form ${id}`,
+  )
+
+  return ReportFormSchema.parse(form)
 }
 
 // This reads ONE locale's bundle, naming the locale explicitly.
@@ -768,6 +799,22 @@ export const ATLAS_CONFIG_STALE_TIME = REGIONS_STALE_TIME
 export const atlasConfigQuery = () => ({
   queryKey: ['atlas-config'] as const,
   queryFn: getAtlasConfig,
+  staleTime: ATLAS_CONFIG_STALE_TIME,
+  gcTime: WHOLESALE_GC_TIME,
+  retryOnMount: false,
+})
+
+/**
+ * The authored report form's contract, keyed by id.
+ *
+ * It shares `atlasConfigQuery`'s windows for the same reason: this is operator-authored copy on a
+ * human editing cadence, and it is read once per session at most. `retryOnMount: false` matters
+ * here too — the modal host observes this for the widget's whole life, so a failed read must not
+ * re-fire on every remount of a form nobody has opened.
+ */
+export const reportFormQuery = (id: number) => ({
+  queryKey: ['report-form', id] as const,
+  queryFn: () => getReportForm(id),
   staleTime: ATLAS_CONFIG_STALE_TIME,
   gcTime: WHOLESALE_GC_TIME,
   retryOnMount: false,
@@ -831,6 +878,7 @@ export default {
   getEventDoc,
   getClient,
   getAtlasConfig,
+  getReportForm,
   getTranslations,
   warmCaches,
   warmConfig,

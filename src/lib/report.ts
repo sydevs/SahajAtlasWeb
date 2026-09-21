@@ -1,5 +1,3 @@
-import type { Report } from '@/types/report'
-
 // This imports the module directly, not the `shape` barrel.
 // The barrel would pull every codec into this file's graph.
 // This file is part of the eager payload.
@@ -721,12 +719,19 @@ export function buildReportContext({
 }
 
 /**
- * What the report form POSTs to SahajCloud's shared `/api/contact-admin`
- * (sydevs/SahajCloud#602, wired in #103). `api.contactAdmin` maps this onto that
- * endpoint's own body, notably `pageUrl` to `hostUrl`, and clamps each context value
- * to the bound the endpoint enforces.
+ * What the report form POSTs to SahajCloud's shared `/api/user-submissions`
+ * (sydevs/SahajCloud#695, #813). `api.sendReport` maps this onto the collection's own body,
+ * notably `pageUrl` to `hostUrl`, and clamps each context value to the bound it enforces.
+ *
+ * `answers` is keyed by the names the OPERATOR authored on the form, because that is what the
+ * collection matches on. `form` is the id those names belong to — the two travel together, and a
+ * row naming neither is refused.
  */
-export type ReportPayload = Report & {
+export type ReportPayload = {
+  form: number
+  answers: Record<string, string>
+  /** The `Reply-To` address, when the form asked for one and the viewer filled it in. */
+  senderEmail?: string
   turnstileToken: string
   context: ReportContext
 }
