@@ -29,6 +29,7 @@ import {
   fieldKey,
   renderableFields,
   reportAnswers,
+  reportMessage,
   reportDefaultValues,
   reportSenderEmail,
   reportValuesSchema,
@@ -456,6 +457,7 @@ export function ReportIssueForm({
         mutation.mutate({
           form: form.id,
           answers: reportAnswers(fields, values),
+          message: reportMessage(fields, values),
           senderEmail: reportSenderEmail(fields, values),
           turnstileToken: token,
           context,

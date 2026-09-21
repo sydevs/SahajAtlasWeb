@@ -7,6 +7,7 @@ import {
   renderableFields,
   reportAnswers,
   reportDefaultValues,
+  reportMessage,
   reportSenderEmail,
   reportValuesSchema,
 } from './report-form'
@@ -122,6 +123,31 @@ describe('reportAnswers', () => {
     expect(
       reportAnswers([field({ blockType: 'checkbox', name: 'consent' })], { f0: false }),
     ).toEqual({ consent: 'false' })
+  })
+})
+
+describe('reportMessage', () => {
+  it('takes the first authored textarea, trimmed, whatever the operator named it', () => {
+    // SahajCloud's delivery job renders ONE key into the email body. Every other answer reaches
+    // the row and stops there, so a form naming its textarea anything else emails a blank.
+    const fields = [
+      field({ blockType: 'text', name: 'who' }),
+      field({ blockType: 'textarea', name: 'what-went-wrong' }),
+      field({ blockType: 'textarea', name: 'anything-else' }),
+    ]
+
+    expect(reportMessage(fields, { f0: 'Ada', f1: '  the map is wrong ', f2: 'second' })).toBe(
+      'the map is wrong',
+    )
+  })
+
+  it('answers nothing when the prose is blank, or when the form asks for none', () => {
+    expect(
+      reportMessage([field({ blockType: 'textarea', name: 'what' })], { f0: '   ' }),
+    ).toBeUndefined()
+    expect(
+      reportMessage([field({ blockType: 'text', name: 'who' })], { f0: 'Ada' }),
+    ).toBeUndefined()
   })
 })
 

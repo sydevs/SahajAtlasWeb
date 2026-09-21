@@ -308,7 +308,10 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
     // This omits it, instead of sending an empty Reply-To. The guard validates the address on anything present.
     ...(payload.senderEmail ? { senderEmail: payload.senderEmail } : {}),
     submissionData: submissionData({
-      // The authored answers go FIRST, so the context below wins a name collision.
+      // `message` goes FIRST of all, so an authored field of that name keeps its own answer.
+      // It is the one key the delivery job renders into the email body. See `reportMessage`.
+      ...(payload.message ? { message: payload.message } : {}),
+      // The authored answers go next, so the context below wins a name collision.
       // Both sets are allowed keys, and an operator naming a field `locale` must not be able to
       // replace the locale this widget is actually running in.
       // These are NOT clamped: they are prose a person wrote, and the form bounds them at the

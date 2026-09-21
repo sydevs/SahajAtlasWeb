@@ -115,6 +115,32 @@ export const reportAnswers = (
   )
 
 /**
+ * The first authored `textarea` answer, sent as `message`.
+ *
+ * ⚠ **`message` is the only key that reaches the recipient.** SahajCloud's delivery job renders
+ * the email body from `readSubmissionValue(submissionData, 'message')` and rebuilds its context
+ * block from five fixed keys (`deliverContact.ts`, `submissionContext.ts`). Every other authored
+ * answer reaches the row and stops there. The operator names their own fields, and nothing on
+ * either side pins one, so without this the email is blank unless someone happens to type
+ * `message`. The answer still travels under its authored name in `reportAnswers`, and
+ * `sendReport` lets that copy win the collision — a form that did author `message` keeps its own.
+ *
+ * Rendering the authored pairs into the email instead is SahajCloud's half of #216.
+ */
+export const reportMessage = (
+  fields: ReportFormField[],
+  values: ReportValues,
+): string | undefined => {
+  const index = fields.findIndex((field) => field.blockType === 'textarea')
+
+  if (index === -1) return undefined
+
+  const value = values[fieldKey(index)]
+
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+/**
  * The address a reply goes to: the first authored `email` block, if it was filled in.
  *
  * The convention is the block TYPE, not a reserved name, because the operator authors every name
