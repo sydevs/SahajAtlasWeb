@@ -250,7 +250,10 @@ two axes separate — an inner fallback must never re-throw to escalate.
   - **The policy says what MAY render. `visibleActions` says what does.** It
     narrows by surface (no boundary to reset, nowhere to navigate, a geocoder
     already in the chrome) and restores the report CTA if narrowing deletes
-    every way out the policy promised.
+    every way out the policy promised. ⚠ `canReport` is the one limit that can
+    empty a row the restore rule would have filled: an atlas whose CMS config
+    names no report form has nowhere for a report to go (#216), and the
+    collection refuses a submission naming no form.
   - Actions (`retry` / `clearFilters` / `report`) sit outside the alert banner.
     The onward link sits inside it, since it continues the sentence rather than
     competing with it as a button.

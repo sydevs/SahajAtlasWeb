@@ -1104,4 +1104,5 @@ Three things to check when you migrate:
 
 If none of these fit, the widget's own **Report an issue** form (behind the settings
 control, and offered on most error screens) reaches the maintainers with the failure
-already attached.
+already attached. The form is managed in the CMS, so where the maintainers have not set
+one up it is absent everywhere — write to them directly instead.
