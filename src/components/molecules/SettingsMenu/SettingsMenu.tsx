@@ -7,7 +7,7 @@ import { frameCollision } from '@/lib/overlay'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
-import { useReportEnabled } from '@/hooks/use-report-form'
+import { useReportForm } from '@/hooks/use-report-form'
 import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
@@ -53,7 +53,7 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const { linkable } = useWidgetMode()
   const openReport = useReportModal((state) => state.openReport)
   // An atlas with no authored report form offers no report path at all (#216).
-  const reportEnabled = useReportEnabled()
+  const { enabled: reportEnabled } = useReportForm()
   const container = overlayContainer()
 
   // This publishes the pick to the page URL, as well as changing the

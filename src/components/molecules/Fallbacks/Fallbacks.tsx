@@ -15,7 +15,7 @@ import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
-import { useReportEnabled } from '@/hooks/use-report-form'
+import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
 
@@ -952,7 +952,7 @@ export function FallbackPanel({
   children,
 }: FallbackPanelProps) {
   const { policy, message: rowText } = useFallbackDisplay(kind, values)
-  const reportEnabled = useReportEnabled()
+  const { enabled: reportEnabled } = useReportForm()
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canClearFilters: !!onClearFilters,
@@ -1105,7 +1105,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canNavigate: false,
-    canReport: useReportEnabled(),
+    canReport: useReportForm().enabled,
   })
 
   return (
