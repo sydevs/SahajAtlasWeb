@@ -128,13 +128,17 @@ const SafeUrlSchema = z
   .nullish()
   .catch(null)
 
-// SahajCloud's verification ladder. `unverified` is the only published stage with
-// no manager vouching for the event — the reminder rungs (`reminded`, `escalated`,
-// `urgent`) are all managed. Deliberately not an enum: a live-preview proposal for a
-// NEW event carries no stage (#163), and SahajCloud can add one, so a strict enum
-// would fail the whole event read and blank the page over a value the widget only
-// ever compares against a single literal.
+// Deliberately not an enum: a live-preview proposal for a NEW event carries no stage
+// (#163), and SahajCloud can add one, so a strict enum would fail the whole event read
+// and blank the page over a value the widget only ever compares against one literal.
 const VerificationStageSchema = z.string().nullish().catch(null)
+
+// The tolerant parse above means the type-checker cannot see the one value the badge and
+// both rankings turn on, so pin it to the synced CMS union instead — the same guard
+// `RegistrationQuestionsSchema` carries, for the same reason (#191). A rename upstream
+// fails `pnpm types:cms` here rather than switching the feature off in silence, which no
+// spec could catch: every one of them supplies this literal itself.
+export const UNVERIFIED_STAGE = 'unverified' satisfies NonNullable<CmsEvent['verificationStage']>
 
 // Raw event as it appears in a geojson feature's `properties`, MINUS the one
 // localized field. Everything here — schedule, address, languages, region ref,

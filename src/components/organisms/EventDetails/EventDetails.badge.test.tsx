@@ -7,9 +7,9 @@ import { EventDetails } from './EventDetails'
 import { EventListItem } from '@/components/molecules/EventListItem'
 import { mockEvent, mockEventSlim } from '@/mocks/events'
 
-// Node-only SSR assertions (see `docs/testing.md`). The panel and the card render from
-// ONE fixture here, because the property under test is the difference between them:
-// the badge belongs to the event page, and the list card must stay unmarked.
+// Node-only SSR assertions (see `docs/testing.md`). The panel and the card are asserted
+// together, from one stage value, because the property under test is the difference
+// between them: the badge belongs to the event page, and the card must stay unmarked.
 //
 // ⚠ `EventChips` is deliberately NOT stubbed, unlike in the card's own spec. The panel
 // and the card share it, so a badge added there would reach both — stubbing it is
@@ -75,27 +75,17 @@ describe('unverified badge', () => {
     expect(markup).toContain(NOTE_KEY)
   })
 
-  // The reminder ladder is managed: a manager already vouched for the event before it
-  // reached any of these stages, so none of them is badged.
-  it.each(['verified', 'reminded', 'escalated', 'urgent'])('renders for no %s listing', (stage) => {
-    expect(panel(stage)).not.toContain('unverified')
-  })
+  // The four managed rungs, plus the tolerant schema's visible half: a stage SahajCloud
+  // adds later reaches the panel, carries no badge, and never throws to the boundary.
+  // `'unverified'` is a substring of both keys, so one assertion covers them.
+  it.each(['verified', 'reminded', 'escalated', 'urgent', 'some-future-stage', null])(
+    'renders no badge for %s',
+    (stage) => {
+      expect(panel(stage)).not.toContain('unverified')
+    },
+  )
 
-  // The tolerant schema's visible half: a stage SahajCloud adds later parses, reaches
-  // the panel, and simply carries no badge — it never throws to the error boundary.
-  it('renders no badge for a stage the widget does not recognise', () => {
-    expect(panel('some-future-stage')).not.toContain(TITLE_KEY)
-    expect(panel(null)).not.toContain(TITLE_KEY)
-  })
-
-  // The other surface, from the same fixture the first assertion badges. Both keys,
-  // not just the title: the card renders real chips here, so a badge landing in the
-  // shared component would show up as either one.
-  it('never marks the list card, for the same unverified listing', () => {
-    const markup = card('unverified')
-
-    expect(markup).not.toContain(TITLE_KEY)
-    expect(markup).not.toContain(NOTE_KEY)
-    expect(markup).not.toContain('unverified')
+  it('never marks the list card, for an unverified listing', () => {
+    expect(card('unverified')).not.toContain('unverified')
   })
 })

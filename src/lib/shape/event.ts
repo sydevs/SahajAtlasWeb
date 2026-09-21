@@ -7,7 +7,7 @@ import type {
 
 import { DateTime, IANAZone } from 'luxon'
 
-import { REGISTRATION_QUESTION_NAMES } from '@/types'
+import { REGISTRATION_QUESTION_NAMES, UNVERIFIED_STAGE } from '@/types'
 
 /**
  * Derivations shared by the event components, so the raw SahajCloud field shapes
@@ -32,12 +32,12 @@ export const isOnline = (event: EventLike): boolean => event.eventType === 'onli
 type StagedEventLike = { verificationStage?: string | null }
 
 /**
- * Published with nobody vouching for it. The match is exact: every other published
- * stage is a rung of the managed reminder ladder, so an absent or unrecognised value
- * reads as verified and is never badged or ranked down.
+ * Published with nobody vouching for it. Every other published stage is a rung of the
+ * managed reminder ladder, so the match is exact and an absent or unrecognised value
+ * reads as verified — never badged, never ranked down.
  */
 export const isUnverified = (event: StagedEventLike): boolean =>
-  event.verificationStage === 'unverified'
+  event.verificationStage === UNVERIFIED_STAGE
 
 /**
  * Verified listings first, relative order preserved inside each group. Two passes,

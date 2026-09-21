@@ -5,13 +5,9 @@ import { sortEvents } from './DynamicEventsList'
 import { mockEventSlim } from '@/mocks/events'
 import { EventSlim } from '@/types'
 
-// `sortEvents` is the whole of the results list's ordering, and #220 touches exactly one
-// of its three branches. `recommended` composes relevance factors, so an unverified
-// listing loses ground there. `closest` and `soonest` are literal orderings, and a label
-// that stops describing its own list is worse than an unverified listing ranked first.
-//
-// `i18n` is mocked because `recommended` reads the resolved UI language out of it, and
-// the module boots i18next on import.
+// #220 touches one of `sortEvents`' three branches. `i18n` is mocked because
+// `recommended` reads the resolved language out of it, and that module boots i18next on
+// import.
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 
 const at = (id: number, distance: number, verificationStage?: string): EventSlim => ({
@@ -47,7 +43,7 @@ describe('sortEvents', () => {
   // this would pass against the very partition it exists to refuse.
   it.each(['closest', 'soonest'] as const)('orders %s exactly as it did before', (order) => {
     const stages = [at(1, 2, 'unverified'), at(2, 5, 'verified'), at(3, 8, 'unverified')]
-    const without = stages.map(({ verificationStage: _stage, ...event }) => event as EventSlim)
+    const without = [at(1, 2), at(2, 5), at(3, 8)]
 
     expect(sortEvents(stages, order).map((event) => event.id)).toEqual(
       sortEvents(without, order).map((event) => event.id),

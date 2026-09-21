@@ -89,7 +89,6 @@ export function EventDetails({
           description={t('event.display.unverified_note')}
           size="sm"
           title={t('event.display.unverified_title')}
-          variant="flat"
         />
       )}
 

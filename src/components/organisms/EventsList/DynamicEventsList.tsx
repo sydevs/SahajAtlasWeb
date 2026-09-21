@@ -52,9 +52,7 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
   if (language != languageCode) order *= 2
   if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
   if (online) order *= 1.5
-  // One more factor, not a partition: an unverified listing loses ground to an
-  // otherwise-identical verified one while distance and language still decide the
-  // list. A partition would outrank both, which is the opposite of subtle.
+  // A factor, not a partition: a partition would outrank distance and language both.
   if (isUnverified(event)) order *= 1.5
 
   return order
