@@ -17,9 +17,10 @@
  * boots a preview has no use for it, and a module in a shared chunk is carried whole.
  *
  * ⚠ **A NAME is behaviour too, once it is the only thing a writer needs**, so the credential's
- * header is in `request.ts` and not here (#217). What stays here selects restraints — `App`
- * and `RegistrationForm` read the session to decide what to inert — and a restraint is not the
- * credential.
+ * header is in `request.ts` and not here (#217). The session below holds a REFERENCE to that
+ * module's decorator, which is a `null` field until `boot.ts` fills it, and a type the build
+ * erases. What stays here selects restraints — `App` and `RegistrationForm` read the session
+ * to decide what to inert — and a restraint is not the credential.
  *
  * ⚠ **The other three are standalone-only, and that line is what keeps them there.** The
  * embedded `<sahaj-atlas>` element must carry no verification, no `history.replaceState`, and
@@ -84,6 +85,12 @@ export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
 export type LivePreviewScope = 'sy-atlas-translations'
 
 /**
+ * What `applyRequestContext` (`config/api/client.ts`) calls last, for context that graph is
+ * not allowed to carry. A type only — the build erases it, so no graph ships a byte of this.
+ */
+export type RequestDecorator = (url: URL, headers: Headers) => void
+
+/**
  * What the widget knows about the session it is rendering under.
  *
  * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
@@ -102,6 +109,15 @@ export type LivePreviewSession = {
   id: string | null
   /** What is being previewed, where no document is. `null` on every document session. */
   scope: LivePreviewScope | null
+  /**
+   * The one decorator `applyRequestContext` calls, `null` until `boot.ts` fills it.
+   *
+   * ⚠ **On the session on purpose, not in a slot of its own** (#217). The session is already a
+   * mutable singleton with a closed writer list (`Widget.standalone.test.ts`), so one list
+   * guards both opening a session and spending its credential, and every reset that wipes the
+   * session disarms the credential with it.
+   */
+  decorateRequest: RequestDecorator | null
 }
 
 /** A session that unlocks nothing — the state every ordinary page view stays in. */
@@ -110,6 +126,7 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   token: null,
   id: null,
   scope: null,
+  decorateRequest: null,
 }
 
 /**

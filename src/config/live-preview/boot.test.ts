@@ -9,7 +9,7 @@ import {
 } from './boot'
 import livePreview, { LIVE_PREVIEW_INACTIVE } from './protocol'
 
-import { applyRequestContext, setPreviewRequestDecorator } from '@/config/api/client'
+import { applyRequestContext } from '@/config/api/client'
 
 /**
  * The boot half of live preview: what a URL may switch on, and when.
@@ -28,14 +28,14 @@ const verify = vi.hoisted(() => vi.fn())
 
 vi.mock('./token', () => ({ verifyLivePreviewToken: verify }))
 
-// `client.ts` is imported for the slot it holds, so its own boundaries are stubbed as
+// `client.ts` is imported for the decorator call it makes, so its own boundaries are stubbed as
 // `config/api/fetch.test.ts` stubs them. Neither the SDK nor i18next is what this file is about.
 vi.mock('@payloadcms/sdk', () => ({ PayloadSDK: class {} }))
 vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 
 const at = (url: string) => window.history.replaceState(null, '', url)
 
-/** A SahajCloud request, as it leaves `client.ts` with whatever is in the decorator slot. */
+/** A SahajCloud request, as it leaves `client.ts` with whatever the session carries. */
 const request = () => {
   const url = new URL('https://cloud.example/api/regions')
   const headers = new Headers()
@@ -49,15 +49,11 @@ beforeEach(() => {
   verify.mockReset()
   verify.mockResolvedValue(true)
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
-  // The slot is module state in `client.ts`, so a decorator one case registers outlives it.
-  // Left standing, it would answer the two cases below in place of the code under test.
-  setPreviewRequestDecorator(null)
   at('/')
 })
 
 afterEach(() => {
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
-  setPreviewRequestDecorator(null)
 })
 
 describe('stripLivePreviewToken', () => {
@@ -157,8 +153,8 @@ describe('activateLivePreview', () => {
   })
 
   it('registers the decorator, so an opened session actually sends the credential', async () => {
-    // The registration is the whole seam, and `active` alone buys nothing: with the slot left
-    // empty a verified reviewer previews published content and is told nothing.
+    // The registration is the whole seam, and `active` alone buys nothing: with the field left
+    // null a verified reviewer previews published content and is told nothing.
     at('/india/pune/507?live-preview=t0k3n')
     captureLivePreview()
 
@@ -178,7 +174,7 @@ describe('activateLivePreview', () => {
     await activateLivePreview()
 
     // Re-opened by hand, because the decorator's own gate would refuse the wiped session and
-    // answer this case whether or not the slot was filled. What is under test is the slot.
+    // answer this case whether or not the field was filled. What is under test is the field.
     Object.assign(livePreview, { active: true, token: 'forged' })
 
     expect(request().headers.get('x-sahajcloud-preview-secret')).toBeNull()
@@ -234,7 +230,13 @@ describe('readLivePreviewParams', () => {
   it('reads the id ONLY on the /preview boot route', () => {
     const boot = readLivePreviewParams('/preview', '?id=42&live-preview=t0k3n')
 
-    expect(boot).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
+    expect(boot).toEqual({
+      active: false,
+      decorateRequest: null,
+      id: '42',
+      scope: null,
+      token: 't0k3n',
+    })
   })
 
   it('ignores an id smuggled onto a document route', () => {
@@ -286,7 +288,7 @@ describe('readLivePreviewParams', () => {
     ]) {
       expect(
         readLivePreviewParams('/preview', `?collection=${collection}&id=42&live-preview=t0k3n`),
-      ).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
+      ).toEqual({ active: false, decorateRequest: null, id: '42', scope: null, token: 't0k3n' })
     }
   })
 })

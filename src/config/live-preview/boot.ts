@@ -8,8 +8,6 @@ import livePreview, {
 import { previewRequestDecorator } from './request'
 import { verifyLivePreviewToken } from './token'
 
-import { setPreviewRequestDecorator } from '@/config/api/client'
-
 /**
  * Live preview: opening the session, at boot, in the standalone build.
  *
@@ -25,7 +23,7 @@ import { setPreviewRequestDecorator } from '@/config/api/client'
  * ⚠ **The gap between them FAILS CLOSED, and every reader depends on it.** The request
  * decorator (`request.ts`) gates on `active`, never on the token being present, so no
  * `draft=true` and no credential can leave the browser while the token is merely stashed —
- * and until {@link activateLivePreview} registers it, there is no decorator in the slot at
+ * and until {@link activateLivePreview} hangs it off the session, there is no decorator at
  * all. `main.tsx` additionally holds the render back until activation settles, so in practice
  * nothing has even mounted to make a request.
  *
@@ -105,6 +103,9 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
     token,
     id: pathname === LIVE_PREVIEW_PATH ? params.get('id') : null,
     scope: scope === 'sy-atlas-translations' ? scope : null,
+    // ⚠ Capture DISARMS, and only {@link activateLivePreview} arms. A fresh token landing on
+    // a page mid-session must not inherit the previous session's credential.
+    decorateRequest: null,
   }
 }
 
@@ -153,7 +154,7 @@ export async function activateLivePreview(): Promise<boolean> {
   // ⚠ **Register before the flip, in the same synchronous step.** `active` is what every reader
   // gates on, so a request made between the two would be an open session that sends no
   // credential — a preview of published content, with nothing to see wrong.
-  setPreviewRequestDecorator(previewRequestDecorator)
+  livePreview.decorateRequest = previewRequestDecorator
   livePreview.active = true
 
   return true

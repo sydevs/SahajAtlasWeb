@@ -1,13 +1,11 @@
-import type { RequestDecorator } from '@/config/api/client'
-
-import livePreview from './protocol'
+import livePreview, { type RequestDecorator } from './protocol'
 
 /**
  * Live preview: the credential on the wire, standalone-only.
  *
  * ⚠ **This module exists to be absent from the embedded graph** (#217) — both the name below
  * and the one writer of it, since a writer needs nothing else. `Widget.standalone.test.ts`
- * asserts both halves, and `pnpm size` asserts the same of the shipped bytes.
+ * asserts both halves.
  */
 
 /**
@@ -23,7 +21,7 @@ import livePreview from './protocol'
 export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 
 /**
- * Attaches the session credential and `draft=true`, for the slot in `config/api/client.ts`.
+ * Attaches the session credential and `draft=true`. `boot.ts` hangs this off the session.
  *
  * ⚠ **`active` is the gate, and it is only ever true once the token has been VERIFIED.**
  * A stashed-but-unproven token must send nothing: this is the one place a forged parameter

@@ -5,6 +5,7 @@ import { PayloadSDK } from '@payloadcms/sdk'
 import atlasAuth from './auth'
 
 import i18n from '@/config/i18n'
+import livePreview from '@/config/live-preview/protocol'
 import { atlasError } from '@/lib/report'
 
 // This is the SahajCloud locale for the active UI language.
@@ -18,30 +19,10 @@ export const activeLocale = (): Config['locale'] =>
   (i18n.resolvedLanguage || 'en') as Config['locale']
 
 /**
- * One request decorator, for context this graph is not allowed to carry.
- *
- * ⚠ **A slot, not a list.** Only one will ever exist, and `applyRequestContext` stays the one
- * place cross-cutting context attaches (`docs/rules/data-layer.md`). A list would make
- * iteration order an implicit contract, and a named setter keeps "who can spend the preview
- * credential" a one-hit grep.
- */
-export type RequestDecorator = (url: URL, headers: Headers) => void
-
-let requestDecorator: RequestDecorator | null = null
-
-/**
- * ⚠ **Standalone-only, and nothing here enforces that.** The widget entry's graph simply cannot
- * reach `config/live-preview/request.ts`; `Widget.standalone.test.ts` is what holds that line.
- */
-export const setPreviewRequestDecorator = (decorator: RequestDecorator | null): void => {
-  requestDecorator = decorator
-}
-
-/**
  * This is the cross-cutting request context applied to every SahajCloud request.
  * It is the SDK equivalent of the old single axios interceptor.
  * It attaches API-key auth and the active locale to every call.
- * Anything a host page may not send rides the decorator above instead — today the live-preview token header and `draft=true`, issue #40.
+ * Anything a host page may not send rides `livePreview.decorateRequest` instead — today the live-preview token header and `draft=true`, issue #40.
  * The token only ever rides a request made inside a session whose signature already held.
  * This mutates the passed `url` and `headers`, and does no IO.
  * So it is unit-testable without a network round trip.
@@ -61,11 +42,11 @@ export const applyRequestContext = (url: URL, headers: Headers): void => {
     headers.set('Authorization', `clients API-Key ${atlasAuth.apiKey}`)
   }
 
-  // Last, so a decorator can read what auth and locale set.
-  // ⚠ **Empty, this is a silent no-op** — right for the embedded widget, and a trap for a
-  // standalone session whose registration is dropped: it previews published content and says
-  // nothing.
-  requestDecorator?.(url, headers)
+  // Last, so it can read what auth and locale set.
+  // ⚠ **Null here is a silent no-op** — right for the embedded widget, whose graph holds no
+  // module that could fill this field (#217), and a trap for a standalone session whose
+  // registration is dropped: it previews published content and says nothing.
+  livePreview.decorateRequest?.(url, headers)
 }
 
 // This is a `fetch` that runs `applyRequestContext` on every request, before hitting the network.

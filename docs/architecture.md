@@ -89,9 +89,9 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
    <apiKey>` and `?locale=<resolved language>`. There is no interceptor: the shared
    `PayloadSDK<Config>` wraps `fetch` (`interceptFetch`) to run
    `applyRequestContext` on every call, so auth and locale attach once, never
-   per fetcher. It ends in one decorator slot, empty in the embedded graph. The
-   standalone build fills it from `config/live-preview/request.ts` once a
-   live-preview token verifies, which is what adds the token header and
+   per fetcher. It ends in `livePreview.decorateRequest`, null in the embedded
+   graph. The standalone build fills it from `config/live-preview/request.ts`
+   once a live-preview token verifies, which is what adds the token header and
    `draft=true` — the embedded `<sahaj-atlas>` element carries neither that
    code nor the header's name. See `docs/rules/data-layer.md`.
 

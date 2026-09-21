@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
-import { applyRequestContext, interceptFetch, setPreviewRequestDecorator } from './client'
+import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
@@ -41,9 +41,9 @@ beforeEach(() => {
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
-  // ⚠ **The REAL decorator, never a stand-in** (#217). With the slot empty, every header
+  // ⚠ **The REAL decorator, never a stand-in** (#217). With the field null, every header
   // expectation below passes against a seam that never fires.
-  setPreviewRequestDecorator(previewRequestDecorator)
+  livePreview.decorateRequest = previewRequestDecorator
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
@@ -123,13 +123,13 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
   })
 
   it('sends exactly the same request with no decorator registered, session or not', () => {
-    // This is what the embedded `<sahaj-atlas>` element gets: the slot is empty in its graph,
-    // which has no way to fill it (#217). Driven against a VERIFIED session on purpose — an
-    // inactive one would pass whether the slot is consulted or not.
+    // This is what the embedded `<sahaj-atlas>` element gets: the field is null in its graph,
+    // which holds no module that could fill it (#217). Driven against a VERIFIED session on
+    // purpose — an inactive one would pass whether the field is consulted or not.
     atlasAuth.apiKey = 'k'
     livePreview.active = true
     livePreview.token = 'preview-token'
-    setPreviewRequestDecorator(null)
+    livePreview.decorateRequest = null
 
     const { url, headers } = context()
 

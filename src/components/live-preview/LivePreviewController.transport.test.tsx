@@ -9,7 +9,6 @@ import { LivePreviewController } from './LivePreviewController'
 
 import { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import { setPreviewRequestDecorator } from '@/config/api/client'
 import livePreview, {
   LIVE_PREVIEW_COLLECTION,
   LIVE_PREVIEW_INACTIVE,
@@ -123,9 +122,9 @@ beforeEach(() => {
   atlasAuth.apiKey = 'test-key'
   livePreview.active = true
   livePreview.token = 'verified-token'
-  // ⚠ **The REAL decorator** — setting the session no longer arms the credential on its own
-  // (#217), so without this the header assertion below stays green against a dead seam.
-  setPreviewRequestDecorator(previewRequestDecorator)
+  // ⚠ **The REAL decorator** — `active` plus a token no longer arms the credential on their
+  // own (#217), so without this the header assertion below stays green against a dead seam.
+  livePreview.decorateRequest = previewRequestDecorator
 })
 
 afterEach(() => {
@@ -135,7 +134,6 @@ afterEach(() => {
   vi.unstubAllGlobals()
   atlasAuth.apiKey = null
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
-  setPreviewRequestDecorator(null)
 })
 
 describe('the region arm', () => {

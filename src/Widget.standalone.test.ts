@@ -103,7 +103,6 @@ function importGraph(entry: string): Set<string> {
 
 const BOOT = 'config/live-preview/boot.ts'
 const REQUEST = 'config/live-preview/request.ts'
-const SETTER_HOME = 'config/api/client.ts'
 
 /** The modules only the standalone entry may reach. */
 const STANDALONE_ONLY = [BOOT, 'config/live-preview/token.ts', REQUEST]
@@ -139,14 +138,6 @@ describe('the widget entry', () => {
 
   it('finds that name where it does live, or the scan above proves nothing', () => {
     expect(modulesCarrying(SOURCES, LIVE_PREVIEW_HEADER)).toEqual([REQUEST])
-  })
-
-  it('names the decorator setter in no module it can reach but the one defining it', () => {
-    // ⚠ **The slot is IN this graph** — `client.ts` exports its setter, and the header is a
-    // 30-character string anyone can spell. So the widget's inability to spend the credential
-    // is this closed caller list, not a structural impossibility. A second name here is
-    // somebody re-attaching the credential by hand, which is exactly what #217 removed.
-    expect(modulesCarrying(widgetGraph, 'setPreviewRequestDecorator')).toEqual([SETTER_HOME])
   })
 })
 
@@ -236,12 +227,11 @@ function writesSession(source: string, binding: string): boolean {
  * The graph walk above keeps `boot.ts` out of the widget, but `protocol.ts` holds the session
  * itself and IS in both graphs — a mutable singleton any importer can assign to.
  *
- * ⚠ **Since #217 the threat is the RESTRAINTS, not the credential.** A write alone sends
- * nothing: `request.ts` is outside this graph, so spending the token would take a second edit
- * filling the slot by hand — which the setter's closed caller list above is what forbids. What
- * such a write still does, on its own, is open a session on a page we do not own — every `<a>` inert, navigation snapping back, queries pinned to
- * `staleTime: Infinity`, a registration refused. That is a host page bricked, and it is reason
- * enough to keep this list closed.
+ * ⚠ **This one list guards both halves**, which is why `decorateRequest` hangs off the session
+ * rather than sitting in a slot of its own (#217). A write here opens a session on a page we
+ * do not own — every `<a>` inert, navigation snapping back, queries pinned to
+ * `staleTime: Infinity`, a registration refused — and, since the header is a 30-character
+ * string anyone can spell, is also the only way widget-graph code could spend the credential.
  *
  * `boot.ts` verifies a signature before it flips `active`, and reaches only `main.tsx`. Closing
  * the writer list to it is what makes "a session is standalone-only" structural rather than
