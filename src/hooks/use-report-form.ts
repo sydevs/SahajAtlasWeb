@@ -27,17 +27,42 @@ export const useReportEnabled = (): boolean => {
 }
 
 /**
- * The authored form itself.
+ * Whether the authored form is still on its way, rather than absent.
+ *
+ * ⚠ **Both states carry no data, and the modal renders the second as a danger alert.** The
+ * report affordances gate on the CONFIG, which resolves a round trip ahead of the form, so
+ * without this a viewer who opened the settings menu in that window would be told something
+ * went wrong and handed a working form a moment later. On the one screen reached BECAUSE
+ * something already failed, that is the worst available guess.
+ *
+ * A DISABLED query stays `pending` forever in React Query, so "this atlas names no form" has to
+ * read as settled — otherwise the modal would wait on a read that is never going to run.
+ */
+export const reportFormPending = ({
+  configPending,
+  formId,
+  formPending,
+}: {
+  configPending: boolean
+  formId: number | null
+  formPending: boolean
+}): boolean => configPending || (formId !== null && formPending)
+
+/**
+ * The authored form itself, and whether it is still on its way.
  *
  * The modal host calls this for the widget's whole life, not on open, so the read happens while
  * the page is still healthy. The form is mostly reached FROM a failure — often the network — and
  * a read fired at that moment would be the second thing to fail, leaving no way to report the
  * first.
+ *
+ * `isPending` is what keeps "not here yet" apart from "could not be read" — see
+ * `reportFormPending`.
  */
-export const useReportForm = (): ReportForm | undefined => {
-  const { data: config } = useQuery(atlasConfigQuery())
-  const id = formIdFrom(config)
-  const { data } = useQuery(reportFormQuery(id))
+export const useReportForm = (): { form: ReportForm | undefined; isPending: boolean } => {
+  const { data: config, isPending: configPending } = useQuery(atlasConfigQuery())
+  const formId = formIdFrom(config)
+  const { data, isPending: formPending } = useQuery(reportFormQuery(formId))
 
-  return data
+  return { form: data, isPending: reportFormPending({ configPending, formId, formPending }) }
 }

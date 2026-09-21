@@ -9,6 +9,7 @@ import { ReportIssueForm } from './ReportIssueForm'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Modal, ModalBody, ModalContent, ModalFooter } from '@/components/atoms/Modal'
+import { Spinner } from '@/components/atoms/Spinner'
 import { clientQuery } from '@/config/api'
 import { reportReturnFocus, useReportModal } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
@@ -42,7 +43,7 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
   const { locale } = useLocale()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const form = useReportForm()
+  const { form, isPending } = useReportForm()
 
   const open = useReportModal((state) => state.open)
   const error = useReportModal((state) => state.error)
@@ -82,6 +83,15 @@ export function ReportIssueModal({ apiKey }: ReportIssueModalProps) {
               form={form}
               onClose={closeReport}
             />
+          ) : isPending ? (
+            // The affordance appears as soon as the CONFIG lands, a round trip ahead of the form
+            // itself. On the one screen a viewer reaches BECAUSE something already failed, a
+            // false alarm in that window is the worst available guess.
+            <ModalBody>
+              <div className="flex justify-center py-8">
+                <Spinner color="secondary" srLabel={t('common.chrome.loading')} />
+              </div>
+            </ModalBody>
           ) : (
             // No form, no send: the collection refuses a `contact` row that names none. Every
             // affordance is gated on the id, so a viewer reaches this only when the form itself
