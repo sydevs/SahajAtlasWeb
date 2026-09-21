@@ -28,15 +28,12 @@ export type DisplayEventLike = EventLike & {
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
 
-/** What the verification helpers read. Both the feed event and the full document carry it. */
-type StagedEventLike = { verificationStage?: string | null }
-
 /**
  * Published with nobody vouching for it — the one stage that means that. The reminder
  * rungs are all managed, and `finished` is published only so old links still resolve, so
  * the match is exact: an absent or unrecognised value is never badged or ranked down.
  */
-export const isUnverified = (event: StagedEventLike): boolean =>
+export const isUnverified = (event: { verificationStage?: string | null }): boolean =>
   event.verificationStage === UNVERIFIED_STAGE
 
 /**
