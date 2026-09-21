@@ -2,13 +2,8 @@ import type { ReportForm, ReportFormField } from '@/types/report'
 
 import z from 'zod'
 
-import {
-  REPORT_EMAIL_MAX,
-  REPORT_MESSAGE_MAX,
-  REPORT_MESSAGE_MIN,
-  ReportFormFieldSchema,
-} from '@/types/report'
-import { USER_SUBMISSION_VALUE_MAX } from '@/config/api/mutate'
+import { REPORT_EMAIL_MAX, REPORT_MESSAGE_MIN, ReportFormFieldSchema } from '@/types/report'
+import { USER_SUBMISSION_VALUE_MAX, userSubmissionValueMax } from '@/config/api/mutate'
 
 /** A viewer's answers, keyed by `fieldKey` rather than by the authored name — see below. */
 export type ReportValues = Record<string, string | boolean>
@@ -41,10 +36,12 @@ export const renderableFields = (form: ReportForm | undefined): ReportFormField[
  * The validation for one authored form, derived from its own blocks.
  *
  * The bounds that are not the operator's to set stay ours: an address at the intake's own
- * `REPORT_EMAIL_MAX`, every other value at `USER_SUBMISSION_VALUE_MAX`. ONE over-long value
- * refuses the whole submission as a bare `ValidationError` — no code, no field named, and
- * everything the viewer typed lost. A textarea keeps this form's own prose bounds, so the
- * "at least %{min} characters" copy still describes what it gates.
+ * `REPORT_EMAIL_MAX`, every other value at whatever the collection allows the name it will
+ * travel under (`userSubmissionValueMax` — the raise is keyed on the NAME, not on the control,
+ * so a textarea is not automatically prose-sized). ONE over-long value refuses the whole
+ * submission as a bare `ValidationError` — no code, no field named, and everything the viewer
+ * typed lost. A required textarea keeps `REPORT_MESSAGE_MIN`, so the "at least %{min}
+ * characters" copy still describes what it gates.
  */
 export const reportValuesSchema = (fields: ReportFormField[]) =>
   z.object(
@@ -63,7 +60,7 @@ export const reportValuesSchema = (fields: ReportFormField[]) =>
             return [[key, field.required ? address : address.or(z.literal(''))]]
           }
           case 'textarea': {
-            const prose = z.string().trim().max(REPORT_MESSAGE_MAX)
+            const prose = z.string().trim().max(userSubmissionValueMax(field.name))
 
             return [[key, field.required ? prose.min(REPORT_MESSAGE_MIN) : prose]]
           }

@@ -34,7 +34,8 @@ import {
   reportSenderEmail,
   reportValuesSchema,
 } from '@/lib/report-form'
-import { REPORT_EMAIL_MAX, REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN } from '@/types/report'
+import { REPORT_EMAIL_MAX, REPORT_MESSAGE_MIN } from '@/types/report'
+import { userSubmissionValueMax } from '@/config/api/mutate'
 
 /**
  * This is our copy for each refusal the intake can name, keyed by its
@@ -151,7 +152,7 @@ const errorCopy = (field: ReportFormField, error: FieldError | undefined, t: TFu
 
   if (field.blockType === 'textarea')
     return error.type === 'too_big'
-      ? t('common.report_errors.message_max', { max: REPORT_MESSAGE_MAX })
+      ? t('common.report_errors.message_max', { max: userSubmissionValueMax(field.name) })
       : t('common.report_errors.message', { min: REPORT_MESSAGE_MIN })
 
   return undefined
@@ -222,9 +223,10 @@ const AuthoredField = memo(function AuthoredField({
         return (
           <Textarea
             {...typed}
-            // A hard stop at the schema's ceiling. Without it, pasting a long stack
-            // trace — the very report this exists for — just disables submit.
-            maxLength={REPORT_MESSAGE_MAX}
+            // A hard stop at the schema's ceiling, which is the collection's bound on this
+            // field's own NAME. Without it, pasting a long stack trace — the very report this
+            // exists for — just disables submit.
+            maxLength={userSubmissionValueMax(field.name)}
             rows={5}
             {...register(key)}
           />

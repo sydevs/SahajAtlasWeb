@@ -9,7 +9,6 @@ import z from 'zod'
 // assembled by `buildReportContext` (src/lib/report.ts), not something a viewer types.
 
 export const REPORT_MESSAGE_MIN = 10
-export const REPORT_MESSAGE_MAX = 5000
 /** The intake's own bound on a sender address (SahajCloud#602). */
 export const REPORT_EMAIL_MAX = 254
 

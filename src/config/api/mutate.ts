@@ -274,6 +274,25 @@ const REPORT_SUBJECT = 'Issue report'
  */
 export const USER_SUBMISSION_VALUE_MAX = 2000
 
+/**
+ * The keys the collection bounds ABOVE `USER_SUBMISSION_VALUE_MAX`, and how far.
+ *
+ * ⚠ **The bound is keyed on the KEY, never on the control that collected the value.** An
+ * authored field named anything outside this map takes the default however much prose it asks
+ * for, so a form offering more would let a viewer fill it and then lose the whole submission.
+ *
+ * `VALUE_MAX_LENGTHS` in SahajCloud's `src/collections/UserSubmissions/submissionData.ts`.
+ */
+const RAISED_VALUE_MAX: Readonly<Record<string, number>> = {
+  message: 5000,
+  note: 5000,
+  error: 5000,
+}
+
+/** The collection's bound on the value under `key`. */
+export const userSubmissionValueMax = (key: string): number =>
+  RAISED_VALUE_MAX[key] ?? USER_SUBMISSION_VALUE_MAX
+
 const clamp = (value: string, max: number) => value.slice(0, max)
 
 /**

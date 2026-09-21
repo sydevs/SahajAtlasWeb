@@ -12,7 +12,8 @@ import {
   reportValuesSchema,
 } from './report-form'
 
-import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN } from '@/types/report'
+import { REPORT_MESSAGE_MIN } from '@/types/report'
+import { USER_SUBMISSION_VALUE_MAX, userSubmissionValueMax } from '@/config/api/mutate'
 
 const field = (over: Partial<ReportFormField> & { blockType: string }) =>
   ({ name: 'field', ...over }) as ReportFormField
@@ -58,12 +59,31 @@ describe('reportValuesSchema', () => {
   })
 
   it('holds the prose bounds on a required textarea, trimming before it measures', () => {
-    const textarea = [field({ blockType: 'textarea', required: true })]
+    const textarea = [field({ blockType: 'textarea', name: 'message', required: true })]
+    const max = userSubmissionValueMax('message')
 
     expect(parse(textarea, { f0: 'x'.repeat(REPORT_MESSAGE_MIN - 1) })).toBe(false)
     expect(parse(textarea, { f0: ' '.repeat(REPORT_MESSAGE_MIN + 5) })).toBe(false)
-    expect(parse(textarea, { f0: 'x'.repeat(REPORT_MESSAGE_MAX) })).toBe(true)
-    expect(parse(textarea, { f0: 'x'.repeat(REPORT_MESSAGE_MAX + 1) })).toBe(false)
+    expect(parse(textarea, { f0: 'x'.repeat(max) })).toBe(true)
+    expect(parse(textarea, { f0: 'x'.repeat(max + 1) })).toBe(false)
+  })
+
+  it('holds a textarea to the default where its authored NAME is not a raised key', () => {
+    // The collection raises `message`, `note` and `error` and defaults everything else. The
+    // raise follows the key, not the control, so a textarea the operator named anything else
+    // must stop the viewer at the default — an over-long value refuses the whole submission as
+    // a bare `ValidationError`, with everything they typed lost.
+    const named = [field({ blockType: 'textarea', name: 'what-went-wrong', required: true })]
+
+    expect(userSubmissionValueMax('what-went-wrong')).toBe(USER_SUBMISSION_VALUE_MAX)
+    expect(parse(named, { f0: 'x'.repeat(USER_SUBMISSION_VALUE_MAX) })).toBe(true)
+    expect(parse(named, { f0: 'x'.repeat(USER_SUBMISSION_VALUE_MAX + 1) })).toBe(false)
+    // The same length the raised key still accepts.
+    expect(
+      parse([field({ blockType: 'textarea', name: 'message', required: true })], {
+        f0: 'x'.repeat(USER_SUBMISSION_VALUE_MAX + 1),
+      }),
+    ).toBe(true)
   })
 
   it('refuses an unticked required checkbox, which is a consent, not an answer', () => {

@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ReportIssueForm } from './ReportIssueForm'
 
 import { mockReportForm, mockRichReportForm } from '@/mocks/report-form'
-import { REPORT_MESSAGE_MAX } from '@/types/report'
+import { USER_SUBMISSION_VALUE_MAX, userSubmissionValueMax } from '@/config/api/mutate'
 
 // The SDK is stubbed at the boundary, so importing the form's `api` module
 // cannot reach a network client. The submit path itself is covered in
@@ -148,8 +148,23 @@ describe('ReportIssueForm', () => {
     // message. This check is case-insensitive: react-dom/server emits the
     // prop name verbatim (`maxLength`), while the browser parses it as the
     // lowercase `maxlength` attribute.
-    expect(html).toMatch(new RegExp(`maxlength="${REPORT_MESSAGE_MAX}"`, 'i'))
+    expect(html).toMatch(new RegExp(`maxlength="${userSubmissionValueMax('message')}"`, 'i'))
     expect(html).toContain('aria-required="true"')
+  })
+
+  it('caps a renamed textarea at the bound its own NAME carries', () => {
+    // Every fixture here names its textarea `message`, which is the one name the collection
+    // raises. An operator names their own fields, so the control must read the bound off the
+    // name rather than off the block type — otherwise it invites 5000 characters into a key
+    // that takes 2000 and loses the whole submission at submit.
+    const renamed = {
+      ...mockReportForm,
+      fields: [{ name: 'what-went-wrong', label: 'What went wrong?', blockType: 'textarea' }],
+    }
+
+    expect(render(form({ form: renamed }))).toMatch(
+      new RegExp(`maxlength="${USER_SUBMISSION_VALUE_MAX}"`, 'i'),
+    )
   })
 
   it('starts with submit disabled — there is no message and no captcha token yet', () => {
