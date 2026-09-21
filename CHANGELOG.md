@@ -91,9 +91,10 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
-- **An event that no local coordinator has verified yet now says so on its own page.** ([#220])
-  A short banner sits above the chips, worded the same for every such listing. Nothing else
-  changes: no map marker, popup or list card carries any mark, and your CSP is unaffected.
+- **An event that no local coordinator has verified yet now says so before anyone registers.** ([#220])
+  A short banner sits directly above the Register button, and again over the registration form,
+  worded the same for every such listing. Nothing else changes: no map marker, popup or list card
+  carries any mark, and your CSP is unaffected.
   These listings also rank below verified ones in search results under the default
   "Recommended" order and in a region's list. "Closest" and "Soonest" order exactly as before.
 

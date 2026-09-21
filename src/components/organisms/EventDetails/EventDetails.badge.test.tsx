@@ -32,15 +32,17 @@ vi.mock('@/hooks/use-ip-location', () => ({
   useIpLocation: () => null,
 }))
 // Register and the secondary actions pull react-query and the registration chain.
-// Neither is what this asserts.
+// Neither is what this asserts. Register and the facts render a marker rather than
+// null, because the badge's POSITION between the two is half of what is asserted
+// below, and a null stub leaves nothing to order against.
 vi.mock('./EventRegister', () => ({
-  EventRegisterBar: () => null,
+  EventRegisterBar: () => <i>register-slot</i>,
 }))
 vi.mock('@/components/molecules/EventActions', () => ({
   EventActions: () => null,
 }))
 vi.mock('@/components/molecules/EventFacts', () => ({
-  EventFacts: () => null,
+  EventFacts: () => <i>facts-slot</i>,
 }))
 // DOMPurify binds a real `window` at module scope, so importing the panel would need a
 // DOM the rest of this file does not. `sanitize.test.ts` owns that allowlist.
@@ -87,5 +89,30 @@ describe('unverified badge', () => {
 
   it('never marks the list card, for an unverified listing', () => {
     expect(card('unverified')).not.toContain('unverified')
+  })
+
+  // The caveat belongs to the decision to join, not to the top of the panel: a long
+  // event page scrolls it out of sight long before the button. Both bounds are needed
+  // — against the facts alone it also passes from the old position above the chips.
+  it('sits between the event facts and Register', () => {
+    const markup = panel('unverified')
+
+    expect(markup.indexOf(TITLE_KEY)).toBeGreaterThan(markup.indexOf('facts-slot'))
+    expect(markup.indexOf(TITLE_KEY)).toBeLessThan(markup.indexOf('register-slot'))
+  })
+
+  // The mobile map sheet pins Register in the drawer footer instead, so the inline bar
+  // is absent. The caveat is not the button's, and must survive without it.
+  it('renders with Register pinned to the sheet footer', () => {
+    const markup = renderToStaticMarkup(
+      <EventDetails
+        basePath="/gb/london/1"
+        event={{ ...mockEvent, verificationStage: 'unverified' }}
+        registerInline={false}
+      />,
+    )
+
+    expect(markup).toContain(TITLE_KEY)
+    expect(markup).not.toContain('register-slot')
   })
 })

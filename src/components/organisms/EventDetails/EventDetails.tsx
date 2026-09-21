@@ -30,7 +30,8 @@ export type EventDetailsProps = EventSurfaceProps & {
    *  false and mounts EventRegisterBar in the sticky drawer footer instead. */
   registerInline?: boolean
   /**
-   * This slot renders immediately above Register, inside the panel's own flow.
+   * This slot renders below the facts, inside the panel's own flow, above the
+   * unverified caveat and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
    * It is a view's job, not this component's job. The alternative was a second
@@ -82,16 +83,6 @@ export function EventDetails({
     // bottom padding, so the images sit flush against the end of the view
     // instead of floating 40px above it. Everything else keeps the padding.
     <div className={`flex flex-col gap-4 px-6 pt-2 ${hasImages ? '' : 'pb-10'}`}>
-      {/* Event page only. The chips below render on the list card too, so a chip
-          there would badge the surface this deliberately leaves alone. */}
-      {isUnverified(event) && (
-        <Alert
-          description={t('event.display.unverified_note')}
-          size="sm"
-          title={t('event.display.unverified_title')}
-        />
-      )}
-
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. The chips are a short row. The container's `gap-4` and
           the facts' own `my-2` add extra space before the facts. The `-mb-2`
@@ -102,6 +93,18 @@ export function EventDetails({
       <EventFacts className="my-2" event={event} />
 
       {children}
+
+      {/* Above Register, not at the top of a panel that scrolls. RegistrationView
+          repeats it, since that route is reachable without passing here. Badging via the
+          chips above would mark the list card, the surface this leaves alone. */}
+      {isUnverified(event) && (
+        <Alert
+          color="contrast"
+          description={t('event.display.unverified_note')}
+          size="sm"
+          title={t('event.display.unverified_title')}
+        />
+      )}
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 

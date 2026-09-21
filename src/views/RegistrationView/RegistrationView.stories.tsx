@@ -15,6 +15,9 @@ export default { title: 'Views' } satisfies StoryDefault
 // `Confirmation` starts the native form on its post-submit thank-you screen.
 const EXAMPLES: Record<string, { event: Event; initialSubmitted?: boolean }> = {
   'Native form': { event: mockEvent },
+  // The banner the event panel also carries. This route is deep-linkable, so it repeats
+  // here rather than relying on the panel a registrant may never have passed through.
+  Unverified: { event: { ...mockEvent, id: 315, verificationStage: 'unverified' } },
   Confirmation: { event: { ...mockEvent, id: 313 }, initialSubmitted: true },
   // The route is deep-linkable, so a full event must render its state message here, not an
   // operative form — the CMS refuses it server-side too. It goes through the shared
