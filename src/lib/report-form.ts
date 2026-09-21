@@ -37,9 +37,6 @@ export const renderableFields = (form: ReportForm | undefined): ReportFormField[
     return parsed.success ? [parsed.data] : []
   })
 
-const requiredText = (field: { required?: boolean | null }, base: z.ZodString) =>
-  field.required ? base.min(1) : base
-
 /**
  * The validation for one authored form, derived from its own blocks.
  *
@@ -58,29 +55,26 @@ export const reportValuesSchema = (fields: ReportFormField[]) =>
         const key = fieldKey(index)
 
         switch (field.blockType) {
-          case 'email':
-            return [
-              [
-                key,
-                field.required
-                  ? z.string().trim().email().max(REPORT_EMAIL_MAX)
-                  : z.string().trim().email().max(REPORT_EMAIL_MAX).or(z.literal('')),
-              ],
-            ]
-          case 'textarea':
-            return [
-              [
-                key,
-                field.required
-                  ? z.string().trim().min(REPORT_MESSAGE_MIN).max(REPORT_MESSAGE_MAX)
-                  : z.string().trim().max(REPORT_MESSAGE_MAX),
-              ],
-            ]
+          case 'email': {
+            // One bound, then the optional arm, so the two arms can never be given different
+            // ceilings. An untouched optional input registers as `''`, which is not an address.
+            const address = z.string().trim().email().max(REPORT_EMAIL_MAX)
+
+            return [[key, field.required ? address : address.or(z.literal(''))]]
+          }
+          case 'textarea': {
+            const prose = z.string().trim().max(REPORT_MESSAGE_MAX)
+
+            return [[key, field.required ? prose.min(REPORT_MESSAGE_MIN) : prose]]
+          }
           case 'checkbox':
             // A required checkbox is a consent: `false` must fail it, not pass as an answer.
             return [[key, field.required ? z.literal(true) : z.boolean()]]
-          default:
-            return [[key, requiredText(field, z.string().trim().max(USER_SUBMISSION_VALUE_MAX))]]
+          default: {
+            const value = z.string().trim().max(USER_SUBMISSION_VALUE_MAX)
+
+            return [[key, field.required ? value.min(1) : value]]
+          }
         }
       }),
     ) as z.ZodRawShape,
@@ -94,18 +88,12 @@ export const reportDefaultValues = (fields: ReportFormField[]): ReportValues =>
 
       const key = fieldKey(index)
 
-      switch (field.blockType) {
-        case 'checkbox':
-          return [[key, field.defaultValue ?? false]]
-        case 'number':
-          return [[key, field.defaultValue?.toString() ?? '']]
-        case 'text':
-        case 'textarea':
-        case 'select':
-          return [[key, field.defaultValue ?? '']]
-        default:
-          return [[key, '']]
-      }
+      // Only a checkbox's default is a boolean. Every other control holds a string, and a block
+      // that authors no default opens empty — including one added upstream later, which would
+      // otherwise need a case here to keep its authored default.
+      if (field.blockType === 'checkbox') return [[key, field.defaultValue ?? false]]
+
+      return [[key, 'defaultValue' in field ? String(field.defaultValue ?? '') : '']]
     }),
   )
 

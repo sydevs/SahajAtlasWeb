@@ -1,3 +1,5 @@
+import type { Form } from '@/types/payload/payload-types'
+
 import z from 'zod'
 
 // The report-issue form is AUTHORED (issue #216): `sy-atlas-config.reportIssueForm` names a
@@ -73,3 +75,38 @@ export const ReportFormSchema = z.object({
 })
 
 export type ReportForm = z.infer<typeof ReportFormSchema>
+
+/**
+ * The two schemas above, pinned to the synced CMS types (`pnpm types:cms`) — the pattern
+ * `RegistrationQuestionsSchema` uses in `event.ts`, for a sharper reason here.
+ *
+ * ⚠ **`renderableFields` DROPS a block it cannot parse**, on purpose, so an upstream addition
+ * cannot take the report path down. That makes drift invisible: a renamed member turns an
+ * operator's question into a field that silently stops rendering, with every gate green. `Pick`
+ * fails the build instead — on a renamed block type through `CmsBlock`'s own constraint, and on
+ * a renamed member through the key list. It cannot see an ADDED block, which is the case the
+ * drop was built for.
+ *
+ * Like every pin against `src/types/payload/`, it compares against a checked-in snapshot, so it
+ * only fires once the resync has been run (#191). It is exported because nothing consumes it —
+ * the type-checker reading it IS the check, and an unexported one would fail `noUnusedLocals`
+ * instead of the drift it is watching for.
+ */
+type CmsFormField = NonNullable<Form['fields']>[number]
+type CmsBlock<T extends CmsFormField['blockType']> = Extract<CmsFormField, { blockType: T }>
+
+export type PinnedToCms = [
+  Pick<Form, 'id' | 'fields' | 'submitButtonLabel' | 'confirmationType' | 'confirmationMessage'>,
+  Pick<CmsBlock<'text'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<CmsBlock<'textarea'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<CmsBlock<'email'>, 'name' | 'label' | 'required'>,
+  Pick<CmsBlock<'country'>, 'name' | 'label' | 'required'>,
+  Pick<CmsBlock<'state'>, 'name' | 'label' | 'required'>,
+  Pick<CmsBlock<'number'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<
+    CmsBlock<'select'>,
+    'name' | 'label' | 'required' | 'defaultValue' | 'placeholder' | 'options'
+  >,
+  Pick<CmsBlock<'checkbox'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<CmsBlock<'message'>, 'message'>,
+]

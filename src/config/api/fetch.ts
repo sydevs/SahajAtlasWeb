@@ -811,10 +811,14 @@ export const atlasConfigQuery = () => ({
  * human editing cadence, and it is read once per session at most. `retryOnMount: false` matters
  * here too — the modal host observes this for the widget's whole life, so a failed read must not
  * re-fire on every remount of a form nobody has opened.
+ *
+ * A `null` id — no form named, or a config not read yet — keys its own entry and carries
+ * `enabled: false`, so "no form" never shares a key with a real one.
  */
-export const reportFormQuery = (id: number) => ({
+export const reportFormQuery = (id: number | null) => ({
   queryKey: ['report-form', id] as const,
-  queryFn: () => getReportForm(id),
+  queryFn: () => getReportForm(id as number),
+  enabled: id !== null,
   staleTime: ATLAS_CONFIG_STALE_TIME,
   gcTime: WHOLESALE_GC_TIME,
   retryOnMount: false,

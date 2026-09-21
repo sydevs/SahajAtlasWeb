@@ -15,7 +15,7 @@ import { Alert } from '@/components/atoms/Alert/Alert'
 import { Button, controlSurface } from '@/components/atoms/Button'
 import { Link } from '@/components/atoms/Link'
 import { useReportModal } from '@/config/store'
-import { currentReportEnabled } from '@/hooks/use-report-form'
+import { useReportEnabled } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
 
@@ -447,6 +447,13 @@ export type SurfaceLimits = {
   /** There is an organiser's number on the event, so the viewer can be put in touch
    *  with someone. Without one, `contact` gives way to `onward`. */
   canContact?: boolean
+  /**
+   * The atlas names an authored report form, so there is somewhere for a report to go
+   * (#216). Without one the CMS hides the report path entirely, and a `contact` row
+   * naming no form is refused — so this is the one limit that can empty a row the
+   * last-resort rule below would otherwise have filled.
+   */
+  canReport?: boolean
 }
 
 /**
@@ -473,6 +480,7 @@ export const visibleActions = (
     canNavigate = true,
     hasSearchChrome = false,
     canContact = false,
+    canReport = true,
   }: SurfaceLimits,
 ) => {
   const retry = policy.retry && canRetry
@@ -495,7 +503,7 @@ export const visibleActions = (
     search,
     clearFilters,
     contact,
-    report: policy.report || (promised && !offered),
+    report: (policy.report || (promised && !offered)) && canReport,
   }
 }
 
@@ -621,15 +629,11 @@ export function FallbackActions({
   // untranslated one.
   const { t } = useTranslation()
   const openReport = useReportModal((state) => state.openReport)
-  // An atlas with no authored report form offers no report path at all (#216). This asks the
-  // config cache, which was warmed at boot and survives whatever failure put this screen up. An
-  // unreadable config answers "no": a `contact` row naming no form is refused, so the button
-  // would lead to a send that cannot succeed.
-  const report = actions.report && currentReportEnabled()
 
   // `visibleActions` is the single answer for what shows. It already accounts
-  // for whether a filter set exists to drop. Nothing here re-derives that.
-  if (!actions.retry && !report && !actions.clearFilters && !(actions.contact && contact))
+  // for whether a filter set exists to drop, and for whether this atlas has a report form
+  // to send to at all. Nothing here re-derives that.
+  if (!actions.retry && !actions.report && !actions.clearFilters && !(actions.contact && contact))
     return null
 
   // This is one wrappable row, not a column. These buttons are peers: a way
@@ -683,7 +687,7 @@ export function FallbackActions({
           `offline`: connectivity is not ours to fix, and the report POST (#80) needs
           the same network that just failed. This suppresses only while something
           else is on offer. */}
-      {report && (
+      {actions.report && (
         // `flat`, not `ghost`. In the same row as another button, a ghost variant
         // would read as disabled next to a filled one. `neutral` keeps its lower
         // weight instead.
@@ -948,10 +952,12 @@ export function FallbackPanel({
   children,
 }: FallbackPanelProps) {
   const { policy, message: rowText } = useFallbackDisplay(kind, values)
+  const reportEnabled = useReportEnabled()
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canClearFilters: !!onClearFilters,
     canContact: !!contact,
+    canReport: reportEnabled,
     hasSearchChrome,
   })
   const text = message ?? rowText
@@ -1099,6 +1105,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
     canNavigate: false,
+    canReport: useReportEnabled(),
   })
 
   return (

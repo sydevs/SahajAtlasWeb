@@ -1,10 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import { ERROR_POLICY, FallbackActions, OnwardLink, visibleActions } from './Fallbacks'
-
-import { atlasConfigQuery } from '@/config/api/fetch'
-import { queryClient } from '@/config/query-client'
 
 // This mocks the i18n boundary (react-i18next), so the SSR markup asserts
 // on real copy, including the Ruby-style %{country} interpolation, without
@@ -66,20 +63,8 @@ describe('OnwardLink — the country-site rung', () => {
   })
 })
 
-// The report button is gated on the atlas config naming an authored form (#216), read
-// imperatively from the cache this seeds — `FallbackActions` renders where the app is already
-// broken, so it must not need a provider above it.
-const nameAForm = (id: number | null) =>
-  queryClient.setQueryData(atlasConfigQuery().queryKey, { reportIssueForm: id })
-
-afterEach(() => {
-  queryClient.clear()
-})
-
 describe('FallbackActions', () => {
   it('renders the retry and report buttons at different weights', () => {
-    nameAForm(7)
-
     // They sit in the same wrappable row. So the one likelier to help has
     // to look different from the one of last resort. A regression here is
     // invisible in a diff.
@@ -99,32 +84,17 @@ describe('FallbackActions', () => {
 
   it('offers no way to report when the atlas names no form', () => {
     // The CMS hides the report path when the field is empty, and a `contact` row naming no form
-    // is refused outright — so the button would lead to a send that cannot succeed. An
-    // unreadable config answers the same way, which is why this asserts the unseeded cache too.
-    nameAForm(null)
-
-    const named = renderToStaticMarkup(
+    // is refused outright — so the button would lead to a send that cannot succeed.
+    const row = renderToStaticMarkup(
       <FallbackActions
-        actions={visibleActions(ERROR_POLICY.unknown, { canRetry: true })}
+        actions={visibleActions(ERROR_POLICY.unknown, { canRetry: true, canReport: false })}
         reportContext="boom"
         resetErrorBoundary={() => {}}
       />,
     )
 
-    expect(named).toContain('Try again')
-    expect(named).not.toContain('Report an issue')
-
-    queryClient.clear()
-
-    const unread = renderToStaticMarkup(
-      <FallbackActions
-        actions={visibleActions(ERROR_POLICY.config, { canRetry: false })}
-        reportContext="boom"
-      />,
-    )
-
-    // `config` offers the report button and nothing else, so the whole row goes.
-    expect(unread).toBe('')
+    expect(row).toContain('Try again')
+    expect(row).not.toContain('Report an issue')
   })
 
   it('renders nothing at all when the row would be empty', () => {

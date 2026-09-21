@@ -3,9 +3,11 @@ import type { UserSubmissionErrorCode } from '@/config/api/mutate'
 import type { ReportContext } from '@/lib/report'
 import type { ReportValues } from '@/lib/report-form'
 import type { ReportForm, ReportFormField } from '@/types/report'
-import type { Control, FieldError, UseFormRegister } from 'react-hook-form'
+import type { TFunction } from 'i18next'
+import type { ReactElement } from 'react'
+import type { Control, ControllerRenderProps, FieldError, UseFormRegister } from 'react-hook-form'
 
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -100,6 +102,11 @@ export type ReportIssueFormProps = {
 
 const controlId = (index: number) => `report-field-${index}`
 
+// The three text blocks the browser can help with. Everything else the `default` arm renders is
+// free text, which is what `country` and `state` are here too.
+const inputType = (blockType: ReportFormField['blockType']) =>
+  blockType === 'email' ? 'email' : blockType === 'number' ? 'number' : 'text'
+
 /**
  * Our own words for the two blocks this form has words for.
  *
@@ -109,7 +116,9 @@ const controlId = (index: number) => `report-field-${index}`
  * the field is theirs and none of this applies: a placeholder of ours under a question of theirs
  * would describe a different question.
  */
-const FIELD_COPY = {
+type FieldCopy = { label: TranslationKey; placeholder: TranslationKey; help?: TranslationKey }
+
+const FIELD_COPY: Partial<Record<ReportFormField['blockType'], FieldCopy>> = {
   email: {
     label: 'common.report.email_label',
     placeholder: 'common.report.email_placeholder',
@@ -118,35 +127,62 @@ const FIELD_COPY = {
   textarea: {
     label: 'common.report.message_label',
     placeholder: 'common.report.message_placeholder',
-    help: undefined,
   },
-} as const satisfies Partial<
-  Record<
-    ReportFormField['blockType'],
-    { label: TranslationKey; placeholder: TranslationKey; help: TranslationKey | undefined }
-  >
->
+}
+
+const ownCopy = (field: ReportFormField) =>
+  field.blockType === 'email' || field.blockType === 'textarea'
+    ? FIELD_COPY[field.blockType]
+    : undefined
 
 /**
- * One authored block.
+ * The sentence under a failed field, where one exists.
  *
- * `select` and `checkbox` go through `Controller` because neither is a native input RHF can
- * `register`; everything else is a text control, including `country` and `state`, which the
- * widget has no authored option list for.
+ * Only the two blocks with copy of their own get one. Everything else is a required field the
+ * viewer has not filled in yet, which keeps Send disabled and is already marked on the label —
+ * inventing English for it here would go untranslated, since every string the widget shows is
+ * CMS-owned.
  */
-function AuthoredField({
-  field,
-  index,
-  control,
-  register,
-  error,
-}: {
+const errorCopy = (field: ReportFormField, error: FieldError | undefined, t: TFunction) => {
+  if (!error) return undefined
+
+  if (field.blockType === 'email') return t('common.report_errors.email')
+
+  if (field.blockType === 'textarea')
+    return error.type === 'too_big'
+      ? t('common.report_errors.message_max', { max: REPORT_MESSAGE_MAX })
+      : t('common.report_errors.message', { min: REPORT_MESSAGE_MIN })
+
+  return undefined
+}
+
+type AuthoredFieldProps = {
   field: ReportFormField
   index: number
   control: Control<ReportValues>
   register: UseFormRegister<ReportValues>
   error: FieldError | undefined
-}) {
+}
+
+/**
+ * One authored block.
+ *
+ * `select` and `checkbox` go through `Controller` because neither is a native input RHF can
+ * `register`. Everything else is a text control, `country` and `state` included: the widget has
+ * no authored option list for either, and the answer travels as a string whichever control
+ * collects it. The control is a `switch` over the union rather than a chain of guards, so a
+ * block type added to the schema cannot render a labelled field with nothing inside it.
+ *
+ * Memoized because the form validates on every keystroke. Without it, each keystroke re-renders
+ * every field and re-walks each prose block's Lexical tree.
+ */
+const AuthoredField = memo(function AuthoredField({
+  field,
+  index,
+  control,
+  register,
+  error,
+}: AuthoredFieldProps) {
   const { t } = useTranslation()
 
   if (field.blockType === 'message') {
@@ -159,126 +195,98 @@ function AuthoredField({
 
   const id = controlId(index)
   const key = fieldKey(index)
-  const fallback =
-    field.blockType === 'email' || field.blockType === 'textarea'
-      ? FIELD_COPY[field.blockType]
-      : undefined
+  const copy = ownCopy(field)
   // An authored label means the question is the operator's, so our copy stands down with it.
-  const ours = field.label ? undefined : fallback
-  const label = field.label || (fallback ? t(fallback.label) : field.name)
+  const ours = field.label ? undefined : copy
+  const label = field.label || (copy ? t(copy.label) : field.name)
   const help = ours?.help && !field.required ? t(ours.help) : undefined
-  // Only the failures with authored-copy-free wording of their own get a sentence. Everything
-  // else is a required field the viewer has not filled in yet, which keeps Send disabled and is
-  // already marked on the label — inventing English copy for it here would not be translated,
-  // since every string the widget shows is CMS-owned.
-  const message =
-    field.blockType === 'email'
-      ? t('common.report_errors.email')
-      : field.blockType === 'textarea'
-        ? error?.type === 'too_big'
-          ? t('common.report_errors.message_max', { max: REPORT_MESSAGE_MAX })
-          : t('common.report_errors.message', { min: REPORT_MESSAGE_MIN })
-        : undefined
+  const describedBy = fieldDescribedBy({ name: id, help: Boolean(help), error: Boolean(error) })
 
-  const describedBy = fieldDescribedBy({
-    name: id,
-    help: Boolean(help),
-    error: Boolean(error),
-  })
+  const typed = {
+    'aria-describedby': describedBy,
+    'aria-invalid': error ? (true as const) : undefined,
+    'aria-required': field.required ? ('true' as const) : undefined,
+    id,
+    isInvalid: Boolean(error),
+    placeholder: ours ? t(ours.placeholder) : undefined,
+  }
+
+  const bindings = (
+    render: (bound: ControllerRenderProps<ReportValues, string>) => ReactElement,
+  ) => <Controller control={control} name={key} render={({ field: bound }) => render(bound)} />
+
+  const authoredControl = () => {
+    switch (field.blockType) {
+      case 'textarea':
+        return (
+          <Textarea
+            {...typed}
+            // A hard stop at the schema's ceiling. Without it, pasting a long stack
+            // trace — the very report this exists for — just disables submit.
+            maxLength={REPORT_MESSAGE_MAX}
+            rows={5}
+            {...register(key)}
+          />
+        )
+      case 'select':
+        return bindings((bound) => (
+          <Select
+            aria-describedby={describedBy}
+            aria-label={label}
+            isInvalid={Boolean(error)}
+            name={bound.name}
+            placeholder={field.placeholder ?? undefined}
+            value={typeof bound.value === 'string' ? bound.value : ''}
+            onBlur={bound.onBlur}
+            onValueChange={bound.onChange}
+          >
+            {(field.options ?? []).map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </Select>
+        ))
+      case 'checkbox':
+        return bindings((bound) => (
+          <Checkbox
+            appearance="checkbox"
+            aria-describedby={describedBy}
+            checked={bound.value === true}
+            id={id}
+            isInvalid={Boolean(error)}
+            onCheckedChange={bound.onChange}
+          >
+            {label}
+          </Checkbox>
+        ))
+      default:
+        return (
+          <Input
+            {...typed}
+            // One over-long value refuses the whole submission with nothing pointing at the field
+            // that caused it, so the control stops the viewer at the bound instead.
+            maxLength={field.blockType === 'email' ? REPORT_EMAIL_MAX : USER_SUBMISSION_VALUE_MAX}
+            type={inputType(field.blockType)}
+            {...register(key)}
+          />
+        )
+    }
+  }
 
   return (
     <FormField
       announceError={false}
-      error={error && message}
+      error={errorCopy(field, error, t)}
       help={help}
       htmlFor={field.blockType === 'checkbox' ? undefined : id}
       label={label}
       required={Boolean(field.required)}
     >
-      {field.blockType === 'textarea' && (
-        <Textarea
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
-          aria-required={field.required ? 'true' : undefined}
-          id={id}
-          isInvalid={Boolean(error)}
-          // A hard stop at the schema's ceiling. Without it, pasting a long stack
-          // trace — the very report this exists for — just disables submit.
-          maxLength={REPORT_MESSAGE_MAX}
-          placeholder={ours ? t(ours.placeholder) : undefined}
-          rows={5}
-          {...register(key)}
-        />
-      )}
-
-      {field.blockType === 'select' && (
-        <Controller
-          control={control}
-          name={key}
-          render={({ field: bound }) => (
-            <Select
-              aria-describedby={describedBy}
-              aria-label={label}
-              isInvalid={Boolean(error)}
-              name={bound.name}
-              placeholder={field.placeholder ?? undefined}
-              value={typeof bound.value === 'string' ? bound.value : ''}
-              onBlur={bound.onBlur}
-              onValueChange={bound.onChange}
-            >
-              {(field.options ?? []).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </Select>
-          )}
-        />
-      )}
-
-      {field.blockType === 'checkbox' && (
-        <Controller
-          control={control}
-          name={key}
-          render={({ field: bound }) => (
-            <Checkbox
-              appearance="checkbox"
-              aria-describedby={describedBy}
-              checked={bound.value === true}
-              id={id}
-              isInvalid={Boolean(error)}
-              onCheckedChange={bound.onChange}
-            >
-              {label}
-            </Checkbox>
-          )}
-        />
-      )}
-
-      {(field.blockType === 'text' ||
-        field.blockType === 'email' ||
-        field.blockType === 'country' ||
-        field.blockType === 'state' ||
-        field.blockType === 'number') && (
-        <Input
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
-          aria-required={field.required ? 'true' : undefined}
-          id={id}
-          isInvalid={Boolean(error)}
-          // One over-long value refuses the whole submission with nothing pointing at the field
-          // that caused it, so the control stops the viewer at the bound instead.
-          maxLength={field.blockType === 'email' ? REPORT_EMAIL_MAX : USER_SUBMISSION_VALUE_MAX}
-          placeholder={ours ? t(ours.placeholder) : undefined}
-          type={
-            field.blockType === 'email' ? 'email' : field.blockType === 'number' ? 'number' : 'text'
-          }
-          {...register(key)}
-        />
-      )}
+      {authoredControl()}
     </FormField>
   )
-}
+})
 
 /**
  * This is the report-issue form (issues #79, #103 and #216): the questions an
@@ -317,8 +325,17 @@ export function ReportIssueForm({
     disabled: captchaUnavailable,
   })
 
+  // All three are memoized because this form validates on every keystroke (`mode: 'onChange'`
+  // below), and react-hook-form reads the defaults once, at mount. Rebuilding a zod schema and
+  // a resolver closure per character is pure waste.
   const fields = useMemo(() => renderableFields(form), [form])
   const schema = useMemo(() => reportValuesSchema(fields), [fields])
+  const resolver = useMemo(() => zodResolver(schema), [schema])
+  const defaultValues = useMemo(
+    () => ({ ...reportDefaultValues(fields), ...initialValues }),
+    // Mount-only in effect: RHF reads this once. `initialValues` is story-only.
+    [fields],
+  )
 
   const mutation = useMutation({
     mutationFn: api.sendReport,
@@ -371,12 +388,12 @@ export function ReportIssueForm({
     trigger,
     formState: { errors, isValid },
   } = useForm<ReportValues>({
-    resolver: zodResolver(schema),
+    resolver,
     // This validates as they type. The submit control stays disabled until
     // every authored field answers its own rule. So `isValid` has to track
     // edits, rather than only settling on the first submit attempt.
     mode: 'onChange',
-    defaultValues: { ...reportDefaultValues(fields), ...initialValues },
+    defaultValues,
   })
 
   // Pre-filled values are shown already validated — an empty form still starts clean.

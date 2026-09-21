@@ -3,7 +3,6 @@ import type { AtlasConfig, ReportForm } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 
 import { atlasConfigQuery, reportFormQuery } from '@/config/api/fetch'
-import { queryClient } from '@/config/query-client'
 
 /**
  * The id of the authored form behind "Report an issue", or `null` when this atlas has none.
@@ -18,15 +17,9 @@ const formIdFrom = (config: AtlasConfig | undefined): number | null =>
   config?.reportIssueForm ?? null
 
 /**
- * The same answer, read imperatively out of the cache — `currentLocales`' pattern, for a sharper
- * reason. `FallbackActions` is the one caller, and it renders on screens where the app is already
- * broken, with no query provider guaranteed above it. A hook there would throw INSIDE the error
- * fallback, which is the failure these screens exist to absorb.
+ * Whether to offer the report path at all. Every entry point gates on this — the settings row
+ * directly, and the error fallbacks through `visibleActions`' `canReport` limit.
  */
-export const currentReportEnabled = (): boolean =>
-  formIdFrom(queryClient.getQueryData<AtlasConfig>(atlasConfigQuery().queryKey)) !== null
-
-/** Whether to offer the report path at all, for a caller that can subscribe. */
 export const useReportEnabled = (): boolean => {
   const { data } = useQuery(atlasConfigQuery())
 
@@ -44,7 +37,7 @@ export const useReportEnabled = (): boolean => {
 export const useReportForm = (): ReportForm | undefined => {
   const { data: config } = useQuery(atlasConfigQuery())
   const id = formIdFrom(config)
-  const { data } = useQuery({ ...reportFormQuery(id ?? 0), enabled: id !== null })
+  const { data } = useQuery(reportFormQuery(id))
 
-  return id === null ? undefined : data
+  return data
 }

@@ -155,6 +155,24 @@ describe('visibleActions', () => {
     ).toMatchObject({ retry: false, onward: false, search: false, report: true })
   })
 
+  it('withholds the report CTA, last resort included, when the atlas names no form', () => {
+    // An atlas with no authored report form has nowhere for a report to go (#216), and a
+    // `contact` row naming none is refused — so this is the one limit that can empty a row the
+    // rule above would have filled. Both arms matter: the policy's own report, and the
+    // last-resort one.
+    expect(
+      visibleActions(ERROR_POLICY['not-found'], {
+        canRetry: true,
+        canNavigate: false,
+        canReport: false,
+      }),
+    ).toMatchObject({ report: false })
+
+    expect(
+      visibleActions(ERROR_POLICY.config, { canRetry: false, canReport: false }),
+    ).toMatchObject({ report: false })
+  })
+
   it('leaves a dead link alone while it has somewhere to send you', () => {
     expect(visibleActions(ERROR_POLICY['not-found'], { canRetry: true })).toMatchObject({
       onward: true,
