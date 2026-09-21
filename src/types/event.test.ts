@@ -137,6 +137,39 @@ describe('EventDocSchema images', () => {
   })
 })
 
+// Both reads carry the stage now: the event read so the panel can badge it, the feed so
+// the recommended score and the region partition can rank it down. The schema is
+// deliberately not an enum — see the note beside it.
+describe('verificationStage', () => {
+  it('parses on the feed event and on the full document', () => {
+    expect(
+      AgnosticFeedEventSchema.parse({ ...mockEventSlim, verificationStage: 'unverified' })
+        .verificationStage,
+    ).toBe('unverified')
+    expect(
+      EventDocSchema.parse({ ...mockEvent, verificationStage: 'unverified' }).verificationStage,
+    ).toBe('unverified')
+  })
+
+  // A stage SahajCloud adds after this ships must reach the UI intact and simply not
+  // match, rather than failing the whole read and blanking the page.
+  it('keeps a stage this widget does not recognise', () => {
+    expect(
+      EventDocSchema.parse({ ...mockEvent, verificationStage: 'some-future-stage' })
+        .verificationStage,
+    ).toBe('some-future-stage')
+  })
+
+  // The other half of tolerant: a live-preview proposal for a new event carries no stage
+  // at all (#163), and a shape change degrades to null instead of throwing.
+  it('degrades an absent or non-string stage instead of throwing', () => {
+    expect(EventDocSchema.parse({ ...mockEvent }).verificationStage).toBeUndefined()
+    expect(
+      EventDocSchema.parse({ ...mockEvent, verificationStage: 42 }).verificationStage,
+    ).toBeNull()
+  })
+})
+
 describe('registration question names', () => {
   // The key set is derived from the synced CMS types. This pins the concrete list so
   // a `pnpm types:cms` resync that changes SahajCloud's EVENT_REGISTRATION_QUESTIONS

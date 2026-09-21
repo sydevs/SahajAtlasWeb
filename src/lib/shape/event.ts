@@ -28,18 +28,17 @@ export type DisplayEventLike = EventLike & {
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
 
+/** What the verification helpers read. Both the feed event and the full document carry it. */
+type StagedEventLike = { verificationStage?: string | null }
+
 /**
- * The registration questions enabled on an event (each `true` boolean maps to one
- * field), in `REGISTRATION_QUESTION_NAMES` order. These are the CMS names, so the
- * form registers `questions.<name>` field paths and labels them from
- * `events:questions.<name>`.
- *
- * This lives here, instead of inside RegistrationView, because it is the second
- * half of the #191 seam. The schema parse drops a question the CMS renamed, and
- * this filter is what turns that into an empty form. A spec that re-implements the
- * filter cannot see either half break, so the view calls this function, and so
- * does the test.
+ * Published with nobody vouching for it. The match is exact: every other published
+ * stage is a rung of the managed reminder ladder, so an absent or unrecognised value
+ * reads as verified and is never badged or ranked down.
  */
+export const isUnverified = (event: StagedEventLike): boolean =>
+  event.verificationStage === 'unverified'
+
 export const enabledQuestions = (event: {
   registrationQuestions?: RegistrationQuestions | null
 }): RegistrationQuestionName[] => {

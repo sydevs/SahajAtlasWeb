@@ -109,6 +109,10 @@ const FEED_SELECT = {
   // This is an O(1) capacity signal from SahajCloud#601.
   // It is a denormalized boolean. The feed reports fullness without a per-event count.
   registrationsFull: true,
+  // The ranking signal, not a display one: `confidenceScore` is deliberately absent
+  // from both this select and the event read. Every unverified listing ranks and
+  // reads the same.
+  verificationStage: true,
   webPath: true,
 }
 
@@ -620,6 +624,7 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         registrationsFull: true,
         registrationQuestions: true,
         region: true,
+        verificationStage: true,
         webPath: true,
         webUrl: true,
       },

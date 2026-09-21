@@ -199,6 +199,20 @@ describe('getGeojson', () => {
     expect(options.args.pagination).toBe(false)
     expect(geojson.features[0].properties.region.slug).toBe('brussels')
   })
+
+  // The ranking needs the stage in the feed, which the event read does not cover.
+  // `confidenceScore` is named too: the reviewer ruled it out of the UI, and a field
+  // nothing displays has no business crossing the wire on every event.
+  it('selects verificationStage and never confidenceScore', async () => {
+    sdk.request.mockResolvedValue(jsonResponse({ type: 'FeatureCollection', features: [] }))
+
+    await api.getGeojson()
+
+    const [options] = sdk.request.mock.calls[0] as [{ args: { select: Record<string, unknown> } }]
+
+    expect(options.args.select.verificationStage).toBe(true)
+    expect(options.args.select).not.toHaveProperty('confidenceScore')
+  })
 })
 
 describe('getRegion (region-tree derivation)', () => {
@@ -213,6 +227,7 @@ describe('getRegion (region-tree derivation)', () => {
     eventType = 'offline',
     coordinates,
     next,
+    verificationStage = 'verified',
   }: {
     id: number
     regionId: number
@@ -220,6 +235,7 @@ describe('getRegion (region-tree derivation)', () => {
     eventType?: 'offline' | 'online'
     coordinates?: [number, number]
     next?: string
+    verificationStage?: string
   }) => ({
     type: 'Feature',
     geometry: coordinates ? { type: 'Point', coordinates } : null,
@@ -229,6 +245,7 @@ describe('getRegion (region-tree derivation)', () => {
       languages: ['nl'],
       region: { id: regionId, slug, level: 'city' },
       schedule: next ? { firstDate: '2026-01-01T00:00:00Z', upcomingDates: [next] } : undefined,
+      verificationStage,
     },
   })
 
@@ -443,6 +460,7 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.map((event) => event.id)).toEqual([11])
     expect(region.onlineEvents[0].eventType).toBe('online')
   })
+
 })
 
 describe('getEvent', () => {
@@ -475,6 +493,19 @@ describe('getEvent', () => {
     // Null stays null, so the UI can skip it. The boundary maps values, it does not filter them.
     expect(event.images[1].url).toBeNull()
     expect(event.images).toHaveLength(2)
+  })
+
+  // The badge reads the stage off this document, and shows the same thing for every
+  // unverified listing — so `confidenceScore` is selected nowhere either.
+  it('selects verificationStage and never confidenceScore', async () => {
+    sdk.findByID.mockResolvedValue(rawEvent)
+
+    await api.getEvent(13)
+
+    const [options] = sdk.findByID.mock.calls[0] as [{ select: Record<string, unknown> }]
+
+    expect(options.select.verificationStage).toBe(true)
+    expect(options.select).not.toHaveProperty('confidenceScore')
   })
 })
 
