@@ -20,6 +20,9 @@ const inputShape = {
   required: z.boolean().nullish(),
 }
 
+/** The three blocks whose authored default is prose. */
+const textInput = { ...inputShape, defaultValue: z.string().nullish() }
+
 /**
  * The form-builder blocks this widget renders.
  *
@@ -28,16 +31,15 @@ const inputShape = {
  * it. Dropping them instead would lose a question the operator asked, silently.
  */
 export const ReportFormFieldSchema = z.discriminatedUnion('blockType', [
-  z.object({ ...inputShape, blockType: z.literal('text'), defaultValue: z.string().nullish() }),
-  z.object({ ...inputShape, blockType: z.literal('textarea'), defaultValue: z.string().nullish() }),
+  z.object({ ...textInput, blockType: z.literal('text') }),
+  z.object({ ...textInput, blockType: z.literal('textarea') }),
   z.object({ ...inputShape, blockType: z.literal('email') }),
   z.object({ ...inputShape, blockType: z.literal('country') }),
   z.object({ ...inputShape, blockType: z.literal('state') }),
   z.object({ ...inputShape, blockType: z.literal('number'), defaultValue: z.number().nullish() }),
   z.object({
-    ...inputShape,
+    ...textInput,
     blockType: z.literal('select'),
-    defaultValue: z.string().nullish(),
     placeholder: z.string().nullish(),
     options: z.array(z.object({ label: z.string(), value: z.string() })).nullish(),
   }),
@@ -76,36 +78,43 @@ export const ReportFormSchema = z.object({
 export type ReportForm = z.infer<typeof ReportFormSchema>
 
 /**
- * The two schemas above, pinned to the synced CMS types (`pnpm types:cms`) — the pattern
+ * The two schemas above, pinned to the synced SahajCloud types (`pnpm types:cms`) — the pattern
  * `RegistrationQuestionsSchema` uses in `event.ts`, for a sharper reason here.
  *
  * ⚠ **`renderableFields` DROPS a block it cannot parse**, on purpose, so an upstream addition
  * cannot take the report path down. That makes drift invisible: a renamed member turns an
  * operator's question into a field that silently stops rendering, with every gate green. `Pick`
- * fails the build instead — on a renamed block type through `CmsBlock`'s own constraint, and on
+ * fails the build instead — on a renamed block type through `SahajCloudBlock`'s own constraint, and on
  * a renamed member through the key list. It cannot see an ADDED block, which is the case the
  * drop was built for.
+ *
+ * ⚠ **The key lists stay written out.** Folding the shared `'name' | 'label' | 'required'` into a
+ * generic helper needs `Extract<keyof …>` to type-check, which DROPS a renamed member instead of
+ * failing on it — the one thing this pin exists to catch.
  *
  * Like every pin against `src/types/payload/`, it compares against a checked-in snapshot, so it
  * only fires once the resync has been run (#191). It is exported because nothing consumes it —
  * the type-checker reading it IS the check, and an unexported one would fail `noUnusedLocals`
  * instead of the drift it is watching for.
  */
-type CmsFormField = NonNullable<Form['fields']>[number]
-type CmsBlock<T extends CmsFormField['blockType']> = Extract<CmsFormField, { blockType: T }>
+type SahajCloudFormField = NonNullable<Form['fields']>[number]
+type SahajCloudBlock<T extends SahajCloudFormField['blockType']> = Extract<
+  SahajCloudFormField,
+  { blockType: T }
+>
 
-export type PinnedToCms = [
+export type PinnedToSahajCloud = [
   Pick<Form, 'id' | 'fields' | 'submitButtonLabel' | 'confirmationType' | 'confirmationMessage'>,
-  Pick<CmsBlock<'text'>, 'name' | 'label' | 'required' | 'defaultValue'>,
-  Pick<CmsBlock<'textarea'>, 'name' | 'label' | 'required' | 'defaultValue'>,
-  Pick<CmsBlock<'email'>, 'name' | 'label' | 'required'>,
-  Pick<CmsBlock<'country'>, 'name' | 'label' | 'required'>,
-  Pick<CmsBlock<'state'>, 'name' | 'label' | 'required'>,
-  Pick<CmsBlock<'number'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<SahajCloudBlock<'text'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<SahajCloudBlock<'textarea'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<SahajCloudBlock<'email'>, 'name' | 'label' | 'required'>,
+  Pick<SahajCloudBlock<'country'>, 'name' | 'label' | 'required'>,
+  Pick<SahajCloudBlock<'state'>, 'name' | 'label' | 'required'>,
+  Pick<SahajCloudBlock<'number'>, 'name' | 'label' | 'required' | 'defaultValue'>,
   Pick<
-    CmsBlock<'select'>,
+    SahajCloudBlock<'select'>,
     'name' | 'label' | 'required' | 'defaultValue' | 'placeholder' | 'options'
   >,
-  Pick<CmsBlock<'checkbox'>, 'name' | 'label' | 'required' | 'defaultValue'>,
-  Pick<CmsBlock<'message'>, 'message'>,
+  Pick<SahajCloudBlock<'checkbox'>, 'name' | 'label' | 'required' | 'defaultValue'>,
+  Pick<SahajCloudBlock<'message'>, 'message'>,
 ]

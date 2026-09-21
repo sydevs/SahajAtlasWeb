@@ -31,6 +31,7 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 - **Export style**: components and hooks use **named** exports. Pages, layouts, and entry/singleton modules (`App`, `Widget`, `providers`, `config/api/*`, `config/i18n`) use default exports.
 - **Props types**: name them `<Component>Props` (e.g. `EventListItemProps`). On a name clash with an imported type, alias the **import**, not ours — the exported type keeps its name (see `DESIGN_SYSTEM.md`).
 - Name zod schemas `XSchema`. Name the inferred type `X` (see `src/types/`).
+- **Say `SahajCloud`, never `CMS`** — in type names, identifiers and prose. The API has a name, and `CMS` reads as a category. A type pinning a schema to the synced types is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`, `SahajCloudBlock` (see `src/types/report.ts` and `docs/rules/data-layer.md`).
 
 ## TypeScript
 

@@ -18,10 +18,14 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
   (the Events collection's endpoint contract). Run `pnpm types:cms` to refresh both.
 - Keep the zod schemas aligned with these generated types — they are the SDK's
   compile-time source of truth.
+- **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
+  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
+  and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
+  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
 - Each generated file is its own curl inside `types:cms`. Add a new line for a new
   endpoint contract — it never appears by magic.
 - ⚠ A deleted upstream file can still resolve. SahajCloud deleted `POST
-  /api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
+/api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
   export, but the old curl URL kept resolving — it just started serving unrelated
   SEO/sitemap types into a file still named after contact. Nothing here consumes
   that content any more, and we deleted the line from `types:cms`. Check what a curled
@@ -76,7 +80,7 @@ or HTML descriptions — the client derives all of these:
   `RegionLevelSchema` tracks only the current one.
 - **`getEvents`** → the whole matching set from the feed, sorted by
   `@turf/distance`, **uncapped** (like `getCalendarEvents`). Do not reintroduce a
-  `.slice()` here: an earlier cap truncated the pool *before* the client-side sort,
+  `.slice()` here: an earlier cap truncated the pool _before_ the client-side sort,
   so `?sort=soonest` only ranked within the nearest 50 and match #51 was
   permanently unreachable. Treat paging as a render budget, not a network one — the
   feed fetches once and the results list reveals it a page at a time
@@ -144,7 +148,7 @@ the HOST page's realm.
 Only three components render a JSX anchor, and all three call it (#114): the
 `Link` atom, the `Button` atom's href form, and `ActionRow` / `ActionCircle`. The
 latter two used to render a raw `<a href>` that skipped the `Link` atom's own
-check. Their hrefs were safe by *provenance* — a `SafeUrlSchema`-parsed
+check. Their hrefs were safe by _provenance_ — a `SafeUrlSchema`-parsed
 `event.website`, a `directionsUrl` the app builds, literal `mailto:` / `tel:`
 prefixes — but provenance is not a property the next caller inherits. No live hole
 was ever found here — this predicate is defense-in-depth — but the recurrence rate
@@ -160,7 +164,7 @@ instructions, rather than shipping ungated — this replaces the manual grep the
 original ticket's acceptance criteria described.
 
 ⚠ That inventory covers JSX only. **`lexicalToHtml` (`src/lib/shape/lexical.ts`)
-is a separate href sink**: it serializes CMS rich text into an HTML *string*
+is a separate href sink**: it serializes CMS rich text into an HTML _string_
 containing `<a href>`, and its safety comes from the DOMPurify pass where that
 string renders, not from `isSafeHref`. Do not route a string builder through the
 JSX-anchor predicate for this — it is a different sink with a different
@@ -198,14 +202,14 @@ by `type` (SahajCloud#695, #800). `POST /api/events/:id/register` and `POST
 
 Everything a submission carries beyond its own columns rides as
 **`submissionData: [{ field, value }]`**, not an object. SahajCloud bounds those
-keys *per type* and answers a 400 naming the offending key, so a new key must
+keys _per type_ and answers a 400 naming the offending key, so a new key must
 exist in its `src/collections/UserSubmissions/submissionData.ts` first. The
 columns a client may write are `type`, `event`, `startingAt`, `senderEmail`,
 `form` and the blob; `uuid`, `client`, `status` and `subject` are hook-composed
 and refused from a client body.
 
 - **`createRegistration`** → a `registration` row: `{ type, event, startingAt,
-  senderEmail }` plus `name`, `locale` and the question answers as pairs. The
+senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   event gate is a `beforeValidate` hook, so a full, ended, closed or external
   event is still refused **synchronously**, by the request that tried to register.
   - ⚠ **A 201 means ACCEPTED, not delivered — for this one too.** The confirmation
@@ -335,7 +339,7 @@ those pages carry:
 - **Keep mutations at `retry: 0`.** Both are unsafe to repeat: a re-sent
   registration is a duplicate signup, and a re-sent report replays a single-use
   Turnstile token the server already redeemed. Set the report mutation's
-  `networkMode: 'always'` too — the default *pauses* an offline mutation instead
+  `networkMode: 'always'` too — the default _pauses_ an offline mutation instead
   of failing it, which on the one screen that exists because something already
   broke means a spinner that never resolves.
 - **Never override `retry` (or any option) per-fetch on a shared key.**
