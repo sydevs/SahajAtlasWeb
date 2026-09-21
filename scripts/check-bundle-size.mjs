@@ -359,10 +359,19 @@ function main() {
   //
   // `src/Widget.standalone.test.ts` already scans the import graph for
   // this literal, and that is the check that names the mistake. This one
-  // is about what a host actually downloads: the unit spec walks `src/`
-  // through its own resolver, while the standalone and embed graphs do
-  // share chunks, so a future move of the decorator into one of them
-  // would be invisible there and shipped here.
+  // is about what a host actually downloads. What it catches that the
+  // spec cannot: the spec's resolver follows only our own `.ts`/`.tsx`
+  // files — a package specifier resolves to nothing there, by design — so
+  // a carrier arriving from a dependency is invisible to it and shipped
+  // here. It runs the other way too, which is why both arms exist: the
+  // closure below is STATIC, so a carrier behind a dynamic import is
+  // absent from these bytes and caught only by the spec, whose walk
+  // follows `import()` as well.
+  //
+  // ⚠ Not "a chunk the two graphs share". Rolldown puts a module in a
+  // chunk `embed.js` loads only where `Widget.tsx` reaches it — which is
+  // exactly the reachability the spec walks, so that argument names no
+  // gap at all.
   //
   // The literal is duplicated on purpose, exactly as `src/loader/
   // literals.ts` is — a script that imported it from `src/` would be

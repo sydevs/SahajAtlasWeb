@@ -127,9 +127,9 @@ built so passing proves something real:
   graph for the same string as a positive control (#217). That name is the only thing a
   writer of the credential needs, so the embedded widget must not ship it.
   `src/Widget.standalone.test.ts` scans `src/` for it too, and neither check subsumes the
-  other: an unused constant parked in a shared module is tree-shaken out of the bytes, and a
-  future move of the decorator into a chunk the standalone and embed graphs already share is
-  invisible to a source-level resolver.
+  other: an unused constant is tree-shaken out of the bytes but not out of `src/`, a carrier
+  behind a dynamic import is absent from the gate's static closure, and a carrier arriving
+  from a dependency is invisible to a resolver that follows only our own `.ts`/`.tsx` files.
 - **`pnpm audit:check`** (`scripts/check-audit.mjs`) fails on a high or critical advisory
   not pinned in `scripts/audit-baseline.json`. Waive one only with a reviewable line
   naming the owning ticket. The weekly `audit.yml` run adds `--strict`, which also fails
