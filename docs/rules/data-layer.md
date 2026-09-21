@@ -97,7 +97,12 @@ or HTML descriptions — the client derives all of these:
 - **`getClient`** → `/api/clients/me` via the raw `request` helper (the bare
   `sdk.me()` cannot carry the required `select`). An API-key self-read of locale,
   theme colors, and home `region`.
-- **`getAtlasConfig`** → the `sy-atlas-config` global (map defaults).
+- **`getAtlasConfig`** → the `sy-atlas-config` global (map defaults, the offered
+  locales, and `reportIssueForm` — read at `depth: 0`, so it stays a bare id).
+- **`getReportForm`** → `/api/forms/:id`, the authored report-issue form
+  (`reportFormQuery`). Fetched once for the widget's life by the modal host, never on
+  open: the report path is mostly reached FROM a failure, so a read fired at that
+  moment would be the second thing to fail.
 
 Parse every fetcher's response through a zod schema from `src/types/` — raw
 `*DocSchema` / `FeedEventSchema` / `GeojsonSchema` for the wire shape, derived
@@ -212,18 +217,25 @@ and refused from a client body.
     registrant would lose everything they typed to the generic panel. Stop the
     viewer at the bound rather than truncating prose they wrote: truncation is for
     the values this code builds, not the ones a person did.
-- **`sendReport`** → a `contact` row (SahajCloud#632, #171), the captcha-gated
-  intake behind the report-issue form. It names **no `form`**, because
-  `deliverContact` resolves a form-less row to the system contact address, which
-  is this channel's one destination.
-  - ⚠ **The deployed collection refuses a form-less contact row**, so this call
-    400s today with `form: This field is required.` — a `ValidationError`, which
-    carries no code, so it reaches the viewer as the generic failure. The CMS
-    contradicts itself: its delivery layer documents the form-less case as
-    legitimate while `needsForm` refuses it. The fix belongs in SahajCloud, and
-    is tracked as SahajCloud#813. Do not invent a form id here — the client
-    cannot read `forms`, and picking a recipient in the browser is the wrong
-    shape.
+- **`sendReport`** → a `contact` row (SahajCloud#632, #171, #813), the captcha-gated
+  intake behind the report-issue form. It **names the authored form** the operator
+  set on `sy-atlas-config.reportIssueForm`, and carries that form's own answers as
+  pairs under the names the operator gave them. A `contact` row naming no form is
+  refused with `form: This field is required.` — a `ValidationError`, which carries
+  no code, so it would reach the viewer as the generic failure.
+  - Never invent or hard-code a form id. It comes off the config
+    (`src/hooks/use-report-form.ts`), and where the config names none the widget
+    offers no report path at all.
+  - ⚠ **The `forms` read must never `select` `recipient` or `client`.**
+    `recipient` is a relationship to a manager, so a populated read hands a
+    person's name and address to every browser on every host page. SahajCloud locks
+    the field, `getReportForm`'s `select` asks for neither, and `ReportFormSchema`
+    carries neither — three guards, because delivery resolves the recipient
+    server-side and the widget never needs it.
+  - The authored answers are **not** clamped. They are prose a person wrote, and
+    the form bounds them at the control (`reportValuesSchema`). Our own context
+    keys are written last, so an operator authoring a field called `locale` cannot
+    replace the locale the widget is running in.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.
