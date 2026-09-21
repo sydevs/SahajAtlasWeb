@@ -815,13 +815,24 @@ export const atlasConfigQuery = () => ({
  * A `null` id — no form named, or a config not read yet — keys its own entry and carries
  * `enabled: false`, so "no form" never shares a key with a real one.
  */
-export const reportFormQuery = (id: number | null) => ({
+/**
+ * The authored report form, for a caller inside a Suspense boundary.
+ *
+ * `useSuspenseQuery`'s options omit `enabled` — a suspending read cannot be switched off — so this
+ * is `reportFormQuery` without that one key. They share the query key, which is what lets the modal
+ * host warm the read while the panel inside the boundary resolves it.
+ */
+export const reportFormSuspenseQuery = (id: number) => ({
   queryKey: ['report-form', id] as const,
-  queryFn: () => getReportForm(id as number),
-  enabled: id !== null,
+  queryFn: () => getReportForm(id),
   staleTime: ATLAS_CONFIG_STALE_TIME,
   gcTime: WHOLESALE_GC_TIME,
   retryOnMount: false,
+})
+
+export const reportFormQuery = (id: number | null) => ({
+  ...reportFormSuspenseQuery(id as number),
+  enabled: id !== null,
 })
 
 export const translationsQuery = (locale: string) => ({
