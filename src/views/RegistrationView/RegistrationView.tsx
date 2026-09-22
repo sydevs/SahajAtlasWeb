@@ -117,19 +117,6 @@ export function RegistrationView({
           variant="card"
         />
 
-        {/* Read before any answer is typed. This route is deep-linkable, so a registrant
-            can arrive without ever seeing the event panel's own copy. Outside the branch
-            below, since the stage does not depend on whether registration is open. */}
-        {isUnverified(event) && (
-          <Alert
-            className="mx-auto mb-4 w-full max-w-md"
-            color="contrast"
-            description={t('event.display.unverified_note')}
-            size="sm"
-            title={t('event.display.unverified_title')}
-          />
-        )}
-
         {open && !external ? (
           <RegistrationForm
             calendar={calendarExport}
@@ -175,6 +162,19 @@ export function RegistrationView({
             // `useEventDisplay` owns the status→copy table and its tests. This row's own
             // sentence is only the generic behind it.
             message={blockedMessage ?? undefined}
+          />
+        )}
+
+        {/* This route is deep-linkable, so a registrant can arrive without ever seeing the
+            event panel's own copy. Outside the branch above, since the stage does not
+            depend on whether registration is open. */}
+        {isUnverified(event) && (
+          <Alert
+            className="mx-auto mt-4 w-full max-w-md"
+            color="contrast"
+            description={t('event.display.unverified_note')}
+            size="sm"
+            title={t('event.display.unverified_title')}
           />
         )}
       </DrawerBody>

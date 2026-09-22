@@ -11,7 +11,8 @@ import { mockEvent } from '@/mocks/events'
 // panel's own spec cannot see it.
 //
 // The surrounding chrome is stubbed with MARKERS, not nulls: the caveat's position
-// between the summary card and the form is half of what is asserted.
+// below the form is half of what is asserted, and a null stub leaves nothing to order
+// against.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
@@ -71,13 +72,13 @@ const view = (verificationStage: string | null, registration = 'open') => {
 }
 
 describe('unverified caveat on the registration screen', () => {
-  it('renders between the event summary and the form', () => {
+  it('renders below the registration form', () => {
     const markup = view('unverified')
 
     expect(markup).toContain(TITLE_KEY)
     expect(markup).toContain(NOTE_KEY)
-    expect(markup.indexOf(TITLE_KEY)).toBeGreaterThan(markup.indexOf('facts-card'))
-    expect(markup.indexOf(TITLE_KEY)).toBeLessThan(markup.indexOf('registration-form'))
+    expect(markup).toContain('registration-form')
+    expect(markup.indexOf(TITLE_KEY)).toBeGreaterThan(markup.indexOf('registration-form'))
   })
 
   it.each(['verified', 'some-future-stage', null])('renders nothing for %s', (stage) => {
