@@ -83,6 +83,11 @@ paths:
   `useLocale()`, never `i18n.language` directly. `?locale=cimode` is refused
   (`convertDetectedLanguage`) — it is i18next's translator-debug pseudo-language, and
   a link carrying it would render someone's embed as raw dotted key names.
+- **`useLocale().locale` is the value to read. `resolvedLanguage` is not.** `locale` is
+  `i18n.resolvedLanguage || 'en'`. The hook returns the raw `resolvedLanguage` beside it,
+  `undefined` until i18next resolves, for the one caller whose comparison must not read
+  that fallback as a match: `sortEvents`' wrong-language penalty (#222). Both come off one
+  subscription, because every list card calls this hook.
 - **`preferredLocale` replaced `supportedLngs`** (`src/config/i18n-options.ts`). It
   narrows a requested tag against the runtime set, before the fetch: exact match
   case-folded, then base tag (`de-DE` → `de`), then a regional variant of that base
