@@ -69,8 +69,12 @@ export function useLocale() {
     },
     [i18n],
   )
-  const getSnapshot = useCallback(() => i18n.resolvedLanguage || 'en', [i18n])
-  const locale = useSyncExternalStore(subscribe, getSnapshot, () => 'en')
+  // The raw value is snapshotted, and `locale` derives from it, so both come from ONE
+  // subscription. Every list card calls this hook, so a second `useSyncExternalStore`
+  // for the unresolved value would cost one per row.
+  const getSnapshot = useCallback(() => i18n.resolvedLanguage, [i18n])
+  const resolvedLanguage = useSyncExternalStore(subscribe, getSnapshot, () => undefined)
+  const locale = resolvedLanguage || 'en'
 
   // This caches per locale at module scope, not per hook instance.
   // `useMemo` is scoped to the component, so a long results list, up to `MAX_REVEAL` rows, each card calling this, held one pair of ICU objects per row.
@@ -106,6 +110,12 @@ export function useLocale() {
   return {
     t,
     locale,
+    /**
+     * i18next's own value, BEFORE the `|| 'en'` fallback above — undefined until it
+     * resolves. `sortEvents`' language penalty compares against it, so the ordering
+     * cannot depend on whether the fallback had kicked in.
+     */
+    resolvedLanguage,
     languageCode: locale.split('-')[0],
     languageNames,
     languageLabel,
