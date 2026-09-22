@@ -110,7 +110,9 @@ export function useLocale() {
     t,
     locale,
     /** Raw i18next value, before `locale`'s `|| 'en'`. Read `locale` unless you are
-     *  `sortEvents`, whose language penalty must not take that fallback as a match (#222). */
+     *  `sortEvents`, whose language penalty must not take that fallback as a match (#222).
+     *  Theoretical here: `config/i18n.ts` resolves `init` synchronously, so this is a
+     *  string before the first render. */
     resolvedLanguage,
     languageCode: locale.split('-')[0],
     languageNames,
