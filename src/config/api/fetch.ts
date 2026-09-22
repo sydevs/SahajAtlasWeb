@@ -804,37 +804,6 @@ export const atlasConfigQuery = () => ({
   retryOnMount: false,
 })
 
-/**
- * The authored report form's contract, keyed by id.
- *
- * It shares `atlasConfigQuery`'s windows for the same reason: this is operator-authored copy on a
- * human editing cadence, and it is read once per session at most. `retryOnMount: false` matters
- * here too — the modal host observes this for the widget's whole life, so a failed read must not
- * re-fire on every remount of a form nobody has opened.
- *
- * A `null` id — no form named, or a config not read yet — keys its own entry and carries
- * `enabled: false`, so "no form" never shares a key with a real one.
- */
-/**
- * The authored report form, for a caller inside a Suspense boundary.
- *
- * `useSuspenseQuery`'s options omit `enabled` — a suspending read cannot be switched off — so this
- * is `reportFormQuery` without that one key. They share the query key, which is what lets the modal
- * host warm the read while the panel inside the boundary resolves it.
- */
-export const reportFormSuspenseQuery = (id: number) => ({
-  queryKey: ['report-form', id] as const,
-  queryFn: () => getReportForm(id),
-  staleTime: ATLAS_CONFIG_STALE_TIME,
-  gcTime: WHOLESALE_GC_TIME,
-  retryOnMount: false,
-})
-
-export const reportFormQuery = (id: number | null) => ({
-  ...reportFormSuspenseQuery(id as number),
-  enabled: id !== null,
-})
-
 export const translationsQuery = (locale: string) => ({
   queryKey: ['translations', locale] as const,
   queryFn: () => getTranslations(locale),

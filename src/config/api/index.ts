@@ -1,6 +1,6 @@
 import type { EventFilters } from '@/lib/shape'
 
-import fetch from './fetch'
+import fetch, { ATLAS_CONFIG_STALE_TIME } from './fetch'
 import mutate from './mutate'
 
 import {
@@ -81,9 +81,26 @@ export const eventsQuery = (
 // This re-exports it here with the rest, so callers still find every factory in one place.
 export { eventTitlesQuery } from './fetch'
 
-// Declared in `fetch.ts` beside its fetcher, for the same reason, and re-exported here so every
-// factory stays findable in one place.
-export { reportFormQuery } from './fetch'
+// This is the authored report form's contract, in one place.
+// The modal host's warm read and the panel's suspending read inside the boundary both share it, so the key can never drift.
+// It shares `atlasConfigQuery`'s windows: this is operator-authored copy on a human editing cadence, read once per session at most.
+// `retryOnMount: false` matters here too, since the host observes this for the widget's whole life.
+// A failed read must not re-fire on every remount of a form nobody has opened.
+// `useSuspenseQuery`'s options omit `enabled`, because a suspending read cannot be switched off, so the suspending variant is this contract without that one key.
+export const reportFormSuspenseQuery = (id: number) => ({
+  queryKey: ['report-form', id] as const,
+  queryFn: () => api.getReportForm(id),
+  staleTime: ATLAS_CONFIG_STALE_TIME,
+  gcTime: WHOLESALE_GC_TIME,
+  retryOnMount: false,
+})
+
+// A `null` id — no form named, or a config not read yet — keys its own entry and carries `enabled: false`.
+// So "no form" never shares a key with a real one, and the cast is unreachable while that holds.
+export const reportFormQuery = (id: number | null) => ({
+  ...reportFormSuspenseQuery(id as number),
+  enabled: id !== null,
+})
 
 // This is the wholesale region-tree query contract, in one place.
 // The region matcher, the Region filter's options, and the region-pill name lookup all share it.

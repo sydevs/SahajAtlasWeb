@@ -2,7 +2,8 @@ import type { AtlasConfig, ReportForm } from '@/types'
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
-import { atlasConfigQuery, reportFormQuery, reportFormSuspenseQuery } from '@/config/api/fetch'
+import { reportFormQuery, reportFormSuspenseQuery } from '@/config/api'
+import { atlasConfigQuery } from '@/config/api/fetch'
 
 /**
  * The id of the authored form behind "Report an issue", or `null` when this atlas has none.

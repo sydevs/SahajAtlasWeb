@@ -311,6 +311,12 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   the `eventQuery(id, locale)` factory so the prefetch and the view's suspense
   read cannot drift. `eventsQuery(latitude, longitude, filters, locale)` carries
   the same contract for the distance-ranked results list.
+- **Query factories live in `src/config/api/index.ts`.** That module imports
+  `fetch.ts`, so a factory `fetch.ts` itself consumes — `eventTitlesQuery`,
+  `atlasConfigQuery` and `translationsQuery`, each read by a warm-up in that file
+  — has to be declared beside its fetcher and re-exported here, or the import
+  closes a cycle. A factory nothing in `fetch.ts` calls has no such excuse.
+  Declare it in `index.ts` with the rest, so every contract stays in one place.
 - **Read a cache-only key through its own factory.** `eventTitlesQuery(locale)` is
   shared by the loader that fetches the sliver and by the drawer's loading/error
   chrome, which reads it with `enabled: false` to name the event whose view
