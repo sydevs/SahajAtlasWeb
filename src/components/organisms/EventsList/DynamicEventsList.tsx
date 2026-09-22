@@ -52,10 +52,7 @@ export function DynamicEventsList({
   // This applies the URL-selected ordering to the fetched list. It is memoized
   // on the fetched reference, the order and the language, so re-sorting is a cheap
   // client-side reorder, never a refetch. The query key above stays unchanged.
-  //
-  // `recommended` weighs an event's spoken language, always an ISO 639-1 base code, so it
-  // takes the base subtag and not `locale` — i18next resolves to a regional tag wherever one
-  // carries the bundle (#223).
+  // It takes the base subtag, never the resolved locale: an event's language is ISO 639-1 (#223).
   const order = useSortOrder()
   const sorted = useMemo(
     () => sortEvents(events, order, languageCode),
