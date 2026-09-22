@@ -228,7 +228,14 @@ const context: ReportContext = {
   userAgent: 'Mozilla/5.0 (Macintosh)',
 }
 
-const report = { message: 'The venue address is wrong.', turnstileToken: 'tok-1', context }
+// The authored form and its answers travel together: the CMS matches `answers` against the names
+// on form 7, and refuses a `contact` row that names no form at all.
+const report = {
+  form: 7,
+  answers: { message: 'The venue address is wrong.' },
+  turnstileToken: 'tok-1',
+  context,
+}
 
 describe('sendReport', () => {
   const created = { doc: { id: 42 }, message: 'Created successfully.' }
@@ -236,9 +243,11 @@ describe('sendReport', () => {
   it('creates a contact row on the shared intake and parses the create envelope', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await expect(mutate.sendReport({ ...report, email: 'ada@example.org' })).resolves.toEqual({
-      doc: { id: 42 },
-    })
+    await expect(mutate.sendReport({ ...report, senderEmail: 'ada@example.org' })).resolves.toEqual(
+      {
+        doc: { id: 42 },
+      },
+    )
 
     const [options] = sdk.request.mock.calls[0]
 
@@ -246,14 +255,14 @@ describe('sendReport', () => {
     expect(options.path).toBe('/user-submissions')
     expect(options.json.type).toBe('contact')
     expect(pair(options.json, 'message')).toBe('The venue address is wrong.')
-    // The collection's field is `senderEmail`. Ours is `email`.
-    // A dropped rename here would silently strip the Reply-To from every report that carries one.
+    // The address the delivery job reads for `Reply-To`, off the form's own email field.
     expect(options.json.senderEmail).toBe('ada@example.org')
-    expect(options.json).not.toHaveProperty('email')
     // The intake is general-purpose. The Atlas framing is this caller's subject.
     expect(pair(options.json, 'subject')).toBe('Issue report')
-    // A form would decide the recipient and widen the keys this may send. This channel has one fixed destination.
-    expect(options.json).not.toHaveProperty('form')
+    // The row NAMES the authored form (SahajCloud#813). Without it the collection refuses the
+    // whole submission with `form: This field is required.`, which carries no code — so the
+    // sender sees the generic failure and loses everything they typed.
+    expect(options.json.form).toBe(7)
   })
 
   it('sends the captcha token as a header, never in the body', async () => {
@@ -290,10 +299,37 @@ describe('sendReport', () => {
     expect(pair(options.json, 'client')).toBeUndefined()
   })
 
+  it('sends every authored answer as a pair, under the name the operator gave it', async () => {
+    sdk.request.mockResolvedValue(jsonResponse(created))
+
+    await mutate.sendReport({
+      ...report,
+      answers: { message: 'Wrong address.', 'how-urgent': 'today', consent: 'true' },
+    })
+
+    const [options] = sdk.request.mock.calls[0]
+
+    // SahajCloud allows exactly the authored names plus the base and `contact` keys, and 400s an
+    // unknown one naming it. So a renamed or dropped answer loses the whole report.
+    expect(pair(options.json, 'message')).toBe('Wrong address.')
+    expect(pair(options.json, 'how-urgent')).toBe('today')
+    expect(pair(options.json, 'consent')).toBe('true')
+  })
+
+  it('keeps our own context when an authored field claims the same name', async () => {
+    sdk.request.mockResolvedValue(jsonResponse(created))
+
+    await mutate.sendReport({ ...report, answers: { locale: 'pretend-locale' } })
+
+    // An operator can author a field called `locale`. That must not replace the locale the widget
+    // is actually running in, which is the whole reason the context is attached at all.
+    expect(pair(sdk.request.mock.calls[0][0].json, 'locale')).toBe('en')
+  })
+
   it('omits a blank reply address rather than sending an empty Reply-To', async () => {
     sdk.request.mockResolvedValue(jsonResponse(created))
 
-    await mutate.sendReport({ ...report, email: '' })
+    await mutate.sendReport({ ...report, senderEmail: '' })
 
     expect(sdk.request.mock.calls[0][0].json).not.toHaveProperty('senderEmail')
   })

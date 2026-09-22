@@ -7,6 +7,7 @@ import { frameCollision } from '@/lib/overlay'
 import { useAvailableLocales } from '@/hooks/use-available-locales'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
+import { useReportForm } from '@/hooks/use-report-form'
 import { nativeLanguageLabel, useLocale } from '@/hooks/use-locale'
 import { type ThemePreference, useThemePreference } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
@@ -51,6 +52,8 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
   const { preference, setPreference } = useThemePreference()
   const { linkable } = useWidgetMode()
   const openReport = useReportModal((state) => state.openReport)
+  // An atlas with no authored report form offers no report path at all (#216).
+  const { enabled: reportEnabled } = useReportForm()
   const container = overlayContainer()
 
   // This publishes the pick to the page URL, as well as changing the
@@ -157,15 +160,20 @@ export function SettingsMenu({ className, side = 'bottom' }: SettingsMenuProps) 
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
 
-          <DropdownMenu.Separator className="my-1 h-px bg-divider" />
+          {reportEnabled && (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-divider" />
 
-          {/* This is a plain row, not a submenu. It hands off to the report
-              modal, which is ephemeral state, not a setting to pick from a
-              list (issue #79). */}
-          <DropdownMenu.Item className={item} onSelect={() => openReport()}>
-            <Info size={18} />
-            <span>{t('common.report.title')}</span>
-          </DropdownMenu.Item>
+              {/* This is a plain row, not a submenu. It hands off to the report
+                  modal, which is ephemeral state, not a setting to pick from a
+                  list (issue #79). The separator goes with it: a trailing rule under
+                  the last row would read as a section that lost its contents. */}
+              <DropdownMenu.Item className={item} onSelect={() => openReport()}>
+                <Info size={18} />
+                <span>{t('common.report.title')}</span>
+              </DropdownMenu.Item>
+            </>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

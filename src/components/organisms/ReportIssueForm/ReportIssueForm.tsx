@@ -1,23 +1,40 @@
 import type { TranslationKey } from '@/types/i18next'
 import type { UserSubmissionErrorCode } from '@/config/api/mutate'
-import type { ReportContext, ReportPayload } from '@/lib/report'
+import type { ReportContext } from '@/lib/report'
+import type { ReportValues } from '@/lib/report-form'
+import type { ReportForm, ReportFormField } from '@/types/report'
+import type { TFunction } from 'i18next'
+import type { ReactElement } from 'react'
+import type { Control, ControllerRenderProps, FieldError, UseFormRegister } from 'react-hook-form'
 
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { memo, useEffect, useMemo } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
+import { Checkbox } from '@/components/atoms/Checkbox'
 import { Input } from '@/components/atoms/Input'
 import { ModalBody, ModalFooter } from '@/components/atoms/Modal'
+import { Select, SelectItem } from '@/components/atoms/Select'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 import api from '@/config/api'
-import { UserSubmissionError } from '@/config/api/mutate'
+import { UserSubmissionError, USER_SUBMISSION_VALUE_MAX } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
-import { REPORT_MESSAGE_MAX, REPORT_MESSAGE_MIN, type Report, ReportSchema } from '@/types/report'
+import { lexicalToText } from '@/lib/shape/lexical'
+import {
+  fieldKey,
+  renderableFields,
+  reportAnswers,
+  reportDefaultValues,
+  reportSenderEmail,
+  reportValuesSchema,
+} from '@/lib/report-form'
+import { REPORT_EMAIL_MAX, REPORT_MESSAGE_MIN } from '@/types/report'
+import { userSubmissionValueMax } from '@/config/api/mutate'
 
 /**
  * This is our copy for each refusal the intake can name, keyed by its
@@ -53,6 +70,12 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
 
 export type ReportIssueFormProps = {
   /**
+   * The authored form this renders: the operator's own questions, from the
+   * `contact` form named on `sy-atlas-config.reportIssueForm` (issue #216).
+   * The host fetches it, so this component stays presentational.
+   */
+  form: ReportForm
+  /**
    * This is the auto-attached context. The host (ReportIssueModal) assembles
    * it, rather than this component, so this stays presentational. It
    * renders in a story or the node test lane without a Router, a query
@@ -71,18 +94,211 @@ export type ReportIssueFormProps = {
   initialFailed?: boolean
   /** Story-only: render the degraded state as if Turnstile were blocked. */
   captchaUnavailable?: boolean
-  /** Pre-fill the fields. Seeded values are validated on mount, so their state shows. */
-  initialValues?: Partial<Report>
+  /**
+   * Pre-fill the fields, keyed by `fieldKey` (the field's position), not by
+   * the authored name. Seeded values are validated on mount, so their state shows.
+   */
+  initialValues?: ReportValues
+}
+
+const controlId = (index: number) => `report-field-${index}`
+
+// The three text blocks the browser can help with. Everything else the `default` arm renders is
+// free text, which is what `country` and `state` are here too.
+const inputType = (blockType: ReportFormField['blockType']) =>
+  blockType === 'email' ? 'email' : blockType === 'number' ? 'number' : 'text'
+
+/**
+ * Our own words for the two blocks this form has words for.
+ *
+ * The form-builder's `label` is optional, so a field authored without one would otherwise show
+ * its machine name. Where the operator authored nothing, the widget supplies the whole set —
+ * label, placeholder, and for an optional address the reply caveat. Where they authored a label,
+ * the field is theirs and none of this applies: a placeholder of ours under a question of theirs
+ * would describe a different question.
+ */
+type FieldCopy = { label: TranslationKey; placeholder: TranslationKey; help?: TranslationKey }
+
+const FIELD_COPY: Partial<Record<ReportFormField['blockType'], FieldCopy>> = {
+  email: {
+    label: 'common.report.email_label',
+    placeholder: 'common.report.email_placeholder',
+    help: 'common.report.email_help',
+  },
+  textarea: {
+    label: 'common.report.message_label',
+    placeholder: 'common.report.message_placeholder',
+  },
+}
+
+const ownCopy = (field: ReportFormField) =>
+  field.blockType === 'email' || field.blockType === 'textarea'
+    ? FIELD_COPY[field.blockType]
+    : undefined
+
+/**
+ * The sentence under a failed field, where one exists.
+ *
+ * Only the two blocks with copy of their own get one. Everything else is a required field the
+ * viewer has not filled in yet, which keeps Send disabled and is already marked on the label —
+ * inventing English for it here would go untranslated, since every string the widget shows is
+ * CMS-owned.
+ */
+const errorCopy = (field: ReportFormField, error: FieldError | undefined, t: TFunction) => {
+  if (!error) return undefined
+
+  if (field.blockType === 'email') return t('common.report_errors.email')
+
+  if (field.blockType === 'textarea')
+    return error.type === 'too_big'
+      ? t('common.report_errors.message_max', { max: userSubmissionValueMax(field.name) })
+      : t('common.report_errors.message', { min: REPORT_MESSAGE_MIN })
+
+  return undefined
+}
+
+type AuthoredFieldProps = {
+  field: ReportFormField
+  index: number
+  control: Control<ReportValues>
+  register: UseFormRegister<ReportValues>
+  error: FieldError | undefined
 }
 
 /**
- * This is the report-issue form (issues #79 and #103): an optional reply
- * address, the message, and a Turnstile challenge, over the auto-attached
- * `context` the viewer never types.
+ * One authored block.
  *
- * Submit POSTs a `contact` row to SahajCloud's shared
- * `/api/user-submissions` (sydevs/SahajCloud#695), which verifies the token,
- * screens for spam, and hands the message to a delivery job. **The thank-you screen is derived
+ * `select` and `checkbox` go through `Controller` because neither is a native input RHF can
+ * `register`. Everything else is a text control, `country` and `state` included: the widget has
+ * no authored option list for either, and the answer travels as a string whichever control
+ * collects it. The control is a `switch` over the union rather than a chain of guards, so a
+ * block type added to the schema cannot render a labelled field with nothing inside it.
+ *
+ * Memoized because the form validates on every keystroke. Without it, each keystroke re-renders
+ * every field and re-walks each prose block's Lexical tree.
+ */
+const AuthoredField = memo(function AuthoredField({
+  field,
+  index,
+  control,
+  register,
+  error,
+}: AuthoredFieldProps) {
+  const { t } = useTranslation()
+
+  if (field.blockType === 'message') {
+    // Authored prose, rendered as TEXT. The serializer's HTML form would need the DOMPurify pass
+    // that goes with it (`EventDetails/sanitize.ts`), and this form sits in the eager graph.
+    const prose = lexicalToText(field.message)
+
+    return prose ? <p className="text-sm text-gray-11">{prose}</p> : null
+  }
+
+  const id = controlId(index)
+  const key = fieldKey(index)
+  const copy = ownCopy(field)
+  // An authored label means the question is the operator's, so our copy stands down with it.
+  const ours = field.label ? undefined : copy
+  const label = field.label || (copy ? t(copy.label) : field.name)
+  const help = ours?.help && !field.required ? t(ours.help) : undefined
+  const describedBy = fieldDescribedBy({ name: id, help: Boolean(help), error: Boolean(error) })
+
+  const typed = {
+    'aria-describedby': describedBy,
+    'aria-invalid': error ? (true as const) : undefined,
+    'aria-required': field.required ? ('true' as const) : undefined,
+    id,
+    isInvalid: Boolean(error),
+    placeholder: ours ? t(ours.placeholder) : undefined,
+  }
+
+  const bindings = (
+    render: (bound: ControllerRenderProps<ReportValues, string>) => ReactElement,
+  ) => <Controller control={control} name={key} render={({ field: bound }) => render(bound)} />
+
+  const authoredControl = () => {
+    switch (field.blockType) {
+      case 'textarea':
+        return (
+          <Textarea
+            {...typed}
+            // A hard stop at the schema's ceiling, which is the collection's bound on this
+            // field's own NAME. Without it, pasting a long stack trace — the very report this
+            // exists for — just disables submit.
+            maxLength={userSubmissionValueMax(field.name)}
+            rows={5}
+            {...register(key)}
+          />
+        )
+      case 'select':
+        return bindings((bound) => (
+          <Select
+            aria-describedby={describedBy}
+            aria-label={label}
+            isInvalid={Boolean(error)}
+            name={bound.name}
+            placeholder={field.placeholder ?? undefined}
+            value={typeof bound.value === 'string' ? bound.value : ''}
+            onBlur={bound.onBlur}
+            onValueChange={bound.onChange}
+          >
+            {(field.options ?? []).map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </Select>
+        ))
+      case 'checkbox':
+        return bindings((bound) => (
+          <Checkbox
+            appearance="checkbox"
+            aria-describedby={describedBy}
+            checked={bound.value === true}
+            id={id}
+            isInvalid={Boolean(error)}
+            onCheckedChange={bound.onChange}
+          >
+            {label}
+          </Checkbox>
+        ))
+      default:
+        return (
+          <Input
+            {...typed}
+            // One over-long value refuses the whole submission with nothing pointing at the field
+            // that caused it, so the control stops the viewer at the bound instead.
+            maxLength={field.blockType === 'email' ? REPORT_EMAIL_MAX : USER_SUBMISSION_VALUE_MAX}
+            type={inputType(field.blockType)}
+            {...register(key)}
+          />
+        )
+    }
+  }
+
+  return (
+    <FormField
+      announceError={false}
+      error={errorCopy(field, error, t)}
+      help={help}
+      htmlFor={field.blockType === 'checkbox' ? undefined : id}
+      label={label}
+      required={Boolean(field.required)}
+    >
+      {authoredControl()}
+    </FormField>
+  )
+})
+
+/**
+ * This is the report-issue form (issues #79, #103 and #216): the questions an
+ * operator authored on SahajCloud, over the auto-attached `context` the viewer
+ * never types, behind a Turnstile challenge.
+ *
+ * Submit POSTs a `contact` row NAMING that form to SahajCloud's shared
+ * `/api/user-submissions` (sydevs/SahajCloud#695, #813), which verifies the
+ * token, screens for spam, and hands the message to a delivery job that
+ * resolves the form's own recipient. **The thank-you screen is derived
  * from the mutation's own success and nothing else.** It used to be set
  * beside a `window.alert`, so every report "sent" successfully and none of
  * them went anywhere. This form is reached BECAUSE something already
@@ -93,6 +309,7 @@ export type ReportIssueFormProps = {
  * gets a new challenge.
  */
 export function ReportIssueForm({
+  form,
   context,
   onClose,
   initialSubmitted = false,
@@ -109,6 +326,18 @@ export function ReportIssueForm({
   } = useTurnstile({
     disabled: captchaUnavailable,
   })
+
+  // All three are memoized because this form validates on every keystroke (`mode: 'onChange'`
+  // below), and react-hook-form reads the defaults once, at mount. Rebuilding a zod schema and
+  // a resolver closure per character is pure waste.
+  const fields = useMemo(() => renderableFields(form), [form])
+  const schema = useMemo(() => reportValuesSchema(fields), [fields])
+  const resolver = useMemo(() => zodResolver(schema), [schema])
+  const defaultValues = useMemo(
+    () => ({ ...reportDefaultValues(fields), ...initialValues }),
+    // Mount-only in effect: RHF reads this once. `initialValues` is story-only.
+    [fields],
+  )
 
   const mutation = useMutation({
     mutationFn: api.sendReport,
@@ -155,18 +384,18 @@ export function ReportIssueForm({
   const submitted = initialSubmitted || mutation.isSuccess
 
   const {
+    control,
     register,
     handleSubmit,
     trigger,
     formState: { errors, isValid },
-  } = useForm<Report>({
-    resolver: zodResolver(ReportSchema),
+  } = useForm<ReportValues>({
+    resolver,
     // This validates as they type. The submit control stays disabled until
-    // the message is long enough AND the email (if given) parses. So
-    // `isValid` has to track edits, rather than only settling on the first
-    // submit attempt.
+    // every authored field answers its own rule. So `isValid` has to track
+    // edits, rather than only settling on the first submit attempt.
     mode: 'onChange',
-    defaultValues: { email: '', message: '', ...initialValues },
+    defaultValues,
   })
 
   // Pre-filled values are shown already validated — an empty form still starts clean.
@@ -177,10 +406,15 @@ export function ReportIssueForm({
   }, [])
 
   if (submitted) {
+    // The operator's own confirmation copy, when they authored one. Ours is the fallback, and it
+    // deliberately promises receipt rather than arrival (#171) — delivery is a later job.
+    const confirmation =
+      form.confirmationType === 'message' ? lexicalToText(form.confirmationMessage) : ''
+
     return (
       <>
         <ModalBody>
-          <p className="py-2 text-sm">{t('common.report.sent')}</p>
+          <p className="py-2 text-sm">{confirmation || t('common.report.sent')}</p>
         </ModalBody>
         <ModalFooter>
           <Button color="primary" variant="flat" onClick={onClose}>
@@ -192,13 +426,6 @@ export function ReportIssueForm({
   }
 
   const blocked = status === 'blocked'
-  // Both bounds get their own sentence. One "at least 10 characters" string
-  // shown for a too-LONG message would tell the user the opposite of what
-  // is wrong.
-  const messageError =
-    errors.message?.type === 'too_big'
-      ? t('common.report_errors.message_max', { max: REPORT_MESSAGE_MAX })
-      : t('common.report_errors.message', { min: REPORT_MESSAGE_MIN })
 
   // A named refusal gets its own sentence. Everything else — offline, 5xx,
   // a 502 from the mailer — gets the generic one. The thrown message never
@@ -228,76 +455,35 @@ export function ReportIssueForm({
         // check is an extra safeguard.
         if (!token || mutation.isPending) return
 
-        const payload: ReportPayload = {
-          // A blank optional input registers as '' — omit it rather than sending an
-          // empty Reply-To.
-          email: values.email || undefined,
-          message: values.message,
+        mutation.mutate({
+          form: form.id,
+          answers: reportAnswers(fields, values),
+          senderEmail: reportSenderEmail(fields, values),
           turnstileToken: token,
           context,
-        }
-
-        mutation.mutate(payload)
+        })
       })}
     >
       <ModalBody>
         <div className="flex flex-col gap-4 py-2">
-          {/* `announceError={false}` applies to both fields, because this form is
+          {/* `announceError={false}` on every field, because this form is
               the shape FormField's default is wrong for (issue #102). It
               validates on every keystroke (`mode: 'onChange'` above), and
               it gates Send on `isValid`. So there is no failed submit to
               announce — only an assertive interruption on the first
-              character of a message or an email address. The errors stay
-              wired to each control through `aria-describedby`, so a
-              reader standing on the field is told what is wrong with it. */}
-          <FormField
-            required
-            announceError={false}
-            error={errors.message && messageError}
-            htmlFor="report-message"
-            label={t('common.report.message_label')}
-          >
-            <Textarea
-              aria-describedby={fieldDescribedBy({
-                name: 'report-message',
-                error: Boolean(errors.message),
-              })}
-              aria-invalid={errors.message ? true : undefined}
-              aria-required="true"
-              id="report-message"
-              isInvalid={Boolean(errors.message)}
-              // A hard stop at the schema's ceiling. Without it, pasting a long stack
-              // trace — the very report this exists for — just disables submit.
-              maxLength={REPORT_MESSAGE_MAX}
-              placeholder={t('common.report.message_placeholder')}
-              rows={5}
-              {...register('message')}
+              character typed. The errors stay wired to each control through
+              `aria-describedby`, so a reader standing on the field is told
+              what is wrong with it. */}
+          {fields.map((field, index) => (
+            <AuthoredField
+              key={index}
+              control={control}
+              error={errors[fieldKey(index)] as FieldError | undefined}
+              field={field}
+              index={index}
+              register={register}
             />
-          </FormField>
-
-          <FormField
-            announceError={false}
-            error={errors.email && t('common.report_errors.email')}
-            help={t('common.report.email_help')}
-            htmlFor="report-email"
-            label={t('common.report.email_label')}
-          >
-            <Input
-              // Describe by the help line as well as any error, so the "optional, and we
-              // can only reply if you fill it in" caveat is announced, not just seen.
-              aria-describedby={fieldDescribedBy({
-                name: 'report-email',
-                help: true,
-                error: Boolean(errors.email),
-              })}
-              aria-invalid={errors.email ? true : undefined}
-              id="report-email"
-              isInvalid={Boolean(errors.email)}
-              placeholder={t('common.report.email_placeholder')}
-              type="email"
-              {...register('email')}
-            />
-          </FormField>
+          ))}
 
           {/* Kept mounted even when blocked: the hook renders the challenge into it
               once Turnstile becomes available, and an empty div costs nothing. */}
@@ -339,7 +525,7 @@ export function ReportIssueForm({
           type="submit"
           variant="flat"
         >
-          {t('common.report.submit')}
+          {form.submitButtonLabel || t('common.report.submit')}
         </Button>
       </ModalFooter>
     </form>

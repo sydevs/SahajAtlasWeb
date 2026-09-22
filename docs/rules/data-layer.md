@@ -19,10 +19,14 @@ only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`,
   (the Events collection's endpoint contract). Run `pnpm types:cms` to refresh both.
 - Keep the zod schemas aligned with these generated types — they are the SDK's
   compile-time source of truth.
+- **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
+  schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
+  and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
+  in identifiers and in prose — `src/AGENTS.md` carries it as a naming rule.
 - Each generated file is its own curl inside `types:cms`. Add a new line for a new
   endpoint contract — it never appears by magic.
 - ⚠ A deleted upstream file can still resolve. SahajCloud deleted `POST
-  /api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
+/api/contact-admin` (SahajCloud#632/#653) along with its `contact-types.ts`
   export, but the old curl URL kept resolving — it just started serving unrelated
   SEO/sitemap types into a file still named after contact. Nothing here consumes
   that content any more, and we deleted the line from `types:cms`. Check what a curled
@@ -89,7 +93,7 @@ or HTML descriptions — the client derives all of these:
   `RegionLevelSchema` tracks only the current one.
 - **`getEvents`** → the whole matching set from the feed, sorted by
   `@turf/distance`, **uncapped** (like `getCalendarEvents`). Do not reintroduce a
-  `.slice()` here: an earlier cap truncated the pool *before* the client-side sort,
+  `.slice()` here: an earlier cap truncated the pool _before_ the client-side sort,
   so `?sort=soonest` only ranked within the nearest 50 and match #51 was
   permanently unreachable. Treat paging as a render budget, not a network one — the
   feed fetches once and the results list reveals it a page at a time
@@ -110,7 +114,12 @@ or HTML descriptions — the client derives all of these:
 - **`getClient`** → `/api/clients/me` via the raw `request` helper (the bare
   `sdk.me()` cannot carry the required `select`). An API-key self-read of locale,
   theme colors, and home `region`.
-- **`getAtlasConfig`** → the `sy-atlas-config` global (map defaults).
+- **`getAtlasConfig`** → the `sy-atlas-config` global (map defaults, the offered
+  locales, and `reportIssueForm` — read at `depth: 0`, so it stays a bare id).
+- **`getReportForm`** → `/api/forms/:id`, the authored report-issue form
+  (`reportFormQuery`). Fetched once for the widget's life by the modal host, never on
+  open: the report path is mostly reached FROM a failure, so a read fired at that
+  moment would be the second thing to fail.
 
 Parse every fetcher's response through a zod schema from `src/types/` — raw
 `*DocSchema` / `FeedEventSchema` / `GeojsonSchema` for the wire shape, derived
@@ -152,7 +161,7 @@ the HOST page's realm.
 Only three components render a JSX anchor, and all three call it (#114): the
 `Link` atom, the `Button` atom's href form, and `ActionRow` / `ActionCircle`. The
 latter two used to render a raw `<a href>` that skipped the `Link` atom's own
-check. Their hrefs were safe by *provenance* — a `SafeUrlSchema`-parsed
+check. Their hrefs were safe by _provenance_ — a `SafeUrlSchema`-parsed
 `event.website`, a `directionsUrl` the app builds, literal `mailto:` / `tel:`
 prefixes — but provenance is not a property the next caller inherits. No live hole
 was ever found here — this predicate is defense-in-depth — but the recurrence rate
@@ -168,7 +177,7 @@ instructions, rather than shipping ungated — this replaces the manual grep the
 original ticket's acceptance criteria described.
 
 ⚠ That inventory covers JSX only. **`lexicalToHtml` (`src/lib/shape/lexical.ts`)
-is a separate href sink**: it serializes CMS rich text into an HTML *string*
+is a separate href sink**: it serializes CMS rich text into an HTML _string_
 containing `<a href>`, and its safety comes from the DOMPurify pass where that
 string renders, not from `isSafeHref`. Do not route a string builder through the
 JSX-anchor predicate for this — it is a different sink with a different
@@ -206,14 +215,14 @@ by `type` (SahajCloud#695, #800). `POST /api/events/:id/register` and `POST
 
 Everything a submission carries beyond its own columns rides as
 **`submissionData: [{ field, value }]`**, not an object. SahajCloud bounds those
-keys *per type* and answers a 400 naming the offending key, so a new key must
+keys _per type_ and answers a 400 naming the offending key, so a new key must
 exist in its `src/collections/UserSubmissions/submissionData.ts` first. The
 columns a client may write are `type`, `event`, `startingAt`, `senderEmail`,
 `form` and the blob; `uuid`, `client`, `status` and `subject` are hook-composed
 and refused from a client body.
 
 - **`createRegistration`** → a `registration` row: `{ type, event, startingAt,
-  senderEmail }` plus `name`, `locale` and the question answers as pairs. The
+senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   event gate is a `beforeValidate` hook, so a full, ended, closed or external
   event is still refused **synchronously**, by the request that tried to register.
   - ⚠ **A 201 means ACCEPTED, not delivered — for this one too.** The confirmation
@@ -225,18 +234,25 @@ and refused from a client body.
     registrant would lose everything they typed to the generic panel. Stop the
     viewer at the bound rather than truncating prose they wrote: truncation is for
     the values this code builds, not the ones a person did.
-- **`sendReport`** → a `contact` row (SahajCloud#632, #171), the captcha-gated
-  intake behind the report-issue form. It names **no `form`**, because
-  `deliverContact` resolves a form-less row to the system contact address, which
-  is this channel's one destination.
-  - ⚠ **The deployed collection refuses a form-less contact row**, so this call
-    400s today with `form: This field is required.` — a `ValidationError`, which
-    carries no code, so it reaches the viewer as the generic failure. The CMS
-    contradicts itself: its delivery layer documents the form-less case as
-    legitimate while `needsForm` refuses it. The fix belongs in SahajCloud, and
-    is tracked as SahajCloud#813. Do not invent a form id here — the client
-    cannot read `forms`, and picking a recipient in the browser is the wrong
-    shape.
+- **`sendReport`** → a `contact` row (SahajCloud#632, #171, #813), the captcha-gated
+  intake behind the report-issue form. It **names the authored form** the operator
+  set on `sy-atlas-config.reportIssueForm`, and carries that form's own answers as
+  pairs under the names the operator gave them. A `contact` row naming no form is
+  refused with `form: This field is required.` — a `ValidationError`, which carries
+  no code, so it would reach the viewer as the generic failure.
+  - Never invent or hard-code a form id. It comes off the config
+    (`src/hooks/use-report-form.ts`), and where the config names none the widget
+    offers no report path at all.
+  - ⚠ **The `forms` read must never `select` `recipient` or `client`.**
+    `recipient` is a relationship to a manager, so a populated read hands a
+    person's name and address to every browser on every host page. SahajCloud locks
+    the field, `getReportForm`'s `select` asks for neither, and `ReportFormSchema`
+    carries neither — three guards, because delivery resolves the recipient
+    server-side and the widget never needs it.
+  - The authored answers are **not** clamped. They are prose a person wrote, and
+    the form bounds them at the control (`reportValuesSchema`). Our own context
+    keys are written last, so an operator authoring a field called `locale` cannot
+    replace the locale the widget is running in.
   - Send the Turnstile token in the `x-turnstile-token` header — the same header
     `createRegistration` uses, since the write-guard plugin sits above every
     collection and cannot know one body shape from another.
@@ -308,6 +324,12 @@ and refused from a client body.
   the `eventQuery(id, locale)` factory so the prefetch and the view's suspense
   read cannot drift. `eventsQuery(latitude, longitude, filters, locale)` carries
   the same contract for the distance-ranked results list.
+- **Query factories live in `src/config/api/index.ts`.** That module imports
+  `fetch.ts`, so a factory `fetch.ts` itself consumes — `eventTitlesQuery`,
+  `atlasConfigQuery` and `translationsQuery`, each read by a warm-up in that file
+  — has to be declared beside its fetcher and re-exported here, or the import
+  closes a cycle. A factory nothing in `fetch.ts` calls has no such excuse.
+  Declare it in `index.ts` with the rest, so every contract stays in one place.
 - **Read a cache-only key through its own factory.** `eventTitlesQuery(locale)` is
   shared by the loader that fetches the sliver and by the drawer's loading/error
   chrome, which reads it with `enabled: false` to name the event whose view
@@ -336,7 +358,7 @@ those pages carry:
 - **Keep mutations at `retry: 0`.** Both are unsafe to repeat: a re-sent
   registration is a duplicate signup, and a re-sent report replays a single-use
   Turnstile token the server already redeemed. Set the report mutation's
-  `networkMode: 'always'` too — the default *pauses* an offline mutation instead
+  `networkMode: 'always'` too — the default _pauses_ an offline mutation instead
   of failing it, which on the one screen that exists because something already
   broke means a spinner that never resolves.
 - **Never override `retry` (or any option) per-fetch on a shared key.**

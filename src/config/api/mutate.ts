@@ -274,6 +274,25 @@ const REPORT_SUBJECT = 'Issue report'
  */
 export const USER_SUBMISSION_VALUE_MAX = 2000
 
+/**
+ * The keys the collection bounds ABOVE `USER_SUBMISSION_VALUE_MAX`, and how far.
+ *
+ * ⚠ **The bound is keyed on the KEY, never on the control that collected the value.** An
+ * authored field named anything outside this map takes the default however much prose it asks
+ * for, so a form offering more would let a viewer fill it and then lose the whole submission.
+ *
+ * `VALUE_MAX_LENGTHS` in SahajCloud's `src/collections/UserSubmissions/submissionData.ts`.
+ */
+const RAISED_VALUE_MAX: Readonly<Record<string, number>> = {
+  message: 5000,
+  note: 5000,
+  error: 5000,
+}
+
+/** The collection's bound on the value under `key`. */
+export const userSubmissionValueMax = (key: string): number =>
+  RAISED_VALUE_MAX[key] ?? USER_SUBMISSION_VALUE_MAX
+
 const clamp = (value: string, max: number) => value.slice(0, max)
 
 /**
@@ -281,21 +300,13 @@ const clamp = (value: string, max: number) => value.slice(0, max)
  * See sydevs/SahajCloud#632, #695 and #800, and issues #80, #103, and #171.
  * This is a shared, general-purpose intake.
  * The write-guard Turnstile-verifies it and screens it for spam synchronously.
- * A background job then screens it more deeply and delivers it to `contact@sydevelopers.com`, with the sender's address as `Reply-To`.
+ * A background job then screens it more deeply and delivers it to the named form's own recipient — or to `contact@sydevelopers.com` where the form names none — with the sender's address as `Reply-To`.
  * This caller supplies the Atlas framing, the subject. The collection carries none of it.
  *
- * **No `form` is named.** `deliverContact` resolves a form-less row to the system contact address,
- * which is exactly this channel's one fixed destination, and a form would otherwise decide the
- * recipient and widen the keys the row may carry.
- *
- * ⚠ **The deployed collection refuses that today, and this call 400s because of it.**
- * `needsForm` makes `form` required for every `contact` row, so the create is rejected with
- * `form: This field is required.` — a `ValidationError`, which carries no `errors[].data.code`, so
- * it reaches the viewer as the generic failure. The CMS contradicts itself here: its delivery
- * layer documents a form-less contact row as legitimate for this widget while its validator
- * refuses one. Tracked on sydevs/SahajCloud#813, where the fix belongs — in `needsForm`, not in a
- * form id invented here. Sending one would need a `forms` read this client cannot make, and would
- * pick the recipient from the browser.
+ * **The row names the AUTHORED form** the operator set on `sy-atlas-config.reportIssueForm`
+ * (SahajCloud#813, issue #216). The form decides the questions and the recipient, and the
+ * collection refuses a `contact` row that names none. The id is never invented here: it is read
+ * off the config, and the caller has already rendered that form's own fields.
  *
  * ⚠ **A 201 means ACCEPTED, not delivered.**
  * This replaced a root endpoint whose email WAS the deliverable, and which answered 502 rather than a false 200 when the send failed.
@@ -311,12 +322,20 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
 
   const json = {
     type: 'contact',
+    form: payload.form,
     // A blank optional input registers as `''`.
     // This omits it, instead of sending an empty Reply-To. The guard validates the address on anything present.
-    ...(payload.email ? { senderEmail: payload.email } : {}),
+    ...(payload.senderEmail ? { senderEmail: payload.senderEmail } : {}),
     submissionData: submissionData({
+      // The authored answers go FIRST, so the context below wins a name collision.
+      // Delivery renders these pairs itself (SahajCloud#832), so nothing is copied under a
+      // second, reserved name here — the operator's questions are the email body.
+      // Both sets are allowed keys, and an operator naming a field `locale` must not be able to
+      // replace the locale this widget is actually running in.
+      // These are NOT clamped: they are prose a person wrote, and the form bounds them at the
+      // control instead. See `USER_SUBMISSION_VALUE_MAX`.
+      ...payload.answers,
       subject: REPORT_SUBJECT,
-      message: payload.message,
       path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
       // Our field is `pageUrl`. The collection's field is `hostUrl`. Both carry the same value.
       // That value is the host page as origin plus path.

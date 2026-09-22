@@ -8,6 +8,7 @@ import type {
   Region,
   RegionListItem,
   RegionNode,
+  ReportForm,
   TranslationTree,
 } from '@/types'
 import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
@@ -54,6 +55,7 @@ import {
   RegionListItemSchema,
   RegionNodeSchema,
   RegionSchema,
+  ReportFormSchema,
   TRANSLATION_METADATA_KEYS,
   TranslationBundleSchema,
 } from '@/types'
@@ -737,12 +739,41 @@ const getAtlasConfig = async (): Promise<AtlasConfig> => {
     await sdk.findGlobal({
       slug: 'sy-atlas-config',
       depth: 0,
-      select: { availableLocales: true },
+      // `depth: 0` keeps `reportIssueForm` a bare id. The form itself is a separate read, so
+      // that one can select its own fields — and so it never populates `recipient`.
+      select: { availableLocales: true, reportIssueForm: true },
     }),
     'sy-atlas-config',
   )
 
   return AtlasConfigSchema.parse(config)
+}
+
+/**
+ * This reads the authored report-issue form named on `sy-atlas-config` (issue #216).
+ *
+ * ⚠ **The `select` must never name `recipient` or `client`.** `recipient` is a relationship to a
+ * manager, so a populated read would hand a person's name and email address to every browser on
+ * every host page. SahajCloud locks that field against client reads (SahajCloud#813), and this
+ * list is the half of that lock we own: it asks for nothing but what the form renders.
+ */
+const getReportForm = async (id: number): Promise<ReportForm> => {
+  const form = validateSDKResponse(
+    await sdk.findByID({
+      collection: 'forms',
+      id,
+      depth: 0,
+      select: {
+        fields: true,
+        submitButtonLabel: true,
+        confirmationType: true,
+        confirmationMessage: true,
+      },
+    }),
+    `form ${id}`,
+  )
+
+  return ReportFormSchema.parse(form)
 }
 
 // This reads ONE locale's bundle, naming the locale explicitly.
@@ -846,6 +877,7 @@ export default {
   getEventDoc,
   getClient,
   getAtlasConfig,
+  getReportForm,
   getTranslations,
   warmCaches,
   warmConfig,

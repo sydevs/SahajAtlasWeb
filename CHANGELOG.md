@@ -23,6 +23,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
+  label and its confirmation message are authored there, on the contact form named in the atlas
+  configuration, and the message reaches that form's own recipient. Where no form is named, the
+  widget shows no report affordance at all — not in the settings menu, and not on an error
+  screen. This adds no parameter and no new origin: the form is read from
+  `cloud.sydevelopers.com`, like everything else.
+
 - **`https://sahajatlas.com` is no longer needed in `connect-src`.** ([#205]) Every UI string
   now comes from `cloud.sydevelopers.com`, alongside the events — the widget used to fetch
   locale JSON from wherever the bundle was deployed, and nothing connects there any more.
@@ -567,6 +574,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
 [#195]: https://github.com/sydevs/SahajAtlasWeb/issues/195
 [#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
+[#216]: https://github.com/sydevs/SahajAtlasWeb/issues/216
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element

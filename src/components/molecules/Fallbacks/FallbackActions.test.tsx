@@ -82,6 +82,21 @@ describe('FallbackActions', () => {
     expect(row).toContain('bg-gray-3')
   })
 
+  it('offers no way to report when the atlas names no form', () => {
+    // The CMS hides the report path when the field is empty, and a `contact` row naming no form
+    // is refused outright — so the button would lead to a send that cannot succeed.
+    const row = renderToStaticMarkup(
+      <FallbackActions
+        actions={visibleActions(ERROR_POLICY.unknown, { canRetry: true, canReport: false })}
+        reportContext="boom"
+        resetErrorBoundary={() => {}}
+      />,
+    )
+
+    expect(row).toContain('Try again')
+    expect(row).not.toContain('Report an issue')
+  })
+
   it('renders nothing at all when the row would be empty', () => {
     // `not-found` and the empty rows put their only control inside the
     // banner. So an always-rendered row would leave a stray flex gap under

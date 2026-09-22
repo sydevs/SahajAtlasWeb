@@ -241,30 +241,32 @@ export default function App({
                 standalone={standalone}
               />
             </ResetErrorBoundary>
-          </Suspense>
-          {/* Mounted OUTSIDE the app boundary, so "Report an issue" still opens while
-            ErrorFallback is on screen — which is exactly when a viewer most wants it.
-            That placement means nothing above would catch a throw from here, so it gets
-            its own boundary: unbounded, a render error here would unmount the whole
-            widget on the host page — the reporting affordance taking down the app it
-            reports on. Failing to nothing is right, since it stays off screen until
-            asked for.
+            {/* Inside the Suspense boundary, outside the app's ERROR boundary: "Report an issue"
+              still opens while ErrorFallback is on screen — which is exactly when a viewer
+              most wants it — while a suspending read inside it falls to a boundary instead
+              of a hand-written pending branch.
+              Nothing above would catch a THROW from here, so it gets
+              its own boundary: unbounded, a render error here would unmount the whole
+              widget on the host page — the reporting affordance taking down the app it
+              reports on. Failing to nothing is right, since it stays off screen until
+              asked for.
 
-            Not lazy-loaded: it renders at mount (to stay reachable from the error
-            fallbacks), so a chunk would be fetched immediately anyway, and its
-            dependencies — react-hook-form, zod — are already in the eager graph via
-            the registration form. Splitting it measured 0.6 kB gz LARGER across the
-            first paint, for four extra requests. */}
-          <ErrorBoundary
-            fallbackRender={() => null}
-            // Failing to nothing is right on screen, but it must not also fail to
-            // nothing in the log: this is the one boundary whose fallback leaves NO
-            // trace a viewer could report, so this seam is the only way anyone learns
-            // the reporting affordance is the thing that broke (issue #108).
-            onError={(error) => reportInternalError(error, 'report modal')}
-          >
-            <ReportIssueModal apiKey={apiKey} />
-          </ErrorBoundary>
+              Not lazy-loaded: it renders at mount (to stay reachable from the error
+              fallbacks), so a chunk would be fetched immediately anyway, and its
+              dependencies — react-hook-form, zod — are already in the eager graph via
+              the registration form. Splitting it measured 0.6 kB gz LARGER across the
+              first paint, for four extra requests. */}
+            <ErrorBoundary
+              fallbackRender={() => null}
+              // Failing to nothing is right on screen, but it must not also fail to
+              // nothing in the log: this is the one boundary whose fallback leaves NO
+              // trace a viewer could report, so this seam is the only way anyone learns
+              // the reporting affordance is the thing that broke (issue #108).
+              onError={(error) => reportInternalError(error, 'report modal')}
+            >
+              <ReportIssueModal apiKey={apiKey} />
+            </ErrorBoundary>
+          </Suspense>
         </BrandTheme>
       </Providers>
     </RootBoundary>
