@@ -35,6 +35,7 @@ import {
   DEFAULT_FILTERS,
   indexRegions,
   isOnline,
+  isUnverified,
   isoCountryCode,
   matchesFilters,
   parentOf,
@@ -109,6 +110,10 @@ const FEED_SELECT = {
   // This is an O(1) capacity signal from SahajCloud#601.
   // It is a denormalized boolean. The feed reports fullness without a per-event count.
   registrationsFull: true,
+  // The ranking signal, not a display one: `confidenceScore` is deliberately absent
+  // from both this select and the event read. Every unverified listing ranks and
+  // reads the same.
+  verificationStage: true,
   webPath: true,
 }
 
@@ -466,6 +471,8 @@ const getRegion = async (slug: string): Promise<Region> => {
     return { ...slim, path: childRoute(path, slim.id) }
   }
 
+  const directEvents = direct.map(nest)
+
   return RegionSchema.parse({
     id: node.id,
     slug: node.slug,
@@ -485,7 +492,14 @@ const getRegion = async (slug: string): Promise<Region> => {
     // These are located events directly under this region.
     // For a leaf, these are its own events.
     // A parent region usually has none. A viewer reaches a child's events through the child's card instead.
-    events: direct.map(nest),
+    // Feed order otherwise, with unverified listings moved to the end. Two passes, so
+    // the relative order inside each group survives. `onlineEvents` below keeps its
+    // soonest-first ordering instead: that one is a real ranking, and a partition would
+    // override it the way it would override `?sort=soonest`.
+    events: [
+      ...directEvents.filter((event) => !isUnverified(event)),
+      ...directEvents.filter(isUnverified),
+    ],
     // These are placeless online events under the region, ordered by soonest next occurrence.
     onlineEvents: online.map(nest).sort(byNextOccurrence),
   })
@@ -620,6 +634,7 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         registrationsFull: true,
         registrationQuestions: true,
         region: true,
+        verificationStage: true,
         webPath: true,
         webUrl: true,
       },

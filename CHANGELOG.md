@@ -91,6 +91,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **An event that no local coordinator has verified yet now says so before anyone registers.** ([#220])
+  A short banner sits directly above the Register button, and again on the registration screen,
+  below the form. It is worded the same for every such listing. Nothing else changes: no map
+  marker, popup or list card carries any mark, and your CSP is unaffected.
+  These listings also rank below verified ones in search results under the default
+  "Recommended" order and in a region's list. "Closest" and "Soonest" order exactly as before.
+
 - **You can now get your page's `<head>` metadata from us, per atlas route.** ([#173])
   `GET /api/atlas/seo?route=/gb/london&locale=en`, authorised with the published client key your
   embed already uses, answers with the title, description, canonical, `hreflang` alternates, Open
@@ -560,6 +567,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
 [#195]: https://github.com/sydevs/SahajAtlasWeb/issues/195
 [#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
+[#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
