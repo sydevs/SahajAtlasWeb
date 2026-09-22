@@ -144,6 +144,18 @@ describe('sortEvents', () => {
     expect(ids(sortEvents(events, 'recommended', 'de'))).toEqual([2, 1])
   })
 
+  // ⚠ The parameter is a base subtag, and an event's language is always an ISO 639-1 code, so a
+  // regional tag matches nothing: the penalty lands on every event, cancels out, and distance
+  // decides alone. That silent language-blindness was #223, not a visibly wrong order. Both
+  // assertions are needed — the second is the same set under the base subtag, and only the pair
+  // shows the tag shape changing the ranking rather than the fixtures.
+  it('matches no event on a regional tag, leaving distance to decide alone', () => {
+    const events = [at(1, 30, { languages: ['pt'] }), at(2, 20, { languages: ['de'] })]
+
+    expect(ids(sortEvents(events, 'recommended', 'pt-BR'))).toEqual([2, 1])
+    expect(ids(sortEvents(events, 'recommended', 'pt'))).toEqual([1, 2])
+  })
+
   // ⚠ The relative assertion below cannot see a missing `.sort` — it mutates both of its
   // lists the same way — so each literal ordering is also pinned against the field it
   // orders by. Distance and time disagree here on purpose.
