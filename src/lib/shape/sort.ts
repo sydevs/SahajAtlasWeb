@@ -2,9 +2,14 @@ import type { EventSlim } from '@/types'
 
 import { DateTime } from 'luxon'
 
-import { byDistance, byNextOccurrence, isOnline, isUnverified, nextOccurrence } from './event'
-
-import { isSoon } from '@/lib/events'
+import {
+  byDistance,
+  byNextOccurrence,
+  isOnline,
+  isSoon,
+  isUnverified,
+  nextOccurrence,
+} from './event'
 
 // The list sort order — a presentation concern, kept deliberately apart from the
 // event filters. Filters are predicates (they change WHICH events show, so they key

@@ -2,9 +2,7 @@ import type { EventAddress } from '@/types'
 
 import { DateTime } from 'luxon'
 
-// Direct, not through the `@/lib/shape` barrel: that barrel re-exports `./sort`, which
-// imports this module, and going through it would close an import cycle.
-import { timePeriodRanges, type TimePeriod } from './shape/filters'
+import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
 
 /**
  * A Google Maps directions link from an event's coordinates (preferred) or its
@@ -23,21 +21,6 @@ export function directionsUrl(address: EventAddress | null | undefined): string 
   return query
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
     : undefined
-}
-
-/**
- * Whether an event's next occurrence is "starting soon": within the next hour
- * for online events, or within the next week for in-person ones.
- *
- * A pure predicate (no React, no i18n) so non-UI consumers can use it without
- * pulling in a component — e.g. `EventsList` weights its relevance sort with it,
- * and `EventSoonChip` decides whether to render from it.
- */
-export function isSoon(nextDate: DateTime, online: boolean) {
-  const unit = online ? 'hours' : 'weeks'
-  const diff = nextDate.diffNow([unit]).get(unit)
-
-  return 0 < diff && diff < 1
 }
 
 /**
