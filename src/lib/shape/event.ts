@@ -77,6 +77,18 @@ export const byNextOccurrence = (a: EventLike, b: EventLike): number => {
 }
 
 /**
+ * Whether an event's next occurrence is "starting soon": within the next hour
+ * for online events, or within the next week for in-person ones. The relevance
+ * sort weights on it.
+ */
+export function isSoon(nextDate: DateTime, online: boolean) {
+  const unit = online ? 'hours' : 'weeks'
+  const diff = nextDate.diffNow([unit]).get(unit)
+
+  return 0 < diff && diff < 1
+}
+
+/**
  * Comparator ordering events by ascending distance from the search point,
  * placeless/online events (no `distance`) last: the "Closest" list sort. This
  * guards against an unguarded subtraction returning `Infinity - Infinity = NaN`

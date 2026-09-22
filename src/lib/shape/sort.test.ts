@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { DateTime } from 'luxon'
 
-import { DEFAULT_SORT, SORT_ORDERS, byDistance, sortFromParams, sortToParams } from '@/lib/shape'
+import {
+  DEFAULT_SORT,
+  SORT_ORDERS,
+  byDistance,
+  sortEvents,
+  sortFromParams,
+  sortToParams,
+} from '@/lib/shape'
+import { mockEventSlim } from '@/mocks/events'
+import { EventSlim } from '@/types'
 
 describe('sortFromParams', () => {
   it('defaults to recommended when the param is absent', () => {
@@ -55,5 +65,118 @@ describe('byDistance', () => {
 
   it('compares two placeless events equal (NaN-safe)', () => {
     expect(byDistance({}, {})).toBe(0)
+  })
+})
+
+// The language is an argument, so nothing here mocks `@/config/i18n` (#222). Each case
+// overrides only the field whose factor it isolates, and the rest cancel.
+const at = (id: number, distance: number, extra: Partial<EventSlim> = {}): EventSlim => ({
+  ...mockEventSlim,
+  id,
+  distance,
+  ...extra,
+})
+
+const ids = (events: EventSlim[]) => events.map((event) => event.id)
+const ranked = (events: EventSlim[]) => ids(sortEvents(events, 'recommended', 'en'))
+
+/**
+ * `nextOccurrence` reads `upcomingDates[0]` and nothing else (`./event`), so the rest of
+ * the schedule is left off deliberately — `firstDate` is the one other field
+ * `EventScheduleSchema` requires.
+ */
+const dueIn = (hours: number): Partial<EventSlim> => {
+  const next = DateTime.now().plus({ hours }).toJSDate()
+
+  return { schedule: { firstDate: next, upcomingDates: [next] } }
+}
+
+/** Past every "starting soon" window: offline's is a week, online's is an hour. */
+const LATER = dueIn(24 * 14)
+
+describe('sortEvents', () => {
+  // The pair is otherwise identical, so the stage is the only thing that can separate
+  // them. Equal distance also keeps the assertion off the distance base it multiplies.
+  it('ranks an unverified listing below an identical verified one under recommended', () => {
+    const events = [
+      at(1, 5, { verificationStage: 'unverified' }),
+      at(2, 5, { verificationStage: 'verified' }),
+    ]
+
+    expect(ranked(events)).toEqual([2, 1])
+  })
+
+  // The factor composes, it does not override: a much nearer unverified listing still
+  // beats a distant verified one. A partition would invert this, which is what the
+  // reviewer ruled out.
+  it('still lets distance decide when the gap is large', () => {
+    const events = [
+      at(1, 40, { verificationStage: 'verified' }),
+      at(2, 2, { verificationStage: 'unverified' }),
+    ]
+
+    expect(ranked(events)).toEqual([2, 1])
+  })
+
+  // ⚠ Neither listing counts as starting soon, or the soon factor would land on one of
+  // them and this would pass with the online weight gone.
+  it('ranks an online listing below an identical in-person one under recommended', () => {
+    const events = [at(1, 5, { eventType: 'online', ...LATER }), at(2, 5, LATER)]
+
+    expect(ranked(events)).toEqual([2, 1])
+  })
+
+  // The nearer-in-time listing is second in the input on purpose: drop the soon factor
+  // and the two scores tie, so a stable sort returns the input order instead.
+  it('ranks a listing starting soon above an identical one further out', () => {
+    const events = [at(1, 5, LATER), at(2, 5, dueIn(48))]
+
+    expect(ranked(events)).toEqual([2, 1])
+  })
+
+  // ⚠ Both assertions are needed. The nearer event is the mismatched one, so dropping the
+  // penalty flips the first; the second proves the penalty follows the argument rather
+  // than a language baked in.
+  it('penalises the event whose language is not the active one', () => {
+    const events = [at(1, 30), at(2, 20, { languages: ['de'] })]
+
+    expect(ranked(events)).toEqual([1, 2])
+    expect(ids(sortEvents(events, 'recommended', 'de'))).toEqual([2, 1])
+  })
+
+  // ⚠ The relative assertion below cannot see a missing `.sort` — it mutates both of its
+  // lists the same way — so each literal ordering is also pinned against the field it
+  // orders by. Distance and time disagree here on purpose.
+  it('orders closest by ascending distance', () => {
+    const events = [at(2, 8), at(1, 2), at(3, 5)]
+
+    expect(ids(sortEvents(events, 'closest', 'en'))).toEqual([1, 3, 2])
+  })
+
+  it('orders soonest by next occurrence', () => {
+    const events = [at(1, 5, LATER), at(2, 5, dueIn(2)), at(3, 5, dueIn(48))]
+
+    expect(ids(sortEvents(events, 'soonest', 'en'))).toEqual([2, 3, 1])
+  })
+
+  // Neither literal ordering may acquire a verification-stage partition, asserted against
+  // a stage-blind copy of the same list rather than a hand-written expectation.
+  //
+  // ⚠ Both the nearest listing and the one due soonest are unverified on purpose. With a
+  // verified listing leading, a stage-aware ordering would return the same list as a
+  // stage-blind one, and this would pass against the very partition it exists to refuse.
+  // The schedules differ for the same reason: one shared schedule ties every pair under
+  // `byNextOccurrence`, which held for any implementation at all.
+  it.each(['closest', 'soonest'] as const)('ignores the verification stage for %s', (order) => {
+    const inHours = dueIn(2)
+    const inDays = dueIn(48)
+    const stages = [
+      at(1, 2, { ...inHours, verificationStage: 'unverified' }),
+      at(2, 5, { ...inDays, verificationStage: 'verified' }),
+      at(3, 8, { ...LATER, verificationStage: 'unverified' }),
+    ]
+    const without = [at(1, 2, inHours), at(2, 5, inDays), at(3, 8, LATER)]
+
+    expect(ids(sortEvents(stages, order, 'en'))).toEqual(ids(sortEvents(without, order, 'en')))
   })
 })

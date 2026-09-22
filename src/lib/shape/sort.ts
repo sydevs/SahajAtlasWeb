@@ -1,3 +1,16 @@
+import type { EventSlim } from '@/types'
+
+import { DateTime } from 'luxon'
+
+import {
+  byDistance,
+  byNextOccurrence,
+  isOnline,
+  isSoon,
+  isUnverified,
+  nextOccurrence,
+} from './event'
+
 // The list sort order — a presentation concern, kept deliberately apart from the
 // event filters. Filters are predicates (they change WHICH events show, so they key
 // the events query and light the filter badge); sort only reorders the already-fetched
@@ -36,4 +49,43 @@ export const sortToParams = (order: SortOrder, base?: URLSearchParams): URLSearc
   else params.set(SORT_PARAM, order)
 
   return params
+}
+
+function calculateOrder(event: EventSlim, language: string) {
+  let order = event.distance ?? 100
+  const online = isOnline(event)
+  const languageCode = event.languages[0] ?? ''
+  const next = nextOccurrence(event)
+
+  if (language != languageCode) order *= 2
+  if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
+  if (online) order *= 1.5
+  // A factor, not a partition: a partition would outrank distance and language both.
+  if (isUnverified(event)) order *= 1.5
+
+  return order
+}
+
+// `recommended` uses decorate-sort-undecorate, so each event's order is computed
+// once (it builds luxon DateTimes) instead of O(n·log n) times inside the
+// comparator. The active language is an argument because this module stays free
+// of React and i18n (`AGENTS.md`); the caller is already subscribed to it.
+//
+// This sorts the WHOLE matching set. That is the point of dropping the
+// fetcher's nearest-50 cap (#85). Sorting a pre-truncated pool made
+// `?sort=soonest` mean "soonest among the 50 nearest," and it re-ranked
+// `recommended` over an arbitrary subset. The order of operations is filter,
+// then sort, then segment, then slice. `revealRows` owns the last two steps.
+export function sortEvents(events: EventSlim[], order: SortOrder, language: string): EventSlim[] {
+  switch (order) {
+    case 'closest':
+      return [...events].sort(byDistance)
+    case 'soonest':
+      return [...events].sort(byNextOccurrence)
+    default:
+      return events
+        .map((event) => ({ event, order: calculateOrder(event, language) }))
+        .sort((a, b) => a.order - b.order)
+        .map(({ event }) => event)
+  }
 }

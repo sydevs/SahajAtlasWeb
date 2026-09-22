@@ -1,28 +1,13 @@
-import type { SortOrder } from '@/lib/shape'
-
 import { useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { DateTime } from 'luxon'
 
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
 import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
-import { isSoon } from '@/lib'
-import { EventSlim } from '@/types'
-import {
-  DEFAULT_REVEAL,
-  byDistance,
-  byNextOccurrence,
-  hasActiveFilters,
-  isOnline,
-  isUnverified,
-  nextOccurrence,
-  revealKey,
-  revealRows,
-} from '@/lib/shape'
+import { DEFAULT_REVEAL, hasActiveFilters, revealKey, revealRows, sortEvents } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -30,7 +15,6 @@ import { useReveal } from '@/hooks/use-reveal'
 import { useSearchCountry } from '@/hooks/use-search-country'
 import { useSortOrder } from '@/hooks/use-sort'
 import { eventsQuery } from '@/config/api'
-import i18n from '@/config/i18n'
 
 export interface DynamicEventsListProps {
   latitude: number
@@ -41,53 +25,6 @@ export interface DynamicEventsListProps {
    * cut, so the results form one undivided list.
    */
   hasSearchCenter?: boolean
-}
-
-function calculateOrder(event: EventSlim, language: string | undefined) {
-  let order = event.distance ?? 100
-  const online = isOnline(event)
-  const languageCode = event.languages[0] ?? ''
-  const next = nextOccurrence(event)
-
-  if (language != languageCode) order *= 2
-  if (next && isSoon(DateTime.fromJSDate(next), online)) order *= 0.5
-  if (online) order *= 1.5
-  // A factor, not a partition: a partition would outrank distance and language both.
-  if (isUnverified(event)) order *= 1.5
-
-  return order
-}
-
-// This reorders the fetched events for the chosen sort. Sorting is a
-// presentation concern: it runs on the already-fetched list, so switching
-// sort never triggers a refetch. Recommended keeps the relevance score. It
-// uses decorate-sort-undecorate, so each event's order is computed once (it
-// builds luxon DateTimes) instead of O(n·log n) times inside the comparator.
-// Closest and Soonest reuse the shared `@/lib/shape` comparators: distance
-// ascending, or next occurrence, with placeless and undated events last.
-//
-// This sorts the WHOLE matching set. That is the point of dropping the
-// fetcher's nearest-50 cap (#85). Sorting a pre-truncated pool made
-// `?sort=soonest` mean "soonest among the 50 nearest," and it re-ranked
-// `recommended` over an arbitrary subset. The order of operations is filter,
-// then sort, then segment, then slice. `revealRows` owns the last two steps.
-export function sortEvents(events: EventSlim[], order: SortOrder): EventSlim[] {
-  switch (order) {
-    case 'closest':
-      return [...events].sort(byDistance)
-    case 'soonest':
-      return [...events].sort(byNextOccurrence)
-    default: {
-      // Read once rather than per event: this now walks the whole matching set, not a
-      // capped 50, so anything hoistable out of the decorate loop is worth hoisting.
-      const language = i18n.resolvedLanguage
-
-      return events
-        .map((event) => ({ event, order: calculateOrder(event, language) }))
-        .sort((a, b) => a.order - b.order)
-        .map(({ event }) => event)
-    }
-  }
 }
 
 export function DynamicEventsList({
@@ -113,10 +50,10 @@ export function DynamicEventsList({
   const { data: events } = useSuspenseQuery(query)
 
   // This applies the URL-selected ordering to the fetched list. It is memoized
-  // on the fetched reference and the order, so re-sorting is a cheap
+  // on the fetched reference, the order and the locale, so re-sorting is a cheap
   // client-side reorder, never a refetch. The query key above stays unchanged.
   const order = useSortOrder()
-  const sorted = useMemo(() => sortEvents(events, order), [events, order])
+  const sorted = useMemo(() => sortEvents(events, order, locale), [events, order, locale])
 
   // This tracks how much of the list is revealed. It is session state, keyed
   // by the result set, so it survives the drawer stack's remount-on-navigation:
