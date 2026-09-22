@@ -134,16 +134,14 @@ describe('sortEvents', () => {
     expect(ranked(events)).toEqual([2, 1])
   })
 
-  // ⚠ This pins the argument to `i18n.resolvedLanguage` rather than `useLocale().locale`,
-  // which is `resolvedLanguage || 'en'` — pass that and both assertions below read the
-  // same, so this case could not fail. It is a property of the function, not a state the
-  // app reaches: i18next inits synchronously here, so the language is always resolved by
-  // the first render (`config/i18n.ts`).
-  it('penalises an English event when it is given no language', () => {
+  // ⚠ Both assertions are needed. The nearer event is the mismatched one, so dropping the
+  // penalty flips the first; the second proves the penalty follows the argument rather
+  // than a language baked in.
+  it('penalises the event whose language is not the active one', () => {
     const events = [at(1, 30), at(2, 20, { languages: ['de'] })]
 
     expect(ranked(events)).toEqual([1, 2])
-    expect(ids(sortEvents(events, 'recommended', undefined))).toEqual([2, 1])
+    expect(ids(sortEvents(events, 'recommended', 'de'))).toEqual([2, 1])
   })
 
   // ⚠ The relative assertion below cannot see a missing `.sort` — it mutates both of its

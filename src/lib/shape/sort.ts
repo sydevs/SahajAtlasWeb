@@ -51,7 +51,7 @@ export const sortToParams = (order: SortOrder, base?: URLSearchParams): URLSearc
   return params
 }
 
-function calculateOrder(event: EventSlim, language: string | undefined) {
+function calculateOrder(event: EventSlim, language: string) {
   let order = event.distance ?? 100
   const online = isOnline(event)
   const languageCode = event.languages[0] ?? ''
@@ -68,7 +68,7 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
 
 // `recommended` uses decorate-sort-undecorate, so each event's order is computed
 // once (it builds luxon DateTimes) instead of O(n·log n) times inside the
-// comparator. The resolved language is an argument because this module stays free
+// comparator. The active language is an argument because this module stays free
 // of React and i18n (`AGENTS.md`); the caller is already subscribed to it.
 //
 // This sorts the WHOLE matching set. That is the point of dropping the
@@ -76,11 +76,7 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
 // `?sort=soonest` mean "soonest among the 50 nearest," and it re-ranked
 // `recommended` over an arbitrary subset. The order of operations is filter,
 // then sort, then segment, then slice. `revealRows` owns the last two steps.
-export function sortEvents(
-  events: EventSlim[],
-  order: SortOrder,
-  language: string | undefined,
-): EventSlim[] {
+export function sortEvents(events: EventSlim[], order: SortOrder, language: string): EventSlim[] {
   switch (order) {
     case 'closest':
       return [...events].sort(byDistance)
