@@ -9,6 +9,8 @@ import {
 } from './boot'
 import livePreview, { LIVE_PREVIEW_INACTIVE } from './protocol'
 
+import { applyRequestContext } from '@/config/api/client'
+
 /**
  * The boot half of live preview: what a URL may switch on, and when.
  *
@@ -26,7 +28,22 @@ const verify = vi.hoisted(() => vi.fn())
 
 vi.mock('./token', () => ({ verifyLivePreviewToken: verify }))
 
+// `client.ts` is imported for the decorator call it makes, so its own boundaries are stubbed as
+// `config/api/fetch.test.ts` stubs them. Neither the SDK nor i18next is what this file is about.
+vi.mock('@payloadcms/sdk', () => ({ PayloadSDK: class {} }))
+vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
+
 const at = (url: string) => window.history.replaceState(null, '', url)
+
+/** A SahajCloud request, as it leaves `client.ts` with whatever the session carries. */
+const request = () => {
+  const url = new URL('https://cloud.example/api/regions')
+  const headers = new Headers()
+
+  applyRequestContext(url, headers)
+
+  return { url, headers }
+}
 
 beforeEach(() => {
   verify.mockReset()
@@ -135,6 +152,34 @@ describe('activateLivePreview', () => {
     expect(verify).not.toHaveBeenCalled()
   })
 
+  it('registers the decorator, so an opened session actually sends the credential', async () => {
+    // The registration is the whole seam, and `active` alone buys nothing: with the field left
+    // null a verified reviewer previews published content and is told nothing.
+    at('/india/pune/507?live-preview=t0k3n')
+    captureLivePreview()
+
+    await activateLivePreview()
+
+    const { url, headers } = request()
+
+    expect(headers.get('x-sahajcloud-preview-secret')).toBe('t0k3n')
+    expect(url.searchParams.get('draft')).toBe('true')
+  })
+
+  it('registers nothing for a token that does not verify', async () => {
+    verify.mockResolvedValue(false)
+    at('/india/pune/507?live-preview=forged')
+    captureLivePreview()
+
+    await activateLivePreview()
+
+    // Re-opened by hand, because the decorator's own gate would refuse the wiped session and
+    // answer this case whether or not the field was filled. What is under test is the field.
+    Object.assign(livePreview, { active: true, token: 'forged' })
+
+    expect(request().headers.get('x-sahajcloud-preview-secret')).toBeNull()
+  })
+
   it('survives a throwing verify rather than taking the widget down', async () => {
     // This runs at boot, before React mounts. An unhandled rejection here is a blank page on
     // a host we do not own, over a stray query parameter.
@@ -185,7 +230,13 @@ describe('readLivePreviewParams', () => {
   it('reads the id ONLY on the /preview boot route', () => {
     const boot = readLivePreviewParams('/preview', '?id=42&live-preview=t0k3n')
 
-    expect(boot).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
+    expect(boot).toEqual({
+      active: false,
+      decorateRequest: null,
+      id: '42',
+      scope: null,
+      token: 't0k3n',
+    })
   })
 
   it('ignores an id smuggled onto a document route', () => {
@@ -237,7 +288,7 @@ describe('readLivePreviewParams', () => {
     ]) {
       expect(
         readLivePreviewParams('/preview', `?collection=${collection}&id=42&live-preview=t0k3n`),
-      ).toEqual({ active: false, id: '42', scope: null, token: 't0k3n' })
+      ).toEqual({ active: false, decorateRequest: null, id: '42', scope: null, token: 't0k3n' })
     }
   })
 })

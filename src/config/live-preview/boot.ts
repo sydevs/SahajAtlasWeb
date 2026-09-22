@@ -5,6 +5,7 @@ import livePreview, {
   LIVE_PREVIEW_SCOPE_PARAM,
   type LivePreviewSession,
 } from './protocol'
+import { previewRequestDecorator } from './request'
 import { verifyLivePreviewToken } from './token'
 
 /**
@@ -19,11 +20,12 @@ import { verifyLivePreviewToken } from './token'
  * So {@link captureLivePreview} stashes and scrubs, synchronously, and opens nothing.
  * {@link activateLivePreview} verifies and only then flips `active`.
  *
- * ⚠ **The gap between them FAILS CLOSED, and every reader depends on it.**
- * `applyRequestContext` (`config/api/client.ts`) gates on `active`, never on the token being
- * present, so no `draft=true` and no credential can leave the browser while the token is
- * merely stashed. `main.tsx` additionally holds the render back until activation settles, so
- * in practice nothing has even mounted to make a request.
+ * ⚠ **The gap between them FAILS CLOSED, and every reader depends on it.** The request
+ * decorator (`request.ts`) gates on `active`, never on the token being present, so no
+ * `draft=true` and no credential can leave the browser while the token is merely stashed —
+ * and until {@link activateLivePreview} hangs it off the session, there is no decorator at
+ * all. `main.tsx` additionally holds the render back until activation settles, so in practice
+ * nothing has even mounted to make a request.
  *
  * ## What the scrub is actually for
  *
@@ -101,6 +103,9 @@ export function readLivePreviewParams(pathname: string, search: string): LivePre
     token,
     id: pathname === LIVE_PREVIEW_PATH ? params.get('id') : null,
     scope: scope === 'sy-atlas-translations' ? scope : null,
+    // ⚠ Capture DISARMS, and only {@link activateLivePreview} arms. A fresh token landing on
+    // a page mid-session must not inherit the previous session's credential.
+    decorateRequest: null,
   }
 }
 
@@ -146,6 +151,10 @@ export async function activateLivePreview(): Promise<boolean> {
     return false
   }
 
+  // ⚠ **Register before the flip, in the same synchronous step.** `active` is what every reader
+  // gates on, so a request made between the two would be an open session that sends no
+  // credential — a preview of published content, with nothing to see wrong.
+  livePreview.decorateRequest = previewRequestDecorator
   livePreview.active = true
 
   return true

@@ -159,7 +159,7 @@ src/
     store.ts          # zustand stores: view, camera-history, calendar-position, results-reveal, report-modal, registration-draft (filters live in the URL)
     mode.ts           # WidgetMode context (standalone + hasMap + linkable)
     i18n.ts           # i18next init
-    live-preview/     # protocol.ts = names + session state (any graph); token.ts + boot.ts (standalone only)
+    live-preview/     # protocol.ts = param names + session state (any graph); token.ts + request.ts (the credential header + the decorator that sends it) + boot.ts (standalone only)
     responsive.ts, query-client.ts, i18n-options.ts, theme/
   hooks/              # use-locale, use-mapbox, use-map-controller, use-expansion, use-theme, use-reduced-motion
   lib/                # Pure domain helpers, no React or i18n. shape/ = URL + entity codecs

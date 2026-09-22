@@ -5,6 +5,7 @@ import { applyRequestContext, interceptFetch } from './client'
 import api, { shapeEventDoc } from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
+import { previewRequestDecorator } from '@/config/live-preview/request'
 import { eventsQuery } from '@/config/api'
 import { queryClient } from '@/config/query-client'
 import { DEFAULT_FILTERS } from '@/lib/shape'
@@ -40,6 +41,9 @@ beforeEach(() => {
   sdk.request.mockReset()
   // This resets the shared preview singleton, so only tests that opt in see preview mode.
   Object.assign(livePreview, LIVE_PREVIEW_INACTIVE)
+  // ⚠ **The REAL decorator, never a stand-in** (#217). With the field null, every header
+  // expectation below passes against a seam that never fires.
+  livePreview.decorateRequest = previewRequestDecorator
   // `loadRegions`, `loadGeojson`, and `loadEventTitles` cache through the shared QueryClient.
   // This clears that cache, so each test re-reads the mocked data instead of a previous test's cached data.
   queryClient.clear()
@@ -118,6 +122,22 @@ describe('applyRequestContext (auth + locale + preview on every request)', () =>
     expect(url.searchParams.get('draft')).toBeNull()
   })
 
+  it('sends exactly the same request with no decorator registered, session or not', () => {
+    // This is what the embedded `<sahaj-atlas>` element gets: the field is null in its graph,
+    // which holds no module that could fill it (#217). Driven against a VERIFIED session on
+    // purpose — an inactive one would pass whether the field is consulted or not.
+    atlasAuth.apiKey = 'k'
+    livePreview.active = true
+    livePreview.token = 'preview-token'
+    livePreview.decorateRequest = null
+
+    const { url, headers } = context()
+
+    expect(headers.get('x-sahajcloud-preview-secret')).toBeNull()
+    expect([...headers.keys()]).toEqual(['authorization'])
+    expect(url.search).toBe('?locale=fr')
+  })
+
   // This tests the end-to-end seam.
   // `interceptFetch` parses the URL the SDK already serialized, with bracket-encoded `select` and `populate` values.
   // It then layers auth and locale on top.
@@ -178,6 +198,10 @@ describe('getGeojson', () => {
     expect(options.args.populate).toBeTruthy()
     expect(options.args.pagination).toBe(false)
     expect(geojson.features[0].properties.region.slug).toBe('brussels')
+    // The ranking needs the stage here, which the event read does not cover.
+    // `confidenceScore` is named because nothing displays it, so nothing should fetch it.
+    expect((options.args.select as Record<string, unknown>).verificationStage).toBe(true)
+    expect(options.args.select).not.toHaveProperty('confidenceScore')
   })
 })
 
@@ -193,6 +217,7 @@ describe('getRegion (region-tree derivation)', () => {
     eventType = 'offline',
     coordinates,
     next,
+    verificationStage = 'verified',
   }: {
     id: number
     regionId: number
@@ -200,6 +225,7 @@ describe('getRegion (region-tree derivation)', () => {
     eventType?: 'offline' | 'online'
     coordinates?: [number, number]
     next?: string
+    verificationStage?: string
   }) => ({
     type: 'Feature',
     geometry: coordinates ? { type: 'Point', coordinates } : null,
@@ -209,6 +235,7 @@ describe('getRegion (region-tree derivation)', () => {
       languages: ['nl'],
       region: { id: regionId, slug, level: 'city' },
       schedule: next ? { firstDate: '2026-01-01T00:00:00Z', upcomingDates: [next] } : undefined,
+      verificationStage,
     },
   })
 
@@ -423,6 +450,45 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.onlineEvents.map((event) => event.id)).toEqual([11])
     expect(region.onlineEvents[0].eventType).toBe('online')
   })
+
+  // A region list has no ranking of its own, so moving unverified listings to the end
+  // costs nothing and the feed order inside each group survives. The ids are
+  // deliberately out of order: an assertion on a sorted-looking list could not tell a
+  // stable partition from a sort by id.
+  it('lists a leaf city verified-first, feed order preserved inside each group', async () => {
+    const city = {
+      id: 470,
+      slug: 'brussels',
+      level: 'city',
+      name: 'Brussels',
+      parent: 28,
+      webPath: '/belgium/brussels',
+    }
+    const leafFeed = [
+      feature({ id: 30, regionId: 470, slug: 'brussels', coordinates: [4.35, 50.85] }),
+      feature({
+        id: 12,
+        regionId: 470,
+        slug: 'brussels',
+        coordinates: [4.36, 50.86],
+        verificationStage: 'unverified',
+      }),
+      feature({ id: 21, regionId: 470, slug: 'brussels', coordinates: [4.37, 50.87] }),
+      feature({
+        id: 5,
+        regionId: 470,
+        slug: 'brussels',
+        coordinates: [4.38, 50.88],
+        verificationStage: 'unverified',
+      }),
+    ]
+
+    mockBackend(leafFeed, [city])
+
+    const region = await api.getRegion('brussels')
+
+    expect(region.events.map((event) => event.id)).toEqual([30, 21, 12, 5])
+  })
 })
 
 describe('getEvent', () => {
@@ -455,6 +521,12 @@ describe('getEvent', () => {
     // Null stays null, so the UI can skip it. The boundary maps values, it does not filter them.
     expect(event.images[1].url).toBeNull()
     expect(event.images).toHaveLength(2)
+
+    const [options] = sdk.findByID.mock.calls[0] as [{ select: Record<string, unknown> }]
+
+    // The badge reads the stage off this document. Same `confidenceScore` rule as the feed.
+    expect(options.select.verificationStage).toBe(true)
+    expect(options.select).not.toHaveProperty('confidenceScore')
   })
 })
 

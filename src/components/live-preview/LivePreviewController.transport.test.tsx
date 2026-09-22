@@ -11,10 +11,10 @@ import { eventQuery, regionQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import livePreview, {
   LIVE_PREVIEW_COLLECTION,
-  LIVE_PREVIEW_HEADER,
   LIVE_PREVIEW_INACTIVE,
   LIVE_PREVIEW_PATH,
 } from '@/config/live-preview/protocol'
+import { LIVE_PREVIEW_HEADER, previewRequestDecorator } from '@/config/live-preview/request'
 import { PREVIEW_EVENT_ID } from '@/lib/live-preview'
 import { mockLeafRegion, mockRegionNodes } from '@/mocks/regions'
 
@@ -122,6 +122,9 @@ beforeEach(() => {
   atlasAuth.apiKey = 'test-key'
   livePreview.active = true
   livePreview.token = 'verified-token'
+  // ⚠ **The REAL decorator** — `active` plus a token no longer arms the credential on their
+  // own (#217), so without this the header assertion below stays green against a dead seam.
+  livePreview.decorateRequest = previewRequestDecorator
 })
 
 afterEach(() => {

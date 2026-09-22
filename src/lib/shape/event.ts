@@ -7,7 +7,7 @@ import type {
 
 import { DateTime, IANAZone } from 'luxon'
 
-import { REGISTRATION_QUESTION_NAMES } from '@/types'
+import { REGISTRATION_QUESTION_NAMES, UNVERIFIED_STAGE } from '@/types'
 
 /**
  * Derivations shared by the event components, so the raw SahajCloud field shapes
@@ -27,6 +27,14 @@ export type DisplayEventLike = EventLike & {
 }
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
+
+/**
+ * Published with nobody vouching for it — the one stage that means that. The reminder
+ * rungs are all managed, and `finished` is published only so old links still resolve, so
+ * the match is exact: an absent or unrecognised value is never badged or ranked down.
+ */
+export const isUnverified = (event: { verificationStage?: string | null }): boolean =>
+  event.verificationStage === UNVERIFIED_STAGE
 
 /**
  * The registration questions enabled on an event (each `true` boolean maps to one

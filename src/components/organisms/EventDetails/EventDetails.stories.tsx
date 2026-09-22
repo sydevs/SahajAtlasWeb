@@ -65,6 +65,13 @@ export const Default: Story = () => (
       <Panel event={mockEventToday} />
     </StorySection>
 
+    <StorySection
+      description="A published listing no local coordinator has verified yet. The banner sits directly above Register, so it is read with the decision to join. It is the event page's alone — the same event's list card carries no mark, and neither does its map marker."
+      title="Unverified"
+    >
+      <Panel event={{ ...mockEvent, id: 110, verificationStage: 'unverified' }} />
+    </StorySection>
+
     <StorySection description="A bounded course before its first session." title="Course">
       <Panel event={mockEventCourse} />
     </StorySection>

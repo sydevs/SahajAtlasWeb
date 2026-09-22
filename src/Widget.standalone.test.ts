@@ -4,19 +4,24 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { LIVE_PREVIEW_HEADER } from './config/live-preview/request'
+
 /**
  * What the embedded `<sahaj-atlas>` element is not allowed to reach.
  *
  * Live preview was safe by accident until now: capture only fired when the pathname was
  * `/preview`, so wiring it into the widget would have been visibly pointless. That gate is
- * gone — a token on any URL opens a session — and nothing structural replaced it. The two
- * standalone-only modules would both misbehave inside a host page, and neither would say so:
+ * gone — a token on any URL opens a session — and nothing structural replaced it. The three
+ * standalone-only modules would all misbehave inside a host page, and none would say so:
  *
  * - **`config/live-preview/boot.ts`** rewrites `window.location`. Embedded, that URL is the
  *   HOST's, and the widget would be rewriting a URL it does not own — in their address bar, on
  *   their analytics, in their `document.referrer`, in whatever their page does with `location`.
  * - **`config/live-preview/token.ts`** is bytes the widget has no use for, in a graph with a
  *   hard budget and single-digit KiB spare.
+ * - **`config/live-preview/request.ts`** spends the credential. No host page can open a
+ *   session — the writer list below closes that — so it must not carry the code that would
+ *   use one, nor the header name a writer would need (#217).
  *
  * ⚠ **This walks the real import graph, static AND dynamic.** A `lazy(() => import(…))` is
  * still the widget reaching it, just later — and the size gate cannot see this class of
@@ -32,6 +37,9 @@ const SRC = dirname(fileURLToPath(import.meta.url))
 
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+/** One module's source, comments removed — as `config/responsive.test.ts` spells it. */
+const read = (module: string) => stripComments(readFileSync(join(SRC, module), 'utf8'))
 
 /** Every specifier a module imports: `from '…'`, a bare side-effect import, and `import('…')`. */
 function specifiers(source: string): string[] {
@@ -93,8 +101,15 @@ function importGraph(entry: string): Set<string> {
   return new Set([...seen].map((file) => relative(SRC, file).split(sep).join('/')))
 }
 
+const BOOT = 'config/live-preview/boot.ts'
+const REQUEST = 'config/live-preview/request.ts'
+
 /** The modules only the standalone entry may reach. */
-const STANDALONE_ONLY = ['config/live-preview/boot.ts', 'config/live-preview/token.ts']
+const STANDALONE_ONLY = [BOOT, 'config/live-preview/token.ts', REQUEST]
+
+/** Which of a set of modules spell a string in code, rather than in a comment about it. */
+const modulesCarrying = (modules: Iterable<string>, literal: string) =>
+  [...modules].filter((module) => read(module).includes(literal))
 
 describe('the widget entry', () => {
   const widgetGraph = importGraph(join(SRC, 'Widget.tsx'))
@@ -112,6 +127,17 @@ describe('the widget entry', () => {
     // live-preview module. Without this they would pass just as happily against a broken
     // resolver that found nothing at all.
     expect(widgetGraph).toContain('config/live-preview/protocol.ts')
+  })
+
+  it('spells the preview header name in no module it can reach', () => {
+    // ⚠ The walk above is about behaviour; this is about the WIRE NAME, and a writer needs
+    // nothing else (#217). The literal comes off the real constant, so a rename cannot point
+    // this scan at a string nothing uses.
+    expect(modulesCarrying(widgetGraph, LIVE_PREVIEW_HEADER)).toEqual([])
+  })
+
+  it('finds that name where it does live, or the scan above proves nothing', () => {
+    expect(modulesCarrying(SOURCES, LIVE_PREVIEW_HEADER)).toEqual([REQUEST])
   })
 })
 
@@ -145,18 +171,29 @@ describe('the Payload live-preview library', () => {
   })
 })
 
-describe('the live-preview boot module', () => {
-  const importers = SOURCES.filter((path) =>
-    specifiers(readFileSync(join(SRC, path), 'utf8')).some(
-      (specifier) => resolveModule(specifier, join(SRC, path)) === join(SRC, STANDALONE_ONLY[0]),
+/** Every module under `src/` that imports one of ours, by its path relative to `src/`. */
+const importersOf = (module: string) =>
+  SOURCES.filter((path) =>
+    specifiers(read(path)).some(
+      (specifier) => resolveModule(specifier, join(SRC, path)) === join(SRC, module),
     ),
   )
 
-  it('is imported by main.tsx and by nothing else', () => {
-    // A closed list, in the manner of `config/responsive.test.ts`. A second importer is not
-    // automatically wrong — but it is always a decision somebody has to make deliberately,
-    // and this is where they are asked to make it.
-    expect(importers).toEqual(['main.tsx'])
+/**
+ * Each standalone-only module's closed importer list, in the manner of
+ * `config/responsive.test.ts`. A second importer is not automatically wrong — but it is always
+ * a decision somebody has to make deliberately, and this is where they are asked to make it.
+ *
+ * `request.ts` is the one the widget's own graph could re-enter by: `applyRequestContext`
+ * reaches the decorator through a slot rather than an import, so an importer appearing beside
+ * `boot.ts` is someone re-attaching the credential by hand.
+ */
+describe.each([
+  [BOOT, ['main.tsx']],
+  [REQUEST, [BOOT]],
+])('%s', (module, expected) => {
+  it('is imported by that list and by nothing else', () => {
+    expect(importersOf(module)).toEqual(expected)
   })
 })
 
@@ -188,11 +225,13 @@ function writesSession(source: string, binding: string): boolean {
  * Who may open a live-preview session.
  *
  * The graph walk above keeps `boot.ts` out of the widget, but `protocol.ts` holds the session
- * itself and IS in both graphs — a mutable singleton any importer can assign to. The request
- * interceptor (`config/api/client.ts`) is in both graphs too, and attaches the preview
- * credential and `draft=true` on `active` plus `token` alone. So a single write from
- * widget-graph code would have the embedded `<sahaj-atlas>` element sending a CMS credential
- * from a host page we do not own, with every gate above still green.
+ * itself and IS in both graphs — a mutable singleton any importer can assign to.
+ *
+ * ⚠ **This one list guards both halves**, which is why `decorateRequest` hangs off the session
+ * rather than sitting in a slot of its own (#217). A write here opens a session on a page we
+ * do not own — every `<a>` inert, navigation snapping back, queries pinned to
+ * `staleTime: Infinity`, a registration refused — and, since the header is a 30-character
+ * string anyone can spell, is also the only way widget-graph code could spend the credential.
  *
  * `boot.ts` verifies a signature before it flips `active`, and reaches only `main.tsx`. Closing
  * the writer list to it is what makes "a session is standalone-only" structural rather than

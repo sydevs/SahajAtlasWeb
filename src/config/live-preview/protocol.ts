@@ -1,25 +1,32 @@
 /**
  * Live preview: the vocabulary and the session state every half shares.
  *
- * Live preview is split across three modules, and this is the one both graphs reach.
+ * Live preview is split across four modules, and this is the one both graphs reach.
  *
- * - **`protocol.ts`** — parameter and header names, the shape of a session, and the session
- *   itself. No `window`, no `crypto`, nothing that acts. Everything here is safe for any graph.
+ * - **`protocol.ts`** — parameter names, the shape of a session, and the session itself. No
+ *   `window`, no `crypto`, nothing that acts. Everything here is safe for any graph.
  * - **`token.ts`** — the signature check.
+ * - **`request.ts`** — the header name and the one decorator that spends the credential.
  * - **`boot.ts`** — reading the URL, capture, and activation. Called from `main.tsx`.
  *
- * ⚠ **The line is STATE versus BEHAVIOUR, and the file count is not the point.** The request
- * interceptor (`config/api/client.ts`) and `App` read the session, so this module is in the
- * embedded widget's import graph as well as the standalone one — which is why nothing here
- * acts. The one function, `documentPreviewActive`, only reads the session object below it.
- * Even the pure reader that builds a session out of a URL lives in `boot.ts`, because a widget
- * that never boots a preview has no use for it, and a module in a shared chunk is carried
- * whole.
+ * ⚠ **The line is STATE versus BEHAVIOUR, and the file count is not the point.** `App` and the
+ * request interceptor's callers read the session, so this module is in the embedded widget's
+ * import graph as well as the standalone one — which is why nothing here acts. The one
+ * function, `documentPreviewActive`, only reads the session object below it. Even the pure
+ * reader that builds a session out of a URL lives in `boot.ts`, because a widget that never
+ * boots a preview has no use for it, and a module in a shared chunk is carried whole.
  *
- * ⚠ **The other two are standalone-only, and that line is what keeps them there.** The embedded
- * `<sahaj-atlas>` element must carry no verification and no `history.replaceState`: rewriting
- * `window.location` from inside a host page would rewrite the HOST page's URL. Nothing in
- * `Widget.tsx`'s graph may reach `boot.ts` — `Widget.standalone.test.ts` asserts it.
+ * ⚠ **A NAME is behaviour too, once it is the only thing a writer needs**, so the credential's
+ * header is in `request.ts` and not here (#217). The session below holds a REFERENCE to that
+ * module's decorator, which is a `null` field until `boot.ts` fills it, and a type the build
+ * erases. What stays here selects restraints — `App` and `RegistrationForm` read the session
+ * to decide what to inert — and a restraint is not the credential.
+ *
+ * ⚠ **The other three are standalone-only, and that line is what keeps them there.** The
+ * embedded `<sahaj-atlas>` element must carry no verification, no `history.replaceState`, and
+ * no way to spend the credential: rewriting `window.location` from inside a host page would
+ * rewrite the HOST page's URL. Nothing in `Widget.tsx`'s graph may reach `boot.ts`,
+ * `token.ts`, or `request.ts` — `Widget.standalone.test.ts` asserts it.
  *
  * The names match WeMeditateWeb's `lib/live-preview/`, which verifies the same token minted by
  * the same CMS. Two consumers reading one credential should not spell it two ways.
@@ -30,18 +37,6 @@
  * SahajCloud's `livePreviewUrl`, which puts it on every preview URL it composes.
  */
 export const LIVE_PREVIEW_PARAM = 'live-preview'
-
-/**
- * The header the token rides back to SahajCloud in. A request bearing a valid one unlocks
- * drafts, and is exempt from the client `select` and `populate` gate.
- *
- * ⚠ **The wire name is older than what it carries** — it named a shared
- * `SAHAJCLOUD_PREVIEW_SECRET` before the CMS moved to a signed token. It must stay spelled
- * this way: SahajCloud's CORS allowlist and its Cloudflare Cache Rule both match on the
- * literal, and neither cares what the value means. See the CMS's
- * `src/lib/utilities/previewSecret.ts`.
- */
-export const LIVE_PREVIEW_HEADER = 'x-sahajcloud-preview-secret'
 
 /**
  * The one collection still previewed at a dedicated route rather than at its own page.
@@ -90,12 +85,18 @@ export const LIVE_PREVIEW_SCOPE_PARAM = 'scope'
 export type LivePreviewScope = 'sy-atlas-translations'
 
 /**
+ * What `applyRequestContext` (`config/api/client.ts`) calls last, for context that graph is
+ * not allowed to carry. A type only — the build erases it, so no graph ships a byte of this.
+ */
+export type RequestDecorator = (url: URL, headers: Headers) => void
+
+/**
  * What the widget knows about the session it is rendering under.
  *
  * ⚠ **`active` means VERIFIED, and nothing else may set it.** Everything gated on it is
  * destructive to an ordinary visitor: every `<a>` goes inert, navigation snaps back, all
  * queries pin to `staleTime: Infinity`, and every request — the registration create included —
- * gains `draft=true` and the header above. Since any path can now carry a token,
+ * gains `draft=true` and the credential header (`request.ts`). Since any path can now carry a token,
  * and `public/_redirects` answers the SPA shell for every path, a parameter being PRESENT
  * would make `sahajatlas.com/anything?live-preview=x` a link that silently bricks the page for
  * whoever it was sent to. See `boot.ts`.
@@ -108,6 +109,15 @@ export type LivePreviewSession = {
   id: string | null
   /** What is being previewed, where no document is. `null` on every document session. */
   scope: LivePreviewScope | null
+  /**
+   * The one decorator `applyRequestContext` calls, `null` until `boot.ts` fills it.
+   *
+   * ⚠ **On the session on purpose, not in a slot of its own** (#217). The session is already a
+   * mutable singleton with a closed writer list (`Widget.standalone.test.ts`), so one list
+   * guards both opening a session and spending its credential, and every reset that wipes the
+   * session disarms the credential with it.
+   */
+  decorateRequest: RequestDecorator | null
 }
 
 /** A session that unlocks nothing — the state every ordinary page view stays in. */
@@ -116,6 +126,7 @@ export const LIVE_PREVIEW_INACTIVE: LivePreviewSession = {
   token: null,
   id: null,
   scope: null,
+  decorateRequest: null,
 }
 
 /**
@@ -135,7 +146,7 @@ export default livePreview
  *
  * ⚠ **It selects the restraints, never the credential.** A scoped session has no document to
  * be navigated away from and no overlay to protect, so it takes neither the link guard nor the
- * pinned query defaults. It still sends `draft=true` (`config/api/client.ts`), which is what
+ * pinned query defaults. It still sends `draft=true` (`request.ts`), which is what
  * fetches an unpublished translation, and still refuses a registration (`RegistrationForm`),
  * because no preview may register anyone against a draft event. Scoping `draft` per READ —
  * drafts for the translations fetch, published for the document ones, as WeMeditateWeb does —

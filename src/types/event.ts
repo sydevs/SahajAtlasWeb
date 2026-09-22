@@ -128,6 +128,18 @@ const SafeUrlSchema = z
   .nullish()
   .catch(null)
 
+// Deliberately not an enum: a live-preview proposal for a NEW event carries no stage
+// (#163), and SahajCloud can add one, so a strict enum would fail the whole event read
+// and blank the page over a value the widget only ever compares against one literal.
+const VerificationStageSchema = z.string().nullish().catch(null)
+
+// The tolerant parse above means the type-checker cannot see the one value the badge and
+// both rankings turn on, so pin it to the synced CMS union instead — the same guard
+// `RegistrationQuestionsSchema` carries, for the same reason (#191). A rename upstream
+// fails `pnpm types:cms` here rather than switching the feature off in silence, which no
+// spec could catch: every one of them supplies this literal itself.
+export const UNVERIFIED_STAGE = 'unverified' satisfies NonNullable<CmsEvent['verificationStage']>
+
 // Raw event as it appears in a geojson feature's `properties`, MINUS the one
 // localized field. Everything here — schedule, address, languages, region ref,
 // route — is identical in every locale, so the feed is fetched + cached once
@@ -149,6 +161,10 @@ export const AgnosticFeedEventSchema = z.object({
   // migration backfills `DEFAULT false` and rows only recompute on a
   // registration change or capacity edit, so absent/false both mean not-full.
   registrationsFull: z.boolean().nullish(),
+  // In the feed so the recommended score and the region partition can rank an
+  // unverified listing down. It is never rendered off a feed event — the badge is
+  // the event page's alone.
+  verificationStage: VerificationStageSchema,
   // Server-computed canonical route (region chain + `/<id>`). The list/map
   // navigate to it directly.
   webPath: z.string().nullish(),
@@ -206,6 +222,7 @@ export const EventDocSchema = z.object({
   // that moment (`applyReview`), so the merged `previewEvent` it posts carries none (#163).
   // Every fetched event still has one. Read it optionally.
   region: RegionRefSchema.nullish(),
+  verificationStage: VerificationStageSchema,
   webPath: z.string().nullish(),
   webUrl: SafeUrlSchema,
 })

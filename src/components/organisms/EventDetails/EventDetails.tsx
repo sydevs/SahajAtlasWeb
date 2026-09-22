@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
+import { Alert } from '@/components/atoms/Alert'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { lexicalToHtml } from '@/lib/shape'
+import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -29,7 +30,8 @@ export type EventDetailsProps = EventSurfaceProps & {
    *  false and mounts EventRegisterBar in the sticky drawer footer instead. */
   registerInline?: boolean
   /**
-   * This slot renders immediately above Register, inside the panel's own flow.
+   * This slot renders below the facts, inside the panel's own flow, above the
+   * unverified caveat and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
    * It is a view's job, not this component's job. The alternative was a second
@@ -91,6 +93,18 @@ export function EventDetails({
       <EventFacts className="my-2" event={event} />
 
       {children}
+
+      {/* Above Register, not at the top of a panel that scrolls. RegistrationView
+          repeats it, since that route is reachable without passing here. Badging via the
+          chips above would mark the list card, the surface this leaves alone. */}
+      {isUnverified(event) && (
+        <Alert
+          color="contrast"
+          description={t('event.display.unverified_note')}
+          size="sm"
+          title={t('event.display.unverified_title')}
+        />
+      )}
 
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 
