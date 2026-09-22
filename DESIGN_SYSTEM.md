@@ -36,7 +36,7 @@ src/components/
     index.ts                  #   component barrel: explicit `export { Chip }` + `ChipProps`
   <tier>/index.ts             # tier barrel — the public import surface
 src/views/      # URL-driven drawer screens (DrawerStack + one folder per route)
-src/lib/        # pure domain utilities (no React/i18n) — e.g. events.ts (isSoon)
+src/lib/        # pure domain utilities (no React/i18n) — e.g. shape/event.ts (isSoon)
 ```
 
 ### What goes where
