@@ -52,9 +52,7 @@ export function DynamicEventsList({
   // This applies the URL-selected ordering to the fetched list. It is memoized
   // on the fetched reference, the order and the resolved language, so re-sorting
   // is a cheap client-side reorder, never a refetch. The query key above stays
-  // unchanged. The language is an explicit dependency rather than one ridden in
-  // on a new `events` reference, which is what the locale-keyed query above
-  // happens to give it.
+  // unchanged.
   const order = useSortOrder()
   const sorted = useMemo(
     () => sortEvents(events, order, resolvedLanguage),

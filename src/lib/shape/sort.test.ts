@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DateTime } from 'luxon'
 
 import {
   DEFAULT_SORT,
@@ -67,11 +68,8 @@ describe('byDistance', () => {
   })
 })
 
-// The resolved language is the third argument now, so nothing here mocks `@/config/i18n`
-// — which is the point of the move (#222). `mockEventSlim` is offline, English, dated
-// four days out and carries no verification stage, so each case below overrides only the
-// one field whose factor it isolates and every other factor cancels out of the
-// comparison.
+// The language is an argument, so nothing here mocks `@/config/i18n` (#222). Each case
+// overrides only the field whose factor it isolates, and the rest cancel.
 const at = (id: number, distance: number, extra: Partial<EventSlim> = {}): EventSlim => ({
   ...mockEventSlim,
   id,
@@ -80,8 +78,7 @@ const at = (id: number, distance: number, extra: Partial<EventSlim> = {}): Event
 })
 
 const ids = (events: EventSlim[]) => events.map((event) => event.id)
-
-const HOUR = 60 * 60 * 1000
+const ranked = (events: EventSlim[]) => ids(sortEvents(events, 'recommended', 'en'))
 
 /**
  * `nextOccurrence` reads `upcomingDates[0]` and nothing else (`./event`), so the rest of
@@ -89,10 +86,13 @@ const HOUR = 60 * 60 * 1000
  * `EventScheduleSchema` requires.
  */
 const dueIn = (hours: number): Partial<EventSlim> => {
-  const next = new Date(Date.now() + hours * HOUR)
+  const next = DateTime.now().plus({ hours }).toJSDate()
 
   return { schedule: { firstDate: next, upcomingDates: [next] } }
 }
+
+/** Past every "starting soon" window: offline's is a week, online's is an hour. */
+const LATER = dueIn(24 * 14)
 
 describe('sortEvents', () => {
   // The pair is otherwise identical, so the stage is the only thing that can separate
@@ -103,7 +103,7 @@ describe('sortEvents', () => {
       at(2, 5, { verificationStage: 'verified' }),
     ]
 
-    expect(ids(sortEvents(events, 'recommended', 'en'))).toEqual([2, 1])
+    expect(ranked(events)).toEqual([2, 1])
   })
 
   // The factor composes, it does not override: a much nearer unverified listing still
@@ -115,34 +115,34 @@ describe('sortEvents', () => {
       at(2, 2, { verificationStage: 'unverified' }),
     ]
 
-    expect(ids(sortEvents(events, 'recommended', 'en'))).toEqual([2, 1])
+    expect(ranked(events)).toEqual([2, 1])
   })
 
-  // ⚠ Both listings are two weeks out, so NEITHER counts as starting soon — offline's
-  // window is a week and online's is an hour. Without that, the soon factor would land
-  // on one of them and this would pass with the online weight gone.
+  // ⚠ Neither listing counts as starting soon, or the soon factor would land on one of
+  // them and this would pass with the online weight gone.
   it('ranks an online listing below an identical in-person one under recommended', () => {
-    const events = [at(1, 5, { eventType: 'online', ...dueIn(24 * 14) }), at(2, 5, dueIn(24 * 14))]
+    const events = [at(1, 5, { eventType: 'online', ...LATER }), at(2, 5, LATER)]
 
-    expect(ids(sortEvents(events, 'recommended', 'en'))).toEqual([2, 1])
+    expect(ranked(events)).toEqual([2, 1])
   })
 
   // The nearer-in-time listing is second in the input on purpose: drop the soon factor
   // and the two scores tie, so a stable sort returns the input order instead.
   it('ranks a listing starting soon above an identical one further out', () => {
-    const events = [at(1, 5, dueIn(24 * 14)), at(2, 5, dueIn(48))]
+    const events = [at(1, 5, LATER), at(2, 5, dueIn(48))]
 
-    expect(ids(sortEvents(events, 'recommended', 'en'))).toEqual([2, 1])
+    expect(ranked(events)).toEqual([2, 1])
   })
 
-  // ⚠ This is what pins the argument to `i18n.resolvedLanguage` rather than
-  // `useLocale().locale`. The latter is `resolvedLanguage || 'en'`, so passing it would
-  // make the two columns below identical and this spec vacuous. The penalty is a loose
-  // compare, so an unresolved language penalises the English event too.
-  it('penalises an English event when the language has not resolved yet', () => {
+  // ⚠ This pins the argument to `i18n.resolvedLanguage` rather than `useLocale().locale`,
+  // which is `resolvedLanguage || 'en'` — pass that and both assertions below read the
+  // same, so this case could not fail. It is a property of the function, not a state the
+  // app reaches: i18next inits synchronously here, so the language is always resolved by
+  // the first render (`config/i18n.ts`).
+  it('penalises an English event when it is given no language', () => {
     const events = [at(1, 30), at(2, 20, { languages: ['de'] })]
 
-    expect(ids(sortEvents(events, 'recommended', 'en'))).toEqual([1, 2])
+    expect(ranked(events)).toEqual([1, 2])
     expect(ids(sortEvents(events, 'recommended', undefined))).toEqual([2, 1])
   })
 
@@ -156,24 +156,28 @@ describe('sortEvents', () => {
   })
 
   it('orders soonest by next occurrence', () => {
-    const events = [at(1, 5, dueIn(24 * 14)), at(2, 5, dueIn(2)), at(3, 5, dueIn(48))]
+    const events = [at(1, 5, LATER), at(2, 5, dueIn(2)), at(3, 5, dueIn(48))]
 
     expect(ids(sortEvents(events, 'soonest', 'en'))).toEqual([2, 3, 1])
   })
 
-  // The two literal orderings, asserted against the stage rather than against a
-  // hand-written expectation, so this keeps holding if their comparators change.
+  // Neither literal ordering may acquire a verification-stage partition, asserted against
+  // a stage-blind copy of the same list rather than a hand-written expectation.
   //
-  // ⚠ The NEAREST listing is the unverified one on purpose. With the verified listing
-  // first, a stage-aware ordering would return the same list as a stage-blind one and
-  // this would pass against the very partition it exists to refuse.
-  it.each(['closest', 'soonest'] as const)('orders %s exactly as it did before', (order) => {
+  // ⚠ Both the nearest listing and the one due soonest are unverified on purpose. With a
+  // verified listing leading, a stage-aware ordering would return the same list as a
+  // stage-blind one, and this would pass against the very partition it exists to refuse.
+  // The schedules differ for the same reason: one shared schedule ties every pair under
+  // `byNextOccurrence`, which held for any implementation at all.
+  it.each(['closest', 'soonest'] as const)('ignores the verification stage for %s', (order) => {
+    const inHours = dueIn(2)
+    const inDays = dueIn(48)
     const stages = [
-      at(1, 2, { verificationStage: 'unverified' }),
-      at(2, 5, { verificationStage: 'verified' }),
-      at(3, 8, { verificationStage: 'unverified' }),
+      at(1, 2, { ...inHours, verificationStage: 'unverified' }),
+      at(2, 5, { ...inDays, verificationStage: 'verified' }),
+      at(3, 8, { ...LATER, verificationStage: 'unverified' }),
     ]
-    const without = [at(1, 2), at(2, 5), at(3, 8)]
+    const without = [at(1, 2, inHours), at(2, 5, inDays), at(3, 8, LATER)]
 
     expect(ids(sortEvents(stages, order, 'en'))).toEqual(ids(sortEvents(without, order, 'en')))
   })

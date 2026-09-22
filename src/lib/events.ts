@@ -2,7 +2,9 @@ import type { EventAddress } from '@/types'
 
 import { DateTime } from 'luxon'
 
-import { timePeriodRanges, type TimePeriod } from '@/lib/shape'
+// Direct, not through the `@/lib/shape` barrel: that barrel re-exports `./sort`, which
+// imports this module, and going through it would close an import cycle.
+import { timePeriodRanges, type TimePeriod } from './shape/filters'
 
 /**
  * A Google Maps directions link from an event's coordinates (preferred) or its

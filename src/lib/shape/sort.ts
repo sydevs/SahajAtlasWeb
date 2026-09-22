@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import { byDistance, byNextOccurrence, isOnline, isUnverified, nextOccurrence } from './event'
 
-import { isSoon } from '@/lib'
+import { isSoon } from '@/lib/events'
 
 // The list sort order — a presentation concern, kept deliberately apart from the
 // event filters. Filters are predicates (they change WHICH events show, so they key
@@ -46,8 +46,6 @@ export const sortToParams = (order: SortOrder, base?: URLSearchParams): URLSearc
   return params
 }
 
-// The resolved language arrives as an argument, never read from `@/config/i18n`: this
-// module is pure domain (`AGENTS.md`), and the caller is already subscribed to it.
 function calculateOrder(event: EventSlim, language: string | undefined) {
   let order = event.distance ?? 100
   const online = isOnline(event)
@@ -63,13 +61,10 @@ function calculateOrder(event: EventSlim, language: string | undefined) {
   return order
 }
 
-// This reorders the fetched events for the chosen sort. Sorting is a
-// presentation concern: it runs on the already-fetched list, so switching
-// sort never triggers a refetch. Recommended keeps the relevance score. It
-// uses decorate-sort-undecorate, so each event's order is computed once (it
-// builds luxon DateTimes) instead of O(n·log n) times inside the comparator.
-// Closest and Soonest reuse the shared comparators in `./event`: distance
-// ascending, or next occurrence, with placeless and undated events last.
+// `recommended` uses decorate-sort-undecorate, so each event's order is computed
+// once (it builds luxon DateTimes) instead of O(n·log n) times inside the
+// comparator. The resolved language is an argument because this module stays free
+// of React and i18n (`AGENTS.md`); the caller is already subscribed to it.
 //
 // This sorts the WHOLE matching set. That is the point of dropping the
 // fetcher's nearest-50 cap (#85). Sorting a pre-truncated pool made

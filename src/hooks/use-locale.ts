@@ -69,9 +69,8 @@ export function useLocale() {
     },
     [i18n],
   )
-  // The raw value is snapshotted, and `locale` derives from it, so both come from ONE
-  // subscription. Every list card calls this hook, so a second `useSyncExternalStore`
-  // for the unresolved value would cost one per row.
+  // Every list card calls this hook, so `locale` derives from the raw snapshot rather
+  // than taking a second `useSyncExternalStore` of its own.
   const getSnapshot = useCallback(() => i18n.resolvedLanguage, [i18n])
   const resolvedLanguage = useSyncExternalStore(subscribe, getSnapshot, () => undefined)
   const locale = resolvedLanguage || 'en'
@@ -110,11 +109,8 @@ export function useLocale() {
   return {
     t,
     locale,
-    /**
-     * i18next's own value, BEFORE the `|| 'en'` fallback above — undefined until it
-     * resolves. `sortEvents`' language penalty compares against it, so the ordering
-     * cannot depend on whether the fallback had kicked in.
-     */
+    /** Raw i18next value, before `locale`'s `|| 'en'`. Read `locale` unless you are
+     *  `sortEvents`, whose language penalty must not take that fallback as a match (#222). */
     resolvedLanguage,
     languageCode: locale.split('-')[0],
     languageNames,
