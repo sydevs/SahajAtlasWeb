@@ -96,15 +96,6 @@ cover everything a host would notice since the widget was first deployed.
   now get their own sentence instead of the generic "try again": a disposable email address,
   and links in the message body. Both are translated in all ten languages.
 
-### Fixed
-
-- **On a regional locale, the recommended order promotes events in the visitor's own language
-  again.** ([#223]) Two of the languages you can offer are regional — Brazilian Portuguese and
-  Australian English — and on those every event counted as foreign, so the default order fell
-  back to deciding on distance alone. A visitor on Brazilian Portuguese now sees Portuguese
-  classes above equidistant ones in another language, as a visitor on any other locale already
-  did. No parameter and no origin changes, and `closest` and `soonest` were never affected.
-
 ### Added
 
 - **An event that no local coordinator has verified yet now says so before anyone registers.** ([#220])
@@ -230,6 +221,15 @@ cover everything a host would notice since the widget was first deployed.
   `Permissions-Policy` header on your own page can deny to a script embed. All three fail
   **silently** — the locate control does nothing, copy-link does nothing, the share sheet never
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
+
+### Fixed
+
+- **On a regional locale, the recommended order promotes events in the visitor's own language
+  again.** ([#223]) Two of the languages you can offer are regional — Brazilian Portuguese and
+  Australian English — and on those every event counted as foreign, so the default order fell
+  back to deciding on distance alone. A visitor on Brazilian Portuguese now sees Portuguese
+  classes above equidistant ones in another language, as a visitor on any other locale already
+  did. No parameter and no origin changes, and `closest` and `soonest` were never affected.
 
 ### Removed
 
