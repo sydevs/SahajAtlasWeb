@@ -38,7 +38,7 @@ export function DynamicEventsList({
   // filters, so applying a new set triggers a refetch. Filters are edited in
   // the FilterView drawer, not here.
   const filters = useEventFilters()
-  const { locale } = useLocale()
+  const { locale, languageCode } = useLocale()
 
   // This query uses the shared `eventsQuery` factory, so the SearchView story
   // seeds the exact key this reads (see config/api). The key holds the
@@ -50,10 +50,17 @@ export function DynamicEventsList({
   const { data: events } = useSuspenseQuery(query)
 
   // This applies the URL-selected ordering to the fetched list. It is memoized
-  // on the fetched reference, the order and the locale, so re-sorting is a cheap
+  // on the fetched reference, the order and the language, so re-sorting is a cheap
   // client-side reorder, never a refetch. The query key above stays unchanged.
+  //
+  // `recommended` weighs an event's spoken language, always an ISO 639-1 base code, so it
+  // takes the base subtag and not `locale` — i18next resolves to a regional tag wherever one
+  // carries the bundle (#223).
   const order = useSortOrder()
-  const sorted = useMemo(() => sortEvents(events, order, locale), [events, order, locale])
+  const sorted = useMemo(
+    () => sortEvents(events, order, languageCode),
+    [events, order, languageCode],
+  )
 
   // This tracks how much of the list is revealed. It is session state, keyed
   // by the result set, so it survives the drawer stack's remount-on-navigation:
