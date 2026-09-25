@@ -222,6 +222,15 @@ cover everything a host would notice since the widget was first deployed.
   **silently** — the locate control does nothing, copy-link does nothing, the share sheet never
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
+### Fixed
+
+- **On a regional locale, the recommended order promotes events in the visitor's own language
+  again.** ([#223]) Two of the languages you can offer are regional — Brazilian Portuguese and
+  Australian English — and on those every event counted as foreign, so the default order fell
+  back to deciding on distance alone. A visitor on Brazilian Portuguese now sees Portuguese
+  classes above equidistant ones in another language, as a visitor on any other locale already
+  did. No parameter and no origin changes, and `closest` and `soonest` were never affected.
+
 ### Removed
 
 - **The `compact` parameter is gone.** ([#161]) It was documented with three values (`auto`,
@@ -576,6 +585,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
 [#216]: https://github.com/sydevs/SahajAtlasWeb/issues/216
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
+[#223]: https://github.com/sydevs/SahajAtlasWeb/issues/223
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
