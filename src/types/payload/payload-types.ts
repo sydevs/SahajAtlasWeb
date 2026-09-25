@@ -1414,6 +1414,7 @@ export interface Manager {
     | number
     | boolean
     | null;
+  magicLinkIssuedAt?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -1871,7 +1872,7 @@ export interface Event {
     | 'finished';
   activityLog?: ActivityLog;
   /**
-   * How strongly attendees confirm this event is real (0–1). Rises with confirmations, falls with denials, and stays cautious while there are few votes — the Atlas map ranks unverified listings by it. Blank until the first vote.
+   * How strongly attendees confirm this event is real (0–1) — your check before adopting a listing, or why a denied one stays down. Rises with confirmations, falls with denials, and stays cautious while there are few votes. Blank until the first vote.
    */
   confidenceScore?: number | null;
   qualityReport?: EventQualityReport;
@@ -4419,6 +4420,7 @@ export interface ManagersSelect<T extends boolean = true> {
   lastRegistrationDigestSentAt?: T;
   legacyId?: T;
   legacyData?: T;
+  magicLinkIssuedAt?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -9173,6 +9175,14 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    * Suffix appended after the event title in the standalone page <title>.
    */
   free_meditation_class?: string;
+  /**
+   * Unverified-listing badge heading. Event view only — the list card, the Calendar entry and the map marker never show it.
+   */
+  unverified_title?: string;
+  /**
+   * Unverified-listing badge body, saying no local coordinator has verified the listing yet. Event view only.
+   */
+  unverified_note?: string;
   /**
    * Status chip: the event has no places left.
    */
