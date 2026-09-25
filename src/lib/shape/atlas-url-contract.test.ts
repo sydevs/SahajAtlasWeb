@@ -7,8 +7,8 @@ import { ROUTE_PARAM, pathHrefFor, routeFromParam, routeFromPathname } from '@/l
 /**
  * The shared canonical-URL contract — SahajCloud composes these URLs, we take them apart again.
  *
- * `atlas-url-contract.json` is byte-identical in SahajCloud, SahajAtlasWeb and WeMeditateWeb, and
- * this is our half of it. **Sync it by copying the raw file (`pnpm sync:atlas-contract`), never by
+ * `atlas-url-contract.json` is byte-identical in SahajCloud (`src/lib/atlas/`), SahajAtlasWeb
+ * (`src/lib/shape/`) and SahajAtlasWordpress (`tests/`), and this is our half of it. **Sync it by copying the raw file (`pnpm sync:atlas-contract`), never by
  * re-deriving the rules** — three repos independently deciding how a URL is spelled is exactly the
  * agreement that rots without anyone noticing.
  *

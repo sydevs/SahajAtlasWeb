@@ -7,11 +7,21 @@
  *   pnpm sync:atlas-contract          # report drift, exit 1 if there is any
  *   pnpm sync:atlas-contract --write  # overwrite our copy with theirs
  *
- * `atlas-url-contract.json` is byte-identical in SahajCloud, SahajAtlasWeb,
- * and WeMeditateWeb. SahajCloud composes canonical Atlas URLs from it. We
- * take them apart again (`src/lib/shape/atlas-url-contract.test.ts`). The
- * file's own `$comment` says to sync it by raw URL, rather than
- * re-deriving the rules. This script does exactly that, as one command.
+ * `atlas-url-contract.json` is byte-identical in three repos:
+ *
+ *   SahajCloud           src/lib/atlas/atlas-url-contract.json  (upstream)
+ *   SahajAtlasWeb        src/lib/shape/atlas-url-contract.json
+ *   SahajAtlasWordpress  tests/atlas-url-contract.json
+ *
+ * SahajCloud composes canonical Atlas URLs from it. We take them apart
+ * again (`src/lib/shape/atlas-url-contract.test.ts`), and the WordPress
+ * plugin answers them as requests. The file's own `$comment` says to sync
+ * it by raw URL, rather than re-deriving the rules. This script does
+ * exactly that, as one command.
+ *
+ * Nothing runs it automatically: no workflow in this repo calls
+ * `sync:atlas-contract`. SahajAtlasWordpress's CI is the only job that diffs
+ * a copy against upstream.
  *
  * **Why a script, and not a test.** The unit lane must never touch the
  * network (`docs/testing.md`). A fixture that fetches on every run would
