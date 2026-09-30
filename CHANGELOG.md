@@ -257,8 +257,9 @@ cover everything a host would notice since the widget was first deployed.
 - **The compact card's full-screen overlay shows its interface again.** ([#234]) With
   `routing=path`, or a client record with no brand colours, it opened as a bare map with no
   search, list or close button: its overlays attached to your page's `<body>`, outside the
-  widget's styles, and its light/dark class landed on your `<html>`. Both now stay inside the
-  widget's element.
+  widget's styles. In path mode its brand colours were also written onto your `<html>` as inline
+  CSS variables, and so was its light/dark class once the setting changed. All of it now stays
+  inside the widget's element.
 - **Your site's header no longer covers the full-screen overlay.** ([#234]) A header with a
   `z-index` above 50 painted over the overlay's controls, and clicking it closed the overlay. The
   overlay now stacks above your page's chrome — see the [compact card].
