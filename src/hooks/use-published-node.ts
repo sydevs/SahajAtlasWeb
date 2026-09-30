@@ -8,9 +8,8 @@ import { useCallback, useState } from 'react'
  * resolves against, taken by `CompactEmbedView`'s expanded dialog (#161) and `MapFrame` (#169).
  * And the THEME ROOT (`setThemeRoot`), the wrapper in `Widget.tsx` that every portal lands in when
  * no frame is live.
- * Hand-written copies of this drifted twice: one grew an unmount effect the other lacked, and one
- * published from a child's effect, which opened the compact card's dialog on the host's `<body>`,
- * unstyled. `MapFrame.test.tsx` and `Widget.theme-root.test.tsx` pin both uses.
+ * Never hand-copy it: copies have drifted twice. `MapFrame.test.tsx` and
+ * `Widget.theme-root.test.tsx` pin both uses.
  *
  * ⚠ **The node is STATE, not a ref, it is published from the callback ref, and the children wait
  * for it.** That is the whole contract.

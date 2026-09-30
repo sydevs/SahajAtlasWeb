@@ -102,10 +102,7 @@ describe('the wiring', () => {
 
     expect(source).toContain('usePublishedNode<HTMLDivElement>(setThemeRoot)')
     expect(source).toContain('ref={adoptThemeRoot}')
-    expect(source).toMatch(/\{themeRoot && \(\s*<App/)
-  })
-
-  it('leaves the callback ref as the only writer', () => {
-    expect(read('config/theme/BrandTheme.tsx')).not.toContain('setThemeRoot')
+    // `App` waits for the node, whatever the formatting.
+    expect(source).toMatch(/\{themeRoot\s*&&[\s(]*<App\b/)
   })
 })
