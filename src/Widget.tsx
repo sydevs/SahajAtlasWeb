@@ -278,7 +278,15 @@ function Atlas({ prefix }: { prefix?: string }) {
   // rewritten to sit under that class (issue #91), so without it here the embed
   // renders completely unstyled. This must be the same element as the theme class,
   // because the scoped `dark:`/`rtl:` variants resolve both against one ancestor.
-  const themeRootRef = useRef<HTMLDivElement>(null)
+  //
+  // ⚠ **The node is STATE, not a ref, and `App` waits for it** — `use-frame.ts`'s
+  // contract, for the same reason. React attaches a parent's ref only AFTER its
+  // children's layout effects run, so `BrandTheme` read a ref as `null` on mount and
+  // adopted `<html>` instead. It recovered only if the client's colours arrived later,
+  // which path mode (a warm cache) and a record with no colours never do. Every portal
+  // then landed on the host's `<body>`, outside the scoped stylesheet, and the compact
+  // card's dialog opened as a bare map with no interface.
+  const [themeRoot, adoptThemeRoot] = useState<HTMLDivElement | null>(null)
   const { locale: activeLocale, t } = useLocale()
 
   // The URL shape the router ACTUALLY uses, handed down for the readiness marker to
@@ -350,7 +358,7 @@ function Atlas({ prefix }: { prefix?: string }) {
        the embed a landmark a screen-reader user can jump to and out of, rather than an
        unbounded run of content in the middle of somebody else's page. */
     <div
-      ref={themeRootRef}
+      ref={adoptThemeRoot}
       // Deliberately NOT tenant-named (#156). The name lives on the client record and
       // arrives below this element, inside App's Suspense — so a named landmark would
       // have to change its accessible name after load, which is a worse thing to do
@@ -364,17 +372,19 @@ function Atlas({ prefix }: { prefix?: string }) {
       role="region"
       style={{ display: 'contents' }}
     >
-      <App
-        apiKey={config.key ?? ''}
-        compact={compact}
-        contained={contained}
-        defaultLocale={config.locale}
-        hasMap={hasMap}
-        linkable={linkable}
-        prefix={mount.current.prefix}
-        routing={attested}
-        themeRootRef={themeRootRef}
-      />
+      {themeRoot && (
+        <App
+          apiKey={config.key ?? ''}
+          compact={compact}
+          contained={contained}
+          defaultLocale={config.locale}
+          hasMap={hasMap}
+          linkable={linkable}
+          prefix={mount.current.prefix}
+          routing={attested}
+          themeRoot={themeRoot}
+        />
+      )}
     </div>
   )
 

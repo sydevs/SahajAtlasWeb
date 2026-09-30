@@ -42,12 +42,10 @@
  *
  * ## What you still need, and what currently blocks it
  *
- * ⚠ **A stubbed `clients/me` must carry `color1`, `color2`, and
- * `color3`.** Without them, the widget's theme root is never adopted.
- * Every portal lands in `document.body`, outside `.sy-atlas`, and the
- * drawers and dialogs render with no CSS at all — which reads exactly
- * like a scoping regression. The mechanism, and why production is
- * unaffected, is in `docs/rules/mapbox.md`.
+ * ⚠ **Drawers or dialogs with no CSS at all, sitting on `document.body`,
+ * mean the theme root was not adopted** — not a scoping regression. A
+ * stub without `color1`–`color3` used to trigger it, and so did production
+ * in path mode; `docs/rules/mapbox.md` has the mechanism and the fix.
  *
  * The widget reads SahajCloud on boot (`clients/me`). So a rendered
  * *interface* needs a backend, and a key that backend accepts. As of

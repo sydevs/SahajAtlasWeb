@@ -93,14 +93,20 @@ function Card({ action }: { action: CardAction }) {
 
 // ===== THE DIALOG IT OPENS ===== //
 
+// ⚠ **Both layers stack in the HOST's stacking context, not ours**, so their z-index
+// competes with the host's own chrome. At `z-50`, a theme header at `z-index: 100`
+// painted over the cog, the search box and the ×, and a click on it counted as
+// "outside" and closed the dialog. Near the top of the int32 range, below the maximum,
+// so a host overlay that must stay on top still can.
+//
 // The same scrim as the `Modal` atom, deliberately: two dialogs in one app should
 // not dim the page by different amounts. It drifted to /40 when this was copied.
-const overlayClass = 'fixed inset-0 z-50 bg-black/50'
+const overlayClass = 'fixed inset-0 z-[2147483000] bg-black/50'
 // `contain: layout` via the arbitrary variant — see `ExpandedDialog`'s note. The
 // inset is the margin that lets the host's page show through. Rounded plus shadow so
 // the frame reads as deliberate.
 const contentClass =
-  'fixed inset-2 z-50 overflow-hidden rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4'
+  'fixed inset-2 z-[2147483000] overflow-hidden rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4'
 // Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
 // floating controls over the same surface, at opposite corners, and they should read
 // as one system.

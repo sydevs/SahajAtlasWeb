@@ -2,16 +2,7 @@ import type { PaletteRoles } from '@/config/theme/palette'
 import type { RoutingMode } from '@/loader/config'
 import type { CompactState } from '@/lib/slot-decision'
 
-import {
-  type ReactNode,
-  type RefObject,
-  Suspense,
-  lazy,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from 'react'
+import { type ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -116,10 +107,10 @@ type AppProps = {
   apiKey: string | undefined | null
   defaultLocale?: string | null
   // Per-embed brand palette. Theming itself is app-wide (standalone also paints
-  // the client's colors onto <html>). Only `themeRootRef` — the widget wrapper
+  // the client's colors onto <html>). Only `themeRoot` — the widget wrapper
   // to scope the vars + theme class to — is widget-specific.
   brand?: PaletteRoles
-  themeRootRef?: RefObject<HTMLElement | null>
+  themeRoot?: HTMLElement | null
   // Standalone SPA build (BrowserRouter) — advertises canonical/og:url. The
   // embedded <sahaj-atlas> element passes false (its hash URLs aren't canonical).
   standalone?: boolean
@@ -159,7 +150,7 @@ export default function App({
   apiKey,
   defaultLocale,
   brand,
-  themeRootRef,
+  themeRoot,
   standalone = false,
   hasMap = true,
   contained = false,
@@ -213,7 +204,7 @@ export default function App({
   return (
     <RootBoundary>
       <Providers>
-        <BrandTheme apiKey={apiKey} palette={brand} rootRef={themeRootRef}>
+        <BrandTheme apiKey={apiKey} palette={brand} root={themeRoot}>
           {/* `unboxed` is the map form that fills the window: its interface is fixed and
               inset-0, so a fallback standing in for it must be too, or it collapses to its
               own content height at the top of the screen. A contained map, a map-less embed,

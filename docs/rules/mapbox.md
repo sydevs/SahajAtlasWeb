@@ -253,18 +253,17 @@ pattern) against the seeded local backend.
   )
   ```
 
-  ⚠ **`color1` / `color2` / `color3` are NOT decoration — omit them and the
-  widget renders completely unstyled**, which looks like a CSS-scoping bug and
-  is not one (#169 lost turns to exactly this). `BrandTheme` adopts the widget
-  wrapper as the theme root from a layout effect keyed on the resolved palette,
-  and that first run fires too early — the wrapper is an ancestor, so React
-  attaches its ref only after the child's own layout effect runs. Production
-  recovers only because the palette changes once the real client record
-  lands, re-running the effect with the ref now attached. A record with no
-  colors never re-runs it: `getThemeRoot()` stays `document.documentElement`,
-  and every portal lands on `document.body`, outside `.sy-atlas` and
-  unreachable by the scoped stylesheet. The symptom is a drawer or dialog with
-  `position: static` and no chrome at all — check the stub before the CSS.
+  ⚠ **A drawer or dialog with `position: static` and no chrome at all, on
+  `document.body`, means the theme root was never adopted** — it looks like a
+  CSS-scoping bug and is not one (#169 lost turns to exactly this). It was
+  once the stub's fault: `BrandTheme` read a ref to the wrapper, its ancestor,
+  and React attaches an ancestor's ref only after the child's own layout effect
+  runs. The effect recovered only when the palette changed later, so a stub
+  without `color1`–`color3` rendered unstyled — and so did production, in path
+  mode (a warm cache) or for a record with no colours, where the compact
+  card's dialog opened as a bare map. `Widget.tsx` now holds the wrapper in
+  state and renders `App` only once it exists (`BrandTheme.test.tsx`), so the
+  colours are decoration again. If the symptom returns, check that first.
 
   Three more things make the stub work. Send the **CORS header** — an
   unheadered fulfill against a different-origin API looks exactly like a

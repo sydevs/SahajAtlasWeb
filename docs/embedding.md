@@ -437,6 +437,10 @@ like `map=false`, against the floors above and nothing else.
   visible behind it and reads as a layer over your site. Three ways out — **clicking outside**,
   **Escape** (steps outward, dismissing whatever is open before closing), and the **×** in the
   corner — all return focus to the button that opened it.
+- **The overlay sits above your page's own chrome.** Its scrim and frame use `z-index:
+  2147483000`, so a fixed or sticky header sits under the scrim rather than over the widget's
+  search box and controls — and a click there is a click outside, which closes the overlay. If
+  something of yours must stay on top of it, give that a higher `z-index`.
 - **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
   URL means a visitor followed a link, so the widget mounts immediately rather than waiting to be
   scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, type ReactNode, type RefObject } from 'react'
+import { useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { clientQuery } from '@/config/api'
@@ -12,7 +12,8 @@ type BrandThemeProps = {
   // This is the per-embed palette from the widget's color props. It wins over the client record.
   palette?: PaletteRoles
   // This is the widget wrapper to scope theming to. It is absent in standalone mode, and the root stays `<html>`.
-  rootRef?: RefObject<HTMLElement | null>
+  // ⚠ An element, never a ref: a ref to an ancestor is still `null` when this component's layout effect runs (see `Widget.tsx`).
+  root?: HTMLElement | null
   children: ReactNode
 }
 
@@ -22,7 +23,7 @@ type BrandThemeProps = {
 // This renders ABOVE the Suspense boundary, so the prop palette themes the loading fallback immediately.
 // The client record, `color1`, `color2`, `color3` mapped to primary, secondary, contrast, merges in once its query resolves.
 // This re-applies the mode-aware default and foreground whenever the theme flips between light and dark.
-export function BrandTheme({ apiKey, palette, rootRef, children }: BrandThemeProps) {
+export function BrandTheme({ apiKey, palette, root, children }: BrandThemeProps) {
   const { theme } = useTheme()
 
   const { data: client } = useQuery({
@@ -59,11 +60,11 @@ export function BrandTheme({ apiKey, palette, rootRef, children }: BrandThemePro
     // On the widget's first paint, the `theme` snapshot can still reflect `<html>`, before `setThemeRoot` adopts the wrapper.
     // Reading `theme` there would paint a dark wrapper in light tones.
     // `theme` still stays in the dependency list, to re-run this effect on a light-to-dark toggle.
-    setThemeRoot(rootRef?.current ?? null)
-    const root = getThemeRoot()
+    setThemeRoot(root ?? null)
+    const themeRoot = getThemeRoot()
 
-    applyPalette(root, resolved, root.classList.contains('dark') ? 'dark' : 'light')
-  }, [resolved, theme, rootRef])
+    applyPalette(themeRoot, resolved, themeRoot.classList.contains('dark') ? 'dark' : 'light')
+  }, [resolved, theme, root])
 
   // This releases the theme root when this widget unmounts.
   // So a torn-down embed stops owning the module-level root, and its detached wrapper can be garbage-collected.
