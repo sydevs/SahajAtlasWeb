@@ -254,15 +254,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
-- **The full-screen overlay behind the compact card shows its interface again.** ([#234]) The widget
-  adopted its own wrapper as its theme root only if the client's brand colours arrived after it
-  mounted — never in `routing=path`, and never for a client record with no colours. Its overlays
-  then attached to your page's `<body>`, outside the widget's scoped styles, so pressing the
-  card's button opened a bare map with no search, list or close button, and the light/dark
-  setting wrote its class onto your page's `<html>`. Both now stay inside the widget's element.
-- **Your site's header no longer covers the full-screen overlay.** ([#234]) The overlay sat at
-  `z-index: 50`, so a theme header at `100` painted over its controls, and clicking the header
-  closed it. It now stacks above your page's chrome — see [When the slot is too small].
+- **The compact card's full-screen overlay shows its interface again.** ([#234]) With
+  `routing=path`, or a client record with no brand colours, it opened as a bare map with no
+  search, list or close button: its overlays attached to your page's `<body>`, outside the
+  widget's styles, and its light/dark class landed on your `<html>`. Both now stay inside the
+  widget's element.
+- **Your site's header no longer covers the full-screen overlay.** ([#234]) A header with a
+  `z-index` above 50 painted over the overlay's controls, and clicking it closed the overlay. The
+  overlay now stacks above your page's chrome — see the [compact card].
 - **Registering for an event works again.** ([#195]) The form posted to an address the CMS had
   removed, so every attempt failed with the generic "Something went wrong" panel. It now goes to
   the CMS's single intake. A full or ended event still says so specifically rather than failing
@@ -588,7 +587,6 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
-[When the slot is too small]: docs/embedding.md#when-the-slot-is-too-small
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
 [Permissions Policy]: docs/embedding.md#permissions-policy
