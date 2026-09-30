@@ -253,19 +253,12 @@ pattern) against the seeded local backend.
   )
   ```
 
-  ⚠ **A drawer or dialog with `position: static` and no chrome at all, on
-  `document.body`, means the theme root was never adopted** — it looks like a
-  CSS-scoping bug and is not one (#169 lost turns to exactly this). It was
-  once the stub's fault: `BrandTheme` read a ref to the wrapper, its ancestor,
-  and React attaches an ancestor's ref only after the child's own layout effect
-  runs. The effect recovered only when the palette changed later, so a stub
-  without `color1`–`color3` rendered unstyled — and so did production, in path
-  mode (a warm cache) or for a record with no colours, where the compact
-  card's dialog opened as a bare map. `Widget.tsx` now holds the wrapper in
-  state and renders `App` only once it exists (`BrandTheme.test.tsx`), so the
-  colours are decoration again. If the symptom returns, check that first.
+  ⚠ **A drawer or dialog with `position: static` and no chrome, on
+  `document.body`, means the theme root was never adopted** — not a CSS-scoping
+  bug (#169 lost turns to this). Check first that `Widget.tsx` still publishes
+  its wrapper through `usePublishedNode` (`Widget.theme-root.test.tsx`).
 
-  Three more things make the stub work. Send the **CORS header** — an
+  Three things make the stub work. Send the **CORS header** — an
   unheadered fulfill against a different-origin API looks exactly like a
   rejected key. Playwright matches the **most recently registered** route
   first, so a later catch-all silently shadows this one. A host serving a

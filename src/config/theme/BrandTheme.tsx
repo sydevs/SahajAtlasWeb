@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { clientQuery } from '@/config/api'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
-import { getThemeRoot, setThemeRoot, stopSystemWatch, useTheme } from '@/hooks/use-theme'
+import { getThemeRoot, stopSystemWatch, useTheme } from '@/hooks/use-theme'
 
 type BrandThemeProps = {
   // The widget's own service record supplies the fallback palette.
@@ -11,19 +11,16 @@ type BrandThemeProps = {
   apiKey?: string | null
   // This is the per-embed palette from the widget's color props. It wins over the client record.
   palette?: PaletteRoles
-  // This is the widget wrapper to scope theming to. It is absent in standalone mode, and the root stays `<html>`.
-  // ⚠ An element, never a ref: a ref to an ancestor is still `null` when this component's layout effect runs (see `Widget.tsx`).
-  root?: HTMLElement | null
   children: ReactNode
 }
 
 // This resolves the active brand palette, per role: the per-embed prop, then the client record, then the built-in default.
-// It paints that palette onto the theme root as CSS custom properties.
+// It paints that palette onto the theme root as CSS custom properties: the widget wrapper, which `Widget.tsx` publishes before this renders, or `<html>` standalone.
 //
 // This renders ABOVE the Suspense boundary, so the prop palette themes the loading fallback immediately.
 // The client record, `color1`, `color2`, `color3` mapped to primary, secondary, contrast, merges in once its query resolves.
 // This re-applies the mode-aware default and foreground whenever the theme flips between light and dark.
-export function BrandTheme({ apiKey, palette, root, children }: BrandThemeProps) {
+export function BrandTheme({ apiKey, palette, children }: BrandThemeProps) {
   const { theme } = useTheme()
 
   const { data: client } = useQuery({
@@ -49,34 +46,18 @@ export function BrandTheme({ apiKey, palette, root, children }: BrandThemeProps)
     ],
   )
 
-  // `useLayoutEffect` runs before the browser paints.
-  // So the palette, and the wrapper as the theme root, are in place for the first frame, with no flash.
+  // `useLayoutEffect` runs before the browser paints, so the palette is in place for the first frame, with no flash.
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return
 
-    // This adopts the widget wrapper as the theme root. A null value keeps `<html>` as the root.
-    // It then paints the resolved palette onto that root.
-    // This reads mode from the root's own class, not from `theme`.
-    // On the widget's first paint, the `theme` snapshot can still reflect `<html>`, before `setThemeRoot` adopts the wrapper.
-    // Reading `theme` there would paint a dark wrapper in light tones.
-    // `theme` still stays in the dependency list, to re-run this effect on a light-to-dark toggle.
-    setThemeRoot(root ?? null)
-    const themeRoot = getThemeRoot()
+    applyPalette(getThemeRoot(), resolved, theme)
+  }, [resolved, theme])
 
-    applyPalette(themeRoot, resolved, themeRoot.classList.contains('dark') ? 'dark' : 'light')
-  }, [resolved, theme, root])
-
-  // This releases the theme root when this widget unmounts.
-  // So a torn-down embed stops owning the module-level root, and its detached wrapper can be garbage-collected.
-  // This also stops the system-theme watcher, so no `matchMedia` listener fires after teardown.
+  // This stops the system-theme watcher when this widget unmounts, so no `matchMedia` listener fires after teardown.
+  // ⚠ It must not release the theme root too. The wrapper's callback ref does that, and this component sits inside
+  // `StrictMode`, whose simulated unmount would clear a root nothing then publishes again.
   // This assumes one widget per page. A second concurrent embed would share these singletons.
-  useLayoutEffect(
-    () => () => {
-      setThemeRoot(null)
-      stopSystemWatch()
-    },
-    [],
-  )
+  useLayoutEffect(() => () => stopSystemWatch(), [])
 
   return <>{children}</>
 }

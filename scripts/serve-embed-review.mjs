@@ -42,10 +42,8 @@
  *
  * ## What you still need, and what currently blocks it
  *
- * ⚠ **Drawers or dialogs with no CSS at all, sitting on `document.body`,
- * mean the theme root was not adopted** — not a scoping regression. A
- * stub without `color1`–`color3` used to trigger it, and so did production
- * in path mode; `docs/rules/mapbox.md` has the mechanism and the fix.
+ * ⚠ **Unstyled drawers or dialogs on `document.body` mean the theme root
+ * was not adopted**, not a scoping regression — see `docs/rules/mapbox.md`.
  *
  * The widget reads SahajCloud on boot (`clients/me`). So a rendered
  * *interface* needs a backend, and a key that backend accepts. As of

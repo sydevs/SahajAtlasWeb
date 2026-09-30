@@ -107,10 +107,8 @@ type AppProps = {
   apiKey: string | undefined | null
   defaultLocale?: string | null
   // Per-embed brand palette. Theming itself is app-wide (standalone also paints
-  // the client's colors onto <html>). Only `themeRoot` — the widget wrapper
-  // to scope the vars + theme class to — is widget-specific.
+  // the client's colors onto <html>).
   brand?: PaletteRoles
-  themeRoot?: HTMLElement | null
   // Standalone SPA build (BrowserRouter) — advertises canonical/og:url. The
   // embedded <sahaj-atlas> element passes false (its hash URLs aren't canonical).
   standalone?: boolean
@@ -150,7 +148,6 @@ export default function App({
   apiKey,
   defaultLocale,
   brand,
-  themeRoot,
   standalone = false,
   hasMap = true,
   contained = false,
@@ -204,7 +201,7 @@ export default function App({
   return (
     <RootBoundary>
       <Providers>
-        <BrandTheme apiKey={apiKey} palette={brand} root={themeRoot}>
+        <BrandTheme apiKey={apiKey} palette={brand}>
           {/* `unboxed` is the map form that fills the window: its interface is fixed and
               inset-0, so a fallback standing in for it must be too, or it collapses to its
               own content height at the top of the screen. A contained map, a map-less embed,

@@ -16,7 +16,8 @@ import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
 import { bootLocale } from './config/locale'
 import { useLocale } from './hooks/use-locale'
-import { getInitialTheme } from './hooks/use-theme'
+import { usePublishedNode } from './hooks/use-published-node'
+import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning, reportInternalError } from './lib/report'
@@ -271,22 +272,18 @@ function Atlas({ prefix }: { prefix?: string }) {
 
   // The widget scopes its theme to this wrapper, so it never mutates the host page's
   // `<html>`. This sets the initial light/dark class synchronously to avoid a flash.
-  // BrandTheme adopts the wrapper as the theme root and paints the brand palette once
-  // mounted. `dir` derives from the ACTIVE locale (reactively), so every descendant —
-  // and Tailwind's `rtl:` variants — follow text direction.
+  // The wrapper is published as the theme root before `App` renders, and BrandTheme
+  // paints the brand palette onto it. `dir` derives from the ACTIVE locale (reactively),
+  // so every descendant — and Tailwind's `rtl:` variants — follow text direction.
   // It also carries WIDGET_SCOPE_CLASS: every rule in our injected stylesheet is
   // rewritten to sit under that class (issue #91), so without it here the embed
   // renders completely unstyled. This must be the same element as the theme class,
   // because the scoped `dark:`/`rtl:` variants resolve both against one ancestor.
   //
-  // ⚠ **The node is STATE, not a ref, and `App` waits for it** — `use-frame.ts`'s
-  // contract, for the same reason. React attaches a parent's ref only AFTER its
-  // children's layout effects run, so `BrandTheme` read a ref as `null` on mount and
-  // adopted `<html>` instead. It recovered only if the client's colours arrived later,
-  // which path mode (a warm cache) and a record with no colours never do. Every portal
-  // then landed on the host's `<body>`, outside the scoped stylesheet, and the compact
-  // card's dialog opened as a bare map with no interface.
-  const [themeRoot, adoptThemeRoot] = useState<HTMLDivElement | null>(null)
+  // ⚠ Published from the callback ref, and `App` waits for it — `usePublishedNode`
+  // says why. Anything later, and a portal read in `App`'s first render lands on the
+  // host's `<body>`, outside the scoped stylesheet.
+  const { node: themeRoot, adopt: adoptThemeRoot } = usePublishedNode<HTMLDivElement>(setThemeRoot)
   const { locale: activeLocale, t } = useLocale()
 
   // The URL shape the router ACTUALLY uses, handed down for the readiness marker to
@@ -382,7 +379,6 @@ function Atlas({ prefix }: { prefix?: string }) {
           linkable={linkable}
           prefix={mount.current.prefix}
           routing={attested}
-          themeRoot={themeRoot}
         />
       )}
     </div>
@@ -431,8 +427,8 @@ const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 const AtlasElementBase = r2wc(Widget) as unknown as new () => AtlasElement
 
 // Which element owns the page. A widget owns page-global singletons — the API key
-// (`config/api/auth`), the boot config (`config/embed`), and BrandTheme's theme root
-// and system-theme watcher — so a second `<sahaj-atlas>` would run on instance A's key
+// (`config/api/auth`), the boot config (`config/embed`), the theme root, and BrandTheme's
+// system-theme watcher — so a second `<sahaj-atlas>` would run on instance A's key
 // and steal its theme root, in silence. Exactly one runs, and the rule is enforced
 // where the thing being counted actually lives: the element, not a React render pass.
 let owner: AtlasElement | null = null

@@ -1,7 +1,8 @@
 import { type ReactNode, useCallback, useState } from 'react'
 
-import { useFrame } from '@/hooks/use-frame'
+import { usePublishedNode } from '@/hooks/use-published-node'
 import { ELEMENT_NAME } from '@/lib/element'
+import { setFrame } from '@/lib/overlay'
 import { reportIntegrationWarning } from '@/lib/report'
 
 /**
@@ -71,7 +72,7 @@ const NO_BOX_MESSAGE =
  * turn the children gate into a two-way condition. More code, and one more expressible state.
  */
 function ContainedFrame({ children }: { children: ReactNode }) {
-  const { node, adopt: adoptFrame } = useFrame<HTMLDivElement>()
+  const { node, adopt: adoptFrame } = usePublishedNode<HTMLDivElement>(setFrame)
   const [unfillable, setUnfillable] = useState(false)
 
   /**
@@ -117,7 +118,7 @@ function ContainedFrame({ children }: { children: ReactNode }) {
     // renders paints outside the box the host gave it.
     <div ref={adopt} className="h-full w-full overflow-hidden [contain:layout]" data-sy-frame="">
       {/* Held back until `adopt` has published this node, so the first drawer portals inside
-          the frame rather than beside it. `useFrame` carries the argument. */}
+          the frame rather than beside it. `usePublishedNode` carries the argument. */}
       {node && children}
     </div>
   )
