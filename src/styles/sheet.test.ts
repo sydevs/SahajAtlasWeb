@@ -30,6 +30,18 @@ describe('the CSS sink contract with vite.config.ts', () => {
     expect(config).toContain("attributes['data-vite-dev-id']")
   })
 
+  // The key and the seed were pinned above; the per-chunk FIELD names were not, and their
+  // drift is the silent one. Rename `css` to `text` in the sink and every other assertion
+  // here stays green, the CSS gate stays green — it reads the template literal, never the
+  // object — and `replaceSync(undefined)` then writes the string "undefined" into every
+  // constructed sheet, shipping the widget with no styles at all.
+  it('names the chunk fields this module reads', () => {
+    expect(config).toContain('sink.chunks.push({ id: id, css: cssCode })')
+    expect(config).toContain('existing.css = cssCode')
+    expect(sheet).toContain('chunk.css')
+    expect(sheet).toContain('chunk.id')
+  })
+
   // `assert-css-scoped.mjs` counts injection sites by this marker rather than by the sink
   // key, because `sheet.ts` names the key too — as the reader — and a chunk carrying this
   // module would then count one site more than it holds. That is a real failure mode: it
@@ -50,7 +62,7 @@ describe('the CSS sink contract with vite.config.ts', () => {
   // and a cascade with two of everything in it.
   it('appends no style tag of its own', () => {
     expect(config).not.toContain('sahaj-atlas-style')
-    expect(config).not.toMatch(/appendChild|createElement\('style'\)/)
+    expect(config).not.toMatch(/appendChild|createElement\(['"`]style['"`]\)/)
   })
 })
 
