@@ -96,7 +96,7 @@ export const applyTheme = (theme: Theme) => {
   root.classList.add(theme)
   // NB: this deliberately does NOT write the style scope class. See issue #91.
   // That class belongs on the same element as the theme class, so writing it here looks right.
-  // But `getThemeRoot()` falls back to `document.documentElement`, and `BrandTheme` releases the module-level root on unmount.
+  // But `getThemeRoot()` falls back to `document.documentElement`, and the widget releases the module-level root on unmount.
   // With two embeds on a page, the survivor's next theme write would then stamp `sy-atlas` onto the HOST page's `<html>` element.
   // That would apply the entire widget stylesheet, Preflight, `.container`, and everything else, to the host's own site.
   // So each owner applies the class to an element it actually owns instead.
@@ -137,7 +137,7 @@ const watchSystem = (enabled: boolean) => {
 }
 
 // This fully disengages the system-theme watcher.
-// The widget calls this on teardown, in `BrandTheme`'s unmount, alongside releasing the theme root.
+// The widget calls this on teardown, in `BrandTheme`'s unmount.
 // So a torn-down embed leaves no `matchMedia` listener firing against a detached wrapper or the host page's `<html>` element.
 export const stopSystemWatch = () => watchSystem(false)
 

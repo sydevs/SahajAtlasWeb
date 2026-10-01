@@ -253,20 +253,12 @@ pattern) against the seeded local backend.
   )
   ```
 
-  ⚠ **`color1` / `color2` / `color3` are NOT decoration — omit them and the
-  widget renders completely unstyled**, which looks like a CSS-scoping bug and
-  is not one (#169 lost turns to exactly this). `BrandTheme` adopts the widget
-  wrapper as the theme root from a layout effect keyed on the resolved palette,
-  and that first run fires too early — the wrapper is an ancestor, so React
-  attaches its ref only after the child's own layout effect runs. Production
-  recovers only because the palette changes once the real client record
-  lands, re-running the effect with the ref now attached. A record with no
-  colors never re-runs it: `getThemeRoot()` stays `document.documentElement`,
-  and every portal lands on `document.body`, outside `.sy-atlas` and
-  unreachable by the scoped stylesheet. The symptom is a drawer or dialog with
-  `position: static` and no chrome at all — check the stub before the CSS.
+  ⚠ **A drawer or dialog with `position: static` and no chrome, on
+  `document.body`, means the theme root was never adopted** — not a CSS-scoping
+  bug (#169 lost turns to this). Check first that `Widget.tsx` still publishes
+  its wrapper through `usePublishedNode` (`Widget.theme-root.test.tsx`).
 
-  Three more things make the stub work. Send the **CORS header** — an
+  Three things make the stub work. Send the **CORS header** — an
   unheadered fulfill against a different-origin API looks exactly like a
   rejected key. Playwright matches the **most recently registered** route
   first, so a later catch-all silently shadows this one. A host serving a

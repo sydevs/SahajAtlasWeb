@@ -8,8 +8,8 @@ import { X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
-import { useFrame } from '@/hooks/use-frame'
-import { widgetOverlayContainer } from '@/lib/overlay'
+import { usePublishedNode } from '@/hooks/use-published-node'
+import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
 import { useReportModal } from '@/config/store'
 
 /**
@@ -93,14 +93,17 @@ function Card({ action }: { action: CardAction }) {
 
 // ===== THE DIALOG IT OPENS ===== //
 
-// The same scrim as the `Modal` atom, deliberately: two dialogs in one app should
+// ⚠ **Both layers stack in the HOST's stacking context**, so they must outrank its
+// chrome: a header painted over them hides the controls, and a click on it counts as
+// outside and closes the dialog. Below the int32 maximum, so a host layer can still win.
+const aboveHost = 'z-[2147483000]'
+// The same dimming as the `Modal` atom, deliberately: two dialogs in one app should
 // not dim the page by different amounts. It drifted to /40 when this was copied.
-const overlayClass = 'fixed inset-0 z-50 bg-black/50'
+const overlayClass = `fixed inset-0 ${aboveHost} bg-black/50`
 // `contain: layout` via the arbitrary variant — see `ExpandedDialog`'s note. The
 // inset is the margin that lets the host's page show through. Rounded plus shadow so
 // the frame reads as deliberate.
-const contentClass =
-  'fixed inset-2 z-50 overflow-hidden rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4'
+const contentClass = `fixed inset-2 ${aboveHost} overflow-hidden rounded-xl bg-background text-foreground shadow-2xl outline-none [contain:layout] sm:inset-4`
 // Deliberately the SettingsMenu cog's chrome, down to the shadow: they are the two
 // floating controls over the same surface, at opposite corners, and they should read
 // as one system.
@@ -167,13 +170,13 @@ function ExpandedDialog({
   closeLabel: string
   children: ReactNode
 }) {
-  // Published as the widget's frame, and the children wait for it — `useFrame`
+  // Published as the widget's frame, and the children wait for it — `usePublishedNode`
   // carries the timing argument, which `MapFrame` depends on identically.
   //
   // The extra `contentRef` is this component's own: the focus handlers below read
   // the node synchronously from callbacks that must not re-subscribe when it
   // changes.
-  const { node, adopt: adoptFrame } = useFrame<HTMLDivElement>()
+  const { node, adopt: adoptFrame } = usePublishedNode<HTMLDivElement>(setFrame)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const adopt = useCallback(
     (element: HTMLDivElement | null) => {

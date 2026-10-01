@@ -161,7 +161,7 @@ host pages, and it also runs standalone in dev. Because of that:
   share block — not the host page's own address, which names their article, not
   the meditation.
 - **One `<sahaj-atlas>` per page.** `connectedCallback` refuses a second element,
-  since the API key and BrandTheme's theme root are page-global singletons it
+  since the API key and the theme root are page-global singletons it
   would silently share. A second copy of the embed script is also a no-op
   (`customElements.get` guard). Both report via `reportIntegrationWarning`.
 - Do not assume control of `<head>`, global CSS, or the full viewport — the host

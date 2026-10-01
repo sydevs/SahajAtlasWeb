@@ -294,7 +294,7 @@ describe('agreement with the runtime', () => {
     // Writing it here would look natural in `applyTheme`, since the
     // class belongs on the theme root, which that function owns. But
     // `getThemeRoot()` falls back to `document.documentElement`, and
-    // `BrandTheme` releases the module-level root on unmount. So with
+    // the widget releases the module-level root on unmount. So with
     // two embeds on one page, the survivor's next theme write would
     // stamp the scope onto the HOST page's `<html>`, and apply the
     // entire widget stylesheet to their site.
