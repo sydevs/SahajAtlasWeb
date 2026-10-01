@@ -924,13 +924,14 @@ no polyfill build.
 
 ## What the widget does to your page
 
-**It will not restyle your page.** The stylesheet is injected into your document — there is no
-shadow DOM — but every selector is confined to the widget's own subtree (`.sy-atlas`), and every
-animation name is namespaced, enforced by a build-time check that fails the build if a rule
-escapes. Your headings, links, lists, forms, `.container`, a `.dark` theme class, and your own
-Swiper or Mapbox instances are all left alone.
+**It will not restyle your page.** The widget's stylesheet is adopted by its **shadow root**, so
+none of it is in your document to begin with — a rule of the widget's cannot match one of your
+elements. On top of that, every selector is still confined to the widget's own subtree
+(`.sy-atlas`) and every animation name is still namespaced, enforced by a build-time check that
+fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
+theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Four honest exceptions, none of them styling your content:
+Five honest exceptions, none of them styling your content:
 
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
@@ -948,6 +949,11 @@ Four honest exceptions, none of them styling your content:
   deliberately not a plain typeface name** — so if your page self-hosts the same typeface, the
   widget's faces cannot override yours. That is the whole reason for the odd name. These three
   are the only `@font-face` rules the widget contributes. Mapbox and Swiper register none.
+- **One hidden `aria-live` region sits in your `<body>`** while the widget's place-search field is
+  mounted, and is removed with it. The search field announces its suggestion counts through it,
+  and the library that owns it looks the region up on the document, which cannot see into the
+  shadow root. It is empty except while announcing, carries its own inline
+  clipping styles, and is removed on unmount. Nothing else of yours is touched.
 
 **The reverse direction is a boundary, not a defence.** The widget renders inside a **shadow
 root**, so a selector in your stylesheet cannot match an element inside it — at any specificity,

@@ -45,6 +45,13 @@ cover everything a host would notice since the widget was first deployed.
   at that element still sizes your slot. Nothing you did stops working, and nothing you were
   told to work around needs working around any more.
 
+- **One hidden `aria-live` region now sits in your `<body>`** while the widget's place-search
+  field is mounted. ([#236]) The field announces its suggestion counts through it, and the
+  library that owns it looks the region up on the document, which cannot see into the shadow
+  root — so the region lives where the lookup can find it. It is empty except while announcing,
+  clips itself with inline styles, and is removed when the field unmounts. Without it, a
+  screen-reader user gets no suggestion counts at all.
+
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
