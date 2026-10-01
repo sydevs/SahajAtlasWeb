@@ -9,6 +9,7 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/atoms/Button'
 import { LocalExpansionProvider, NoExpansionProvider, useExpansion } from '@/hooks/use-expansion'
 import { usePublishedNode } from '@/hooks/use-published-node'
+import { deepActiveElement } from '@/lib/active-element'
 import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
 import { useReportModal } from '@/config/store'
 
@@ -211,7 +212,7 @@ function ExpandedDialog({
     if (open || !root) return
 
     const remember = () => {
-      const active = document.activeElement as HTMLElement | null
+      const active = deepActiveElement() as HTMLElement | null
 
       // Never something inside the dialog itself: it is a descendant of this root,
       // and the dialog's mount focus can land before React has run this effect's

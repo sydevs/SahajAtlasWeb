@@ -13,6 +13,46 @@ import { resolve } from 'path'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
 
 /**
+ * Where the emitted CSS goes instead of `document.head` (#236).
+ *
+ * The widget renders inside a shadow root, and a stylesheet in the document cannot
+ * reach into one — the same boundary that keeps a host's selectors out keeps ours out.
+ * So each chunk is parked on `globalThis` and `src/styles/sheet.ts` adopts it into the
+ * root that owns it: the shadow root for the embed, the document for the standalone
+ * shell.
+ *
+ * ⚠ **This function is STRINGIFIED into the bundle, so it can import nothing.** The key
+ * and the sink's shape are duplicated from `src/styles/sheet.ts` for that reason alone,
+ * and `src/styles/sheet.test.ts` reads both files and fails if they drift. It is also
+ * why the body stays ES5-plain rather than using the syntax the rest of this file does.
+ *
+ * `id` is Vite's `data-vite-dev-id`, present only under `pnpm dev`. Keying on it makes
+ * an HMR edit replace a chunk instead of stacking a second copy behind it.
+ */
+const styleSink = (
+  cssCode: string,
+  options: { attributes?: Record<string, string | (() => string)> },
+) => {
+  const scope = globalThis as unknown as Record<string, unknown>
+  const sink = (scope.__syAtlasCss ||= { chunks: [], listeners: [] }) as {
+    chunks: { id: string | null; css: string }[]
+    listeners: (() => void)[]
+  }
+
+  const attributes = options && options.attributes
+  const id = (attributes && (attributes['data-vite-dev-id'] as string)) || null
+  const existing = id ? sink.chunks.find((chunk) => chunk.id === id) : undefined
+
+  if (existing) {
+    existing.css = cssCode
+  } else {
+    sink.chunks.push({ id: id, css: cssCode })
+  }
+
+  for (const listener of sink.listeners) listener()
+}
+
+/**
  * Does this command upload source maps to Sentry? (#130)
  *
  * Two conditions gate this, and both matter.
@@ -226,9 +266,7 @@ export default defineConfig(({ command }) => ({
   preview: { port: 5174 },
   plugins: [
     cssInjectedByJsPlugin({
-      // v5 deprecated `styleId` in favor of `attributes`. Host sites key
-      // off this exact style-tag id. Keep it stable.
-      attributes: { id: 'sahaj-atlas-style' },
+      injectCodeFunction: styleSink,
       relativeCSSInjection: true,
       dev: { enableDev: true },
     }),

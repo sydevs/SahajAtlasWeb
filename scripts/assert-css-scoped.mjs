@@ -38,6 +38,17 @@ import postcss from 'postcss'
 
 import { WIDGET_SCOPE, assertScoped } from './postcss-scope-widget.mjs'
 
+/**
+ * What marks one CSS injection site in a built chunk.
+ *
+ * ⚠ **Not the sink key.** `src/styles/sheet.ts` names the key too, as the READER, so a
+ * chunk carrying that module counts one site more than it has. This is the dev-id lookup
+ * inside the stringified sink in `vite.config.ts`, which nothing else in the app contains
+ * — so it appears exactly once per site. `src/styles/sheet.test.ts` pins it against that
+ * file.
+ */
+const INJECTION_MARKER = 'data-vite-dev-id'
+
 // This path resolves against this module, not the current working
 // directory, matching the other scripts here. This way, the gate's result
 // never depends on where someone runs it from.
@@ -58,21 +69,33 @@ const distFiles = (ext) => {
 }
 
 /**
- * Pulls out every stylesheet the injector embedded. It scans for the
- * template literal the injector hands to `document.createTextNode`. This
- * scan is deliberately narrow. If the injector's output ever changes
- * shape, this function finds nothing, and finding nothing later fails the
- * gate (see below), instead of passing on an empty set.
+ * Pulls out every stylesheet the injector embedded.
+ *
+ * ⚠ **There is no `<style>` tag to scan for any more (#236).** The widget renders in a
+ * shadow root, which a document stylesheet cannot reach into, so the build hands each
+ * chunk's CSS to the sink in `src/styles/sheet.ts` instead of appending a tag. The CSS is
+ * now the first argument of that sink call: `vite.config.ts` passes a JSON string, which
+ * the minifier re-quotes as a template literal.
+ *
+ * So the scan anchors on `INJECTION_MARKER` — one occurrence per injection site, inside
+ * the stringified sink — and takes the template literal opening the call that follows it.
+ * Deliberately narrow, exactly as the `createTextNode` version was: if the shape ever
+ * changes again this finds nothing, and finding nothing fails the gate below rather than
+ * passing on an empty set.
  *
  * @param {string} source
  * @returns {string[]}
  */
 export function extractInjectedCss(source) {
   const found = []
-  const marker = 'createTextNode(`'
-  let at = source.indexOf(marker)
+  const marker = ')(`'
+  let site = source.indexOf(INJECTION_MARKER)
 
-  while (at !== -1) {
+  while (site !== -1) {
+    const at = source.indexOf(marker, site)
+
+    if (at === -1) break
+
     const start = at + marker.length
     let i = start
 
@@ -97,7 +120,7 @@ export function extractInjectedCss(source) {
     // Undoes the escaping the bundler applied, to fit the CSS inside a
     // template literal.
     found.push(source.slice(start, i).replace(/\\(`|\$\{|\\)/g, '$1'))
-    at = source.indexOf(marker, i)
+    site = source.indexOf(INJECTION_MARKER, i)
   }
 
   return found
@@ -170,19 +193,18 @@ if (strayCss.length > 0) {
   fail(`${strayCss.join(', ')}: CSS emitted as a separate asset, outside what this gate reads`)
 }
 
-// Every injection site stamps its style tag with an id. This lets the
-// script count injection sites independently of how the CSS itself is
-// quoted. The extractor above only recognizes a template literal, and
-// that shape is a minifier artifact, not a guaranteed contract. Without
-// this separate count, a chunk whose injection came out double-quoted
-// would be skipped silently, and the `sheets === 0` guard below would stay
-// quiet as long as some other chunk still matched.
+// Every injection site carries one copy of the stringified sink, so the marker names
+// each one exactly once. That counts sites independently of how the CSS itself is quoted — the
+// extractor above only recognizes a template literal, and that shape is a minifier
+// artifact rather than a guaranteed contract. Without this separate count, a chunk whose
+// injection came out double-quoted would be skipped silently, and the `sheets === 0`
+// guard below would stay quiet as long as some other chunk still matched.
 let injectionSites = 0
 
 for (const file of distFiles('.js')) {
   const source = readFileSync(file, 'utf8')
 
-  injectionSites += source.split('sahaj-atlas-style').length - 1
+  injectionSites += source.split(INJECTION_MARKER).length - 1
 
   // This check scans the whole chunk, not only the stylesheets inside it.
   // `src/styles/fonts.ts` now registers the font faces, so a regression
