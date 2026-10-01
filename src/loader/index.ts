@@ -45,6 +45,9 @@ const PREFETCH_MARGIN = '200px'
 /** A probe key no host would coincidentally own, written and removed within one task. */
 const PROBE_PARAM = '__sy_atlas_probe'
 
+/** The longest the widget waits for an idle moment before it boots anyway. */
+const IDLE_DEADLINE_MS = 2000
+
 const warn = (message: string) => {
   try {
     console.warn(`${LOG_PREFIX} ${message}`)
@@ -53,9 +56,9 @@ const warn = (message: string) => {
   }
 }
 
-const error = (message: string) => {
+const error = (message: string, ...detail: unknown[]) => {
   try {
-    console.error(`${LOG_PREFIX} ${message}`)
+    console.error(`${LOG_PREFIX} ${message}`, ...detail)
   } catch {
     // Same reason as above.
   }
@@ -246,6 +249,37 @@ function whenVisible(element: HTMLElement, run: () => void): void {
 }
 
 /**
+ * Runs `run` once, when the page is idle or at {@link IDLE_DEADLINE_MS}, whichever comes first.
+ *
+ * **The deadline timer runs on both paths**, because the failure this guards is a host that
+ * patched `requestIdleCallback` into something that throws or never calls back — consent managers
+ * and performance shims do. Either would otherwise leave an empty slot and nothing in the console.
+ * `lib/embed-announce.ts` guards the same case; this is a copy, not an import (`./literals.ts`).
+ */
+function whenIdle(run: () => void): void {
+  let ran = false
+  const once = () => {
+    if (ran) return
+    ran = true
+    run()
+  }
+
+  setTimeout(once, IDLE_DEADLINE_MS)
+
+  try {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(once, { timeout: IDLE_DEADLINE_MS })
+
+      return
+    }
+  } catch {
+    // Same as no idle API at all: the next task.
+  }
+
+  setTimeout(once, 0)
+}
+
+/**
  * Boots from a script element.
  *
  * This is exported so the classic shim can hand over its own `document.currentScript`, which it
@@ -271,25 +305,30 @@ export function start(script: HTMLScriptElement | null): void {
   const mount = () => {
     // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
     // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.
-    void import('../Widget').then(({ boot }) => {
-      // Detection runs on idle, not here. `paramPersisted` is only meaningful once the host's
-      // own router has had a turn. A host SPA that rewrites the URL during boot would otherwise
-      // get measured mid-flight.
-      //
-      // **This hands over the observation, and nothing else.** The loader used to compose a
-      // report here too — the observation joined to the page's URL. That meant capturing the
-      // URL at this moment, and carrying it on the boot singleton until the widget mounted and
-      // sent it. The mount is now read by the send site itself (`lib/mount.ts`), so the loader
-      // has no business with the host's URL at all. There is one observation now, not two
-      // copies.
-      const observe = () => boot(config, detect(config))
-
-      if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(observe, { timeout: 2000 })
-      } else {
-        setTimeout(observe, 0)
-      }
-    })
+    void import('../Widget')
+      .then(({ boot }) => {
+        // Detection runs on idle, not here. `paramPersisted` is only meaningful once the host's
+        // own router has had a turn. A host SPA that rewrites the URL during boot would
+        // otherwise get measured mid-flight.
+        //
+        // **This hands over the observation, and nothing else.** The loader used to compose a
+        // report here too — the observation joined to the page's URL. That meant capturing the
+        // URL at this moment, and carrying it on the boot singleton until the widget mounted
+        // and sent it. The mount is now read by the send site itself (`lib/mount.ts`), so the
+        // loader has no business with the host's URL at all. There is one observation now, not
+        // two copies.
+        whenIdle(() => boot(config, detect(config)))
+      })
+      // A blocked or 404'd chunk is the one failure here a host can act on, and unhandled it is
+      // an anonymous rejection beside an empty slot (#239). The browser's own error names the
+      // URL, so it rides along.
+      .catch((reason: unknown) => {
+        error(
+          'could not load the widget, so nothing will render here. Check the network panel for ' +
+            'a failed request to embed.js or an assets/ chunk.',
+          reason,
+        )
+      })
   }
 
   if (config.routeFromPage) {
