@@ -254,6 +254,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **A smaller root font size on your page no longer shrinks the side panel.** On a theme that sets
+  `html { font-size: 62.5% }` — Twenty Twenty and OceanWP both do — the panel measured about 220px
+  instead of 352px, list labels wrapped (on some themes mid-word, "Kingdo/m"), and the map kept
+  framing results around a 352px panel, off-centre beside the narrower one. The widget now sizes its layout in
+  pixels, so your root font size no longer reaches it. The calendar view is the one exception:
+  its grid comes from a third-party theme sized in `rem`, so its text renders smaller on such a
+  page. Nothing to change on your side. See
+  [What the widget does to your page](docs/embedding.md#what-the-widget-does-to-your-page).
+
 - **The compact card's full-screen overlay shows its interface again.** ([#234]) With
   `routing=path`, or a client record with no brand colours, it opened as a bare map with no
   search, list or close button: its overlays attached to your page's `<body>`, outside the
