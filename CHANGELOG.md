@@ -254,6 +254,15 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The compact card's full-screen overlay shows its interface again.** ([#234]) With
+  `routing=path`, or a client record with no brand colours, it opened as a bare map with no
+  search, list or close button: its overlays attached to your page's `<body>`, outside the
+  widget's styles. In path mode its brand colours were also written onto your `<html>` as inline
+  CSS variables, and so was its light/dark class once the setting changed. All of it now stays
+  inside the widget's element.
+- **Your site's header no longer covers the full-screen overlay.** ([#234]) A header with a
+  `z-index` above 50 painted over the overlay's controls, and clicking it closed the overlay. The
+  overlay now stacks above your page's chrome — see the [compact card].
 - **Registering for a class, and reporting an issue, both work again.** ([#213]) The two
   addresses they posted to were deleted on the CMS side, so every registration failed with the
   generic "Something went wrong" panel and every issue report reached nobody. Both now post to
@@ -592,6 +601,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#213]: https://github.com/sydevs/SahajAtlasWeb/pull/213
 [#216]: https://github.com/sydevs/SahajAtlasWeb/issues/216
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
+[#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small

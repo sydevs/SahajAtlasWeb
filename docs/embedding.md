@@ -437,6 +437,10 @@ like `map=false`, against the floors above and nothing else.
   visible behind it and reads as a layer over your site. Three ways out — **clicking outside**,
   **Escape** (steps outward, dismissing whatever is open before closing), and the **×** in the
   corner — all return focus to the button that opened it.
+- **The overlay sits above your page's own chrome.** Its scrim and frame use `z-index:
+  2147483000`, so a fixed or sticky header of yours sits under the scrim, and clicking it closes
+  the overlay like any click outside. To keep something of yours on top, give it a higher
+  `z-index` — see the ⚠ below for the ancestors that cap it.
 - **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
   URL means a visitor followed a link, so the widget mounts immediately rather than waiting to be
   scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
@@ -450,7 +454,10 @@ happens (clicking outside and Escape both still close it, wherever confined), bu
 wrong. (`container-type` is fine — it does not have this effect, however often it is said to.) A
 **contained** map is unaffected, since it already establishes that containing block itself. If
 you are reaching for one of those properties to stop a map painting over your page, **give the
-element a height instead** — the supported way to say the same thing.
+element a height instead** — the supported way to say the same thing. Those properties, and any
+ancestor that forms a stacking context — a positioned element with a `z-index`, `opacity` below 1,
+or `isolation: isolate` — also cap the overlay's `z-index` at that ancestor's level, so a header
+outside it can still cover the overlay.
 
 ## Embedding in an iframe
 
