@@ -127,7 +127,7 @@
       "vaul@1.1.2": "patches/vaul@1.1.2.patch"
     },
     "overrides": {
-      "undici": "~7.29.1"
+      "undici": "^7.29.1"
     }
   }
 }

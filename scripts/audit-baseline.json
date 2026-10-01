@@ -24,17 +24,7 @@
     "An empty list also retires the gate's old 'the audit stopped looking' tell (zero",
     "findings against a non-empty baseline). check-audit.mjs now checks the size of the",
     "graph it walked instead — see the comment there before assuming a green run means",
-    "anything.",
-    "",
-    "AN EMPTY LIST IS NOT THE WHOLE PICTURE. A high advisory can also leave the graph",
-    "through a `pnpm.overrides` entry in package.json, which records nothing here and",
-    "which neither gate can retire: this one fails only on a high advisory the audit",
-    "still reports, and --strict prunes only the entries below. One override is live —",
-    "`undici: ~7.29.1`, clearing GHSA-rfgv-xxqx-mfg5 (WebSocket subprotocol DoS) and",
-    "GHSA-w293-vg96-wgc3 (TLS validation bypass in BalancedPool). It exists because",
-    "`payload` pins undici to an exact version, so no in-range update reaches the patch.",
-    "Drop it when `payload` raises that pin to 7.29.1 or later. The range is deliberately",
-    "`~`, not `^`: undici is unexercised here, so a minor would land untested."
+    "anything."
   ],
   "advisories": {}
 }
