@@ -35,6 +35,7 @@ import {
   isFilterOverlay,
   resolveStack,
 } from '@/lib/shape'
+import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
@@ -480,21 +481,14 @@ export function DrawerStack() {
     }
 
     // Only this widget's OWN events wake it. These listen on the host page's document,
-    // because the sheet is portaled and the pointer goes down on whatever is inside it. So
-    // an unfiltered handler would restart the loop on any click anywhere on the embedding
-    // page, and on any CSS transition it runs — which on a transition-heavy host would mean
-    // the loop never parks at all. That would spend a third party's main-thread budget to
-    // solve a problem that belongs to this widget alone. `resize` has no meaningful target
-    // and falls through, which is correct.
+    // because `resize` and a composed pointer event both arrive there. So an unfiltered
+    // handler would restart the loop on any click anywhere on the embedding page, and on
+    // any CSS transition it runs — which on a transition-heavy host would mean the loop
+    // never parks at all. That would spend a third party's main-thread budget to solve a
+    // problem that belongs to this widget alone. `wakesSheetLoop` owns that filter, and
+    // why it reads the composed path rather than the target.
     const wake = (event?: Event) => {
-      const target = event?.target
-
-      // A transition only moves the top edge when it is the SHEET's own — vaul
-      // animates the sheet element. Every `transition-colors` hover on a button
-      // inside it would otherwise re-arm 30 frames of layout reads for a colour
-      // change.
-      if (event?.type === 'transitionrun' && target !== sheet) return
-      if (target instanceof Node && sheet && !sheet.contains(target)) return
+      if (!wakesSheetLoop(event, sheet)) return
 
       still = 0
       raf ||= requestAnimationFrame(tick)
