@@ -86,6 +86,22 @@ describe('hoistGeocoderLiveRegion', () => {
     expect(LOOKUP()).not.toBe(null)
   })
 
+  it('moves nothing when the only match is one of our own ancestors', () => {
+    const { scope, mountRegion } = mountGeocoder()
+
+    mountRegion()
+
+    // A library version that stopped wrapping its description: `closest` then walks past
+    // `scope` and finds this. Hoisting it would take the widget's subtree to the host.
+    scope.querySelector('[aria-live]')?.removeAttribute('aria-live')
+    scope.setAttribute('aria-live', 'polite')
+
+    hoistGeocoderLiveRegion(scope)
+
+    expect(scope.parentNode).not.toBe(document.body)
+    expect(LOOKUP()).toBe(null)
+  })
+
   it('takes the region away again on teardown, since the next seed differs', async () => {
     const { scope, mountRegion } = mountGeocoder()
 

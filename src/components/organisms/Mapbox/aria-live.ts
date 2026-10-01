@@ -22,10 +22,13 @@ const DESCRIPTION_ID = '--search-listbox__description'
 
 const SELECTOR = `[id$="${DESCRIPTION_ID}"]`
 
-function hoist(scope: ParentNode): Element | null {
+function hoist(scope: HTMLElement): Element | null {
   const region = scope.querySelector(SELECTOR)?.closest('[aria-live]')
 
-  if (!region || region.parentElement === document.body) return null
+  // `closest` walks past `scope` to the root, so a library version that stopped wrapping
+  // its description would match one of OUR ancestors instead — and moving that to the
+  // host's body would take a chunk of the widget with it, teardown deleting it after.
+  if (!region || region === scope || !scope.contains(region)) return null
 
   document.body.append(region)
 
