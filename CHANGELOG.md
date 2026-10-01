@@ -254,6 +254,19 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Translating your page no longer breaks the widget.** ([#240]) Google Translate, GTranslate and
+  Weglot's JavaScript mode rewrote text the widget was still managing, and its next update threw
+  it onto its error screen. The widget now carries `translate="no"`, so page translators skip it:
+  it stays in the language it chose, and a visitor can switch from its settings menu. A plugin
+  that ignores the attribute needs `sahaj-atlas` excluded — see
+  [the widget follows your page's language](docs/embedding.md#the-widget-follows-your-pages-language).
+- **A widget that fails to load now says so in the console.** ([#240]) When `embed.js` or one of
+  its chunks could not be fetched — a blocker, a CSP rule, a stale copy cached at your edge — the
+  slot stayed empty with nothing but an anonymous unhandled rejection. The loader now logs one
+  `[sahaj-atlas] could not load the widget` line, with the browser's error naming the URL.
+- **The widget mounts on pages that patch `requestIdleCallback`.** ([#240]) A consent manager or
+  performance script that made it throw, or never call back, left an empty slot and a silent
+  console. The loader now falls back to a timer, so the widget boots at most two seconds late.
 - **The compact card's full-screen overlay shows its interface again.** ([#234]) With
   `routing=path`, or a client record with no brand colours, it opened as a bare map with no
   search, list or close button: its overlays attached to your page's `<body>`, outside the
@@ -602,6 +615,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#216]: https://github.com/sydevs/SahajAtlasWeb/issues/216
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
 [#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
+[#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small

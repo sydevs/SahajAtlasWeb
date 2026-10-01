@@ -179,7 +179,7 @@ function PathBoot({ apiKey }: { apiKey: string }) {
  */
 function BootSurface() {
   return (
-    <div className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`}>
+    <div className={`${WIDGET_SCOPE_CLASS} ${getInitialTheme()}`} translate="no">
       <div className="flex h-full w-full items-center justify-center p-8">
         <Spinner color="secondary" />
       </div>
@@ -353,7 +353,10 @@ function Atlas({ prefix }: { prefix?: string }) {
        (WCAG 3.1.2, Language of Parts). Both attributes inherit down the DOM tree, and
        display:contents does not interrupt that. `role="region"` plus a localized name make
        the embed a landmark a screen-reader user can jump to and out of, rather than an
-       unbounded run of content in the middle of somebody else's page. */
+       unbounded run of content in the middle of somebody else's page. `translate="no"`
+       keeps page translators out of text nodes React owns: Google Translate rewrites them
+       in place, and React's next update to one throws onto the error screen (#239). The
+       widget localises itself. */
     <div
       ref={adoptThemeRoot}
       // Deliberately NOT tenant-named (#156). The name lives on the client record and
@@ -368,6 +371,7 @@ function Atlas({ prefix }: { prefix?: string }) {
       lang={activeLocale}
       role="region"
       style={{ display: 'contents' }}
+      translate="no"
     >
       {themeRoot && (
         <App
