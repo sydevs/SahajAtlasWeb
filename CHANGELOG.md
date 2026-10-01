@@ -254,6 +254,22 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Registering for a class, and reporting an issue, both work again.** ([#213]) The two
+  addresses they posted to were deleted on the CMS side, so every registration failed with the
+  generic "Something went wrong" panel and every issue report reached nobody. Both now post to
+  the CMS's one submission intake. **Nothing changes for your CSP** — the same origin
+  (`cloud.sydevelopers.com`) on a different path, and no new origin.
+
+  Two things a visitor can see. A class that is full, ended, closed or run elsewhere is still
+  refused by the request that tried to register, with its own sentence rather than the generic
+  one — that was the property most at risk in the move. And a class that has since been deleted
+  now says "something went wrong" and lets the visitor try again, where it used to fail outright.
+
+  This also supersedes the warning on the [#195] entry below: **reports do reach us now**, wherever
+  your atlas names a contact form. Since [#216] they go to that form's own recipient, or to the
+  standard contact address where the form names none. An atlas naming no form offers no
+  report-an-issue link at all.
+
 - **Registering for an event works again.** ([#195]) The form posted to an address the CMS had
   removed, so every attempt failed with the generic "Something went wrong" panel. It now goes to
   the CMS's single intake. A full or ended event still says so specifically rather than failing
@@ -263,11 +279,10 @@ cover everything a host would notice since the widget was first deployed.
   accepts, rather than failing the whole registration once it is too late to say so. Nothing about
   the snippet, the origins the widget contacts or your CSP changes.
 
-  ⚠ **Reporting an issue is not fixed yet**, though it moved to the same intake. The CMS currently
-  requires every report to name a form, and this widget's reports have no form to name — they are
-  meant to reach the standard contact address. Until that is resolved on the CMS side, the
-  report-an-issue form still fails. It is a fallback screen visitors reach only when something else
-  has already gone wrong, and nothing else in the widget depends on it.
+  ⚠ **Reporting an issue was still broken at this point**, though it moved to the same intake.
+  The CMS required every report to name a form, and this widget's reports had none to name — they
+  were meant to reach the standard contact address. **[#213] above fixed it.** Nothing else in the
+  widget ever depended on it, so the gap cost only that one fallback screen.
 
 - **`?locale=` on your page URL now matches whatever the casing.** ([#205]) `?locale=PT-br` was
   treated as naming no language at all, so it fell through to the `locale` parameter on your
@@ -574,6 +589,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#184]: https://github.com/sydevs/SahajAtlasWeb/pull/184
 [#195]: https://github.com/sydevs/SahajAtlasWeb/issues/195
 [#205]: https://github.com/sydevs/SahajAtlasWeb/pull/205
+[#213]: https://github.com/sydevs/SahajAtlasWeb/pull/213
 [#216]: https://github.com/sydevs/SahajAtlasWeb/issues/216
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
