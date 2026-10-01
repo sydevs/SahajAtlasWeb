@@ -86,7 +86,9 @@ Three rules for the script tag specifically:
   before the script tag. A snippet in `<head>` has nowhere to render and says so in the console.
 - **No `async` or `defer`.** The loader reads its own script tag to find both its settings and
   its position, and those attributes hide it.
-- **`type="module"` is required** — the loader is an ES module.
+- **`type="module"` is required** — the loader is an ES module. Keep script optimizers away
+  from it: a tag rewritten without the type, or `auto.js` combined into a classic bundle, fails
+  before any of the widget runs — see [Troubleshooting](#troubleshooting).
 
 `auto.js` is a ~3 KiB loader, not the widget. It works out what your page supports, then fetches
 the widget itself only when the embed is about to come into view — so an embed further down your
@@ -167,6 +169,13 @@ from the atlas you want shown.
 **This used to be a setting on your client record, and no longer is, on purpose.** A record-level
 language applies to every page you embed on and then must stay in step with a site that may not
 be monolingual. `<html lang>` already says it per page, and your CMS already sets it.
+
+**Page translators leave the widget alone.** Its subtree carries `translate="no"`, so Google
+Translate, GTranslate and the browser's own page translation skip it rather than rewriting text
+the widget is still managing — which used to crash it onto its error screen. A visitor who
+translates your page keeps the atlas in the language it chose, and can switch it from the atlas's
+settings menu. A plugin that translates in the browser and ignores the attribute (check Weglot's
+JavaScript integration) needs `sahaj-atlas` on its list of excluded elements.
 
 #### The widget writes `?locale=` to your page's URL
 
@@ -303,7 +312,7 @@ to the console while the widget carries on working:
 
 | Console message mentions     | What it means                                                                                                                                                   |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
+| the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. An **empty** list allows every origin, here as on the read endpoints |
 | the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting                                                                               |
 
 ### The readiness marker
@@ -1112,6 +1121,9 @@ Three things to check when you migrate:
 | **The widget looks wrong on your site only**                          | Your global CSS is reaching into it. The widget scopes its own styles out of your page, but has no shadow DOM to keep yours out.                                                                                       |
 | **It broke after working yesterday**                                  | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                          |
 | **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                 |
+| **Nothing renders; console: "Cannot use import statement outside a module"** | The script tag lost its `type="module"`. An optimizer or an HTML5-cleanup filter rewrote the tag, or combined `auto.js` into a classic bundle. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags. None of the widget runs in this state, so this browser error is the only report you get. |
+| **Console: "could not load the widget"**                              | The loader ran, but `embed.js` or one of its `assets/` chunks did not load — the error printed with it names the URL. Look for that request in the network panel: a blocker, a CSP rule, or a stale copy cached at your edge (see [Updates and caching](#updates-and-caching)). |
+| **The widget shows an error after the page is translated**            | A translation plugin rewrote the widget's text in the browser and ignored its `translate="no"`. Add `sahaj-atlas` to the plugin's excluded elements — see [the widget follows your page's language](#the-widget-follows-your-pages-language). |
 | **Console: "no `key` parameter on the embed script URL"**             | The query string is missing or was stripped. Some page builders drop everything after `?` from a script URL — if so, that platform cannot host the widget this way. Talk to the maintainers.                          |
 | **The widget only appears when you scroll to it**                     | Intended. The loader defers fetching the widget until it nears the viewport. A below-the-fold widget therefore costs visitors nothing until they reach it.                                                             |
 
