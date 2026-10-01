@@ -359,6 +359,26 @@ found any other way.**
   reaching the ladder above, Radix already maintains two exits for free, so a
   confined dialog is a cosmetic problem, not a trap.
 
+⚠ **Radix's focus TRAP does not survive the shadow boundary, and that is unresolved
+(#236).** `@radix-ui/react-focus-scope` listens for `focusin`/`focusout` on `document`
+and asks `container.contains(event.target)`. Inside a shadow root that target is
+retargeted to `<sahaj-atlas>`, which is the container's *ancestor*, so the test is
+always false: `lastFocusedElementRef` is never set and the yank-back focuses nothing.
+Its `Tab` handler compares `document.activeElement` against the container's first and
+last tabbable, which for the same reason can never match. So tabbing past the last
+control of a **modal** dialog leaves it for the host page instead of cycling. That is
+the `Modal` atom (the report modal) and this dialog — vaul drawers pass
+`modal={false}` and were never trapped. `aria-hidden`'s `hideOthers` degrades the same
+way: it rewrites its target to the host element, then walks `host.children`, which is
+empty, so nothing *inside* the widget is hidden from a screen reader behind an open
+modal.
+
+**What still works, so nobody re-derives it:** the dismissable layer decides "inside"
+from a React `onPointerDownCapture` on its own content, not from `event.target`, so
+click-outside and Escape are unaffected. `react-remove-scroll` resolves shadow parents
+explicitly, so scroll-lock is fine. Close-focus is ref-based in dialog, dropdown and
+popover, so focus return works. Only the trap and `aria-hidden` are inert.
+
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
 while nothing has taken the containing block — and the dialog takes it, 16–32px

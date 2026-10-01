@@ -11,7 +11,7 @@ import { hoistGeocoderLiveRegion } from './aria-live'
  * shape below — an `[aria-live]` container holding a `<div>` whose id is the geocoder's
  * seed plus `--search-listbox__description`, inserted before the input — is
  * `createAriaLiveElement` and the Geocoder's own mount, read off
- * `@mapbox/search-js-web@1.0.0-beta.24`'s `dist/index-esm.js`. `LOOKUP` below is that
+ * `@mapbox/search-js-web@1.6.0`'s `dist/index-esm.js`. `LOOKUP` below is that
  * file's `setLiveRegionMessage`, verbatim, so these specs fail if the fix stops satisfying
  * the real reader rather than a paraphrase of it.
  */

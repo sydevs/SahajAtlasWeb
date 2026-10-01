@@ -3,12 +3,14 @@
  * A post-build gate. It proves the shipped CSS cannot restyle a host page
  * (#91).
  *
- * The widget has no shadow boundary. `vite-plugin-css-injected-by-js`
- * appends our stylesheet to the HOST document's <head>, after the host's
- * own sheets. Anything left at the top level then wins style conflicts and
- * repaints the host page. `scripts/postcss-scope-widget.mjs` confines
- * every selector at build time. This gate checks the result in the
- * emitted bytes. It does not trust the build pass alone.
+ * The EMBED's sheet is behind a shadow boundary since #236, so it cannot
+ * reach a host page at all. This gate is for the two builds that have no
+ * boundary: the standalone shell and Ladle both put the same sheet on
+ * `<html class="sy-atlas">`, where anything left at the top level wins
+ * style conflicts and repaints the page around it.
+ * `scripts/postcss-scope-widget.mjs` confines every selector at build
+ * time. This gate checks the result in the emitted bytes. It does not
+ * trust the build pass alone.
  *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS

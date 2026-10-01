@@ -37,8 +37,12 @@ function hoist(scope: HTMLElement): Element | null {
 
 /**
  * Moves the geocoder's live region under `document.body` as soon as it exists, and
- * returns the teardown. Each geocoder seeds its own id, so a region left behind would
- * never be read again — it is removed rather than orphaned.
+ * returns the teardown.
+ *
+ * Every region this has moved is removed on teardown, not just the last: each geocoder
+ * seeds its own id, so one left behind would never be read again. ⚠ A geocoder that
+ * remounts *inside* a living `MapSearch` therefore leaves its predecessor in the host's
+ * body until `MapSearch` itself unmounts — hidden and empty, but there.
  */
 export function hoistGeocoderLiveRegion(scope: HTMLElement): () => void {
   const hoisted = new Set<Element>()

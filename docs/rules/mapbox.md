@@ -307,7 +307,7 @@ version, because the folklore on this is older than the code.
   window-level drag listeners pass the event to it rather than reading `e.target`, so
   retargeting cannot reach them. Its two `document.fullscreenElement` reads belong to
   `FullscreenControl`, which we do not render.
-- **`@mapbox/search-js-web@1.0.0-beta.24` nests no shadow root of its own.** It defines
+- **`@mapbox/search-js-web@1.6.0` nests no shadow root of its own.** It defines
   eight custom elements and calls `attachShadow` in none of them. Each one styles itself
   with `<style>` children, so our adopted sheet and its own both reach it, and the only
   `document.head` injection is `AddressAutofill`'s and `AddressMinimap`'s autofill
