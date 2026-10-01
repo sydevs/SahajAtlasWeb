@@ -281,9 +281,8 @@ cover everything a host would notice since the widget was first deployed.
 
   ⚠ **Reporting an issue was still broken at this point**, though it moved to the same intake.
   The CMS required every report to name a form, and this widget's reports had none to name — they
-  were meant to reach the standard contact address. **[#213] above fixed it**, by sending a report
-  that named no form and so took the contact address by omission. Nothing else in the widget ever
-  depended on it, so the gap cost only that one fallback screen.
+  were meant to reach the standard contact address. **[#213] above fixed it.** Nothing else in the
+  widget ever depended on it, so the gap cost only that one fallback screen.
 
 - **`?locale=` on your page URL now matches whatever the casing.** ([#205]) `?locale=PT-br` was
   treated as naming no language at all, so it fell through to the `locale` parameter on your
