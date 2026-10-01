@@ -206,7 +206,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 
 | Behavior | Signal | Why |
 | --- | --- | --- |
-| Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the map-less root, or the frame) | A fit question: does a 22rem side panel leave usable space beside it? Since #169 map mode has a frame where one exists — a contained embed's box, or the compact card's expanded dialog. |
+| Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the map-less root, or the frame) | A fit question: does a 352px side panel leave usable space beside it? Since #169 map mode has a frame where one exists — a contained embed's box, or the compact card's expanded dialog. |
 | Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet. `DrawerStack` passes it explicitly rather than trust the atom's own default, which would leave a narrow map-less sheet draggable with nothing on screen saying so. |
 | Filter-overlay direction (right vs. bottom) | container | Same panel-vs-sheet question, same answer. |
 | Sticky Register bar (`EventView`) | container | A snap sheet can scroll the CTA out of sight. This is a property of the sheet. |

@@ -298,7 +298,7 @@
      whatever image is under them. Hence white, rather than brand primary, plus the
      halo: a white wall or a bright sky is exactly where a tinted bullet disappears. */
   .sy-carousel {
-    --swiper-pagination-bottom: 0.75rem;
+    --swiper-pagination-bottom: 12px;
     --swiper-theme-color: #fff;
     --swiper-pagination-bullet-inactive-color: #fff;
     --swiper-pagination-bullet-inactive-opacity: 0.5;
@@ -454,7 +454,7 @@
    and this nudge is merely unnecessary, which is a better failure than two round buttons
    on top of each other. */
 [data-sy-expanded] .mapboxgl-ctrl-top-right {
-  margin-top: 2.5rem;
+  margin-top: 40px;
 }
 
 /* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a

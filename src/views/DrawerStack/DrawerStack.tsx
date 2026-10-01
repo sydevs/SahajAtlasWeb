@@ -190,16 +190,16 @@ function PeekStrip({
   if (isLeft) {
     // Matches the drawer atom's left variant: flush and square on tablet, floating
     // and rounded at ≥lg — the geometry lives in these classes, not in inline styles.
-    // The width is the paired `22rem` value — its twin is `DRAWER_W_REM` in
-    // `hooks/use-map-controller.tsx`. See the Drawer atom for why.
-    // ⚠ This uses `max-w-[calc(100%-2rem)]`, not `100vw`. These panels are `position: fixed`,
+    // The width is the paired `352px` value — its twin is `DRAWER_W_PX` in
+    // `hooks/use-map-controller-real.tsx`. See the Drawer atom for why.
+    // ⚠ This uses `max-w-[calc(100%-32px)]`, not `100vw`. These panels are `position: fixed`,
     // so inside a frame (#169) a viewport unit describes a box they are not in. A percentage
     // resolves against the containing block — the frame where there is one, the viewport
     // where there is not. This is inert either way today, because the anchored panel only
-    // renders at ≥768px, where `22rem` always fits — which is exactly why it is worth fixing
+    // renders at ≥768px, where `352px` always fits — which is exactly why it is worth fixing
     // before that stops being true.
     className =
-      'inset-y-0 start-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
+      'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider bg-background shadow-xl lg:inset-y-4 lg:start-4 lg:rounded-2xl'
   } else {
     style.left = 0
     style.right = 0
@@ -264,7 +264,7 @@ export function DrawerStack() {
   // there was nothing to measure at all. The widget spanned the viewport, so `useIsWide`
   // fell back to it. Now map mode can have a FRAME — a contained embed's own box, or the
   // compact card's expanded dialog. Where one exists, it is the honest answer to "does a
-  // 22rem side panel leave usable space beside it?", because the panel sits inside it. With
+  // 352px side panel leave usable space beside it?", because the panel sits inside it. With
   // no frame, this call is `useIsWide(null)`, exactly what it always computed. So a 320px
   // column embed on a desktop gets the bottom sheet, its drag handle, and its
   // swipe-dismiss — and a 600px contained map now does too. This value is shared with the
@@ -297,7 +297,7 @@ export function DrawerStack() {
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
   // The calendar is the one full-width view. It fills the widget, minus the floating
-  // margins, instead of the ~22rem left panel (see the Drawer `wide` variant) — EXCEPT in
+  // margins, instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in
   // its list (agenda) view, which is a single narrow column and reads better at the regular
   // width. The live Schedule-X view is mirrored into `useCalendarPosition`, read reactively
   // here so switching month or list resizes the drawer. Date changes do not re-render this
@@ -800,12 +800,12 @@ export function DrawerStack() {
                 other view. */}
               {/* The inline-start gap clears the PEEK STRIPS, not just the drawer. The
                 deepest stack pushes an ancestor about 23px past the panel edge, using
-                `PEEK_DESKTOP` times the decay series above. So the cog sits 2rem out —
-                3rem at ≥lg, where the drawer itself is already inset by 1rem. That
+                `PEEK_DESKTOP` times the decay series above. So the cog sits 32px out —
+                48px at ≥lg, where the drawer itself is already inset by 16px. That
                 leaves about 9px of air at the deepest stack. A tighter gap would render
                 the strips under the cog.
-                Both `22rem` fallbacks below are the drawer-width pair — the twin
-                value is `DRAWER_W_REM` in `hooks/use-map-controller.tsx`. */}
+                Both `352px` fallbacks below are the drawer-width pair — the twin
+                value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
               {!wide && (
                 <SettingsMenu
                   className={clsx(
@@ -820,7 +820,7 @@ export function DrawerStack() {
                     // clips it away entirely. Outside a frame, `isWide` IS the
                     // viewport's answer, so this stays the same offset it always was.
                     isWide
-                      ? 'start-[calc(var(--sy-drawer-w,22rem)+2rem)] lg:start-[calc(var(--sy-drawer-w,22rem)+3rem)] lg:top-4'
+                      ? 'start-[calc(var(--sy-drawer-w,352px)+32px)] lg:start-[calc(var(--sy-drawer-w,352px)+48px)] lg:top-4'
                       : 'start-3',
                   )}
                 />

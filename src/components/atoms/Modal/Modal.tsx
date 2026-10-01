@@ -39,7 +39,7 @@ import { overlayContainer } from '@/lib/overlay'
 // `MapFrame` can be 360px at the interface floor, and `max-w-md` is 448.
 const overlay = 'fixed inset-0 z-50 bg-black/50'
 const content =
-  'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(var(--sy-frame-h,100dvh)-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-2xl outline-none'
+  'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(var(--sy-frame-h,100dvh)-32px)] w-[calc(100%-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-2xl outline-none'
 const header = 'flex shrink-0 items-start gap-2 px-4 pb-2 pt-4'
 
 export type ModalProps = {
