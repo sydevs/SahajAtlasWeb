@@ -58,7 +58,7 @@ const VIEWPORT_CALLERS: Record<string, string> = {
  * A map only existed in map mode, and map mode spanned the viewport, so the two boxes were the same box.
  * Reading either one kept the padding on the same crossing as the panel it pads around.
  * Containment breaks that equality.
- * A 600px contained map gets the bottom sheet, while a viewport read would still reserve 22rem of camera for a panel that is not there.
+ * A 600px contained map gets the bottom sheet, while a viewport read would still reserve 352px of camera for a panel that is not there.
  * This code cannot take `WidgetWidthContext`, since it RENDERS the provider.
  * So both now measure `frameElement()`, which is `null`, and therefore the viewport, wherever no frame exists.
  */

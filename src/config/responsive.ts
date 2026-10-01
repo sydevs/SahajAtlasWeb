@@ -11,7 +11,7 @@ import { useMediaQuery } from 'react-responsive'
  * This file is the mechanism, and `responsive.test.ts` stops a call site drifting off it.
  *
  *  - **container** (`useIsWide` / `useIsWideWidget`): this is a fit question.
- *    Does a 22rem side panel leave usable space beside it? Does a short sheet scroll the CTA away?
+ *    Does a 352px side panel leave usable space beside it? Does a short sheet scroll the CTA away?
  *    A 320px column on a 1600px desktop must answer these the way a phone does.
  *  - **viewport** (`useIsWideViewport`): this is for the case where the screen genuinely is the question.
  *    It has no app call sites left. The map camera padding was the last one, and #169 moved it to the container signal,

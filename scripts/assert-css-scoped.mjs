@@ -12,7 +12,7 @@
  *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS
- * string literal. The script checks three things:
+ * string literal. The script checks four things:
  *
  *   1. every top-level selector is scoped to the widget class,
  *   2. every `@keyframes` name carries the widget namespace — keyframe
@@ -20,7 +20,11 @@
  *      `fadeIn` would hijack a host page's animation,
  *   3. no request to a third-party font CDN survives (a Raleway `@import`
  *      once disclosed every visitor's IP address to Google — LG München I
- *      3 O 17493/20).
+ *      3 O 17493/20),
+ *   4. no `rem` length ships outside the calendar's chunk — a `rem`
+ *      resolves against the HOST's root font size, so the reverse
+ *      direction leaks too: `html { font-size: 62.5% }` shrank the side
+ *      panel to 220px while the map still padded for 352 (#238).
  *
  * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
  * enforce it.
@@ -113,8 +117,42 @@ function fail(message) {
 // it through by name, so the exemption stays visible instead of silent.
 const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
 
+// Schedule-X's theme is the one sheet allowed `rem`: third-party, pinned,
+// and injected only by the lazy calendar chunk. Its rem lengths also prove
+// the detector below still matches the minifier's output — finding none
+// there fails the gate, rather than letting every other sheet pass blind.
+const REM_EXEMPT_CHUNK = /(^|[\\/])CalendarView-[\w-]+\.js$/
+
+// Declarations only: a media query's `rem` is the browser's initial font
+// size, which no stylesheet can change. A sign is allowed, an identifier
+// (`--x-2rem`) is not.
+const REM_LENGTH = /(?<![\w.-])-?(?:\d*\.)?\d+rem\b/i
+
+/** @param {import('postcss').Root} root */
+function remLengths(root) {
+  const found = []
+
+  root.walkDecls((decl) => {
+    const value = decl.value.replace(/url\([^)]*\)|"[^"]*"|'[^']*'/g, '')
+
+    if (REM_LENGTH.test(value)) {
+      const where = decl.parent && 'selector' in decl.parent ? decl.parent.selector : '?'
+
+      found.push(`${where} { ${decl.prop}: ${decl.value} }`)
+    }
+  })
+
+  return found
+}
+
 let sheets = 0
 let rules = 0
+
+// The exemption belongs to a FILE, so this is checked per injection, not per
+// unique sheet: an identical copy injected from another chunk must not ride
+// on the calendar's pass.
+const remByCss = new Map()
+const injections = []
 
 // The injector emits one copy of the same stylesheet per build entry, so
 // the shared App chunk carries it twice. Checking an already-checked sheet
@@ -160,11 +198,14 @@ for (const file of distFiles('.js')) {
     if (!css.includes('{')) continue
 
     sheets += 1
+    injections.push({ file, css })
 
     if (checked.has(css)) continue
     checked.add(css)
 
     const root = postcss.parse(css, { from: file })
+
+    remByCss.set(css, remLengths(root))
 
     try {
       rules += assertScoped(root)
@@ -208,6 +249,33 @@ if (sheets !== injectionSites) {
   )
 }
 
+let calendarRem = 0
+
+for (const { file, css } of injections) {
+  const found = remByCss.get(css) ?? []
+
+  if (REM_EXEMPT_CHUNK.test(file)) {
+    calendarRem += found.length
+    continue
+  }
+
+  if (found.length > 0) {
+    fail(
+      `${file}: ${found.length} rem length(s) — a host's root font size rescales them, so write px ` +
+        `(1rem = 16px). If this is the calendar's chunk under a new name, update REM_EXEMPT_CHUNK.\n  ` +
+        found.slice(0, 5).join('\n  '),
+    )
+  }
+}
+
+if (calendarRem === 0) {
+  fail(
+    'found no rem in the calendar chunk — either REM_EXEMPT_CHUNK names no file any more, or the ' +
+      'rem detector stopped matching the emitted CSS and checked nothing',
+  )
+}
+
 console.log(
-  `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}`,
+  `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
+    `with no rem outside the calendar chunk`,
 )

@@ -1,12 +1,14 @@
 /* This is vendored from vaul@1.1.2 (node_modules/vaul/style.css) — verbatim except one
-   corrected upstream typo (flagged inline near [data-vaul-handle-hitarea]).
+   corrected upstream typo (flagged inline near [data-vaul-handle-hitarea]), and its three
+   `rem` lengths restated in px, since a host's root font size would rescale them (#238).
    vaul does not expose `./style.css` in its package `exports` map, so it cannot be
    `@import`-ed by specifier under Vite's strict resolution. vaul is pinned exactly
    and unmaintained (see patches/vaul@1.1.2.patch), so this copy will not drift.
    It provides the [data-vaul-drawer] slide/snap transforms and drag-handle styling
    that position the drawers. Without it, snap-point sheets render off-screen.
    To refresh: run `cp node_modules/vaul/style.css src/styles/vaul.css`, re-add this
-   header, re-correct the [data-vaul-handle-hitarea] colon typo, and re-append the
+   header, re-correct the [data-vaul-handle-hitarea] colon typo, convert each `rem` to px
+   (1rem = 16px; `pnpm build` fails on any left behind), and re-append the
    reduced-motion block at the FOOT of this file (it is ours, not vaul's). */
 
 [data-vaul-drawer] {
@@ -159,7 +161,7 @@
   margin-right: auto;
   height: 5px;
   width: 32px;
-  border-radius: 1rem;
+  border-radius: 16px;
   touch-action: pan-y;
 }
 
@@ -173,8 +175,8 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: max(100%, 2.75rem); /* 44px */
-  height: max(100%, 2.75rem); /* 44px */
+  width: max(100%, 44px);
+  height: max(100%, 44px);
   touch-action: inherit;
 }
 

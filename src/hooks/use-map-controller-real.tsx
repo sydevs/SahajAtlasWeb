@@ -17,9 +17,9 @@ import { frameElement } from '@/lib/overlay'
 // The code feeds them to map padding directly, so the camera and controls stay unoccluded.
 // This never DOM-measures the panel.
 //
-// **`DRAWER_W_REM` is one half of a pair. See the other half before you change it.**
-// The drawer's actual width comes from a `22rem` fallback baked into its Tailwind classes.
-// That fallback is `w-[var(--sy-drawer-w,22rem)]`, in `components/atoms/Drawer/Drawer.tsx` and `views/DrawerStack/DrawerStack.tsx`.
+// **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
+// The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
+// That fallback is `w-[var(--sy-drawer-w,352px)]`, in `components/atoms/Drawer/Drawer.tsx` and `views/DrawerStack/DrawerStack.tsx`.
 // `DrawerStack`'s `SettingsMenu` offset reads the same variable.
 // A class string cannot read a value from this file, because the Tailwind JIT scanner needs a literal.
 // So you must keep the two values in step by hand.
@@ -30,15 +30,12 @@ import { frameElement } from '@/lib/overlay'
 // That test exists because comments alone did not hold.
 // The first version of this pairing named two files and missed two of the five literals.
 //
-// The rem-to-px conversion assumes the browser's default 16px root font.
-// Two things can desync this value without touching either literal.
-// One is a host that restyles the root font size.
-// The other is a host that overrides the `--sy-drawer-w` custom property. Nothing in this repo sets it today, so the fallback always wins.
-// Reading the resolved variable at runtime would cover both cases.
+// ⚠ The pair is in px, never rem: a host page that restyles its root font size (`html { font-size: 62.5% }`) shrank a `22rem` panel to 220px while this padding still reserved 352 (#238).
+// One thing can still desync it without touching either literal: a host that overrides the `--sy-drawer-w` custom property. Nothing in this repo sets it today, so the fallback always wins.
+// Reading the resolved variable at runtime would cover that case.
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
-const DRAWER_W_REM = 22
-const LEFT_DRAWER_PX = DRAWER_W_REM * 16
+const DRAWER_W_PX = 352
 const MOBILE_PEEK_PX = 128
 const MAP_MARGIN = 20
 
@@ -88,7 +85,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // Before #169, the viewport was that box by construction, because map mode spanned it.
   // So reading `useIsWideViewport` agreed with it only by luck of a shared crossing.
   // A contained 600px map breaks that agreement.
-  // The drawer becomes a bottom sheet, while a viewport read would still reserve 22rem of camera on the left for a panel that is not there.
+  // The drawer becomes a bottom sheet, while a viewport read would still reserve 352px of camera on the left for a panel that is not there.
   //
   // This code cannot read `WidgetWidthContext` instead.
   // `DrawerStack` provides that context, and this provider RENDERS `DrawerStack`.
@@ -99,7 +96,7 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
     setPadding({
-      left: MAP_MARGIN + (isWide ? LEFT_DRAWER_PX : 0),
+      left: MAP_MARGIN + (isWide ? DRAWER_W_PX : 0),
       right: MAP_MARGIN,
       top: MAP_MARGIN,
       bottom: MAP_MARGIN + (isWide ? 0 : MOBILE_PEEK_PX),

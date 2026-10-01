@@ -343,7 +343,7 @@ export function ViewHarness({
                   // height bound for the body to scroll within. It read as "the list will
                   // not scroll".
                   withMap
-                    ? 'absolute inset-y-0 start-0 w-[22rem] max-w-full shadow-2xl'
+                    ? 'absolute inset-y-0 start-0 w-[352px] max-w-full shadow-2xl'
                     : clsx('relative', height === 'container' ? 'h-full' : 'h-screen'),
                 )}
               >

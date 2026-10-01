@@ -19,6 +19,8 @@ const brandScale = (name) => ({
 const radixScale = (name) =>
   Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, `var(--${name}-${i + 1})`]))
 
+// Tailwind's default scales are in rem, which a host page's root font size rescales (#238).
+// `pnpm assert:css` fails the build on a rem in the injected CSS.
 const TAILWIND_REM_TO_PX = {
   borderRadius: {
     none: '0px',

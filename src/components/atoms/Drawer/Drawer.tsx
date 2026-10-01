@@ -24,19 +24,19 @@ const drawer = tv({
   slots: {
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-hidden bg-background text-foreground shadow-2xl outline-none',
-    // Every content band is capped at `--sy-content-max` (default 32rem) and
+    // Every content band is capped at `--sy-content-max` (default 512px) and
     // centred. So on a wide surface, such as a map-less embed or a large-mobile
     // bottom sheet, the views read as a centred column, instead of stretching
-    // edge to edge. This has no effect on the roughly 22rem anchored panel,
+    // edge to edge. This has no effect on the 352px anchored panel,
     // which is already narrower.
     header:
-      'mx-auto flex w-full max-w-[var(--sy-content-max,32rem)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
+      'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
     // A second fixed band under the header, for controls that act on the
     // scrolling content below, such as SearchView's Filters and Sort. It
     // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
     // so a long list scrolls under it instead of carrying it away. That is
     // exactly when those controls become useful.
-    toolbar: 'mx-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0',
+    toolbar: 'mx-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0',
     // `overflow-x-hidden` is a backstop, not the fix. A drawer is a
     // fixed-width panel and must never scroll sideways. But it renders
     // host-authored prose, so one unbreakable string could always overflow
@@ -45,9 +45,9 @@ const drawer = tv({
     // a clipped edge, instead of a horizontal scrollbar across the view. It
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,32rem)] flex-1 overflow-y-auto overflow-x-hidden',
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-y-auto overflow-x-hidden',
     footer:
-      'mx-auto mt-auto w-full max-w-[var(--sy-content-max,32rem)] shrink-0 border-t border-gray-4',
+      'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
     // grey. This gives the handle breathing room from the sheet's rounded top
     // edge, but keeps it close to the header below. It also adds a grab
@@ -70,8 +70,8 @@ const drawer = tv({
       // panel and cog positioning use `start-*`, and directional icons mirror
       // through BaseIcon's `flipRtl`.
       //
-      // **The `22rem` in both variants below is paired with `DRAWER_W_REM` in
-      // `hooks/use-map-controller.tsx`.** That constant becomes the map's
+      // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
+      // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's
       // left camera padding, so the map knows how much of itself this panel
       // covers. Tailwind needs a literal here, and it cannot read the
       // constant. So changing this width means changing that one in the same
@@ -79,11 +79,11 @@ const drawer = tv({
       // nothing anywhere reports the drift.
       left: {
         content:
-          'inset-y-0 left-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:left-4 lg:rounded-2xl',
       },
       right: {
         content:
-          'inset-y-0 right-0 w-[var(--sy-drawer-w,22rem)] max-w-[calc(100%-2rem)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
+          'inset-y-0 right-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
       // Snap-point sheets must use the full viewport height. Vaul computes
       // its snap translate from the window height, so a content-sized sheet
@@ -116,8 +116,8 @@ const drawer = tv({
         content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
       },
     },
-    // A full-width surface, such as CalendarView, instead of the roughly
-    // 22rem left panel, so a month grid stays legible. This only matters with
+    // A full-width surface, such as CalendarView, instead of the 352px
+    // left panel, so a month grid stays legible. This only matters with
     // the anchored `left` panel, in map mode at ≥md. The bottom sheet is
     // already full-width, and `filled` (map-less) already fills the
     // container. So both ignore this variant (see the compound below).

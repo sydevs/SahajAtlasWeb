@@ -959,6 +959,12 @@ only way for us to outrank it would be `!important` ourselves, which would beat 
 too and leave the widget unstyled. If the widget looks wrong on your site and right on ours, look
 for `!important` in your global CSS first.
 
+**Your root font size does not resize it either.** The widget sizes its layout in pixels, not
+`rem`, so a theme that sets `html { font-size: 62.5% }` — Twenty Twenty and OceanWP both do — gets
+the same side panel, and the same map framing around it, as any other page. The calendar view is
+the one part still sized in `rem`: its grid comes from a third-party theme, so on such a page the
+calendar's text renders smaller than the rest of the widget.
+
 ### The style-tag ids
 
 The widget appends its styles under two stable ids, kept stable across releases precisely

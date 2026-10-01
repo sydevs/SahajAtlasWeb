@@ -71,7 +71,7 @@ const LivePreviewController = lazy(() =>
  */
 function RootFallback() {
   return (
-    <div role="alert" style={{ padding: '1.5rem', fontSize: '0.875rem', textAlign: 'center' }}>
+    <div role="alert" style={{ padding: '24px', fontSize: '14px', textAlign: 'center' }}>
       This content could not be loaded. Please reload the page.
     </div>
   )
