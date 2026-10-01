@@ -39,9 +39,12 @@ Fewer custom components means less maintenance and a more consistent look.
   `clsx` string concatenation — it is already a dependency and matches the Radix +
   Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference.
 - `clsx` is fine for simple conditional class joins.
-- Global styles and Tailwind layers live in `src/styles/globals.css`. The widget
-  injects its CSS via JS (`vite-plugin-css-injected-by-js`) so it works when
-  embedded. Do not rely on a separate stylesheet `<link>`.
+- Global styles and Tailwind layers live in `src/styles/globals.css`. The build hands
+  every CSS chunk to `src/styles/sheet.ts` (`vite-plugin-css-injected-by-js` with an
+  `injectCodeFunction`), and each entry adopts it into the root that owns it — the
+  embed's shadow root, or the standalone shell's document (#236). Do not rely on a
+  separate stylesheet `<link>`, and do not append a `<style>` to `document.head`: a
+  document sheet cannot reach into the shadow root.
 
 **The CSS-scoping invariant is "the element a rule PAINTS is inside the widget," not
 "the selector string starts with the scope prefix."** The minifier runs after scoping
@@ -49,8 +52,10 @@ and can fold the prefix into the middle of a selector, so a head-anchored check 
 wrongly flag sound CSS as a leak (issue #104). Read this before touching the scoping
 pipeline or its check.
 
-- **The scoping pass is mechanical, not a rule you follow** (issue #91). This
-  stylesheet lands in the HOST document, so `scripts/postcss-scope-widget.mjs` runs
+- **The scoping pass is mechanical, not a rule you follow** (issue #91). The embed's
+  sheet is adopted by a shadow root since #236, so it no longer lands in the host
+  document — but the STANDALONE build and Ladle still put it on `<html class="sy-atlas">`,
+  and the pass is what keeps those two honest. So `scripts/postcss-scope-widget.mjs` runs
   last in the PostCSS chain and rewrites every emitted selector to `:where(.sy-atlas)`
   — Preflight, generated utilities, and the third-party sheets we `@import` (mapbox-gl,
   swiper, vaul, Radix Colors) included — and it namespaces every `@keyframes`.

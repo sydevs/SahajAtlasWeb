@@ -21,7 +21,29 @@ Entries reference the pull request that landed them.
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
 
+### Removed
+
+- ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
+  moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to
+  carry that id, and `document.querySelectorAll('style#sahaj-atlas-style')` returns nothing.
+  `docs/embedding.md` had published the id as stable "precisely because host sites key off
+  them", so this is a break even though no known embed uses it. `sahaj-atlas-fonts` is
+  unchanged and stays in your document — a `@font-face` registered inside a shadow root is
+  never applied. If you were keying off the style id, the root is reachable as
+  `document.querySelector('sahaj-atlas').shadowRoot` and we would rather publish a supported
+  way to do what you needed.
+
 ### Changed
+
+- **Your CSS can no longer restyle the widget, `!important` or not.** ([#236]) The widget
+  renders inside a shadow root, so a selector in your stylesheet cannot match an element inside
+  it at any specificity. This replaces a reset that documented `!important` as its one
+  exception — and that was understating the gap: measured across 18 WordPress themes at four
+  viewports, the widget's typeface was lost on 61 of 72 page checks, to rules carrying no
+  `!important` at all (`body h2 { font-family }` is enough). Two things still cross, both
+  deliberately: inherited properties arrive from the `<sahaj-atlas>` element, and a rule aimed
+  at that element still sizes your slot. Nothing you did stops working, and nothing you were
+  told to work around needs working around any more.
 
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
@@ -626,6 +648,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#242]: https://github.com/sydevs/SahajAtlasWeb/pull/242
 [#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
+[#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
