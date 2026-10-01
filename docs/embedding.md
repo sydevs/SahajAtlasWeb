@@ -312,7 +312,7 @@ to the console while the widget carries on working:
 
 | Console message mentions     | What it means                                                                                                                                                   |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. Unlike the read endpoints, an **empty** list refuses here rather than allowing everything |
+| the origin is not allowed    | your domain is not on the service's allowed-domains list in the CMS. An **empty** list allows every origin, here as on the read endpoints |
 | the maximum number of mounts | the service already tracks 50 distinct pages. Pages already known keep reporting                                                                               |
 
 ### The readiness marker

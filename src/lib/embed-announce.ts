@@ -92,8 +92,8 @@ const whenIdle = (): Promise<void> =>
  * can wait for the send. The caller fires it and forgets.
  *
  * A refusal is still worth saying out loud, because both kinds name something a person has to fix:
- * **403** is an origin outside the client's `allowedDomains` — or no allowlist at all, which this
- * endpoint refuses rather than treating as allow-all — and **429** is the 50-mount cap. Neither
+ * **403** is an origin outside a non-empty `allowedDomains` (an empty list allows every origin,
+ * as SahajCloud's `clients/report` endpoint does) — and **429** is the 50-mount cap. Neither
  * affects what the visitor sees, and the message says so, because a console error on somebody's
  * site that does not say "your widget is fine" will be read as "your widget is broken".
  *
