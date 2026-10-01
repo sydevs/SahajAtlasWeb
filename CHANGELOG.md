@@ -265,7 +265,7 @@ cover everything a host would notice since the widget was first deployed.
   one — that was the property most at risk in the move. And a class that has since been deleted
   now says "something went wrong" and lets the visitor try again, where it used to fail outright.
 
-  This also supersedes the warning on the previous entry: **reports do reach us now.** They go
+  This also supersedes the warning on the [#195] entry below: **reports do reach us now.** They go
   to the standard contact address, and since [#216] to the recipient of whichever contact form
   your atlas configuration names.
 
