@@ -265,9 +265,10 @@ cover everything a host would notice since the widget was first deployed.
   one — that was the property most at risk in the move. And a class that has since been deleted
   now says "something went wrong" and lets the visitor try again, where it used to fail outright.
 
-  This also supersedes the warning on the [#195] entry below: **reports do reach us now.** They go
-  to the standard contact address, and since [#216] to the recipient of whichever contact form
-  your atlas configuration names.
+  This also supersedes the warning on the [#195] entry below: **reports do reach us now**, wherever
+  your atlas names a contact form. Since [#216] they go to that form's own recipient, or to the
+  standard contact address where the form names none. An atlas naming no form offers no
+  report-an-issue link at all.
 
 - **Registering for an event works again.** ([#195]) The form posted to an address the CMS had
   removed, so every attempt failed with the generic "Something went wrong" panel. It now goes to
