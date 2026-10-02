@@ -47,7 +47,7 @@ cover everything a host would notice since the widget was first deployed.
   renders inside a shadow root, so a selector in your stylesheet cannot match an element inside
   it at any specificity. This replaces a reset that documented `!important` as its one
   exception — and that was understating the gap: measured across 18 WordPress themes at four
-  viewports, the widget's typeface was lost on 61 of 72 page checks, to rules carrying no
+  viewports, the widget's typeface was lost on 24 of 72 page checks, to rules carrying no
   `!important` at all (`body h2 { font-family }` is enough). Two things still cross, both
   deliberately: inherited properties arrive from the `<sahaj-atlas>` element, and a rule aimed
   at that element still sizes your slot. Nothing you did stops working, and nothing you were

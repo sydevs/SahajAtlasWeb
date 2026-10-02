@@ -197,7 +197,7 @@ function pages(src) {
     // `!important` and target a single element, which the old reset
     // happened to survive. The measured fleet failure was neither —
     // `body h2 { font-family }` is (0,0,2) with no `!important` at all,
-    // and it beat a (0,0,0) reset on 61 of 72 page checks. Keep both
+    // and it beat a (0,0,0) reset on 24 of 72 page checks. Keep both
     // blocks: they fail in different ways.
     'hostile-css.html': page(
       'Hostile host CSS',

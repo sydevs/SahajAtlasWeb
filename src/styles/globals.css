@@ -44,7 +44,7 @@
    it could not have held.** It was deliberately (0,0,0) so it would stay under our own
    Tailwind utilities (0,1,0) — which bounded it above by our rules while a host's selector
    was bounded by nothing. One class on their side and they led again. Measured across the
-   WordPress theme fleet, the widget's typeface was lost on 61 of 72 page checks, by
+   WordPress theme fleet, the widget's typeface was lost on 24 of 72 page checks, by
    non-`!important` rules as ordinary as `body h2 { font-family }`. Raising the specificity
    would have lowered that number and never reached zero, which is why the reset retired
    rather than grew.

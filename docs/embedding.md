@@ -982,7 +982,7 @@ fallback **beside** the element, not inside it.
 **This replaced a reset that could not hold** (see the [changelog](../CHANGELOG.md)): the widget used to roll
 its own subtree back to browser defaults before applying its styles, at zero specificity so it
 could never outrank the widget's own rules. That left it outranked by yours. Measured across 18
-WordPress themes at four viewports, the widget's typeface was lost on 61 of 72 page checks, to
+WordPress themes at four viewports, the widget's typeface was lost on 24 of 72 page checks, to
 rules carrying no `!important` at all. If you built around the old behaviour — or around the
 `!important` exception it documented — nothing you did stops working; it is simply no longer
 needed.

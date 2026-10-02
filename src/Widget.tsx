@@ -432,7 +432,7 @@ const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 // **`shadow: 'open'` is the boundary this element exists to put up (#236).** A host
 // selector cannot match an element inside a shadow root at any specificity, `!important`
 // or not, so the whole leak class the `all: revert` reset could only blunt — measured at
-// 61 of 72 page checks across the WordPress theme fleet — stops being reachable. r2wc
+// 24 of 72 page checks across the WordPress theme fleet — stops being reachable. r2wc
 // calls `attachShadow` in its own constructor and mounts React into that root rather
 // than into the element.
 //
