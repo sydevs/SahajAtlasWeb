@@ -1,0 +1,210 @@
+diff --git a/dist/index.js b/dist/index.js
+index e8906db3b1e87bfc568b75d72b7ed3d8d1d3c09a..8ea2df641f5573ebe07596cf31b58314617aa0bd 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -46,6 +46,28 @@ var import_jsx_runtime = require("react/jsx-runtime");
+ var AUTOFOCUS_ON_MOUNT = "focusScope.autoFocusOnMount";
+ var AUTOFOCUS_ON_UNMOUNT = "focusScope.autoFocusOnUnmount";
+ var EVENT_OPTIONS = { bubbles: false, cancelable: true };
++
++// sydevs patch (SahajAtlasWeb#236): this library reads `document.activeElement` and
++// `event.target`, both of which retarget to the shadow HOST once the widget renders in a
++// shadow root. Every comparison against a node inside the scope then fails, so the trap
++// goes inert and the mount auto-focus walks every tabbable instead of stopping at the
++// first. The reads below resolve through the boundary; the behaviour outside a shadow
++// root is unchanged.
++function getActiveElement() {
++  let active = document.activeElement;
++  while (active && active.shadowRoot && active.shadowRoot.activeElement) {
++    active = active.shadowRoot.activeElement;
++  }
++  return active;
++}
++function getShadowHost(node) {
++  const root = node && node.getRootNode ? node.getRootNode() : null;
++  return root && root.host ? root.host : null;
++}
++function getEventTarget(event) {
++  const path = event.composedPath ? event.composedPath() : null;
++  return path && path.length > 0 ? path[0] : event.target;
++}
+ var FocusScope = /* @__PURE__ */ React.forwardRef(
+   /* @__PURE__ */ __name(function FocusScope2(props, forwardedRef) {
+     const {
+@@ -73,7 +95,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+       if (trapped) {
+         let handleFocusIn2 = function(event) {
+           if (focusScope.paused || !container) return;
+-          const target = event.target;
++          const target = getEventTarget(event);
+           if (container.contains(target)) {
+             lastFocusedElementRef.current = target;
+           } else {
+@@ -83,11 +105,12 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+           if (focusScope.paused || !container) return;
+           const relatedTarget = event.relatedTarget;
+           if (relatedTarget === null) return;
++          if (relatedTarget === getShadowHost(container)) return;
+           if (!container.contains(relatedTarget)) {
+             focus(lastFocusedElementRef.current, { select: true });
+           }
+         }, handleMutations2 = function(mutations) {
+-          const focusedElement = document.activeElement;
++          const focusedElement = getActiveElement();
+           if (focusedElement !== document.body) return;
+           for (const mutation of mutations) {
+             if (mutation.removedNodes.length > 0) focus(container);
+@@ -111,7 +134,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+     React.useEffect(() => {
+       if (container) {
+         focusScopesStack.add(focusScope);
+-        const previouslyFocusedElement = document.activeElement;
++        const previouslyFocusedElement = getActiveElement();
+         const hasFocusedCandidate = container.contains(previouslyFocusedElement);
+         if (!hasFocusedCandidate) {
+           const mountEvent = new CustomEvent(AUTOFOCUS_ON_MOUNT, EVENT_OPTIONS);
+@@ -119,7 +142,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+           container.dispatchEvent(mountEvent);
+           if (!mountEvent.defaultPrevented) {
+             focusFirst(removeLinks(getTabbableCandidates(container)), { select: true });
+-            if (document.activeElement === previouslyFocusedElement) {
++            if (getActiveElement() === previouslyFocusedElement) {
+               focus(container);
+             }
+           }
+@@ -144,7 +167,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+         if (!loop && !trapped) return;
+         if (focusScope.paused) return;
+         const isTabKey = event.key === "Tab" && !event.altKey && !event.ctrlKey && !event.metaKey;
+-        const focusedElement = document.activeElement;
++        const focusedElement = getActiveElement();
+         if (isTabKey && focusedElement) {
+           const container2 = event.currentTarget;
+           const [first, last] = getTabbableEdges(container2);
+@@ -168,10 +191,10 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+   }, "FocusScope")
+ );
+ function focusFirst(candidates, { select = false } = {}) {
+-  const previouslyFocusedElement = document.activeElement;
++  const previouslyFocusedElement = getActiveElement();
+   for (const candidate of candidates) {
+     focus(candidate, { select });
+-    if (document.activeElement !== previouslyFocusedElement) return;
++    if (getActiveElement() !== previouslyFocusedElement) return;
+   }
+ }
+ __name(focusFirst, "focusFirst");
+@@ -221,7 +244,7 @@ function isSelectableInput(element) {
+ __name(isSelectableInput, "isSelectableInput");
+ function focus(element, { select = false } = {}) {
+   if (element && element.focus) {
+-    const previouslyFocusedElement = document.activeElement;
++    const previouslyFocusedElement = getActiveElement();
+     element.focus({ preventScroll: true });
+     if (element !== previouslyFocusedElement && isSelectableInput(element) && select)
+       element.select();
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 030ff1a4d2383c9a0a1ba850aa4591890f028784..0365c0ca9e97e011496c556daed2191cf0076938 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -11,6 +11,28 @@ import { jsx } from "react/jsx-runtime";
+ var AUTOFOCUS_ON_MOUNT = "focusScope.autoFocusOnMount";
+ var AUTOFOCUS_ON_UNMOUNT = "focusScope.autoFocusOnUnmount";
+ var EVENT_OPTIONS = { bubbles: false, cancelable: true };
++
++// sydevs patch (SahajAtlasWeb#236): this library reads `document.activeElement` and
++// `event.target`, both of which retarget to the shadow HOST once the widget renders in a
++// shadow root. Every comparison against a node inside the scope then fails, so the trap
++// goes inert and the mount auto-focus walks every tabbable instead of stopping at the
++// first. The reads below resolve through the boundary; the behaviour outside a shadow
++// root is unchanged.
++function getActiveElement() {
++  let active = document.activeElement;
++  while (active && active.shadowRoot && active.shadowRoot.activeElement) {
++    active = active.shadowRoot.activeElement;
++  }
++  return active;
++}
++function getShadowHost(node) {
++  const root = node && node.getRootNode ? node.getRootNode() : null;
++  return root && root.host ? root.host : null;
++}
++function getEventTarget(event) {
++  const path = event.composedPath ? event.composedPath() : null;
++  return path && path.length > 0 ? path[0] : event.target;
++}
+ var FocusScope = /* @__PURE__ */ React.forwardRef(
+   /* @__PURE__ */ __name(function FocusScope2(props, forwardedRef) {
+     const {
+@@ -38,7 +60,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+       if (trapped) {
+         let handleFocusIn2 = function(event) {
+           if (focusScope.paused || !container) return;
+-          const target = event.target;
++          const target = getEventTarget(event);
+           if (container.contains(target)) {
+             lastFocusedElementRef.current = target;
+           } else {
+@@ -48,11 +70,12 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+           if (focusScope.paused || !container) return;
+           const relatedTarget = event.relatedTarget;
+           if (relatedTarget === null) return;
++          if (relatedTarget === getShadowHost(container)) return;
+           if (!container.contains(relatedTarget)) {
+             focus(lastFocusedElementRef.current, { select: true });
+           }
+         }, handleMutations2 = function(mutations) {
+-          const focusedElement = document.activeElement;
++          const focusedElement = getActiveElement();
+           if (focusedElement !== document.body) return;
+           for (const mutation of mutations) {
+             if (mutation.removedNodes.length > 0) focus(container);
+@@ -76,7 +99,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+     React.useEffect(() => {
+       if (container) {
+         focusScopesStack.add(focusScope);
+-        const previouslyFocusedElement = document.activeElement;
++        const previouslyFocusedElement = getActiveElement();
+         const hasFocusedCandidate = container.contains(previouslyFocusedElement);
+         if (!hasFocusedCandidate) {
+           const mountEvent = new CustomEvent(AUTOFOCUS_ON_MOUNT, EVENT_OPTIONS);
+@@ -84,7 +107,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+           container.dispatchEvent(mountEvent);
+           if (!mountEvent.defaultPrevented) {
+             focusFirst(removeLinks(getTabbableCandidates(container)), { select: true });
+-            if (document.activeElement === previouslyFocusedElement) {
++            if (getActiveElement() === previouslyFocusedElement) {
+               focus(container);
+             }
+           }
+@@ -109,7 +132,7 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+         if (!loop && !trapped) return;
+         if (focusScope.paused) return;
+         const isTabKey = event.key === "Tab" && !event.altKey && !event.ctrlKey && !event.metaKey;
+-        const focusedElement = document.activeElement;
++        const focusedElement = getActiveElement();
+         if (isTabKey && focusedElement) {
+           const container2 = event.currentTarget;
+           const [first, last] = getTabbableEdges(container2);
+@@ -133,10 +156,10 @@ var FocusScope = /* @__PURE__ */ React.forwardRef(
+   }, "FocusScope")
+ );
+ function focusFirst(candidates, { select = false } = {}) {
+-  const previouslyFocusedElement = document.activeElement;
++  const previouslyFocusedElement = getActiveElement();
+   for (const candidate of candidates) {
+     focus(candidate, { select });
+-    if (document.activeElement !== previouslyFocusedElement) return;
++    if (getActiveElement() !== previouslyFocusedElement) return;
+   }
+ }
+ __name(focusFirst, "focusFirst");
+@@ -186,7 +209,7 @@ function isSelectableInput(element) {
+ __name(isSelectableInput, "isSelectableInput");
+ function focus(element, { select = false } = {}) {
+   if (element && element.focus) {
+-    const previouslyFocusedElement = document.activeElement;
++    const previouslyFocusedElement = getActiveElement();
+     element.focus({ preventScroll: true });
+     if (element !== previouslyFocusedElement && isSelectableInput(element) && select)
+       element.select();
