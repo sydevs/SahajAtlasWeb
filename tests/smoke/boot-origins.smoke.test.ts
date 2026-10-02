@@ -42,27 +42,55 @@ const PRIVATE_HOST =
   /^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|\[::1\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)(?::\d+)?/
 
 /**
- * The origin this build actually requests from, found by the path it composes:
- * `${VITE_SAHAJCLOUD_URL}/api`.
+ * Each origin this build actually requests from, found by the path it composes —
+ * `${VITE_SAHAJCLOUD_URL}/api` for the data and the copy, and the `VITE_SENTRY_DSN`
+ * ingest host for what we hear when the widget breaks on somebody else's page.
  *
  * ⚠ **This was two origins until #198.** The other was `${VITE_HOST}/locales/…`, and it is the
  * one the original defect was about — but the widget no longer fetches locale JSON at all. Every
  * string now comes from SahajCloud, over the same origin checked below, and an English snapshot
- * is compiled in. The class of failure this spec exists for has not gone away, though: it just
- * has one door left instead of two, and that door is now load-bearing for copy as well as data.
+ * is compiled in. The class of failure this spec exists for has not gone away, though: that door
+ * is now load-bearing for copy as well as data.
  *
- * Warning: this check targets those two origins. It does not sweep for any private
+ * Warning: this check targets the origins named here. It does not sweep for any private
  * host. A first draft of this spec swept broadly and produced a false positive.
  * react-router carries its own literal `http://localhost` as the base for `createURL`
  * when `window.location` is absent. A blanket scan flags that string on a healthy
  * deploy. What matters is not whether the string appears. What matters is whether an
  * origin the app fetches from is reachable from a visitor's browser, and this spec can
- * name those two origins directly.
+ * name each of them directly.
  */
 const REQUEST_ORIGINS = [
   {
     label: 'SahajCloud API (VITE_SAHAJCLOUD_URL)',
     pattern: /(https?:\/\/[^"'`\s\\)]+?)\/api["'`]/,
+  },
+  // The crash-reporting ingest host, from `VITE_SENTRY_DSN` (#232). This project took
+  // zero events in the seven weeks after the seam shipped, because the variable was
+  // never set on either Pages environment. A widget inside somebody else's page has no
+  // logs, so that was the only production signal there is — silent, with nothing
+  // watching the silence. `requestOrigins()` fails on a missing match, which is what
+  // makes this entry the thing that watches.
+  //
+  // ⚠ It can only ever see a PREVIEW. `scripts/get-cloudflare-preview-url.mjs` refuses
+  // the bare project host, so a green run says Preview carries a DSN and says nothing
+  // about Production.
+  //
+  // The pattern is the DSN's own shape: public key, regional ingest host, numeric
+  // project. It is anchored on `sentry.io` rather than on the generic
+  // `<key>@<host>/<digits>` shape so a lookalike literal from some future dependency
+  // cannot stand in for the DSN and turn this green while reporting is still dead.
+  // Move the org onto a self-hosted ingest and this goes red instead of quiet, which is
+  // the right way round — the pattern is then wrong, and someone has to say so.
+  //
+  // Two things this entry deliberately does not do. It captures the host alone, not an
+  // origin: the key sits between the scheme and the host, and a failure message reads
+  // better naming neither. And it adds nothing to the private-host case below, because
+  // `PRIVATE_HOST` anchors on a scheme this capture has not got, and no
+  // `*.ingest.*.sentry.io` host is loopback anyway. Presence is the whole property.
+  {
+    label: 'Sentry ingest (VITE_SENTRY_DSN)',
+    pattern: /https?:\/\/[^"'`\s\\/@]+@([^"'`\s\\/@]*\bingest\.[^"'`\s\\/@]*sentry\.io)\/\d+["'`]/,
   },
 ] as const
 
@@ -141,6 +169,19 @@ async function requestOrigins() {
 }
 
 describe('boot origins', () => {
+  // Named on its own, because `requestOrigins()` throws on a missing origin and the
+  // case below would otherwise report a dead DSN under a heading about private hosts.
+  test.skipIf(skipWithoutPreview)(
+    'names the crash-reporting ingest host, so a DSN-less deploy is visible',
+    async () => {
+      const ingest = (await requestOrigins()).find(({ label }) => label.startsWith('Sentry'))
+
+      expect(ingest?.origin, 'the ingest host moved, or this deploy carries no DSN').toMatch(
+        /\.sentry\.io$/,
+      )
+    },
+  )
+
   test.skipIf(skipWithoutPreview)(
     'requests only origins a visitor can actually reach',
     async () => {
