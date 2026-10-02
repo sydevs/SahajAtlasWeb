@@ -144,7 +144,7 @@ async function requestOrigins() {
 
     expect(
       hits.length,
-      `no ${label} origin found in the eager graph — has it moved?`,
+      `no ${label} origin in the eager graph — unset on this environment, or moved?`,
     ).toBeGreaterThan(0)
 
     return { label, origin: hits[0].origin, chunk: hits[0].path }

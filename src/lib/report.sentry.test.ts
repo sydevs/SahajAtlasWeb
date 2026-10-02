@@ -235,22 +235,28 @@ describe('what is allowed to travel with an event', () => {
     expect(options.sendClientReports).toBe(false)
   })
 
-  // A blank Pages variable is the same as an absent one, hence the second row. Under
-  // vitest `MODE` is `test`, which is why neither row can pass against the version
-  // these replaced (#232).
+  // A blank Pages variable is the same as an absent one, hence rows two and three. Under
+  // vitest `MODE` is `test`, which is why no row can pass against the version these
+  // replaced (#232). `DEV` is stubbed because the unit lane runs with it true, and a
+  // `vite build` never does.
   it.each([
-    ['preview', 'preview'],
-    ['', 'production'],
-  ])('tags the deploy from its own variable, not the build mode: %s', async (set, expected) => {
-    vi.stubEnv('VITE_SENTRY_ENVIRONMENT', set)
+    ['preview', true, 'preview'],
+    ['', false, 'production'],
+    ['', true, 'development'],
+  ])(
+    'tags the deploy from its own variable, not the build mode: %s/%s',
+    async (set, dev, expected) => {
+      vi.stubEnv('VITE_SENTRY_ENVIRONMENT', set)
+      vi.stubEnv('DEV', dev)
 
-    const { reportInternalError } = await freshSeam()
+      const { reportInternalError } = await freshSeam()
 
-    reportInternalError(atlasError('server', 'boom'), 'ctx')
-    await vi.waitFor(() => expect(sdk.clients).toHaveLength(1))
+      reportInternalError(atlasError('server', 'boom'), 'ctx')
+      await vi.waitFor(() => expect(sdk.clients).toHaveLength(1))
 
-    expect(sdk.clients[0]?.environment).toBe(expected)
-  })
+      expect(sdk.clients[0]?.environment).toBe(expected)
+    },
+  )
 
   it('rebuilds the event from an allowlist rather than trimming it', async () => {
     const { reportInternalError } = await freshSeam()
