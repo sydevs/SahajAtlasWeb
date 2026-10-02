@@ -258,18 +258,12 @@ function reportingDsn(): string | null {
 }
 
 /**
- * Which deploy an event came from.
- *
- * `import.meta.env.MODE` cannot answer this. Every `vite build` runs in `production`
- * mode, so a Cloudflare preview and the production deploy both reported as
- * `production` and were indistinguishable in the issue list. `VITE_SENTRY_ENVIRONMENT`
- * is a per-environment Pages variable instead, and production is the default so an
- * unset one never mislabels the deploy that matters.
+ * Which deploy an event came from. `import.meta.env.MODE` cannot answer it: every
+ * `vite build` runs in `production` mode, Cloudflare previews included (#232). The
+ * default is `production` so that an unset variable mislabels nothing that matters.
  */
 function reportingEnvironment(): string {
-  const name = import.meta.env.VITE_SENTRY_ENVIRONMENT
-
-  return typeof name === 'string' && name ? name : 'production'
+  return import.meta.env.VITE_SENTRY_ENVIRONMENT || 'production'
 }
 
 /**

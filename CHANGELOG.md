@@ -24,12 +24,9 @@ cover everything a host would notice since the widget was first deployed.
 ### Changed
 
 - **Crash reporting is switched on, so `connect-src https://*.sentry.io` stops being
-  hypothetical.** ([#232]) That row has described a DSN-configured build since [#123], and
-  no deploy had ever been one — the project had received nothing at all. Nothing about what
-  travels changes: a report goes out only after the widget has already failed, carries your
-  page as origin and path only, never its query string or fragment, and stops for the life of
-  the page after a single refusal. Omitting the origin is still supported, and still costs
-  you one blocked request rather than one per error.
+  hypothetical.** ([#232]) That row has described a DSN-configured build since [#123], and no
+  deploy had ever been one. What travels is unchanged, and omitting the origin is still
+  supported — see [#123] for both.
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
