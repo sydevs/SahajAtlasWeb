@@ -42,27 +42,38 @@ const PRIVATE_HOST =
   /^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|\[::1\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)(?::\d+)?/
 
 /**
- * The origin this build actually requests from, found by the path it composes:
- * `${VITE_SAHAJCLOUD_URL}/api`.
+ * Each origin this build actually requests from, found by the path it composes —
+ * `${VITE_SAHAJCLOUD_URL}/api` for the data and the copy, and the `VITE_SENTRY_DSN`
+ * ingest host for what we hear when the widget breaks on somebody else's page.
  *
  * ⚠ **This was two origins until #198.** The other was `${VITE_HOST}/locales/…`, and it is the
  * one the original defect was about — but the widget no longer fetches locale JSON at all. Every
  * string now comes from SahajCloud, over the same origin checked below, and an English snapshot
- * is compiled in. The class of failure this spec exists for has not gone away, though: it just
- * has one door left instead of two, and that door is now load-bearing for copy as well as data.
+ * is compiled in. The class of failure this spec exists for has not gone away, though: that door
+ * is now load-bearing for copy as well as data.
  *
- * Warning: this check targets those two origins. It does not sweep for any private
+ * Warning: this check targets the origins named here. It does not sweep for any private
  * host. A first draft of this spec swept broadly and produced a false positive.
  * react-router carries its own literal `http://localhost` as the base for `createURL`
  * when `window.location` is absent. A blanket scan flags that string on a healthy
  * deploy. What matters is not whether the string appears. What matters is whether an
  * origin the app fetches from is reachable from a visitor's browser, and this spec can
- * name those two origins directly.
+ * name each of them directly.
  */
 const REQUEST_ORIGINS = [
   {
     label: 'SahajCloud API (VITE_SAHAJCLOUD_URL)',
     pattern: /(https?:\/\/[^"'`\s\\)]+?)\/api["'`]/,
+  },
+  // Crash reporting, from `VITE_SENTRY_DSN` (#232) — here for presence, not for
+  // reachability, since nothing else observed that the variable was set on neither
+  // Pages environment. `docs/testing.md` carries that story and the two caveats:
+  // ⚠ this can only ever see a preview, and the `sentry.io` anchor is what keeps a
+  // lookalike literal from standing in for the DSN. The capture is the host alone,
+  // because the key sits between the scheme and the host.
+  {
+    label: 'Sentry ingest (VITE_SENTRY_DSN)',
+    pattern: /https?:\/\/[^"'`\s\\/@]+@([^"'`\s\\/@]*\bingest\.[^"'`\s\\/@]*sentry\.io)\/\d+["'`]/,
   },
 ] as const
 
@@ -133,7 +144,7 @@ async function requestOrigins() {
 
     expect(
       hits.length,
-      `no ${label} origin found in the eager graph — has it moved?`,
+      `no ${label} origin in the eager graph — unset on this environment, or moved?`,
     ).toBeGreaterThan(0)
 
     return { label, origin: hits[0].origin, chunk: hits[0].path }

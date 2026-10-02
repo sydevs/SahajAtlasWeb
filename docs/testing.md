@@ -125,6 +125,25 @@ fetches locale JSON at all: every string comes from SahajCloud over the API orig
 English snapshot compiled in. The failure class is unchanged — one door instead of two, and that
 door now carries the copy as well as the data.
 
+**#232 added a second entry, and it is not the same kind of check.** The crash-reporting ingest
+host, from `VITE_SENTRY_DSN`, is read back the same way, but what it asserts is **presence**: the
+`sahajatlas-web` Sentry project had taken zero events in the seven weeks since the seam shipped,
+because the variable was set on neither Pages environment. A widget inside other people's pages
+has no logs, so that project is the only production signal there is, and nothing watched it for
+silence. `requestOrigins()` failing on a missing match is what now watches. Two consequences worth
+knowing before you touch it:
+
+- **It can only ever see a PREVIEW.** `scripts/get-cloudflare-preview-url.mjs` refuses the bare
+  project host, because that is production. So a green run says Preview carries a DSN, and says
+  nothing at all about Production. That is still worth having — the two differ by one build
+  config, and the failure here was a variable absent from an environment — but do not read it as
+  more.
+- **Its pattern is anchored on `sentry.io`, not on the generic `<key>@<host>/<digits>` DSN
+  shape.** The looser form finds nothing else in today's graph either, but a lookalike literal
+  from some future dependency would then stand in for the DSN and turn this green while reporting
+  stayed dead. Anchored, a move onto a self-hosted ingest goes red instead: the pattern is wrong,
+  and someone has to say so.
+
 - **It is targeted, not a sweep.** A first draft flagged any private host anywhere in the graph
   and produced a false positive on a healthy deploy: react-router carries its own literal
   `http://localhost` as the `createURL` base for when there is no `window.location`.
