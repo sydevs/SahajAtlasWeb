@@ -961,6 +961,13 @@ with or without `!important`. A blanket `button { … }`, an `a { color: … !im
 `body h2 { font-family: … }`, a global `letter-spacing`: none of them reach the widget's own
 elements. There is nothing you need to do, and nothing to work around.
 
+⚠ **A third thing stops crossing: your own children of `<sahaj-atlas>`.** The element attaches
+its shadow root in its constructor, so light-DOM children are hidden from the moment the element
+upgrades. There is no `<slot>`, so they are not replaced — they never paint at all, and that
+includes a loading state, a no-JavaScript message, or a server-rendered fallback. A widget that
+refuses to boot therefore leaves a blank box rather than revealing what you nested. Put a
+fallback **beside** the element, not inside it.
+
 **Two things still cross, and both are meant to.**
 
 - **Inherited properties** arrive from the `<sahaj-atlas>` element itself, exactly as they arrive

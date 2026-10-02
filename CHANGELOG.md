@@ -35,6 +35,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- ⚠ **BREAKING: your own children of `<sahaj-atlas>` stop rendering.** ([#236]) The element
+  attaches its shadow root in its constructor, so anything you nest inside the tag is hidden
+  from the moment the element upgrades — before the widget can decline. There is no `<slot>`,
+  so the children are not replaced, they simply never paint. If you put a loading state, a
+  no-JavaScript message, or a server-rendered fallback inside the tag, it will not appear, and
+  a widget that refuses to boot now leaves a blank box where your content used to stay
+  visible. Put a fallback beside the element instead of inside it.
+
 - **Your CSS can no longer restyle the widget, `!important` or not.** ([#236]) The widget
   renders inside a shadow root, so a selector in your stylesheet cannot match an element inside
   it at any specificity. This replaces a reset that documented `!important` as its one
