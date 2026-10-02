@@ -235,6 +235,35 @@ describe('what is allowed to travel with an event', () => {
     expect(options.sendClientReports).toBe(false)
   })
 
+  // `import.meta.env.MODE` is `production` for every `vite build`, preview included, so
+  // these two cases are what keeps a preview's noise apart from the production events
+  // that matter (#232). Under vitest MODE is `test`, which is why neither case can pass
+  // against the version this replaced.
+  it('tags the deploy from its own variable rather than the build mode', async () => {
+    vi.stubEnv('VITE_SENTRY_ENVIRONMENT', 'preview')
+
+    const { reportInternalError } = await freshSeam()
+
+    reportInternalError(atlasError('server', 'boom'), 'ctx')
+    await vi.waitFor(() => expect(sdk.clients).toHaveLength(1))
+
+    expect(sdk.clients[0]?.environment).toBe('preview')
+  })
+
+  // A Pages variable can exist and be blank, which is the same thing as absent here.
+  // Production is the default so that the deploy whose events matter is the one an
+  // unset variable cannot mislabel.
+  it('defaults the deploy tag to production', async () => {
+    vi.stubEnv('VITE_SENTRY_ENVIRONMENT', '')
+
+    const { reportInternalError } = await freshSeam()
+
+    reportInternalError(atlasError('server', 'boom'), 'ctx')
+    await vi.waitFor(() => expect(sdk.clients).toHaveLength(1))
+
+    expect(sdk.clients[0]?.environment).toBe('production')
+  })
+
   it('rebuilds the event from an allowlist rather than trimming it', async () => {
     const { reportInternalError } = await freshSeam()
 

@@ -258,6 +258,21 @@ function reportingDsn(): string | null {
 }
 
 /**
+ * Which deploy an event came from.
+ *
+ * `import.meta.env.MODE` cannot answer this. Every `vite build` runs in `production`
+ * mode, so a Cloudflare preview and the production deploy both reported as
+ * `production` and were indistinguishable in the issue list. `VITE_SENTRY_ENVIRONMENT`
+ * is a per-environment Pages variable instead, and production is the default so an
+ * unset one never mislabels the deploy that matters.
+ */
+function reportingEnvironment(): string {
+  const name = import.meta.env.VITE_SENTRY_ENVIRONMENT
+
+  return typeof name === 'string' && name ? name : 'production'
+}
+
+/**
  * Builds the reporter. It fetches the SDK, sets up a client, and hands back the one
  * call.
  *
@@ -329,7 +344,7 @@ async function loadReporter(dsn: string): Promise<Reporter | null> {
       }
     },
     stackParser: defaultStackParser,
-    environment: import.meta.env.MODE,
+    environment: reportingEnvironment(),
     // This value is explicit, not inherited. `false` is already the default. But
     // this file's whole posture treats what we do not send as a decision, not an
     // accident.
