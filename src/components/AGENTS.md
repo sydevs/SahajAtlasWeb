@@ -359,25 +359,49 @@ found any other way.**
   reaching the ladder above, Radix already maintains two exits for free, so a
   confined dialog is a cosmetic problem, not a trap.
 
-⚠ **Radix's focus TRAP does not survive the shadow boundary, and that is unresolved
-(#236).** `@radix-ui/react-focus-scope` listens for `focusin`/`focusout` on `document`
-and asks `container.contains(event.target)`. Inside a shadow root that target is
-retargeted to `<sahaj-atlas>`, which is the container's *ancestor*, so the test is
-always false: `lastFocusedElementRef` is never set and the yank-back focuses nothing.
-Its `Tab` handler compares `document.activeElement` against the container's first and
-last tabbable, which for the same reason can never match. So tabbing past the last
-control of a **modal** dialog leaves it for the host page instead of cycling. That is
-the `Modal` atom (the report modal) and this dialog — vaul drawers pass
-`modal={false}` and were never trapped. `aria-hidden`'s `hideOthers` degrades the same
-way: it rewrites its target to the host element, then walks `host.children`, which is
-empty, so nothing *inside* the widget is hidden from a screen reader behind an open
-modal.
+⚠ **Two dependencies read the DOM in ways the shadow boundary defeats, and both are
+patched rather than worked around (#236).** `patches/` holds them, under
+`pnpm.patchedDependencies` beside the vaul patch. Patching is the house answer here
+because neither failure is reachable from our own code: the reads are inside the
+libraries, and every call site we own already passes the right arguments.
 
-**What still works, so nobody re-derives it:** the dismissable layer decides "inside"
-from a React `onPointerDownCapture` on its own content, not from `event.target`, so
-click-outside and Escape are unaffected. `react-remove-scroll` resolves shadow parents
-explicitly, so scroll-lock is fine. Close-focus is ref-based in dialog, dropdown and
-popover, so focus return works. Only the trap and `aria-hidden` are inert.
+- **`@radix-ui/react-focus-scope@1.1.16`** listens for `focusin`/`focusout` on
+  `document` and asks `container.contains(event.target)`. Inside a shadow root that
+  target retargets to `<sahaj-atlas>`, the container's own *ancestor*, so the test is
+  always false. Three consequences, not one: `lastFocusedElementRef` is never set and
+  the yank-back focuses nothing, so a **modal** dialog does not trap; the `Tab`
+  handler's `document.activeElement` can never equal the container's first or last
+  tabbable, so the edges never cycle; and the **mount auto-focus** breaks the same way
+  — `focusFirst` exits on `document.activeElement !== previouslyFocusedElement`, which
+  inside a root compares `<sahaj-atlas>` with itself, so it never exits and instead
+  focuses every non-link tabbable in turn, `select()`ing each text input, before the
+  caller's identical check parks focus on the container. The patch takes the target
+  from `composedPath()[0]`, resolves every `activeElement` read through the boundary,
+  and exempts a `relatedTarget` that is the container's own shadow host — a `focusout`
+  between two of our own controls retargets too, and would otherwise read as an escape.
+- **`aria-hidden@1.2.6`** (what Radix calls for `hideOthers`) does **not** walk
+  `host.children`, as an earlier version of this file claimed. `correctTargets`
+  rewrites the target to `<sahaj-atlas>`, `keep()` puts the host in `elementsToKeep`,
+  and `elementsToStop` holds it too, so `deep()` reaches the host and returns at once.
+  The conclusion was right and the mechanism was not, which matters because a later
+  author reasons from the mechanism. The patch keeps the real target, lets `keep()`
+  cross the boundary through `ShadowRoot.host`, and lets `deep()` descend into a kept
+  shadow root. Descending also puts the widget's own live regions in the sweep's reach,
+  so the library's issue-10 exemption is collected from the target's root as well.
+
+`src/lib/shadow-patches.test.ts` drives both through a real root in jsdom. ⚠ **The
+`focusout` half has no behavioural spec and the file says why**: its symptom needs the
+browser's real ordering, which jsdom does not reproduce, and a vacuous pass is worse
+than none. A drift pin on the installed bundles stands in for it, and the attended
+browser pass `docs/embedding.md` already owes is what settles it.
+
+**What needed no patch, so nobody re-derives it:** the dismissable layer decides
+"inside" from a React `onPointerDownCapture` on its own content, not from
+`event.target`, so click-outside and Escape are unaffected. `react-remove-scroll@2.7.2`
+is shadow-aware by design — it records `getOutermostShadowParent(target)` and matches a
+document-level event against that, and `handleScroll` bubbles through hosts explicitly
+— so wheel and touch scrolling inside a modal drawer work untouched. Close-focus is
+ref-based in dialog, dropdown and popover, so focus return works.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
