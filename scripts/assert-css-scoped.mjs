@@ -12,6 +12,14 @@
  * time. This gate checks the result in the emitted bytes. It does not
  * trust the build pass alone.
  *
+ * That is the weaker half of why the pass survives the boundary, and on
+ * its own it names no third party — so do not retire the pass on it. The
+ * load-bearing half: `postcss-scope-widget.mjs` collapses `:root`, `html`,
+ * `body` and `:host`, and the theme classes, onto `.sy-atlas`. Inside the
+ * shadow root there is no `html` element to match, so without that rewrite
+ * Preflight and the whole palette never apply to the EMBED at all. The
+ * pass is functional now, not defensive.
+ *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS
  * string literal. The script checks four things:
