@@ -9,8 +9,16 @@
  * selected-suggestion message stop reaching a screen reader, and nothing throws.
  *
  * So the region moves to where the library looks for it. A live region works anywhere in
- * the document, and this one carries its own inline styles, so it travels intact. The
- * alternative was patching a bundled dependency we do not own, to change one lookup.
+ * the document, and this one carries its own inline styles, so it travels intact.
+ *
+ * ⚠ **Patching the library is the other option, and it is not the last resort this
+ * docblock once called it** — `patches/` already carries three, two of them for this same
+ * boundary. Against a one-line patch of `setLiveRegionMessage`'s lookup, the hoist buys an
+ * observer re-running `querySelector` on every keystroke and a permanent node in the host's
+ * `<body>` (the fifth `docs/embedding.md` exception). It stays for now because it is the
+ * shipped, spec'd half, and because the same patch would want to cover the three
+ * `activeElement` comparisons `docs/rules/mapbox.md` records — one change, not two. Taking
+ * both together is the follow-up.
  *
  * ⚠ The observer, rather than a read after mount: the region appears when the custom
  * element connects, which is not ordered against this component's effects. It also
