@@ -23,6 +23,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Crash reporting is switched on, so `connect-src https://*.sentry.io` stops being
+  hypothetical.** ([#232]) That row has described a DSN-configured build since [#123], and
+  no deploy had ever been one — the project had received nothing at all. Nothing about what
+  travels changes: a report goes out only after the widget has already failed, carries your
+  page as origin and path only, never its query string or fragment, and stops for the life of
+  the page after a single refusal. Omitting the origin is still supported, and still costs
+  you one blocked request rather than one per error.
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
@@ -636,6 +643,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#242]: https://github.com/sydevs/SahajAtlasWeb/pull/242
 [#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
+[#232]: https://github.com/sydevs/SahajAtlasWeb/issues/232
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
