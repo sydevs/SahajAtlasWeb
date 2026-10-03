@@ -1,12 +1,7 @@
 /* The defensive reset (#156). Imported by globals.css BEFORE Tailwind's preflight and
- * utilities, and that order is load-bearing: `all: revert` below has zero specificity,
- * which exactly TIES Preflight's own `*, ::before, ::after` rule. Source order is all
- * that separates them, so moving this import after the Tailwind ones silently reverts
- * `box-sizing`, `margin` and `padding` for every element in the widget.
- *
- * It lives in its own file for that reason alone. v3 wrote `@tailwind base`, a directive
- * that could sit anywhere; v4's entry is `@import`, and an `@import` has to lead the
- * file, so a rule can no longer be written above it.
+ * utilities, and that order is load-bearing — the body comment below says why. It is a
+ * file rather than a block in globals.css for that reason alone: v4's entry is `@import`,
+ * and no rule may precede an `@import`.
  */
 
 /* ── The defensive reset: keep the HOST's CSS out of the widget (#156) ──────────────────
