@@ -79,8 +79,8 @@ Cloudflare dashboard (`AGENTS.md` → Deployment).
    Verified: with all three variables set, `pnpm ladle:build` still emits no maps, uploads
    nothing, and its output carries no token.
 
-**Checking it once the variables are set.** The upload is not something the repo can check itself
-— it needs a real DSN and a real token:
+**Checking it once the variables are set.** The repo cannot check this itself — it needs a real
+DSN and a real token:
 
 - Check that the Pages build log shows the upload step, with no `✗ sentry:` line.
 - Check that the deployed output still carries no maps. The build fails on its own
@@ -89,9 +89,6 @@ Cloudflare dashboard (`AGENTS.md` → Deployment).
   original file and line, not a hashed chunk. An upload failure is deliberately **non-fatal** —
   the deploy proceeds without maps — so a green deploy alone does not prove symbolication. Only
   the build log or the issue itself proves it.
-- **The DSN itself is checked after each production deploy**, by `Production Smoke` (#244): the
-  lane fails when an origin the bundle must request is missing from the deployed graph, and the
-  ingest origin joins that set with #232. So a Production DSN is not a bundle to grep by hand.
 
 ## In the embedded widget
 
