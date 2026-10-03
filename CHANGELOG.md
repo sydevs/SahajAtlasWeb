@@ -30,6 +30,11 @@ cover everything a host would notice since the widget was first deployed.
   [Browser support](embedding.md#browser-support). No CSP row changes, no new origin, and no
   change to the snippet or its attributes.
 
+- **The widget registers 62 document-global `@property` names, all `--tw-…`.** ([#246]) Tailwind
+  4 composes its utilities through them, and a registered name carries a typed initial value and
+  `inherits: false` into your document. The build gate allows that one prefix and fails on any
+  other. See [What the widget does to your page](embedding.md#what-the-widget-does-to-your-page).
+
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
