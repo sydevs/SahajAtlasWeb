@@ -388,6 +388,11 @@ export function DrawerStack() {
   // mobile only). The sheet-side copy is what pins EventView's sticky register bar to
   // the viewport edge — inside the transformed sheet, `position: fixed` resolves
   // against the sheet, so the bar offsets by the live top instead (issue #52, WS4).
+  //
+  // CSS anchor positioning is the obvious replacement and does not work, so raising
+  // `build.target` does not retire this loop. Three independent reasons: Firefox ships
+  // only partial support, `anchor()` is invalid in the `max-h` that `Fallbacks` reads,
+  // and it reaches one of the three `--sy-sheet-top` consumers.
   useEffect(() => {
     // This effect runs for every bottom-sheet view, root included. The strips and the sticky
     // register bar only exist above the root, but `--sy-sheet-top` now has a third consumer.
