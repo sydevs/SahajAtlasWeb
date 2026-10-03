@@ -70,28 +70,12 @@ import { annotate, report } from './_ci-output.mjs'
 //   embed       309.6 KiB  →  318
 //
 // The tailwindcss 3 → 4 upgrade (#246) raised this budget from 308, the
-// first raise since #161. Both graphs grew 5.9 KiB; the loader did not
-// move at all. Measured against origin/main at 5c85fda, built the same
-// uncredentialed way, so this is the upgrade's own cost and not drift:
+// first raise since #161. Measured against origin/main at 5c85fda, built
+// the same uncredentialed way:
 //
 //   standalone  301.9 → 307.8 KiB
 //   embed       303.7 → 309.6 KiB
 //   loader        2.7 →   2.7 KiB
-//
-// Two causes, and the larger one is not the one to expect. The injected
-// stylesheet accounts for about 4.3 KiB of it, even though the rule count
-// barely moved (1172 → 1177): v4 emits an `@property` block per custom
-// property, a `--tw-*: initial` fallback set, and a `color-mix()` plus an
-// `@supports` upgrade for every `/NN` opacity modifier that v3 wrote as a
-// plain `hsl(... / x)`. The remaining 1.7 KiB is `tailwind-merge` 1 → 3,
-// whose conflict tables now carry v4's class names. That upgrade is not
-// optional: `tailwind-variants@3` declares it as a peer, and v1's tables
-// do not know v4's utilities, so `tv()` would resolve conflicts wrongly.
-//
-// This headroom is about 2.7%, which keeps the file's own rule: enough to
-// absorb a dependency patch bump, tight enough that a newly-eager view
-// still trips it. It also clears what a credentialed build adds and CI
-// cannot see — 1.1 KiB standalone, 1.2 KiB embed.
 //
 // The Lucide icon swap (#003) ratcheted this budget down. It took about
 // 3 KiB off both graphs. The tree-shaken glyphs cost less than the
