@@ -1,13 +1,9 @@
 /* v3's `@layer base`. Imported by globals.css BETWEEN Tailwind's preflight and its
- * utilities, and that position is the whole reason this file exists.
- *
- * These rules have to come AFTER preflight (the `line-height` restatement below is a
- * correction to it) and BEFORE the utilities (so `.sy-atlas { line-height: 1.5 }` keeps
- * losing to a `leading-*` utility of equal specificity, exactly as it did when Tailwind
- * sorted it into the base layer). A real `@layer` would hand a host page's unlayered
- * rules the win over everything we emit — see host-reset.css and #156 — so plain source
- * order is what orders these instead, and an `@import` is the only way to get a rule
- * ahead of another import's contents.
+ * utilities: after preflight, which the `line-height` restatement below corrects, and
+ * before the utilities, so that restatement keeps losing to a `leading-*` utility of
+ * equal specificity. A real `@layer` would hand a host page's unlayered rules the win
+ * over everything we emit — see host-reset.css and #156 — so source order is what
+ * orders these, and that is why they are a file: no rule may precede an `@import`.
  */
 
 /* `line-height` is restated because Preflight sets it on `html` and then
