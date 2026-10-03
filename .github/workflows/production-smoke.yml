@@ -1,32 +1,11 @@
 name: Production Smoke
 
 # Runs the smoke specs against the deploy visitors and host sites actually
-# get (issue #244). Why the PR gate can never do this, and why the deploy
-# fires the run rather than a clock: `docs/testing.md` → "The PR gate can
-# only ever read a preview".
-#
-# ⚠ **The trigger is the Cloudflare CHECK RUN, not a deployment status**,
-# which is what #244 proposed. `get-cloudflare-preview-url.mjs`'s header
-# records the measurement that rules the deployment out: Cloudflare posts
-# neither commit statuses nor GitHub deployments on this repo (PR #120).
-# A workflow on `deployment_status` would most likely never fire, and a
-# workflow that never fires is invisible — no red check, no annotation,
-# nothing to notice. The check run is the one signal this repo has
-# measured as dependable, across 86 builds. The cost is one skipped
-# workflow run per check run in the repo; `workflow-state.yml` already
-# accepts that shape for `check_suite` and `status`.
-#
-# Two independent conditions say "this check run is a main-branch build",
-# and neither can admit a preview: a PR head is not the default branch,
-# and it is not the default branch's tip either. Taking both means a null
-# `head_branch` cannot silence the lane.
-#
-# **It reads `sahajatlas.com`, the custom domain, not `*.pages.dev`.** The
-# two serve one build but not one set of headers: `public/_headers`
-# records `max-age=14400` on the custom domain against `max-age=0` on
-# `*.pages.dev`, and that #148 defect "was invisible on the host every
-# check runs against". A production lane on `*.pages.dev` would inherit
-# that blindness, and previews are `*.pages.dev` already.
+# get (issue #244). Why the PR gate can only ever read a preview, why the
+# deploy fires the run rather than a clock, why the host is `sahajatlas.com`
+# and not `*.pages.dev` (#148), and ⚠ why the trigger is Cloudflare's check
+# run rather than the `deployment_status` #244 specified: `docs/testing.md`
+# → "The PR gate can only ever read a preview".
 #
 # Deliberately NO `concurrency` group. Two production reads at once cost a
 # few dozen CDN requests; `cancel-in-progress` would instead throw away a
@@ -52,6 +31,11 @@ jobs:
     # job, so it never reaches a step and never reads as a green run that
     # checked nothing. The name is the app's Pages project, not the
     # `-design` Ladle playground, which deploys from this repo too.
+    #
+    # Two independent conditions say "this is a main-branch build", and
+    # neither can admit a preview: a PR head is not the default branch, and
+    # it is not the default branch's tip either. Taking both means a null
+    # `head_branch` cannot silence the lane.
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
       (github.event.check_run.conclusion == 'success' &&
