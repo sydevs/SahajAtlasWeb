@@ -361,9 +361,10 @@ found any other way.**
 
 ⚠ **Two dependencies read the DOM in ways the shadow boundary defeats, and both are
 patched rather than worked around (#236).** `patches/` holds them, under
-`pnpm.patchedDependencies` beside the vaul patch. Patching is the house answer here
-because neither failure is reachable from our own code: the reads are inside the
-libraries, and every call site we own already passes the right arguments.
+`pnpm.patchedDependencies` beside the vaul patch. Patching stays the LAST resort, and
+these two earn it because neither failure is reachable from our own code: the reads are
+inside the libraries, and every call site we own already passes the right arguments.
+Where our own code can reach the failure it fixes it itself, as `Mapbox/aria-live.ts` does.
 
 - **`@radix-ui/react-focus-scope@1.1.16`** listens for `focusin`/`focusout` on
   `document` and asks `container.contains(event.target)`. Inside a shadow root that

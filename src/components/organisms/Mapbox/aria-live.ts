@@ -11,14 +11,17 @@
  * So the region moves to where the library looks for it. A live region works anywhere in
  * the document, and this one carries its own inline styles, so it travels intact.
  *
- * ⚠ **Patching the library is the other option, and it is not the last resort this
- * docblock once called it** — `patches/` already carries three, two of them for this same
- * boundary. Against a one-line patch of `setLiveRegionMessage`'s lookup, the hoist buys an
- * observer re-running `querySelector` on every keystroke and a permanent node in the host's
- * `<body>` (the fifth `docs/embedding.md` exception). It stays for now because it is the
- * shipped, spec'd half, and because the same patch would want to cover the three
- * `activeElement` comparisons `docs/rules/mapbox.md` records — one change, not two. Taking
- * both together is the follow-up.
+ * ⚠ **Patching a bundled dependency is the last resort, and the three in `patches/` are not
+ * a licence to reach for a fourth.** Each of those fixes behaviour our own code cannot reach:
+ * Radix performs the focus trap and `aria-hidden` the hiding, with no seam on our side. This
+ * one has a seam — the region is a node in our own subtree, so our own code can move it. A
+ * patch also pins an exact version, since a bump stops the install with
+ * `ERR_PNPM_PATCH_NOT_APPLIED` and has to be re-derived against the new source. So the hoist
+ * stays, and its price is accepted: an observer re-running `querySelector` on every keystroke,
+ * and a permanent node in the host's `<body>` (the fifth `docs/embedding.md` exception).
+ *
+ * ⚠ A patch of `@mapbox/search-js-web`, if one is ever justified anyway, should also cover the
+ * three `activeElement` comparisons `docs/rules/mapbox.md` records — one change, not two.
  *
  * ⚠ The observer, rather than a read after mount: the region appears when the custom
  * element connects, which is not ordered against this component's effects. It also
