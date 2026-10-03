@@ -13,6 +13,9 @@ Two lanes, kept separate so the fast one never touches the network:
 - CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, and `ladle:build`. A Dependency
   Audit job and the smoke job run separately. The smoke job targets the deployed Cloudflare
   preview.
+- The **same** smoke specs also run against production, fired by the deploy rather than by a PR
+  (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
+  below.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
@@ -139,6 +142,55 @@ door now carries the copy as well as the data.
 string back is a direct observation only because this particular defect *is* a string in the
 bundle. A failure that only appears at runtime still needs a browser, which belongs to local
 Playwright verification (see the note atop `embed.smoke.test.ts`).
+
+### The PR gate can only ever read a preview (issue #244)
+
+`ci.yml` runs on `pull_request` and `merge_group`, and discovery refuses the bare project host by
+construction (`provenanceOf` demotes it, because that host is production). So until #244, no job
+had ever read the deploy visitors and host sites actually get.
+
+**That gap is structural, not a coverage hole.** `VITE_*` values are inlined at build time, and
+Pages builds Preview and Production from separate dashboard environments, so the bundle the PR
+gate reads can never carry Production's values. The `VITE_HOST` story above is that hole in one
+direction. A Production origin blanked by a dashboard edit is the same hole in the other, and
+running the PR gate more often closes neither.
+
+`.github/workflows/production-smoke.yml` runs these same 16 specs against production. Five things
+about it are deliberate:
+
+- **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
+  changes only at deploy. A daily cron would re-read an unchanged artifact about 364 times a year
+  for one real signal per merge, and still be up to 24 hours late. A `push` trigger fires before
+  the deploy exists. So the trigger is Cloudflare's own check run, which is posted when the
+  artifact under test comes into existence.
+- **It reads `sahajatlas.com`, the custom domain — not `*.pages.dev`, and not a URL from the
+  event.** `docs/embedding.md` is what decides which host "production" means, and
+  `ci-workflows.test.ts` pins the lane to that table's row. The two hosts serve one build and
+  **two sets of headers**: `public/_headers` records `max-age=14400` on the custom domain against
+  `max-age=0` on `*.pages.dev`, and says that #148 defect "was invisible on the host every check
+  runs against". Previews are `*.pages.dev` already, so a production lane there would add no
+  coverage and inherit that blindness. The host being a constant is also why the event is a clock
+  rather than a source: a URL out of a payload would re-open #138's question — any installed App
+  with `deployments: write` posts one, and `pages.dev` subdomains are first-come-first-served —
+  for a value that does not vary.
+- ⚠ **#244 specified a `deployment_status` trigger, and that signal is the one this repo has
+  measured as absent**: `get-cloudflare-preview-url.mjs`'s header records Cloudflare posting
+  neither commit statuses nor GitHub deployments here (PR #120). A workflow on an event that never
+  arrives is invisible — no red check, no annotation, nothing to notice — so the trigger is the
+  check run instead, at the cost of one skipped workflow run per check run in the repo.
+- **An empty base URL fails the job.** `skipWithoutPreview` makes every spec skip itself without
+  one, so a blank value would collect a green check having run nothing — the first invariant
+  above, one level up. The guard shares its step with the specs, so no `if:` can route around it.
+- **Every filter sits in the job's `if`.** A check run for a PR, or for the `-design` playground,
+  skips the job outright rather than reaching a step that reports green having read nothing.
+  `ci-workflows.test.ts` pins the hosts it names, because a one-sided rename would leave the lane
+  waiting on a check run nobody posts again.
+
+No spec is scoped by environment. Measured 2026-10-03: 14 of the 16 pass against
+`sahajatlas.com`, and the two that fail are the #148 cache-header class on the unhashed loader
+files, still live on the custom domain — the lane's first find. All 16 pass against
+`sahajatlas.pages.dev`, and 10 fail against `sahajatlas-design.pages.dev`, so the lane is not
+vacuously green either way.
 
 ## Decision: node-only (no jsdom / Testing Library)
 

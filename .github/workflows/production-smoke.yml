@@ -1,0 +1,95 @@
+name: Production Smoke
+
+# Runs the smoke specs against the deploy visitors and host sites actually
+# get (issue #244). Why the PR gate can never do this, and why the deploy
+# fires the run rather than a clock: `docs/testing.md` → "The PR gate can
+# only ever read a preview".
+#
+# ⚠ **The trigger is the Cloudflare CHECK RUN, not a deployment status**,
+# which is what #244 proposed. `get-cloudflare-preview-url.mjs`'s header
+# records the measurement that rules the deployment out: Cloudflare posts
+# neither commit statuses nor GitHub deployments on this repo (PR #120).
+# A workflow on `deployment_status` would most likely never fire, and a
+# workflow that never fires is invisible — no red check, no annotation,
+# nothing to notice. The check run is the one signal this repo has
+# measured as dependable, across 86 builds. The cost is one skipped
+# workflow run per check run in the repo; `workflow-state.yml` already
+# accepts that shape for `check_suite` and `status`.
+#
+# Two independent conditions say "this check run is a main-branch build",
+# and neither can admit a preview: a PR head is not the default branch,
+# and it is not the default branch's tip either. Taking both means a null
+# `head_branch` cannot silence the lane.
+#
+# **It reads `sahajatlas.com`, the custom domain, not `*.pages.dev`.** The
+# two serve one build but not one set of headers: `public/_headers`
+# records `max-age=14400` on the custom domain against `max-age=0` on
+# `*.pages.dev`, and that #148 defect "was invisible on the host every
+# check runs against". A production lane on `*.pages.dev` would inherit
+# that blindness, and previews are `*.pages.dev` already.
+#
+# Deliberately NO `concurrency` group. Two production reads at once cost a
+# few dozen CDN requests; `cancel-in-progress` would instead throw away a
+# verdict the lane had already paid for.
+
+on:
+  check_run:
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: The deploy to read. Defaults to the production domain.
+        default: https://sahajatlas.com
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Production smoke
+    # Every filter lives here on purpose: a non-production event SKIPS the
+    # job, so it never reaches a step and never reads as a green run that
+    # checked nothing. The name is the app's Pages project, not the
+    # `-design` Ladle playground, which deploys from this repo too.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+      (github.event.check_run.conclusion == 'success' &&
+      startsWith(github.event.check_run.app.slug, 'cloudflare') &&
+      github.event.check_run.name == 'Cloudflare Pages: sahajatlas' &&
+      (github.event.check_run.check_suite.head_branch == github.event.repository.default_branch ||
+      github.event.check_run.check_suite.head_sha == github.sha)) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # reads packageManager from package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # The base URL is a literal, so it cannot be blanked by a payload
+      # this job does not control, and there is nothing to discover. The
+      # guard is still here because `skipWithoutPreview` makes every spec
+      # skip itself on an empty value: an empty base URL must fail the job
+      # rather than collect a green check that ran nothing. It shares this
+      # step with the specs so no `if:` can route around it.
+      #
+      # The summary is written BEFORE the specs, so a red run names the
+      # deploy it read.
+      - name: Run the smoke specs against production
+        env:
+          PREVIEW_URL: ${{ github.event.inputs.url || 'https://sahajatlas.com' }}
+        run: |
+          if [ -z "$PREVIEW_URL" ]; then
+            echo "::error::No deploy to read — every smoke spec would skip itself and report green."
+            exit 1
+          fi
+          {
+            echo "### Production smoke"
+            echo ""
+            echo "🚀 Reading \`$PREVIEW_URL\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          pnpm test:smoke
