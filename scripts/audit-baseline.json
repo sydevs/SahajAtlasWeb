@@ -9,12 +9,16 @@
     "the ticket or reason. Removing entries is the point: the weekly audit workflow fails",
     "when a listed advisory is no longer reported, so a fix prunes its own line.",
     "",
-    "THE LIST IS EMPTY, and that is a real state rather than a missing file. It was 27",
-    "entries — booked on 2026-08-06/07 against #101 and #104 — and #101 cleared all of",
-    "them: an in-range `pnpm update` (the lockfile was sitting at the floor of ranges that",
-    "already allowed the patched versions), one devDependency pin raised so tailwindcss",
+    "The single entry below is booked against #246, which upgrades tailwindcss 3 → 4 and so",
+    "takes `braces` out of the production graph entirely. That same PR deletes this entry",
+    "again, because the weekly `--strict` run fails on a booked advisory that no longer",
+    "reports. The entry exists so the commits before the upgrade are not red.",
+    "",
+    "Before it the list was EMPTY, and that was a real state rather than a missing file. It",
+    "was 27 entries — booked on 2026-08-06/07 against #101 and #104 — and #101 cleared all",
+    "of them: an in-range `pnpm update` (the lockfile was sitting at the floor of ranges",
+    "that already allowed the patched versions), one devDependency pin raised so tailwindcss",
     "would stop deduping onto a vulnerable postcss, and #104's swiper 12 major before it.",
-    "`pnpm audit --prod` reports 0 of 0 at every severity.",
     "",
     "Two entries needed no fix of their own. The `image-size` pair had no published patch",
     "and were expected to sit here for a while; payload 3.87.1 dropped the dependency, so",
@@ -26,5 +30,7 @@
     "graph it walked instead — see the comment there before assuming a green run means",
     "anything."
   ],
-  "advisories": {}
+  "advisories": {
+    "GHSA-vfj7-8cjw-p6xm": "braces — stack-exhaustion DoS through deeply nested patterns, no published fix. Reaches the production graph only through tailwindcss 3. #246 upgrades to tailwindcss 4 (zero dependencies) and deletes this line."
+  }
 }
