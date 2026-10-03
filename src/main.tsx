@@ -10,6 +10,13 @@ import { attributeEnabled } from './config/attributes'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
 import { FULL_SLOT, decideSlot, framed } from './lib/slot-decision'
+import { adoptStyles } from './styles/sheet'
+
+// The embed's sheet is adopted by its shadow root, so the build stopped appending a
+// `<style>` to `document.head` altogether (`styles/sheet.ts`). This shell has no shadow
+// root — `<html>` is its theme root — so it adopts the same sink into its document.
+// Before `initTheme()` and the render below, so nothing paints unstyled.
+adoptStyles(document)
 
 const searchParams = new URLSearchParams(window.location.search)
 

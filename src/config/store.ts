@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { Feature } from 'geojson'
 
+import { deepActiveElement } from '@/lib/active-element'
+
 // ===== VIEW STATE ===== //
 
 // This is a point the map emphasizes with a sprite.
@@ -237,10 +239,9 @@ export const useReportModal = create<ReportModalState>((set) => ({
     // The settings menu unmounts its item before the dialog mounts.
     // So by the time Radix records a "previously focused element," that element would be `<body>`.
     // Closing the modal would then drop a keyboard user at the top of the host page.
-    reportOpener =
-      typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
+    const active = deepActiveElement()
+
+    reportOpener = active instanceof HTMLElement ? active : null
 
     set(() => ({ open: true, error: error ?? null }))
   },

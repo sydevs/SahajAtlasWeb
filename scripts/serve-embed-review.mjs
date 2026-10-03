@@ -188,9 +188,17 @@ function pages(src) {
       'the interface should fit the 360px box, not the window.',
     ),
 
-    // Trap: host CSS lands in the same cascade as ours. Our stylesheet
-    // is scoped to `:where(.sy-atlas)` with ZERO specificity, so
-    // anything here that wins is a real leak.
+    // Trap: host CSS lands in the same cascade as ours. Since #236 the
+    // widget renders in a shadow root, so NONE of these selectors can
+    // match inside it — anything here that wins is a real leak.
+    //
+    // ⚠ The second block is the one this page was missing, and the gap
+    // is why #236 went unseen for months: every rule here used to carry
+    // `!important` and target a single element, which the old reset
+    // happened to survive. The measured fleet failure was neither —
+    // `body h2 { font-family }` is (0,0,2) with no `!important` at all,
+    // and it beat a (0,0,0) reset on 24 of 72 page checks. Keep both
+    // blocks: they fail in different ways.
     'hostile-css.html': page(
       'Hostile host CSS',
       `<style>
@@ -199,10 +207,18 @@ function pages(src) {
       a { color:#f00 !important; text-decoration: underline wavy #00f !important; }
       div, p, span { font-family:"Comic Sans MS", cursive !important; letter-spacing:6px !important; line-height:4 !important; }
       img, svg { filter: invert(1) !important; opacity:.25 !important; }
+
+      /* No \`!important\` anywhere below. Specificity above zero is the whole attack. */
+      body h2 { font-family: serif; color: #b88383; }
+      body h3, body p { font-family: Georgia, serif; color: #7a2d2d; }
+      body a { color: #b00; text-decoration: underline; }
+      body button { border-radius: 0; background: #ffe; }
+      body input { font-family: monospace; }
     </style>
     <button>a host button</button>
+    <h2>a host heading, in the theme's serif</h2>
     <sahaj-atlas style="display:block;height:640px"></sahaj-atlas>${loader('key=KEY&map=false')}`,
-      'the widget must survive this. Icons especially — SVG geometry is CSS in SVG 2.',
+      'nothing here may reach inside the widget. Compare the host h2 above with the widget’s own text.',
     ),
 
     // A frame IS a viewport, so map mode is NOT broken inside one — it

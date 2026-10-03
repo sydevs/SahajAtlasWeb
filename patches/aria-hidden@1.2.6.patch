@@ -1,0 +1,126 @@
+diff --git a/dist/es2015/index.js b/dist/es2015/index.js
+index 00aa2ea9da07e8e1d5978a4abe6ce1c2e9ac8041..3f32896a33d8f941d03c30ccfec9ae0bd0ca3966 100644
+--- a/dist/es2015/index.js
++++ b/dist/es2015/index.js
+@@ -20,7 +20,7 @@ var correctTargets = function (parent, targets) {
+         }
+         var correctedTarget = unwrapHost(target);
+         if (correctedTarget && parent.contains(correctedTarget)) {
+-            return correctedTarget;
++            return target;
+         }
+         console.error('aria-hidden', target, 'in not contained inside', parent, '. Doing nothing');
+         return null;
+@@ -49,7 +49,7 @@ var applyAttributeToOthers = function (originalTarget, parentNode, markerName, c
+             return;
+         }
+         elementsToKeep.add(el);
+-        keep(el.parentNode);
++        keep(el.parentNode || el.host);
+     };
+     targets.forEach(keep);
+     var deep = function (parent) {
+@@ -58,7 +58,7 @@ var applyAttributeToOthers = function (originalTarget, parentNode, markerName, c
+         }
+         Array.prototype.forEach.call(parent.children, function (node) {
+             if (elementsToKeep.has(node)) {
+-                deep(node);
++                deep(node); if (node.shadowRoot && elementsToKeep.has(node.shadowRoot)) deep(node.shadowRoot);
+             }
+             else {
+                 try {
+@@ -128,6 +128,10 @@ export var hideOthers = function (originalTarget, parentNode, markerName) {
+     if (!activeParentNode) {
+         return function () { return null; };
+     }
++    var sydevsTargetRoot = (Array.isArray(originalTarget) ? originalTarget[0] : originalTarget).getRootNode();
++    if (sydevsTargetRoot && sydevsTargetRoot !== activeParentNode.ownerDocument && sydevsTargetRoot.querySelectorAll) {
++        targets.push.apply(targets, Array.from(sydevsTargetRoot.querySelectorAll("[aria-live], script")));
++    }
+     // we should not hide aria-live elements - https://github.com/theKashey/aria-hidden/issues/10
+     // and script elements, as they have no impact on accessibility.
+     targets.push.apply(targets, Array.from(activeParentNode.querySelectorAll('[aria-live], script')));
+diff --git a/dist/es2019/index.js b/dist/es2019/index.js
+index 17404dae4afb4660e14921347404b6c0ca40cca3..b0473f821dae7821dda73bf4cc2453f0d35dc21a 100644
+--- a/dist/es2019/index.js
++++ b/dist/es2019/index.js
+@@ -17,7 +17,7 @@ const correctTargets = (parent, targets) => targets
+     }
+     const correctedTarget = unwrapHost(target);
+     if (correctedTarget && parent.contains(correctedTarget)) {
+-        return correctedTarget;
++        return target;
+     }
+     console.error('aria-hidden', target, 'in not contained inside', parent, '. Doing nothing');
+     return null;
+@@ -45,7 +45,7 @@ const applyAttributeToOthers = (originalTarget, parentNode, markerName, controlA
+             return;
+         }
+         elementsToKeep.add(el);
+-        keep(el.parentNode);
++        keep(el.parentNode || el.host);
+     };
+     targets.forEach(keep);
+     const deep = (parent) => {
+@@ -54,7 +54,7 @@ const applyAttributeToOthers = (originalTarget, parentNode, markerName, controlA
+         }
+         Array.prototype.forEach.call(parent.children, (node) => {
+             if (elementsToKeep.has(node)) {
+-                deep(node);
++                deep(node); if (node.shadowRoot && elementsToKeep.has(node.shadowRoot)) deep(node.shadowRoot);
+             }
+             else {
+                 try {
+@@ -123,6 +123,10 @@ export const hideOthers = (originalTarget, parentNode, markerName = 'data-aria-h
+     if (!activeParentNode) {
+         return () => null;
+     }
++    var sydevsTargetRoot = (Array.isArray(originalTarget) ? originalTarget[0] : originalTarget).getRootNode();
++    if (sydevsTargetRoot && sydevsTargetRoot !== activeParentNode.ownerDocument && sydevsTargetRoot.querySelectorAll) {
++        targets.push.apply(targets, Array.from(sydevsTargetRoot.querySelectorAll("[aria-live], script")));
++    }
+     // we should not hide aria-live elements - https://github.com/theKashey/aria-hidden/issues/10
+     // and script elements, as they have no impact on accessibility.
+     targets.push(...Array.from(activeParentNode.querySelectorAll('[aria-live], script')));
+diff --git a/dist/es5/index.js b/dist/es5/index.js
+index 1b86f56de25fb82f0627a2c5c087c4211f591a2a..af55ced90332c3c35d449370479e1773d007839e 100644
+--- a/dist/es5/index.js
++++ b/dist/es5/index.js
+@@ -23,7 +23,7 @@ var correctTargets = function (parent, targets) {
+         }
+         var correctedTarget = unwrapHost(target);
+         if (correctedTarget && parent.contains(correctedTarget)) {
+-            return correctedTarget;
++            return target;
+         }
+         console.error('aria-hidden', target, 'in not contained inside', parent, '. Doing nothing');
+         return null;
+@@ -52,7 +52,7 @@ var applyAttributeToOthers = function (originalTarget, parentNode, markerName, c
+             return;
+         }
+         elementsToKeep.add(el);
+-        keep(el.parentNode);
++        keep(el.parentNode || el.host);
+     };
+     targets.forEach(keep);
+     var deep = function (parent) {
+@@ -61,7 +61,7 @@ var applyAttributeToOthers = function (originalTarget, parentNode, markerName, c
+         }
+         Array.prototype.forEach.call(parent.children, function (node) {
+             if (elementsToKeep.has(node)) {
+-                deep(node);
++                deep(node); if (node.shadowRoot && elementsToKeep.has(node.shadowRoot)) deep(node.shadowRoot);
+             }
+             else {
+                 try {
+@@ -131,6 +131,10 @@ var hideOthers = function (originalTarget, parentNode, markerName) {
+     if (!activeParentNode) {
+         return function () { return null; };
+     }
++    var sydevsTargetRoot = (Array.isArray(originalTarget) ? originalTarget[0] : originalTarget).getRootNode();
++    if (sydevsTargetRoot && sydevsTargetRoot !== activeParentNode.ownerDocument && sydevsTargetRoot.querySelectorAll) {
++        targets.push.apply(targets, Array.from(sydevsTargetRoot.querySelectorAll("[aria-live], script")));
++    }
+     // we should not hide aria-live elements - https://github.com/theKashey/aria-hidden/issues/10
+     // and script elements, as they have no impact on accessibility.
+     targets.push.apply(targets, Array.from(activeParentNode.querySelectorAll('[aria-live], script')));

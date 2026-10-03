@@ -4,6 +4,7 @@ import { GeocodingFeature } from '@mapbox/search-js-core'
 import { useLocation, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
+import { hoistGeocoderLiveRegion } from './aria-live'
 import { controlTheme } from './themes'
 
 import { useLocale } from '@/hooks/use-locale'
@@ -87,6 +88,13 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   // typing records its own write, sees the URL agree, and does nothing.
   const urlQuery = searchParams.get('q') ?? ''
   const ownWrite = React.useRef(urlQuery)
+  const field = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const scope = field.current
+
+    return scope ? hoistGeocoderLiveRegion(scope) : undefined
+  }, [])
 
   React.useEffect(() => {
     if (urlQuery === ownWrite.current) return
@@ -121,7 +129,7 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
     // types and the × appears, so the text never runs under it. (The
     // generated `mbx…--Input` class carries a per-build hash, so this
     // targets the element, not the class.)
-    <div className="[&_input:placeholder-shown]:!pe-3">
+    <div ref={field} className="[&_input:placeholder-shown]:!pe-3">
       <GeocoderBoundary
         fallback={
           <input
