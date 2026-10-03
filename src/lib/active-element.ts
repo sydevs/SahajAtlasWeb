@@ -16,6 +16,9 @@
  * failure, and the host element answering for our subtree is exactly the answer it
  * needs. Resolving through the boundary there would make a widget that already holds
  * focus look unfocused, and it would steal focus back.
+ *
+ * `focus-lock` carries this walk verbatim and does not export it, and nothing else on
+ * npm covers it. `src/components/AGENTS.md` records that search beside the two patches.
  */
 export function deepActiveElement(): Element | null {
   if (typeof document === 'undefined') return null

@@ -404,6 +404,18 @@ document-level event against that, and `handleScroll` bubbles through hosts expl
 — so wheel and touch scrolling inside a modal drawer work untouched. Close-focus is
 ref-based in dialog, dropdown and popover, so focus return works.
 
+**No library replaces either patch, so nobody repeats the search.** `focus-trap@8.2.2`
+is shadow-correct in exactly the two ways the patch is — the target comes from
+`composedPath()[0]`, and `activeElement` resolves recursively through each root — but it
+cannot be reached from here: `@radix-ui/react-dialog` hard-codes `trapFocus:
+context.open` on its `FocusScope` with no prop to decline it, and dialog, popover and
+select all mount that one component. So the choice is three patched reads covering three
+primitives, or replacing all three. `focus-lock@1.3.6` holds `deepActiveElement`
+verbatim and does not export it — only a path inside its `dist/`. `aria-hidden@1.2.6`
+and `@radix-ui/react-focus-scope@1.1.16` are both the newest published, so neither patch
+waits on an upstream release. `shadow-dom-utils` scopes itself to tests in its own
+README. Six expressions in non-test `src/` touch the boundary at all.
+
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
 while nothing has taken the containing block — and the dialog takes it, 16–32px
