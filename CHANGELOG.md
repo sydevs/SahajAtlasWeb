@@ -24,11 +24,11 @@ cover everything a host would notice since the widget was first deployed.
 ### Changed
 
 - **Firefox 128 is now the minimum, up from 114.** ([#246]) The stylesheet is what moved it:
-  the widget's styling is built on `@property` and `color-mix()`, which Firefox shipped in
-  128. Chrome 111 and Safari 16.4 are unchanged, so Firefox is the only browser affected. A
-  Firefox between 114 and 127 now renders the widget unstyled rather than partly styled. See
-  [Browser support](embedding.md#browser-support). No CSP row changes, no new origin, and no
-  change to the snippet or its attributes.
+  the published floor is Tailwind 4's own declared minimum, and Chrome 111 and Safari 16.4
+  already met it. A Firefox between 114 and 127 is **not** unstyled — Tailwind ships an
+  `@supports`-guarded fallback for exactly those versions and this build keeps it, so the
+  widget still renders. See [Browser support](embedding.md#browser-support). No CSP row
+  changes, no new origin, and no change to the snippet or its attributes.
 
 - **The widget registers 62 document-global `@property` names, all `--tw-…`.** ([#246]) Tailwind
   4 composes its utilities through them, and a registered name carries a typed initial value and

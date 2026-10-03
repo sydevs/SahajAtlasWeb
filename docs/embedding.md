@@ -919,13 +919,17 @@ and is left there deliberately (the map already requires a modern browser):
 | Safari (macOS) | 16.4    |
 | Safari (iOS)   | 16.4    |
 
-The Firefox floor moved from 114 to 128. It is the stylesheet, not the
-JavaScript, that sets it: Tailwind 4 builds its utilities on `@property` and
-`color-mix()`, which Firefox shipped in 128. Chrome and Safari already met their own
-floors above, so Firefox is the only row that moved. A Firefox between 114 and 127 now
-renders the widget unstyled rather than partly styled — `@property` is what registers
-the custom properties the utilities read, so a browser that ignores it gets the markup
-with no working utility behind it.
+The Firefox floor moved from 114 to 128. It is the stylesheet, not the JavaScript, that sets
+it: these three numbers are Tailwind 4's own declared minimum, and the widget's styling is
+built on it. The JavaScript target is unchanged.
+
+**A Firefox between 114 and 127 is not unstyled.** Tailwind emits an `@supports`-guarded block
+that sets every one of its `--tw-…` properties to its initial value for exactly the browsers
+below the floor, and this build keeps that block. Measured in the shipped CSS: layout, spacing,
+colour and radius utilities all emit plain declarations, no declaration uses relative colour
+syntax, and the `color-mix()` ones are themselves `@supports`-guarded. So the floor is the
+version Tailwind supports, not the version below which the widget stops rendering — what you
+lose under it is `@property`'s typed interpolation, which nothing in this bundle animates.
 
 Older browsers are not transpiled for, and fail on modern syntax rather than degrading. There is
 no polyfill build.
