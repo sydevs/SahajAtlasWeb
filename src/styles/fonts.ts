@@ -66,13 +66,13 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  *
  * The family is 'Atlas Rethink Sans', not 'Rethink Sans', because @font-face is
  * document-global and ours is registered last: the plain name would override the face
- * on a host page that self-hosts the same typeface. `fontFamily.sans` in
- * tailwind.config.js matches. Unicode ranges are Google's own subset definitions,
+ * on a host page that self-hosts the same typeface. `--font-sans` in globals.css's
+ * `@theme` matches. Unicode ranges are Google's own subset definitions,
  * copied from each package's `wght.css` — re-copy them when bumping either.
  */
 /**
  * The face's family name. Exported because it is referenced from more than one place —
- * `fontFamily.sans` in tailwind.config.js and the Mapbox geocoder's own theme
+ * `--font-sans` in globals.css's `@theme` and the Mapbox geocoder's own theme
  * (`src/components/organisms/Mapbox/themes.ts`), which builds its font stack from CSS-in-JS
  * we do not control and so cannot inherit ours. A renamed family that one of those misses
  * fails silently: the text just falls back to the system sans.

@@ -915,9 +915,17 @@ and is left there deliberately (the map already requires a modern browser):
 | Browser        | Minimum |
 | -------------- | ------- |
 | Chrome / Edge  | 111     |
-| Firefox        | 114     |
+| Firefox        | 128     |
 | Safari (macOS) | 16.4    |
 | Safari (iOS)   | 16.4    |
+
+The Firefox floor moved from 114 to 128. It is the stylesheet, not the
+JavaScript, that sets it: Tailwind 4 builds its utilities on `@property` and
+`color-mix()`, which Firefox shipped in 128. Chrome and Safari already met their own
+floors above, so Firefox is the only row that moved. A Firefox between 114 and 127 now
+renders the widget unstyled rather than partly styled — `@property` is what registers
+the custom properties the utilities read, so a browser that ignores it gets the markup
+with no working utility behind it.
 
 Older browsers are not transpiled for, and fail on modern syntax rather than degrading. There is
 no polyfill build.

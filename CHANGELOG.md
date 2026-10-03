@@ -23,6 +23,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Firefox 128 is now the minimum, up from 114.** ([#246]) The stylesheet is what moved it:
+  the widget's styling is built on `@property` and `color-mix()`, which Firefox shipped in
+  128. Chrome 111 and Safari 16.4 are unchanged, so Firefox is the only browser affected. A
+  Firefox between 114 and 127 now renders the widget unstyled rather than partly styled. See
+  [Browser support](embedding.md#browser-support). No CSP row changes, no new origin, and no
+  change to the snippet or its attributes.
+
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
@@ -635,6 +642,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
 [#242]: https://github.com/sydevs/SahajAtlasWeb/pull/242
 [#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
+[#246]: https://github.com/sydevs/SahajAtlasWeb/issues/246
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small

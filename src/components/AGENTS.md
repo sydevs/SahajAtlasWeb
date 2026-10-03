@@ -34,7 +34,7 @@ Fewer custom components means less maintenance and a more consistent look.
 
 ## Styling
 
-- Tailwind 3 utility classes are the default. For components with variants
+- Tailwind 4 utility classes are the default. For components with variants
   (size, color, state), use **`tailwind-variants`** (`tv(...)`) instead of ad-hoc
   `clsx` string concatenation — it is already a dependency and matches the Radix +
   Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference.
