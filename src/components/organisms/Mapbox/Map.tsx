@@ -151,7 +151,7 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
   return (
     <div className="inline-flex items-center gap-1.5 rounded-lg border border-divider bg-background px-2.5 py-1.5 text-foreground shadow-md">
       <CalendarDays className="shrink-0 text-gray-11" size={16} />
-      <div className="flex flex-col text-sm font-medium leading-tight">
+      <div className="flex flex-col text-sm leading-tight font-medium">
         <span>{primary}</span>
         {time && <span className="text-xs font-normal text-gray-11">{time}</span>}
       </div>

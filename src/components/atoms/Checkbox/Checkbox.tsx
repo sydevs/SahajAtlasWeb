@@ -27,7 +27,7 @@ import { Check } from 'lucide-react'
 // different property, so an errored control keeps its ring while it goes grey.
 const toggle = tv({
   slots: {
-    root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
+    root: 'relative shrink-0 cursor-pointer rounded-full bg-gray-6 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:bg-gray-5 data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9',
     thumb:
       'block translate-x-[2px] rounded-full bg-gray-1 shadow transition-transform will-change-transform data-[disabled]:bg-gray-2 data-[disabled]:shadow-none',
   },
@@ -73,7 +73,7 @@ const toggle = tv({
 // unchecked one.
 const box = tv({
   slots: {
-    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
+    root: 'flex shrink-0 items-center justify-center rounded border border-gray-7 bg-background transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus data-[disabled]:cursor-not-allowed data-[disabled]:border-gray-7 data-[disabled]:bg-gray-4 data-[disabled]:data-[state=checked]:border-gray-9 data-[disabled]:data-[state=checked]:bg-gray-9 data-[disabled]:data-[state=checked]:text-gray-1 dark:data-[disabled]:data-[state=checked]:border-gray-9 dark:data-[disabled]:data-[state=checked]:bg-gray-9 dark:data-[disabled]:data-[state=checked]:text-gray-1',
     indicator: 'flex items-center justify-center',
   },
   variants: {

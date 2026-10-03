@@ -15,7 +15,7 @@ import { atlasPushState, hasAllowedScheme, isSafeHref } from '@/lib/shape'
 // beat a global `a { color: inherit !important }` reset. That rule leaked
 // into host pages and has been removed, so the overrides went with it.
 const link = tv({
-  base: 'inline-flex items-center gap-1 rounded-sm outline-none transition-opacity hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
+  base: 'inline-flex items-center gap-1 rounded-sm transition-opacity outline-none hover:opacity-hover focus-visible:ring-2 focus-visible:ring-focus',
   variants: {
     color: {
       foreground: 'text-foreground',

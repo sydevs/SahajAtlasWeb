@@ -174,6 +174,16 @@ export function scopeSelector(selector, scope = WIDGET_SCOPE) {
     if (isElement) break
   }
 
+  // `*::before` and `::before` select the same elements, so a CSS optimiser is free to
+  // drop the universal selector — and v4's own lightningcss pass does, emitting
+  // `.x>*+:before` for the `[&>*+*]:before:` variants in the List molecule. Peeling the
+  // pseudo-element off that leaves the body ending in a combinator, with its subject
+  // compound gone. Putting the `*` back restores what the shorthand meant. Tailwind v3
+  // handed this pass unoptimised selectors, so the shape never arrived before.
+  if (trailing.length > 0 && selectorParser.isCombinator(sel.nodes[sel.nodes.length - 1])) {
+    sel.append(selectorParser.universal())
+  }
+
   const body = sel.toString().trim()
 
   // A pseudo-element left inside the wrapper, or a body ending in a
@@ -372,6 +382,48 @@ const ANIMATION_KEYWORDS = new Set([
 ])
 
 /**
+ * Unwraps every `@layer`, keeping its contents at the position it held.
+ *
+ * A cascade layer is the one thing that beats specificity, and it beats it
+ * the wrong way round for an embedded sheet: unlayered author styles
+ * outrank EVERY author layer, so anything we put in a layer loses to a
+ * host page's plain `button { ... }`. That is #156 inverted, and the
+ * defensive reset in globals.css exists because the host-wins direction
+ * has broken embeds in the field.
+ *
+ * globals.css imports Tailwind's parts without a `layer()` clause for
+ * this reason, which leaves exactly one: `@layer properties`, holding the
+ * `--tw-*: initial` fallback Tailwind emits for browsers without
+ * `@property`. Unwrapping it is safe — those declarations sit on
+ * `*, ::before, ::after, ::backdrop` at zero specificity, so a utility's
+ * (0,1,0) still wins without the layer to order them. Doing it here
+ * rather than trusting the import style also means a future Tailwind that
+ * layers something cascade-relevant cannot reach `dist/` unnoticed.
+ *
+ * @param {import('postcss').Root} root
+ * @returns {number} how many `@layer` at-rules were unwrapped
+ */
+export function flattenCascadeLayers(root) {
+  let flattened = 0
+
+  root.walkAtRules(/^layer$/i, (atRule) => {
+    flattened += 1
+
+    // A statement at-rule (`@layer properties;`) only declares order. It
+    // has no body to keep, and `replaceWith` with no nodes would leave an
+    // empty rule behind.
+    if (!atRule.nodes) {
+      atRule.remove()
+      return
+    }
+
+    atRule.replaceWith(atRule.nodes)
+  })
+
+  return flattened
+}
+
+/**
  * Renames every `@keyframes` rule in the sheet. It also rewrites the
  * declarations that use them. This runs in two passes, because a
  * keyframe may be defined after its first use.
@@ -493,6 +545,7 @@ export default function scopeWidgetCss(options = {}) {
   return {
     postcssPlugin: 'scope-widget-css',
     OnceExit(root, { result }) {
+      flattenCascadeLayers(root)
       namespaceKeyframes(root, scope)
 
       root.walkRules((rule) => {
