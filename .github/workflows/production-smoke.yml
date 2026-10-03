@@ -14,12 +14,9 @@ name: Production Smoke
 on:
   check_run:
     types: [completed]
+  # No inputs. The host is the one thing this lane must not take from
+  # anywhere, so a hand-run reads production like every other run does.
   workflow_dispatch:
-    inputs:
-      url:
-        description: The deploy to read. Defaults to the production domain.
-        default: https://sahajatlas.com
-        required: false
 
 permissions:
   contents: read
@@ -54,18 +51,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # The base URL is a literal, so it cannot be blanked by a payload
-      # this job does not control, and there is nothing to discover. The
-      # guard is still here because `skipWithoutPreview` makes every spec
-      # skip itself on an empty value: an empty base URL must fail the job
-      # rather than collect a green check that ran nothing. It shares this
-      # step with the specs so no `if:` can route around it.
+      # The base URL is a literal with no expression in it, so nothing this
+      # job does not control can choose or blank the host it reads.
+      #
+      # The guard below cannot fire today, and is here for the edit that
+      # would make it fire: `skipWithoutPreview` makes every spec skip
+      # itself on an empty value, so the day this value comes from anywhere
+      # the job must go red rather than collect a green check that ran
+      # nothing. It shares this step with the specs so no `if:` can route
+      # around it.
       #
       # The summary is written BEFORE the specs, so a red run names the
       # deploy it read.
       - name: Run the smoke specs against production
         env:
-          PREVIEW_URL: ${{ github.event.inputs.url || 'https://sahajatlas.com' }}
+          PREVIEW_URL: https://sahajatlas.com
         run: |
           if [ -z "$PREVIEW_URL" ]; then
             echo "::error::No deploy to read — every smoke spec would skip itself and report green."

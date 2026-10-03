@@ -21,17 +21,13 @@ const match = (text: string, re: RegExp) => {
 
 describe('production-smoke.yml', () => {
   const lane = read('.github/workflows/production-smoke.yml')
-  const target = match(lane, /^\s*PREVIEW_URL: .*\|\| '(\S+)' \}\}/m)
+  const target = match(lane, /^\s*PREVIEW_URL: (\S+)$/m)
 
   // `docs/embedding.md` is the host-facing contract, so its table decides
   // which host "production" means. Reading the other one is how #148
   // stayed invisible: the two serve one build and two sets of headers.
   it('reads the host the embedding guide calls the production domain', () => {
     expect(target).toBe(match(read('docs/embedding.md'), /`(\S+)`\s*\|\s*the production domain/))
-  })
-
-  it('offers that same host as the hand-run default', () => {
-    expect(match(lane, /^\s*default: (\S+)/m)).toBe(target)
   })
 
   // The trigger is the app project's Cloudflare build, never the `-design`

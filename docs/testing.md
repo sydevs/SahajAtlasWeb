@@ -178,9 +178,14 @@ about it are deliberate:
   neither commit statuses nor GitHub deployments here (PR #120). A workflow on an event that never
   arrives is invisible — no red check, no annotation, nothing to notice — so the trigger is the
   check run instead, at the cost of one skipped workflow run per check run in the repo.
-- **An empty base URL fails the job.** `skipWithoutPreview` makes every spec skip itself without
-  one, so a blank value would collect a green check having run nothing — the first invariant
-  above, one level up. The guard shares its step with the specs, so no `if:` can route around it.
+- **The base URL is a bare literal, and `ci-workflows.test.ts` pins it as one** — the regex
+  matches a scalar, so putting an expression back fails the spec at collection. The lane takes no
+  `workflow_dispatch` input for it: that input was the one way a dispatcher could aim a green
+  `Production Smoke` check at a host of their choosing. A guard still fails the job on an empty
+  value, because `skipWithoutPreview` would otherwise turn one into sixteen self-skipping specs and
+  a green check — the first invariant above, one level up. It cannot fire against a literal, and
+  it shares its step with the specs so no `if:` can route around it once something makes it able
+  to.
 - **Every filter sits in the job's `if`.** A check run for a PR, or for the `-design` playground,
   skips the job outright rather than reaching a step that reports green having read nothing.
   `ci-workflows.test.ts` pins the hosts it names, because a one-sided rename would leave the lane
