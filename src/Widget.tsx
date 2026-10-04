@@ -23,6 +23,7 @@ import { releaseAnnouncement } from './lib/embed-announce'
 import { reportIntegrationWarning, reportInternalError } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
+import { adoptStyles } from './styles/sheet'
 import { Spinner } from './components/atoms/Spinner'
 import { mountDecision, mountPrefix } from './lib/shape'
 
@@ -428,7 +429,22 @@ const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 // No `props`: the element observes no attributes at all. Everything the widget needs
 // was parsed off the loader's script URL before this element existed, and lives in
 // `config/embed.ts`.
-const AtlasElementBase = r2wc(Widget) as unknown as new () => AtlasElement
+// **`shadow: 'open'` is the boundary this element exists to put up (#236).** A host
+// selector cannot match an element inside a shadow root at any specificity, `!important`
+// or not, so the whole leak class the `all: revert` reset could only blunt — measured at
+// 24 of 72 page checks across the WordPress theme fleet — stops being reachable. r2wc
+// calls `attachShadow` in its own constructor and mounts React into that root rather
+// than into the element.
+//
+// Two things still cross, and both are intended. Inherited properties arrive from
+// `<sahaj-atlas>` exactly as they arrive at any element, which is why the baseline in
+// `styles/globals.css` does NOT retire with the reset — it is what makes the widget the
+// root of its own world. And a host rule aimed at `sahaj-atlas` itself still sets that
+// element's own box: that is their slot, and legitimately theirs.
+//
+// `open`, not `closed`: it keeps the widget inspectable, keeps our own focus reads
+// simple, and closed buys nothing a host cannot already defeat from script.
+const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () => AtlasElement
 
 // Which element owns the page. A widget owns page-global singletons — the API key
 // (`config/api/auth`), the boot config (`config/embed`), the theme root, and BrandTheme's
@@ -476,6 +492,9 @@ function releaseOwnership() {
 }
 
 class SahajAtlasElement extends AtlasElementBase {
+  /** Whether this element's shadow root already holds our sheet. A reconnect must not re-adopt. */
+  private adopted = false
+
   constructor() {
     super()
     ;(this as unknown as Record<symbol, boolean>)[R2WC_CONNECTED] = false
@@ -505,6 +524,17 @@ class SahajAtlasElement extends AtlasElementBase {
     }
 
     owner = this
+
+    // **Before `super`, which is what mounts React.** The stylesheet no longer lives in
+    // the host's `<head>`, because a document sheet cannot reach into a shadow root
+    // (`styles/sheet.ts`) — so adopting it IS the styling, and a frame of unstyled
+    // widget is the cost of doing it after the first render. Only the element that
+    // renders adopts: a refused duplicate above has already returned.
+    if (this.shadowRoot && !this.adopted) {
+      this.adopted = true
+      adoptStyles(this.shadowRoot)
+    }
+
     super.connectedCallback()
   }
 

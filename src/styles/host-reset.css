@@ -1,85 +1,51 @@
-/* The defensive reset (#156). Imported by globals.css BEFORE Tailwind's preflight and
- * utilities, and that order is load-bearing — the body comment below says why. It is a
- * file rather than a block in globals.css for that reason alone: v4's entry is `@import`,
+/* The widget's inherited baseline (#156, #236). Imported by globals.css BEFORE Tailwind's
+ * preflight and utilities, and that order is load-bearing — the body comment below says why.
+ * It is a file rather than a block in globals.css for one reason: v4's entry is `@import`,
  * and no rule may precede an `@import`.
  */
 
-/* ── The defensive reset: keep the HOST's CSS out of the widget (#156) ──────────────────
-   The PostCSS scoping pass (#91) stops OUR rules escaping into their page. This is the
-   other direction, which nothing covered and which has broken embeds in the field: a
-   host's global `button { … }` or `a { color: … !important }` reaches straight into our
-   subtree.
+/* ── The host-CSS boundary is the SHADOW ROOT now (#236) ────────────────────────
+   The PostCSS scoping pass (#91) stops OUR rules escaping into a host's page. This is the
+   other direction, and it is no longer CSS's job: `src/Widget.tsx` mounts the widget in a
+   shadow root, and a host selector cannot match inside one at any specificity, with or
+   without `!important`.
 
-   Four things about this rule are load-bearing, and three of them are counter-intuitive.
+   **What stood here was `:where(.sy-atlas) :where(*:not(svg, svg *)) { all: revert }`, and
+   it could not have held.** It was deliberately (0,0,0) so it would stay under our own
+   Tailwind utilities (0,1,0) — which bounded it above by our rules while a host's selector
+   was bounded by nothing. One class on their side and they led again. Measured across the
+   WordPress theme fleet, the widget's typeface was lost on 24 of 72 page checks, by
+   non-`!important` rules as ordinary as `body h2 { font-family }`. Raising the specificity
+   would have lowered that number and never reached zero, which is why the reset retired
+   rather than grew.
 
-   1. **It is UNLAYERED, and must stay so.** The obvious version — put our sheet in
-      `@layer` — makes the problem WORSE: unlayered author styles outrank every author
-      layer, so layering hands the host's rules an automatic win over ours.
-   2. **`:where()` gives it zero specificity**, so it can never outrank anything of ours:
-      a Tailwind utility is (0,1,0) and a Preflight element rule is (0,0,1), both above
-      (0,0,0). It only takes effect where nothing of ours speaks — which is exactly the
-      set a host can leak into. It also has to come BEFORE our sheet, so equal-specificity
-      ties go to us.
-   3. **`all` deliberately excludes custom properties**, so `--primary-*` and the whole
-      brand palette survive it untouched. That is a property of the `all` shorthand, not
-      an accident.
-   4. **It is hand-written against `.sy-atlas`**, which `scripts/postcss-scope-widget.mjs`
-      passes through unmodified — so `pnpm assert:css` keeps working with no change to the
-      pass.
+   Two of its hazards retired with it, and both are worth not re-deriving: it forced a style
+   recalc over the whole scope at about 2x the cost of one outside it (41ms vs 20ms over
+   3,200 nodes, Chrome 151), and `all: revert` rolled SVG 2 geometry — `d`, `fill`, `cx`,
+   `r` — back to its initial value, which rendered every icon in the widget as nothing
+   until the `:not(svg, svg *)` exclusion was added. Neither cost is being paid any more.
 
    ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further.
-   The measured table in `src/components/AGENTS.md` shows both re-parent `position: fixed`
-   descendants to the host element — which would break the map canvas, every drawer, the
-   peek strips, and the settings cog. `container-type` does not. `contain` and `transform`
-   do.
+   A shadow root creates no containing block, so the fixed layer is unaffected by the move —
+   but the measured table in `src/components/AGENTS.md` still holds: both re-parent
+   `position: fixed` descendants to the host element, which would break the map canvas,
+   every drawer, the peek strips, and the settings cog. `container-type` does not. `contain`
+   and `transform` do. */
 
-   **What this does NOT stop, measured rather than assumed: a host rule carrying
-   `!important`.** An important author declaration beats a non-important one whatever its
-   specificity, so `div { font-family: … !important }` on the host page still reaches our
-   copy. The only defence would be `all: revert !important`, which would equally beat every
-   rule of OURS and leave the widget unstyled — strictly worse than the problem. A real
-   boundary against `!important` needs shadow DOM, which is why that evaluation is a
-   ticket rather than a maybe. Verified in a browser both ways: without `!important` the
-   host's `button`, `a`, `div`, `letter-spacing`, and `line-height` rules are fully
-   blocked. With it they are not.
+/* **This survives the shadow root, and it is the half that was never about selectors.**
+   INHERITED properties cross a shadow boundary exactly as they cross into any element, so
+   a host's `font-family`, `color`, or `letter-spacing` set on `<body>` still reaches every
+   line of our copy through `<sahaj-atlas>`. Restating them here is what makes the widget
+   the root of its own world, and it is why #236 retired the reset above WITHOUT retiring
+   this.
 
-   **Cost, measured:** a forced style recalc over 3,200 nodes inside the scope took about
-   2x one outside it (41ms vs 20ms across five recalcs, Chrome 151). Full recalcs are
-   rare — a theme toggle, not a scroll — and the results list is bounded by `MAX_REVEAL`,
-   so this cost is priced and accepted rather than unknown. Re-measure if that ceiling
-   ever rises.
+   ⚠ **Unlayered, and it has to be.** Put inside `@layer base` (where it started), it lost
+   to unlayered author styles — and that trap did not leave with the reset, because the
+   host's own declarations are unlayered too. Verified in a browser. The symptom is subtle
+   enough to ship unnoticed.
 
-   ⚠ **SVG IS EXCLUDED, and that is a bug fix rather than a nicety — never simplify it back
-   to a bare `*`.** In SVG 2 the geometry is CSS: `d`, `fill`, `stroke`, `cx`, `r`, `x`, `y`,
-   `width`, and `height` are all properties, and a presentation attribute is only an author
-   rule of zero specificity — so `all: revert` beat every `d="…"` in the app and rolled it
-   to `none`. The effect is total and silent: the `<path>` stays in the DOM at full size
-   with a computed fill, `getBBox()` reports 0×0, and **every icon in the widget renders as
-   nothing**. Measured in a production build (53/53 paths, Chrome 151) after it had
-   shipped, because no gate can see it — lint, typecheck, the unit lane, and `assert:css`
-   are all green with every glyph invisible. The reset exists to keep a HOST's CSS out of
-   our HTML. SVG internals are not a surface a host styles, so excluding them costs nothing
-   it was there to buy.
-   `postcss-scope-widget.test.ts` pins the exclusion. */
-:where(.sy-atlas),
-:where(.sy-atlas) :where(*:not(svg, svg *)) {
-  all: revert;
-}
-
-/* This is the second half, and it is not optional: `all: revert` rolls each element back
-   to the UA default, but INHERITED properties still cross the boundary from the host
-   element the scope root sits inside, so a host's `font-family`, `color`, or
-   `letter-spacing` still reaches every line of our copy. Restating them is what makes the
-   widget the root of its own world.
-
-   ⚠ **Unlayered, and it has to be** — this is the `@layer` trap above, aimed at ourselves.
-   Written inside `@layer base` (where it started), it lost to the unlayered reset directly
-   above it, and the widget rendered in the host's font with the host's letter-spacing.
-   Verified in a browser. The symptom is subtle enough to ship unnoticed.
-
-   Specificity (0,1,0) rather than `:where()`, so it beats the reset but still loses to
-   every Tailwind utility — a component that sets its own `text-*` or `font-*` keeps
-   winning. */
+   Specificity (0,1,0) rather than `:where()`, so it still loses to every Tailwind utility —
+   a component that sets its own `text-*` or `font-*` keeps winning. */
 .sy-atlas {
   /* The height of the box the widget's FIXED layer resolves against — the viewport
      normally, a frame when one has taken the containing block.

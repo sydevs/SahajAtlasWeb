@@ -936,13 +936,14 @@ no polyfill build.
 
 ## What the widget does to your page
 
-**It will not restyle your page.** The stylesheet is injected into your document — there is no
-shadow DOM — but every selector is confined to the widget's own subtree (`.sy-atlas`), and every
-animation name is namespaced, enforced by a build-time check that fails the build if a rule
-escapes. Your headings, links, lists, forms, `.container`, a `.dark` theme class, and your own
-Swiper or Mapbox instances are all left alone.
+**It will not restyle your page.** The widget's stylesheet is adopted by its **shadow root**, so
+none of it is in your document to begin with — a rule of the widget's cannot match one of your
+elements. On top of that, every selector is still confined to the widget's own subtree
+(`.sy-atlas`) and every animation name is still namespaced, enforced by a build-time check that
+fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
+theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Five honest exceptions, none of them styling your content:
+Six honest exceptions, none of them styling your content:
 
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
@@ -960,6 +961,11 @@ Five honest exceptions, none of them styling your content:
   deliberately not a plain typeface name** — so if your page self-hosts the same typeface, the
   widget's faces cannot override yours. That is the whole reason for the odd name. These three
   are the only `@font-face` rules the widget contributes. Mapbox and Swiper register none.
+- **One hidden `aria-live` region sits in your `<body>`** while the widget's place-search field is
+  mounted, and is removed with it. The search field announces its suggestion counts through it,
+  and the library that owns it looks the region up on the document, which cannot see into the
+  shadow root. It is empty except while announcing, carries its own inline
+  clipping styles, and is removed on unmount. Nothing else of yours is touched.
 - **`@property` cannot be scoped either**, for the same reason — it registers a name, not a
   selector. Tailwind 4 composes its utilities through registered custom properties, so the widget
   registers 62 of them, every one named `--tw-…`. Registering a name in your document gives it a
@@ -967,15 +973,37 @@ Five honest exceptions, none of them styling your content:
   up those semantics. They cannot be renamed, since Tailwind writes the `var()` references
   itself, so the build gate allows that one prefix by name and fails on any other.
 
-**The reverse direction is now defended, with one documented exception.** The widget resets its
-own subtree before applying its styles, so aggressive global CSS on your page — a blanket
-`button { … }`, an `a { color: … }`, a global `letter-spacing` — no longer reaches into it.
+**The reverse direction is a boundary, not a defence.** The widget renders inside a **shadow
+root**, so a selector in your stylesheet cannot match an element inside it — at any specificity,
+with or without `!important`. A blanket `button { … }`, an `a { color: … !important }`, a
+`body h2 { font-family: … }`, a global `letter-spacing`: none of them reach the widget's own
+elements. There is nothing you need to do, and nothing to work around.
 
-**The exception is `!important`.** A rule like `div { font-family: … !important }` on your page
-still wins: an important declaration beats a non-important one whatever its specificity, and the
-only way for us to outrank it would be `!important` ourselves, which would beat our own styles
-too and leave the widget unstyled. If the widget looks wrong on your site and right on ours, look
-for `!important` in your global CSS first.
+⚠ **A third thing stops crossing: your own children of `<sahaj-atlas>`.** The element attaches
+its shadow root in its constructor, so light-DOM children are hidden from the moment the element
+upgrades. There is no `<slot>`, so they are not replaced — they never paint at all, and that
+includes a loading state, a no-JavaScript message, or a server-rendered fallback. A widget that
+refuses to boot therefore leaves a blank box rather than revealing what you nested. Put a
+fallback **beside** the element, not inside it.
+
+**Two things still cross, and both are meant to.**
+
+- **Inherited properties** arrive from the `<sahaj-atlas>` element itself, exactly as they arrive
+  at any element on your page. So `body { font-family }` is inherited INTO the widget — and then
+  overridden, because the widget restates `font-family`, `color`, `letter-spacing`, `text-align`,
+  `text-transform` and `word-spacing` on its own root. If you set an inherited property the
+  widget does not restate, it will reach the text. That is a short list and a deliberate one.
+- **A rule aimed at `sahaj-atlas` itself** still sets that element's own box — `display`,
+  `width`, `height`, `margin`, `border`. That element is your slot, and sizing it is how you
+  control where the widget sits. See [sizing](#sizing-and-layout).
+
+**This replaced a reset that could not hold** (see the [changelog](../CHANGELOG.md)): the widget used to roll
+its own subtree back to browser defaults before applying its styles, at zero specificity so it
+could never outrank the widget's own rules. That left it outranked by yours. Measured across 18
+WordPress themes at four viewports, the widget's typeface was lost on 24 of 72 page checks, to
+rules carrying no `!important` at all. If you built around the old behaviour — or around the
+`!important` exception it documented — nothing you did stops working; it is simply no longer
+needed.
 
 **Your root font size does not resize it either.** The widget sizes its layout in pixels, not
 `rem`, so a theme that sets `html { font-size: 62.5% }` — Twenty Twenty and OceanWP both do — gets
@@ -985,20 +1013,27 @@ calendar's text renders smaller than the rest of the widget.
 
 ### The style-tag ids
 
-The widget appends its styles under two stable ids, kept stable across releases precisely
-because host sites key off them:
+⚠ **BREAKING: `sahaj-atlas-style` no longer exists.** The widget's stylesheet moved
+into its shadow root, which is what makes your CSS unable to reach in — and the same boundary
+means a stylesheet in your document could not reach the widget either, so there is no longer a
+`<style>` element in your `<head>` to carry the id. The sheet is adopted by the shadow root
+instead, and `document.querySelectorAll('style#sahaj-atlas-style')` now returns nothing.
 
-| Id                  | Holds                                                |
-| -------------------- | ------------------------------------------------------ |
-| `sahaj-atlas-style` | the widget's stylesheet                              |
-| `sahaj-atlas-fonts` | the `@font-face` blocks for the self-hosted typeface |
+One id remains, and is unchanged:
 
-**`sahaj-atlas-style` is stable, but it is not unique.** The CSS is split alongside the code, so
-the widget appends **more than one** element carrying that id over a session — one at load, and
-one each when the calendar and the image lightbox are first opened (three in the current build).
-`document.getElementById('sahaj-atlas-style')` returns only the first. To get them all, use
-`document.querySelectorAll('style#sahaj-atlas-style')`, and expect the count to grow as a visitor
-opens more of the widget.
+| Id                  | Where                | Holds                                                |
+| -------------------- | ---------------------- | ------------------------------------------------------ |
+| `sahaj-atlas-fonts` | your `<head>`        | the `@font-face` blocks for the self-hosted typeface |
+
+**`sahaj-atlas-fonts` stays in your document on purpose.** A `@font-face` registered inside a
+shadow root is never applied, so this one rule has to live where every other document-global rule
+lives. It is also why the family is named `Atlas Rethink Sans` rather than its real typeface
+name — see the `@font-face` note above.
+
+**If you were keying off `sahaj-atlas-style`**, tell us what for: the shadow root is reachable as
+`document.querySelector('sahaj-atlas').shadowRoot` (it is deliberately `open`, not `closed`), and
+its `adoptedStyleSheets` hold the same CSS. We would rather publish a supported way to do what
+you needed than have you reach through the boundary.
 
 ### Accessibility
 

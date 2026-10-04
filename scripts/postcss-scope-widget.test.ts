@@ -333,35 +333,40 @@ describe('agreement with the runtime', () => {
   })
 })
 
-describe('the defensive reset excludes SVG', () => {
-  // This is a regression pin for a bug that SHIPPED, and that no other
-  // gate can see (#161).
+describe('the defensive reset, retired by the shadow root (#236)', () => {
+  // The reset is gone: `src/Widget.tsx` mounts the widget in a shadow
+  // root, where a host selector cannot match at all, so a (0,0,0) rule
+  // bounded above by our own utilities has nothing left to buy.
   //
-  // In SVG 2 the geometry is CSS. `d`, `fill`, `cx`, `r`, `x`, and `y`
-  // are properties, and a presentation attribute is only an author rule
-  // of zero specificity. So `all: revert` over a bare `*` rolled every
-  // `d="…"` to `none`. The `<path>` stayed in the DOM at full size, with
-  // a computed fill, `getBBox()` reported 0×0, and every icon in the
-  // widget rendered as nothing. This was measured at 53 of 53 paths in a
-  // production build.
+  // This block used to pin the reset's SVG exclusion, and it is kept
+  // pointed at the same hazard from the other side. In SVG 2 the geometry
+  // IS CSS — `d`, `fill`, `cx`, `r`, `x`, `y` are properties, and a
+  // presentation attribute is only an author rule of zero specificity. So
+  // `all: revert` over a bare `*` rolled every `d="…"` to `none`: the
+  // `<path>` stayed in the DOM at full size with a computed fill,
+  // `getBBox()` reported 0x0, and every icon rendered as nothing, at 53
+  // of 53 paths in a production build (#161).
   //
-  // This test asserts a STRING, because that is the honest limit of
-  // this lane. Whether a browser paints the glyph is not something node
-  // can answer. What this test can pin is that nobody "simplifies" the
-  // exclusion away — which is exactly how the bug would come back.
-  // The reset moved to its own sheet in #246: v4's entry is `@import`, and an
-  // `@import` has to lead the file, so a rule can no longer be written above it.
+  // Nothing in lint, typecheck, this lane or `assert:css` can see that,
+  // which is why re-introducing the reset must trip a gate rather than a
+  // memory. This test asserts a STRING, the honest limit of a node lane:
+  // whether a browser paints a glyph is not a question it can answer.
+  // The sheet is host-reset.css since #246: v4's entry is `@import`, and an
+  // `@import` has to lead the file, so a rule can no longer sit above it.
   const css = readFileSync('src/styles/host-reset.css', 'utf8')
 
-  it('does not apply `all: revert` to svg or its descendants', () => {
-    const reset = css.slice(css.indexOf(':where(.sy-atlas),'))
+  // Comments stripped, because the retirement note above the baseline QUOTES the rule it
+  // retired — and a test that cannot tell a declaration from a mention would force the
+  // next author to delete the explanation in order to go green.
+  const declarations = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
-    expect(reset).toMatch(/:where\(\.sy-atlas\) :where\(\*:not\(svg, svg \*\)\)/)
-    expect(reset).not.toMatch(/:where\(\.sy-atlas\) :where\(\*\)\s*\{/)
+  it('is not in the stylesheet', () => {
+    expect(declarations).not.toMatch(/all:\s*revert/)
   })
 
-  it('says why, so the exclusion survives the next tidy-up', () => {
-    expect(css).toMatch(/SVG IS EXCLUDED/)
+  it('records what re-introducing it would cost, so the next author reads it first', () => {
+    expect(css).toMatch(/SVG 2 geometry/)
+    expect(css).toMatch(/#236/)
   })
 })
 

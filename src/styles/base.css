@@ -10,7 +10,7 @@
    `inherit` on `body`, and inside the widget both of those ARE the theme
    root — so the second lands on the same element as the first and
    inherits the HOST's value. The rest of the inherited baseline is NOT
-   here. It sits unlayered beside the reset, for the reason given there.
+   here. It sits unlayered in host-reset.css, for the reason given there.
    (`body { margin: 0 }` collapses the same way and is harmless: the
    wrapper is `display: contents` and has no box to give a margin to.) */
 .sy-atlas {

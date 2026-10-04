@@ -21,8 +21,44 @@ Entries reference the pull request that landed them.
 `package.json` carries `0.9.0`. This is the first tracked version, so the entries below
 cover everything a host would notice since the widget was first deployed.
 
+### Removed
+
+- ⚠ **BREAKING: the `sahaj-atlas-style` style tag is gone.** ([#236]) The widget's stylesheet
+  moved into its shadow root, so there is no longer a `<style>` element in your `<head>` to
+  carry that id, and `document.querySelectorAll('style#sahaj-atlas-style')` returns nothing.
+  `docs/embedding.md` had published the id as stable "precisely because host sites key off
+  them", so this is a break even though no known embed uses it. `sahaj-atlas-fonts` is
+  unchanged and stays in your document — a `@font-face` registered inside a shadow root is
+  never applied. If you were keying off the style id, the root is reachable as
+  `document.querySelector('sahaj-atlas').shadowRoot` and we would rather publish a supported
+  way to do what you needed.
+
 ### Changed
 
+- ⚠ **BREAKING: your own children of `<sahaj-atlas>` stop rendering.** ([#236]) The element
+  attaches its shadow root in its constructor, so anything you nest inside the tag is hidden
+  from the moment the element upgrades — before the widget can decline. There is no `<slot>`,
+  so the children are not replaced, they simply never paint. If you put a loading state, a
+  no-JavaScript message, or a server-rendered fallback inside the tag, it will not appear, and
+  a widget that refuses to boot now leaves a blank box where your content used to stay
+  visible. Put a fallback beside the element instead of inside it.
+
+- **Your CSS can no longer restyle the widget, `!important` or not.** ([#236]) The widget
+  renders inside a shadow root, so a selector in your stylesheet cannot match an element inside
+  it at any specificity. This replaces a reset that documented `!important` as its one
+  exception — and that was understating the gap: measured across 18 WordPress themes at four
+  viewports, the widget's typeface was lost on 24 of 72 page checks, to rules carrying no
+  `!important` at all (`body h2 { font-family }` is enough). Two things still cross, both
+  deliberately: inherited properties arrive from the `<sahaj-atlas>` element, and a rule aimed
+  at that element still sizes your slot. Nothing you did stops working, and nothing you were
+  told to work around needs working around any more.
+
+- **One hidden `aria-live` region now sits in your `<body>`** while the widget's place-search
+  field is mounted. ([#236]) The field announces its suggestion counts through it, and the
+  library that owns it looks the region up on the document, which cannot see into the shadow
+  root — so the region lives where the lookup can find it. It is empty except while announcing,
+  clips itself with inline styles, and is removed when the field unmounts. Without it, a
+  screen-reader user gets no suggestion counts at all.
 - **Firefox 128 is now the minimum, up from 114.** ([#246]) The stylesheet is what moved it:
   the published floor is Tailwind 4's own declared minimum, and Chrome 111 and Safari 16.4
   already met it. A Firefox between 114 and 127 is **not** unstyled — Tailwind ships an
@@ -649,6 +685,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
 [#246]: https://github.com/sydevs/SahajAtlasWeb/issues/246
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
+[#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
