@@ -10,7 +10,7 @@ import { useWebShare } from '@/hooks/use-web-share'
 import { platformsForCountry } from '@/lib/share/platforms'
 
 const copyField = tv({
-  base: 'w-full select-all truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors',
+  base: 'w-full truncate rounded px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all',
   variants: { copied: { true: 'bg-secondary-5', false: 'bg-secondary-3' } },
   defaultVariants: { copied: false },
 })

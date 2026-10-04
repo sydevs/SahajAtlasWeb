@@ -13,7 +13,7 @@ import { frameCollision, overlayContainer } from '@/lib/overlay'
 // border ternary. `highlight` tints the field primary, to flag an active
 // filter (see FilterView).
 export const fieldChrome = tv({
-  base: 'w-full rounded border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
+  base: 'w-full rounded border bg-background px-3 text-sm text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled',
   variants: {
     isInvalid: { true: 'border-danger-7', false: 'border-gray-7' },
     /** A trigger lays its value out against the chevron. A plain input does not. */
@@ -114,7 +114,7 @@ export type SelectItemProps = {
 export function SelectItem({ value, textValue, children, className }: SelectItemProps) {
   return (
     <RadixSelect.Item
-      className={`relative flex cursor-pointer select-none items-center rounded px-3 py-2 text-sm text-foreground outline-none data-[highlighted]:bg-primary-4 data-[state=checked]:font-semibold ${
+      className={`relative flex cursor-pointer items-center rounded px-3 py-2 text-sm text-foreground outline-none select-none data-[highlighted]:bg-primary-4 data-[state=checked]:font-semibold ${
         className ?? ''
       }`}
       textValue={textValue}

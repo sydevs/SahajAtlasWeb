@@ -915,9 +915,21 @@ and is left there deliberately (the map already requires a modern browser):
 | Browser        | Minimum |
 | -------------- | ------- |
 | Chrome / Edge  | 111     |
-| Firefox        | 114     |
+| Firefox        | 128     |
 | Safari (macOS) | 16.4    |
 | Safari (iOS)   | 16.4    |
+
+The Firefox floor moved from 114 to 128. It is the stylesheet, not the JavaScript, that sets
+it: these three numbers are Tailwind 4's own declared minimum, and the widget's styling is
+built on it. The JavaScript target is unchanged.
+
+**A Firefox between 114 and 127 is not unstyled.** Tailwind emits an `@supports`-guarded block
+that sets every one of its `--tw-…` properties to its initial value for exactly the browsers
+below the floor, and this build keeps that block. Measured in the shipped CSS: layout, spacing,
+colour and radius utilities all emit plain declarations, no declaration uses relative colour
+syntax, and the `color-mix()` ones are themselves `@supports`-guarded. So the floor is the
+version Tailwind supports, not the version below which the widget stops rendering — what you
+lose under it is `@property`'s typed interpolation, which nothing in this bundle animates.
 
 Older browsers are not transpiled for, and fail on modern syntax rather than degrading. There is
 no polyfill build.
@@ -930,7 +942,7 @@ animation name is namespaced, enforced by a build-time check that fails the buil
 escapes. Your headings, links, lists, forms, `.container`, a `.dark` theme class, and your own
 Swiper or Mapbox instances are all left alone.
 
-Four honest exceptions, none of them styling your content:
+Five honest exceptions, none of them styling your content:
 
 - Opening a modal panel inside the widget sets `overflow: hidden` on your `<body>` while open —
   standard scroll-lock, reverted on close.
@@ -948,6 +960,12 @@ Four honest exceptions, none of them styling your content:
   deliberately not a plain typeface name** — so if your page self-hosts the same typeface, the
   widget's faces cannot override yours. That is the whole reason for the odd name. These three
   are the only `@font-face` rules the widget contributes. Mapbox and Swiper register none.
+- **`@property` cannot be scoped either**, for the same reason — it registers a name, not a
+  selector. Tailwind 4 composes its utilities through registered custom properties, so the widget
+  registers 62 of them, every one named `--tw-…`. Registering a name in your document gives it a
+  typed initial value and `inherits: false` there, so a `--tw-…` property of your own would pick
+  up those semantics. They cannot be renamed, since Tailwind writes the `var()` references
+  itself, so the build gate allows that one prefix by name and fails on any other.
 
 **The reverse direction is now defended, with one documented exception.** The widget resets its
 own subtree before applying its styles, so aggressive global CSS on your page — a blanket

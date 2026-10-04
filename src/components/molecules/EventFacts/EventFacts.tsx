@@ -31,7 +31,7 @@ const facts = tv({
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
-    text: 'min-w-0 text-sm font-medium leading-snug',
+    text: 'min-w-0 text-sm leading-snug font-medium',
     subtext: 'font-normal text-gray-11',
   },
   variants: {
@@ -40,7 +40,7 @@ const facts = tv({
       compact: { base: 'gap-1', item: 'gap-2', icon: 'text-gray-11' },
       card: {
         wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
-        title: 'mb-3 text-base font-semibold leading-tight',
+        title: 'mb-3 text-base leading-tight font-semibold',
         base: 'gap-2.5',
         item: 'gap-3',
         icon: 'text-primary',
