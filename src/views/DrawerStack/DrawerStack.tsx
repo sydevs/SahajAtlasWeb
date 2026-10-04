@@ -389,10 +389,12 @@ export function DrawerStack() {
   // the viewport edge — inside the transformed sheet, `position: fixed` resolves
   // against the sheet, so the bar offsets by the live top instead (issue #52, WS4).
   //
-  // CSS anchor positioning is the obvious replacement and does not work, so raising
-  // `build.target` does not retire this loop. Three independent reasons: Firefox ships
-  // only partial support, `anchor()` is invalid in the `max-h` that `Fallbacks` reads,
-  // and it reaches one of the three `--sy-sheet-top` consumers.
+  // CSS anchor positioning cannot retire this loop, so no `build.target` raise does
+  // either. `anchor()` is valid only in inset properties, and `Fallbacks`'
+  // `CENTERED_BODY` reads this variable in `max-height`, so that consumer keeps the
+  // loop running however high the floor goes. The two inset readers — the strip's
+  // `top` above and `DrawerFooter`'s sticky `bottom` — could convert, which trades one
+  // mechanism for two and deletes nothing.
   useEffect(() => {
     // This effect runs for every bottom-sheet view, root included. The strips and the sticky
     // register bar only exist above the root, but `--sy-sheet-top` now has a third consumer.
