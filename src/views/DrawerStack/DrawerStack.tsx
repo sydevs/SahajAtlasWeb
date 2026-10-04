@@ -740,7 +740,7 @@ export function DrawerStack() {
               the menu upward from there. z-50 so it sits above the fill-the-container
               drawer content (z-40, and portaled in last) — otherwise a list row
               would intercept its clicks. */}
-            <SettingsMenu className="absolute bottom-3 start-3 z-50" side="top" />
+            <SettingsMenu className="absolute start-3 bottom-3 z-50" side="top" />
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>

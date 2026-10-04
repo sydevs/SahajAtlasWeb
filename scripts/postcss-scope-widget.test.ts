@@ -99,8 +99,20 @@ describe('scopeSelector', () => {
     // throw, and it does not fail the prefix check — the rule just
     // silently matches nothing. That is the same failure class this
     // pass exists to end, pointed inward, so this check has to be loud.
+    //
+    // A pseudo-element the walk cannot reach is the shape that survives:
+    // it is not trailing, so it stays stuck inside the wrapper.
     expect(() => scopeSelector('.a::before + .b')).toThrow(/silently match nothing/)
-    expect(() => scopeSelector('.a > ::before')).toThrow(/silently match nothing/)
+  })
+
+  it('restores the universal selector a CSS optimiser elided before a pseudo-element', () => {
+    // `*::before` and `::before` select the same elements, so dropping
+    // the `*` is a legal optimisation — and v4's own lightningcss pass
+    // makes it, which is how this shape started arriving. Peeling the
+    // pseudo-element off leaves the body ending in a combinator, with
+    // nothing left of the subject compound. These used to throw.
+    expect(scopeSelector('.x>*+:before')).toBe(':where(.sy-atlas) :is(.x>*+*):before')
+    expect(scopeSelector('.a > ::before')).toBe(':where(.sy-atlas) :is(.a > *)::before')
   })
 
   it('does not mistake an escaped variant class for a pseudo-element', () => {
@@ -339,7 +351,9 @@ describe('the defensive reset, retired by the shadow root (#236)', () => {
   // which is why re-introducing the reset must trip a gate rather than a
   // memory. This test asserts a STRING, the honest limit of a node lane:
   // whether a browser paints a glyph is not a question it can answer.
-  const css = readFileSync('src/styles/globals.css', 'utf8')
+  // The sheet is host-reset.css since #246: v4's entry is `@import`, and an
+  // `@import` has to lead the file, so a rule can no longer sit above it.
+  const css = readFileSync('src/styles/host-reset.css', 'utf8')
 
   // Comments stripped, because the retirement note above the baseline QUOTES the rule it
   // retired — and a test that cannot tell a declaration from a mention would force the
@@ -353,5 +367,38 @@ describe('the defensive reset, retired by the shadow root (#236)', () => {
   it('records what re-introducing it would cost, so the next author reads it first', () => {
     expect(css).toMatch(/SVG 2 geometry/)
     expect(css).toMatch(/#236/)
+  })
+})
+
+describe('cascade layers are flattened', () => {
+  // An author layer LOSES to a host page's unlayered rules, so a layer is the one
+  // thing this sheet can never ship (#156). globals.css imports Tailwind's parts
+  // without a `layer()` clause for that reason; this pass closes the remaining
+  // door, including the `@layer properties` block v4 emits for its own
+  // `@property` fallback.
+  it('unwraps a layer block, keeping its rules and their position', async () => {
+    const css = await run('.a { color: red }\n@layer properties { .b { color: blue } }\n')
+
+    expect(css).not.toContain('@layer')
+    expect(css).toContain(':where(.sy-atlas) .b')
+    // Position is kept, so the flattened rules still lose to what follows them.
+    expect(css.indexOf('.a')).toBeLessThan(css.indexOf('.b'))
+  })
+
+  it('drops a bare layer-order statement, which has no rules to keep', async () => {
+    const css = await run('@layer properties;\n.a { color: red }\n')
+
+    expect(css).not.toContain('@layer')
+    expect(css).toContain(':where(.sy-atlas) .a')
+  })
+
+  it('scopes rules that were nested inside a layer', async () => {
+    // They have to come out SCOPED, not merely unwrapped: a rule inside an
+    // at-rule is already scopeable, so flattening must not change what the
+    // walk sees.
+    const css = await run('@layer base { .a > .b::before { color: red } }\n')
+
+    expect(css).not.toContain('@layer')
+    expect(css).toContain(':where(.sy-atlas) :is(.a > .b)::before')
   })
 })

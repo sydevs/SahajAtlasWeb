@@ -59,6 +59,17 @@ cover everything a host would notice since the widget was first deployed.
   root — so the region lives where the lookup can find it. It is empty except while announcing,
   clips itself with inline styles, and is removed when the field unmounts. Without it, a
   screen-reader user gets no suggestion counts at all.
+- **Firefox 128 is now the minimum, up from 114.** ([#246]) The stylesheet is what moved it:
+  the published floor is Tailwind 4's own declared minimum, and Chrome 111 and Safari 16.4
+  already met it. A Firefox between 114 and 127 is **not** unstyled — Tailwind ships an
+  `@supports`-guarded fallback for exactly those versions and this build keeps it, so the
+  widget still renders. See [Browser support](embedding.md#browser-support). No CSP row
+  changes, no new origin, and no change to the snippet or its attributes.
+
+- **The widget registers 62 document-global `@property` names, all `--tw-…`.** ([#246]) Tailwind
+  4 composes its utilities through them, and a registered name carries a typed initial value and
+  `inherits: false` into your document. The build gate allows that one prefix and fails on any
+  other. See [What the widget does to your page](embedding.md#what-the-widget-does-to-your-page).
 
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
@@ -258,6 +269,15 @@ cover everything a host would notice since the widget was first deployed.
   `Permissions-Policy` header on your own page can deny to a script embed. All three fail
   **silently** — the locate control does nothing, copy-link does nothing, the share sheet never
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
+
+### Fixed
+
+- **On a regional locale, the recommended order promotes events in the visitor's own language
+  again.** ([#223]) Two of the languages you can offer are regional — Brazilian Portuguese and
+  Australian English — and on those every event counted as foreign, so the default order fell
+  back to deciding on distance alone. A visitor on Brazilian Portuguese now sees Portuguese
+  classes above equidistant ones in another language, as a visitor on any other locale already
+  did. No parameter and no origin changes, and `closest` and `soonest` were never affected.
 
 ### Removed
 
@@ -659,9 +679,11 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#213]: https://github.com/sydevs/SahajAtlasWeb/pull/213
 [#216]: https://github.com/sydevs/SahajAtlasWeb/issues/216
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
+[#223]: https://github.com/sydevs/SahajAtlasWeb/issues/223
 [#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
 [#242]: https://github.com/sydevs/SahajAtlasWeb/pull/242
 [#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
+[#246]: https://github.com/sydevs/SahajAtlasWeb/issues/246
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [Sizing the element]: docs/embedding.md#sizing-the-element

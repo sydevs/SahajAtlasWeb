@@ -34,72 +34,250 @@
 @import '@radix-ui/colors/red.css';
 @import '@radix-ui/colors/red-dark.css';
 
-/* ── The host-CSS boundary is the SHADOW ROOT now (#236) ────────────────────────
-   The PostCSS scoping pass (#91) stops OUR rules escaping into a host's page. This is the
-   other direction, and it is no longer CSS's job: `src/Widget.tsx` mounts the widget in a
-   shadow root, and a host selector cannot match inside one at any specificity, with or
-   without `!important`.
+/* The #156 defensive reset, which MUST precede Tailwind's preflight — see that
+   file's header for why its position is load-bearing. */
+@import './host-reset.css';
 
-   **What stood here was `:where(.sy-atlas) :where(*:not(svg, svg *)) { all: revert }`, and
-   it could not have held.** It was deliberately (0,0,0) so it would stay under our own
-   Tailwind utilities (0,1,0) — which bounded it above by our rules while a host's selector
-   was bounded by nothing. One class on their side and they led again. Measured across the
-   WordPress theme fleet, the widget's typeface was lost on 24 of 72 page checks, by
-   non-`!important` rules as ordinary as `body h2 { font-family }`. Raising the specificity
-   would have lowered that number and never reached zero, which is why the reset retired
-   rather than grew.
+@import 'tailwindcss/theme.css' source(none);
+@import 'tailwindcss/preflight.css';
+/* v3's `@layer base` — after preflight, before the utilities it must lose to.
+   See that file's header. */
+@import './base.css';
+@import 'tailwindcss/utilities.css' source(none);
 
-   Two of its hazards retired with it, and both are worth not re-deriving: it forced a style
-   recalc over the whole scope at about 2x the cost of one outside it (41ms vs 20ms over
-   3,200 nodes, Chrome 151), and `all: revert` rolled SVG 2 geometry — `d`, `fill`, `cx`,
-   `r` — back to its initial value, which rendered every icon in the widget as nothing
-   until the `:not(svg, svg *)` exclusion was added. Neither cost is being paid any more.
+/* Tailwind v4, imported PART BY PART and deliberately WITHOUT a `layer()` clause.
+ *
+ * The one-line `@import 'tailwindcss'` wraps everything in real cascade layers
+ * (`@layer theme, base, components, utilities`). That would invert the defensive reset
+ * above: unlayered author styles outrank EVERY author layer, so a host page's
+ * `button { ... }` would win against our utilities — the #156 failure, re-armed for the
+ * whole utility set. Importing the parts unlayered emits no `@layer` at all, which is
+ * v3's cascade position exactly. `scripts/postcss-scope-widget.mjs` flattens the one
+ * `@layer properties` Tailwind still emits for its `@property` fallback.
+ *
+ * `source(none)` plus the explicit `@source` lines replace v3's `content` array.
+ * Scanning all of `src` is deliberate: a directory rename must never silently drop a
+ * utility. The old pages/ and layouts/ globs did exactly that, when the drawer rework
+ * moved views into src/views/.
+ *
+ * Paths resolve against THIS file, not the project root.
+ */
+@source '../../index.html';
+@source '../../src';
+@source '../../.ladle';
 
-   ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further.
-   A shadow root creates no containing block, so the fixed layer is unaffected by the move —
-   but the measured table in `src/components/AGENTS.md` still holds: both re-parent
-   `position: fixed` descendants to the host element, which would break the map canvas,
-   every drawer, the peek strips, and the settings cog. `container-type` does not. `contain`
-   and `transform` do. */
+/* v3's `darkMode: 'class'`. Keeps `src/hooks/use-theme.ts` and Ladle's theme addon
+   working unchanged: `dark:bg-primary` compiles to
+   `.dark\:bg-primary:where(.dark, .dark *)`. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* **This survives the shadow root, and it is the half that was never about selectors.**
-   INHERITED properties cross a shadow boundary exactly as they cross into any element, so
-   a host's `font-family`, `color`, or `letter-spacing` set on `<body>` still reaches every
-   line of our copy through `<sahaj-atlas>`. Restating them here is what makes the widget
-   the root of its own world, and it is why #236 retired the reset above WITHOUT retiring
-   this.
+/* The theme. This is v3's `tailwind.config.js`, which is deleted.
+ *
+ * Every scale is re-pinned in px. v4's own defaults are rem, and a host page that sets
+ * `html { font-size: 62.5% }` rescales every rem in a sheet injected into their head —
+ * it once shrank the side panel to 220px (#238). `pnpm assert:css` fails the build on a
+ * rem declaration outside the lazy calendar chunk.
+ *
+ * `*: initial` clears a namespace before re-declaring it, because the v3 config
+ * REPLACED these scales rather than extending them. Without the clear, v4's rem-based
+ * defaults survive alongside ours: `text-3xl` would start emitting `1.875rem` where
+ * today it generates nothing at all.
+ */
+@theme {
+  /* v4 derives the whole spacing scale from this one variable — `.p-4` compiles to
+     `calc(var(--spacing) * 4)` — so one line re-pins all 37 of v3's entries. */
+  --spacing: 4px;
 
-   ⚠ **Unlayered, and it has to be.** Put inside `@layer base` (where it started), it lost
-   to unlayered author styles — and that trap did not leave with the reset, because the
-   host's own declarations are unlayered too. Verified in a browser. The symptom is subtle
-   enough to ship unnoticed.
+  /* v3's screens, which were px. A media query's `rem` resolves against the browser's
+     INITIAL font size, not the root's, so v4's 40rem default is not a #238 bug — these
+     are pinned for parity with v3 and to keep the sheet literally rem-free. */
+  --breakpoint-*: initial;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 
-   Specificity (0,1,0) rather than `:where()`, so it still loses to every Tailwind utility —
-   a component that sets its own `text-*` or `font-*` keeps winning. */
-.sy-atlas {
-  /* The height of the box the widget's FIXED layer resolves against — the viewport
-     normally, a frame when one has taken the containing block.
+  /* v4 renamed this scale one step down (its `sm` is v3's `DEFAULT`), so the names are
+     written out rather than inherited: `rounded-sm` has to stay 2px. */
+  --radius-*: initial;
+  --radius: 4px;
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
 
-     Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is correct
-     only while nothing has taken that block. Two elements deliberately do, both with
-     `contain: layout`: `CompactEmbedView`'s dialog, which keeps a margin — so inside it
-     `100dvh` overshoots by 16-32px and the sheet, its peek strips, and the sticky
-     Register bar all overrun the clip edge — and `MapFrame` (#169), which is however
-     tall the host made their element. `100%` on a fixed child resolves against its
-     containing block, which is the frame there and the viewport everywhere else, so one
-     token is right in all three places. */
-  --sy-frame-h: 100dvh;
-  color: hsl(var(--foreground));
-  font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);
-  letter-spacing: normal;
-  text-align: start;
-  text-transform: none;
-  word-spacing: normal;
+  /* v3's `maxWidth` and `columns`, which v4 unifies into one namespace. v3's `maxWidth`
+     was a function taking `breakpoints(theme('screens'))`; v4 has no such helper, so the
+     `screen-*` keys it generated are gone — nothing used them. */
+  --container-*: initial;
+  --container-3xs: 256px;
+  --container-2xs: 288px;
+  --container-xs: 320px;
+  --container-sm: 384px;
+  --container-md: 448px;
+  --container-lg: 512px;
+  --container-xl: 576px;
+  --container-2xl: 672px;
+  --container-3xl: 768px;
+  --container-4xl: 896px;
+  --container-5xl: 1024px;
+  --container-6xl: 1152px;
+  --container-7xl: 1280px;
+  --container-prose: 65ch;
+
+  /* v3 declared `fontSize` twice; the second block won outright, so this scale stops at
+     `2xl` on purpose. `text-3xl` generated nothing under v3 and still generates nothing. */
+  --text-*: initial;
+  --text-xs: 12px;
+  --text-xs--line-height: 1.66667;
+  --text-xs--letter-spacing: 0.36px;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.5;
+  --text-sm--letter-spacing: 0.36px;
+  --text-base: 14px;
+  --text-base--line-height: 1.2;
+  --text-md: 14px;
+  --text-md--line-height: 1.2;
+  --text-lg: 17px;
+  --text-lg--line-height: 1.2;
+  --text-lg--font-weight: 600;
+  --text-xl: 20px;
+  --text-xl--line-height: 1.2;
+  --text-xl--font-weight: 600;
+  --text-2xl: 30px;
+  --text-2xl--line-height: 1.166667;
+  --text-2xl--letter-spacing: 0.8px;
+
+  --leading-*: initial;
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  --leading-3: 12px;
+  --leading-4: 16px;
+  --leading-5: 20px;
+  --leading-6: 24px;
+  --leading-7: 28px;
+  --leading-8: 32px;
+  --leading-9: 36px;
+  --leading-10: 40px;
+
+  /* Legacy `opacity-hover` (0.8) and `opacity-disabled` (0.5). globals.css `@apply`s
+     `hover:opacity-hover` below, so the build fails outright if these stop resolving. */
+  --opacity-hover: 0.8;
+  --opacity-disabled: 0.5;
+
+  /* The name is 'Atlas Rethink Sans', not 'Rethink Sans'. The faces are self-hosted,
+     declared in src/styles/fonts.ts. `@font-face` is document-global, so the plain name
+     would override a host page's own copy of the font (#91). This one family name covers
+     two typefaces, split by unicode range: Rethink Sans for Latin, Raleway for Cyrillic
+     (Rethink Sans has no Cyrillic glyphs). See fonts.ts.
+     `--sy-font-sans` lets a tenant name a typeface their page already loads. This adds no
+     request and touches no CSP rule. Left unset, the normal case, it falls through to our
+     self-hosted face. v4 has no `defaultTheme` import, so the fallback stacks are
+     written out. */
+  --font-*: initial;
+  --font-sans: var(--sy-font-sans, 'Atlas Rethink Sans'), ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+
+  --background-image-circle-pattern: url('/graphics/circle.svg');
+
+  /* Semantic colour tokens. Brand roles (primary, secondary, contrast) repaint at
+     runtime through the engine's CSS vars (src/config/theme/palette.ts). Neutral (gray)
+     and status (danger) use the fixed Radix Colors ramps globals.css imports above.
+     `danger` stays independent of `secondary` on purpose: a fixed status hue, never
+     overridden per tenant.
+
+     `--color-gray-*` is cleared because v3 REPLACED the gray key: the Radix ramp is
+     1-12, and v4's own 50-950 scale would otherwise sit beside it generating utilities
+     that resolve to a different palette. */
+  --color-gray-*: initial;
+  --color-gray-1: var(--gray-1);
+  --color-gray-2: var(--gray-2);
+  --color-gray-3: var(--gray-3);
+  --color-gray-4: var(--gray-4);
+  --color-gray-5: var(--gray-5);
+  --color-gray-6: var(--gray-6);
+  --color-gray-7: var(--gray-7);
+  --color-gray-8: var(--gray-8);
+  --color-gray-9: var(--gray-9);
+  --color-gray-10: var(--gray-10);
+  --color-gray-11: var(--gray-11);
+  --color-gray-12: var(--gray-12);
+
+  --color-primary: hsl(var(--primary-9));
+  --color-primary-foreground: hsl(var(--primary-on));
+  --color-primary-1: hsl(var(--primary-1));
+  --color-primary-2: hsl(var(--primary-2));
+  --color-primary-3: hsl(var(--primary-3));
+  --color-primary-4: hsl(var(--primary-4));
+  --color-primary-5: hsl(var(--primary-5));
+  --color-primary-6: hsl(var(--primary-6));
+  --color-primary-7: hsl(var(--primary-7));
+  --color-primary-8: hsl(var(--primary-8));
+  --color-primary-9: hsl(var(--primary-9));
+  --color-primary-10: hsl(var(--primary-10));
+  --color-primary-11: hsl(var(--primary-11));
+  --color-primary-12: hsl(var(--primary-12));
+
+  --color-secondary: hsl(var(--secondary-9));
+  --color-secondary-foreground: hsl(var(--secondary-on));
+  --color-secondary-1: hsl(var(--secondary-1));
+  --color-secondary-2: hsl(var(--secondary-2));
+  --color-secondary-3: hsl(var(--secondary-3));
+  --color-secondary-4: hsl(var(--secondary-4));
+  --color-secondary-5: hsl(var(--secondary-5));
+  --color-secondary-6: hsl(var(--secondary-6));
+  --color-secondary-7: hsl(var(--secondary-7));
+  --color-secondary-8: hsl(var(--secondary-8));
+  --color-secondary-9: hsl(var(--secondary-9));
+  --color-secondary-10: hsl(var(--secondary-10));
+  --color-secondary-11: hsl(var(--secondary-11));
+  --color-secondary-12: hsl(var(--secondary-12));
+
+  --color-contrast: hsl(var(--contrast-9));
+  --color-contrast-foreground: hsl(var(--contrast-on));
+  --color-contrast-1: hsl(var(--contrast-1));
+  --color-contrast-2: hsl(var(--contrast-2));
+  --color-contrast-3: hsl(var(--contrast-3));
+  --color-contrast-4: hsl(var(--contrast-4));
+  --color-contrast-5: hsl(var(--contrast-5));
+  --color-contrast-6: hsl(var(--contrast-6));
+  --color-contrast-7: hsl(var(--contrast-7));
+  --color-contrast-8: hsl(var(--contrast-8));
+  --color-contrast-9: hsl(var(--contrast-9));
+  --color-contrast-10: hsl(var(--contrast-10));
+  --color-contrast-11: hsl(var(--contrast-11));
+  --color-contrast-12: hsl(var(--contrast-12));
+
+  --color-danger: var(--red-9);
+  --color-danger-foreground: #ffffff;
+  --color-danger-1: var(--red-1);
+  --color-danger-2: var(--red-2);
+  --color-danger-3: var(--red-3);
+  --color-danger-4: var(--red-4);
+  --color-danger-5: var(--red-5);
+  --color-danger-6: var(--red-6);
+  --color-danger-7: var(--red-7);
+  --color-danger-8: var(--red-8);
+  --color-danger-9: var(--red-9);
+  --color-danger-10: var(--red-10);
+  --color-danger-11: var(--red-11);
+  --color-danger-12: var(--red-12);
+
+  --color-background: hsl(var(--background));
+  --color-foreground: var(--gray-12);
+  --color-divider: var(--gray-6);
+  --color-focus: hsl(var(--primary-9));
 }
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 /* Built-in brand defaults — the three themeable roles (primary teal #1E6C71,
    secondary blue #A1C3D7, contrast orange #e08e79) as a 12-step ramp each, in the
@@ -228,101 +406,48 @@
   display: none;
 }
 
-@layer base {
-  /* `line-height` is restated because Preflight sets it on `html` and then
-     `inherit` on `body`, and inside the widget both of those ARE the theme
-     root — so the second lands on the same element as the first and
-     inherits the HOST's value. The rest of the inherited baseline is NOT
-     here. It sits unlayered beside the reset, for the reason given there.
-     (`body { margin: 0 }` collapses the same way and is harmless: the
-     wrapper is `display: contents` and has no box to give a margin to.) */
-  .sy-atlas {
-    line-height: 1.5;
-  }
-
-  /* …and the `margin: 0` half of that same body rule has to be restated for the
-     STANDALONE build, where the scope sits on <html> and there is a real <body> below it
-     that the collapsed rule no longer reaches — it kept the UA's 8px, which pushed a
-     `100dvh` map-less page 16px past the viewport and grew a scrollbar. Written against
-     `.sy-atlas` so the pass leaves it alone. It is inert in the embed, where nothing inside the
-     wrapper is a <body>. */
-  .sy-atlas body {
-    margin: 0;
-  }
-
-  /* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
-     or `:root`. This stylesheet is injected into the HOST document, and Swiper is a
-     popular library, so `.swiper` roots routinely exist on host pages: theming that
-     selector reaches straight into their carousels. White-at-0.5 bullets would make
-     a host's pagination invisible on a light background, which is a worse outcome
-     than the wrong-but-visible tint this used to leak.
-
-     This insets the pagination INTO the bottom of the image. Bullet size and shape
-     are Swiper's own defaults (round, clickable) — no custom bar styling. The
-     bullets sit ON the photo (the carousel is full-bleed and ends flush with the
-     view), so they cannot be themed off the widget's palette — they have to survive
-     whatever image is under them. Hence white, rather than brand primary, plus the
-     halo: a white wall or a bright sky is exactly where a tinted bullet disappears. */
-  .sy-carousel {
-    --swiper-pagination-bottom: 12px;
-    --swiper-theme-color: #fff;
-    --swiper-pagination-bullet-inactive-color: #fff;
-    --swiper-pagination-bullet-inactive-opacity: 0.5;
-  }
-
-  .sy-carousel .swiper-pagination-bullet {
-    box-shadow:
-      0 0 2px rgb(0 0 0 / 0.7),
-      0 1px 3px rgb(0 0 0 / 0.5);
-  }
-
-  /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host
-     page — repainting its <main> to a hardcoded grey and forcing `color: inherit
-     !important` onto every anchor on the page. This app renders no <main> at all, and
-     every <a> it renders sets its own colour (see the Link atom's variants), so
-     neither rule bought this app anything it was not already getting locally. */
+/* v3's `@layer components` and `@layer utilities`. `@utility` is v4's registration
+   for a custom class: it emits with the utilities, and — the part that is not
+   cosmetic — it is what lets `@apply bg-panel` below resolve at all. v4's `@apply`
+   takes utilities, and a bare class inside a layer is not one. */
+@utility bg-panel {
+  @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150;
 }
 
-@layer components {
-  .bg-panel {
-    @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150;
-  }
-
-  .bg-panel-thin {
-    @apply bg-panel bg-background/70;
-  }
-
-  .bg-panel-hover {
-    @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150 hover:bg-background/70;
-  }
+@utility bg-panel-thin {
+  @apply bg-panel bg-background/70;
 }
 
-@layer utilities {
-  .flex-center {
-    @apply flex items-center justify-center;
-  }
+@utility bg-panel-hover {
+  @apply bg-background/90 backdrop-blur-lg backdrop-saturate-150 hover:bg-background/70;
+}
 
-  .flex-center-x {
-    @apply flex justify-center;
-  }
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
 
-  .flex-center-y {
-    @apply flex items-center;
-  }
+@utility flex-center-x {
+  @apply flex justify-center;
+}
 
-  /* Applied wherever this app renders host-authored rich text. Wrapping is a
-     property of THAT — not of the panel it happens to sit in — so it lives
-     here, and the next prose surface inherits it: one unbreakable run (a
-     pasted URL, or the strings of U+2800 braille blanks authors use as
-     spacing) otherwise widens the scroll container and gives the whole
-     drawer a horizontal scrollbar. */
-  .colored-links {
-    @apply break-words;
-  }
+@utility flex-center-y {
+  @apply flex items-center;
+}
 
-  .colored-links a {
-    @apply text-primary hover:opacity-hover !important;
-  }
+/* Applied wherever this app renders host-authored rich text. Wrapping is a
+   property of THAT — not of the panel it happens to sit in — so it lives
+   here, and the next prose surface inherits it: one unbreakable run (a
+   pasted URL, or the strings of U+2800 braille blanks authors use as
+   spacing) otherwise widens the scroll container and gives the whole
+   drawer a horizontal scrollbar. */
+@utility colored-links {
+  @apply break-words;
+}
+
+/* v4 marks importance per utility, with a trailing `!`. The v3 trailing `!important`
+   keyword is parsed as a utility name and fails the build outright. */
+.colored-links a {
+  @apply text-primary! hover:opacity-hover!;
 }
 
 /* Schedule-X (CalendarView) theming. This maps its Material-style `--sx-*` tokens onto

@@ -47,7 +47,7 @@ export const Default: Story = () => (
       title="Examples"
     >
       <div className="relative h-32 w-full overflow-hidden rounded-lg bg-gray-4">
-        <SettingsMenu className="absolute bottom-3 start-3" side="top" />
+        <SettingsMenu className="absolute start-3 bottom-3" side="top" />
       </div>
     </StorySection>
 

@@ -34,7 +34,7 @@ Fewer custom components means less maintenance and a more consistent look.
 
 ## Styling
 
-- Tailwind 3 utility classes are the default. For components with variants
+- Tailwind 4 utility classes are the default. For components with variants
   (size, color, state), use **`tailwind-variants`** (`tv(...)`) instead of ad-hoc
   `clsx` string concatenation — it is already a dependency and matches the Radix +
   Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference.
@@ -61,7 +61,10 @@ pipeline or its check.
   swiper, vaul, Radix Colors) included — and it namespaces every `@keyframes`.
   `scripts/assert-css-scoped.mjs` reads the CSS back out of the built bundle and
   fails `pnpm build` if anything escapes. Write plain selectors in `globals.css`.
-  Hand-scoping is not required.
+  Hand-scoping is not required. Three namespaces are document-global and carry no
+  selector to scope: `@keyframes`, which the pass renames, plus `@font-face` families
+  and `@property` names, which it cannot — Tailwind writes the `var()` refs itself — so
+  the gate allowlists those two by name. Registering one of our own fails the build.
 - **Why the check walks left instead of anchoring the head** (issue #104): swiper 12
   shipped native CSS nesting, and the scoping pass correctly leaves a nested rule to
   its parent's prefix. The MINIFIER then runs after us and flattens that nesting,

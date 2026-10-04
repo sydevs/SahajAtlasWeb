@@ -122,7 +122,7 @@ function EventListItemImpl({ event, searchedPlace }: EventListItemProps) {
         onMouseEnter={activate}
         onMouseLeave={deactivate}
       >
-        <div className="line-clamp-2 font-semibold leading-tight">{event.title}</div>
+        <div className="line-clamp-2 leading-tight font-semibold">{event.title}</div>
         <EventFacts
           className="my-1"
           distance={

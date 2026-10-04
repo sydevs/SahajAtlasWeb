@@ -8,11 +8,11 @@ import { tv } from 'tailwind-variants'
 // primary ramp.
 const slider = tv({
   slots: {
-    root: 'relative flex w-full touch-none select-none items-center data-[disabled]:opacity-disabled',
+    root: 'relative flex w-full touch-none items-center select-none data-[disabled]:opacity-disabled',
     track: 'relative h-1.5 grow rounded-full bg-gray-6',
     range: 'absolute h-full rounded-full bg-primary-9',
     thumb:
-      'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus',
+      'block h-4 w-4 rounded-full border border-gray-7 bg-gray-1 shadow transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus',
   },
   variants: {
     // Active-filter tint. This colours the UNFILLED track and thumb border

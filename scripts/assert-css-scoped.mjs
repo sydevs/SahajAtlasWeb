@@ -150,6 +150,16 @@ function fail(message) {
 // it through by name, so the exemption stays visible instead of silent.
 const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
 
+// `@property` is the third document-global namespace, beside `@keyframes`
+// and `@font-face`, and it arrived with Tailwind 4: the utilities compose
+// through registered `--tw-*` custom properties. Registering a name in the
+// host document imposes `inherits: false` and a typed initial value on it
+// there, so a host page using the same name gets our semantics. Unlike a
+// keyframe, these cannot be namespaced — Tailwind writes the `var()` refs
+// itself. So the prefix is allowed by name, the way Swiper's font family
+// is, and anything else fails loudly rather than shipping unnoticed.
+const ALLOWED_PROPERTY = /^--tw-[a-z0-9-]+$/
+
 // Schedule-X's theme is the one sheet allowed `rem`: third-party, pinned,
 // and injected only by the lazy calendar chunk. Its rem lengths also prove
 // the detector below still matches the minifier's output — finding none
@@ -180,6 +190,7 @@ function remLengths(root) {
 
 let sheets = 0
 let rules = 0
+let properties = 0
 
 // The exemption belongs to a FILE, so this is checked per injection, not per
 // unique sheet: an identical copy injected from another chunk must not ride
@@ -266,6 +277,18 @@ for (const file of distFiles('.js')) {
         )
       }
     })
+
+    root.walkAtRules('property', (atRule) => {
+      const name = atRule.params.trim()
+
+      properties += 1
+
+      if (!ALLOWED_PROPERTY.test(name)) {
+        fail(
+          `${file}: @property ${name} registers a document-global name — it would impose our initial value and \`inherits: false\` on a host page's own ${name}`,
+        )
+      }
+    })
   }
 }
 
@@ -307,7 +330,17 @@ if (calendarRem === 0) {
   )
 }
 
+// Tailwind 4 registers these for every composed utility in the sheet, so
+// none at all means the walk stopped matching, not that the sheet stopped
+// registering. Without this the check above would pass vacuously.
+if (properties === 0) {
+  fail(
+    'found no @property in the injected CSS — Tailwind registers one per composed utility, so ' +
+      'either the sheet no longer reaches this gate or the walk stopped matching',
+  )
+}
+
 console.log(
   `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
-    `with no rem outside the calendar chunk`,
+    `${properties} @property registration(s) allowlisted, with no rem outside the calendar chunk`,
 )

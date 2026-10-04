@@ -17,7 +17,7 @@ import { isSafeHref } from '@/lib/shape'
  * scanner can only see literal classes.
  */
 export const controlSurface = tv({
-  base: 'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[background,color,opacity]',
+  base: 'inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap transition-[background,color,opacity]',
   variants: {
     color: { primary: '', secondary: '', contrast: '', neutral: '' },
     variant: {

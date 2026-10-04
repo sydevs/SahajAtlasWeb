@@ -9,27 +9,29 @@
     "the ticket or reason. Removing entries is the point: the weekly audit workflow fails",
     "when a listed advisory is no longer reported, so a fix prunes its own line.",
     "",
-    "The list was 27 entries — booked on 2026-08-06/07 against #101 and #104 — and #101",
-    "cleared all of them: an in-range `pnpm update` (the lockfile was sitting at the floor",
-    "of ranges that already allowed the patched versions), one devDependency pin raised so",
-    "tailwindcss would stop deduping onto a vulnerable postcss, and #104's swiper 12 major",
-    "before it. It then sat empty until 2026-10-03.",
+    "THE LIST IS EMPTY, and that is a real state rather than a missing file. It was 27",
+    "entries — booked on 2026-08-06/07 against #101 and #104 — and #101 cleared all of",
+    "them: an in-range `pnpm update` (the lockfile was sitting at the floor of ranges that",
+    "already allowed the patched versions), one devDependency pin raised so tailwindcss",
+    "would stop deduping onto a vulnerable postcss, and #104's swiper 12 major before it.",
+    "`pnpm audit --prod` reports 0 high and 0 critical.",
     "",
-    "Two of those entries needed no fix of their own. The `image-size` pair had no published",
-    "patch and were expected to sit here for a while; payload 3.87.1 dropped the dependency,",
-    "so they left the graph instead of being waited out. Worth remembering the next time an",
+    "#246 booked GHSA-vfj7-8cjw-p6xm (braces) here briefly and deleted it in the same PR.",
+    "That advisory has no published fix, so the only exit was to stop depending on the",
+    "package that carried it: tailwindcss 4 declares zero dependencies, which took all six",
+    "paths to `braces` out of the production graph at once. Worth remembering alongside the",
+    "`image-size` note below — twice now, an unpatched transitive left the graph instead of",
+    "being waited out.",
+    "",
+    "Two entries needed no fix of their own. The `image-size` pair had no published patch",
+    "and were expected to sit here for a while; payload 3.87.1 dropped the dependency, so",
+    "they left the graph instead of being waited out. Worth remembering the next time an",
     "unpatched transitive looks permanent.",
     "",
-    "A refilled list re-arms the gate's 'the audit stopped looking' tell — zero findings",
-    "against a non-empty baseline. check-audit.mjs also sizes the graph it walked, which is",
-    "what covered that gap while the list was empty. Read the comment there before assuming",
-    "a green run means anything."
+    "An empty list also retires the gate's old 'the audit stopped looking' tell (zero",
+    "findings against a non-empty baseline). check-audit.mjs now checks the size of the",
+    "graph it walked instead — see the comment there before assuming a green run means",
+    "anything."
   ],
-  "advisories": {
-    "GHSA-vfj7-8cjw-p6xm": {
-      "package": "braces",
-      "ticket": "#246",
-      "reason": "No patched braces exists — 3.0.3 is the newest published version. Reaches the production graph only through tailwindcss 3's chokidar, fast-glob and micromatch, so the deeply nested patterns are our own build-time content globs. #246 holds both exits: wait for 3.0.4, or the tailwindcss 4 major that drops the dependency."
-    }
-  }
+  "advisories": {}
 }

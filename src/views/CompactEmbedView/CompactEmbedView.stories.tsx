@@ -67,7 +67,7 @@ function Interface({ view }: { view: InterfaceKey }) {
 function HostPage({ children }: { children: React.ReactNode }) {
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-4 p-8 font-serif text-[15px] leading-relaxed text-gray-12">
-      <h1 className="text-3xl font-sans font-bold">Learning to meditate</h1>
+      <h1 className="font-sans text-2xl font-bold">Learning to meditate</h1>
       <p>
         This is a page on somebody else&rsquo;s website — a national Sahaja Yoga site, a local
         centre, a WordPress blog. The widget is embedded in the sidebar below, in whatever column
