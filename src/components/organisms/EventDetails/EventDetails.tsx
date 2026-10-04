@@ -117,7 +117,7 @@ export function EventDetails({
           <div
             dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
             // `colored-links` carries the host-prose treatment, wrapping included.
-            className="colored-links flex flex-col gap-2 text-sm normal-nums leading-snug"
+            className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
           />
         </div>
       )}

@@ -106,7 +106,7 @@ export function ActiveFilterPills() {
   if (pills.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-1.5 px-4 pb-2 pt-1">
+    <div className="flex flex-wrap gap-1.5 px-4 pt-1 pb-2">
       {pills.map((pill) => (
         <Chip
           key={pill.key}

@@ -12,7 +12,7 @@ import { tv } from 'tailwind-variants'
 const toggleGroup = tv({
   slots: {
     root: 'inline-flex items-center',
-    item: 'relative inline-flex h-8 min-w-8 select-none items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 outline-none transition-colors hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
+    item: 'relative inline-flex h-8 min-w-8 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-9 data-[state=on]:bg-primary-9 data-[state=on]:text-primary-foreground',
   },
   variants: {
     joined: {

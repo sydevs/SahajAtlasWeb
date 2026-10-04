@@ -52,7 +52,7 @@ experience, with a country → region → area → venue → event hierarchy.
 | Concern | Choice |
 | --- | --- |
 | Build tool | Vite 8 (`vite.config.ts`), `type: module`. Two entries: `index.html` (app) and `src/Widget.tsx` → `embed.js`. |
-| UI | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 3 plus **tailwind-variants**. |
+| UI | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 4 (CSS-first `@theme`) plus **tailwind-variants**. |
 | Map | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers. |
 | Routing | `react-router` v7 over a hand-written history (`src/router.tsx`, `src/lib/shape/routing.ts`). The route is the `?atlas=` query parameter on the host's page URL — indexable, shareable, and it never touches `#anchor`. `routing=path` puts it in the pathname instead, under a prefix from the client record's `canonical.embed`, so path mode waits for that record before it routes. It uses in-memory routing only where the document refuses `replaceState` (#154). |
 | Data | **TanStack Query** plus **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-checked responses. |

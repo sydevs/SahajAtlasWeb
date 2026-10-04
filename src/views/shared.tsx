@@ -231,7 +231,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
         {count > 0 && (
           <span
             aria-hidden
-            className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-xs font-semibold leading-none text-primary-foreground"
+            className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-9 px-1 text-xs leading-none font-semibold text-primary-foreground"
           >
             {count}
           </span>
