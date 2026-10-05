@@ -58,7 +58,7 @@ const FLY_SPEED = 1.0
 // Everything after that flies exactly as before, which keeps drilling in and backing out symmetric.
 //
 // Two mechanics are worth stating here.
-// Both were measured against mapbox-gl 3.9.2, not assumed, and the obvious guesses are wrong.
+// Both were measured against mapbox-gl 3.32.0, not assumed, and the obvious guesses are wrong.
 //
 //  - The instant point move is `jumpTo`. This is exactly what `flyTo`'s own reduced-motion branch delegates to.
 //    Its `pick` list keeps `padding` and `retainPadding`, so the drawer offset survives the jump the same way it survives that branch.
