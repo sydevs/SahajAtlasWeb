@@ -13,6 +13,12 @@ client, through **`@payloadcms/sdk`** (`PayloadSDK<Config>`) plus **zod**. The S
 `payload` dependency is types-only — its dist imports only `qs-esm` at runtime — so
 only the SDK and `qs-esm` reach the public bundle (this replaced `axios` + `qs`, #41).
 
+**`@payloadcms/live-preview-react` is pinned exact, and the version it is pinned to is
+SahajCloud's own `payload` version, not the newest published one.** It is the one dependency
+whose semantics are the producer's rather than a standard's: it merges a message SahajCloud
+mints. A caret would let a fresh resolve carry it ahead of the CMS. Move it when SahajCloud
+moves, in the same bump as `@payloadcms/sdk`.
+
 ## Generated types
 
 - `src/types/payload/` holds the synced `payload-types.ts` plus `response-types.ts`
