@@ -207,9 +207,41 @@ export function mountDecision(input: {
   }
 
   // In path mode the pathname is the route, so it always came from the page. There is
-  // no "nobody asked" state that falls back to a configured default. The host's server
-  // chose to serve us this URL.
+  // no "nobody asked" state that falls back to a configured default — the prefix root IS
+  // the root view, with no other URL. The script's `atlas` default reaches it another way:
+  // as the home route, below.
   return { mode: 'path', path: fromPath, routing: 'path', fromPage: fromPath !== '/', prefix }
+}
+
+/**
+ * Where the interface goes the first time it opens on the root view, or `undefined` to stay.
+ *
+ * The client record's home region has always done this, from `FullInterface`. In path mode the
+ * script's `atlas` default does it too, and outranks the region: the host chose it for this page,
+ * and `mountDecision` cannot honour it at boot, because the prefix root already names the root
+ * view. So a host on `routing=path` that sets `atlas=/gb` gets `/gb` the way query mode gets it —
+ * except that the move is a navigation, so Back returns to the world list.
+ *
+ * In query mode the default was already the boot route, so the interface never opens on the root
+ * because of it, and only the region applies. A route that came from the page is a visitor's
+ * choice, never a default.
+ */
+export function homePathFor({
+  routing,
+  route,
+  routeFromPage,
+  region,
+}: {
+  routing: 'query' | 'path'
+  route?: string
+  routeFromPage: boolean
+  region?: string
+}): string | undefined {
+  const start = routing === 'path' && !routeFromPage ? route : undefined
+
+  return (
+    (start && start !== '/' ? start : undefined) ?? (region && region !== '/' ? region : undefined)
+  )
 }
 
 /**
