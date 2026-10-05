@@ -41,8 +41,8 @@ importers:
         specifier: 1.0.0-beta.24
         version: 1.0.0-beta.24(mapbox-gl@3.32.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@payloadcms/live-preview-react':
-        specifier: 3.88.0
-        version: 3.88.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 3.90.2
+        version: 3.90.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@payloadcms/sdk':
         specifier: ^3.90.2
         version: 3.90.2(graphql@16.14.2)(typescript@5.6.3)
@@ -1018,14 +1018,14 @@ packages:
   '@oxc-project/types@0.152.0':
     resolution: {integrity: sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw==}
 
-  '@payloadcms/live-preview-react@3.88.0':
-    resolution: {integrity: sha512-Pmlo1xczmOetyyC4rhtp50b0/biYE62+w09hKImN26v8DBNCqZ8b699mknOCo60mar4V4KrlvksCpL9t2e0dHA==}
+  '@payloadcms/live-preview-react@3.90.2':
+    resolution: {integrity: sha512-hMIlWbZ/WztaOoJi/bMClLVTIJ9jaBHVZammwqtxztjv9okg6xuIzmuZC4k/xBEVa/7nkQQOVig+dgX9fOODkw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.1 || ^19.1.2 || ^19.2.1
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.1 || ^19.1.2 || ^19.2.1
 
-  '@payloadcms/live-preview@3.88.0':
-    resolution: {integrity: sha512-Be6bC3j1Yd+rDfjRKz2MVtfr8hJUHG+jLeRaN2yWjQRoWCxFB9srBmob8FXD7azTS73d56hrDCNyzQx5HbgK6A==}
+  '@payloadcms/live-preview@3.90.2':
+    resolution: {integrity: sha512-N9ryFbTPHgfHOBRK9jLDzR8Gb1OnZWP2JVW11m45Mh89b7eNW7ZDtRtOEMEWocJo7v6xRGBmiiMW6qXrThmR7A==}
 
   '@payloadcms/sdk@3.90.2':
     resolution: {integrity: sha512-Szo5Z9L1Lug08esvZBvYWfSu7U3/zO+SBX3AMWX51Ym4uGXRrtiL0g5FuDaPOcHRvSzZCu6H84e2EWKhJPLfPA==}
@@ -6162,13 +6162,13 @@ snapshots:
 
   '@oxc-project/types@0.152.0': {}
 
-  '@payloadcms/live-preview-react@3.88.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@payloadcms/live-preview-react@3.90.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@payloadcms/live-preview': 3.88.0
+      '@payloadcms/live-preview': 3.90.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@payloadcms/live-preview@3.88.0': {}
+  '@payloadcms/live-preview@3.90.2': {}
 
   '@payloadcms/sdk@3.90.2(graphql@16.14.2)(typescript@5.6.3)':
     dependencies:
