@@ -158,6 +158,12 @@ sending them to your default instead would discard where they asked to go. Use `
 embed that should always open somewhere specific, such as a single city page or a registration
 form.
 
+**Under `routing=path`, the default applies when the interface first opens.** Your page's own
+address is the root view there — there is no other URL for it — so the widget boots at the root
+and then navigates to your default, the same way it opens a client record's home region. Your
+page's URL then shows the route (`/classes/gb/london`), and Back returns to the world list. Your
+default outranks the home region. A deep link to any other route is left alone.
+
 ### The widget follows your page's language
 
 **You usually do not need the `locale` parameter.** The widget reads your page's `<html lang>`

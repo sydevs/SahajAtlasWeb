@@ -272,6 +272,10 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **`atlas=` on the script works under `routing=path`.** ([#250]) It was ignored there: the
+  widget always opened your page's root on the world list. It now navigates to your default
+  when the interface first opens, as it does for a client record's home region, and outranks
+  that region. Query routing is unchanged. See [`atlas`, and how the route is chosen].
 - **On a regional locale, the recommended order promotes events in the visitor's own language
   again.** ([#223]) Two of the languages you can offer are regional — Brazilian Portuguese and
   Australian English — and on those every event counted as foreign, so the default order fell
@@ -681,6 +685,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
 [#223]: https://github.com/sydevs/SahajAtlasWeb/issues/223
 [#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
+[#250]: https://github.com/sydevs/SahajAtlasWeb/pull/250
+[`atlas`, and how the route is chosen]: docs/embedding.md#atlas-and-how-the-route-is-chosen
 [#242]: https://github.com/sydevs/SahajAtlasWeb/pull/242
 [#240]: https://github.com/sydevs/SahajAtlasWeb/pull/240
 [#246]: https://github.com/sydevs/SahajAtlasWeb/issues/246

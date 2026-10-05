@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ROUTE_PARAM,
+  homePathFor,
   hrefFor,
   mountDecision,
   mountPrefix,
@@ -484,5 +485,34 @@ describe('pathHrefFor', () => {
     // Ours is inside the parameter. Theirs is left exactly where it was.
     expect(href).toContain('atlas=format%3Dweekly')
     expect(href).toContain('format=online')
+  })
+})
+
+describe('homePathFor', () => {
+  it('sends a path-mode root to the script default, ahead of the home region', () => {
+    expect(
+      homePathFor({ routing: 'path', route: '/gb', routeFromPage: false, region: '/nl' }),
+    ).toBe('/gb')
+  })
+
+  it('falls back to the home region when a path-mode script names no default', () => {
+    expect(homePathFor({ routing: 'path', routeFromPage: false, region: '/nl' })).toBe('/nl')
+  })
+
+  it('leaves query mode to the region, since the default was already the boot route', () => {
+    expect(
+      homePathFor({ routing: 'query', route: '/gb', routeFromPage: false, region: '/nl' }),
+    ).toBe('/nl')
+    expect(homePathFor({ routing: 'query', route: '/gb', routeFromPage: false })).toBeUndefined()
+  })
+
+  it('never treats a route from the page as a default', () => {
+    expect(homePathFor({ routing: 'path', route: '/fr', routeFromPage: true })).toBeUndefined()
+  })
+
+  it('treats the root as nowhere to go', () => {
+    expect(
+      homePathFor({ routing: 'path', route: '/', routeFromPage: false, region: '/' }),
+    ).toBeUndefined()
   })
 })

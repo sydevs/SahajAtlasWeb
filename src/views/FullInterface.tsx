@@ -170,7 +170,8 @@ function FullInterface({
   // back blocked (issue #182).
   useTurnstileGuard()
 
-  // The configured home region opens as a RegionView over CountriesView on first load. Back
+  // The home route — a path-mode host's `atlas` default, else the configured home region
+  // (`homePathFor`) — opens as a RegionView over CountriesView on first load. Back
   // returns to the global list. This runs once — re-visiting `/` shows the list, not a redirect
   // loop.
   //
