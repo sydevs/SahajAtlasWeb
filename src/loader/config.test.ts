@@ -11,7 +11,9 @@ const at = (query: string, pageSearch = '') =>
 
 describe('parseConfig', () => {
   it('reads every documented parameter off the script URL', () => {
-    const config = at('?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london')
+    const config = at(
+      '?key=abc123&map=false&locale=fr&routing=path&atlas=/gb/london&gestures=cooperative',
+    )
 
     expect(config).toEqual({
       key: 'abc123',
@@ -20,13 +22,19 @@ describe('parseConfig', () => {
       routing: 'path',
       route: '/gb/london',
       routeFromPage: false,
+      cooperative: true,
     })
   })
 
   it('defaults every optional parameter to the permissive answer', () => {
     const config = at('?key=abc123')
 
-    expect(config).toMatchObject({ map: true, routing: 'query', routeFromPage: false })
+    expect(config).toMatchObject({
+      map: true,
+      routing: 'query',
+      routeFromPage: false,
+      cooperative: false,
+    })
     expect(config.locale).toBeUndefined()
     expect(config.route).toBeUndefined()
   })
@@ -59,8 +67,17 @@ describe('parseConfig', () => {
       routing: 'query',
       route: undefined,
       routeFromPage: false,
+      cooperative: false,
     })
   })
+
+  // Opt-in by exact name, like `routing=path`: anything else leaves the map taking every gesture.
+  it.each(['', 'true', 'Cooperative', 'greedy', '1'])(
+    'reads gestures=%s as not cooperative',
+    (value) => {
+      expect(at(`?gestures=${value}`).cooperative).toBe(false)
+    },
+  )
 
   // The rule that exists so a typo can never silently switch off a flow the host relies on.
   describe('boolean parameters', () => {

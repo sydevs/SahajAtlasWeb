@@ -230,7 +230,7 @@ describe('the wiring', () => {
     // Inside it, not beside it — a frame whose siblings are the fixed layer contains nothing.
     const frame = source.slice(source.indexOf('<MapFrame'), source.indexOf('</MapFrame>'))
 
-    expect(frame).toContain('<Mapbox />')
+    expect(frame).toMatch(/<Mapbox[\s/]/)
     expect(frame).toContain('<DrawerStack />')
   })
 })
