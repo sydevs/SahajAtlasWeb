@@ -29,6 +29,7 @@ export const DEFAULT_EMBED_CONFIG: LoaderConfig = {
   map: true,
   routing: 'query',
   routeFromPage: false,
+  cooperative: false,
 }
 
 type EmbedBoot = {

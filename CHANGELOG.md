@@ -146,6 +146,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **`gestures=cooperative` lets your page scroll past a contained map.** ([#251]) A map sized
+  into your page took every wheel and one-finger gesture, so a visitor scrolling down the page
+  got stuck zooming or panning the map instead. With this parameter the page scrolls, and the
+  map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Off by default; ignored by
+  a window-filling map and the compact card's overlay. See [Parameters].
 - **An event that no local coordinator has verified yet now says so before anyone registers.** ([#220])
   A short banner sits directly above the Register button, and again on the registration screen,
   below the form. It is worded the same for every such listing. Nothing else changes: no map
@@ -685,6 +690,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#220]: https://github.com/sydevs/SahajAtlasWeb/issues/220
 [#223]: https://github.com/sydevs/SahajAtlasWeb/issues/223
 [#234]: https://github.com/sydevs/SahajAtlasWeb/pull/234
+[#251]: https://github.com/sydevs/SahajAtlasWeb/pull/251
+[Parameters]: docs/embedding.md#parameters
 [#250]: https://github.com/sydevs/SahajAtlasWeb/pull/250
 [`atlas`, and how the route is chosen]: docs/embedding.md#atlas-and-how-the-route-is-chosen
 [#242]: https://github.com/sydevs/SahajAtlasWeb/pull/242

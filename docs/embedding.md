@@ -129,7 +129,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 
 ## Parameters
 
-Five parameters exist on the script URL, all optional except `key`. Percent-encode reserved
+Six parameters exist on the script URL, all optional except `key`. Percent-encode reserved
 characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalent).
 
 | Parameter | Default                       | What it does                                                                                                                                                                                                                                                                          |
@@ -139,6 +139,7 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 | `map`     | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all**. No Mapbox, no map token, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                                                          |
 | `routing` | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                |
 | `atlas`   | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                       |
+| `gestures` | —                            | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it. |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never

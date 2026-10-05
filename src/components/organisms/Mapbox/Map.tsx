@@ -196,7 +196,11 @@ function EventPinPopover({
   )
 }
 
-export function Mapbox() {
+/**
+ * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
+ *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
+ */
+export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
@@ -415,6 +419,7 @@ export function Mapbox() {
     <ReactMapGL
       reuseMaps
       attributionControl={false}
+      cooperativeGestures={cooperative}
       // Symbols — pins, clusters, the selection and hover highlights —
       // appear instantly instead of Mapbox's default ~300ms icon fade-in.
       // The card-hover highlight must track the pointer immediately.

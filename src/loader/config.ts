@@ -70,6 +70,13 @@ export type LoaderConfig = {
    * auto-open decision cannot disagree.
    */
   routeFromPage: boolean
+  /**
+   * `gestures=cooperative`: a contained map leaves one-finger and wheel scrolling to the page, and
+   * moves only on two fingers or Ctrl/⌘ + wheel. For a map partway down a page the visitor must
+   * be able to scroll past. A full-window map and the compact card's overlay ignore it — there
+   * is no page to scroll there.
+   */
+  cooperative: boolean
 }
 
 /**
@@ -97,6 +104,12 @@ const enabled = (value: string | null): boolean => value !== 'false' && value !=
  * the client record.
  */
 const routingMode = (value: string | null): RoutingMode => (value === 'path' ? 'path' : 'query')
+
+/**
+ * `cooperative` only when asked for by name, like `routing=path`. The default is the map taking
+ * every gesture, which is right for the full-page embeds that existed before this parameter.
+ */
+const cooperativeGestures = (value: string | null): boolean => value === 'cooperative'
 
 /** Absent and empty are the same answer — an empty `locale=` is not a language. */
 const text = (value: string | null): string | undefined => value || undefined
@@ -167,5 +180,6 @@ export function parseConfig(
     routing: routingMode(params.get('routing')),
     route,
     routeFromPage: fromPage,
+    cooperative: cooperativeGestures(params.get('gestures')),
   }
 }
