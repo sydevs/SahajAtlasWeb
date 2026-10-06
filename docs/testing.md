@@ -165,11 +165,11 @@ about it are deliberate:
   artifact under test comes into existence.
 - **It reads `sahajatlas.com`, the custom domain — not `*.pages.dev`, and not a URL from the
   event.** `docs/embedding.md` is what decides which host "production" means, and
-  `ci-workflows.test.ts` pins the lane to that table's row. The two hosts serve one build and
-  **two sets of headers**: `public/_headers` records `max-age=14400` on the custom domain against
-  `max-age=0` on `*.pages.dev`, and says that #148 defect "was invisible on the host every check
-  runs against". Previews are `*.pages.dev` already, so a production lane there would add no
-  coverage and inherit that blindness. The host being a constant is also why the event is a clock
+  `ci-workflows.test.ts` pins the lane to that table's row. The two hosts serve one build, and
+  **their headers can diverge**: `public/_headers` records #148, `max-age=14400` on the custom
+  domain against `max-age=0` on `*.pages.dev`, a defect that "was invisible on the host every
+  check runs against". Previews are `*.pages.dev` already, so a production lane there would add
+  no coverage and inherit that blindness. The host being a constant is also why the event is a clock
   rather than a source: a URL out of a payload would re-open #138's question — any installed App
   with `deployments: write` posts one, and `pages.dev` subdomains are first-come-first-served —
   for a value that does not vary.
@@ -191,11 +191,14 @@ about it are deliberate:
   `ci-workflows.test.ts` pins the hosts it names, because a one-sided rename would leave the lane
   waiting on a check run nobody posts again.
 
-No spec is scoped by environment. Measured 2026-10-03: 14 of the 16 pass against
-`sahajatlas.com`, and the two that fail are the #148 cache-header class on the unhashed loader
-files, still live on the custom domain — the lane's first find. All 16 pass against
-`sahajatlas.pages.dev`, and 10 fail against `sahajatlas-design.pages.dev`, so the lane is not
-vacuously green either way.
+No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
+10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
+
+**On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
+two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all
+16 — #148, a zone-level Browser Cache TTL overriding `public/_headers`. It is why the lane reads
+the custom domain and not a preview: no `*.pages.dev` host could have shown it, and the fix was a
+dashboard setting rather than a commit.
 
 ## Decision: node-only (no jsdom / Testing Library)
 
