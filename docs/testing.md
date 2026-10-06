@@ -191,6 +191,12 @@ about it are deliberate:
   `ci-workflows.test.ts` pins the hosts it names, because a one-sided rename would leave the lane
   waiting on a check run nobody posts again.
 
+**A red run reaches no handler, and that is the lane's one hand-worked part.** `workflow-state.yml`
+subscribes `workflow_run` to `CI` alone, and the dispatcher maps every CI event it does see to an
+open PR whose head is that commit (`sydevs/claude-workflow`, `dispatcher/resolve.mjs`). A merge
+commit on `main` has none, so a failure here produces no target, no `fix-ci` run and no ticket —
+GitHub's own failed-run email to whoever merged is the entire alert. File the ticket by hand.
+
 No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
 10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
 
