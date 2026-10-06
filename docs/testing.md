@@ -135,6 +135,11 @@ door now carries the copy as well as the data.
   change, a URL composed differently — the assertions would go vacuously green, the hardest kind
   of wrong to notice.
 
+**#232 added a second entry, and it asserts PRESENCE, not reachability.** The crash-reporting
+ingest host from `VITE_SENTRY_DSN` was set on neither Pages environment, so the only production
+signal a widget inside other people's pages has took zero events for seven weeks. Its two caveats
+live in the spec's own comment, where whoever edits it reads them.
+
 ⚠ **This still does not prove the widget renders**, and no fetch-based spec can — reading a
 string back is a direct observation only because this particular defect *is* a string in the
 bundle. A failure that only appears at runtime still needs a browser, which belongs to local
