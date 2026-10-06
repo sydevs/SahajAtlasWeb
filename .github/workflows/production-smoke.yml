@@ -42,6 +42,11 @@ jobs:
       github.event.check_run.check_suite.head_sha == github.sha)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Job-level so the alert step below names the same host the specs read.
+    # Two spellings of a constant drift, and `ci-workflows.test.ts` pins
+    # exactly one of them.
+    env:
+      PREVIEW_URL: https://sahajatlas.com
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6 # reads packageManager from package.json
@@ -64,8 +69,7 @@ jobs:
       # The summary is written BEFORE the specs, so a red run names the
       # deploy it read.
       - name: Run the smoke specs against production
-        env:
-          PREVIEW_URL: https://sahajatlas.com
+        id: smoke
         run: |
           if [ -z "$PREVIEW_URL" ]; then
             echo "::error::No deploy to read — every smoke spec would skip itself and report green."
@@ -77,3 +81,67 @@ jobs:
             echo "🚀 Reading \`$PREVIEW_URL\`."
           } >> "$GITHUB_STEP_SUMMARY"
           pnpm test:smoke
+
+      # Until this step, a red production read reached nobody: GitHub's
+      # failed-run email to whoever merged was the whole alert.
+      # `workflow-state.yml` subscribes `workflow_run` to CI alone, and the
+      # dispatcher maps a CI event to open PRs whose head is that commit — a
+      # merge commit on `main` has none, so no handler is reachable from here
+      # by any route. An issue is.
+      #
+      # Gated on the smoke step, not on the job: a checkout or install
+      # failure is not a production read, and an alert that says production
+      # is red when nothing read it is worse than no alert.
+      #
+      # It files as sydevs-bot rather than github-actions[bot] because the
+      # dispatcher's worklist labels key on the author (`isBot`): an alert
+      # from any other login lands in the issue list and in nobody's queue.
+      # The PAT carries its own scopes, which is why `permissions:` above
+      # stays read-only.
+      - name: Open or update the production alert
+        if: failure() && steps.smoke.conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.SYDEVS_BOT_PAT }}
+          # A production red outlives the deploy that found it — #148 lasted
+          # days — so the lane keeps ONE open alert and comments on it. The
+          # label is what identifies that alert, on purpose: a bot-filed
+          # ticket has its title and body rewritten before a human reads it,
+          # and a label survives both.
+          ALERT_LABEL: production-red
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::No SYDEVS_BOT_PAT, so this red read reaches nobody. Alert by hand: $RUN_URL"
+            exit 1
+          fi
+          gh label create "$ALERT_LABEL" --repo "$GITHUB_REPOSITORY" --color B60205 \
+            --description "The deployed production host failed its smoke read" --force
+          existing=$(gh api \
+            "repos/$GITHUB_REPOSITORY/issues?state=open&labels=$ALERT_LABEL&per_page=1" \
+            --jq '.[0].number // empty')
+          marker='<sub>🤖 Written by the sydevs autonomous loop — see [what this is](https://github.com/sydevs/claude-workflow#the-loop)</sub>'
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$(printf '%s\n' \
+              "Still red on \`$GITHUB_SHA\` — $RUN_URL." \
+              "" \
+              "$marker")"
+            echo "Commented on #$existing." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --label "$ALERT_LABEL" \
+            --title "Production smoke is red on $PREVIEW_URL" \
+            --body "$(printf '%s\n' \
+              "\`pnpm test:smoke\` failed against \`$PREVIEW_URL\` after a production deploy." \
+              "" \
+              "- Failing run: $RUN_URL" \
+              "- Commit: \`$GITHUB_SHA\`" \
+              "" \
+              "The same 16 specs pass on every PR against a \`*.pages.dev\` preview, so a red here" \
+              "means production differs from the preview the gate read. #148 was a zone cache" \
+              "setting, not a commit, so read the run before assuming the last merge caused it." \
+              "" \
+              "Later red runs comment here rather than filing again, and nothing closes this" \
+              "issue — close it once the read is green." \
+              "" \
+              "$marker")"
+          echo "Filed a new production alert." >> "$GITHUB_STEP_SUMMARY"

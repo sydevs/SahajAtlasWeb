@@ -191,11 +191,25 @@ about it are deliberate:
   `ci-workflows.test.ts` pins the hosts it names, because a one-sided rename would leave the lane
   waiting on a check run nobody posts again.
 
-**A red run reaches no handler, and that is the lane's one hand-worked part.** `workflow-state.yml`
-subscribes `workflow_run` to `CI` alone, and the dispatcher maps every CI event it does see to an
-open PR whose head is that commit (`sydevs/claude-workflow`, `dispatcher/resolve.mjs`). A merge
-commit on `main` has none, so a failure here produces no target, no `fix-ci` run and no ticket —
-GitHub's own failed-run email to whoever merged is the entire alert. File the ticket by hand.
+**A red run files its own ticket, because no handler is reachable from here.**
+`workflow-state.yml` subscribes `workflow_run` to `CI` alone, and the dispatcher maps every CI
+event it does see to an open PR whose head is that commit (`sydevs/claude-workflow`,
+`dispatcher/resolve.mjs`). A merge commit on `main` has none, so a failure here produces no target,
+no `fix-ci` run and no ticket; GitHub's failed-run email to whoever merged used to be the entire
+alert. The lane's last step opens an issue instead, and three things about it are load-bearing:
+
+- **It files as `sydevs-bot`, through `SYDEVS_BOT_PAT`.** The dispatcher's worklist labels key on
+  the author, so an issue from `github-actions[bot]` would land in the issue list and in nobody's
+  queue — silent from this side, because the issue does get filed. The PAT carries its own scopes,
+  which is why the lane's `permissions:` stays `contents: read`.
+- **One open alert, not one per deploy.** A production red outlives the deploy that found it: #148
+  lasted days. The step finds the open alert by its `production-red` label and comments on it. The
+  label is the identity on purpose — a bot-filed ticket has both its title and its body rewritten
+  before a human reads it, and a label survives that. Nothing closes the alert; a human does, once
+  the read is green.
+- **It is gated on the smoke step, not on the job.** A checkout or install failure is not a
+  production read, and a ticket claiming production is red when nothing read it is worse than no
+  ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
 No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
 10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
