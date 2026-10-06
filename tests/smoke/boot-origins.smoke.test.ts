@@ -67,13 +67,16 @@ const REQUEST_ORIGINS = [
   },
   // Crash reporting, from `VITE_SENTRY_DSN` (#232) — here for presence, not for
   // reachability, since nothing else observed that the variable was set on neither
-  // Pages environment. `docs/testing.md` carries that story and the two caveats:
-  // ⚠ this can only ever see a preview, and the `sentry.io` anchor is what keeps a
-  // lookalike literal from standing in for the DSN. The capture is the host alone,
-  // because the key sits between the scheme and the host.
+  // Pages environment. Two caveats, both load-bearing:
+  // ⚠ it can only ever see a preview. `get-cloudflare-preview-url.mjs` refuses the
+  // production host, so a green run says nothing about Production.
+  // ⚠ the `sentry.io` anchor is what stops a lookalike `<key>@<host>/<digits>` literal
+  // from a future dependency standing in for the DSN and turning this green while
+  // reporting stays dead. A move onto a self-hosted ingest goes red instead.
   {
     label: 'Sentry ingest (VITE_SENTRY_DSN)',
-    pattern: /https?:\/\/[^"'`\s\\/@]+@([^"'`\s\\/@]*\bingest\.[^"'`\s\\/@]*sentry\.io)\/\d+["'`]/,
+    pattern:
+      /(https?:\/\/)[^"'`\s\\/@]+@([^"'`\s\\/@]*\bingest\.[^"'`\s\\/@]*sentry\.io)\/\d+["'`]/,
   },
 ] as const
 
@@ -137,7 +140,9 @@ async function requestOrigins() {
         graph.flatMap(({ path, body }) => {
           const found = body.match(new RegExp(pattern, 'g')) ?? []
 
-          return found.map((hit) => ({ path, origin: hit.match(pattern)![1] }))
+          // A DSN puts its public key between the scheme and the host, so that origin
+          // arrives in two capture groups rather than one.
+          return found.map((hit) => ({ path, origin: hit.match(pattern)!.slice(1).join('') }))
         }),
       ),
     ]
