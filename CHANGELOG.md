@@ -71,10 +71,12 @@ cover everything a host would notice since the widget was first deployed.
   `inherits: false` into your document. The build gate allows that one prefix and fails on any
   other. See [What the widget does to your page](embedding.md#what-the-widget-does-to-your-page).
 
-- **Crash reporting is switched on, so `connect-src https://*.sentry.io` stops being
-  hypothetical.** ([#232]) That row has described a DSN-configured build since [#123], and no
-  deploy had ever been one. What travels is unchanged, and omitting the origin is still
-  supported — see [#123] for both.
+- **Where the build carries a Sentry DSN, the widget requests `https://*.sentry.io`, so that
+  `connect-src` row stops being hypothetical.** ([#232]) The row has described such a build since
+  [#123]. The DSN is a deploy-time variable, so a host cannot tell from the snippet which deploys
+  report. What travels is unchanged, and omitting the origin is still supported — see [#123] for
+  both.
+
 - **"Report an issue" is managed in SahajCloud.** ([#216]) The form's questions, its submit
   label and its confirmation message are authored there, on the contact form named in the atlas
   configuration, and the message reaches that form's own recipient. Where no form is named, the
