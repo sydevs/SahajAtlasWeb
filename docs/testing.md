@@ -13,6 +13,9 @@ Two lanes, kept separate so the fast one never touches the network:
 - CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, and `ladle:build`. A Dependency
   Audit job and the smoke job run separately. The smoke job targets the deployed Cloudflare
   preview.
+- The **same** smoke specs also run against production, fired by the deploy rather than by a PR
+  (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
+  below.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
@@ -144,6 +147,83 @@ live in the spec's own comment, where whoever edits it reads them.
 string back is a direct observation only because this particular defect *is* a string in the
 bundle. A failure that only appears at runtime still needs a browser, which belongs to local
 Playwright verification (see the note atop `embed.smoke.test.ts`).
+
+### The PR gate can only ever read a preview (issue #244)
+
+`ci.yml` runs on `pull_request` and `merge_group`, and discovery refuses the bare project host by
+construction (`provenanceOf` demotes it, because that host is production). So until #244, no job
+had ever read the deploy visitors and host sites actually get.
+
+**That gap is structural, not a coverage hole.** `VITE_*` values are inlined at build time, and
+Pages builds Preview and Production from separate dashboard environments, so the bundle the PR
+gate reads can never carry Production's values. The `VITE_HOST` story above is that hole in one
+direction. A Production origin blanked by a dashboard edit is the same hole in the other, and
+running the PR gate more often closes neither.
+
+`.github/workflows/production-smoke.yml` runs these same 16 specs against production. Five things
+about it are deliberate:
+
+- **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
+  changes only at deploy. A daily cron would re-read an unchanged artifact about 364 times a year
+  for one real signal per merge, and still be up to 24 hours late. A `push` trigger fires before
+  the deploy exists. So the trigger is Cloudflare's own check run, which is posted when the
+  artifact under test comes into existence.
+- **It reads `sahajatlas.com`, the custom domain — not `*.pages.dev`, and not a URL from the
+  event.** `docs/embedding.md` is what decides which host "production" means, and
+  `ci-workflows.test.ts` pins the lane to that table's row. The two hosts serve one build, and
+  **their headers can diverge**: `public/_headers` records #148, `max-age=14400` on the custom
+  domain against `max-age=0` on `*.pages.dev`, a defect that "was invisible on the host every
+  check runs against". Previews are `*.pages.dev` already, so a production lane there would add
+  no coverage and inherit that blindness. The host being a constant is also why the event is a clock
+  rather than a source: a URL out of a payload would re-open #138's question — any installed App
+  with `deployments: write` posts one, and `pages.dev` subdomains are first-come-first-served —
+  for a value that does not vary.
+- ⚠ **#244 specified a `deployment_status` trigger, and that signal is the one this repo has
+  measured as absent**: `get-cloudflare-preview-url.mjs`'s header records Cloudflare posting
+  neither commit statuses nor GitHub deployments here (PR #120). A workflow on an event that never
+  arrives is invisible — no red check, no annotation, nothing to notice — so the trigger is the
+  check run instead, at the cost of one skipped workflow run per check run in the repo.
+- **The base URL is a bare literal, and `ci-workflows.test.ts` pins it as one** — the regex
+  matches a scalar, so putting an expression back fails the spec at collection. The lane takes no
+  `workflow_dispatch` input for it: that input was the one way a dispatcher could aim a green
+  `Production Smoke` check at a host of their choosing. A guard still fails the job on an empty
+  value, because `skipWithoutPreview` would otherwise turn one into sixteen self-skipping specs and
+  a green check — the first invariant above, one level up. It cannot fire against a literal, and
+  it shares its step with the specs so no `if:` can route around it once something makes it able
+  to.
+- **Every filter sits in the job's `if`.** A check run for a PR, or for the `-design` playground,
+  skips the job outright rather than reaching a step that reports green having read nothing.
+  `ci-workflows.test.ts` pins the hosts it names, because a one-sided rename would leave the lane
+  waiting on a check run nobody posts again.
+
+**A red run files its own ticket, because no handler is reachable from here.**
+`workflow-state.yml` subscribes `workflow_run` to `CI` alone, and the dispatcher maps every CI
+event it does see to an open PR whose head is that commit (`sydevs/claude-workflow`,
+`dispatcher/resolve.mjs`). A merge commit on `main` has none, so a failure here produces no target,
+no `fix-ci` run and no ticket; GitHub's failed-run email to whoever merged used to be the entire
+alert. The lane's last step opens an issue instead, and three things about it are load-bearing:
+
+- **It files as `sydevs-bot`, through `SYDEVS_BOT_PAT`.** The dispatcher's worklist labels key on
+  the author, so an issue from `github-actions[bot]` would land in the issue list and in nobody's
+  queue — silent from this side, because the issue does get filed. The PAT carries its own scopes,
+  which is why the lane's `permissions:` stays `contents: read`.
+- **One open alert, not one per deploy.** A production red outlives the deploy that found it: #148
+  lasted days. The step finds the open alert by its `production-red` label and comments on it. The
+  label is the identity on purpose — a bot-filed ticket has both its title and its body rewritten
+  before a human reads it, and a label survives that. Nothing closes the alert; a human does, once
+  the read is green.
+- **It is gated on the smoke step, not on the job.** A checkout or install failure is not a
+  production read, and a ticket claiming production is red when nothing read it is worse than no
+  ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
+
+No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
+10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
+
+**On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
+two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all
+16 — #148, a zone-level Browser Cache TTL overriding `public/_headers`. It is why the lane reads
+the custom domain and not a preview: no `*.pages.dev` host could have shown it, and the fix was a
+dashboard setting rather than a commit.
 
 ## Decision: node-only (no jsdom / Testing Library)
 

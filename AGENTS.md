@@ -106,7 +106,9 @@ Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted v
 `renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against the Cloudflare
 preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on lint,
 typecheck, `test:run`, build, `pnpm size`, and `ladle:build`, plus a Dependency Audit job.
-Smoke runs separately. A PostToolUse hook runs the unit lane on `src/**` edits.
+Smoke runs separately, and the same specs read production on each deploy
+(`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
+A PostToolUse hook runs the unit lane on `src/**` edits.
 
 Three CI gates exist because each one once missed something, unnoticed (#99). Each is
 built so passing proves something real:
