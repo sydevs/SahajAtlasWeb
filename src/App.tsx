@@ -12,7 +12,7 @@ import Providers from './providers'
 import api, { clientQuery } from './config/api'
 import { BrandTheme } from './config/theme/BrandTheme'
 
-import { pageLocaleOverride, safePath } from '@/lib/shape'
+import { homePathFor, pageLocaleOverride, safePath } from '@/lib/shape'
 import { atlasError, reportInternalError } from '@/lib/report'
 import { clearReadiness } from '@/lib/readiness'
 import { announceEmbed } from '@/lib/embed-announce'
@@ -291,11 +291,18 @@ function AppShell({
   const { data: client } = useSuspenseQuery(clientQuery(apiKey))
   const { locale } = useLocale()
 
-  // The configured home region. The redirect that consumes it lives in `FullInterface`,
-  // which renders only once the interface is on screen — see the note there.
-  const homePath =
-    (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
-    undefined
+  // Where the interface goes when it first opens on the root view: a path-mode host's
+  // `atlas` default, else the client record's home region (`homePathFor`). The redirect
+  // that consumes it lives in `FullInterface`, which renders only once the interface is on
+  // screen — see the note there.
+  const homePath = homePathFor({
+    routing,
+    route: embed.config.route,
+    routeFromPage: embed.config.routeFromPage,
+    region:
+      (client.region && typeof client.region === 'object' && safePath(client.region.webPath)) ||
+      undefined,
+  })
 
   /**
    * Attests that the widget booted, and tells SahajCloud what it found (#153).

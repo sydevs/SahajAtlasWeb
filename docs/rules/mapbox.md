@@ -295,6 +295,36 @@ pattern) against the seeded local backend.
   was never generated still appears in the DOM with no CSS behind it — see
   `src/AGENTS.md`.
 
+## The shadow boundary, and what the map libraries make of it (#236)
+
+The embed renders in a shadow root, so a *document*-level DOM lookup made from inside it
+answers about the host's document instead. Each line below was read off the installed
+version, because the folklore on this is older than the code.
+
+- **mapbox-gl 3.32.0 needs no accommodation.** It calls `elementFromPoint` nowhere, and
+  reads neither `document.body` nor `ownerDocument`. Pointer position is
+  `getBoundingClientRect` against a stored element reference (`mousePos`), and the
+  window-level drag listeners pass the event to it rather than reading `e.target`, so
+  retargeting cannot reach them. Neither of its two `document.fullscreenElement` reads can
+  run here, for two different reasons. One is inline in `FullscreenControl._changeIcon()`,
+  on a control we never render. The other is the module-level `isFullscreen()` helper,
+  whose only three callers are cooperative-gestures blockers behind a
+  `_cooperativeGestures` guard, and we set no `cooperativeGestures`. `_changeIcon` never
+  calls the helper, so the control alone does not account for both.
+- **`@mapbox/search-js-web@1.6.0` nests no shadow root of its own.** It defines
+  eight custom elements and calls `attachShadow` in none of them. Each one styles itself
+  with `<style>` children, so our adopted sheet and its own both reach it, and the only
+  `document.head` injection is `AddressAutofill`'s and `AddressMinimap`'s autofill
+  detection — neither of which we render. The Geocoder mounts its suggestion listbox on
+  its own `parentElement`, inside our root.
+- **Its live region does not survive the boundary, and carrying it is ours.** See
+  `Mapbox/aria-live.ts`.
+- **Three `document.activeElement` comparisons inside the geocoder can never be true in a
+  root**, since that read names the host element. One is reachable: a suggest response
+  finds `Geocoder.contains(document.activeElement)` false and re-focuses the input, which
+  takes focus back from the suggestion list if a response lands while a keyboard user is
+  already arrowing through it. Narrow, and only fixable by patching the dependency.
+
 ## Gotchas
 
 - `worldview` and `language` are set from the active locale

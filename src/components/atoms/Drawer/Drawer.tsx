@@ -30,7 +30,7 @@ const drawer = tv({
     // edge to edge. This has no effect on the 352px anchored panel,
     // which is already narrower.
     header:
-      'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pb-2 pt-4',
+      'mx-auto flex w-full max-w-[var(--sy-content-max,512px)] shrink-0 items-center gap-2 px-4 pt-4 pb-2',
     // A second fixed band under the header, for controls that act on the
     // scrolling content below, such as SearchView's Filters and Sort. It
     // shares the header's width cap and `shrink-0`. It sits OUTSIDE the body,
@@ -45,14 +45,14 @@ const drawer = tv({
     // a clipped edge, instead of a horizontal scrollbar across the view. It
     // is safe for the full-bleed carousel, which is exactly the body's width,
     // and for popovers, which portal out of the body entirely.
-    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-y-auto overflow-x-hidden',
+    body: 'mx-auto min-h-0 w-full max-w-[var(--sy-content-max,512px)] flex-1 overflow-x-hidden overflow-y-auto',
     footer:
       'mx-auto mt-auto w-full max-w-[var(--sy-content-max,512px)] shrink-0 border-t border-gray-4',
     // This themes the vaul drag handle. Its vendored CSS hardcodes a light
     // grey. This gives the handle breathing room from the sheet's rounded top
     // edge, but keeps it close to the header below. It also adds a grab
     // cursor, so the drag affordance reads on pointer devices.
-    handle: 'mb-1 mt-2.5 cursor-grab !bg-gray-7 active:cursor-grabbing',
+    handle: 'mt-2.5 mb-1 cursor-grab !bg-gray-7 active:cursor-grabbing',
   },
   variants: {
     direction: {

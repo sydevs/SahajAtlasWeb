@@ -35,6 +35,7 @@ import {
   isFilterOverlay,
   resolveStack,
 } from '@/lib/shape'
+import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
@@ -387,6 +388,13 @@ export function DrawerStack() {
   // mobile only). The sheet-side copy is what pins EventView's sticky register bar to
   // the viewport edge — inside the transformed sheet, `position: fixed` resolves
   // against the sheet, so the bar offsets by the live top instead (issue #52, WS4).
+  //
+  // CSS anchor positioning cannot retire this loop, so no `build.target` raise does
+  // either. `anchor()` is valid only in inset properties, and `Fallbacks`'
+  // `CENTERED_BODY` reads this variable in `max-height`, so that consumer keeps the
+  // loop running however high the floor goes. The two inset readers — the strip's
+  // `top` above and `DrawerFooter`'s sticky `bottom` — could convert, which trades one
+  // mechanism for two and deletes nothing.
   useEffect(() => {
     // This effect runs for every bottom-sheet view, root included. The strips and the sticky
     // register bar only exist above the root, but `--sy-sheet-top` now has a third consumer.
@@ -480,21 +488,14 @@ export function DrawerStack() {
     }
 
     // Only this widget's OWN events wake it. These listen on the host page's document,
-    // because the sheet is portaled and the pointer goes down on whatever is inside it. So
-    // an unfiltered handler would restart the loop on any click anywhere on the embedding
-    // page, and on any CSS transition it runs — which on a transition-heavy host would mean
-    // the loop never parks at all. That would spend a third party's main-thread budget to
-    // solve a problem that belongs to this widget alone. `resize` has no meaningful target
-    // and falls through, which is correct.
+    // because `resize` and a composed pointer event both arrive there. So an unfiltered
+    // handler would restart the loop on any click anywhere on the embedding page, and on
+    // any CSS transition it runs — which on a transition-heavy host would mean the loop
+    // never parks at all. That would spend a third party's main-thread budget to solve a
+    // problem that belongs to this widget alone. `wakesSheetLoop` owns that filter, and
+    // why it reads the composed path rather than the target.
     const wake = (event?: Event) => {
-      const target = event?.target
-
-      // A transition only moves the top edge when it is the SHEET's own — vaul
-      // animates the sheet element. Every `transition-colors` hover on a button
-      // inside it would otherwise re-arm 30 frames of layout reads for a colour
-      // change.
-      if (event?.type === 'transitionrun' && target !== sheet) return
-      if (target instanceof Node && sheet && !sheet.contains(target)) return
+      if (!wakesSheetLoop(event, sheet)) return
 
       still = 0
       raf ||= requestAnimationFrame(tick)
@@ -739,7 +740,7 @@ export function DrawerStack() {
               the menu upward from there. z-50 so it sits above the fill-the-container
               drawer content (z-40, and portaled in last) — otherwise a list row
               would intercept its clicks. */}
-            <SettingsMenu className="absolute bottom-3 start-3 z-50" side="top" />
+            <SettingsMenu className="absolute start-3 bottom-3 z-50" side="top" />
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>

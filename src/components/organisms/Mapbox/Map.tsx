@@ -151,7 +151,7 @@ function EventPinCard({ event }: { event: DisplayableEvent }) {
   return (
     <div className="inline-flex items-center gap-1.5 rounded-lg border border-divider bg-background px-2.5 py-1.5 text-foreground shadow-md">
       <CalendarDays className="shrink-0 text-gray-11" size={16} />
-      <div className="flex flex-col text-sm font-medium leading-tight">
+      <div className="flex flex-col text-sm leading-tight font-medium">
         <span>{primary}</span>
         {time && <span className="text-xs font-normal text-gray-11">{time}</span>}
       </div>
@@ -196,7 +196,11 @@ function EventPinPopover({
   )
 }
 
-export function Mapbox() {
+/**
+ * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
+ *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
+ */
+export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   const { zoom, latitude, longitude, setViewState, selection, hover, boundary } = useViewState(
@@ -415,6 +419,7 @@ export function Mapbox() {
     <ReactMapGL
       reuseMaps
       attributionControl={false}
+      cooperativeGestures={cooperative}
       // Symbols — pins, clusters, the selection and hover highlights —
       // appear instantly instead of Mapbox's default ~300ms icon fade-in.
       // The card-hover highlight must track the pointer immediately.

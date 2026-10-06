@@ -13,6 +13,7 @@ import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
 import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
+import embed from '@/config/embed'
 
 /**
  * ⚠ **This module is lazy-loaded, and that is what makes the compact card's promise true.**
@@ -170,7 +171,8 @@ function FullInterface({
   // back blocked (issue #182).
   useTurnstileGuard()
 
-  // The configured home region opens as a RegionView over CountriesView on first load. Back
+  // The home route — a path-mode host's `atlas` default, else the configured home region
+  // (`homePathFor`) — opens as a RegionView over CountriesView on first load. Back
   // returns to the global list. This runs once — re-visiting `/` shows the list, not a redirect
   // loop.
   //
@@ -217,7 +219,9 @@ function FullInterface({
         {/* Inline fixed/inset so the map always fills its frame behind the drawers —
             independent of Tailwind viewport-unit utility generation. */}
         <div style={{ position: 'fixed', inset: 0 }}>
-          <Mapbox />
+          {/* The one thing a contained map does differently: `gestures=cooperative` leaves
+              scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
+          <Mapbox cooperative={contained && embed.config.cooperative} />
           <MapCurtain />
         </div>
         <RealMapControllerProvider>

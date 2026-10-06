@@ -230,7 +230,7 @@ describe('the wiring', () => {
     // Inside it, not beside it — a frame whose siblings are the fixed layer contains nothing.
     const frame = source.slice(source.indexOf('<MapFrame'), source.indexOf('</MapFrame>'))
 
-    expect(frame).toContain('<Mapbox />')
+    expect(frame).toMatch(/<Mapbox[\s/]/)
     expect(frame).toContain('<DrawerStack />')
   })
 })
@@ -259,6 +259,10 @@ describe('the data-sy-frame contract', () => {
 
     expect(css).toMatch(new RegExp(`\\[${ATTRIBUTE}\\]\\s*\\{[^}]*--sy-frame-h:\\s*100%`))
     // And the fallback it overrides, so a deleted token is not mistaken for a passing test.
-    expect(css).toMatch(/--sy-frame-h:\s*100dvh/)
+    // It sits in host-reset.css since #246 — the token is declared on the scope root, with
+    // the rest of the inherited baseline, and that sheet has to load before Tailwind's.
+    const reset = readFileSync(join(SRC, 'styles/host-reset.css'), 'utf8')
+
+    expect(reset).toMatch(/--sy-frame-h:\s*100dvh/)
   })
 })

@@ -1,0 +1,68 @@
+/* The widget's inherited baseline (#156, #236). Imported by globals.css BEFORE Tailwind's
+ * preflight and utilities, and that order is load-bearing — the body comment below says why.
+ * It is a file rather than a block in globals.css for one reason: v4's entry is `@import`,
+ * and no rule may precede an `@import`.
+ */
+
+/* ── The host-CSS boundary is the SHADOW ROOT now (#236) ────────────────────────
+   The PostCSS scoping pass (#91) stops OUR rules escaping into a host's page. This is the
+   other direction, and it is no longer CSS's job: `src/Widget.tsx` mounts the widget in a
+   shadow root, and a host selector cannot match inside one at any specificity, with or
+   without `!important`.
+
+   **What stood here was `:where(.sy-atlas) :where(*:not(svg, svg *)) { all: revert }`, and
+   it could not have held.** It was deliberately (0,0,0) so it would stay under our own
+   Tailwind utilities (0,1,0) — which bounded it above by our rules while a host's selector
+   was bounded by nothing. One class on their side and they led again. Measured across the
+   WordPress theme fleet, the widget's typeface was lost on 24 of 72 page checks, by
+   non-`!important` rules as ordinary as `body h2 { font-family }`. Raising the specificity
+   would have lowered that number and never reached zero, which is why the reset retired
+   rather than grew.
+
+   Two of its hazards retired with it, and both are worth not re-deriving: it forced a style
+   recalc over the whole scope at about 2x the cost of one outside it (41ms vs 20ms over
+   3,200 nodes, Chrome 151), and `all: revert` rolled SVG 2 geometry — `d`, `fill`, `cx`,
+   `r` — back to its initial value, which rendered every icon in the widget as nothing
+   until the `:not(svg, svg *)` exclusion was added. Neither cost is being paid any more.
+
+   ⚠ Do NOT add `contain: layout` or a transform to the scope root to "isolate" it further.
+   A shadow root creates no containing block, so the fixed layer is unaffected by the move —
+   but the measured table in `src/components/AGENTS.md` still holds: both re-parent
+   `position: fixed` descendants to the host element, which would break the map canvas,
+   every drawer, the peek strips, and the settings cog. `container-type` does not. `contain`
+   and `transform` do. */
+
+/* **This survives the shadow root, and it is the half that was never about selectors.**
+   INHERITED properties cross a shadow boundary exactly as they cross into any element, so
+   a host's `font-family`, `color`, or `letter-spacing` set on `<body>` still reaches every
+   line of our copy through `<sahaj-atlas>`. Restating them here is what makes the widget
+   the root of its own world, and it is why #236 retired the reset above WITHOUT retiring
+   this.
+
+   ⚠ **Unlayered, and it has to be.** Put inside `@layer base` (where it started), it lost
+   to unlayered author styles — and that trap did not leave with the reset, because the
+   host's own declarations are unlayered too. Verified in a browser. The symptom is subtle
+   enough to ship unnoticed.
+
+   Specificity (0,1,0) rather than `:where()`, so it still loses to every Tailwind utility —
+   a component that sets its own `text-*` or `font-*` keeps winning. */
+.sy-atlas {
+  /* The height of the box the widget's FIXED layer resolves against — the viewport
+     normally, a frame when one has taken the containing block.
+
+     Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is correct
+     only while nothing has taken that block. Two elements deliberately do, both with
+     `contain: layout`: `CompactEmbedView`'s dialog, which keeps a margin — so inside it
+     `100dvh` overshoots by 16-32px and the sheet, its peek strips, and the sticky
+     Register bar all overrun the clip edge — and `MapFrame` (#169), which is however
+     tall the host made their element. `100%` on a fixed child resolves against its
+     containing block, which is the frame there and the viewport everywhere else, so one
+     token is right in all three places. */
+  --sy-frame-h: 100dvh;
+  color: hsl(var(--foreground));
+  font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);
+  letter-spacing: normal;
+  text-align: start;
+  text-transform: none;
+  word-spacing: normal;
+}

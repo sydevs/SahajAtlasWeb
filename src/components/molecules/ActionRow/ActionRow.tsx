@@ -39,9 +39,9 @@ import { isSafeHref } from '@/lib/shape'
 // that role.
 const actionCircle = tv({
   slots: {
-    base: 'group flex min-w-0 max-w-[96px] flex-1 basis-0 flex-col items-center gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
+    base: 'group flex max-w-[96px] min-w-0 flex-1 basis-0 flex-col items-center gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus',
     circle: 'shrink-0 transition-colors group-hover:opacity-90 group-active:scale-95',
-    label: 'line-clamp-2 w-full break-words text-center text-xs leading-tight',
+    label: 'line-clamp-2 w-full text-center text-xs leading-tight break-words',
   },
   variants: {
     color: {

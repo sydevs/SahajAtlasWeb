@@ -66,8 +66,16 @@ import { annotate, report } from './_ci-output.mjs'
 // build adds to these two graphs that CI cannot see — a per-graph gap,
 // measured, not a constant (see SLACK_FLOOR_KIB below).
 //
-//   standalone  297.2 KiB  →  308
-//   embed       299.8 KiB  →  308
+//   standalone  307.8 KiB  →  318
+//   embed       309.6 KiB  →  318
+//
+// The tailwindcss 3 → 4 upgrade (#246) raised this budget from 308, the
+// first raise since #161. Measured against origin/main at 5c85fda, built
+// the same uncredentialed way:
+//
+//   standalone  301.9 → 307.8 KiB
+//   embed       303.7 → 309.6 KiB
+//   loader        2.7 →   2.7 KiB
 //
 // The Lucide icon swap (#003) ratcheted this budget down. It took about
 // 3 KiB off both graphs. The tree-shaken glyphs cost less than the
@@ -113,9 +121,9 @@ import { annotate, report } from './_ci-output.mjs'
 // the slack boundary exactly; 3.5 is strictly inside it either way the
 // comparison at `line 402` is read.
 const BUDGET_KIB = {
-  standalone: 308,
+  standalone: 318,
   loader: 3.5,
-  embed: 308,
+  embed: 318,
 }
 
 // A budget set far above the real payload is a green check that checks

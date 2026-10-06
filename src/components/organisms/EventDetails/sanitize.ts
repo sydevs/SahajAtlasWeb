@@ -59,13 +59,13 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
  * The config is an allowlist, and nothing else. It once also passed
  * `USE_PROFILES: { html: true }`. That option does not narrow `ALLOWED_TAGS`
  * — it **replaces** it. So the effective policy became the full HTML profile
- * (119 tags, 118 attributes, measured against 3.4.13), and the list above did
+ * (119 tags, 118 attributes, measured against 3.4.16), and the list above did
  * nothing. That gap does not allow script execution, since the profile itself
  * is XSS-safe. But this markup renders inside a HOST page. `style` alone lets
  * an author add a `position:fixed;inset:0` overlay on top of someone else's
  * site. `img src` lets an author request any origin. `form` and `input` let
  * an author build a credential prompt wearing the host's chrome. This was
- * re-verified against dompurify 3.4.13. The precedence has not changed
+ * re-verified against dompurify 3.4.16. The precedence has not changed
  * between 3.2.x and 3.4.x, so removing the option is the fix.
  *
  * `ALLOW_DATA_ATTR` and `ALLOW_ARIA_ATTR` default to **true**. They are

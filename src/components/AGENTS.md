@@ -34,14 +34,17 @@ Fewer custom components means less maintenance and a more consistent look.
 
 ## Styling
 
-- Tailwind 3 utility classes are the default. For components with variants
+- Tailwind 4 utility classes are the default. For components with variants
   (size, color, state), use **`tailwind-variants`** (`tv(...)`) instead of ad-hoc
   `clsx` string concatenation — it is already a dependency and matches the Radix +
   Tailwind styling model. See `src/components/atoms/Chip/Chip.tsx` for the reference.
 - `clsx` is fine for simple conditional class joins.
-- Global styles and Tailwind layers live in `src/styles/globals.css`. The widget
-  injects its CSS via JS (`vite-plugin-css-injected-by-js`) so it works when
-  embedded. Do not rely on a separate stylesheet `<link>`.
+- Global styles and Tailwind layers live in `src/styles/globals.css`. The build hands
+  every CSS chunk to `src/styles/sheet.ts` (`vite-plugin-css-injected-by-js` with an
+  `injectCodeFunction`), and each entry adopts it into the root that owns it — the
+  embed's shadow root, or the standalone shell's document (#236). Do not rely on a
+  separate stylesheet `<link>`, and do not append a `<style>` to `document.head`: a
+  document sheet cannot reach into the shadow root.
 
 **The CSS-scoping invariant is "the element a rule PAINTS is inside the widget," not
 "the selector string starts with the scope prefix."** The minifier runs after scoping
@@ -49,14 +52,19 @@ and can fold the prefix into the middle of a selector, so a head-anchored check 
 wrongly flag sound CSS as a leak (issue #104). Read this before touching the scoping
 pipeline or its check.
 
-- **The scoping pass is mechanical, not a rule you follow** (issue #91). This
-  stylesheet lands in the HOST document, so `scripts/postcss-scope-widget.mjs` runs
+- **The scoping pass is mechanical, not a rule you follow** (issue #91). The embed's
+  sheet is adopted by a shadow root since #236, so it no longer lands in the host
+  document — but the STANDALONE build and Ladle still put it on `<html class="sy-atlas">`,
+  and the pass is what keeps those two honest. So `scripts/postcss-scope-widget.mjs` runs
   last in the PostCSS chain and rewrites every emitted selector to `:where(.sy-atlas)`
   — Preflight, generated utilities, and the third-party sheets we `@import` (mapbox-gl,
   swiper, vaul, Radix Colors) included — and it namespaces every `@keyframes`.
   `scripts/assert-css-scoped.mjs` reads the CSS back out of the built bundle and
   fails `pnpm build` if anything escapes. Write plain selectors in `globals.css`.
-  Hand-scoping is not required.
+  Hand-scoping is not required. Three namespaces are document-global and carry no
+  selector to scope: `@keyframes`, which the pass renames, plus `@font-face` families
+  and `@property` names, which it cannot — Tailwind writes the `var()` refs itself — so
+  the gate allowlists those two by name. Registering one of our own fails the build.
 - **Why the check walks left instead of anchoring the head** (issue #104): swiper 12
   shipped native CSS nesting, and the scoping pass correctly leaves a nested rule to
   its parent's prefix. The MINIFIER then runs after us and flattens that nesting,
@@ -353,6 +361,63 @@ found any other way.**
   itself when it stopped covering the viewport. With an outside to click and Escape
   reaching the ladder above, Radix already maintains two exits for free, so a
   confined dialog is a cosmetic problem, not a trap.
+
+⚠ **Two dependencies read the DOM in ways the shadow boundary defeats, and both are
+patched rather than worked around (#236).** `patches/` holds them, under
+`pnpm.patchedDependencies` beside the vaul patch. Patching stays the LAST resort, and
+these two earn it because neither failure is reachable from our own code: the reads are
+inside the libraries, and every call site we own already passes the right arguments.
+Where our own code can reach the failure it fixes it itself, as `Mapbox/aria-live.ts` does.
+
+- **`@radix-ui/react-focus-scope@1.1.16`** listens for `focusin`/`focusout` on
+  `document` and asks `container.contains(event.target)`. Inside a shadow root that
+  target retargets to `<sahaj-atlas>`, the container's own *ancestor*, so the test is
+  always false. Three consequences, not one: `lastFocusedElementRef` is never set and
+  the yank-back focuses nothing, so a **modal** dialog does not trap; the `Tab`
+  handler's `document.activeElement` can never equal the container's first or last
+  tabbable, so the edges never cycle; and the **mount auto-focus** breaks the same way
+  — `focusFirst` exits on `document.activeElement !== previouslyFocusedElement`, which
+  inside a root compares `<sahaj-atlas>` with itself, so it never exits and instead
+  focuses every non-link tabbable in turn, `select()`ing each text input, before the
+  caller's identical check parks focus on the container. The patch takes the target
+  from `composedPath()[0]`, resolves every `activeElement` read through the boundary,
+  and exempts a `relatedTarget` that is the container's own shadow host — a `focusout`
+  between two of our own controls retargets too, and would otherwise read as an escape.
+- **`aria-hidden@1.2.6`** (what Radix calls for `hideOthers`) does **not** walk
+  `host.children`, as an earlier version of this file claimed. `correctTargets`
+  rewrites the target to `<sahaj-atlas>`, `keep()` puts the host in `elementsToKeep`,
+  and `elementsToStop` holds it too, so `deep()` reaches the host and returns at once.
+  The conclusion was right and the mechanism was not, which matters because a later
+  author reasons from the mechanism. The patch keeps the real target, lets `keep()`
+  cross the boundary through `ShadowRoot.host`, and lets `deep()` descend into a kept
+  shadow root. Descending also puts the widget's own live regions in the sweep's reach,
+  so the library's issue-10 exemption is collected from the target's root as well.
+
+`src/lib/shadow-patches.test.ts` drives both through a real root in jsdom. ⚠ **The
+`focusout` half has no behavioural spec and the file says why**: its symptom needs the
+browser's real ordering, which jsdom does not reproduce, and a vacuous pass is worse
+than none. A drift pin on the installed bundles stands in for it, and the attended
+browser pass `docs/embedding.md` already owes is what settles it.
+
+**What needed no patch, so nobody re-derives it:** the dismissable layer decides
+"inside" from a React `onPointerDownCapture` on its own content, not from
+`event.target`, so click-outside and Escape are unaffected. `react-remove-scroll@2.7.2`
+is shadow-aware by design — it records `getOutermostShadowParent(target)` and matches a
+document-level event against that, and `handleScroll` bubbles through hosts explicitly
+— so wheel and touch scrolling inside a modal drawer work untouched. Close-focus is
+ref-based in dialog, dropdown and popover, so focus return works.
+
+**No library replaces either patch, so nobody repeats the search.** `focus-trap@8.2.2`
+is shadow-correct in exactly the two ways the patch is — the target comes from
+`composedPath()[0]`, and `activeElement` resolves recursively through each root — but it
+cannot be reached from here: `@radix-ui/react-dialog` hard-codes `trapFocus:
+context.open` on its `FocusScope` with no prop to decline it, and dialog, popover and
+select all mount that one component. So the choice is three patched reads covering three
+primitives, or replacing all three. `focus-lock@1.3.6` holds `deepActiveElement`
+verbatim and does not export it — only a path inside its `dist/`. `aria-hidden@1.2.6`
+and `@radix-ui/react-focus-scope@1.1.16` are both the newest published, so neither patch
+waits on an upstream release. `shadow-dom-utils` scopes itself to tests in its own
+README. Six expressions in non-test `src/` touch the boundary at all.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right

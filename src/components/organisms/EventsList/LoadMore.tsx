@@ -113,7 +113,7 @@ export function LoadMore({
     // left is the `sr-only` region, which is absolutely positioned and
     // contributes no height. Otherwise the padding would be a blank strip
     // under every fully-revealed list.
-    <div className={clsx('flex flex-col items-center gap-2 px-4', more && 'pb-6 pt-4')}>
+    <div className={clsx('flex flex-col items-center gap-2 px-4', more && 'pt-4 pb-6')}>
       {more && (
         // This stays busy, but never `disabled`, and not through the Button's
         // own `isLoading`, which also sets `disabled`. A browser unfocuses a
