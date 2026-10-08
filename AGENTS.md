@@ -345,8 +345,8 @@ workflow those two workflows were for.
 - Branch from `main`: `<type>/<short-slug>` (e.g. `feat/venue-clustering`).
 - Use conventional commits: `<type>(<scope>): <subject>`. Find the scopes in use with
   `git log --oneline -50`.
-- Use the `workflow` plugin's skills: `/workflow:draft-ticket`,
-  `/workflow:implement-issue`, `/workflow:finalize-pr`, `/workflow:cross-repo-issue`,
+- Use the `workflow` plugin's skills: `/workflow:file-ticket`,
+  `/workflow:implement-ticket`, `/workflow:finalize-pr`, `/workflow:implement-roadmap`,
   `/workflow:dev-server`.
 - Never force-push `main`. Never skip hooks (`--no-verify`). Never commit `.env.local` or
   any `sk.`/API secret.
@@ -392,7 +392,7 @@ stacked on `feat/calendar-view`). Two consequences:
 ### PR workflow (3 phases)
 
 PRs move through Implement → Adjust → Finalize. The `workflow` plugin's
-`implement-issue` and `finalize-pr` skills (`sydevs/claude-workflow`) define these
+`implement-ticket` and `finalize-pr` skills (`sydevs/claude-workflow`) define these
 phases in full, including why they batch CI runs instead of pushing on every change.
 Both are enabled in `.claude/settings.json`.
 
