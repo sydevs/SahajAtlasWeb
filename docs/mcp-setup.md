@@ -10,8 +10,8 @@ servers per-user in `.claude/settings.local.json`
 
 - Transport: HTTP (`https://api.githubcopilot.com/mcp/`).
 - Use for structured GitHub access — issues, PRs, code and commit search,
-  checks — instead of scraping with `WebFetch`. The `implement-issue` and
-  `draft-ticket` skills use it, alongside the `gh` CLI.
+  checks — instead of scraping with `WebFetch`. The `implement-ticket` and
+  `file-ticket` skills use it, alongside the `gh` CLI.
 - First use may prompt an OAuth authorization.
 
 ### playwright (`mcp__playwright__*`)

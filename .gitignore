@@ -36,5 +36,5 @@ src/types/payload/openapi.json
 # AI Agent
 .playwright-mcp
 
-# Worktrees from /implement-issue — a second checkout of this repo, never source
+# Worktrees from /implement-ticket — a second checkout of this repo, never source
 .claude/worktrees/
