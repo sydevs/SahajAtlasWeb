@@ -1,13 +1,13 @@
 /**
- * Reporting helpers shared by the CI gate scripts (`check-audit.mjs`,
- * `check-bundle-size.mjs`).
+ * Reporting helpers shared by the CI gate scripts (`check-bundle-size.mjs`,
+ * `get-cloudflare-preview-url.mjs`).
  *
- * Both scripts write the same two kinds of output. This keeps both gates
+ * Every gate writes the same two kinds of output. This keeps them
  * consistent when they report a failure. An early draft copied this code
- * instead of sharing it, and the two gates drifted apart: the audit gate
- * raised an annotation on failure, while the size gate only wrote to
- * stderr. A reader could see the audit failure on the run itself, but the
- * size failure stayed hidden until someone opened the log.
+ * instead of sharing it, and two gates drifted apart: one raised an
+ * annotation on failure, while the size gate only wrote to stderr. A
+ * reader could see one failure on the run itself, but the size failure
+ * stayed hidden until someone opened the log.
  *
  * The underscore prefix marks this file as a helper, not a runnable
  * script. `tests/smoke/_helpers/` uses the same convention.
