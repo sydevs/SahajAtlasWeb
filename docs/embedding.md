@@ -825,7 +825,7 @@ fetches no data from wherever its script was served.
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
 | `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
 
-Five notes on that table:
+Six notes on that table:
 
 **One refused `eval` is expected on this exact policy, and it is not the blocked-Turnstile row
 above.** A host sending the block verbatim gets `Refused to evaluate a string as JavaScript
