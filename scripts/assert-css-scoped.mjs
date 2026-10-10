@@ -21,7 +21,7 @@
  *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS
- * string literal. The script checks four things:
+ * string literal. The script checks five things:
  *
  *   1. every top-level selector is scoped to the widget class,
  *   2. every `@keyframes` name carries the widget namespace — keyframe
@@ -33,7 +33,14 @@
  *   4. no `rem` length ships outside the calendar's chunk — a `rem`
  *      resolves against the HOST's root font size, so the reverse
  *      direction leaks too: `html { font-size: 62.5% }` shrank the side
- *      panel to 220px while the map still padded for 352 (#238).
+ *      panel to 220px while the map still padded for 352 (#238),
+ *   5. every fallbackless `var()` names a property this build declares —
+ *      an undeclared one voids its whole declaration at computed-value
+ *      time, which for an INHERITED property hands the HOST page the
+ *      value (#262).
+ *
+ * Checks 1 to 4 ask whether a rule can reach a host page. Check 5 asks the
+ * other direction: whether what we ship resolves at all.
  *
  * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
  * enforce it.
@@ -170,6 +177,62 @@ const REM_EXEMPT_CHUNK = /(^|[\\/])CalendarView-[\w-]+\.js$/
 // (`--x-2rem`) is not.
 const REM_LENGTH = /(?<![\w.-])-?(?:\d*\.)?\d+rem\b/i
 
+// A `var()` can legitimately name a property no stylesheet declares, when a
+// pinned library's own JavaScript sets it on the element at runtime. Each
+// prefix below belongs to one such library, allowed by name so the exemption
+// stays visible instead of silent — the rule `ALLOWED_FONT_FAMILIES` and
+// `ALLOWED_PROPERTY` already follow.
+const RUNTIME_SET_PROPERTY = new RegExp(
+  [
+    '^--sx-', // Schedule-X — event-modal position, draw-plugin spacer
+    '^--yarl__', // yet-another-react-lightbox — carousel slide count
+    '^--swiper-', // Swiper — slide and centered offsets
+    '^--radix-', // Radix UI — trigger width, measured when the surface opens
+  ].join('|'),
+)
+
+// Only the FALLBACKLESS form. `var(--x, sans-serif)` cannot go invalid.
+const BARE_VAR = /var\(\s*(--[\w-]+)\s*\)/g
+
+/**
+ * What a sheet declares, and every fallbackless `var()` it references (#262).
+ *
+ * ⚠ **This reads the emitted sheet, and no source gate can replace it.** Tailwind 4
+ * tree-shakes `@theme`, so a token `globals.css` declares ships only while some
+ * utility still retains it — `--color-foreground` only because `text-foreground`
+ * has a call site.
+ *
+ * Deliberately permissive about WHERE a declaration sits, and the caller pools
+ * these across the build for the same reason: a custom property resolves per
+ * ELEMENT, and every injected sheet styles the same `.sy-atlas` subtree. A token
+ * supplied only inside an `@media`, or only once a lazy chunk has loaded, is a
+ * subtler defect than this gate is for, and a false positive here blocks every
+ * build.
+ *
+ * @param {import('postcss').Root} root
+ */
+function collectVars(root) {
+  const declared = new Set()
+  const refs = []
+
+  root.walkDecls((decl) => {
+    if (decl.prop.startsWith('--')) declared.add(decl.prop)
+
+    for (const [, name] of decl.value.matchAll(BARE_VAR)) {
+      const where = decl.parent && 'selector' in decl.parent ? decl.parent.selector : '?'
+
+      refs.push({ name, where: `${where} { ${decl.prop} }` })
+    }
+  })
+
+  // These carry a typed initial value, so a reference to one always computes.
+  root.walkAtRules('property', (atRule) => {
+    declared.add(atRule.params.trim())
+  })
+
+  return { declared, refs }
+}
+
 /** @param {import('postcss').Root} root */
 function remLengths(root) {
   const found = []
@@ -190,6 +253,11 @@ function remLengths(root) {
 let sheets = 0
 let rules = 0
 let properties = 0
+let varRefs = 0
+
+// Pooled across every sheet, then reported per sheet — see `collectVars`.
+const declaredVars = new Set()
+const refsByFile = []
 
 // The exemption belongs to a FILE, so this is checked per injection, not per
 // unique sheet: an identical copy injected from another chunk must not ride
@@ -278,6 +346,14 @@ for (const file of distFiles('.js')) {
       }
     })
 
+    const vars = collectVars(root)
+
+    varRefs += vars.refs.length
+
+    for (const name of vars.declared) declaredVars.add(name)
+
+    refsByFile.push({ file, refs: vars.refs })
+
     root.walkAtRules('property', (atRule) => {
       const name = atRule.params.trim()
 
@@ -340,7 +416,38 @@ if (properties === 0) {
   )
 }
 
+// Every composed Tailwind utility reads its `--tw-*` through a bare var(), so
+// none at all means the detector stopped matching, not that the sheet stopped
+// referencing. Without this the resolution check would pass vacuously.
+if (varRefs === 0) {
+  fail(
+    'found no fallbackless var() in the injected CSS — Tailwind composes utilities through ' +
+      'them, so either the sheet no longer reaches this gate or BARE_VAR stopped matching',
+  )
+}
+
+for (const { file, refs } of refsByFile) {
+  const missing = refs.filter(
+    ({ name }) => !declaredVars.has(name) && !RUNTIME_SET_PROPERTY.test(name),
+  )
+
+  if (missing.length > 0) {
+    fail(
+      `${file}: ${missing.length} declaration(s) reference a custom property nothing this build ` +
+        `ships declares, so each one is invalid at computed-value time — and an inherited ` +
+        `property then falls back to the HOST page's value (#262). Declare it, give the ` +
+        `var() a fallback, or — only for a property a pinned library's own JS sets — add its ` +
+        `prefix to RUNTIME_SET_PROPERTY.\n  ` +
+        missing
+          .slice(0, 8)
+          .map(({ name, where }) => `${name}  <-  ${where}`)
+          .join('\n  '),
+    )
+  }
+}
+
 console.log(
   `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
-    `${properties} @property registration(s) allowlisted, with no rem outside the calendar chunk`,
+    `${properties} @property registration(s) allowlisted, ${varRefs} var() reference(s) resolved, ` +
+    `with no rem outside the calendar chunk`,
 )
