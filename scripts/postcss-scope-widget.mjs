@@ -1,31 +1,33 @@
 import selectorParser from 'postcss-selector-parser'
 
 /**
- * A PostCSS pass that confines every rule this repo emits to the widget's
- * own DOM.
+ * A PostCSS pass that pins every rule this repo emits to the widget's
+ * scope class.
  *
  * WHY (issue #91): the embed is behind a shadow boundary (#236) and
  * adopts this sheet into it (`src/styles/sheet.ts`), so the sheet cannot
- * reach a host page. The standalone shell and Ladle have no boundary:
- * both put it on `<html class="sy-atlas">`, where a top-level selector
- * repaints the page it is on. At that level this sheet carries Tailwind's
- * Preflight reset (`a { color: inherit }`, zeroed heading and list
- * margins, `border: 0` on `*`, form-control resets), every generated
- * utility (`.container`, `.hidden`, `.sr-only`), the `:root`/`.dark`
- * palette blocks, and the whole of mapbox-gl.css, swiper, vaul, and
- * Radix Colors, which we inline by `@import`.
+ * reach a host page. The standalone shell and Ladle have no boundary,
+ * and both put it on `<html class="sy-atlas">` — the document root, so
+ * `:where(.sy-atlas) :is(main)` matches exactly what `main` matched. The
+ * prefix confines nothing in either build, and the page it would be
+ * confining the sheet from is our own.
  *
- * The embed needs the pass for the opposite reason, and that half is
- * load-bearing: `:root` matches nothing inside a shadow root, so
- * collapsing the root selectors onto `.sy-atlas` is the only thing that
- * defines the theme tokens and the palette there, and the only thing
- * that lands Preflight's own `html`/`body` rules.
+ * What survives the boundary is the collapse, and it is load-bearing:
+ * `:root` matches nothing inside a shadow root, so mapping the root
+ * selectors onto `.sy-atlas` is the only thing that defines the theme
+ * tokens and the palette there, and the only thing that lands
+ * Preflight's own `html`/`body` rules. The prefix goes on every rule so
+ * that collapse and the keyframe namespacing are total rather than
+ * selective, and so `assert-css-scoped.mjs` can check the result in the
+ * emitted bytes. Do not retire the pass on the strength of the
+ * boundary.
  *
  * Hand-scoping every selector was the old rule (`src/components/AGENTS.md`),
- * and it had already leaked twice: a bare `main {}`, and a
- * `.swiper-pagination-bullet {}`. A leak is invisible. Lint, typecheck, and
- * the unit lane all stay green while the page around it silently changes.
- * So the invariant is now mechanical instead. This pass runs LAST in
+ * and it leaked twice onto host pages while the sheet still landed in
+ * one: a bare `main {}`, and a `.swiper-pagination-bullet {}`. A missed
+ * rewrite is just as quiet now, and costs the collapse instead — lint,
+ * typecheck and the unit lane all stay green while the embed goes
+ * without its tokens. So the invariant is mechanical instead. This pass runs LAST in
  * `postcss.config.js`, after Tailwind has generated its output and Vite
  * has inlined the `@import`s. It refuses to emit a stylesheet that still
  * has an unscoped selector.
@@ -60,7 +62,7 @@ export const WIDGET_SCOPE = 'sy-atlas'
 // Selectors that address the document root. Inside the widget there is no
 // document to own — the theme-root wrapper plays that part. So these
 // collapse onto the scope class, instead of nesting under it. `:host`
-// appears in Tailwind 3.4's Preflight (`html, :host`).
+// appears in Tailwind's own Preflight (`html, :host`).
 const ROOT_SELECTORS = new Set([':root', 'html', 'body', ':host'])
 
 // The light and dark classes live on the SAME element as the scope class,
