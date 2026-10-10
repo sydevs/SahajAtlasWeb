@@ -855,13 +855,17 @@ keep allowing the directive.
 **Do not reach for `style-src-elem` and `style-src-attr` to tighten this.** They do split the
 cost — granting only `style-src-elem 'unsafe-inline'` was indistinguishable from allowing
 everything, and granting only `style-src-attr 'unsafe-inline'` was indistinguishable from
-allowing nothing — but the attribute half is not free. The place-search field's library puts a
-screen-reader live region in your `<body>` and clips it to 1×1 with a `style` attribute, so a
-policy that refuses the attribute leaves that region full-width, unclipped and in your page's
-flow: its announcements ("3 results") become visible text on your page the moment a visitor
-types. Writing `style-src-elem 'unsafe-inline'` on its own is worse again — a browser that has
-not implemented the split ignores the directive and falls back to `style-src`, blocking
-everything there.
+allowing nothing — but the attribute half is not free. The widget hoists the place-search
+library's screen-reader live region into your `<body>`, and the library clips it to 1×1 with a
+`style` attribute, so a policy that refuses the attribute leaves that region full-width,
+unclipped and in your page's flow: its announcements ("3 results") become visible text on your
+page the moment a visitor types.
+
+One hazard does **not** apply here, so you do not have to weigh it: every browser in the
+[support floor](#browser-support) implements the split — Chrome 75, Firefox 108 and Safari 15.4,
+all below the floor, per MDN's compatibility data. A browser older than that ignores the two
+directives entirely and falls back to your own `style-src`, blocking everything the widget
+installs. That reaches you only if your audience runs browsers older than the widget supports.
 
 **`connect-src cloud.sydevelopers.com` is the entry most likely to be missing, and the most
 expensive** — absent from every earlier version of this documentation. Without it, a strict-CSP
