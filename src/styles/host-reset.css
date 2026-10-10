@@ -59,9 +59,9 @@
      containing block, which is the frame there and the viewport everywhere else, so one
      token is right in all three places. */
   --sy-frame-h: 100dvh;
-  /* ⚠ Resolves to `--gray-12`, a Radix HEX — not the channel triplet the brand ramps use, so
-     never wrap it in `hsl()`. An undeclared name here is invalid at computed-value time, which
-     hands `color` straight back to the host by inheritance and shows up on no gate (#262). */
+  /* ⚠ `--gray-12`, a Radix HEX — not the channel triplet the brand ramps carry, so never wrap
+     it in `hsl()`. Either way it is invalid at computed-value time, and `color` inherits from
+     the host instead (#262). */
   color: var(--color-foreground);
   font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);
   letter-spacing: normal;

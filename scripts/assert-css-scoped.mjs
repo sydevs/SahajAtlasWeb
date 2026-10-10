@@ -41,8 +41,7 @@
  *      value (#262).
  *
  * Checks 1 to 4 ask whether a rule can reach a host page. Check 5 asks the
- * other direction: whether what we ship resolves at all. Nothing else asks
- * it — and nothing in `src/` can, since Tailwind tree-shakes `@theme`.
+ * other direction: whether what we ship resolves at all.
  *
  * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
  * enforce it.
