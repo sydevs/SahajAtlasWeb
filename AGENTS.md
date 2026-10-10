@@ -96,7 +96,6 @@ pnpm test         # vitest watch (fast unit lane)
 pnpm test:run     # vitest run (one-shot — CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
-pnpm audit:check  # dependency-advisory gate vs scripts/audit-baseline.json
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
@@ -105,7 +104,7 @@ pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
 Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted via
 `renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against the Cloudflare
 preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on lint,
-typecheck, `test:run`, build, `pnpm size`, and `ladle:build`, plus a Dependency Audit job.
+typecheck, `test:run`, build, `pnpm size`, and `ladle:build`, plus a Dependency Review job.
 Smoke runs separately, and the same specs read production on each deploy
 (`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
 A PostToolUse hook runs the unit lane on `src/**` edits.
@@ -125,10 +124,11 @@ built so passing proves something real:
   `src/loader/literals.ts` states this rule. #153 broke it anyway with a one-line string
   join, since prose was the only enforcement. Fix: never import across the seam.
   Duplicate the value into `literals.ts` and pin both copies in `literals.test.ts`.
-- **`pnpm audit:check`** (`scripts/check-audit.mjs`) fails on a high or critical advisory
-  not pinned in `scripts/audit-baseline.json`. Waive one only with a reviewable line
-  naming the owning ticket. The weekly `audit.yml` run adds `--strict`, which also fails
-  on baseline entries already fixed, so it never blocks a PR.
+- **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR *adds*
+  a dependency with a high or critical runtime advisory. An advisory against a dependency
+  already on `main` never blocks a PR: the loop's daily Dependabot check fires `audit-deps`
+  to fix it. The full-lockfile `pnpm audit:check` gate it replaced failed four unrelated
+  PRs at once when a new advisory landed on `main` (#233, #237, #243, #248).
 - **A green Smoke check means the specs ran.** A missing Cloudflare preview annotates the
   run, and fails it outright on same-repo PRs. Forks keep the graceful skip.
 

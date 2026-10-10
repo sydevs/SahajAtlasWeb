@@ -63,30 +63,18 @@ jobs:
           SENTRY_URL: http://127.0.0.1:1/
         run: pnpm build
 
-  # Dependency-vulnerability gate. Fails only on a high or critical advisory
-  # that scripts/audit-baseline.json does not already pin (each pinned entry
-  # names the ticket that owns it). See audit.yml for the full tradeoff
-  # behind a hard-but-scoped gate, and for the weekly ratchet that prunes
-  # fixed baseline entries.
-  #
-  # Scope is `--prod` only, so the build toolchain (vite, vitest, eslint,
-  # jsdom, and so on) is not covered here. This job skips `pnpm install`:
-  # `pnpm audit` resolves from the lockfile alone, so no lifecycle scripts
-  # need to run.
-  audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  # Dependency-vulnerability gate. Fails only when this PR ADDS a dependency
+  # with a high or critical advisory that reaches production code. An
+  # advisory against a dependency already on main fails nothing here: the
+  # sydevs loop's daily Dependabot check fixes those, so an unrelated PR is
+  # never blocked by something it did not cause (#233, #237, #243, #248).
+  # Shared by the sydevs repos; the rules live in
+  # sydevs/claude-workflow/.github/workflows/dependency-review.yml.
+  dependencies:
+    name: Dependency Review
+    uses: sydevs/claude-workflow/.github/workflows/dependency-review.yml@main
     permissions:
       contents: read # the four read scopes above exist for preview discovery, not this
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          package-manager-cache: false
-      - run: pnpm audit:check
 
   # Smoke specs run against the Cloudflare Pages PR preview. This job finds
   # the preview URL through the GitHub API, since Cloudflare posts it on the
