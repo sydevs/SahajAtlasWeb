@@ -810,7 +810,7 @@ fetches no data from wherever its script was served.
 |                            | `challenges.cloudflare.com`                   | **Turnstile — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. Loaded as soon as the interface mounts, so a policy that omits it fails immediately rather than at the moment somebody registers. | **the widget shows an error screen and does not run.** Not a degradation — see the note below |
 |                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                       | analytics only                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                        | **the map fails**, the rest of the widget is unaffected                                       |
-| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach. What the directive governs is the `<style>` elements the widget and its libraries still install at runtime — the `@font-face` rules in your `<head>`, and the place-search field's own stylesheet — plus the `style` attributes they set, which the note below covers separately.                                                                                                                              | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and place search, whose library reads back the stylesheet it just installed and throws when the browser refuses it |
+| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach on the one engine that was measured. What the directive governs is the `<style>` elements the widget and its libraries still install at runtime — the `@font-face` rules in your `<head>`, and the place-search field's own stylesheet — plus the `style` attributes they set, which the note below covers separately.                                                                                                                              | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and place search, whose library reads back the stylesheet it just installed and throws when the browser refuses it |
 | `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request goes to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy, and no visitor IP reaches a third party for a font.                                                            | text falls back to your system sans, everything works. `style-src` above costs you the same typeface by a different route: the `@font-face` rules never register, so no font is requested at all |
 | `img-src`                  | `data:`                                       | The map's pins and cluster bubbles are inline SVG rasterised from a `data:` URI. The widget ships them itself, rather than relying on the map style's sprites.                                                                                       | **the map paints with no pins**                                                               |
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
@@ -842,8 +842,15 @@ captcha-gated. If one turns out to need `'unsafe-eval'`, the block above gains i
 **The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
 `map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
 alone. The widget's own stylesheet applied in full, and went on applying under `style-src
-'none'`: a constructed `CSSStyleSheet` is outside the policy's reach altogether. What stopped was
-the `@font-face` block and the place-search field.
+'none'`. What stopped was the `@font-face` block and the place-search field.
+
+⚠ **That was one engine, and the claim is scoped to it.** Whether a constructed
+`CSSStyleSheet` is outside `style-src`'s reach has been argued both ways against the spec, and
+the [support floor](#browser-support) below also names Firefox 128 and Safari 16.4 — 16.4 being
+the release that first shipped `adoptedStyleSheets` at all. Neither was measured. If either
+refuses an adopted sheet, `style-src 'unsafe-inline'` is load-bearing again on that engine and
+this section understates what it costs you. Until then, treat the row as what Chromium does and
+keep allowing the directive.
 
 **Do not reach for `style-src-elem` and `style-src-attr` to tighten this.** They do split the
 cost — granting only `style-src-elem 'unsafe-inline'` was indistinguishable from allowing
@@ -882,8 +889,9 @@ nothing else, allow these — each breaks the widget as a whole:
 ⚠ **`style-src 'unsafe-inline'` was on that list and has left it.** It was there on the strength
 of a consequence measured before the widget moved into a shadow root, when the stylesheet really
 was `<style>` elements the policy could refuse. It is a degradation now, and its own row says
-what of. Keep allowing it: a visitor who gets your typeface and no place search is still worse
-off. But do not trade a load-bearing entry away to afford it.
+what of — on Chromium, which is the only engine that degradation was measured on. Keep allowing
+it: a visitor who gets your typeface and no place search is still worse off. But do not trade a
+load-bearing entry away to afford it.
 
 ⚠ **`challenges.cloudflare.com` moved into that list, and it is the one change here that can
 break a page which used to work.** It was previously a degradation: a host that blocked it got a
