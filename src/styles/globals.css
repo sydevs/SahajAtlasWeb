@@ -1,17 +1,16 @@
 /* EVERY selector below is rescoped at build time (issue #91).
  *
- * The embed adopts this sheet into its shadow root (#236, `src/styles/sheet.ts`), so it
- * cannot reach a host page. The standalone shell and Ladle have no boundary: both put
- * it on `<html class="sy-atlas">`, where a top-level selector repaints the page it is
- * on. The embed needs the rescope for the opposite reason — `:root` matches nothing
- * inside a shadow root, so the collapse onto `.sy-atlas` is what defines the theme
- * tokens and the palette there.
- *
  * `scripts/postcss-scope-widget.mjs` runs last in the PostCSS chain and confines the
  * whole emitted sheet — Tailwind's Preflight and utilities, the imports below, and
  * everything written here — under `.sy-atlas`, the class on the widget's theme root.
  * So write plain selectors here. The pass handles them, and
  * `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
+ *
+ * It survived #236's shadow boundary for two reasons, and that file owns the argument:
+ * the boundary-less shell and Ladle put this sheet on `<html class="sy-atlas">`, and
+ * inside the embed's shadow root the collapse onto `.sy-atlas` is the only thing that
+ * defines the theme tokens and the palette at all. Neither half is about a host page
+ * any more.
  *
  * One thing to know: a selector you write against `.sy-atlas` yourself passes
  * through untouched. That is the escape hatch for rules that must address the theme
