@@ -810,8 +810,8 @@ fetches no data from wherever its script was served.
 |                            | `challenges.cloudflare.com`                   | **Turnstile — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. Loaded as soon as the interface mounts, so a policy that omits it fails immediately rather than at the moment somebody registers. | **the widget shows an error screen and does not run.** Not a degradation — see the note below |
 |                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                       | analytics only                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                        | **the map fails**, the rest of the widget is unaffected                                       |
-| `style-src`                | `'unsafe-inline'`                             | **The hard ask.** The widget has no stylesheet to link — it appends `<style>` elements at runtime, which carry no nonce.                                                                                                                              | the widget renders completely **unstyled**, and does not degrade                              |
-| `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request goes to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy, and no visitor IP reaches a third party for a font.                                                            | text falls back to your system sans, everything works                                         |
+| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach. The directive governs two other things: the single `<style>` the widget puts in your `<head>` for its `@font-face` rules, and the ones the place-search field's library installs for itself.                                                                                                                              | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and the place-search field, which stops working without its library's own stylesheet |
+| `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request goes to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy, and no visitor IP reaches a third party for a font.                                                            | text falls back to your system sans, everything works. `style-src` above costs you the same typeface by a different route: the `@font-face` rules never register, so no font is requested at all |
 | `img-src`                  | `data:`                                       | The map's pins and cluster bubbles are inline SVG rasterised from a `data:` URI. The widget ships them itself, rather than relying on the map style's sprites.                                                                                       | **the map paints with no pins**                                                               |
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than a bundle-pinned value. Production serves the Cloudflare Images CDN (`imagedelivery.net`) today. Any relative URL resolves against the API origin.        | images only                                                                                   |
@@ -825,7 +825,24 @@ fetches no data from wherever its script was served.
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
 | `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
 
-Three notes on that table:
+Four notes on that table:
+
+**The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
+`map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
+alone. The widget's own stylesheet applied in full, and went on applying under `style-src
+'none'`: a constructed `CSSStyleSheet` is outside the policy's reach altogether. The two things
+that stopped were the `@font-face` block and the place-search field, whose library reads back the
+stylesheet it just installed and throws when the browser refuses it.
+
+Of the two halves, **`style-src-elem` is the one that costs you both**. Granting only
+`style-src-attr 'unsafe-inline'` changed nothing: the interface was indistinguishable from the
+blocked run. Granting only `style-src-elem 'unsafe-inline'` was indistinguishable from the
+allowed one, and refused a single scrollbar-width probe inside the scroll-lock library. So
+`style-src-attr 'none'` is a tightening you can add — measured against the map-less interface
+only, not the map and not the registration form. Add it **beside** `style-src 'unsafe-inline'`,
+never in place of it: a browser that has not implemented the split ignores `style-src-elem` and
+falls back to `style-src`, so `style-src-elem 'unsafe-inline'` written on its own would block
+everything there.
 
 **`connect-src cloud.sydevelopers.com` is the entry most likely to be missing, and the most
 expensive** — absent from every earlier version of this documentation. Without it, a strict-CSP
@@ -839,17 +856,22 @@ take the exact one from the DSN rather than deriving it. Leaving it out is a sup
 you get one blocked request and one violation report, not one per error, since the widget
 latches off after the first refusal rather than retrying.
 
-**Six entries are load-bearing. The rest cost only the feature in their own row.** If you allow
+**Five entries are load-bearing. The rest cost only the feature in their own row.** If you allow
 nothing else, allow these — each breaks the widget as a whole:
 
 |                                        |                                       |
 | ---------------------------------------- | --------------------------------------- |
 | `script-src` the widget's origin       | nothing renders                       |
 | `script-src challenges.cloudflare.com` | the widget shows an error and stops   |
-| `style-src 'unsafe-inline'`            | renders completely unstyled           |
 | `connect-src cloud.sydevelopers.com`   | no data at all                        |
 | `worker-src blob:`                     | the map never renders                 |
 | `img-src data:`                        | the map renders with no pins          |
+
+⚠ **`style-src 'unsafe-inline'` was on that list and has left it.** It was there on the strength
+of a consequence measured before the widget moved into a shadow root, when the stylesheet really
+was `<style>` elements the policy could refuse. It is a degradation now, and its own row says
+what of. Keep allowing it: a visitor who gets your typeface and no place search is still worse
+off. But do not trade a load-bearing entry away to afford it.
 
 ⚠ **`challenges.cloudflare.com` moved into that list, and it is the one change here that can
 break a page which used to work.** It was previously a degradation: a host that blocked it got a
@@ -864,10 +886,10 @@ If your atlas has stopped working since this change, this is almost certainly wh
 `connect-src`. The widget also writes the specific directive it needs to the browser console, so
 a developer looking at the page gets the answer without opening this document.
 
-Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface,
-missing photography, missing flags, no analytics, no telemetry. Read the row rather than
-assuming — over-allowing because a summary sounded absolute is its own cost on a strict-policy
-page.
+Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a dead
+place-search field, missing photography, missing flags, no analytics, no telemetry. Read the row
+rather than assuming — over-allowing because a summary sounded absolute is its own cost on a
+strict-policy page.
 
 Two entries are conditional on the build's configuration rather than anything you control:
 analytics is absent unless the build carries an analytics ID, and Sentry is absent unless it
@@ -1166,7 +1188,7 @@ Three things to check when you migrate:
 | **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` (renamed when configuration moved onto the script URL). The loader logs an error naming it. Otherwise the key is wrong, revoked, or not yet issued.                              |
 | **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                   |
 | **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                            |
-| **The widget renders completely unstyled**                            | `style-src 'unsafe-inline'` is missing from your CSP.                                                                                                                                                                 |
+| **Text is in your own font, and the place-search field has lost its box**  | `style-src 'unsafe-inline'` is missing from your CSP. The console says `Refused to apply inline style`, and the violation reports name **`style-src-elem`**. Everything else keeps its styling: the widget's own sheet is not governed by `style-src`. |
 | **Labels are English on a non-English page**                          | Either `connect-src https://cloud.sydevelopers.com` is missing, or that language is not switched on in the CMS. The widget carries English compiled in, so this is what a blocked or unavailable language looks like — ask us to enable the language you need. |
 | **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                              |
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
@@ -1178,7 +1200,7 @@ Three things to check when you migrate:
 | **`atlas=` on the script URL seems to be ignored**                    | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                          |
 | **Sharing offers no link**                                            | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                 |
 | **The widget covers the rest of the page**                            | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                   |
-| **The widget looks wrong on your site only**                          | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>`. See [what the widget does to your page](#what-the-widget-does-to-your-page). |
+| **The widget looks wrong on your site only**                          | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, your root `font-size` (the calendar only), or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page). |
 | **It broke after working yesterday**                                  | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                          |
 | **Console: "could not find a place to render"**                       | The snippet is in `<head>`, or carries `async`/`defer`. Move it into the body without those attributes, or add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear.                                 |
 | **Nothing renders; console: "Cannot use import statement outside a module"** | The script tag lost its `type="module"`. An optimizer or an HTML5-cleanup filter rewrote the tag, or combined `auto.js` into a classic bundle. Exclude `auto.js` from minifying, combining and delaying, and from any filter that rewrites script tags. None of the widget runs in this state, so this browser error is the only report you get. |
