@@ -54,8 +54,10 @@ pipeline or its check.
 
 - **The scoping pass is mechanical, not a rule you follow** (issue #91). The embed's
   sheet is adopted by a shadow root since #236, so it no longer lands in the host
-  document — but the STANDALONE build and Ladle still put it on `<html class="sy-atlas">`,
-  and the pass is what keeps those two honest. So `scripts/postcss-scope-widget.mjs` runs
+  document — and the STANDALONE build and Ladle put it on `<html class="sy-atlas">`,
+  the document root, so the prefix confines nothing there either. What the pass is for
+  is the collapse onto `.sy-atlas`, the only thing that defines the theme tokens inside
+  the shadow root; `scripts/postcss-scope-widget.mjs` owns that argument. It runs
   last in the PostCSS chain and rewrites every emitted selector to `:where(.sy-atlas)`
   — Preflight, generated utilities, and the third-party sheets we `@import` (mapbox-gl,
   swiper, vaul, Radix Colors) included — and it namespaces every `@keyframes`.
