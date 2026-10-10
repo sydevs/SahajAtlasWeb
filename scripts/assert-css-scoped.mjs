@@ -22,7 +22,7 @@
  *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS
- * string literal. The script checks four things:
+ * string literal. The script checks five things:
  *
  *   1. every top-level selector is scoped to the widget class,
  *   2. every `@keyframes` name carries the widget namespace — keyframe
@@ -34,7 +34,16 @@
  *   4. no `rem` length ships outside the calendar's chunk — a `rem`
  *      resolves against the HOST's root font size, so the reverse
  *      direction leaks too: `html { font-size: 62.5% }` shrank the side
- *      panel to 220px while the map still padded for 352 (#238).
+ *      panel to 220px while the map still padded for 352 (#238),
+ *   5. every fallbackless `var()` names a property the same sheet
+ *      declares. An undeclared one voids its whole declaration at
+ *      computed-value time, and for an INHERITED property that hands the
+ *      HOST page the value — `color` read `hsl(var(--foreground))`, which
+ *      was declared nowhere, for as long as the file had existed (#262).
+ *
+ * Checks 1 to 4 ask whether a rule can reach a host page. Check 5 is the
+ * other direction: whether what we ship resolves at all. Nothing else asks
+ * it — and nothing in `src/` can, since Tailwind tree-shakes `@theme`.
  *
  * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
  * enforce it.
@@ -171,6 +180,73 @@ const REM_EXEMPT_CHUNK = /(^|[\\/])CalendarView-[\w-]+\.js$/
 // (`--x-2rem`) is not.
 const REM_LENGTH = /(?<![\w.-])-?(?:\d*\.)?\d+rem\b/i
 
+// A `var()` can legitimately name a property no stylesheet declares, when a
+// pinned library's own JavaScript sets it on the element at runtime. Each
+// prefix below belongs to one such library, allowed by name so the exemption
+// stays visible instead of silent — the rule `ALLOWED_FONT_FAMILIES` and
+// `ALLOWED_PROPERTY` already follow.
+const RUNTIME_SET_PROPERTY = new RegExp(
+  [
+    '^--sx-', // Schedule-X — event-modal position, draw-plugin spacer
+    '^--yarl__', // yet-another-react-lightbox — carousel slide count
+    '^--swiper-', // Swiper — slide and centered offsets
+    '^--radix-', // Radix UI — trigger width, measured when the surface opens
+  ].join('|'),
+)
+
+// Only the FALLBACKLESS form. `var(--x, sans-serif)` cannot go invalid.
+const BARE_VAR = /var\(\s*(--[\w-]+)\s*\)/g
+
+/**
+ * References to a custom property nothing in the SAME sheet declares.
+ *
+ * An undeclared name makes its whole declaration invalid at computed-value
+ * time. For an INHERITED property that is not a missing style, it is the
+ * HOST PAGE's value: `src/styles/host-reset.css` restated
+ * `color: hsl(var(--foreground))` for months, never declared `--foreground`
+ * anywhere, and so handed every host back control of the widget's text
+ * colour — the one thing that file exists to take (#262).
+ *
+ * ⚠ **This reads the emitted sheet, and no source gate can replace it.**
+ * Tailwind 4 tree-shakes `@theme`, so a token declared in `globals.css` is
+ * absent from the build unless some utility retained it — `--color-foreground`
+ * ships only because `text-foreground` is still used somewhere. A spec reading
+ * `src/` would call that resolvable right up to the commit that drops the last
+ * call site.
+ *
+ * Deliberately permissive about WHERE: a declaration inside any `@media` or
+ * `@supports` counts. A token supplied only under a condition is a subtler
+ * defect than this gate is for, and false positives here would block builds.
+ *
+ * @param {import('postcss').Root} root
+ */
+function unresolvedVars(root) {
+  const declared = new Set()
+  const refs = []
+
+  root.walkDecls((decl) => {
+    if (decl.prop.startsWith('--')) declared.add(decl.prop)
+
+    for (const [, name] of decl.value.matchAll(BARE_VAR)) {
+      const where = decl.parent && 'selector' in decl.parent ? decl.parent.selector : '?'
+
+      refs.push({ name, where: `${where} { ${decl.prop} }` })
+    }
+  })
+
+  // These carry a typed initial value, so a reference to one always computes.
+  root.walkAtRules('property', (atRule) => {
+    declared.add(atRule.params.trim())
+  })
+
+  return {
+    seen: refs.length,
+    missing: refs.filter(
+      ({ name }) => !declared.has(name) && !RUNTIME_SET_PROPERTY.test(name),
+    ),
+  }
+}
+
 /** @param {import('postcss').Root} root */
 function remLengths(root) {
   const found = []
@@ -191,6 +267,7 @@ function remLengths(root) {
 let sheets = 0
 let rules = 0
 let properties = 0
+let varRefs = 0
 
 // The exemption belongs to a FILE, so this is checked per injection, not per
 // unique sheet: an identical copy injected from another chunk must not ride
@@ -278,6 +355,24 @@ for (const file of distFiles('.js')) {
       }
     })
 
+    const vars = unresolvedVars(root)
+
+    varRefs += vars.seen
+
+    if (vars.missing.length > 0) {
+      fail(
+        `${file}: ${vars.missing.length} declaration(s) reference a custom property nothing in ` +
+          `this sheet declares, so each one is invalid at computed-value time — and an inherited ` +
+          `property then falls back to the HOST page's value (#262). Declare it, give the ` +
+          `var() a fallback, or — only for a property a pinned library's own JS sets — add its ` +
+          `prefix to RUNTIME_SET_PROPERTY.\n  ` +
+          vars.missing
+            .slice(0, 8)
+            .map(({ name, where }) => `${name}  <-  ${where}`)
+            .join('\n  '),
+      )
+    }
+
     root.walkAtRules('property', (atRule) => {
       const name = atRule.params.trim()
 
@@ -340,7 +435,18 @@ if (properties === 0) {
   )
 }
 
+// Every composed Tailwind utility reads its `--tw-*` through a bare var(), so
+// none at all means the detector stopped matching, not that the sheet stopped
+// referencing. Without this the resolution check would pass vacuously.
+if (varRefs === 0) {
+  fail(
+    'found no fallbackless var() in the injected CSS — Tailwind composes utilities through ' +
+      'them, so either the sheet no longer reaches this gate or BARE_VAR stopped matching',
+  )
+}
+
 console.log(
   `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
-    `${properties} @property registration(s) allowlisted, with no rem outside the calendar chunk`,
+    `${properties} @property registration(s) allowlisted, ${varRefs} var() reference(s) resolved, ` +
+    `with no rem outside the calendar chunk`,
 )

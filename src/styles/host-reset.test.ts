@@ -1,116 +1,137 @@
+import type { AtRule, Rule } from 'postcss'
+
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
+import postcss from 'postcss'
 import { describe, it, expect } from 'vitest'
 
-// `host-reset.css` restates the inherited properties a host's `<body>` would otherwise reach our
-// copy through, so every one of them has to COMPUTE. A `var()` naming a property nothing declares
-// makes its whole declaration invalid at computed-value time, and an inherited property then
-// takes the host's value — the exact failure the file exists to prevent, and silent on every
-// other gate: `assert-css-scoped.mjs` asks where a rule applies, never whether its values
-// resolve. `color: hsl(var(--foreground))` shipped that way, a no-op the whole time, until #262.
+import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 
+// Two properties of `host-reset.css` that only its SOURCE can answer.
+//
+// Whether its `var()`s resolve is not one of them: `scripts/assert-css-scoped.mjs` asks that of
+// the emitted sheet, across all 1,176 rules, and it has to be asked there — Tailwind 4
+// tree-shakes `@theme`, so a token this file can see in `globals.css` may never ship. What is
+// left here is the half a build gate cannot judge: the host-facing promise about WHICH
+// properties get restated, and whether `color`'s value is in the format its token actually
+// carries. `hsl(var(--gray-12))` would resolve and still compute to nothing (#262).
+
+const resolveFrom = createRequire(import.meta.url)
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
-const radix = (file: string) =>
-  readFileSync(createRequire(import.meta.url).resolve(`@radix-ui/colors/${file}`), 'utf8')
 
-const uncommented = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '')
-
-/** Every `prop: value` in a block body, last declaration winning as the cascade does. */
-const declarations = (body: string): Map<string, string> => {
-  const out = new Map<string, string>()
-
-  for (const [, prop, value] of body.matchAll(/([\w-]+)\s*:\s*([^;}]+)/g)) {
-    out.set(prop, value.trim())
-  }
-
-  return out
-}
+/** The light and dark halves of every palette block, in both our sheet and Radix's ramps. */
+const SELECTOR = { light: ':root, .light, .light-theme', dark: '.dark, .dark-theme' }
 
 /**
- * One block's body, by its literal selector. Anchored to the start of a line so the p3
- * overrides Radix nests under this same selector — indented, inside `@supports`/`@media`,
- * and in `color(display-p3 …)` — stay out of the result.
+ * One TOP-LEVEL block's declarations, by literal selector, or `@name` for an at-rule.
+ *
+ * Top-level is load-bearing, not a shortcut: Radix nests a `color(display-p3 …)` override under
+ * this same selector inside `@supports`/`@media`, and reading that instead would decide the
+ * format question below on a value only wide-gamut displays ever see.
  */
-const block = (css: string, selector: string, label: string): string => {
-  const pattern = selector
-    .split(',')
-    .map((part) => part.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join(',\\s*')
-  const found = uncommented(css).match(new RegExp(`^${pattern}\\s*\\{([^}]*)\\}`, 'm'))
+const declarations = (css: string, selector: string): Map<string, string> => {
+  const block = postcss
+    .parse(css)
+    .nodes.find((node): node is AtRule | Rule =>
+      node.type === 'rule'
+        ? node.selector.replace(/\s+/g, ' ') === selector
+        : node.type === 'atrule' && `@${node.name}` === selector,
+    )
 
-  if (!found) throw new Error(`${label}: no \`${selector}\` block`)
+  if (!block?.nodes) throw new Error(`no top-level \`${selector}\` block`)
 
-  return found[1]
+  const found = new Map<string, string>()
+
+  // Last wins, as the cascade does within one block.
+  for (const node of block.nodes) if (node.type === 'decl') found.set(node.prop, node.value)
+
+  return found
+}
+
+/** A missing match must fail, not pass vacuously on `undefined` (`scripts/ci-workflows.test.ts`). */
+const match = (text: string, pattern: RegExp): string => {
+  const found = pattern.exec(text)?.[1]
+
+  expect(found, `nothing matched ${pattern}`).toBeTruthy()
+
+  return found as string
 }
 
 const GLOBALS = read('./globals.css')
-const ROOT = declarations(block(read('./host-reset.css'), '.sy-atlas', 'host-reset.css'))
+const ROOT = declarations(read('./host-reset.css'), `.${WIDGET_SCOPE_CLASS}`)
 
-// The widget's own tokens: `@theme` plus the hand-frozen brand defaults, and the two Radix ramps
-// `globals.css` imports. `postcss-scope-widget.mjs` collapses all four onto `.sy-atlas`, the same
-// element this file styles, so a `var()` here reads them off one element at runtime.
-const theme = declarations(block(GLOBALS, '@theme', 'globals.css'))
-const TOKENS = {
-  light: new Map([
-    ...theme,
-    ...declarations(block(GLOBALS, ':root, .light, .light-theme', 'globals.css')),
-    ...declarations(block(radix('gray.css'), ':root, .light, .light-theme', 'gray.css')),
-    ...declarations(block(radix('red.css'), ':root, .light, .light-theme', 'red.css')),
-  ]),
-  dark: new Map([
-    ...theme,
-    ...declarations(block(GLOBALS, '.dark, .dark-theme', 'globals.css')),
-    ...declarations(block(radix('gray-dark.css'), '.dark, .dark-theme', 'gray-dark.css')),
-    ...declarations(block(radix('red-dark.css'), '.dark, .dark-theme', 'red-dark.css')),
-  ]),
+/** Derived from the `@import`s rather than listed, so adding a ramp cannot leave this stale. */
+const ramps = (mode: keyof typeof SELECTOR): string[] => {
+  const files: string[] = []
+
+  postcss.parse(GLOBALS).walkAtRules('import', ({ params }) => {
+    const specifier = params.replace(/^['"]|['"]$/g, '')
+
+    if (specifier.startsWith('@radix-ui/colors/')) files.push(specifier)
+  })
+
+  expect(files, 'globals.css imports no Radix ramps').not.toHaveLength(0)
+
+  return files.filter((file) => file.endsWith('-dark.css') === (mode === 'dark'))
 }
 
-/** `var(--name)` with no fallback — the only form that can go invalid at computed-value time. */
-const bareVar = () => /var\(\s*(--[\w-]+)\s*\)/g
+/**
+ * Every token a `var()` on the widget root can see. `postcss-scope-widget.mjs` collapses `:root`
+ * and the theme classes onto `.sy-atlas`, the element this file styles, so `@theme`, our brand
+ * defaults and Radix's ramps all land on one element.
+ */
+const tokens = (mode: keyof typeof SELECTOR): Map<string, string> =>
+  new Map([
+    ...declarations(GLOBALS, '@theme'),
+    ...declarations(GLOBALS, SELECTOR[mode]),
+    ...ramps(mode).flatMap((file) => [
+      ...declarations(readFileSync(resolveFrom.resolve(file), 'utf8'), SELECTOR[mode]),
+    ]),
+  ])
 
-/** Substitutes every `var()` through, so an unresolvable name survives into the result. */
-const resolve = (value: string, tokens: Map<string, string>, depth = 0): string => {
+// Non-global for `.test()`, which would otherwise carry `lastIndex` between calls, and global for
+// `.replace()`. Only the fallbackless form can go invalid at computed-value time.
+const BARE_VAR = /var\(\s*(--[\w-]+)\s*\)/
+const BARE_VARS = new RegExp(BARE_VAR, 'g')
+
+/** A colour function wrapping a value that is already a complete colour. */
+const DOUBLE_WRAPPED = /\b(?:hsla?|rgba?|hwb|lab|lch|oklab|oklch)\(\s*(?:#|color\()/i
+
+const resolve = (value: string, available: Map<string, string>, depth = 0): string => {
   if (depth > 10) throw new Error(`cycle resolving \`${value}\``)
 
-  return value.replace(bareVar(), (whole, name: string) => {
-    const next = tokens.get(name)
+  return value.replace(BARE_VARS, (whole, name: string) => {
+    const next = available.get(name)
 
-    return next === undefined ? whole : resolve(next, tokens, depth + 1)
+    return next === undefined ? whole : resolve(next, available, depth + 1)
   })
 }
 
 describe('host-reset.css', () => {
-  it('restates the properties the embedding guide promises hosts it restates', () => {
-    // `docs/embedding.md` names this list. A property dropped here reaches our text unasked.
-    expect([...ROOT.keys()].filter((prop) => !prop.startsWith('--')).sort()).toEqual([
-      'color',
-      'font-family',
-      'letter-spacing',
-      'text-align',
-      'text-transform',
-      'word-spacing',
-    ])
+  it('restates exactly the properties the embedding guide promises hosts it restates', () => {
+    // A property dropped here reaches our text; one added without the guide leaves hosts a
+    // promise we never published. No gate on the emitted sheet can know either.
+    const promised = match(
+      read('../../docs/embedding.md'),
+      /the widget restates ([^.]*?) on its own root/,
+    )
+
+    expect([...ROOT.keys()].filter((prop) => !prop.startsWith('--')).sort()).toEqual(
+      [...promised.matchAll(/`([a-z-]+)`/g)].map(([, prop]) => prop).sort(),
+    )
   })
 
   for (const mode of ['light', 'dark'] as const) {
-    it(`resolves every bare var() on the widget root (${mode})`, () => {
-      const unresolved = [...ROOT]
-        .map(([prop, value]) => [prop, resolve(value, TOKENS[mode])] as const)
-        .filter(([, resolved]) => bareVar().test(resolved))
-        .map(([prop, resolved]) => `${prop}: ${resolved}`)
+    it(`states color in the format its token carries (${mode})`, () => {
+      const colour = resolve(ROOT.get('color') ?? '(none declared)', tokens(mode))
 
-      expect(unresolved).toEqual([])
-    })
+      // Guards the assertion below against passing on a half-resolved value.
+      expect(colour, 'color did not resolve through our own tokens').not.toMatch(BARE_VARS)
 
-    it(`resolves the root color to a literal colour (${mode})`, () => {
-      const value = ROOT.get('color')
-
-      if (value === undefined) throw new Error('host-reset.css: no `color` on `.sy-atlas`')
-
-      // A bare hex, never `hsl(#202020)`: `--color-foreground` resolves to a Radix hex, so a
-      // channel-format wrapper would resolve here and still compute to nothing in a browser.
-      expect(resolve(value, TOKENS[mode])).toMatch(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i)
+      // `--color-foreground` is a Radix HEX, not the channel triplet the brand ramps carry, so
+      // an `hsl()` around it resolves to `hsl(#202020)` and computes to nothing.
+      expect(colour).not.toMatch(DOUBLE_WRAPPED)
     })
   }
 })
