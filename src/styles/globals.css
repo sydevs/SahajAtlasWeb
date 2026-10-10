@@ -1,10 +1,11 @@
 /* EVERY selector below is rescoped at build time (issue #91).
  *
- * This stylesheet is adopted into the embed's shadow root, and into the DOCUMENT for
- * the standalone shell and Ladle (#236, `src/styles/sheet.ts`). There `<html>` is the
- * theme root, so a top-level selector repaints everything around the widget. The embed
- * needs the rescope for the opposite reason: it is what gives the widget a root to
- * match inside the shadow root, where no `html` element exists.
+ * The embed adopts this sheet into its shadow root (#236, `src/styles/sheet.ts`), so it
+ * cannot reach a host page. The standalone shell and Ladle have no boundary: both put
+ * it on `<html class="sy-atlas">`, where a top-level selector repaints the page it is
+ * on. The embed needs the rescope for the opposite reason — `:root` matches nothing
+ * inside a shadow root, so the collapse onto `.sy-atlas` is what defines the theme
+ * tokens and the palette there.
  *
  * `scripts/postcss-scope-widget.mjs` runs last in the PostCSS chain and confines the
  * whole emitted sheet — Tailwind's Preflight and utilities, the imports below, and
@@ -79,9 +80,10 @@
 /* The theme. This is v3's `tailwind.config.js`, which is deleted.
  *
  * Every scale is re-pinned in px. v4's own defaults are rem, and a host page that sets
- * `html { font-size: 62.5% }` rescales every rem in a sheet injected into their head —
- * it once shrank the side panel to 220px (#238). `pnpm assert:css` fails the build on a
- * rem declaration outside the lazy calendar chunk.
+ * `html { font-size: 62.5% }` rescales every rem we ship — a rem resolves against the
+ * host's root font size from inside the shadow root too — and it once shrank the side
+ * panel to 220px (#238). `pnpm assert:css` fails the build on a rem declaration outside
+ * the lazy calendar chunk.
  *
  * `*: initial` clears a namespace before re-declaring it, because the v3 config
  * REPLACED these scales rather than extending them. Without the clear, v4's rem-based

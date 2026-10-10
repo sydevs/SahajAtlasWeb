@@ -4,24 +4,22 @@ import selectorParser from 'postcss-selector-parser'
  * A PostCSS pass that confines every rule this repo emits to the widget's
  * own DOM.
  *
- * WHY (issue #91): the EMBED can no longer leak onto a host page — #236
- * put it behind a shadow boundary, and the sheet is adopted there rather
- * than appended to anyone's `<head>` (`src/styles/sheet.ts`). The
- * standalone shell and Ladle adopt the same sheet into the DOCUMENT,
- * where `<html>` is the theme root, so a top-level selector still
- * repaints everything around the widget. That is Tailwind's Preflight
- * reset (`a { color: inherit }`, zeroed heading and list margins,
- * `border: 0` on `*`, form-control resets), every generated utility
- * (`.container`, `.hidden`, `.sr-only`), the `:root`/`.dark` palette
- * blocks, and the whole of mapbox-gl.css, swiper, vaul, and Radix
- * Colors, which we inline by `@import`.
+ * WHY (issue #91): the embed is behind a shadow boundary (#236) and
+ * adopts this sheet into it (`src/styles/sheet.ts`), so the sheet cannot
+ * reach a host page. The standalone shell and Ladle have no boundary:
+ * both put it on `<html class="sy-atlas">`, where a top-level selector
+ * repaints the page it is on. That is Tailwind's Preflight reset
+ * (`a { color: inherit }`, zeroed heading and list margins, `border: 0`
+ * on `*`, form-control resets), every generated utility (`.container`,
+ * `.hidden`, `.sr-only`), the `:root`/`.dark` palette blocks, and the
+ * whole of mapbox-gl.css, swiper, vaul, and Radix Colors, which we
+ * inline by `@import`.
  *
- * The embed needs the pass for the opposite reason, which is the
- * load-bearing half: collapsing `:root`, `html`, `body` and `:host` onto
- * `.sy-atlas` is what gives the widget a root to match inside the shadow
- * root, where no `html` element exists. Without it, Preflight and the
- * whole palette never apply to the embed at all. So do not retire this
- * pass on the boundary — it is functional now, not only defensive.
+ * The embed needs the pass for the opposite reason, and that half is
+ * load-bearing: `:root` matches nothing inside a shadow root, so
+ * collapsing the root selectors onto `.sy-atlas` is the only thing that
+ * defines the theme tokens and the palette there, and the only thing
+ * that lands Preflight's own `html`/`body` rules.
  *
  * Hand-scoping every selector was the old rule (`src/components/AGENTS.md`),
  * and it had already leaked twice: a bare `main {}`, and a
