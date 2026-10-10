@@ -46,14 +46,15 @@ export type ListProps = {
 // A scrollable list wrapper. The surrounding drawer body is the actual
 // scroll container, so this is a plain styled `<ul>`.
 //
-// The list-none, m-0, and p-0 resets deliberately duplicate Tailwind's
-// preflight. The widget's CSS injects into HOST documents, where a host
-// typography rule on bare `ul` or `li`, such as `li { list-style: disc }`,
-// beats preflight's inherited reset and paints bullets next to every
-// card. Class-level utilities out-specify those element rules, including
-// `[&>li]:list-none` directly on the `<li>` wrappers, which inheritance
-// alone cannot protect. (Host rules with class selectors can still win.
-// That is the widget's accepted scoping limit.)
+// The list-none, m-0, and p-0 resets deliberately duplicate preflight.
+// They were defence against a host typography rule on bare `ul` or `li`,
+// such as `li { list-style: disc }`; a host selector cannot match inside
+// the embed's shadow root (#236), and the two boundary-less builds have
+// no host page, so that hazard is unreachable. What they still buy is
+// independence from preflight, which resets `ol, ul, menu` and not `li`:
+// the suppression is stated at class level, where it out-specifies any
+// element rule a third-party sheet we `@import` carries, and
+// `[&>li]:list-none` states it on the `<li>` instead of inheriting it.
 export function List({ children }: ListProps) {
   return (
     <ul
