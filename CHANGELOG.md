@@ -283,6 +283,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Your page's text colour no longer tints the widget's copy.** ([#262]) `color` is one of the
+  six inherited properties the widget restates on its own root, and for `color` the restatement
+  had never worked — it named an internal variable that nothing declared, which voids the whole
+  declaration and hands the property straight back to your page. So a theme setting
+  `body { color: … }` recoloured every line of widget copy that carries no colour of its own.
+  Widget text now renders in its own near-black, or near-white in dark mode, whatever your page
+  sets. If you were relying on the widget inheriting your text colour, it no longer does, and
+  that was never the documented behaviour. The other five properties were unaffected.
 - **`atlas=` on the script works under `routing=path`.** ([#250]) It was ignored there: the
   widget always opened your page's root on the world list. It now navigates to your default
   when the interface first opens, as it does for a client record's home region, and outranks
@@ -706,6 +714,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#107]: https://github.com/sydevs/SahajAtlasWeb/issues/107
 [#232]: https://github.com/sydevs/SahajAtlasWeb/issues/232
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
+[#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
