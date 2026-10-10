@@ -810,7 +810,7 @@ fetches no data from wherever its script was served.
 |                            | `challenges.cloudflare.com`                   | **Turnstile — required.** Every write the widget makes is captcha-gated, so registration is impossible without it. Loaded as soon as the interface mounts, so a policy that omits it fails immediately rather than at the moment somebody registers. | **the widget shows an error screen and does not run.** Not a degradation — see the note below |
 |                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                       | analytics only                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                        | **the map fails**, the rest of the widget is unaffected                                       |
-| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach. The directive governs two other things: the single `<style>` the widget puts in your `<head>` for its `@font-face` rules, and the ones the place-search field's library installs for itself.                                                                                                                              | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and the place-search field, which stops working without its library's own stylesheet |
+| `style-src`                | `'unsafe-inline'`                             | **Narrower than its name suggests.** The widget's own stylesheet is a constructed `CSSStyleSheet` adopted by its shadow root, which `style-src` does not reach. What the directive governs is the `<style>` elements the widget and its libraries still install at runtime — the `@font-face` rules in your `<head>`, and the place-search field's own stylesheet — plus the `style` attributes they set, which the note below covers separately.                                                                                                                              | the interface renders, fully styled. You lose the typeface — as the `font-src` row below — and place search, whose library reads back the stylesheet it just installed and throws when the browser refuses it |
 | `font-src`                 | the widget's origin                           | The typeface is **self-hosted**. No request goes to `fonts.googleapis.com` or `fonts.gstatic.com`, so neither belongs in your policy, and no visitor IP reaches a third party for a font.                                                            | text falls back to your system sans, everything works. `style-src` above costs you the same typeface by a different route: the `@font-face` rules never register, so no font is requested at all |
 | `img-src`                  | `data:`                                       | The map's pins and cluster bubbles are inline SVG rasterised from a `data:` URI. The widget ships them itself, rather than relying on the map style's sprites.                                                                                       | **the map paints with no pins**                                                               |
 |                            | `api.mapbox.com`                              | map tiles, sprites and glyphs                                                                                                                                                                                                                          | the map fails                                                                                 |
@@ -830,18 +830,18 @@ Four notes on that table:
 **The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
 `map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
 alone. The widget's own stylesheet applied in full, and went on applying under `style-src
-'none'`: a constructed `CSSStyleSheet` is outside the policy's reach altogether. The two things
-that stopped were the `@font-face` block and the place-search field, whose library reads back the
-stylesheet it just installed and throws when the browser refuses it.
+'none'`: a constructed `CSSStyleSheet` is outside the policy's reach altogether. What stopped was
+the `@font-face` block and the place-search field.
 
-Of the two halves, **`style-src-elem` is the one that costs you both**. Granting only
-`style-src-attr 'unsafe-inline'` changed nothing: the interface was indistinguishable from the
-blocked run. Granting only `style-src-elem 'unsafe-inline'` was indistinguishable from the
-allowed one, and refused a single scrollbar-width probe inside the scroll-lock library. So
-`style-src-attr 'none'` is a tightening you can add — measured against the map-less interface
-only, not the map and not the registration form. Add it **beside** `style-src 'unsafe-inline'`,
-never in place of it: a browser that has not implemented the split ignores `style-src-elem` and
-falls back to `style-src`, so `style-src-elem 'unsafe-inline'` written on its own would block
+**Do not reach for `style-src-elem` and `style-src-attr` to tighten this.** They do split the
+cost — granting only `style-src-elem 'unsafe-inline'` was indistinguishable from allowing
+everything, and granting only `style-src-attr 'unsafe-inline'` was indistinguishable from
+allowing nothing — but the attribute half is not free. The place-search field's library puts a
+screen-reader live region in your `<body>` and clips it to 1×1 with a `style` attribute, so a
+policy that refuses the attribute leaves that region full-width, unclipped and in your page's
+flow: its announcements ("3 results") become visible text on your page the moment a visitor
+types. Writing `style-src-elem 'unsafe-inline'` on its own is worse again — a browser that has
+not implemented the split ignores the directive and falls back to `style-src`, blocking
 everything there.
 
 **`connect-src cloud.sydevelopers.com` is the entry most likely to be missing, and the most
@@ -886,10 +886,10 @@ If your atlas has stopped working since this change, this is almost certainly wh
 `connect-src`. The widget also writes the specific directive it needs to the browser console, so
 a developer looking at the page gets the answer without opening this document.
 
-Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a dead
-place-search field, missing photography, missing flags, no analytics, no telemetry. Read the row
-rather than assuming — over-allowing because a summary sounded absolute is its own cost on a
-strict-policy page.
+Everything else degrades to exactly what its "Blocked ⇒" column says — a missing typeface, a
+search field that offers no places, missing photography, missing flags, no analytics, no
+telemetry. Read the row rather than assuming — over-allowing because a summary sounded absolute
+is its own cost on a strict-policy page.
 
 Two entries are conditional on the build's configuration rather than anything you control:
 analytics is absent unless the build carries an analytics ID, and Sentry is absent unless it
@@ -994,7 +994,10 @@ Six honest exceptions, none of them styling your content:
   mounted, and is removed with it. The search field announces its suggestion counts through it,
   and the library that owns it looks the region up on the document, which cannot see into the
   shadow root. It is empty except while announcing, carries its own inline
-  clipping styles, and is removed on unmount. Nothing else of yours is touched.
+  clipping styles, and is removed on unmount. Nothing else of yours is touched. ⚠ Those clipping
+  styles are a `style` **attribute**, which is why the [CSP](#content-security-policy) section
+  tells you not to tighten `style-src-attr`: refuse it and the region sits full-width and
+  unclipped in your page's flow, announcements and all.
 - **`@property` cannot be scoped either**, for the same reason — it registers a name, not a
   selector. Tailwind 4 composes its utilities through registered custom properties, so the widget
   registers 62 of them, every one named `--tw-…`. Registering a name in your document gives it a
@@ -1188,7 +1191,7 @@ Three things to check when you migrate:
 | **"Not set up correctly" / configuration error**                      | The parameter is `key`, not `api-key` (renamed when configuration moved onto the script URL). The loader logs an error naming it. Otherwise the key is wrong, revoked, or not yet issued.                              |
 | **Nothing renders, no console error, script loaded fine**             | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                   |
 | **Console: "the embed script is on this page more than once"**        | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                            |
-| **Text is in your own font, and the place-search field has lost its box**  | `style-src 'unsafe-inline'` is missing from your CSP. The console says `Refused to apply inline style`, and the violation reports name **`style-src-elem`**. Everything else keeps its styling: the widget's own sheet is not governed by `style-src`. |
+| **Text is in your own font, and the search field offers no places**   | `style-src 'unsafe-inline'` is missing from your CSP. The console says `Refused to apply inline style`, and the violation reports name **`style-src-elem`**. The field keeps its box — it falls back to a plain text input — and the rest of the interface keeps its styling, since the widget's own sheet is not governed by `style-src`. |
 | **Labels are English on a non-English page**                          | Either `connect-src https://cloud.sydevelopers.com` is missing, or that language is not switched on in the CMS. The widget carries English compiled in, so this is what a blocked or unavailable language looks like — ask us to enable the language you need. |
 | **Widget loads and styles, but shows an error instead of any events** | `connect-src https://cloud.sydevelopers.com` is missing.                                                                                                                                                              |
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |

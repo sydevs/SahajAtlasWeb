@@ -28,11 +28,13 @@ and does not do to your page, and a troubleshooting table.
 
 Three points from it matter before you read further:
 
-- **Your CSP needs `style-src 'unsafe-inline'`.** The widget has no
-  stylesheet to link — it appends `<style>` elements, which carry no nonce.
-  Without this rule the widget renders completely unstyled. The guide lists
-  the rest of the contract, including `worker-src blob:` and the SahajCloud
-  and locale-JSON origins.
+- **Your CSP needs `style-src 'unsafe-inline'`.** Not for the widget's own
+  stylesheet, which it adopts into its shadow root beyond the policy's reach,
+  but for the `<style>` elements it and its libraries still install at
+  runtime. Without the rule you get your own typeface and no place search, and
+  the guide says why splitting the directive is not the tightening it looks
+  like. It lists the rest of the contract too, including `worker-src blob:`
+  and the SahajCloud origin.
 - **One `<sahaj-atlas>` per page.** A second element never mounts. A second
   copy of the script does nothing. Both log a message to the console.
 - **None of the third-party flows below has a script-URL opt-out.** A host
