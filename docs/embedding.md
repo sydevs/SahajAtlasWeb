@@ -825,7 +825,19 @@ fetches no data from wherever its script was served.
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
 | `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
 
-Four notes on that table:
+Five notes on that table:
+
+**One refused `eval` is expected on this exact policy, and it is not the blocked-Turnstile row
+above.** A host sending the block verbatim gets `Refused to evaluate a string as JavaScript
+because 'unsafe-eval' is not an allowed source of script` in the console, reported against
+`script-src` with a blocked URI of `eval`. It is Turnstile's, not ours: the shipped chunks
+contain no `eval` and no `Function` constructor, and the violation carries no source file and no
+stack, which is what a cross-origin script produces. Observed on 3 runs of 3 in Chromium 141,
+2026-10-10, against a built `map=false` embed — the widget rendered, routed and read its data
+normally in every one. **Do not add `'unsafe-eval'` on the strength of it.** What has not been
+measured is a challenge being *solved* under this policy, and every write the widget makes is
+captcha-gated. If one turns out to need `'unsafe-eval'`, the block above gains it and
+[`CHANGELOG.md`](../CHANGELOG.md) says so.
 
 **The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
 `map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
@@ -1197,6 +1209,7 @@ Three things to check when you migrate:
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                             |
+| **Console: "Refused to evaluate a string as JavaScript"**            | Expected on the recommended CSP, and harmless in every measured run: Turnstile's own script evaluates a string, and `script-src` carries no `'unsafe-eval'`. It is **not** the row below — a blocked Turnstile replaces the widget with an error screen instead. See the note under [the CSP table](#why-each-one-and-what-breaks-without-it). |
 | **The widget shows "its security check was blocked" and nothing else**    | Turnstile is blocked — add `challenges.cloudflare.com` to `script-src`, `frame-src` and `connect-src`. The browser console carries the exact directive. This used to degrade the report form instead — since the atlas cannot take a registration without it, it now fails outright. |
 | **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                     |
 | **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                       |
