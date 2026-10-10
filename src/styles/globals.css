@@ -1,11 +1,16 @@
 /* EVERY selector below is rescoped at build time (issue #91).
  *
- * This stylesheet is injected into the HOST page's <head>, so a top-level selector
- * restyles somebody else's site. `scripts/postcss-scope-widget.mjs` runs last in the
- * PostCSS chain and confines the whole emitted sheet — Tailwind's Preflight and
- * utilities, the imports below, and everything written here — under `.sy-atlas`, the
- * class on the widget's theme root. So write plain selectors here. The pass handles
- * them, and `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
+ * `scripts/postcss-scope-widget.mjs` runs last in the PostCSS chain and confines the
+ * whole emitted sheet — Tailwind's Preflight and utilities, the imports below, and
+ * everything written here — under `.sy-atlas`, the class on the widget's theme root.
+ * So write plain selectors here. The pass handles them, and
+ * `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
+ *
+ * It survived #236's shadow boundary for two reasons, and that file owns the argument:
+ * the boundary-less shell and Ladle put this sheet on `<html class="sy-atlas">`, and
+ * inside the embed's shadow root the collapse onto `.sy-atlas` is the only thing that
+ * defines the theme tokens and the palette at all. Neither half is about a host page
+ * any more.
  *
  * One thing to know: a selector you write against `.sy-atlas` yourself passes
  * through untouched. That is the escape hatch for rules that must address the theme
@@ -74,9 +79,10 @@
 /* The theme. This is v3's `tailwind.config.js`, which is deleted.
  *
  * Every scale is re-pinned in px. v4's own defaults are rem, and a host page that sets
- * `html { font-size: 62.5% }` rescales every rem in a sheet injected into their head —
- * it once shrank the side panel to 220px (#238). `pnpm assert:css` fails the build on a
- * rem declaration outside the lazy calendar chunk.
+ * `html { font-size: 62.5% }` rescales every rem we ship — a rem resolves against the
+ * host's root font size from inside the shadow root too — and it once shrank the side
+ * panel to 220px (#238). `pnpm assert:css` fails the build on a rem declaration outside
+ * the lazy calendar chunk.
  *
  * `*: initial` clears a namespace before re-declaring it, because the v3 config
  * REPLACED these scales rather than extending them. Without the clear, v4's rem-based

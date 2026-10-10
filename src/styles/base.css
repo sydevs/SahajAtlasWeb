@@ -28,11 +28,12 @@
 }
 
 /* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
-   or `:root`. This stylesheet is injected into the HOST document, and Swiper is a
-   popular library, so `.swiper` roots routinely exist on host pages: theming that
-   selector reaches straight into their carousels. White-at-0.5 bullets would make
-   a host's pagination invisible on a light background, which is a worse outcome
-   than the wrong-but-visible tint this used to leak.
+   or `:root`. `.swiper` is Swiper's own class, so theming it repaints every Swiper
+   instance in the widget rather than this one. The reason used to be wider: before
+   #236 the sheet landed in the embedding page, where `.swiper` roots routinely exist,
+   and white-at-0.5 bullets made a host's pagination invisible on a light background —
+   worse than the wrong-but-visible tint this used to leak. That reach is gone. The
+   narrower reason is not.
 
    This insets the pagination INTO the bottom of the image. Bullet size and shape
    are Swiper's own defaults (round, clickable) — no custom bar styling. The

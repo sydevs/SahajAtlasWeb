@@ -1,24 +1,23 @@
 #!/usr/bin/env node
 /**
- * A post-build gate. It proves the shipped CSS cannot restyle a host page
- * (#91).
+ * A post-build gate. It proves `postcss-scope-widget.mjs` reached every
+ * rule this repo ships (#91).
  *
  * The EMBED's sheet is behind a shadow boundary since #236, so it cannot
- * reach a host page at all. This gate is for the two builds that have no
- * boundary: the standalone shell and Ladle both put the same sheet on
- * `<html class="sy-atlas">`, where anything left at the top level wins
- * style conflicts and repaints the page around it.
- * `scripts/postcss-scope-widget.mjs` confines every selector at build
- * time. This gate checks the result in the emitted bytes. It does not
- * trust the build pass alone.
+ * reach a host page. The standalone shell and Ladle have no boundary, and
+ * both put the same sheet on `<html class="sy-atlas">` — the document
+ * root, so `:where(.sy-atlas) :is(main)` matches exactly what `main`
+ * matched. The prefix confines nothing in either build, and the page it
+ * would be confining the sheet from is our own.
  *
- * That is the weaker half of why the pass survives the boundary, and on
- * its own it names no third party — so do not retire the pass on it. The
- * load-bearing half: `postcss-scope-widget.mjs` collapses `:root`, `html`,
- * `body` and `:host`, and the theme classes, onto `.sy-atlas`. Inside the
- * shadow root there is no `html` element to match, so without that rewrite
- * Preflight and the whole palette never apply to the EMBED at all. The
- * pass is functional now, not defensive.
+ * What survives the boundary is the collapse, and it is load-bearing:
+ * `postcss-scope-widget.mjs` maps `:root`, `html`, `body` and `:host`,
+ * and the theme classes, onto `.sy-atlas`. Inside the shadow root there
+ * is no `html` element to match, so without that rewrite nothing defines
+ * the theme tokens or the palette, and Preflight's own `html`/`body`
+ * rules never land. The pass is functional, not defensive — do not
+ * retire it on the strength of the boundary. This gate reads the result
+ * back out of the emitted bytes rather than trusting the pass.
  *
  * This script reads the CSS back out of `dist/**\/*.js`. There are no
  * separate .css assets — the injector inlines each stylesheet as a JS
@@ -206,8 +205,9 @@ const injections = []
 const checked = new Set()
 
 // A .css asset in the build output means the injector failed to inline
-// one stylesheet. The host page would link that file instead of receiving
-// injected CSS. This gate would never see the leftover stylesheet.
+// one stylesheet. Nothing hands that file to `src/styles/sheet.ts`, so no
+// root adopts it — and this gate, which reads CSS out of the JS, would
+// never see it.
 const strayCss = distFiles('.css')
 
 if (strayCss.length > 0) {

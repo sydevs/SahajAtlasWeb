@@ -98,9 +98,11 @@ Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
 ## Build & deploy
 
 - **Build**: `pnpm build` runs `tsc` (the typecheck gate), then
-  `vite build`, into `dist/`. CSS is injected by JS
-  (`vite-plugin-css-injected-by-js`), so the widget styles itself when
-  embedded.
+  `vite build`, into `dist/`. CSS travels with the JS
+  (`vite-plugin-css-injected-by-js`, with an `injectCodeFunction`): each
+  chunk is handed to `src/styles/sheet.ts` rather than appended as a
+  `<style>`, and each entry adopts it into the root it owns — the embed's
+  shadow root, the standalone shell's document (#236).
 - **Deploy**: two **Cloudflare Pages** projects build this repo —
   `sahajatlas` (the app, `pnpm build` → `dist/`, at `sahajatlas.pages.dev`)
   and `sahajatlas-design` (the Ladle playground, `pnpm ladle:build`, at

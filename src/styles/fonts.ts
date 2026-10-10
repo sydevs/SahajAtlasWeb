@@ -6,7 +6,7 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * Rethink Sans, self-hosted — with Raleway retained for Cyrillic (issue #91).
  *
  * Replaces a runtime `@import` of fonts.googleapis.com that sat inside the stylesheet
- * we inject into the HOST page. That disclosed every visitor's IP to a third party
+ * the widget ships. That disclosed every visitor's IP to a third party
  * with no consent — the exposure LG München I ruled on in 3 O 17493/20 — and forced
  * every embedding host to allow fonts.googleapis.com (style-src) and fonts.gstatic.com
  * (font-src) in its CSP. Both requirements are gone. A host now allows OUR origin for `font-src`,
@@ -14,17 +14,20 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  *
  * ── Why this is TypeScript and not a `@font-face` block in globals.css ──
  *
- * A `url()` inside our CSS is useless for the embed case. The stylesheet is injected
- * as a string into the host's <head> (`vite-plugin-css-injected-by-js`), and a CSS
- * url() resolves against the DOCUMENT's base URL — the host page's. `/assets/raleway…`
- * would resolve to wordpress-site.example/assets/raleway… and 404 on every embed.
+ * A `url()` inside our CSS is useless for the embed case. The built sheet is adopted
+ * into the widget's shadow root and appended to no `<head>` at all (#236), but a
+ * relative `url()` in it still resolves against the DOCUMENT's base URL — the host
+ * page's. `/assets/raleway…` would resolve to wordpress-site.example/assets/raleway…
+ * and 404 on every embed.
  *
  * There is no build-time answer to that (the deploy origin is not known to a stylesheet)
  * but there is a runtime one: `import.meta.url` is this chunk's own URL, so resolving
  * the asset path against it always lands on the origin the widget was served from —
  * dev server, `pnpm preview`, a Cloudflare preview deploy or production, with nothing
  * to configure and nothing to keep in sync. The faces are then registered in a <style>
- * of their own.
+ * of their own, in `document.head` — the one sheet this repo really does append there,
+ * because a `@font-face` declared inside a shadow root is never applied
+ * (`src/styles/sheet.ts`).
  *
  * The alternative was inlining the woff2 as base64 in the CSS, which needs no origin at
  * all. Measured, it cost +216 KB gzipped on the eager payload — the font bytes do not
