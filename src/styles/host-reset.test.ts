@@ -49,6 +49,15 @@ const declarations = (css: string, selector: string): Map<string, string> => {
   return found
 }
 
+/** An absent declaration must fail, not resolve a placeholder (`docs/testing.md`). */
+const required = (block: Map<string, string>, prop: string): string => {
+  const value = block.get(prop)
+
+  expect(value, `host-reset.css declares no \`${prop}\``).toBeTruthy()
+
+  return value as string
+}
+
 /** A missing match must fail, not pass vacuously on `undefined` (`scripts/ci-workflows.test.ts`). */
 const match = (text: string, pattern: RegExp): string => {
   const found = pattern.exec(text)?.[1]
@@ -124,7 +133,7 @@ describe('host-reset.css', () => {
 
   for (const mode of ['light', 'dark'] as const) {
     it(`states color in the format its token carries (${mode})`, () => {
-      const colour = resolve(ROOT.get('color') ?? '(none declared)', tokens(mode))
+      const colour = resolve(required(ROOT, 'color'), tokens(mode))
 
       // Guards the assertion below against passing on a half-resolved value.
       expect(colour, 'color did not resolve through our own tokens').not.toMatch(BARE_VARS)
