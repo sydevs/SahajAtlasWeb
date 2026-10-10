@@ -4,21 +4,30 @@ import selectorParser from 'postcss-selector-parser'
  * A PostCSS pass that confines every rule this repo emits to the widget's
  * own DOM.
  *
- * WHY (issue #91): the widget has no shadow boundary.
- * `vite-plugin-css-injected-by-js` appends our whole stylesheet to the
- * HOST document's `<head>`, after the host's own sheets, so it wins style
- * ties. Anything left at the top level restyles the page we are a guest
- * on. That includes Tailwind's Preflight reset (`a { color: inherit }`,
- * zeroed heading and list margins, `border: 0` on `*`, form-control
- * resets), every generated utility (`.container`, `.hidden`, `.sr-only`),
- * the `:root`/`.dark` palette blocks, and the whole of mapbox-gl.css,
- * swiper, vaul, and Radix Colors, which we inline by `@import`.
+ * WHY (issue #91): the EMBED can no longer leak onto a host page — #236
+ * put it behind a shadow boundary, and the sheet is adopted there rather
+ * than appended to anyone's `<head>` (`src/styles/sheet.ts`). The
+ * standalone shell and Ladle adopt the same sheet into the DOCUMENT,
+ * where `<html>` is the theme root, so a top-level selector still
+ * repaints everything around the widget. That is Tailwind's Preflight
+ * reset (`a { color: inherit }`, zeroed heading and list margins,
+ * `border: 0` on `*`, form-control resets), every generated utility
+ * (`.container`, `.hidden`, `.sr-only`), the `:root`/`.dark` palette
+ * blocks, and the whole of mapbox-gl.css, swiper, vaul, and Radix
+ * Colors, which we inline by `@import`.
+ *
+ * The embed needs the pass for the opposite reason, which is the
+ * load-bearing half: collapsing `:root`, `html`, `body` and `:host` onto
+ * `.sy-atlas` is what gives the widget a root to match inside the shadow
+ * root, where no `html` element exists. Without it, Preflight and the
+ * whole palette never apply to the embed at all. So do not retire this
+ * pass on the boundary — it is functional now, not only defensive.
  *
  * Hand-scoping every selector was the old rule (`src/components/AGENTS.md`),
  * and it had already leaked twice: a bare `main {}`, and a
  * `.swiper-pagination-bullet {}`. A leak is invisible. Lint, typecheck, and
- * the unit lane all stay green while a host page silently changes. So the
- * invariant is now mechanical instead. This pass runs LAST in
+ * the unit lane all stay green while the page around it silently changes.
+ * So the invariant is now mechanical instead. This pass runs LAST in
  * `postcss.config.js`, after Tailwind has generated its output and Vite
  * has inlined the `@import`s. It refuses to emit a stylesheet that still
  * has an unscoped selector.

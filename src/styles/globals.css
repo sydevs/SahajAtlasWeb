@@ -1,11 +1,16 @@
 /* EVERY selector below is rescoped at build time (issue #91).
  *
- * This stylesheet is injected into the HOST page's <head>, so a top-level selector
- * restyles somebody else's site. `scripts/postcss-scope-widget.mjs` runs last in the
- * PostCSS chain and confines the whole emitted sheet — Tailwind's Preflight and
- * utilities, the imports below, and everything written here — under `.sy-atlas`, the
- * class on the widget's theme root. So write plain selectors here. The pass handles
- * them, and `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
+ * This stylesheet is adopted into the embed's shadow root, and into the DOCUMENT for
+ * the standalone shell and Ladle (#236, `src/styles/sheet.ts`). There `<html>` is the
+ * theme root, so a top-level selector repaints everything around the widget. The embed
+ * needs the rescope for the opposite reason: it is what gives the widget a root to
+ * match inside the shadow root, where no `html` element exists.
+ *
+ * `scripts/postcss-scope-widget.mjs` runs last in the PostCSS chain and confines the
+ * whole emitted sheet — Tailwind's Preflight and utilities, the imports below, and
+ * everything written here — under `.sy-atlas`, the class on the widget's theme root.
+ * So write plain selectors here. The pass handles them, and
+ * `scripts/assert-css-scoped.mjs` fails the build if one ever escapes.
  *
  * One thing to know: a selector you write against `.sy-atlas` yourself passes
  * through untouched. That is the escape hatch for rules that must address the theme
