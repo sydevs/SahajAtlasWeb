@@ -8,12 +8,12 @@ import selectorParser from 'postcss-selector-parser'
  * adopts this sheet into it (`src/styles/sheet.ts`), so the sheet cannot
  * reach a host page. The standalone shell and Ladle have no boundary:
  * both put it on `<html class="sy-atlas">`, where a top-level selector
- * repaints the page it is on. That is Tailwind's Preflight reset
- * (`a { color: inherit }`, zeroed heading and list margins, `border: 0`
- * on `*`, form-control resets), every generated utility (`.container`,
- * `.hidden`, `.sr-only`), the `:root`/`.dark` palette blocks, and the
- * whole of mapbox-gl.css, swiper, vaul, and Radix Colors, which we
- * inline by `@import`.
+ * repaints the page it is on. At that level this sheet carries Tailwind's
+ * Preflight reset (`a { color: inherit }`, zeroed heading and list
+ * margins, `border: 0` on `*`, form-control resets), every generated
+ * utility (`.container`, `.hidden`, `.sr-only`), the `:root`/`.dark`
+ * palette blocks, and the whole of mapbox-gl.css, swiper, vaul, and
+ * Radix Colors, which we inline by `@import`.
  *
  * The embed needs the pass for the opposite reason, and that half is
  * load-bearing: `:root` matches nothing inside a shadow root, so
