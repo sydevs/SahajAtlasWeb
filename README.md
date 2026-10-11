@@ -100,8 +100,8 @@ SahajCloud's:
   subtree.
 - **`react-circle-flags.pages.dev`** serves the country flag SVGs
   (`referrer-policy: no-referrer`). **`challenges.cloudflare.com`** loads
-  Turnstile, only when a visitor opens the report-issue form. Both are in
-  the CSP table in
+  Turnstile as soon as the interface mounts, not when a visitor opens a form
+  (#182). Both are in the CSP table in
   [`docs/embedding.md`](docs/embedding.md#content-security-policy).
 
 None of these has a script-URL opt-out (#149) — each is built so it does not

@@ -825,19 +825,40 @@ fetches no data from wherever its script was served.
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
 | `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
 
-Six notes on that table:
+Notes on that table:
 
-**One refused `eval` is expected on this exact policy, and it is not the blocked-Turnstile row
-above.** A host sending the block verbatim gets `Refused to evaluate a string as JavaScript
-because 'unsafe-eval' is not an allowed source of script` in the console, reported against
-`script-src` with a blocked URI of `eval`. It is Turnstile's, not ours: the shipped chunks
-contain no `eval` and no `Function` constructor, and the violation carries no source file and no
-stack, which is what a cross-origin script produces. Observed on 3 runs of 3 in Chromium 141,
-2026-10-10, against a built `map=false` embed — the widget rendered, routed and read its data
-normally in every one. **Do not add `'unsafe-eval'` on the strength of it.** What has not been
-measured is a challenge being *solved* under this policy, and every write the widget makes is
-captcha-gated. If one turns out to need `'unsafe-eval'`, the block above gains it and
-[`CHANGELOG.md`](../CHANGELOG.md) says so.
+**A challenge SOLVES on this exact policy, with no `'unsafe-eval'` in it.** A forced interactive
+challenge was clicked through in the widget's own report-issue form, in a built `map=false` embed
+and a host page served from one origin with the block above sent as a response header: the
+challenge reached its success state, the widget took the token, and the form's Submit went from
+disabled to enabled. Six runs of six in Chromium 141.0.7390.37, 2026-10-11 — three on the policy
+verbatim, three with `'unsafe-eval'` added to `script-src`, identical in both. **Do not add
+`'unsafe-eval'`.** The challenge runs inside the `challenges.cloudflare.com` frame, a separate
+document that sends its own `script-src 'nonce-…' 'unsafe-eval'`, so `frame-src` above is the
+only directive of yours that governs it at all — which is why Cloudflare's own CSP guidance for
+Turnstile asks for `challenges.cloudflare.com` under `script-src` and `frame-src`, and for
+nothing else.
+
+⚠ **The refused `eval` is not something every page view produces, and a page showing it has not
+been watched solve.** It was observed 3 times in 3 on 2026-10-10 — Chromium 141, a built
+`map=false` embed, this policy — as `Refused to evaluate a string as JavaScript because
+'unsafe-eval' is not an allowed source of script`, reported against `script-src` with a blocked
+URI of `eval`, carrying no source file and no stack, the signature of a cross-origin script —
+Turnstile's `api.js`, which does run in your document and which your `script-src` does govern.
+The widget rendered, routed and read its data normally in all three. Cloudflare ships that script
+continuously, and on 2026-10-11 it did not occur in any run: nine in the widget's own embed —
+three on the policy verbatim, three with `'unsafe-eval'` added, three on the 2026-10-10
+always-passes setup — and six more on an isolated `api.js` page. So the solve above was measured
+in its absence, not alongside it. Harmless where it has appeared, then, and normal where it has
+not. A refusal *beside* a challenge that will not solve is the one combination nobody has seen:
+tell us if you do.
+
+⚠ **Three further things the 2026-10-11 runs did not cover.** The site key was Cloudflare's
+`3x00000000000000000000FF`, which forces the real interactive challenge, rather than the
+production key — the always-passes key short-circuits before any challenge code and can answer
+nothing here, which is why it is not what was used. Nothing was posted to the backend, so the
+measurement ends at the token rather than at an accepted submission. And map mode was not
+measured, for want of a Mapbox token, as on 2026-10-10.
 
 **The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
 `map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
@@ -1221,7 +1242,7 @@ Three things to check when you migrate:
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                             |
-| **Console: "Refused to evaluate a string as JavaScript"**            | Expected on the recommended CSP, and harmless in every measured run: Turnstile's own script evaluates a string, and `script-src` carries no `'unsafe-eval'`. It is **not** the row below — a blocked Turnstile replaces the widget with an error screen instead. See the note under [the CSP table](#why-each-one-and-what-breaks-without-it). |
+| **Console: "Refused to evaluate a string as JavaScript"**            | Turnstile's `api.js` evaluating a string in your document, with no `'unsafe-eval'` in `script-src`. Harmless wherever it has appeared, and it does not appear on every page view. The challenge itself runs in a frame under Cloudflare's own policy, and solved on this CSP in later runs — which did not show the refusal. It is **not** the row below: a blocked Turnstile replaces the widget with an error screen instead. See the note under [the CSP table](#why-each-one-and-what-breaks-without-it). |
 | **The widget shows "its security check was blocked" and nothing else**    | Turnstile is blocked — add `challenges.cloudflare.com` to `script-src`, `frame-src` and `connect-src`. The browser console carries the exact directive. This used to degrade the report form instead — since the atlas cannot take a registration without it, it now fails outright. |
 | **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                     |
 | **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                       |
