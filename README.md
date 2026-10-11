@@ -101,9 +101,7 @@ SahajCloud's:
 - **`react-circle-flags.pages.dev`** serves the country flag SVGs
   (`referrer-policy: no-referrer`). **`challenges.cloudflare.com`** loads
   Turnstile as soon as the interface mounts, not when a visitor opens a form
-  (#182) — a token gates every write, so an embed that cannot reach Cloudflare
-  is broken rather than degraded, and says so immediately. Both are in
-  the CSP table in
+  (#182). Both are in the CSP table in
   [`docs/embedding.md`](docs/embedding.md#content-security-policy).
 
 None of these has a script-URL opt-out (#149) — each is built so it does not
