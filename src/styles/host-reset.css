@@ -59,10 +59,6 @@
      containing block, which is the frame there and the viewport everywhere else, so one
      token is right in all three places. */
   --sy-frame-h: 100dvh;
-  /* ⚠ This declaration is valid. Two edits void it, both silently. `--color-foreground` holds
-     `--gray-12`, a Radix HEX, not the channel triplet the brand ramps carry: wrapping it in
-     `hsl()`, or renaming it to a property no sheet declares, is invalid at computed-value time,
-     and the host's `color` inherits in instead (#262). */
   color: var(--color-foreground);
   font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);
   letter-spacing: normal;
