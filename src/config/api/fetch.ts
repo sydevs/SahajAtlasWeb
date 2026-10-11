@@ -229,9 +229,7 @@ const getGeojson = async (): Promise<Geojson> => {
       },
     })
 
-    // ⚠ Read `totalPages` off the RAW response, never off a parsed one. Every zod schema here is
-    // a plain object, so it strips the pagination foreign members — a loop reading the page count
-    // after parsing gets `undefined` on every page and fetches exactly one, forever.
+    // ⚠ `totalPages` off the RAW response: every schema here strips it (docs/rules/data-layer.md).
     return { rows: GeoFeatureSchema.array().parse(data.features), totalPages: data.totalPages }
   })
 
