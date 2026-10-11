@@ -290,9 +290,10 @@ type Read = {
   file: string
   /** `find` is a typed collection read. `request` is a custom endpoint, which only its path classifies. */
   kind: 'find' | 'request'
-  /** Both are `undefined` where the call passes something other than a string literal. */
+  /** `undefined` where the call passes something other than a string literal. */
   path?: string
-  method?: string
+  /** A `json` or `file` option, which is what makes a custom call a write rather than a read. */
+  hasBody: boolean
   options?: ts.ObjectLiteralExpression
   inWalk: boolean
   walkSortName?: string
@@ -325,6 +326,7 @@ const collectReads = (): { reads: Read[]; wrapperSites: string[]; namespaced: st
             site: at(source, node, `${bindings.sdk}.find`),
             file: path,
             kind: 'find',
+            hasBody: false,
             options: optionsOf(node),
             inWalk: insideWalk(node, bindings.readAllPages),
             walkSortName: bindings.walkSort,
@@ -344,7 +346,7 @@ const collectReads = (): { reads: Read[]; wrapperSites: string[]; namespaced: st
               site: at(source, node, isRequestJson ? `${bindings.requestJson}()` : 'sdk.request'),
               file: path,
               kind: 'request',
-              method: stringOf(valueOf(propertyOf(options, 'method'))),
+              hasBody: Boolean(propertyOf(options, 'json') ?? propertyOf(options, 'file')),
               path: stringOf(valueOf(propertyOf(options, 'path'))),
               options,
               inWalk: insideWalk(node, bindings.readAllPages),
@@ -366,11 +368,11 @@ const collectReads = (): { reads: Read[]; wrapperSites: string[]; namespaced: st
 const { reads, wrapperSites, namespaced } = collectReads()
 
 const finds = reads.filter((read) => read.kind === 'find')
-const gets = reads.filter((read) => read.kind === 'request' && read.method === 'GET')
-
-// A custom endpoint whose `method` is not a literal cannot be told from a mutation, so it would
-// leave this inventory by being unreadable rather than by being exempt.
-const unreadableMethods = reads.filter((read) => read.kind === 'request' && !read.method)
+// A `method` classifies nothing here. The SDK sends `args` as the query string whatever the verb,
+// so `data-layer.md`'s POST-as-GET is a read, and keeping only `'GET'` let one out of this
+// inventory with no `limit`, no `page` and no walk. What separates a read from a write is the
+// body: `json` or `file` is a write and nothing else is, which is how `mutate.ts`'s POSTs stay out.
+const customReads = reads.filter((read) => read.kind === 'request' && !read.hasBody)
 
 /**
  * Every claim the rule makes about one list read, as a list of violations.
@@ -464,7 +466,7 @@ describe('the SahajCloud collection-read inventory', () => {
     expect(sources.length).toBeGreaterThan(100)
     expect(constantIn('config/api/fetch.ts', 'CLIENT_PAGE_LIMIT')).toBe(MAX_CLIENT_LIMIT)
     expect(finds.length).toBeGreaterThanOrEqual(2)
-    expect(gets.length).toBeGreaterThanOrEqual(2)
+    expect(customReads.length).toBeGreaterThanOrEqual(2)
   })
 
   it('has every `sdk.find` call site reading in bounded, totally ordered pages', () => {
@@ -476,28 +478,22 @@ describe('the SahajCloud collection-read inventory', () => {
     ).toEqual([])
   })
 
-  it('has every custom GET endpoint classified, and every list read among them paginated', () => {
-    const unlisted = [
-      ...gets
-        .filter(
-          (read) => !read.path || ![...PAGINATED_READS, ...SINGLE_RECORD_READS].includes(read.path),
-        )
-        .map(
-          (read) =>
-            `${read.site}: GET ${read.path ?? '(a path this spec cannot read)'} is in neither inventory. Decide which it is, then list it: PAGINATED_READS if it returns a collection list (and send \`limit\`, \`page\` and \`walkSort\` through \`readAllPages\`), SINGLE_RECORD_READS if it returns one record.`,
-        ),
-      ...unreadableMethods.map(
+  it('has every custom endpoint read classified, and every list read among them paginated', () => {
+    const unlisted = customReads
+      .filter(
+        (read) => !read.path || ![...PAGINATED_READS, ...SINGLE_RECORD_READS].includes(read.path),
+      )
+      .map(
         (read) =>
-          `${read.site}: \`method\` is not a string literal, so this spec cannot tell this read from a mutation. Write the method at the call site.`,
-      ),
-    ]
+          `${read.site}: ${read.path ?? '(a path this spec cannot read)'} is in neither inventory. Decide which it is, then list it: PAGINATED_READS if it returns a collection list (and send \`limit\`, \`page\` and \`walkSort\` through \`readAllPages\`), SINGLE_RECORD_READS if it returns one record. A write belongs at neither — give it a \`json\` or \`file\` body.`,
+      )
 
     expect(
       unlisted,
-      `A custom SahajCloud GET is not in this spec's inventory. Only this file can say which kind it is.\n\n${unlisted.join('\n')}\n`,
+      `A custom SahajCloud read is not in this spec's inventory. Only this file can say which kind it is.\n\n${unlisted.join('\n')}\n`,
     ).toEqual([])
 
-    const problems = gets
+    const problems = customReads
       .filter((read) => read.path && PAGINATED_READS.includes(read.path))
       .flatMap(violationsOf)
 
