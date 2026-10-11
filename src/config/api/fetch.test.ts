@@ -35,11 +35,9 @@ vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 // This is a stubbed SDK Response. `sdk.request` resolves to a Response, and `requestJson` reads `.json()`.
 const jsonResponse = (data: unknown) => ({ json: async () => data })
 
-// ⚠ **Every stubbed wholesale read must carry a page count.** The three wholesale fetchers walk
-// `totalPages`, and a stub that omits it would leave the walk unable to tell one page from a
-// truncated read — which is exactly the state `readAllPages` refuses. Spelling it on every stub
-// also keeps the multi-page specs below from passing against a one-page-only loop.
-const onePage = <T>(key: 'docs' | 'features', rows: T[]) => ({ [key]: rows, totalPages: 1 })
+// ⚠ **Every stubbed wholesale read must carry a page count** (#253). A stub that omits it leaves
+// the walk unable to tell one page from a truncated read, which is the state `readAllPages`
+// refuses.
 
 beforeEach(() => {
   sdk.find.mockReset()
@@ -203,14 +201,12 @@ describe('getGeojson', () => {
     expect(options.path).toBe('/events/geojson')
     expect(options.args.select).toBeTruthy()
     expect(options.args.populate).toBeTruthy()
-    // This is the one spec that pins what the feed request sends. It asked for the whole table
-    // until #253; now it asks for a bounded page, and SahajCloud refuses either bound over its own
-    // (`MAX_CLIENT_LIMIT` 2000, `MAX_CLIENT_PAGE` 10000).
+    // This is the one spec that pins what the feed request sends. Both bounds are SahajCloud's
+    // and either is a 400, not a truncation (#253).
     expect(options.args.pagination).toBeUndefined()
     expect(options.args.limit).toBe(2000)
     expect(options.args.page).toBe(1)
-    // A page key with no total order repeats and drops rows at a boundary. `id` is unique.
-    expect(options.args.sort).toBe('id')
+    expect(options.args.sort).toEqual(['id'])
     expect(geojson.features[0].properties.region.slug).toBe('brussels')
     // The ranking needs the stage here, which the event read does not cover.
     // `confidenceScore` is named because nothing displays it, so nothing should fetch it.
@@ -219,12 +215,10 @@ describe('getGeojson', () => {
   })
 })
 
-// Each of the three wholesale reads asked SahajCloud for a whole table until #253. SahajCloud
-// refuses that shape from an API client, so each one now walks `totalPages` and concatenates.
-// Production fits every one of them in a single page, so the pages below are the only place the
-// fan-out over pages 2…N is exercised at all.
+// Production fits each of these reads in one page (#253), so the stubs below are the only place
+// the fan-out over pages 2…N is exercised at all.
 describe('the three wholesale reads walk every page', () => {
-  const regionPage = (id: number) => ({
+  const regionDoc = (id: number) => ({
     id,
     slug: `region-${id}`,
     name: `Region ${id}`,
@@ -233,7 +227,7 @@ describe('the three wholesale reads walk every page', () => {
     webPath: `/region-${id}`,
   })
 
-  const titleFeature = (id: number) => ({
+  const feedFeature = (id: number) => ({
     type: 'Feature',
     geometry: null,
     properties: {
@@ -246,15 +240,13 @@ describe('the three wholesale reads walk every page', () => {
 
   it('getRegions returns every page of the region tree, bounded and uniquely sorted', async () => {
     sdk.find.mockImplementation((options: { page: number }) =>
-      Promise.resolve({ docs: [regionPage(options.page)], totalPages: 3 }),
+      Promise.resolve({ docs: [regionDoc(options.page)], totalPages: 3 }),
     )
 
     const regions = await api.getRegions()
 
     expect(regions.map((region) => region.id)).toEqual([1, 2, 3])
     expect(sdk.find.mock.calls.map(([options]) => options.page)).toEqual([1, 2, 3])
-    // Both bounds are SahajCloud's, and either one over its ceiling is a 400 rather than a
-    // truncation. `pagination: false` is what this read sent before #253.
     expect(sdk.find.mock.calls[0][0]).toMatchObject({ limit: 2000, sort: ['name', 'id'] })
     expect(sdk.find.mock.calls[0][0].pagination).toBeUndefined()
   })
@@ -264,7 +256,7 @@ describe('the three wholesale reads walk every page', () => {
       Promise.resolve(
         jsonResponse({
           type: 'FeatureCollection',
-          features: [titleFeature(options.args.page)],
+          features: [feedFeature(options.args.page)],
           totalPages: 2,
         }),
       ),
@@ -272,9 +264,8 @@ describe('the three wholesale reads walk every page', () => {
 
     const geojson = await api.getGeojson()
 
-    // ⚠ This is also what pins the page count being read off the RAW response. `GeojsonSchema`
-    // strips the pagination foreign members, so a loop reading `totalPages` after parsing sees
-    // `undefined` and this spec goes red rather than silently fetching page 1 alone.
+    // ⚠ This also pins the page count being read off the RAW response: every zod schema here
+    // strips the pagination foreign members, so a loop reading it after parsing fetches one page.
     expect(geojson.features.map((feature) => feature.properties.id)).toEqual([1, 2])
     expect(sdk.request.mock.calls.map(([options]) => options.args.page)).toEqual([1, 2])
   })
@@ -294,7 +285,7 @@ describe('the three wholesale reads walk every page', () => {
       [2, 'Event 2'],
     ])
     expect(sdk.find.mock.calls.map(([options]) => options.page)).toEqual([1, 2])
-    expect(sdk.find.mock.calls[0][0]).toMatchObject({ limit: 2000, sort: 'id' })
+    expect(sdk.find.mock.calls[0][0]).toMatchObject({ limit: 2000, sort: ['id'] })
     expect(sdk.find.mock.calls[0][0].pagination).toBeUndefined()
   })
 
@@ -402,14 +393,14 @@ describe('getRegion (region-tree derivation)', () => {
   // This dispatches the SDK stubs by which collection the call names.
   const mockBackend = (feed = countryFeed, nodes: unknown[] = tree) => {
     sdk.find.mockImplementation((options: { collection: string }) => {
-      if (options.collection === 'regions') return Promise.resolve(onePage('docs', nodes))
+      if (options.collection === 'regions') return Promise.resolve({ docs: nodes, totalPages: 1 })
 
       const docs = feed.map((f) => ({ id: f.properties.id, title: `Event ${f.properties.id}` }))
 
-      return Promise.resolve(onePage('docs', docs))
+      return Promise.resolve({ docs, totalPages: 1 })
     })
     sdk.request.mockResolvedValue(
-      jsonResponse({ type: 'FeatureCollection', ...onePage('features', feed) }),
+      jsonResponse({ type: 'FeatureCollection', features: feed, totalPages: 1 }),
     )
   }
 

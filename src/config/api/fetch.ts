@@ -16,7 +16,7 @@ import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@
 import type { Position } from 'geojson'
 
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
-import { CLIENT_PAGE_LIMIT, readAllPages } from './paginate'
+import { CLIENT_PAGE_LIMIT, readAllPages, walkSort } from './paginate'
 
 import {
   GEOJSON_STALE_TIME,
@@ -53,7 +53,7 @@ import {
   EventDocSchema,
   EventSlimSchema,
   EventTitleSchema,
-  GeojsonSchema,
+  GeoFeatureSchema,
   RegionListItemSchema,
   RegionNodeSchema,
   RegionSchema,
@@ -179,10 +179,8 @@ const getRegions = (): Promise<RegionNode[]> =>
         depth: 0,
         limit: CLIENT_PAGE_LIMIT,
         page,
-        // ⚠ `id` is the tiebreaker, and it is load-bearing. `name` is a plain required text field
-        // with no `unique` on it, so an OFFSET walk ordered by `name` alone has no total order:
-        // Postgres may place ties differently per page, and the walk then repeats and drops rows.
-        sort: ['name', 'id'],
+        // `name` is what the tree displays by. `walkSort` adds what makes the order total.
+        sort: walkSort('name'),
         select: REGIONS_SELECT,
       }),
       'regions',
@@ -213,12 +211,11 @@ const loadRegions = (): Promise<RegionNode[]> =>
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
-  const features = await readAllPages('/events/geojson', async (page) => {
+  const features = await readAllPages('geojson feed', async (page) => {
     // This is a custom, non-CRUD endpoint.
     // So this call uses the SDK's raw `request` helper, not `sdk.find`.
     // The `select` and `populate` options still travel in the query string, as before.
-    // The endpoint forwards `limit` / `page` / `sort` into `payload.find` and spreads Payload's
-    // pagination metadata into the FeatureCollection, which `EventFeatureCollection` types.
+    // The endpoint forwards `limit` / `page` / `sort` straight into its own `payload.find`.
     const data = await requestJson<EventFeatureCollection>({
       method: 'GET',
       path: '/events/geojson',
@@ -226,20 +223,20 @@ const getGeojson = async (): Promise<Geojson> => {
         depth: 1,
         limit: CLIENT_PAGE_LIMIT,
         page,
-        sort: 'id',
+        sort: walkSort(),
         select: FEED_SELECT,
         populate: REGION_POPULATE,
       },
     })
 
-    // ⚠ Read `totalPages` off the RAW response, never off the parsed value. `GeojsonSchema` is a
-    // plain zod object, so it strips the pagination foreign members — a loop reading the page
-    // count after parsing gets `undefined` on every page and fetches exactly one, forever.
-    return { rows: GeojsonSchema.parse(data).features, totalPages: data.totalPages }
+    // ⚠ Read `totalPages` off the RAW response, never off a parsed one. Every zod schema here is
+    // a plain object, so it strips the pagination foreign members — a loop reading the page count
+    // after parsing gets `undefined` on every page and fetches exactly one, forever.
+    return { rows: GeoFeatureSchema.array().parse(data.features), totalPages: data.totalPages }
   })
 
-  // Every feature came out of a per-page `GeojsonSchema.parse`, so the merged collection is valid
-  // by construction and re-parsing it would only pay for the biggest read twice.
+  // The features are parsed; the container is this schema's only other member, so re-parsing the
+  // merge would pay for the app's largest zod pass twice.
   return { type: 'FeatureCollection', features }
 }
 
@@ -265,8 +262,6 @@ const loadGeojson = (): Promise<Geojson> =>
 // The cache key includes locale, so a language switch refetches only this map.
 // This map is about 5% of the feed's weight. The locale-agnostic feed and region tree stay cached.
 const getEventTitles = async (): Promise<Map<number, string>> => {
-  // This walk is per-locale, so its page count multiplies by the number of languages a session
-  // visits. That is why the page size stays at the cap rather than anywhere below it.
   const titles = await readAllPages('event titles', async (page) => {
     const { docs, totalPages } = validateSDKResponse(
       await sdk.find({
@@ -274,8 +269,7 @@ const getEventTitles = async (): Promise<Map<number, string>> => {
         depth: 0,
         limit: CLIENT_PAGE_LIMIT,
         page,
-        // Unique on its own, so a page boundary cannot repeat or drop a row.
-        sort: 'id',
+        sort: walkSort(),
         select: { title: true },
       }),
       'event titles',
