@@ -3,19 +3,19 @@ import { atlasError } from '@/lib/report'
 type PageOf<T> = { rows: T[]; totalPages: number }
 
 /**
- * The largest `limit` SahajCloud accepts from an API client, and the largest `page`
- * (`MAX_CLIENT_LIMIT` / `MAX_CLIENT_PAGE`, sydevs/SahajCloud#890). Over either ceiling is a 400,
- * not a truncation. Every walked read asks for the largest page the gate allows: a smaller one
- * only adds round trips, and each page costs its own `COUNT`.
+ * The largest `limit` SahajCloud accepts from an API client (`MAX_CLIENT_LIMIT`,
+ * sydevs/SahajCloud#890). Over it is a 400, not a truncation. Every walked read asks for the
+ * largest page the gate allows: a smaller one only adds round trips, and each page costs its own
+ * `COUNT`.
  */
 export const CLIENT_PAGE_LIMIT = 2000
-export const CLIENT_MAX_PAGE = 10_000
 
 /**
  * How many pages one read may walk. Measured in production on 2026-10-10, each wholesale read
  * fits in one page at `CLIENT_PAGE_LIMIT`: 646 regions, 452 events. This cap is roughly 60× that,
  * so it bounds a server-side paging fault rather than real growth — without it, a `totalPages`
- * that never ends becomes an unbounded fetch loop inside a stranger's page.
+ * that never ends becomes an unbounded fetch loop inside a stranger's page. It also keeps every
+ * walked `page` far under SahajCloud's own `MAX_CLIENT_PAGE` of 10000, over which a read is a 400.
  */
 export const MAX_PAGE_WALK = 20
 

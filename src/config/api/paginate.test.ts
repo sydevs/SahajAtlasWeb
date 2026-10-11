@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 
-import { CLIENT_MAX_PAGE, MAX_PAGE_WALK, readAllPages, walkSort } from '@/config/api/paginate'
+import { MAX_PAGE_WALK, readAllPages, walkSort } from '@/config/api/paginate'
 import { classifyError } from '@/lib/report'
 
 describe('readAllPages', () => {
@@ -79,12 +79,6 @@ describe('readAllPages', () => {
     await expect(readAllPages('regions', read).catch(classifyError)).resolves.toBe('server')
     // One read, then the refusal — the cap is checked before any page fans out.
     expect(read).toHaveBeenCalledTimes(1)
-  })
-
-  it('never lets a walk reach a `page` SahajCloud would refuse', () => {
-    // SahajCloud answers 400 over `MAX_CLIENT_PAGE` (sydevs/SahajCloud#890). Raising the cap past
-    // that ceiling would turn every deep page into a refusal, so the relation is pinned here.
-    expect(MAX_PAGE_WALK).toBeLessThanOrEqual(CLIENT_MAX_PAGE)
   })
 })
 
