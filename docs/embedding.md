@@ -849,9 +849,10 @@ been watched solve.** It was observed 3 times in 3 on 2026-10-10 — Chromium 14
 'unsafe-eval' is not an allowed source of script`, reported against `script-src` with a blocked
 URI of `eval`, carrying no source file and no stack, the signature of a cross-origin script. The
 widget rendered, routed and read its data normally in all three. Cloudflare ships that script
-continuously, and on 2026-10-11 the refusal did not occur once in 12 runs across three
-configurations, the 2026-10-10 setup among them — so the solve above was measured in its absence,
-not alongside it. Harmless where it has appeared, then, and normal where it has not. A refusal
+continuously, and on 2026-10-11 it did not occur in any run: nine in the widget's own embed —
+three on the policy verbatim, three with `'unsafe-eval'` added, three on the 2026-10-10
+always-passes setup — and six more on an isolated `api.js` page. So the solve above was measured
+in its absence, not alongside it. Harmless where it has appeared, then, and normal where it has not. A refusal
 *beside* a challenge that will not solve is the one combination nobody has seen: tell us if you
 do.
 
