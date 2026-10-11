@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
+import { CLIENT_PAGE_LIMIT } from './paginate'
+
 // The rule this enforces is in `docs/rules/data-layer.md` ("SahajCloud query rules"): a client read
 // sends an explicit `limit` and `page` and walks the rest with `readAllPages`. #253 converted the
 // three wholesale reads and pinned what each one sends in `fetch.test.ts`. Those assertions say
@@ -464,7 +466,10 @@ const RULE = 'docs/rules/data-layer.md, "SahajCloud query rules (enforced — 40
 describe('the SahajCloud collection-read inventory', () => {
   it('finds source files and the reads inside them (the walk itself must not silently break)', () => {
     expect(sources.length).toBeGreaterThan(100)
-    expect(constantIn('config/api/fetch.ts', 'CLIENT_PAGE_LIMIT')).toBe(MAX_CLIENT_LIMIT)
+    // Against the imported constant, never `MAX_CLIENT_LIMIT`: the claim is that the resolver
+    // still follows `fetch.ts`'s import hop to a number. Lowering the page size is a tuning
+    // change, and it must not go red under a walker-health label.
+    expect(constantIn('config/api/fetch.ts', 'CLIENT_PAGE_LIMIT')).toBe(CLIENT_PAGE_LIMIT)
     expect(finds.length).toBeGreaterThanOrEqual(2)
     expect(customReads.length).toBeGreaterThanOrEqual(2)
   })
