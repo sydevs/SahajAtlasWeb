@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import atlasAuth from './auth'
 import { applyRequestContext, interceptFetch } from './client'
-import api, { shapeEventDoc } from './fetch'
+import api, { eventTitlesQuery, shapeEventDoc } from './fetch'
 
 import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protocol'
 import { previewRequestDecorator } from '@/config/live-preview/request'
@@ -34,6 +34,10 @@ vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 
 // This is a stubbed SDK Response. `sdk.request` resolves to a Response, and `requestJson` reads `.json()`.
 const jsonResponse = (data: unknown) => ({ json: async () => data })
+
+// ⚠ **Every stubbed wholesale read must carry a page count** (#253). A stub that omits it leaves
+// the walk unable to tell one page from a truncated read, which is the state `readAllPages`
+// refuses.
 
 beforeEach(() => {
   sdk.find.mockReset()
@@ -174,6 +178,7 @@ describe('getGeojson', () => {
     sdk.request.mockResolvedValue(
       jsonResponse({
         type: 'FeatureCollection',
+        totalPages: 1,
         features: [
           {
             type: 'Feature',
@@ -196,12 +201,100 @@ describe('getGeojson', () => {
     expect(options.path).toBe('/events/geojson')
     expect(options.args.select).toBeTruthy()
     expect(options.args.populate).toBeTruthy()
-    expect(options.args.pagination).toBe(false)
+    // This is the one spec that pins what the feed request sends. Both bounds are SahajCloud's
+    // and either is a 400, not a truncation (#253).
+    expect(options.args.pagination).toBeUndefined()
+    expect(options.args.limit).toBe(2000)
+    expect(options.args.page).toBe(1)
+    expect(options.args.sort).toEqual(['id'])
     expect(geojson.features[0].properties.region.slug).toBe('brussels')
     // The ranking needs the stage here, which the event read does not cover.
     // `confidenceScore` is named because nothing displays it, so nothing should fetch it.
     expect((options.args.select as Record<string, unknown>).verificationStage).toBe(true)
     expect(options.args.select).not.toHaveProperty('confidenceScore')
+  })
+})
+
+// Production fits each of these reads in one page (#253), so the stubs below are the only place
+// the fan-out over pages 2…N is exercised at all.
+describe('the three wholesale reads walk every page', () => {
+  const regionDoc = (id: number) => ({
+    id,
+    slug: `region-${id}`,
+    name: `Region ${id}`,
+    level: 'country',
+    parent: null,
+    webPath: `/region-${id}`,
+  })
+
+  const feedFeature = (id: number) => ({
+    type: 'Feature',
+    geometry: null,
+    properties: {
+      id,
+      eventType: 'online',
+      languages: ['en'],
+      region: { id: 9, slug: 'brussels', level: 'city' },
+    },
+  })
+
+  it('getRegions returns every page of the region tree, bounded and uniquely sorted', async () => {
+    sdk.find.mockImplementation((options: { page: number }) =>
+      Promise.resolve({ docs: [regionDoc(options.page)], totalPages: 3 }),
+    )
+
+    const regions = await api.getRegions()
+
+    expect(regions.map((region) => region.id)).toEqual([1, 2, 3])
+    expect(sdk.find.mock.calls.map(([options]) => options.page)).toEqual([1, 2, 3])
+    expect(sdk.find.mock.calls[0][0]).toMatchObject({ limit: 2000, sort: ['name', 'id'] })
+    expect(sdk.find.mock.calls[0][0].pagination).toBeUndefined()
+  })
+
+  it('getGeojson returns every page of the feed', async () => {
+    sdk.request.mockImplementation((options: { args: { page: number } }) =>
+      Promise.resolve(
+        jsonResponse({
+          type: 'FeatureCollection',
+          features: [feedFeature(options.args.page)],
+          totalPages: 2,
+        }),
+      ),
+    )
+
+    const geojson = await api.getGeojson()
+
+    // ⚠ This also pins the page count being read off the RAW response: every zod schema here
+    // strips the pagination foreign members, so a loop reading it after parsing fetches one page.
+    expect(geojson.features.map((feature) => feature.properties.id)).toEqual([1, 2])
+    expect(sdk.request.mock.calls.map(([options]) => options.args.page)).toEqual([1, 2])
+  })
+
+  it('getEventTitles returns every page of the titles sliver', async () => {
+    sdk.find.mockImplementation((options: { page: number }) =>
+      Promise.resolve({
+        docs: [{ id: options.page, title: `Event ${options.page}` }],
+        totalPages: 2,
+      }),
+    )
+
+    const titles = await eventTitlesQuery('fr').queryFn()
+
+    expect([...titles.entries()]).toEqual([
+      [1, 'Event 1'],
+      [2, 'Event 2'],
+    ])
+    expect(sdk.find.mock.calls.map(([options]) => options.page)).toEqual([1, 2])
+    expect(sdk.find.mock.calls[0][0]).toMatchObject({ limit: 2000, sort: ['id'] })
+    expect(sdk.find.mock.calls[0][0].pagination).toBeUndefined()
+  })
+
+  it('refuses a feed whose page count never ends, rather than fetching forever', async () => {
+    sdk.request.mockResolvedValue(
+      jsonResponse({ type: 'FeatureCollection', features: [], totalPages: 5000 }),
+    )
+
+    await expect(api.getGeojson()).rejects.toThrow(/over the \d+-page cap/)
   })
 })
 
@@ -300,13 +393,15 @@ describe('getRegion (region-tree derivation)', () => {
   // This dispatches the SDK stubs by which collection the call names.
   const mockBackend = (feed = countryFeed, nodes: unknown[] = tree) => {
     sdk.find.mockImplementation((options: { collection: string }) => {
-      if (options.collection === 'regions') return Promise.resolve({ docs: nodes })
+      if (options.collection === 'regions') return Promise.resolve({ docs: nodes, totalPages: 1 })
 
       const docs = feed.map((f) => ({ id: f.properties.id, title: `Event ${f.properties.id}` }))
 
-      return Promise.resolve({ docs })
+      return Promise.resolve({ docs, totalPages: 1 })
     })
-    sdk.request.mockResolvedValue(jsonResponse({ type: 'FeatureCollection', features: feed }))
+    sdk.request.mockResolvedValue(
+      jsonResponse({ type: 'FeatureCollection', features: feed, totalPages: 1 }),
+    )
   }
 
   it('cards every child with a located event and rolls up online', async () => {

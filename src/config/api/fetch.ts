@@ -11,10 +11,12 @@ import type {
   ReportForm,
   TranslationTree,
 } from '@/types'
+import type { EventFeatureCollection } from '@/types/payload/response-types'
 import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
+import { CLIENT_PAGE_LIMIT, readAllPages, walkSort } from './paginate'
 
 import {
   GEOJSON_STALE_TIME,
@@ -51,7 +53,7 @@ import {
   EventDocSchema,
   EventSlimSchema,
   EventTitleSchema,
-  GeojsonSchema,
+  GeoFeatureSchema,
   RegionListItemSchema,
   RegionNodeSchema,
   RegionSchema,
@@ -169,20 +171,23 @@ const REGIONS_SELECT = {
 // So a single failing region open could send four requests for the feed, though `MAX_QUERY_RETRIES` promised two.
 // The observer layer owns retry behavior, not these loaders.
 
-const getRegions = async (): Promise<RegionNode[]> => {
-  const { docs } = validateSDKResponse(
-    await sdk.find({
-      collection: 'regions',
-      depth: 0,
-      pagination: false,
-      sort: 'name',
-      select: REGIONS_SELECT,
-    }),
-    'regions',
-  )
+const getRegions = (): Promise<RegionNode[]> =>
+  readAllPages('regions', async (page) => {
+    const { docs, totalPages } = validateSDKResponse(
+      await sdk.find({
+        collection: 'regions',
+        depth: 0,
+        limit: CLIENT_PAGE_LIMIT,
+        page,
+        // `name` is what the tree displays by. `walkSort` adds what makes the order total.
+        sort: walkSort('name'),
+        select: REGIONS_SELECT,
+      }),
+      'regions',
+    )
 
-  return RegionNodeSchema.array().parse(docs)
-}
+    return { rows: RegionNodeSchema.array().parse(docs), totalPages }
+  })
 
 // This reads the region tree through the shared React Query cache.
 // So the whole app fetches and parses it once per stale window, not on every navigation.
@@ -206,16 +211,31 @@ const loadRegions = (): Promise<RegionNode[]> =>
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
-  // This is a custom, non-CRUD endpoint.
-  // So this call uses the SDK's raw `request` helper, not `sdk.find`.
-  // The `select` and `populate` options still travel in the query string, as before.
-  const data = await requestJson({
-    method: 'GET',
-    path: '/events/geojson',
-    args: { depth: 1, pagination: false, select: FEED_SELECT, populate: REGION_POPULATE },
+  const features = await readAllPages('geojson feed', async (page) => {
+    // This is a custom, non-CRUD endpoint.
+    // So this call uses the SDK's raw `request` helper, not `sdk.find`.
+    // The `select` and `populate` options still travel in the query string, as before.
+    // The endpoint forwards `limit` / `page` / `sort` straight into its own `payload.find`.
+    const data = await requestJson<EventFeatureCollection>({
+      method: 'GET',
+      path: '/events/geojson',
+      args: {
+        depth: 1,
+        limit: CLIENT_PAGE_LIMIT,
+        page,
+        sort: walkSort(),
+        select: FEED_SELECT,
+        populate: REGION_POPULATE,
+      },
+    })
+
+    // ⚠ `totalPages` off the RAW response: every schema here strips it (docs/rules/data-layer.md).
+    return { rows: GeoFeatureSchema.array().parse(data.features), totalPages: data.totalPages }
   })
 
-  return GeojsonSchema.parse(data)
+  // The features are parsed; the container is this schema's only other member, so re-parsing the
+  // merge would pay for the app's largest zod pass twice.
+  return { type: 'FeatureCollection', features }
 }
 
 // The hierarchy fetchers and the events fetchers all need the same feed.
@@ -240,16 +260,23 @@ const loadGeojson = (): Promise<Geojson> =>
 // The cache key includes locale, so a language switch refetches only this map.
 // This map is about 5% of the feed's weight. The locale-agnostic feed and region tree stay cached.
 const getEventTitles = async (): Promise<Map<number, string>> => {
-  const { docs } = validateSDKResponse(
-    await sdk.find({ collection: 'events', depth: 0, pagination: false, select: { title: true } }),
-    'event titles',
-  )
+  const titles = await readAllPages('event titles', async (page) => {
+    const { docs, totalPages } = validateSDKResponse(
+      await sdk.find({
+        collection: 'events',
+        depth: 0,
+        limit: CLIENT_PAGE_LIMIT,
+        page,
+        sort: walkSort(),
+        select: { title: true },
+      }),
+      'event titles',
+    )
 
-  return new Map(
-    EventTitleSchema.array()
-      .parse(docs)
-      .map((doc) => [doc.id, doc.title ?? '']),
-  )
+    return { rows: EventTitleSchema.array().parse(docs), totalPages }
+  })
+
+  return new Map(titles.map((doc) => [doc.id, doc.title ?? '']))
 }
 
 /**
