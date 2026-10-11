@@ -825,7 +825,7 @@ fetches no data from wherever its script was served.
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                              | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life |
 | `frame-src`                | `challenges.cloudflare.com`                   | the Turnstile challenge iframe                                                                                                                                                                                                                         | **the challenge cannot be solved, so no form can be sent**                                    |
 
-Nine notes on that table:
+Notes on that table:
 
 **A challenge SOLVES on this exact policy, with no `'unsafe-eval'` in it.** A forced interactive
 challenge was clicked through in the widget's own report-issue form, in a built `map=false` embed
@@ -833,28 +833,25 @@ and a host page served from one origin with the block above sent as a response h
 challenge reached its success state, the widget took the token, and the form's Submit went from
 disabled to enabled. Six runs of six in Chromium 141.0.7390.37, 2026-10-11 — three on the policy
 verbatim, three with `'unsafe-eval'` added to `script-src`, identical in both. **Do not add
-`'unsafe-eval'`.** Cloudflare's own CSP guidance for Turnstile asks for
-`challenges.cloudflare.com` under `script-src` and `frame-src`, and for nothing else.
-
-**Your `script-src` does not reach the challenge.** It runs inside the
-`challenges.cloudflare.com` frame, a separate document that sends its own
-`script-src 'nonce-…' 'unsafe-eval'`, so the challenge's own string evaluation answers to
-Cloudflare's policy and `frame-src` above is the only directive of yours that governs it at all.
-What your `script-src` does govern is `api.js`, which runs in your document: that is the fatal
-blocked-Turnstile row above, and it is also the refusal below.
+`'unsafe-eval'`.** The challenge runs inside the `challenges.cloudflare.com` frame, a separate
+document that sends its own `script-src 'nonce-…' 'unsafe-eval'`, so `frame-src` above is the
+only directive of yours that governs it at all — which is why Cloudflare's own CSP guidance for
+Turnstile asks for `challenges.cloudflare.com` under `script-src` and `frame-src`, and for
+nothing else.
 
 ⚠ **The refused `eval` is not something every page view produces, and a page showing it has not
 been watched solve.** It was observed 3 times in 3 on 2026-10-10 — Chromium 141, a built
 `map=false` embed, this policy — as `Refused to evaluate a string as JavaScript because
 'unsafe-eval' is not an allowed source of script`, reported against `script-src` with a blocked
-URI of `eval`, carrying no source file and no stack, the signature of a cross-origin script. The
-widget rendered, routed and read its data normally in all three. Cloudflare ships that script
+URI of `eval`, carrying no source file and no stack, the signature of a cross-origin script —
+Turnstile's `api.js`, which does run in your document and which your `script-src` does govern.
+The widget rendered, routed and read its data normally in all three. Cloudflare ships that script
 continuously, and on 2026-10-11 it did not occur in any run: nine in the widget's own embed —
 three on the policy verbatim, three with `'unsafe-eval'` added, three on the 2026-10-10
 always-passes setup — and six more on an isolated `api.js` page. So the solve above was measured
-in its absence, not alongside it. Harmless where it has appeared, then, and normal where it has not. A refusal
-*beside* a challenge that will not solve is the one combination nobody has seen: tell us if you
-do.
+in its absence, not alongside it. Harmless where it has appeared, then, and normal where it has
+not. A refusal *beside* a challenge that will not solve is the one combination nobody has seen:
+tell us if you do.
 
 ⚠ **Three further things the 2026-10-11 runs did not cover.** The site key was Cloudflare's
 `3x00000000000000000000FF`, which forces the real interactive challenge, rather than the
