@@ -827,39 +827,40 @@ fetches no data from wherever its script was served.
 
 Nine notes on that table:
 
-**A challenge SOLVES on this exact policy — `'unsafe-eval'` is not needed, and that is
-measured.** A forced interactive challenge was clicked through in the widget's own report-issue
-form, in a built `map=false` embed served with the block above as a response header: the
+**A challenge SOLVES on this exact policy, with no `'unsafe-eval'` in it.** A forced interactive
+challenge was clicked through in the widget's own report-issue form, in a built `map=false` embed
+and a host page served from one origin with the block above sent as a response header: the
 challenge reached its success state, the widget took the token, and the form's Submit went from
 disabled to enabled. Six runs of six in Chromium 141.0.7390.37, 2026-10-11 — three on the policy
-verbatim, three with `'unsafe-eval'` added to `script-src`, no difference between them, and no
-`securitypolicyviolation` of any kind in any run. **Do not add `'unsafe-eval'`.** This matters
-because every write the widget makes is captcha-gated, so a policy that cost a visitor their
-challenge would cost them their registration.
+verbatim, three with `'unsafe-eval'` added to `script-src`, identical in both. **Do not add
+`'unsafe-eval'`.** Cloudflare's own CSP guidance for Turnstile asks for
+`challenges.cloudflare.com` under `script-src` and `frame-src`, and for nothing else.
 
-**Your `script-src` could not govern the challenge anyway.** The challenge runs inside the
-`challenges.cloudflare.com` iframe, a separate document that sends its own
-`script-src 'nonce-…' 'unsafe-eval'` — so the code that evaluates strings is covered by
-Cloudflare's policy, not yours. An embedding page's `script-src` stops at the frame boundary;
-`frame-src`, in the table above, is the directive that decides whether that frame loads at all.
-What your `script-src` can still refuse is `api.js` itself, running in your document — the
-blocked-Turnstile row above, which is fatal, and a different thing from the refusal below.
+**Your `script-src` does not reach the challenge.** It runs inside the
+`challenges.cloudflare.com` frame, a separate document that sends its own
+`script-src 'nonce-…' 'unsafe-eval'`, so the challenge's own string evaluation answers to
+Cloudflare's policy and `frame-src` above is the only directive of yours that governs it at all.
+What your `script-src` does govern is `api.js`, which runs in your document: that is the fatal
+blocked-Turnstile row above, and it is also the refusal below.
 
-⚠ **The refused `eval` is not something every page view produces.** It was observed 3 times in 3
-on 2026-10-10, Chromium 141, against a built `map=false` embed on this policy: `Refused to
-evaluate a string as JavaScript because 'unsafe-eval' is not an allowed source of script`,
-reported against `script-src` with a blocked URI of `eval`, carrying no source file and no stack
-— the signature of a cross-origin script. Cloudflare ships that script continuously, and on
-2026-10-11 it did not occur once across 12 runs and three configurations, the 2026-10-10 setup
-among them. So treat it as harmless when you see it, and as normal when you do not. It is
-Turnstile's either way: the shipped chunks contain no `eval` and no `Function` constructor.
+⚠ **The refused `eval` is not something every page view produces, and a page showing it has not
+been watched solve.** It was observed 3 times in 3 on 2026-10-10 — Chromium 141, a built
+`map=false` embed, this policy — as `Refused to evaluate a string as JavaScript because
+'unsafe-eval' is not an allowed source of script`, reported against `script-src` with a blocked
+URI of `eval`, carrying no source file and no stack, the signature of a cross-origin script. The
+widget rendered, routed and read its data normally in all three. Cloudflare ships that script
+continuously, and on 2026-10-11 the refusal did not occur once in 12 runs across three
+configurations, the 2026-10-10 setup among them — so the solve above was measured in its absence,
+not alongside it. Harmless where it has appeared, then, and normal where it has not. A refusal
+*beside* a challenge that will not solve is the one combination nobody has seen: tell us if you
+do.
 
-⚠ **Three things the 2026-10-11 runs did not cover.** The site key was Cloudflare's
+⚠ **Three further things the 2026-10-11 runs did not cover.** The site key was Cloudflare's
 `3x00000000000000000000FF`, which forces the real interactive challenge, rather than the
-production key — the always-passes test key short-circuits before any challenge code and can
-answer nothing here, which is why it is not what was used. Nothing was posted to the backend, so
-the measurement ends at the token, not at an accepted submission. And map mode was not measured,
-for want of a Mapbox token, as on 2026-10-10.
+production key — the always-passes key short-circuits before any challenge code and can answer
+nothing here, which is why it is not what was used. Nothing was posted to the backend, so the
+measurement ends at the token rather than at an accepted submission. And map mode was not
+measured, for want of a Mapbox token, as on 2026-10-10.
 
 **The `style-src` row was measured, not deduced** — Chromium 141, 2026-10-10, against a
 `map=false` embed served with the policy above and `'unsafe-inline'` removed from `style-src`
@@ -1243,7 +1244,7 @@ Three things to check when you migrate:
 | **The map area is blank or grey**                                     | `worker-src blob:` (Mapbox starts its worker from a `blob:` URL), or `api.mapbox.com` missing from `img-src`/`connect-src`.                                                                                           |
 | **The map renders but has no pins**                                   | `img-src data:` — the pins are inline SVG rasterised from a `data:` URI.                                                                                                                                              |
 | **Country flags are missing, everything else fine**                   | `img-src https://react-circle-flags.pages.dev`. Cosmetic.                                                                                                                                                             |
-| **Console: "Refused to evaluate a string as JavaScript"**            | Harmless on the recommended CSP, and not something every page view produces: Turnstile's own script evaluates a string in your document, and `script-src` carries no `'unsafe-eval'`. A challenge still renders and still solves without it — measured. It is **not** the row below — a blocked Turnstile replaces the widget with an error screen instead. See the note under [the CSP table](#why-each-one-and-what-breaks-without-it). |
+| **Console: "Refused to evaluate a string as JavaScript"**            | Turnstile's `api.js` evaluating a string in your document, with no `'unsafe-eval'` in `script-src`. Harmless wherever it has appeared, and it does not appear on every page view. The challenge itself runs in a frame under Cloudflare's own policy, and solved on this CSP in later runs — which did not show the refusal. It is **not** the row below: a blocked Turnstile replaces the widget with an error screen instead. See the note under [the CSP table](#why-each-one-and-what-breaks-without-it). |
 | **The widget shows "its security check was blocked" and nothing else**    | Turnstile is blocked — add `challenges.cloudflare.com` to `script-src`, `frame-src` and `connect-src`. The browser console carries the exact directive. This used to degrade the report form instead — since the atlas cannot take a registration without it, it now fails outright. |
 | **The widget's route never appears in the address bar**               | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                     |
 | **The compact card's button does nothing, in an iframe**              | The frame is sandboxed without `allow-popups`, so its `target="_blank"` link cannot open. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                       |
