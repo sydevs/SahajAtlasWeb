@@ -81,6 +81,17 @@ moves, in the same bump as `@payloadcms/sdk`.
 - Pass an explicit **`populate`** whenever `depth > 1`. Read at `depth: 1` and
   populate only the relationships you need, rather than relying on the default
   depth.
+- Pass an explicit **`limit`** at or under 2000 and a **`page`** at or under 10000
+  (`MAX_CLIENT_LIMIT` / `MAX_CLIENT_PAGE`, sydevs/SahajCloud#890). Over either
+  ceiling is a 400, not a truncation — and an **absent** `limit` is not an
+  unbounded read either: Payload defaults it to 10, so a read that omits it
+  silently returns ten rows. Walk the rest with **`readAllPages`**
+  (`src/config/api/paginate.ts`), which is the only page loop in this repo.
+  Never send `pagination: false` or `limit: 0`: a client gets no unbounded read
+  (SahajCloud#887's answer), and sydevs/SahajCloud#889 refuses the shape outright.
+  Every walked read also needs a sort whose last key is **unique** — `id`. A
+  `LIMIT`/`OFFSET` walk over a non-unique key has no total order, so Postgres may
+  place ties differently per page and the walk repeats and drops rows.
 
 ## Fetchers: raw reads plus client-derived shaping
 

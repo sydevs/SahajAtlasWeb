@@ -11,10 +11,12 @@ import type {
   ReportForm,
   TranslationTree,
 } from '@/types'
+import type { EventFeatureCollection } from '@/types/payload/response-types'
 import type { CalendarSourceEvent, EventFilters, GeoEvent, RegionIndex } from '@/lib/shape'
 import type { Position } from 'geojson'
 
 import sdk, { activeLocale, requestJson, validateSDKResponse } from './client'
+import { CLIENT_PAGE_LIMIT, readAllPages } from './paginate'
 
 import {
   GEOJSON_STALE_TIME,
@@ -169,20 +171,25 @@ const REGIONS_SELECT = {
 // So a single failing region open could send four requests for the feed, though `MAX_QUERY_RETRIES` promised two.
 // The observer layer owns retry behavior, not these loaders.
 
-const getRegions = async (): Promise<RegionNode[]> => {
-  const { docs } = validateSDKResponse(
-    await sdk.find({
-      collection: 'regions',
-      depth: 0,
-      pagination: false,
-      sort: 'name',
-      select: REGIONS_SELECT,
-    }),
-    'regions',
-  )
+const getRegions = (): Promise<RegionNode[]> =>
+  readAllPages('regions', async (page) => {
+    const { docs, totalPages } = validateSDKResponse(
+      await sdk.find({
+        collection: 'regions',
+        depth: 0,
+        limit: CLIENT_PAGE_LIMIT,
+        page,
+        // ⚠ `id` is the tiebreaker, and it is load-bearing. `name` is a plain required text field
+        // with no `unique` on it, so an OFFSET walk ordered by `name` alone has no total order:
+        // Postgres may place ties differently per page, and the walk then repeats and drops rows.
+        sort: ['name', 'id'],
+        select: REGIONS_SELECT,
+      }),
+      'regions',
+    )
 
-  return RegionNodeSchema.array().parse(docs)
-}
+    return { rows: RegionNodeSchema.array().parse(docs), totalPages }
+  })
 
 // This reads the region tree through the shared React Query cache.
 // So the whole app fetches and parses it once per stale window, not on every navigation.
@@ -206,16 +213,34 @@ const loadRegions = (): Promise<RegionNode[]> =>
 // ── GeoJSON feed (agnostic geometry + counts) ──────────────────────────────────
 
 const getGeojson = async (): Promise<Geojson> => {
-  // This is a custom, non-CRUD endpoint.
-  // So this call uses the SDK's raw `request` helper, not `sdk.find`.
-  // The `select` and `populate` options still travel in the query string, as before.
-  const data = await requestJson({
-    method: 'GET',
-    path: '/events/geojson',
-    args: { depth: 1, pagination: false, select: FEED_SELECT, populate: REGION_POPULATE },
+  const features = await readAllPages('/events/geojson', async (page) => {
+    // This is a custom, non-CRUD endpoint.
+    // So this call uses the SDK's raw `request` helper, not `sdk.find`.
+    // The `select` and `populate` options still travel in the query string, as before.
+    // The endpoint forwards `limit` / `page` / `sort` into `payload.find` and spreads Payload's
+    // pagination metadata into the FeatureCollection, which `EventFeatureCollection` types.
+    const data = await requestJson<EventFeatureCollection>({
+      method: 'GET',
+      path: '/events/geojson',
+      args: {
+        depth: 1,
+        limit: CLIENT_PAGE_LIMIT,
+        page,
+        sort: 'id',
+        select: FEED_SELECT,
+        populate: REGION_POPULATE,
+      },
+    })
+
+    // ⚠ Read `totalPages` off the RAW response, never off the parsed value. `GeojsonSchema` is a
+    // plain zod object, so it strips the pagination foreign members — a loop reading the page
+    // count after parsing gets `undefined` on every page and fetches exactly one, forever.
+    return { rows: GeojsonSchema.parse(data).features, totalPages: data.totalPages }
   })
 
-  return GeojsonSchema.parse(data)
+  // Every feature came out of a per-page `GeojsonSchema.parse`, so the merged collection is valid
+  // by construction and re-parsing it would only pay for the biggest read twice.
+  return { type: 'FeatureCollection', features }
 }
 
 // The hierarchy fetchers and the events fetchers all need the same feed.
@@ -240,16 +265,26 @@ const loadGeojson = (): Promise<Geojson> =>
 // The cache key includes locale, so a language switch refetches only this map.
 // This map is about 5% of the feed's weight. The locale-agnostic feed and region tree stay cached.
 const getEventTitles = async (): Promise<Map<number, string>> => {
-  const { docs } = validateSDKResponse(
-    await sdk.find({ collection: 'events', depth: 0, pagination: false, select: { title: true } }),
-    'event titles',
-  )
+  // This walk is per-locale, so its page count multiplies by the number of languages a session
+  // visits. That is why the page size stays at the cap rather than anywhere below it.
+  const titles = await readAllPages('event titles', async (page) => {
+    const { docs, totalPages } = validateSDKResponse(
+      await sdk.find({
+        collection: 'events',
+        depth: 0,
+        limit: CLIENT_PAGE_LIMIT,
+        page,
+        // Unique on its own, so a page boundary cannot repeat or drop a row.
+        sort: 'id',
+        select: { title: true },
+      }),
+      'event titles',
+    )
 
-  return new Map(
-    EventTitleSchema.array()
-      .parse(docs)
-      .map((doc) => [doc.id, doc.title ?? '']),
-  )
+    return { rows: EventTitleSchema.array().parse(docs), totalPages }
+  })
+
+  return new Map(titles.map((doc) => [doc.id, doc.title ?? '']))
 }
 
 /**
