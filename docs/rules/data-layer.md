@@ -99,13 +99,15 @@ moves, in the same bump as `@payloadcms/sdk`.
   `readAllPages` callback, or sorts without `walkSort` turns the unit lane red naming the
   file and the line. A fixed `page` is in that list because it reads one page
   `totalPages` times rather than paginating.
-  `findByID`, `findGlobal` and `mutate.ts`'s POSTs are out of scope by construction —
-  none takes a `limit`. A **custom endpoint** cannot be classified from its AST, so the
-  spec holds the GET paths as two named inventories (`/events/geojson` is a list read;
-  `/clients/me` is one record) and fails an unlisted one with instructions rather than
-  guessing. This is the same mechanism, and the same reason, as `href.test.ts`'s anchor
-  inventory below: enforcing a rule by example says nothing about the next read somebody
-  adds.
+  `findByID` and `findGlobal` are out of scope by construction — neither takes a `limit`.
+  A **custom endpoint** cannot be classified from its AST, so the spec holds the read
+  paths as two named inventories (`/events/geojson` is a list read; `/clients/me` is one
+  record) and fails an unlisted one with instructions rather than guessing. It reads a
+  `json` or `file` option as the mark of a write, which is what puts `mutate.ts`'s POSTs
+  out of scope: the method cannot do that job, since the SDK sends `args` as the query
+  string at any verb and a POST-as-GET is a read. This is the same mechanism, and the
+  same reason, as `href.test.ts`'s anchor inventory below: enforcing a rule by example
+  says nothing about the next read somebody adds.
 
 ## Fetchers: raw reads plus client-derived shaping
 
