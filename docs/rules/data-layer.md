@@ -95,9 +95,11 @@ moves, in the same bump as `@payloadcms/sdk`.
 
   **`src/config/api/reads.inventory.test.ts` asserts all four of those at every call
   site**, by parsing `src/**` through the `typescript` API: an `sdk.find` that sends no
-  `limit` or `page`, sends `pagination` or `limit: 0`, sits outside a `readAllPages`
-  callback, or sorts without `walkSort` turns the unit lane red naming the file and the
-  line. `findByID`, `findGlobal` and `mutate.ts`'s POSTs are out of scope by construction —
+  `limit` or `page`, sends `pagination`, `limit: 0` or a *fixed* `page`, sits outside a
+  `readAllPages` callback, or sorts without `walkSort` turns the unit lane red naming the
+  file and the line. A fixed `page` is in that list because it reads one page
+  `totalPages` times rather than paginating.
+  `findByID`, `findGlobal` and `mutate.ts`'s POSTs are out of scope by construction —
   none takes a `limit`. A **custom endpoint** cannot be classified from its AST, so the
   spec holds the GET paths as two named inventories (`/events/geojson` is a list read;
   `/clients/me` is one record) and fails an unlisted one with instructions rather than

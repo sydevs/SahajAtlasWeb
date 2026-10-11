@@ -20,19 +20,26 @@ import { describe, expect, it } from 'vitest'
 // out a `limit` is exactly the edit this has to catch.
 //
 // Known blind spots, since a guard that oversells itself is worse than none. A read is seen only
-// where the SDK or `requestJson` is reached through a static import of `config/api/client` — a
-// re-export under another name, or a dynamic import, is invisible. `limit` resolves through one
-// import hop to a module-level numeric literal, so a computed one reads as unresolvable, which
-// fails rather than passes. Nothing here checks `select` or `populate`; those are their own rule.
+// where the SDK or `requestJson` is reached through a static default or named import of
+// `config/api/client`: a namespace import would hide one, so the last spec below fails on one
+// rather than leaving this note to carry it, but a re-export under another name or a dynamic
+// import is still invisible. `limit` resolves through one import hop to a module-level numeric
+// literal, so a computed one reads as unresolvable, which fails rather than passes. Nothing here
+// checks `select` or `populate`; those are their own clause of the same rule.
 
 const srcDir = fileURLToPath(new URL('../../', import.meta.url))
 
 const CLIENT_MODULE = 'config/api/client'
 const PAGINATE_MODULE = 'config/api/paginate'
 
-/** SahajCloud's `MAX_CLIENT_LIMIT` / `MAX_CLIENT_PAGE` (sydevs/SahajCloud#890). Over either is a 400. */
+/**
+ * SahajCloud's `MAX_CLIENT_LIMIT` (sydevs/SahajCloud#890). Over it is a 400, not a truncation.
+ *
+ * Its sibling `MAX_CLIENT_PAGE` of 10000 has no check here: a `page` must vary per call to pass at
+ * all, and `MAX_PAGE_WALK` bounds the walk two orders of magnitude below that ceiling, so no
+ * assertion on it could ever fail. `paginate.ts` dropped the same constant for the same reason.
+ */
 const MAX_CLIENT_LIMIT = 2000
-const MAX_CLIENT_PAGE = 10_000
 
 /**
  * The custom endpoints `requestJson` reads, split by whether the response is a collection list.
@@ -89,6 +96,8 @@ type Bindings = {
   requestJson?: string
   readAllPages?: string
   walkSort?: string
+  /** A namespace import of the client module, which would reach the SDK under a name this cannot follow. */
+  namespaced?: boolean
 }
 
 const bindingsOf = (source: ts.SourceFile, path: string): Bindings => {
@@ -106,9 +115,20 @@ const bindingsOf = (source: ts.SourceFile, path: string): Bindings => {
 
     if (module === CLIENT_MODULE && clause.name) bindings.sdk = clause.name.text
 
+    if (
+      module === CLIENT_MODULE &&
+      clause.namedBindings &&
+      ts.isNamespaceImport(clause.namedBindings)
+    ) {
+      bindings.namespaced = true
+    }
+
     if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
       for (const element of clause.namedBindings.elements) {
         const imported = (element.propertyName ?? element.name).text
+
+        // `import { default as sdk }` reaches the same instance as a default import.
+        if (module === CLIENT_MODULE && imported === 'default') bindings.sdk = element.name.text
 
         if (module === CLIENT_MODULE && imported === 'requestJson') {
           bindings.requestJson = element.name.text
@@ -278,13 +298,15 @@ type Read = {
   walkSortName?: string
 }
 
-const collectReads = (): { reads: Read[]; wrapperRequests: number } => {
+const collectReads = (): { reads: Read[]; wrapperSites: string[]; namespaced: string[] } => {
   const reads: Read[] = []
-  let wrapperRequests = 0
+  const wrapperSites: string[] = []
+  const namespaced: string[] = []
 
   for (const [path, source] of parsed) {
     const bindings = bindingsOf(source, path)
 
+    if (bindings.namespaced) namespaced.push(path)
     if (!bindings.sdk && !bindings.requestJson) continue
 
     const visit = (node: ts.Node): void => {
@@ -316,7 +338,7 @@ const collectReads = (): { reads: Read[]; wrapperRequests: number } => {
 
           if (!options) {
             // `client.ts`'s own wrapper forwards its caller's options object.
-            wrapperRequests += 1
+            wrapperSites.push(at(source, node, 'a forwarded options object'))
           } else {
             reads.push({
               site: at(source, node, isRequestJson ? `${bindings.requestJson}()` : 'sdk.request'),
@@ -338,10 +360,10 @@ const collectReads = (): { reads: Read[]; wrapperRequests: number } => {
     ts.forEachChild(source, visit)
   }
 
-  return { reads, wrapperRequests }
+  return { reads, wrapperSites, namespaced }
 }
 
-const { reads, wrapperRequests } = collectReads()
+const { reads, wrapperSites, namespaced } = collectReads()
 
 const finds = reads.filter((read) => read.kind === 'find')
 const gets = reads.filter((read) => read.kind === 'request' && read.method === 'GET')
@@ -396,10 +418,15 @@ const violationsOf = (read: Read): string[] => {
   if (!page) {
     problems.push(`${site}: sends no \`page\`. Pass the page \`readAllPages\` hands its callback.`)
   } else {
+    // A fixed `page` is the defect a present-and-in-range check waves through: the walk then asks
+    // for the same page `totalPages` times and concatenates it, so the read duplicates rows rather
+    // than paginating. Only a value that varies per call can be the page the walk is on.
     const value = asNumber(valueOf(page), file)
 
-    if (value !== undefined && (value < 1 || value > MAX_CLIENT_PAGE)) {
-      problems.push(`${site}: \`page\` is ${value}. SahajCloud allows 1…${MAX_CLIENT_PAGE}.`)
+    if (value !== undefined) {
+      problems.push(
+        `${site}: \`page\` is the fixed value ${value}. Pass the page \`readAllPages\` hands its callback, or this read repeats one page.`,
+      )
     }
   }
 
@@ -480,10 +507,17 @@ describe('the SahajCloud collection-read inventory', () => {
     ).toEqual([])
   })
 
-  it('keeps `client.ts`s raw-request wrapper the only unreadable call site', () => {
+  it('keeps `requestJson`s own forwarding the only unreadable call site', () => {
     expect(
-      wrapperRequests,
-      `${CLIENT_MODULE}.ts holds ${wrapperRequests} raw SahajCloud request(s) whose options this spec cannot read, not ${CLIENT_WRAPPER_REQUESTS}. Only \`requestJson\` may forward an options object it was handed. Give a new read a literal \`method\` and \`path\` at its own call site, where ${RULE} can be checked.`,
-    ).toBe(CLIENT_WRAPPER_REQUESTS)
+      wrapperSites,
+      `A SahajCloud request forwards an options object this spec cannot read. Only \`requestJson\` in ${CLIENT_MODULE}.ts may. Give a new read a literal \`method\` and \`path\` at its own call site, where ${RULE} can be checked.\n\n${wrapperSites.join('\n')}\n`,
+    ).toHaveLength(CLIENT_WRAPPER_REQUESTS)
+  })
+
+  it('has nothing reaching the SDK under a name this inventory cannot follow', () => {
+    expect(
+      namespaced,
+      `These files import \`${CLIENT_MODULE}\` as a namespace, which hides every read in them from this inventory — the blind-spot note at the top of this file depends on there being none. Import \`sdk\` and \`requestJson\` by name instead.\n\n${namespaced.join('\n')}\n`,
+    ).toEqual([])
   })
 })
