@@ -99,8 +99,14 @@ SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /a
 or HTML descriptions — the client derives all of these:
 
 - **`getGeojson`** → `/events/geojson`, the single source of map points, counts, and
-  geometry. Parse it through `GeojsonSchema`. Each feature's `properties` is a
-  `FeedEvent` (internal field names).
+  geometry. Each feature's `properties` is a `FeedEvent` (internal field names).
+  It walks pages, so it parses each page's rows through **`GeoFeatureSchema`** and
+  builds the one `Geojson` container itself. `GeojsonSchema` still defines that
+  container's type and is deliberately no longer `.parse`d anywhere: re-parsing the
+  merged collection would run the app's largest zod pass twice. ⚠ Read the pagination
+  members off the RAW response, before any parse — every schema here is a plain
+  `z.object` and strips them, so a loop reading `totalPages` after parsing fetches
+  exactly one page, forever.
 - **`getCountries` / `getCountry` / `getRegion` / `getArea` / `getVenue`** → raw
   `/api/regions` plus the geojson feed. Derive `eventCount` and `bounds` via
   `src/lib/shape` (breadcrumb ancestry) and `src/lib/geo` (`@turf`). Region taxonomy
@@ -139,8 +145,9 @@ or HTML descriptions — the client derives all of these:
   moment would be the second thing to fail.
 
 Parse every fetcher's response through a zod schema from `src/types/` — raw
-`*DocSchema` / `FeedEventSchema` / `GeojsonSchema` for the wire shape, derived
-view-model schemas for what components consume. Keep a stable `queryKey`
+`*DocSchema` / `FeedEventSchema` / `GeoFeatureSchema` for the wire shape, derived
+view-model schemas for what components consume. A walked read parses each page as it
+arrives, so one bad row fails inside the page that carried it. Keep a stable `queryKey`
 (`['geojson']`, `['client', apiKey]`, `['country', slug]`, …), so a SahajCloud
 shape change surfaces as a parse error, never a deep runtime crash.
 
