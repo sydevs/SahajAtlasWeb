@@ -93,6 +93,22 @@ moves, in the same bump as `@payloadcms/sdk`.
   `LIMIT`/`OFFSET` walk over a non-unique key has no total order, so Postgres may
   place ties differently per page and the walk repeats and drops rows.
 
+  **`src/config/api/reads.inventory.test.ts` asserts all four of those at every call
+  site**, by parsing `src/**` through the `typescript` API: an `sdk.find` that sends no
+  `limit` or `page`, sends `pagination`, `limit: 0` or a *fixed* `page`, sits outside a
+  `readAllPages` callback, or sorts without `walkSort` turns the unit lane red naming the
+  file and the line. A fixed `page` is in that list because it reads one page
+  `totalPages` times rather than paginating.
+  `findByID` and `findGlobal` are out of scope by construction — neither takes a `limit`.
+  A **custom endpoint** cannot be classified from its AST, so the spec holds the read
+  paths as two named inventories (`/events/geojson` is a list read; `/clients/me` is one
+  record) and fails an unlisted one with instructions rather than guessing. It reads a
+  `json` or `file` option as the mark of a write, which is what puts `mutate.ts`'s POSTs
+  out of scope: the method cannot do that job, since the SDK sends `args` as the query
+  string at any verb and a POST-as-GET is a read. This is the same mechanism, and the
+  same reason, as `href.test.ts`'s anchor inventory below: enforcing a rule by example
+  says nothing about the next read somebody adds.
+
 ## Fetchers: raw reads plus client-derived shaping
 
 SahajCloud exposes only raw collection reads and a few custom endpoints (`GET /api/events/geojson`, the live-preview populate POST-as-GET). It does **not** provide `eventCount`, `bounds`, region geometry, `path`, `distance`,

@@ -246,7 +246,11 @@ repo's `engines.node`, locking out a contributor on Node 20). The lane's default
 stays `node` regardless.
 
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
-path fast — booting a DOM costs about 1s against the whole lane's ~1.5s.
+path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
+numbers.** Measured 2026-10-11 on 4 cores: 113 node-only files take **~16s**, and the 25 jsdom
+files add **~12s** on top, for **~28s** over 1698 tests. The per-file opt-in is what keeps the
+first number from becoming the second, and the hook note at the end of this file carries what the
+total costs per edit.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
 with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**
@@ -370,5 +374,7 @@ still right. It just is not enough on its own when the pure part encodes a forei
   them. `tests/**` and `scripts/**` are checked by `tsconfig.test.json` — the second half of
   `pnpm typecheck`.
 - A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs `pnpm test:run` after editing a
-  `src/**/*.{ts,tsx}` file, and reports failures as non-blocking context. Keep the lane fast
-  (under ~5s) so this stays painless.
+  `src/**/*.{ts,tsx}` file, and reports failures as non-blocking context. So the whole lane is
+  the cost of every such edit — keep a new spec's own share of it near zero. The "under ~5s" this
+  note asked for has not held since the jsdom specs arrived, and **#285 owns the total**, so the
+  budget lives on one ticket rather than as a figure restated here that nothing checks.
