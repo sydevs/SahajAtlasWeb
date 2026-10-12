@@ -187,7 +187,7 @@ describe('bootLocale', () => {
 
     detected.language = 'en-US'
 
-    // A host passing `locale="fr"`. The attribute is in no detector.
+    // A host passing `locale=fr` on the loader script. The parameter is in no detector.
     expect(bootLocale('', 'fr')).toBe(preferredLocale('fr', offered))
 
     // A browser reporting a regional tag, which `preferredLocale` narrows to its base.

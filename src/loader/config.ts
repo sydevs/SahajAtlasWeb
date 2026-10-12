@@ -48,7 +48,12 @@ export type LoaderConfig = {
   key: string | null
   /** Render the Mapbox canvas. */
   map: boolean
-  /** Force a UI language. Otherwise use the client record, then `?locale=`, then the browser. */
+  /**
+   * Ask for a UI language. A page `?locale=` naming a locale the operator PUBLISHED outranks
+   * this — the widget writes that parameter itself when a viewer picks a language, so honouring
+   * this instead would discard the pick. One naming anything else is not a choice and falls
+   * through to here (`pageLocaleOverride`). Below this: `<html lang>`, the browser, English.
+   */
   locale?: string
   /** Where the widget's route lives. */
   routing: RoutingMode

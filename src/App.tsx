@@ -188,7 +188,7 @@ export default function App({
   // client record above this component.
   //
   // ⚠ **`bootLocale`, not `i18n.language`.** The detected tag is not what `AppShell` will
-  // ask for: `locale="fr"` reaches it as `defaultLocale`, which no detector reads, and a
+  // ask for: the script's `locale=fr` reaches it as `defaultLocale`, which no detector reads, and a
   // browser's `en-US` narrows to `en` in `preferredLocale`. Warming the raw tag in either
   // case fills a key nothing reads, which is the flip this effect exists to prevent, paid for.
   useEffect(() => {
