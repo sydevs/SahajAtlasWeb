@@ -151,7 +151,7 @@ describe('pageLocaleOverride', () => {
   // is a standing invitation to drift, and they HAD drifted on exactly one input: case.
   // `preferredLocale` case-folds, so `PT-br` resolves to `pt-BR` there and its spec says so.
   // Here it used to miss, and a miss is not "fall back to English" — it hands the decision to
-  // `defaultLocale`, so a host's `locale="fr"` would win over a page URL asking for Portuguese.
+  // `defaultLocale`, so a host's script `locale=fr` would win over a page URL asking for Portuguese.
   it('matches case-insensitively, as preferredLocale does', () => {
     expect(override('?locale=PT-br')).toBe('pt-BR')
     expect(override('?locale=FR')).toBe('fr')

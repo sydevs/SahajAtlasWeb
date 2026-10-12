@@ -22,9 +22,10 @@ import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
 // Left implicit, its `order` reads cookies and localStorage, and its `caches: ['localStorage']` WRITES `i18nextLng` onto the HOST page's origin.
 // That is storage on a domain that is not ours, and no integrator was ever told about it.
 // The reason to drop it is the undeclared write itself, not a crash risk. The library does guard the access.
-// Detection now reads the `?locale` query param, then the browser's own language preference, and persists nothing, through `caches: []`.
+// Detection now reads the `?locale` query param, then the host page's `<html lang>`, then the browser's own language preference, and persists nothing, through `caches: []`.
 // Nothing is lost.
-// The host sets the widget's language per page load, through the `locale` attribute, the client record, or `?locale`.
+// The host sets the widget's language per page load, through `<html lang>` or the loader script's `locale=` parameter.
+// SahajCloud's client record still carries a `locale` field, and the widget deliberately does not read it — see the ⚠ in `types/client.ts`.
 // A viewer's pick from the settings menu lasts the session either way.
 //
 // This spreads into `init`, instead of passing by reference.

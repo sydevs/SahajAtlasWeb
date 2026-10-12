@@ -16,8 +16,9 @@ import { reportInternalError } from '@/lib/report'
  * `i18n.language` alone does not agree, which is what this replaces. That is the raw detected
  * tag — `querystring → hostHtmlLang → navigator` — while `AppShell` resolves
  * `pageLocaleOverride(search) ?? defaultLocale ?? i18n.language` through `preferredLocale`.
- * Two ordinary cases diverge: a host passing `locale="fr"` (an attribute no detector reads, so
- * the browser's tag gets warmed while French is fetched), and a browser reporting `en-US` (which
+ * Two ordinary cases diverge: a host passing `locale=fr` on the loader script (a parameter no
+ * detector reads, so the browser's tag gets warmed while French is fetched), and a browser
+ * reporting `en-US` (which
  * `preferredLocale` narrows to `en`, so the warmed key is never read on most loads).
  *
  * ⚠ **`availableLocales` has not arrived yet** — it is the other half of the same warm-up — so
@@ -27,7 +28,7 @@ import { reportInternalError } from '@/lib/report'
  * - **`?locale=` is warmed verbatim.** The widget writes that parameter itself, out of the
  *   offered set (`publishLocale`), so it already names a locale the CMS answers — and
  *   `preferredLocale` step 1 takes an exact match before any base tag.
- * - **Everything else is base-tagged.** The `locale` attribute and the browser's own preference
+ * - **Everything else is base-tagged.** The script's `locale=` and the browser's own preference
  *   are statements about a page or a visitor, not about what an operator published, and a
  *   regional tag from either resolves through step 2 (`de-DE` → `de`).
  *

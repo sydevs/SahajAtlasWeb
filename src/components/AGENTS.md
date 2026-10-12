@@ -187,11 +187,11 @@ host pages, and it also runs standalone in dev. Because of that:
   vouches for on a host SPA that unmounted it. It attests the routing the router
   _actually_ uses (`MountDecision.routing`), not the `routing` parameter somebody
   configured.
-- **What a host can observe is documented in `docs/embedding.md`** — the attribute
-  table, the CSP contract, sizing, the URL shape, the style-tag ids. It is the only
-  doc an embedding site reads, so a change here that a host could notice is not
-  finished until that guide (and `CHANGELOG.md`) says so, in the same PR. See the
-  root `AGENTS.md` for the full rule.
+- **What a host can observe is documented in `docs/embedding.md`** — its
+  `## Parameters` table, the CSP contract, sizing, the URL shape, the style-tag
+  ids. It is the only doc an embedding site reads, so a change here that a host
+  could notice is not finished until that guide (and `CHANGELOG.md`) says so, in
+  the same PR. See the root `AGENTS.md` for the full rule.
 - Provider stack lives in `src/providers.tsx` (React Query + Helmet + theme). Add new
   context providers there, not scattered across the tree.
 

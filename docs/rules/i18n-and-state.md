@@ -18,7 +18,7 @@ paths:
 
 - **Three words, three meanings. Do not mix them.**
   - **Locale** is a BCP-47 tag the widget can render in (`en`, `pt-BR`). It is the
-    unit of everything on this path: `?locale=`, the `locale` attribute,
+    unit of everything on this path: `?locale=`, the loader script's `locale=`,
     `availableLocales`, a query key, i18next's active language. Every symbol that
     handles one is named for it — `applyLocale`, `bootLocale`, `preferredLocale`,
     `useAvailableLocales`, `currentLocales`.
@@ -60,11 +60,11 @@ paths:
   ⚠ **One writer is not one call at a time.** `AppShell`'s effect keys on the
   offered set, which answers `['en']` until the config lands, so a `?locale=fr`
   page has two calls in flight within a frame. A module-level generation counter
-  in `language.ts` makes the last CALL win rather than the last read to settle —
+  in `locale.ts` makes the last CALL win rather than the last read to settle —
   keep any new await inside `applyLocale` behind that check.
 - **The boot warm-up must fetch the key `applyLocale` will read.** Use
   `bootLocale` (`src/config/locale.ts`), never `i18n.language`: that is the
-  raw detected tag, and it answers neither a host's `locale` attribute (in no
+  raw detected tag, and it answers neither the loader script's `locale=` (in no
   detector) nor `preferredLocale`'s narrowing of a regional tag. Both callers —
   `App`'s mount effect and `PathBoot` — must pass the same thing, or React Query
   merges nothing and one of the two requests is read by nobody.
