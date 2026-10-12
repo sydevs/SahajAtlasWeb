@@ -57,7 +57,7 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 
 | Layer       | Where                              | Responsibility |
 | ----------- | ----------------------------------- | -------------- |
-| Web component | `src/Widget.tsx`                  | Host-page embedding, props → app |
+| Web component | `src/Widget.tsx`                  | Host-page embedding, no attributes (#149) — the loader script URL reaches the app through `config/embed.ts` |
 | Navigation  | `src/views/DrawerStack/`, `src/lib/shape/path.ts` | `resolveStack(pathname)` → open drawers — no drawer-stack store |
 | Views       | `src/views/`                        | CountriesView (the base) + Search/Calendar/Region/Online/Event/Registration/Filter/Share |
 | Map seam    | `src/hooks/use-map-controller.tsx`  | `MapController` (real + no-op) — the only place that knows `map` vs map-less |
