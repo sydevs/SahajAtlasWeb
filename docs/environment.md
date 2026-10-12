@@ -96,13 +96,14 @@ DSN and a real token:
 
 ## In the embedded widget
 
-When embedded, the host page supplies the API key (and optional locale) as element props:
+When embedded, the host page supplies the API key (and optional locale) on the loader script's
+own URL. The element takes no attributes at all (#149) — `docs/embedding.md` is the contract:
 
 ```html
-<sahaj-atlas api-key="…" locale="en"></sahaj-atlas>
+<script type="module" src="https://sahajatlas.com/auto.js?key=…&locale=en"></script>
 ```
 
-Add `map="false"` to render content only — no map canvas, no Mapbox token needed.
+Add `&map=false` to render content only — no map canvas, no Mapbox token needed.
 
 In the standalone build, the key comes from `?key=` on the URL, falling back to the build-time
 `VITE_SAHAJCLOUD_API_KEY` — in dev **and in every deploy**. This is why `sahajatlas.com` needs no

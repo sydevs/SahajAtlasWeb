@@ -67,8 +67,8 @@ so `map=false` removes them.
 
 The language picker persists **nothing** — i18next's detector would cache
 `i18nextLng` on your origin by default, and that write is off. The language
-comes from the `locale` attribute, the API client's configured locale, or a
-`?locale=` query parameter, per page load.
+comes from a `?locale=` on your page's URL, then the loader script's `locale=`,
+then your page's `<html lang>`, then the browser, per page load.
 
 Requests leave the browser for these hosts, none of them yours or
 SahajCloud's:

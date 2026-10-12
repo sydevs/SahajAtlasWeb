@@ -14,7 +14,8 @@ which drawers are open. The map sits behind them. When `map=false`, the
 widget container sits behind them instead.
 
 ```
-Host page  →  <sahaj-atlas api-key="…" locale="…" map="true|false">
+Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
+                 │  src/loader/ adopts or creates <sahaj-atlas> (no attributes)
                  │  (@r2wc/react-to-web-component, src/Widget.tsx)
                  ▼
               <App>  (AtlasRouter — ?atlas= query routing)
