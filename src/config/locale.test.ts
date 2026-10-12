@@ -154,7 +154,7 @@ describe('applyLocale', () => {
 // passing by coincidence.
 
 describe('bootLocale', () => {
-  it('takes `?locale=` verbatim, over the attribute and the browser', () => {
+  it("takes `?locale=` verbatim, over the script's locale= and the browser", () => {
     // Written by the widget itself out of the offered set, so it already names a published
     // locale — and `preferredLocale` prefers an exact match to a base tag.
     detected.language = 'ru'
@@ -162,13 +162,13 @@ describe('bootLocale', () => {
     expect(bootLocale('?locale=pt-BR', 'de')).toBe('pt-BR')
   })
 
-  it('falls through an empty `?locale=` to the host attribute', () => {
+  it("falls through an empty `?locale=` to the script's locale=", () => {
     detected.language = 'ru'
 
     expect(bootLocale('?locale=%20&q=paris', 'de')).toBe('de')
   })
 
-  it('base-tags the host attribute, which no detector reads', () => {
+  it("base-tags the script's locale=, which no detector reads", () => {
     detected.language = 'ru'
 
     expect(bootLocale('?q=paris', 'de-DE')).toBe('de')
