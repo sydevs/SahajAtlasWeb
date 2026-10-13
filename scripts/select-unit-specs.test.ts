@@ -3,11 +3,12 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
   coLocatedSpecs,
   isLaneSource,
+  listLaneSources,
   listSpecs,
   referencingSpecs,
   selectSpecs,
@@ -20,6 +21,17 @@ import {
 // can reach are in it anyway.
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
+const SPEC_NAME = /\.(test|spec)\.(ts|tsx)$/
+
+/** A missing match must fail, not pass vacuously on `undefined` (`ci-workflows.test.ts`). */
+const matched = (text: string, re: RegExp) => {
+  const found = re.exec(text)?.[1]
+
+  expect(found, `nothing matched ${re}`).toBeTruthy()
+
+  return found as string
+}
+
 const write = (root: string, rel: string, text: string) => {
   mkdirSync(join(root, dirname(rel)), { recursive: true })
   writeFileSync(join(root, rel), text)
@@ -30,34 +42,30 @@ const write = (root: string, rel: string, text: string) => {
  *
  * It assumes the lane collects `src/**` and `scripts/**` specs named `*.test.ts(x)`, that a
  * cross-directory import is written `@/…`, and that a spec reading source text off disk names it
- * as a quoted repo-relative path. Verified against `vitest.config.ts`'s `include`, `src/AGENTS.md`
- * ("Imports"), and `src/lib/brand.test.ts`'s `COPY_FILES`.
+ * as a quoted repo-relative path. The first is asserted against `vitest.config.ts` below. The
+ * other two are `src/AGENTS.md`'s "Imports" rule and `src/lib/brand.test.ts`'s `COPY_FILES`.
  */
-const fixture = () => {
-  const root = mkdtempSync(join(tmpdir(), 'select-unit-specs-'))
+let fixture: string
 
-  write(root, 'src/lib/thing.ts', 'export const thing = 1\n')
-  write(root, 'src/lib/thing.test.ts', "import { thing } from './thing'\n")
-  write(root, 'src/lib/thing.edge.test.ts', "import { thing } from './thing'\n")
-  write(root, 'src/lib/neighbour.test.ts', "import { other } from './other'\n")
-  write(root, 'src/lib/thing-other.ts', 'export const other = 2\n')
-  write(root, 'src/views/importer.test.tsx', "import { thing } from '@/lib/thing'\n")
-  write(root, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
-  write(root, 'src/views/lister.test.tsx', "const COPY = ['src/lib/thing.ts']\n")
-  write(root, 'src/views/walker.test.tsx', 'readdirSync(SRC, { recursive: true })\n')
+beforeAll(() => {
+  fixture = mkdtempSync(join(tmpdir(), 'select-unit-specs-'))
 
-  return root
-}
+  write(fixture, 'src/lib/thing.ts', 'export const thing = 1\n')
+  write(fixture, 'src/lib/thing.test.ts', "import { thing } from './thing'\n")
+  write(fixture, 'src/lib/thing.edge.test.ts', "import { thing } from './thing'\n")
+  write(fixture, 'src/lib/neighbour.test.ts', "import { other } from './other'\n")
+  write(fixture, 'src/lib/thing-other.ts', 'export const other = 2\n')
+  write(fixture, 'src/views/importer.test.tsx', "import { thing } from '@/lib/thing'\n")
+  write(fixture, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
+  write(fixture, 'src/views/lister.test.tsx', "const COPY = ['src/lib/thing.ts']\n")
+  write(fixture, 'src/views/walker.test.tsx', 'readdirSync(SRC, { recursive: true })\n')
+})
 
-const withFixture = (assert: (root: string) => void) => {
-  const root = fixture()
+afterAll(() => {
+  rmSync(fixture, { recursive: true, force: true })
+})
 
-  try {
-    assert(root)
-  } finally {
-    rmSync(root, { recursive: true, force: true })
-  }
-}
+const readFixture = (spec: string) => readFileSync(join(fixture, spec), 'utf8')
 
 describe('isLaneSource', () => {
   it('covers src modules and specs, and nothing else the hook can see', () => {
@@ -71,68 +79,43 @@ describe('isLaneSource', () => {
 
 describe('coLocatedSpecs', () => {
   it('takes the stem siblings, not the whole folder', () => {
-    withFixture((root) => {
-      const specs = listSpecs(root)
-
-      expect(coLocatedSpecs('src/lib/thing.ts', specs)).toEqual([
-        'src/lib/thing.edge.test.ts',
-        'src/lib/thing.test.ts',
-      ])
-    })
+    expect(coLocatedSpecs('src/lib/thing.ts', listSpecs(fixture))).toEqual([
+      'src/lib/thing.edge.test.ts',
+      'src/lib/thing.test.ts',
+    ])
   })
 
   it('takes a spec edited directly, through its own stem', () => {
-    withFixture((root) => {
-      expect(coLocatedSpecs('src/lib/thing.edge.test.ts', listSpecs(root))).toContain(
-        'src/lib/thing.edge.test.ts',
-      )
-    })
+    expect(coLocatedSpecs('src/lib/thing.edge.test.ts', listSpecs(fixture))).toContain(
+      'src/lib/thing.edge.test.ts',
+    )
   })
 })
 
 describe('referencingSpecs', () => {
-  it('reaches an aliased importer and a spec that lists the path, across directories', () => {
-    withFixture((root) => {
-      const specs = listSpecs(root)
-      const read = (spec: string) => readFileSync(join(root, spec), 'utf8')
-
-      expect(referencingSpecs('src/lib/thing.ts', specs, read)).toEqual([
-        'src/views/importer.test.tsx',
-        'src/views/lister.test.tsx',
-      ])
-    })
-  })
-
-  it('stops at the specifier boundary, so a longer name is not a match', () => {
-    withFixture((root) => {
-      const specs = listSpecs(root)
-      const read = (spec: string) => readFileSync(join(root, spec), 'utf8')
-
-      expect(referencingSpecs('src/lib/thing.ts', specs, read)).not.toContain(
-        'src/views/prefix.test.tsx',
-      )
-    })
+  it('reaches an aliased importer and a path list, and stops at the specifier boundary', () => {
+    // `prefix.test.tsx` imports `@/lib/thing-other`, which a needle missing its closing quote
+    // would match.
+    expect(referencingSpecs('src/lib/thing.ts', listSpecs(fixture), readFixture)).toEqual([
+      'src/views/importer.test.tsx',
+      'src/views/lister.test.tsx',
+    ])
   })
 })
 
 describe('selectSpecs', () => {
   it('runs a tree-walking spec that holds no reference to the edit', () => {
-    withFixture((root) => {
-      expect(selectSpecs('src/lib/thing.ts', root)).toEqual([
-        'src/lib/thing.edge.test.ts',
-        'src/lib/thing.test.ts',
-        'src/views/importer.test.tsx',
-        'src/views/lister.test.tsx',
-        'src/views/walker.test.tsx',
-      ])
-    })
+    expect(selectSpecs('src/lib/thing.ts', fixture)).toEqual([
+      'src/lib/thing.edge.test.ts',
+      'src/lib/thing.test.ts',
+      'src/views/importer.test.tsx',
+      'src/views/lister.test.tsx',
+      'src/views/walker.test.tsx',
+    ])
   })
 
   it('selects nothing for a path the hook must not act on', () => {
-    withFixture((root) => {
-      expect(selectSpecs('src/components/atoms/Chip/Chip.stories.tsx', root)).toEqual([])
-      expect(selectSpecs('docs/testing.md', root)).toEqual([])
-    })
+    expect(selectSpecs('src/components/atoms/Chip/Chip.stories.tsx', fixture)).toEqual([])
   })
 })
 
@@ -143,8 +126,12 @@ describe('this repository', () => {
 
   /**
    * The specs whose fixture is the source tree, so an edit anywhere is their input and no
-   * reference to it exists. Adding one means adding it here: the hook runs this set on every edit,
-   * and a tenth walker left out of it would stop being checked per edit without failing anything.
+   * reference to it exists. Adding one means adding it here: the hook runs this set on every
+   * edit, and one left out would stop being checked per edit without failing anything.
+   *
+   * ⚠ #286 consolidates the nine `src/` inventories onto one shared walker. A spec that reaches
+   * the tree through that helper instead of calling an enumerator stops matching, and this list
+   * is what says so.
    */
   const WALKERS = [
     'scripts/select-unit-specs.test.ts',
@@ -159,23 +146,43 @@ describe('this repository', () => {
     'src/lib/shape/href.test.ts',
   ]
 
-  it('walks the tree in exactly the specs named here', () => {
+  it('enumerates the tree in exactly the specs named here', () => {
     expect(treeWalkingSpecs(specs, read).sort()).toEqual(WALKERS)
   })
 
   it('reaches the brand copy list from a file in another directory', () => {
-    // `brand.test.ts` names `CompactEmbedView.tsx` in `COPY_FILES` and imports nothing from it,
-    // which is the shape only the path needle can find.
+    // The one end-to-end call against the real tree: `brand.test.ts` names
+    // `CompactEmbedView.tsx` in `COPY_FILES` and imports nothing from it, the shape only the
+    // path needle finds. A pure test of the parts cannot say `selectSpecs` reaches them.
     expect(selectSpecs('src/views/CompactEmbedView/CompactEmbedView.tsx', ROOT)).toContain(
       'src/lib/brand.test.ts',
     )
   })
 
+  it('looks where the lane collects, so a spec outside those two directories fails here', () => {
+    const config = readFileSync(join(ROOT, 'vitest.config.ts'), 'utf8')
+    const array = (key: string): string[] =>
+      JSON.parse(matched(config, new RegExp(`${key}: (\\[[^\\]]*\\])`)).replace(/'/g, '"'))
+
+    expect(array('include')).toEqual(['**/*.{test,spec}.{ts,tsx}'])
+
+    const pruned = new Set(['.git', ...array('exclude').map((glob) => glob.replace(/\/\*\*$/, ''))])
+    const outside = (dir: string): string[] =>
+      readdirSync(join(ROOT, dir || '.'), { withFileTypes: true }).flatMap((entry) => {
+        const rel = dir ? `${dir}/${entry.name}` : entry.name
+
+        if (!entry.isDirectory()) return SPEC_NAME.test(entry.name) ? [rel] : []
+        if (pruned.has(entry.name) || pruned.has(rel)) return []
+
+        return rel === 'src' || rel === 'scripts' ? [] : outside(rel)
+      })
+
+    expect(outside('')).toEqual([])
+  })
+
   it('keeps every edit under the slice the budget is measured on', () => {
     const walkers = treeWalkingSpecs(specs, read)
-    const sources = readdirSync(join(ROOT, 'src'), { recursive: true, encoding: 'utf8' })
-      .map((entry) => `src/${entry.split(/[/\\]/).join('/')}`)
-      .filter(isLaneSource)
+    const sources = listLaneSources(ROOT)
 
     expect(sources.length).toBeGreaterThan(300)
 
@@ -190,8 +197,8 @@ describe('this repository', () => {
       }))
       .reduce((a, b) => (b.count > a.count ? b : a))
 
-    // 21 when `docs/testing.md`'s budget was measured, on `src/lib/shape/index.ts`. The ceiling is
-    // what holds the per-edit time down, so a jump here is a re-measure, not a bump.
+    // 22 when `docs/testing.md`'s budget was measured, on `src/lib/shape/index.ts`. The ceiling
+    // is what holds the per-edit time down, so a jump here is a re-measure, not a bump.
     expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(24)
   })
 })

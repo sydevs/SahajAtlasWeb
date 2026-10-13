@@ -12,8 +12,9 @@
 
 import { spawnSync } from 'child_process'
 import { readFileSync } from 'fs'
+import { join } from 'path'
 
-import { selectSpecs } from '../../scripts/select-unit-specs.mjs'
+import { REPO_ROOT, selectSpecs } from '../../scripts/select-unit-specs.mjs'
 
 let input
 try {
@@ -24,7 +25,7 @@ try {
 
 // Claude Code nests the path under tool_input.file_path; tolerate a top-level fallback.
 const filePath = input?.tool_input?.file_path ?? input?.filePath ?? ''
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd()
+const projectDir = process.env.CLAUDE_PROJECT_DIR || REPO_ROOT
 const rel = filePath.startsWith(projectDir + '/') ? filePath.slice(projectDir.length + 1) : filePath
 
 // Empty for a Ladle story, a path outside src/, or a tree with no specs in it.
@@ -33,7 +34,9 @@ if (specs.length === 0) {
   process.exit(0)
 }
 
-const res = spawnSync('pnpm', ['test:run', ...specs], {
+// The binary, not `pnpm test:run`: pnpm's script indirection measures ~0.5s, which is 5% of a
+// budget stated in seconds. A missing binary exits null below, the same as a failed spawn.
+const res = spawnSync(join(projectDir, 'node_modules/.bin/vitest'), ['run', ...specs], {
   cwd: projectDir,
   encoding: 'utf-8',
   timeout: 60_000,

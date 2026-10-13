@@ -248,9 +248,9 @@ stays `node` regardless.
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
 numbers.** Measured 2026-10-13 on 4 cores: the 114 node-only files take **~20s**, and the 25 jsdom
-files add **~15s** on top, for **~35s** over 1701 tests. The per-file opt-in is what keeps the
-first number from becoming the second. **Neither half is the per-edit cost** — the hook runs a
-slice, against the budget at the end of this file.
+files add **~15s** on top, over 1701 tests. The per-file opt-in is what keeps the first number from
+becoming the second. **Neither half is the per-edit cost** — the hook runs a slice, against the
+budget at the end of this file.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
 with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**
@@ -376,22 +376,22 @@ still right. It just is not enough on its own when the pure part encodes a forei
 - A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a `src/**/*.{ts,tsx}`
   file, and reports failures as non-blocking context.
 
-### The per-edit budget is 10 seconds on 4 cores (issue #285)
+### The per-edit budget is 12 seconds on 4 cores (issue #285)
 
-That is the hook's whole command, not the lane, which takes ~35s. Measured 2026-10-13 on 4 cores,
-median of three: **4.9s** for `src/lib/geo.ts`, and **8.9s** for `src/lib/shape/index.ts` — the
-widest selection in the tree. Re-measure by timing the hook itself, since the command it builds is
-the thing under budget:
+That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-13
+on 4 cores, median of three: **4.5s** for `src/lib/geo.ts` (11 specs), **9.0s** for
+`src/lib/shape/index.ts` (22 specs, the widest selection in the tree), and **4.5s** for a file
+with no spec of its own. Re-measure by timing the hook itself, since the command it builds is the
+thing under budget:
 
 ```bash
-time (echo "{\"tool_input\":{\"file_path\":\"$PWD/src/lib/shape/index.ts\"}}" \
-  | CLAUDE_PROJECT_DIR=$PWD node .claude/hooks/unit-test.mjs)
+echo "{\"tool_input\":{\"file_path\":\"$PWD/src/lib/shape/index.ts\"}}" > /tmp/edit.json
+time CLAUDE_PROJECT_DIR=$PWD node .claude/hooks/unit-test.mjs < /tmp/edit.json
 ```
 
 **The hook ran the whole lane until #285, and that is how "under ~5s" stopped being true without
-anything failing.** The hook reports non-blocking context, so a slower lane breaks no gate and
-shows up only as latency on every edit — which is why the bound is a stated number rather than a
-feeling.
+anything failing.** It reports non-blocking context, so a slower lane breaks no gate and shows up
+only as latency on every edit — which is why the bound is a stated number rather than a feeling.
 
 `scripts/select-unit-specs.mjs` picks what one edit can break, from three sources that each reach
 a coupling the others cannot:
@@ -400,17 +400,26 @@ a coupling the others cannot:
   `Foo.mount.test.tsx` but not every spec in their folder.
 - **Referencing** — a spec importing the module by `@/` alias, or naming its repo-relative path in
   a literal list the way `src/lib/brand.test.ts`'s `COPY_FILES` does.
-- **Tree-walking** — the nine specs whose fixture is `readdirSync` over `src/`. Nothing in them
-  references the file that breaks them, so neither source above can find one and they always run.
-  They are the floor the budget sits on, at ~4.5s of it.
+- **Tree-walking** — the ten specs that enumerate the source tree instead of importing from it
+  (the nine `src/` inventories, plus the selector's own spec). Nothing in them references the file
+  that breaks them, so neither source above can find one and they always run.
 
-⚠ **It does not reach a spec coupled through a second module**: editing `geo.ts` runs
-`geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **22s on
-that single file** against the lane's 35s — the module graph here is too connected to select from.
-The full lane still runs in the lean gate (`.claude/skills/pr-prep/check.sh`) and in CI, so this
-narrows the inner loop, not the gate.
+**That third source is ~4.5s of every edit, and 131 of 393 source files select nothing else.** The
+floor, not the selection, is what the budget mostly buys — so the lever left here is moving those
+ten repo-wide inventories into their own vitest project and running the hook against the unit one.
+The hook would still need the other two sources, so this narrows the floor rather than replacing
+the selector.
+
+⚠ **The selection does not reach a spec coupled through a second module**: editing `geo.ts` runs
+`geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **26s**
+for `src/lib/geo.ts` alone — 67 of the 140 files — because the module graph here is too connected
+to select from. The full lane still runs in the lean gate (`.claude/skills/pr-prep/check.sh`) and
+in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that** — the widest edit in the tree, exhaustively, plus the walker set as a closed list. A tenth
-walker left out of that list would quietly stop running per edit; the spec fails instead. The two
-times above are still unchecked, like every other measurement in this file.
+that**: the widest edit in the tree, exhaustively, at 22 against a ceiling of 24; the tree-walking
+set as a closed list; and `vitest.config.ts`'s own `include`, so a spec in a new location fails
+here rather than quietly going uncovered per edit. ⚠ A walker is found by the enumerating call it
+makes, so one that reaches the tree through a shared helper is invisible to that pin — #286 is
+exactly that change. The three times above are unchecked, like every other measurement in this
+file.
