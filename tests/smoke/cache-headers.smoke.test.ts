@@ -64,17 +64,20 @@ describe('entry-file caching', () => {
     const res = await fetchPreview(path)
 
     // A `type="module"` script fetches in CORS mode, so this header is a rendering
-    // requirement, not a nicety. The font and locale rules make the same argument.
-    // Pages supplies this header by default today. Pinning it here means the widget
-    // does not depend on that default.
+    // requirement, not a nicety. The font makes the same argument (#91). Pages supplies
+    // it by default and Workers static assets supply none, so pinning it here means the
+    // widget depends on neither platform's default.
+    //
+    // ⚠ Exactly `*`, never `*, *`. One site-wide `/*` rule in `_headers` is what holds
+    // that: a second matching ACAO rule would be comma-joined into an invalid value.
     expect(res.headers.get('access-control-allow-origin')).toBe('*')
   })
 
   // Pages applies every matching rule, and joins repeated header values with a comma.
   // A new rule can silently collide with an existing one. The `/*` rule sets
-  // `X-Robots-Tag`, and the entry rules set different header names, so the two stay
-  // safe together. This test asserts that, instead of assuming it, the same way
-  // `robots.smoke.test.ts` asserts the CORS half.
+  // `X-Robots-Tag` and `Access-Control-Allow-Origin`, and the entry rules set only
+  // `Cache-Control`, so the two stay safe together. This test asserts that, instead of
+  // assuming it, the same way `robots.smoke.test.ts` asserts the CORS half.
   test.skipIf(skipWithoutPreview).each(ENTRY_FILES)(
     '%s still carries the site-wide noindex header',
     async (path) => {
