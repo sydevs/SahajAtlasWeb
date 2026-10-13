@@ -368,6 +368,28 @@ still right. It just is not enough on its own when the pure part encodes a forei
   mock `@payloadcms/sdk` and `@/config/i18n`, not our own logic. Do not test Radix, react-map-gl,
   or library internals — only *our* contracts.
 
+### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
+
+Nine specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
+the Radix poppers, the SahajCloud reads. Each rolled its own `readdirSync`, in three shapes that
+were not interchangeable, so a tenth would inherit whichever one its author copied.
+`sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
+`readSource` / `readSourceWithoutComments` beside it and `parseSource`
+(`src/test-support/source-ast.ts`) for the two specs that parse. **`grep -rln readdirSync src/`
+naming anything else means a walk grew back.**
+
+⚠ **The scopes did not merge, and must not.** The nine cover seven different file sets,
+and every difference is load-bearing: a story IS one of the two sanctioned viewport callers, a
+story is NOT the app using a lucide glyph, a generated declaration has no call sites. So each
+spec passes its own `sourceFiles({…})` options beside the assertions they serve, and
+`source-tree.test.ts` pins every option as biting in both directions — a scope that silently
+stopped matching would make all nine pass by vacuum.
+
+**This changed one walk implementation, not nine walks.** Vitest gives each spec file its own
+module registry, so the memos are per-file and the tree is still read once per spec. Measured
+2026-10-13, median of three on 4 cores: **28.6s before, 28.8s after** — no change, which is
+what to expect. The lane's cost is #285.
+
 ## Type-checking & the edit-loop hook
 
 - Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks
