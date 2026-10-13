@@ -297,9 +297,12 @@ the move to Workers proceeds one site at a time (#266, #279):
   `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
   `not_found_handling: "single-page-application"`, previews on. Workers Builds holds the
   build command and the trigger's branch and path rules.
-  ⚠ **Which Node and pnpm its build image uses is unverified** — whether the Workers image
-  reads `.node-version` is undocumented, and its defaults are newer than the Pages image's.
-  Read the first build log rather than assuming; #266 records the answer.
+  The Workers build image honours `.node-version` and `packageManager`: the first build
+  (2026-10-13) reported `nodejs@22.17.0, pnpm@9.15.0`, though its own defaults are newer.
+  ⚠ **Its branch rules take only a literal branch name or a lone `*`.** The API refuses
+  `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
+  show prefix wildcards — so unlike the Pages app, merge-queue and mockup branches do start
+  preview builds here (#266).
 
 Three deploy files live in `public/`, copied into both build outputs. ⚠ **The two platforms do
 not read the same three.** `_headers` and `robots.txt` govern both sites; `_redirects` governs

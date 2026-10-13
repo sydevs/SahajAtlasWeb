@@ -223,11 +223,11 @@ alert. The lane's last step opens an issue instead, and three things about it ar
 
 No spec is scoped by environment. The lane is **17 cases**, from 13 declarations — count it rather
 than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
-was then: all 16 passed against `sahajatlas.com`, and 10 of the 16 failed against the Ladle
-playground, so the lane is not vacuously green. ⚠ **The playground half of that measurement is
-owed a re-run**, against `PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke` (#279). The
-old 10 cannot be carried across: it was measured on Pages, and the playground now serves from a
-Worker whose header defaults differ. Its number lands here and in #266 when a person runs it.
+was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
+on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
+failed**, so the lane is not vacuously green. The ten are every spec that reads the app's own
+files — `boot-origins`, both entry-file `cache-headers`, both `embed`, the three `robots` cases,
+`root` and `spa-fallback`.
 
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all
