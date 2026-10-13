@@ -24,9 +24,18 @@ const HEADERS = readFileSync(new URL('../public/_headers', import.meta.url), 'ut
 
 type Rule = { pattern: string; headers: string[] }
 
+/** The pattern shapes `overlaps` can decide: a literal path, or a prefix ending in `*`. */
+const DECIDABLE = /^\/[^*:]*\*?$/
+
 /**
- * `public/_headers` as a list of rules: an unindented line opening with `/` is a pattern,
- * and the indented `Name: value` lines under it are its headers.
+ * `public/_headers` as a list of rules: any unindented line is a pattern, and the indented
+ * `Name: value` lines under it are its headers.
+ *
+ * Every unindented line, not only one opening with `/`: Cloudflare also accepts a full URL
+ * as a pattern (`https://sahajatlas.com/*`). Skipping an unrecognised one would attribute
+ * its headers to the rule ABOVE it, so the collision check would read a file that is not
+ * the file while the decidability guard stayed green on a pattern it never saw. Record it
+ * and let that guard refuse it.
  */
 export function parseRules(text: string): Rule[] {
   const rules: Rule[] = []
@@ -34,7 +43,7 @@ export function parseRules(text: string): Rule[] {
   for (const line of text.split('\n')) {
     if (!line.trim() || line.trimStart().startsWith('#')) continue
 
-    if (line.startsWith('/')) {
+    if (!/^\s/.test(line)) {
       rules.push({ pattern: line.trim(), headers: [] })
       continue
     }
@@ -81,10 +90,29 @@ describe('public/_headers', () => {
   // or Cloudflare's `:placeholder`, would make it answer wrongly — so fail instead.
   it('uses only pattern shapes the overlap check can decide', () => {
     for (const { pattern } of rules) {
-      expect(pattern, `${pattern} is not a literal path or a trailing-* prefix`).toMatch(
-        /^\/[^*:]*\*?$/,
-      )
+      expect(pattern, `${pattern} is not a literal path or a trailing-* prefix`).toMatch(DECIDABLE)
     }
+  })
+
+  // The guard above can only refuse a pattern the parser recorded. A full-URL pattern —
+  // Cloudflare accepts one — reaches it only because `parseRules` records every unindented
+  // line; dropped instead, its headers would join the rule above and both guards would pass
+  // on a file neither had read.
+  it('records a pattern shape it cannot decide, rather than dropping it', () => {
+    const parsed = parseRules(
+      [
+        '/*',
+        '  X-Robots-Tag: noindex',
+        'https://sahajatlas.com/*',
+        '  Cache-Control: no-store',
+      ].join('\n'),
+    )
+
+    expect(parsed).toEqual([
+      { pattern: '/*', headers: ['x-robots-tag'] },
+      { pattern: 'https://sahajatlas.com/*', headers: ['cache-control'] },
+    ])
+    expect('https://sahajatlas.com/*').not.toMatch(DECIDABLE)
   })
 
   it('never sets one header name on two patterns that can match the same path', () => {
