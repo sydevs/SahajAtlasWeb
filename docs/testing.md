@@ -379,13 +379,13 @@ still right. It just is not enough on its own when the pure part encodes a forei
 ### The per-edit budget is 12 seconds on 4 cores (issue #285)
 
 That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-13
-on 4 cores, median of three: **4.5s** for `src/lib/geo.ts` (11 specs), **9.0s** for
-`src/lib/shape/index.ts` (22 specs, the widest selection in the tree), and **4.5s** for a file
-with no spec of its own. Re-measure by timing the hook itself, since the command it builds is the
-thing under budget:
+on 4 cores, median of three: **4.3s** for `src/lib/geo.ts` (11 specs), **9.7s** for
+`src/config/i18n.ts` (22 specs, the widest selection in the tree), and **4.5s** for a file with no
+spec of its own. Re-measure by timing the hook itself, since the command it builds is the thing
+under budget:
 
 ```bash
-echo "{\"tool_input\":{\"file_path\":\"$PWD/src/lib/shape/index.ts\"}}" > /tmp/edit.json
+echo "{\"tool_input\":{\"file_path\":\"$PWD/src/config/i18n.ts\"}}" > /tmp/edit.json
 time CLAUDE_PROJECT_DIR=$PWD node .claude/hooks/unit-test.mjs < /tmp/edit.json
 ```
 
@@ -398,13 +398,17 @@ a coupling the others cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
   `Foo.mount.test.tsx` but not every spec in their folder.
-- **Referencing** — a spec importing the module by `@/` alias, or naming its repo-relative path in
-  a literal list the way `src/lib/brand.test.ts`'s `COPY_FILES` does.
+- **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
+  spec rather than matching the module's name, because one module is addressed three ways and a
+  spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
+  quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
+  name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
+  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
 - **Tree-walking** — the ten specs that enumerate the source tree instead of importing from it
   (the nine `src/` inventories, plus the selector's own spec). Nothing in them references the file
   that breaks them, so neither source above can find one and they always run.
 
-**That third source is ~4.5s of every edit, and 131 of 393 source files select nothing else.** The
+**That third source is ~4.5s of every edit, and 124 of 393 source files select nothing else.** The
 floor, not the selection, is what the budget mostly buys — so the lever left here is moving those
 ten repo-wide inventories into their own vitest project and running the hook against the unit one.
 The hook would still need the other two sources, so this narrows the floor rather than replacing
@@ -417,7 +421,8 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively, at 22 against a ceiling of 24; the tree-walking
+that**: the widest edit in the tree, exhaustively through the real composition, at 22 against a
+ceiling of 24; each of the three specifier forms, end to end against this tree; the tree-walking
 set as a closed list; and `vitest.config.ts`'s own `include`, so a spec in a new location fails
 here rather than quietly going uncovered per edit. ⚠ A walker is found by the enumerating call it
 makes, so one that reaches the tree through a shared helper is invisible to that pin — #286 is
