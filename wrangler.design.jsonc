@@ -21,11 +21,16 @@
     "not_found_handling": "single-page-application"
   },
 
-  // Switching previews off is refused by #266: it would re-create the silent-green preview
-  // check that a sibling ticket exists to close.
+  // Not the default — wrangler's own schema says `false` — and switching previews off is
+  // refused by #266: it would re-create the silent-green preview check that a sibling ticket
+  // exists to close.
   "preview_urls": true,
 
-  // Empty on purpose: a preview of this Worker diverges from production in nothing. The block
-  // must still exist — `cloudflare/wrangler-action` throws without one.
+  // Pre-placed for a consumer that does not exist here yet, and empty because a preview of
+  // this Worker diverges from production in nothing. `cloudflare/wrangler-action` throws
+  // without the block (sydevs/SahajCloud#903's Technical notes, `ensure-config.ts:167,212`)
+  // and #279's child 4 is what introduces that Action — this Worker deploys through Workers
+  // Builds, so nothing here reads it. Measured: `wrangler deploy --dry-run` is silent either
+  // way, so do not go looking for a local failure it prevents.
   "previews": {}
 }
