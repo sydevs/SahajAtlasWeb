@@ -118,7 +118,7 @@ const referenceKeys = (rel) => {
 }
 
 /** Every spec by the modules its own text names. One pass answers every source. */
-export function referenceIndex(specs, read) {
+function referenceIndex(specs, read) {
   const index = new Map()
 
   for (const spec of specs) {
@@ -153,7 +153,7 @@ export function referencingSpecs(rel, index) {
   return [...new Set(referenceKeys(rel).flatMap((key) => [...(index.get(key) ?? [])]))]
 }
 
-export function treeWalkingSpecs(specs, read) {
+function treeWalkingSpecs(specs, read) {
   return specs.filter((spec) => ENUMERATES.test(read(spec)))
 }
 
