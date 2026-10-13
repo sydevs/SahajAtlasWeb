@@ -20,7 +20,7 @@
     "test:smoke": "vitest run --config vitest.smoke.config.ts tests/smoke",
     "size": "node scripts/check-bundle-size.mjs",
     "ladle": "ladle serve",
-    "ladle:build": "ladle build && pnpm assert:maps ../build",
+    "ladle:build": "ladle build && rm -f build/_redirects && pnpm assert:maps ../build",
     "check:wrangler": "wrangler deploy --dry-run --config wrangler.design.jsonc",
     "preview": "vite preview",
     "review:embed": "node scripts/serve-embed-review.mjs",

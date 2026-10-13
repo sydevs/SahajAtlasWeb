@@ -302,13 +302,17 @@ the move to Workers proceeds one site at a time (#266, #279):
   Read the first build log rather than assuming; #266 records the answer.
 
 Three deploy files live in `public/`, copied into both build outputs. ⚠ **The two platforms do
-not read the same three.** `_headers` and `robots.txt` govern both sites; `_redirects` is read by
-Pages alone, and the Worker ignores it:
+not read the same three.** `_headers` and `robots.txt` govern both sites; `_redirects` governs
+the Pages app alone:
 
 - **`_redirects`** (`/* /index.html 200`) — the SPA deep-link fallback for the standalone
   `BrowserRouter` build, on the Pages app only. The embeddable widget routes off a query
   parameter instead, so only the standalone build depends on this file. The Worker gets the
   same behaviour from `assets.not_found_handling`.
+  ⚠ **Workers static assets do read `_redirects`, and reject this rule** as an infinite loop
+  (API code 100324) — the whole deploy fails. So `pnpm ladle:build` deletes it from `build/`.
+  `pnpm check:wrangler` cannot catch this, since the dry run never reaches the API. The app's
+  Worker move must drop the line rather than ship it (#279).
 - **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
   mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
   unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.

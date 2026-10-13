@@ -15,7 +15,10 @@
 
   // `public/` is copied into `build/`, which is how the shared `_headers` and `robots.txt`
   // reach the playground. `not_found_handling` is what `public/_redirects` does for the
-  // Pages app; the Worker never reads that file.
+  // Pages app. ⚠ The Worker DOES read `_redirects`, and its API rejects that file's
+  // `/* /index.html 200` as an infinite loop (code 100324), failing the deploy — so
+  // `pnpm ladle:build` deletes it from `build/`. `check:wrangler` cannot see this: the
+  // check runs server-side, past the dry run.
   "assets": {
     "directory": "build",
     "not_found_handling": "single-page-application"
