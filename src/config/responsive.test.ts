@@ -1,10 +1,8 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { describe, expect, it } from 'vitest'
 
 import { WIDE_MIN_PX } from './responsive'
+
+import { readSourceWithoutComments, sourceFiles } from '@/test-support/source-tree'
 
 // This makes the decision table of issue #107 executable.
 //
@@ -18,23 +16,14 @@ import { WIDE_MIN_PX } from './responsive'
 // So the sanctioned viewport call sites form an ASSERTED list, exactly as `href.test.ts` pins the app's three JSX anchors.
 // A fourth call site turns this lane red with instructions, rather than shipping.
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
-
-// This strips comments before every scan below, so these assertions are about CODE, not prose.
+// Every scan below reads comment-stripped source, so these assertions are about CODE, not prose.
 // Without that, documenting the rule breaks it.
 // The sentence "resize past the 768px crossing" in a story's docblock reddened the lane as a second hardcoded crossing.
 // A comment naming `useIsWideViewport` would also have been read as a call site.
-const stripComments = (source: string) =>
-  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
+const read = readSourceWithoutComments
 
-const read = (relative: string) => stripComments(readFileSync(join(SRC, relative), 'utf8'))
-
-const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
-  // This normalizes to `/`, so the lists below read the same on every platform.
-  // `readdirSync` yields the OS separator, and every path in this file is written POSIX-style.
-  .map((relative) => relative.split(sep).join('/'))
-  .filter((relative) => /\.tsx?$/.test(relative))
-  .filter((relative) => !relative.endsWith('.test.ts') && !relative.endsWith('.test.tsx'))
+// Stories stay in scope: one of the two sanctioned viewport callers below IS a story.
+const SOURCE_FILES = sourceFiles({ includeStories: true })
 
 /**
  * This lists where the VIEWPORT is still the right question, and why.

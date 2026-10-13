@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
+
+import { readSource, sourceFiles } from '@/test-support/source-tree'
 
 /**
  * The Icons story's gallery shows the app's USAGE, not a catalogue.
@@ -24,23 +25,10 @@ import { describe, expect, it } from 'vitest'
  * test exists to keep out.
  */
 
-const SRC = fileURLToPath(new URL('../../..', import.meta.url))
 const STORY = fileURLToPath(new URL('./Icons.stories.tsx', import.meta.url))
 
-const isFixture = (file: string) =>
-  file.endsWith('.stories.tsx') || file.includes('.test.') || file.endsWith('.d.ts')
-
-/** Every `.ts`/`.tsx` under `src/` that is app code rather than a story or a spec. */
-function appFiles(dir: string, found: string[] = []): string[] {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name)
-
-    if (entry.isDirectory()) appFiles(full, found)
-    else if (/\.tsx?$/.test(entry.name) && !isFixture(entry.name)) found.push(full)
-  }
-
-  return found
-}
+/** Every `.ts`/`.tsx` under `src/` that is app code rather than a story, a spec or a declaration. */
+const APP_FILES = sourceFiles({ includeDeclarations: false })
 
 /** The icon names a file imports from lucide-react, ignoring the `LucideIcon` type. */
 function lucideImports(source: string): string[] {
@@ -61,7 +49,7 @@ function lucideImports(source: string): string[] {
 }
 
 describe('the Icons story gallery matches what the app actually renders', () => {
-  const used = new Set(appFiles(SRC).flatMap((file) => lucideImports(readFileSync(file, 'utf8'))))
+  const used = new Set(APP_FILES.flatMap((path) => lucideImports(readSource(path))))
 
   // The gallery's own list, read out of the story's ICONS table.
   const story = readFileSync(STORY, 'utf8')

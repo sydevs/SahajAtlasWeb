@@ -1,5 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { describe, it, expect } from 'vitest'
 
@@ -8,6 +8,7 @@ import { TRANSLATION_SELECT } from './api/fetch'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
 import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
+import { SRC_DIR, readSource, sourceFiles } from '@/test-support/source-tree'
 
 /**
  * This replaces the bundle-parity gate `public/locales/` used to need (#198).
@@ -35,22 +36,12 @@ import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
  * way this file can lie. `derives each dynamic family from a table it actually found` below is
  * what stops that, so keep a new regex-read family listed there.
  */
-const sourceDir = fileURLToPath(new URL('..', import.meta.url))
-
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = `${dir}/${entry.name}`
-
-    if (entry.isDirectory()) return sourceFiles(path)
-
-    // The generated CMS types name every key as a TypeScript property, which would make the
-    // referenced-key direction below vacuously true for all of them.
-    if (path.includes('/types/payload/')) return []
-
-    return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : []
-  })
-
-const sources = sourceFiles(sourceDir).map((path) => readFileSync(path, 'utf8'))
+// The generated CMS types name every key as a TypeScript property, which would make the
+// referenced-key direction below vacuously true for all of them. A story asking for a key is a
+// call site like any other, so stories stay in scope.
+const sources = sourceFiles({ includeStories: true, includeGeneratedTypes: false }).map((path) =>
+  readSource(path),
+)
 const allSource = sources.join('\n')
 
 const flatten = (node: unknown, prefix = ''): [string, unknown][] =>
@@ -88,10 +79,7 @@ const arrayLiterals = (source: string, name: string): string[] => {
 // exporting a list only a spec reads would be the wrong trade — so they are read out of its
 // source, the way `WEEK_NUMBERS` reads `use-event-display.ts`. `TIME_PERIODS` and `SORT_ORDERS`
 // are already exported from `lib/shape`, so those import.
-const filtersSource = readFileSync(
-  `${sourceDir}/components/molecules/SearchFilters/SearchFilters.tsx`,
-  'utf8',
-)
+const filtersSource = readSource('components/molecules/SearchFilters/SearchFilters.tsx')
 
 const FORMATS = arrayLiterals(filtersSource, 'const FORMAT_OPTIONS[^=]*=')
 const CADENCES = arrayLiterals(filtersSource, 'const CADENCE_OPTIONS[^=]*=').map((o) =>
@@ -109,7 +97,7 @@ const SORT_KEYS = ['label', ...SORT_ORDERS].map((o) => `search.sort.${o}`)
 const QUESTIONS = REGISTRATION_QUESTION_NAMES.map((name) => `registration.questions.${name}`)
 
 const WEEK_NUMBERS = literalOptions(
-  readFileSync(`${sourceDir}/hooks/use-event-display.ts`, 'utf8'),
+  readSource('hooks/use-event-display.ts'),
   'const WEEK_NUMBER_KEYS =',
 )
 
@@ -119,7 +107,7 @@ const POLICY_KEYS = [...allSource.matchAll(/messageKey: '([a-z_][a-zA-Z0-9_.]*)'
 
 const REFUSAL_KEYS = [
   ...['ReportIssueForm/ReportIssueForm', 'RegistrationForm/RegistrationForm'].flatMap((file) => {
-    const source = readFileSync(`${sourceDir}/components/organisms/${file}.tsx`, 'utf8')
+    const source = readSource(`components/organisms/${file}.tsx`)
 
     return [
       ...literalOptions(source, 'const REFUSAL_MESSAGE_KEYS[^=]*='),
@@ -178,7 +166,7 @@ describe('the tab list the widget reads', () => {
     // without ever being requested at runtime.
     expect(Object.keys(TRANSLATION_SELECT).sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())
 
-    const script = readFileSync(`${sourceDir}/../scripts/sync-translations.mjs`, 'utf8')
+    const script = readFileSync(join(SRC_DIR, '../scripts/sync-translations.mjs'), 'utf8')
     const tabs = arrayLiterals(script, 'const WIDGET_TABS[^=]*=')
 
     expect(tabs.sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())

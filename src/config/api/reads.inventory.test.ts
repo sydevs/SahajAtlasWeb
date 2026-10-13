@@ -1,11 +1,12 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join, relative, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname, join, sep } from 'node:path'
 
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 import { CLIENT_PAGE_LIMIT } from './paginate'
+
+import { parseSource } from '@/test-support/source-ast'
+import { sourceFiles } from '@/test-support/source-tree'
 
 // The rule this enforces is in `docs/rules/data-layer.md` ("SahajCloud query rules"): a client read
 // sends an explicit `limit` and `page` and walks the rest with `readAllPages`. #253 converted the
@@ -28,8 +29,6 @@ import { CLIENT_PAGE_LIMIT } from './paginate'
 // import is still invisible. `limit` resolves through one import hop to a module-level numeric
 // literal, so a computed one reads as unresolvable, which fails rather than passes. Nothing here
 // checks `select` or `populate`; those are their own clause of the same rule.
-
-const srcDir = fileURLToPath(new URL('../../', import.meta.url))
 
 const CLIENT_MODULE = 'config/api/client'
 const PAGINATE_MODULE = 'config/api/paginate'
@@ -59,30 +58,12 @@ const SINGLE_RECORD_READS = ['/clients/me']
  */
 const CLIENT_WRAPPER_REQUESTS = 1
 
-const sources = readdirSync(srcDir, { recursive: true, withFileTypes: true })
-  .filter(
-    (entry) =>
-      entry.isFile() &&
-      /\.tsx?$/.test(entry.name) &&
-      !entry.name.endsWith('.d.ts') &&
-      !entry.name.includes('.test.') &&
-      !entry.name.includes('.stories.'),
-  )
-  .map((entry) => relative(srcDir, join(entry.parentPath, entry.name)).split(sep).join('/'))
-  // Generated SahajCloud types: thousands of lines of declarations, no call sites, and the slowest
-  // thing under `src/` to parse. Scanning the other 255 files costs ~0.7s (measured 2026-10-11).
-  .filter((path) => !path.startsWith('types/payload/'))
+// A declaration has no call sites, and the generated SahajCloud types are thousands of lines of
+// them — the slowest thing under `src/` to parse. Scanning the other 255 files costs ~0.7s
+// (measured 2026-10-11).
+const sources = sourceFiles({ includeDeclarations: false, includeGeneratedTypes: false })
 
-const parse = (path: string): ts.SourceFile =>
-  ts.createSourceFile(
-    path,
-    readFileSync(join(srcDir, path), 'utf8'),
-    ts.ScriptTarget.Latest,
-    true,
-    path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  )
-
-const parsed = new Map(sources.map((path) => [path, parse(path)]))
+const parsed = new Map(sources.map((path) => [path, parseSource(path)]))
 
 /** `'./client'` from `config/api/fetch.ts`, or `'@/config/api/client'` from anywhere, both resolve here. */
 const resolveSpecifier = (fromPath: string, specifier: string): string => {
