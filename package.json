@@ -21,6 +21,7 @@
     "size": "node scripts/check-bundle-size.mjs",
     "ladle": "ladle serve",
     "ladle:build": "ladle build && pnpm assert:maps ../build",
+    "check:wrangler": "wrangler deploy --dry-run --config wrangler.design.jsonc",
     "preview": "vite preview",
     "review:embed": "node scripts/serve-embed-review.mjs",
     "sync:atlas-contract": "node scripts/sync-atlas-contract.mjs",
@@ -122,7 +123,8 @@
     "typescript": "5.6.3",
     "vite": "^8.3.2",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "4.150.0"
   },
   "pnpm": {
     "patchedDependencies": {

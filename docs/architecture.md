@@ -104,15 +104,15 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   chunk is handed to `src/styles/sheet.ts` rather than appended as a
   `<style>`, and each entry adopts it into the root it owns — the embed's
   shadow root, the standalone shell's document (#236).
-- **Deploy**: two **Cloudflare Pages** projects build this repo —
-  `sahajatlas` (the app, `pnpm build` → `dist/`, at `sahajatlas.pages.dev`)
-  and `sahajatlas-design` (the Ladle playground, `pnpm ladle:build`, at
-  `sahajatlas-design.pages.dev`). The Cloudflare dashboard configures the
-  build command and output directory. The repo carries no `wrangler` config
-  and no `_routes.json`. The standalone `BrowserRouter` build receives its SPA
-  deep-link fallback from `public/_redirects` (`/* /index.html 200`), which
-  Vite copies into `dist/`. The widget build routes off a query parameter on
-  the host's page, so it needs no fallback of its own.
+- **Deploy**: two Cloudflare sites build this repo — the app on Pages, the
+  Ladle playground on Workers static assets (#266, #279). The platforms,
+  hosts and build commands are stated once, in [`AGENTS.md`](../AGENTS.md)
+  § Deployment. What matters architecturally is the deep-link fallback: the
+  standalone `BrowserRouter` build gets it from `public/_redirects`
+  (`/* /index.html 200`), which Vite copies into `dist/`, and the playground
+  gets the same behaviour from the Worker's `assets.not_found_handling`. The
+  widget build routes off a query parameter on the host's page, so it needs
+  no fallback of its own.
 - **Translations**: there is no sync pipeline. Locale JSON under
   SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
   translation-sync workflows were removed in #99 (see `AGENTS.md` →

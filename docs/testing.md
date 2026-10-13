@@ -10,9 +10,9 @@ Two lanes, kept separate so the fast one never touches the network:
 - `pnpm test` runs watch mode, for the inner loop. `pnpm test:run` runs once — for CI, the
   pre-PR gate, and the PostToolUse hook.
 - `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
-- CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, and `ladle:build`. A Dependency
-  Audit job and the smoke job run separately. The smoke job targets the deployed Cloudflare
-  preview.
+- CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
+  `check:wrangler`. A Dependency Audit job and the smoke job run separately. The smoke job
+  targets the deployed Cloudflare preview.
 - The **same** smoke specs also run against production, fired by the deploy rather than by a PR
   (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
   below.
@@ -98,8 +98,13 @@ Two findings sit behind that script, worth keeping so nobody re-derives them:
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the three `public/` files that only Cloudflare Pages executes — `_redirects`,
-`_headers`, `robots.txt`. Those are inert text in the repo, so no local gate can prove they work.
+It also covers the `public/` files only the platform executes: `_headers` and `robots.txt` on both
+sites, and `_redirects` on the Pages app alone — the design Worker gets its SPA fallback from
+`assets.not_found_handling` instead (#279). Those are inert text in the repo, so no local gate can
+prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
+here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
+overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
+cannot be that mechanism.
 `robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
 claim about platform behaviour, asserted rather than left as a comment.
 
@@ -160,7 +165,7 @@ gate reads can never carry Production's values. The `VITE_HOST` story above is t
 direction. A Production origin blanked by a dashboard edit is the same hole in the other, and
 running the PR gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 16 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 17 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -216,8 +221,13 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
-10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
+No spec is scoped by environment. The lane is **17 cases**, from 13 declarations — count it rather
+than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
+was then: all 16 passed against `sahajatlas.com`, and 10 of the 16 failed against the Ladle
+playground, so the lane is not vacuously green. ⚠ **The playground half of that measurement is
+owed a re-run**, against `PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke` (#279). The
+old 10 cannot be carried across: it was measured on Pages, and the playground now serves from a
+Worker whose header defaults differ. Its number lands here and in #266 when a person runs it.
 
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all

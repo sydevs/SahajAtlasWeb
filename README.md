@@ -182,9 +182,9 @@ components through `renderToStaticMarkup`, not jsdom. See
 
 ## Deployment
 
-Two Cloudflare Pages projects build from this repo: `sahajatlas` (the app)
-and `sahajatlas-design` (the Ladle playground). See the deployment section of
-[`AGENTS.md`](AGENTS.md).
+Two Cloudflare sites build from this repo, on two platforms. The topology —
+hosts, build commands, which platform serves which — is stated once, in the
+deployment section of [`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 
