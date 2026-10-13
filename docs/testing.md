@@ -99,11 +99,11 @@ Two findings sit behind that script, worth keeping so nobody re-derives them:
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the `public/` files only the platform executes: `_headers` and `robots.txt` on
-every target, and `_redirects` on the Pages app alone — a Worker gets its SPA fallback from
-`assets.not_found_handling` instead, whichever build output it serves (#279, #280;
-`AGENTS.md` § Deployment owns which platform reads which file). Those are inert text in the
-repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
+It also covers the `public/` files only the platform executes: `_headers`, `robots.txt` and
+`_redirects`, all three of which **both** platforms read, though a Worker has
+`assets.not_found_handling` for the fallback the splat provides on Pages (#279, #280;
+`AGENTS.md` § Deployment owns what is proven there and what is still unmeasured). Those are
+inert text in the repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
 here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
 overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
 cannot be that mechanism.

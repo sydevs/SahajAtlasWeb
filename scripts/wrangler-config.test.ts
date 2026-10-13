@@ -14,8 +14,14 @@ import { describe, expect, it } from 'vitest'
 
 const ROOT = new URL('../', import.meta.url)
 
-/** `wrangler.jsonc` plus every `wrangler.<target>.jsonc` beside it. */
-const CONFIG_FILES = readdirSync(ROOT).filter((name) => /^wrangler(\..+)?\.jsonc$/.test(name))
+/**
+ * `wrangler.jsonc` plus every `wrangler.<target>.*` beside it. The extensions are wrangler's
+ * own accepted set, not ours: matching `.jsonc` alone would make a `wrangler.embed.toml`
+ * invisible here, and "no target arrives ungated" would pass by vacuum.
+ */
+const CONFIG_FILES = readdirSync(ROOT).filter((name) =>
+  /^wrangler(\..+)?\.(jsonc?|toml)$/.test(name),
+)
 
 const PACKAGE = JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8')) as {
   scripts: Record<string, string>
@@ -45,7 +51,10 @@ function readConfig(file: string): WranglerConfig {
   return config as WranglerConfig
 }
 
-const CONFIGS = new Map(CONFIG_FILES.map((file) => [file, readConfig(file)]))
+/** Only the JSON-ish configs, so a `.toml` arrival fails its own assertion below, legibly. */
+const PARSEABLE = CONFIG_FILES.filter((name) => /\.jsonc?$/.test(name))
+
+const CONFIGS = new Map(PARSEABLE.map((file) => [file, readConfig(file)]))
 
 describe('the check:wrangler gate', () => {
   // An empty enumeration would make every `it.each` below pass by vacuum.
@@ -58,6 +67,23 @@ describe('the check:wrangler gate', () => {
     const named = [...GATE.matchAll(/--config[=\s]+(\S+)/g)].map((match) => match[1])
 
     expect([...named].sort()).toEqual([...CONFIG_FILES].sort())
+  })
+
+  // Naming every config is half a gate. `;` or `|| true` between the dry runs would keep the
+  // list above intact while a failing config exited 0 — the silent green this spec exists for.
+  it('fails on the first config that fails', () => {
+    const segments = GATE.split('&&')
+
+    expect(segments).toHaveLength(CONFIG_FILES.length)
+    for (const segment of segments) expect(segment).not.toMatch(/[;|]/)
+  })
+})
+
+// A config the shape assertions below cannot read would skip them silently, so the parser's
+// reach is asserted rather than assumed. Extend `readConfig` when a non-JSON config arrives.
+describe('every wrangler config', () => {
+  it.each(CONFIG_FILES)('%s is JSON the shape assertions can read', (file) => {
+    expect(file).toMatch(/\.jsonc?$/)
   })
 })
 

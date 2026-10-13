@@ -1,7 +1,7 @@
 {
   // The `sahajatlas-design` Ladle playground, as a Cloudflare Workers static-assets Worker.
-  // Two Workers will eventually build from this one repo, so the filename carries the target
-  // rather than being the bare `wrangler.jsonc` either could claim.
+  // Two Workers build from this one repo, so this filename carries its target; the app's took
+  // the bare `wrangler.jsonc`, which is also what a bare `wrangler` command resolves to.
   //
   // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so this name contains
   // `sahajatlas` as a prefix, exactly as the two Pages hosts do. A check that tells the app's
