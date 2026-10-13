@@ -375,8 +375,10 @@ the Radix poppers, the SahajCloud reads. Each rolled its own `readdirSync`, in t
 were not interchangeable, so a tenth would inherit whichever one its author copied.
 `sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
 `readSource` / `readSourceWithoutComments` beside it and `parseSource`
-(`src/test-support/source-ast.ts`) for the two specs that parse. **`grep -rln readdirSync src/`
-naming anything else means a walk grew back.**
+(`src/test-support/source-ast.ts`) for the two specs that parse. **A tenth walk fails `pnpm
+lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `node:fs` and `fs`
+everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
+grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
 
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
