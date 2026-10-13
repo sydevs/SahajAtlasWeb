@@ -182,4 +182,8 @@ export function selectFrom(rel, lane) {
   ].sort()
 }
 
-export const selectSpecs = (rel, root = REPO_ROOT) => selectFrom(rel, readLane(root))
+// Gated before `readLane`, not inside `selectFrom`: the hook fires on every Edit and Write, so
+// a Markdown or JSON edit would otherwise pay a recursive `readdir` of both lane directories plus
+// 140 spec reads (~32ms) to be told its path is outside the lane.
+export const selectSpecs = (rel, root = REPO_ROOT) =>
+  isLaneSource(rel) ? selectFrom(rel, readLane(root)) : []
