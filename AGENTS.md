@@ -44,8 +44,11 @@ experience, with a country → region → area → venue → event hierarchy.
   Other reference docs live in `docs/*.md`. Read the guide for a subsystem before you
   edit it.
 
-- **Commit messages** end with:
-  `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
+- **Commit messages** end with two attribution trailers: `Co-Authored-By:` naming the model that
+  wrote the commit, then `Claude-Session:` linking the session. This file deliberately pins
+  neither — the model name is whichever one ran, so a fixed one here goes stale at the next
+  release, and did. Take both lines from the session's own attribution, or read them off
+  `git log` when unsure.
 
 ## Project overview
 
