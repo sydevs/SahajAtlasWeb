@@ -182,10 +182,9 @@ components through `renderToStaticMarkup`, not jsdom. See
 
 ## Deployment
 
-Two Cloudflare sites build from this repo, on two platforms: `sahajatlas`
-(the app) on **Pages**, and `sahajatlas-design` (the Ladle playground) on
-**Workers** static assets, configured by `wrangler.design.jsonc` (#279). See
-the deployment section of [`AGENTS.md`](AGENTS.md).
+Two Cloudflare sites build from this repo, on two platforms. The topology —
+hosts, build commands, which platform serves which — is stated once, in the
+deployment section of [`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 

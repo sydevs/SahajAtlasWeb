@@ -38,9 +38,10 @@ import latin from '@fontsource-variable/rethink-sans/files/rethink-sans-latin-wg
  * fetch only the subsets it actually renders.
  *
  * Cross-origin font fetches are always CORS-mode, so the origin must send
- * `Access-Control-Allow-Origin`. Cloudflare Pages does for static assets, and
- * `public/_headers` pins it rather than leaving us on a platform default. If it were
- * ever missing the text falls back to the system sans stack — degraded, never blank.
+ * `Access-Control-Allow-Origin`. `public/_headers` sets it site-wide rather than leaving us
+ * on a platform default, and the default genuinely differs: Pages supplies it on every
+ * static asset, Workers static assets supply none. If it were ever missing the text falls
+ * back to the system sans stack — degraded, never blank.
  *
  * ── What ships ──
  *
