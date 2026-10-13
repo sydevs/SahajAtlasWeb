@@ -11,8 +11,9 @@ Two lanes, kept separate so the fast one never touches the network:
   pre-PR gate, and the PostToolUse hook.
 - `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
 - CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
-  `check:wrangler`. A Dependency Audit job and the smoke job run separately. The smoke job
-  targets the deployed Cloudflare preview.
+  `check:wrangler` — which dry-runs both Worker configs, so it needs `dist/` and `build/` and
+  runs after the two build steps. A Dependency Audit job and the smoke job run separately. The
+  smoke job targets the deployed Cloudflare preview.
 - The **same** smoke specs also run against production, fired by the deploy rather than by a PR
   (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
   below.

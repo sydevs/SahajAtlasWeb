@@ -104,15 +104,17 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   chunk is handed to `src/styles/sheet.ts` rather than appended as a
   `<style>`, and each entry adopts it into the root it owns — the embed's
   shadow root, the standalone shell's document (#236).
-- **Deploy**: two Cloudflare sites build this repo — the app on Pages, the
-  Ladle playground on Workers static assets (#266, #279). The platforms,
+- **Deploy**: two Cloudflare sites build this repo, over three targets — the
+  app on Pages and, through the Workers move, as a Worker too; the Ladle
+  playground on Workers static assets (#266, #279, #280). The platforms,
   hosts and build commands are stated once, in [`AGENTS.md`](../AGENTS.md)
-  § Deployment. What matters architecturally is the deep-link fallback: the
-  standalone `BrowserRouter` build gets it from `public/_redirects`
-  (`/* /index.html 200`), which Vite copies into `dist/`, and the playground
-  gets the same behaviour from the Worker's `assets.not_found_handling`. The
-  widget build routes off a query parameter on the host's page, so it needs
-  no fallback of its own.
+  § Deployment. What matters architecturally is the deep-link fallback, and
+  it is **per platform, not per build**: the standalone `BrowserRouter`
+  build gets it from `public/_redirects` (`/* /index.html 200`), which Vite
+  copies into `dist/`, while a Worker serving that same `dist/` ignores the
+  file and answers from `assets.not_found_handling` instead. The widget
+  build routes off a query parameter on the host's page, so it needs no
+  fallback of its own.
 - **Translations**: there is no sync pipeline. Locale JSON under
   SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
   translation-sync workflows were removed in #99 (see `AGENTS.md` →

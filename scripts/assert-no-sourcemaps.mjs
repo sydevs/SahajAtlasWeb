@@ -31,11 +31,13 @@
  *      `sourceMappingURL` comment would survive the deletion step and
  *      point at a 404.
  *
- * **This gate runs on both deploy targets, and each target needs its own
- * path.** This repo ships two Cloudflare sites, on two platforms (#279):
- * `sahajatlas` builds with `pnpm build`, into `dist/`, on Pages, and
+ * **This gate runs on both build outputs, and each needs its own path.**
+ * This repo ships two Cloudflare sites over three deploy targets, on two
+ * platforms (#279, #280): `sahajatlas` builds with `pnpm build`, into
+ * `dist/`, which both a Pages project and a Worker serve, and
  * `sahajatlas-design` builds with `pnpm ladle:build`, into `build/`, on
- * Workers static assets. `pnpm ladle:build` never runs
+ * Workers static assets. A path here is an output, not a target, which is
+ * why three targets need two. `pnpm ladle:build` never runs
  * `pnpm build`. Ladle builds through `.ladle/vite.config.ts`, which does
  * not load this repo's root config, so neither `build.sourcemap` nor the
  * Sentry plugin exists in the Ladle build. The playground cannot emit a
