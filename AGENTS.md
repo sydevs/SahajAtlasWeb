@@ -107,8 +107,8 @@ preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on li
 typecheck, `test:run`, build, `pnpm size`, and `ladle:build`, plus a Dependency Review job.
 Smoke runs separately, and the same specs read production on each deploy
 (`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
-A PostToolUse hook runs the specs one `src/**` edit can break, under the per-edit budget in
-`docs/testing.md`.
+A PostToolUse hook runs the specs one `src/**` or `scripts/**` edit can break, under the per-edit
+budget in `docs/testing.md`.
 
 Three CI gates exist because each one once missed something, unnoticed (#99). Each is
 built so passing proves something real:

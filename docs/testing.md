@@ -247,8 +247,8 @@ stays `node` regardless.
 
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
-numbers.** Measured 2026-10-13 on 4 cores: the 114 node-only files take **~20s**, and the 25 jsdom
-files add **~15s** on top, over 1701 tests. The per-file opt-in is what keeps the first number from
+numbers.** Measured 2026-10-13 on 4 cores: the 115 node-only files take **~20s**, and the 25 jsdom
+files add **~15s** on top, over 1714 tests. The per-file opt-in is what keeps the first number from
 becoming the second. **Neither half is the per-edit cost** — the hook runs a slice, against the
 budget at the end of this file.
 
@@ -373,8 +373,9 @@ still right. It just is not enough on its own when the pure part encodes a forei
 - Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks
   them. `tests/**` and `scripts/**` are checked by `tsconfig.test.json` — the second half of
   `pnpm typecheck`.
-- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a `src/**/*.{ts,tsx}`
-  file, and reports failures as non-blocking context.
+- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a source file in either
+  directory the lane collects from — `src/**/*.{ts,tsx}` or `scripts/**/*.{mjs,ts}` — and reports
+  failures as non-blocking context.
 
 ### The per-edit budget is 12 seconds on 4 cores (issue #285)
 
@@ -397,7 +398,8 @@ only as latency on every edit — which is why the bound is a stated number rath
 a coupling the others cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
-  `Foo.mount.test.tsx` but not every spec in their folder.
+  `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
+  six specs the lane indexes and whose own edits cost ~3.6s.
 - **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
   spec rather than matching the module's name, because one module is addressed three ways and a
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
@@ -408,11 +410,11 @@ a coupling the others cannot:
   (the nine `src/` inventories, plus the selector's own spec). Nothing in them references the file
   that breaks them, so neither source above can find one and they always run.
 
-**That third source is ~4.5s of every edit, and 124 of 393 source files select nothing else.** The
+**That third source is ~4.5s of every edit, and 133 of 412 source files select nothing else.** The
 floor, not the selection, is what the budget mostly buys — so the lever left here is moving those
 ten repo-wide inventories into their own vitest project and running the hook against the unit one.
 The hook would still need the other two sources, so this narrows the floor rather than replacing
-the selector.
+the selector. #293 owns that change, and the figures above are what it is measured against.
 
 ⚠ **The selection does not reach a spec coupled through a second module**: editing `geo.ts` runs
 `geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **26s**
