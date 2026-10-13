@@ -1,10 +1,17 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
 import { LIVE_PREVIEW_HEADER } from './config/live-preview/request'
+
+import {
+  readSource,
+  readSourceWithoutComments as read,
+  sourceFiles,
+  stripComments,
+} from '@/test-support/source-tree'
 
 /**
  * What the embedded `<sahaj-atlas>` element is not allowed to reach.
@@ -34,12 +41,6 @@ import { LIVE_PREVIEW_HEADER } from './config/live-preview/request'
  */
 
 const SRC = dirname(fileURLToPath(import.meta.url))
-
-const stripComments = (source: string) =>
-  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
-
-/** One module's source, comments removed — as `config/responsive.test.ts` spells it. */
-const read = (module: string) => stripComments(readFileSync(join(SRC, module), 'utf8'))
 
 /** Every specifier a module imports: `from '…'`, a bare side-effect import, and `import('…')`. */
 function specifiers(source: string): string[] {
@@ -141,10 +142,7 @@ describe('the widget entry', () => {
   })
 })
 
-/** Every non-spec module under `src/`, as a `/`-joined path relative to it. */
-const SOURCES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
-  .map((path) => path.split(sep).join('/'))
-  .filter((path) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path))
+const SOURCES = sourceFiles({ includeStories: true })
 
 /**
  * Payload's own live-preview hook is admin-only, and must stay behind the one lazy seam.
@@ -158,7 +156,7 @@ const SOURCES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
  */
 describe('the Payload live-preview library', () => {
   const importers = SOURCES.filter((path) =>
-    specifiers(readFileSync(join(SRC, path), 'utf8')).some((specifier) =>
+    specifiers(readSource(path)).some((specifier) =>
       specifier.startsWith('@payloadcms/live-preview'),
     ),
   )
@@ -174,7 +172,7 @@ describe('the Payload live-preview library', () => {
 /** Every module under `src/` that imports one of ours, by its path relative to `src/`. */
 const importersOf = (module: string) =>
   SOURCES.filter((path) =>
-    specifiers(read(path)).some(
+    specifiers(readSource(path)).some(
       (specifier) => resolveModule(specifier, join(SRC, path)) === join(SRC, module),
     ),
   )
@@ -239,7 +237,7 @@ function writesSession(source: string, binding: string): boolean {
  */
 describe('the live-preview session', () => {
   const writers = SOURCES.filter((path) => {
-    const source = readFileSync(join(SRC, path), 'utf8')
+    const source = readSource(path)
     const binding = sessionBinding(source, join(SRC, path))
 
     return binding !== null && writesSession(source, binding)

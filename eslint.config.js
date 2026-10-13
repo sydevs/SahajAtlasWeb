@@ -123,4 +123,23 @@ export default [
       ],
     },
   },
+  {
+    // One walk of `src/`, in `src/test-support/source-tree.ts` (#286). Nine specs grew their own
+    // because prose was the only gate. `importNames` is what leaves the single-file readers
+    // alone: a spec keeping `readFileSync`, `existsSync` or `statSync` is not a walk.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/test-support/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['node:fs', 'fs'].map((name) => ({
+            name,
+            importNames: ['readdirSync'],
+            message: 'Walk src/ through src/test-support/source-tree.ts (#286).',
+          })),
+        },
+      ],
+    },
+  },
 ]

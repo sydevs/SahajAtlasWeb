@@ -368,6 +368,28 @@ still right. It just is not enough on its own when the pure part encodes a forei
   mock `@payloadcms/sdk` and `@/config/i18n`, not our own logic. Do not test Radix, react-map-gl,
   or library internals — only *our* contracts.
 
+### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
+
+Nine specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
+the Radix poppers, the SahajCloud reads. Each rolled its own `readdirSync`, in three shapes that
+were not interchangeable, so a tenth would inherit whichever one its author copied.
+`sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
+`readSource` / `readSourceWithoutComments` beside it and `parseSource`
+(`src/test-support/source-ast.ts`) for the two specs that parse. **A tenth walk fails `pnpm
+lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `node:fs` and `fs`
+everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
+grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
+
+⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
+`source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
+options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
+in both directions, because a scope that silently stopped matching would make all nine closed
+lists pass by vacuum.
+
+**This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module
+registry, so the memos are per-file and the tree is still read once per spec — do not expect a
+faster lane from it, and do not "fix" the memos to chase one. The lane's cost is #285.
+
 ## Type-checking & the edit-loop hook
 
 - Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks

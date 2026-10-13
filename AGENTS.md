@@ -174,6 +174,10 @@ src/
                       # error narrowing (errorMessage, classifyError, atlasError,
                       # reportInternalError). Failure KIND is domain — its copy and
                       # buttons are UI, so ERROR_POLICY lives with the fallbacks
+  test-support/       # Imported by specs only, and one spec asserts that. source-tree.ts = the
+                      # ONE walk of `src/` behind every spec that inventories the source, plus
+                      # its memoised reads and the comment strip; source-ast.ts = the memoised
+                      # `ts.SourceFile`. Each spec states its own scope (#286)
   types/              # zod schemas + inferred types per entity
                       # config/translations.en.json = the committed English snapshot of
                       # SahajCloud's `sy-atlas-translations`, written by

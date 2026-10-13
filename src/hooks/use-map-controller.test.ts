@@ -1,8 +1,6 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { describe, it, expect } from 'vitest'
+
+import { readSource as read, sourceFiles } from '@/test-support/source-tree'
 
 // The drawer's width lives in two places that cannot reference each other.
 // One is `DRAWER_W_PX` in `use-map-controller-real.tsx`, which becomes the map's LEFT CAMERA PADDING, so the map knows how much of itself the panel covers.
@@ -18,17 +16,18 @@ import { describe, it, expect } from 'vitest'
 // This reads the files, instead of importing the hook.
 // The constants are module-private, and exporting them purely for a test would widen the module's surface for no runtime reason.
 // Importing the hook would also drag React, turf, and the mapbox hooks into the node lane.
-const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
-
-const read = (relative: string) => readFileSync(join(SRC, relative), 'utf8')
 
 // This discovers the sites, instead of listing them.
 // A hardcoded list would miss a fallback added to a new file, precisely the failure mode this replaces.
 // The comments it supersedes missed two of the five literals that already existed.
 // Scanning also picks up a `.css` site, if the width ever moves there.
-const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
-  .filter((relative) => /\.(tsx?|css)$/.test(relative))
-  .filter((relative) => !relative.endsWith('use-map-controller.test.ts'))
+// Specs and stories are in scope too — a stale fallback is just as wrong in either — except this
+// file, which quotes every literal it polices.
+const SOURCE_FILES = sourceFiles({
+  extensions: ['.ts', '.tsx', '.css'],
+  includeSpecs: true,
+  includeStories: true,
+}).filter((relative) => relative !== 'hooks/use-map-controller.test.ts')
 
 // The unit is captured, not assumed, so a `rem` fallback fails here too — a host's root font size resizes it (#238).
 const FALLBACK = /--sy-drawer-w,\s*(\d+(?:\.\d+)?[a-z%]*)/g
