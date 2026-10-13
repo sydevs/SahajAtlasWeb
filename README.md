@@ -182,18 +182,18 @@ components through `renderToStaticMarkup`, not jsdom. See
 
 ## Deployment
 
-Two Cloudflare sites build from this repo, over three targets on two
-platforms. The topology — hosts, build commands, which platform serves
-which, and which one a visitor actually reaches — is stated once, in the
-deployment section of [`AGENTS.md`](AGENTS.md).
+Two Cloudflare sites build from this repo. The topology — hosts, build
+commands, which platform serves which, and which one a visitor actually
+reaches — is stated once, in the deployment section of
+[`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 
 Three **build-time** variables — `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
 `SENTRY_PROJECT` — control whether a build uploads its source maps to
 Sentry. They carry no `VITE_` prefix, so they cannot reach the bundle. The
-token is a real secret and lives in the Cloudflare dashboard — on every
-target that builds the app — never in the repo.
+token is a real secret and lives in the Cloudflare dashboard, never in the
+repo.
 
 **Maps are uploaded, then removed — never deployed.** `/assets/*` is served
 CORS-open with a one-year immutable cache, so a shipped `.map` would publish

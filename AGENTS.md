@@ -65,7 +65,7 @@ experience, with a country → region → area → venue → event hierarchy.
 | Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid. Our own header replaces SX's, via the `calendar-controls` plugin. |
 | Misc | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets). |
 | Embedding | `@r2wc/react-to-web-component` (`src/Widget.tsx`). CSS injects via JS for shadow-free embedding. |
-| Deploy | **Cloudflare**, two sites over three targets — see Deployment below (#266, #279, #280). Deep-link fallback via `public/_redirects` on Pages and `assets.not_found_handling` on a Worker, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
+| Deploy | **Cloudflare**, Pages and Workers — see Deployment below (#266, #279, #280). Deep-link fallback via `public/_redirects` on Pages and `assets.not_found_handling` on a Worker, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
 
 The app also runs standalone in dev (`index.html` → `src/main.tsx`). The embeddable
 entry is `src/Widget.tsx` (demo in `demo.html`).
@@ -102,7 +102,7 @@ pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
-pnpm check:wrangler # both Worker configs, dry run (CI gate — needs dist/ and build/, so run last)
+pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
 ```
 
 Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted via
@@ -137,18 +137,17 @@ built so passing proves something real:
 - **A green Smoke check means the specs ran.** A missing Cloudflare preview annotates the
   run, and fails it outright on same-repo PRs. Forks keep the graceful skip.
 - **`pnpm check:wrangler`** (`wrangler deploy --dry-run`) reads `wrangler.jsonc` and
-  `wrangler.design.jsonc`, which nothing else in this repo reads — Workers Builds holds the
-  dashboard's copy of each path. So a rename, a typo, or an `assets.directory` that drifts from
-  what `pnpm build` or `ladle:build` writes would surface only in a Cloudflare build log, on
-  `main` (#279, #280). It is also what makes the pinned `wrangler` devDependency load-bearing
-  rather than autocomplete.
+  `wrangler.design.jsonc`, which nothing else in this repo deploys from — Workers Builds holds
+  the dashboard's copy of each path. So a rename, a typo, or an `assets.directory` that drifts
+  from what `pnpm build` or `ladle:build` writes would surface only in a Cloudflare build log,
+  on `main` (#279, #280). It is also what makes the pinned `wrangler` devDependency
+  load-bearing rather than autocomplete.
   ⚠ **Each half fails unless its output directory already exists** — `dist/` for the app,
   `build/` for the playground — because the dry run checks the assets directory, which is the
   drift case worth catching. Run `pnpm build` and `pnpm ladle:build` first; cold, the failure
   names a missing directory and reads like a broken gate.
-  Which configs the gate names is itself ungated by a dry run, since a script that validates
-  one config exits 0. `scripts/wrangler-config.test.ts` holds that, with the app config's own
-  keys.
+  `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
+  dry-runs one of them exits 0.
 
 ## Code quality
 
@@ -290,9 +289,9 @@ secrets must never reach client code — the bundle is public.
 ## Deployment
 
 **This is the one place the deploy topology is written down.** Everything else that mentions it
-points here. Two Cloudflare sites deploy from this repo, over **three targets on two
-platforms**, because the move to Workers proceeds one site at a time and the app's own cutover
-is split from building it (#266, #279, #280):
+points here. Two Cloudflare sites deploy from this repo, on **both platforms**, because the
+move to Workers proceeds one site at a time and the app's own cutover is split from building it
+(#266, #279, #280):
 
 - **`sahajatlas`, the app, builds to both platforms during the move.** One `pnpm build` into
   `dist/` feeds each.
@@ -303,8 +302,8 @@ is split from building it (#266, #279, #280):
   - On **Workers static assets**, from `wrangler.jsonc`, served at its own `workers.dev` host
     and nowhere a visitor goes. Same shape as the playground's config below, pointed at
     `dist/`. Workers Builds holds the build command and the trigger's variables and branch
-    rules, **per trigger** — a preview trigger inherits nothing from production, so each
-    `VITE_*` value is entered twice (`docs/environment.md`).
+    rules **per trigger**, not per project — which is what `docs/environment.md` works out
+    for each variable.
 - **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
   Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
   `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
@@ -372,9 +371,8 @@ Three facts to remember:
   emission, the non-fatal handler, deletion, and the gate are all proven on a runner
   first.
 
-The Sentry variables are dashboard-only, and while the app builds on both platforms they are
-owed to **each** target that builds it — the Pages project's environments and the app Worker's
-Builds triggers. The runbook is in `docs/environment.md`.
+The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
+runbook is in `docs/environment.md`.
 
 CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and checks all of the above against the preview.

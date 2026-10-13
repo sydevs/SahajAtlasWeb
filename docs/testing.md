@@ -11,9 +11,9 @@ Two lanes, kept separate so the fast one never touches the network:
   pre-PR gate, and the PostToolUse hook.
 - `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
 - CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
-  `check:wrangler` — which dry-runs both Worker configs, so it needs `dist/` and `build/` and
-  runs after the two build steps. A Dependency Audit job and the smoke job run separately. The
-  smoke job targets the deployed Cloudflare preview.
+  `check:wrangler` — which covers both Worker configs, and needs what the build steps write
+  before it (`AGENTS.md` → the CI gates). A Dependency Audit job and the smoke job run
+  separately. The smoke job targets the deployed Cloudflare preview.
 - The **same** smoke specs also run against production, fired by the deploy rather than by a PR
   (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
   below.
@@ -99,10 +99,11 @@ Two findings sit behind that script, worth keeping so nobody re-derives them:
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the `public/` files only the platform executes: `_headers` and `robots.txt` on both
-sites, and `_redirects` on the Pages app alone — the design Worker gets its SPA fallback from
-`assets.not_found_handling` instead (#279). Those are inert text in the repo, so no local gate can
-prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
+It also covers the `public/` files only the platform executes: `_headers` and `robots.txt` on
+every target, and `_redirects` on the Pages app alone — a Worker gets its SPA fallback from
+`assets.not_found_handling` instead, whichever build output it serves (#279, #280;
+`AGENTS.md` § Deployment owns which platform reads which file). Those are inert text in the
+repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
 here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
 overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
 cannot be that mechanism.
