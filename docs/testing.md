@@ -247,10 +247,10 @@ stays `node` regardless.
 
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
-numbers.** Measured 2026-10-11 on 4 cores: 113 node-only files take **~16s**, and the 25 jsdom
-files add **~12s** on top, for **~28s** over 1698 tests. The per-file opt-in is what keeps the
-first number from becoming the second, and the hook note at the end of this file carries what the
-total costs per edit.
+numbers.** Measured 2026-10-13 on 4 cores: the 114 node-only files take **~20s**, and the 25 jsdom
+files add **~15s** on top, for **~35s** over 1701 tests. The per-file opt-in is what keeps the
+first number from becoming the second. **Neither half is the per-edit cost** — the hook runs a
+slice, against the budget at the end of this file.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
 with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**
@@ -373,8 +373,44 @@ still right. It just is not enough on its own when the pure part encodes a forei
 - Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks
   them. `tests/**` and `scripts/**` are checked by `tsconfig.test.json` — the second half of
   `pnpm typecheck`.
-- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs `pnpm test:run` after editing a
-  `src/**/*.{ts,tsx}` file, and reports failures as non-blocking context. So the whole lane is
-  the cost of every such edit — keep a new spec's own share of it near zero. The "under ~5s" this
-  note asked for has not held since the jsdom specs arrived, and **#285 owns the total**, so the
-  budget lives on one ticket rather than as a figure restated here that nothing checks.
+- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a `src/**/*.{ts,tsx}`
+  file, and reports failures as non-blocking context.
+
+### The per-edit budget is 10 seconds on 4 cores (issue #285)
+
+That is the hook's whole command, not the lane, which takes ~35s. Measured 2026-10-13 on 4 cores,
+median of three: **4.9s** for `src/lib/geo.ts`, and **8.9s** for `src/lib/shape/index.ts` — the
+widest selection in the tree. Re-measure by timing the hook itself, since the command it builds is
+the thing under budget:
+
+```bash
+time (echo "{\"tool_input\":{\"file_path\":\"$PWD/src/lib/shape/index.ts\"}}" \
+  | CLAUDE_PROJECT_DIR=$PWD node .claude/hooks/unit-test.mjs)
+```
+
+**The hook ran the whole lane until #285, and that is how "under ~5s" stopped being true without
+anything failing.** The hook reports non-blocking context, so a slower lane breaks no gate and
+shows up only as latency on every edit — which is why the bound is a stated number rather than a
+feeling.
+
+`scripts/select-unit-specs.mjs` picks what one edit can break, from three sources that each reach
+a coupling the others cannot:
+
+- **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
+  `Foo.mount.test.tsx` but not every spec in their folder.
+- **Referencing** — a spec importing the module by `@/` alias, or naming its repo-relative path in
+  a literal list the way `src/lib/brand.test.ts`'s `COPY_FILES` does.
+- **Tree-walking** — the nine specs whose fixture is `readdirSync` over `src/`. Nothing in them
+  references the file that breaks them, so neither source above can find one and they always run.
+  They are the floor the budget sits on, at ~4.5s of it.
+
+⚠ **It does not reach a spec coupled through a second module**: editing `geo.ts` runs
+`geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **22s on
+that single file** against the lane's 35s — the module graph here is too connected to select from.
+The full lane still runs in the lean gate (`.claude/skills/pr-prep/check.sh`) and in CI, so this
+narrows the inner loop, not the gate.
+
+**What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
+that** — the widest edit in the tree, exhaustively, plus the walker set as a closed list. A tenth
+walker left out of that list would quietly stop running per edit; the spec fails instead. The two
+times above are still unchecked, like every other measurement in this file.
