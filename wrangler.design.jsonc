@@ -1,0 +1,38 @@
+{
+  // The `sahajatlas-design` Ladle playground, as a Cloudflare Workers static-assets
+  // Worker. Two Workers will eventually build from this one repo, so the filename
+  // carries the target rather than being the bare `wrangler.jsonc` either could claim.
+  //
+  // The Worker name matches the Pages project it replaces, which keeps
+  // `public/robots.txt` and the deployment docs reading true across the move.
+  //
+  // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so this name
+  // contains `sahajatlas` as a prefix exactly as the two Pages hosts do today. A check
+  // that tells the app's deploy from the playground's must match the worker-name LABEL
+  // segment, never a domain suffix — `scripts/get-cloudflare-preview-url.test.ts` already
+  // pins that boundary for the Pages shape.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sahajatlas-design",
+
+  // Required even with no `main`. This is the date wrangler 4.150.0 itself suggests, so
+  // the value moves when the pinned Wrangler does rather than on whoever edits next.
+  "compatibility_date": "2026-10-06",
+
+  // No `main`: assets only. `pnpm ladle:build` is `ladle build && pnpm assert:maps ../build`,
+  // so `build/` is this target's output, and `public/` is copied into it — which is how the
+  // shared `_headers` and `robots.txt` reach the playground.
+  "assets": {
+    "directory": "build",
+    "not_found_handling": "single-page-application"
+  },
+
+  // Preview builds stay on. Switching them off is refused by #266: it would re-create the
+  // silent-green preview check that a sibling ticket exists to close.
+  "preview_urls": true,
+
+  // Empty on purpose: a preview of this Worker diverges from production in nothing. The
+  // block must still exist — `cloudflare/wrangler-action` throws without one. The public
+  // configuration page does not document the key; `node_modules/wrangler/config-schema.json`
+  // does, and a `wrangler deploy --dry-run` accepts it while warning on an unknown sibling.
+  "previews": {}
+}
