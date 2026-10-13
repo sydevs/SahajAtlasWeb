@@ -102,17 +102,19 @@ pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
+pnpm check:wrangler # design Worker config dry run (CI gate — needs build/, so run after ladle:build)
 ```
 
 Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted via
 `renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against the Cloudflare
 preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on lint,
-typecheck, `test:run`, build, `pnpm size`, and `ladle:build`, plus a Dependency Review job.
+typecheck, `test:run`, build, `pnpm size`, `ladle:build`, and `pnpm check:wrangler`, plus a
+Dependency Review job.
 Smoke runs separately, and the same specs read production on each deploy
 (`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
 A PostToolUse hook runs the unit lane on `src/**` edits.
 
-Three CI gates exist because each one once missed something, unnoticed (#99). Each is
+Four CI gates exist because each one once missed something, unnoticed (#99). Each is
 built so passing proves something real:
 
 - **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the gzipped eager payload —
@@ -134,6 +136,14 @@ built so passing proves something real:
   PRs at once when a new advisory landed on `main` (#233, #237, #243, #248).
 - **A green Smoke check means the specs ran.** A missing Cloudflare preview annotates the
   run, and fails it outright on same-repo PRs. Forks keep the graceful skip.
+- **`pnpm check:wrangler`** (`wrangler deploy --dry-run`) reads `wrangler.design.jsonc`, which
+  nothing else in this repo reads — Workers Builds holds the dashboard's copy of the path. So a
+  rename, a typo, or an `assets.directory` that drifts from what `ladle:build` writes would
+  surface only in a Cloudflare build log, on `main` (#279). It is also what makes the pinned
+  `wrangler` devDependency load-bearing rather than autocomplete.
+  ⚠ **It fails unless `build/` already exists**, because the dry run checks the assets
+  directory — which is the drift case worth catching. Run `pnpm ladle:build` first; cold, the
+  failure names a missing directory and reads like a broken gate.
 
 ## Code quality
 
