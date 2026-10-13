@@ -68,11 +68,13 @@ afterAll(() => {
 })
 
 describe('isLaneSource', () => {
-  it('covers src modules and specs, and nothing else the hook can see', () => {
+  it('covers both lane directories, and nothing else the hook can see', () => {
     expect(isLaneSource('src/lib/geo.ts')).toBe(true)
     expect(isLaneSource('src/lib/geo.test.ts')).toBe(true)
+    // `scripts/` ships `.mjs` sources, and `listSpecs` indexes its specs either way.
+    expect(isLaneSource('scripts/select-unit-specs.mjs')).toBe(true)
+    expect(isLaneSource('scripts/select-unit-specs.test.ts')).toBe(true)
     expect(isLaneSource('src/components/atoms/Chip/Chip.stories.tsx')).toBe(false)
-    expect(isLaneSource('scripts/select-unit-specs.mjs')).toBe(false)
     expect(isLaneSource('docs/testing.md')).toBe(false)
   })
 })
@@ -178,6 +180,12 @@ describe('this repository', () => {
     expect(selectSpecs('src/config/api/client.ts', ROOT)).toContain('src/config/api/fetch.test.ts')
     expect(selectSpecs('src/components/atoms/Chip/index.ts', ROOT)).toContain(
       'src/components/atoms/Chip/Chip.test.tsx',
+    )
+  })
+
+  it('selects a scripts spec for its own subject, which the lane already indexes', () => {
+    expect(selectSpecs('scripts/select-unit-specs.mjs', ROOT)).toContain(
+      'scripts/select-unit-specs.test.ts',
     )
   })
 

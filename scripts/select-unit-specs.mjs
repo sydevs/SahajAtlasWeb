@@ -24,11 +24,16 @@ import { fileURLToPath } from 'node:url'
 /** Resolved against this module, so nothing here depends on the working directory. */
 export const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..')
 
-/** Where the unit lane's specs live. `tests/` holds only smoke specs, which the lane excludes. */
+/**
+ * Where the unit lane's specs and their subjects both live. `tests/` holds only smoke specs,
+ * which the lane excludes. One list, because a directory whose specs are indexed but whose
+ * sources are refused selects nothing for its own edits.
+ */
 const LANE_DIRS = ['src', 'scripts']
 
 const SPEC = /\.(test|spec)\.(ts|tsx)$/
-const SOURCE_EXT = /\.(ts|tsx)$/
+/** `.mjs` is here for `scripts/`, which ships its sources as modules and its specs as TypeScript. */
+const SOURCE_EXT = /\.(ts|tsx|mjs)$/
 
 /** Anything quoted. Most matches are prose, and resolve to nothing. */
 const QUOTED = /['"]([^'"\n]+)['"]/g
@@ -66,7 +71,11 @@ const dirOf = (rel) => rel.slice(0, rel.lastIndexOf('/'))
 
 /** Whether the per-edit hook covers this path at all. Stories are not in the unit lane. */
 export function isLaneSource(rel) {
-  return rel.startsWith('src/') && SOURCE_EXT.test(rel) && !rel.includes('.stories.')
+  return (
+    LANE_DIRS.some((dir) => rel.startsWith(`${dir}/`)) &&
+    SOURCE_EXT.test(rel) &&
+    !rel.includes('.stories.')
+  )
 }
 
 /** Every spec file the unit lane collects, as repo-relative POSIX paths. */
@@ -76,7 +85,9 @@ export function listSpecs(root) {
 
 /** Every path the hook acts on — what the budget's width ceiling is measured over. */
 export function listLaneSources(root) {
-  return listUnder(root, 'src', (entry) => SOURCE_EXT.test(entry)).filter(isLaneSource)
+  return LANE_DIRS.flatMap((dir) =>
+    listUnder(root, dir, (entry) => SOURCE_EXT.test(entry)),
+  ).filter(isLaneSource)
 }
 
 /** The repo-relative module a specifier addresses from `fromDir`, or null for a bare package. */
