@@ -27,9 +27,15 @@ servers per-user in `.claude/settings.local.json`
 
 - Transport: HTTP (`https://docs.mcp.cloudflare.com/mcp`).
 - Search Cloudflare docs (Pages, Workers, redirects, build settings). This
-  app deploys to **Cloudflare Pages** (projects `sahajatlas` and
-  `sahajatlas-design`). Reach for this instead of `WebFetch` for Cloudflare
-  deployment, `_redirects`, or build-config questions.
+  repo deploys to both platforms: `sahajatlas` on **Pages**, and
+  `sahajatlas-design` on **Workers** static assets (#279). Reach for this
+  instead of `WebFetch` for Cloudflare deployment, `_redirects`, or
+  build-config questions.
+- ⚠ It searches the published docs, which do not cover every wrangler config
+  key — `previews` is one they omit. When the docs are silent, read
+  `node_modules/wrangler/config-schema.json` and confirm with
+  `npx wrangler deploy --dry-run --config <file>`: wrangler warns on an
+  unexpected top-level field, so silence there is a positive result.
 
 ### payloadcms-docs (`mcp__payloadcms-docs__*`)
 

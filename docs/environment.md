@@ -78,10 +78,13 @@ Cloudflare dashboard (`AGENTS.md` → Deployment).
    - **Preview: recommended, not required.** The smoke lane exercises preview deploys, so this
      is where to check symbolication end-to-end before trusting it in production. The cost is
      one artifact bundle per preview build.
-4. **`sahajatlas-design` (the Ladle playground): do NOT add them.** It builds through
-   `.ladle/vite.config.ts`, which never loads the root config, so the plugin cannot run there.
-   Verified: with all three variables set, `pnpm ladle:build` still emits no maps, uploads
-   nothing, and its output carries no token.
+4. **`sahajatlas-design` (the Ladle playground, now a Worker — #279): do NOT add them.** It
+   builds through `.ladle/vite.config.ts`, which never loads the root config, so the plugin
+   cannot run there. Verified: with all three variables set, `pnpm ladle:build` still emits no
+   maps, uploads nothing, and its output carries no token. The reason is the Vite config, not
+   the platform, so moving it to Workers Builds changes nothing here — and `wrangler.design.jsonc`
+   deliberately declares no variables, since `vars` in a wrangler config is runtime-only and
+   this target runs no Worker code at all.
 
 **Checking it once the variables are set.** The repo cannot check this itself — it needs a real
 DSN and a real token:

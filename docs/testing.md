@@ -217,7 +217,13 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
 No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
-10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
+10 of the 16 fail against the Ladle playground, so the lane is not vacuously green. ⚠ **The
+playground half of that measurement is owed a re-run.** It was taken against
+`sahajatlas-design.pages.dev`, and #279 moved the playground to a Workers static-assets Worker at
+`design.sahajatlas.com` and deleted the Pages project, so the address it names is gone. The
+negative control is now `PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, and its
+number lands here and in #266 when a person runs it — the platform differs, so the old 10 cannot
+simply be carried across. Do not quote a figure this file has not recorded.
 
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all

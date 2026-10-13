@@ -65,7 +65,7 @@ experience, with a country → region → area → venue → event hierarchy.
 | Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid. Our own header replaces SX's, via the `calendar-controls` plugin. |
 | Misc | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets). |
 | Embedding | `@r2wc/react-to-web-component` (`src/Widget.tsx`). CSS injects via JS for shadow-free embedding. |
-| Deploy | **Cloudflare Pages** — `sahajatlas` (app) plus `sahajatlas-design` (Ladle). SPA fallback via `public/_redirects`, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
+| Deploy | **Cloudflare** — `sahajatlas` (app) on **Pages**, `sahajatlas-design` (Ladle) on **Workers** static assets (`wrangler.design.jsonc`, #279). SPA fallback via `public/_redirects`, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
 
 The app also runs standalone in dev (`index.html` → `src/main.tsx`). The embeddable
 entry is `src/Widget.tsx` (demo in `demo.html`).
@@ -270,34 +270,46 @@ secrets must never reach client code — the bundle is public.
 
 ## Deployment
 
-Two Cloudflare Pages projects deploy from this repo, both on the current Node 22 build
-image:
+Two Cloudflare sites deploy from this repo, on **two different platforms** — the move to
+Workers runs one site at a time (#266), and the playground went first (#279):
 
-- **`sahajatlas`** — the app. Builds with `pnpm build` into `dist/`, served at
-  `sahajatlas.pages.dev`.
-- **`sahajatlas-design`** — the Ladle component playground. Builds with
-  `pnpm ladle:build`, served at `sahajatlas-design.pages.dev`.
+- **`sahajatlas`** — the app, still on **Cloudflare Pages**. Builds with `pnpm build` into
+  `dist/`, served at `sahajatlas.pages.dev` and at the custom domain `sahajatlas.com`. The
+  Cloudflare dashboard holds its build command and output directory, not the repo, and it
+  has no `wrangler` config and no `_routes.json`.
+- **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
+  Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
+  `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
+  `not_found_handling: "single-page-application"`, previews on. Workers Builds holds the
+  build command and the trigger's branch and path rules.
+  ⚠ **Which Node and pnpm its build image uses is unverified.** `.node-version` pins
+  `22.17.0` and `package.json` pins `pnpm@9.15.0`, and the Pages image honours both; whether
+  the Workers image reads `.node-version` is undocumented, and its defaults are newer. Read
+  the first build log rather than assuming — #266 records the answer once it is read.
 
-The Cloudflare dashboard holds the build command and output directory, not the repo —
-there is no `wrangler` config or `_routes.json`. Three deploy files live in `public/`,
-and Pages reads all three from the build output:
+Three deploy files live in `public/`, and both platforms read all three from the build
+output:
 
 - **`_redirects`** (`/* /index.html 200`) — the SPA deep-link fallback for the standalone
   `BrowserRouter` build. The embeddable widget routes off a query parameter instead, so
   only the standalone build depends on this file.
-- **`_headers`** — CORS on `/assets/*` and the two unhashed entry files (#91: a font always
-  fetches in CORS mode), plus `X-Robots-Tag: noindex` on `/*` (#106). The `/locales/*` rule went
-  with the bundles in #198. Pages applies every matching rule, so a broad
-  rule never displaces a specific one.
+- **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
+  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
+  unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.
+  ⚠ **Exactly one ACAO rule may match any path** — both platforms apply every matching rule
+  and comma-join a repeated value, which is why CORS lives in one place only (#279). Pages
+  adds CORS to every asset by itself; Workers static assets add none, so on the playground
+  that one rule is the whole of it. A broad rule never displaces a specific one.
 - **`robots.txt`** — `Disallow: /`, with an allow-group for link-preview scrapers (#106).
   WeMeditate and the other embedding sites own search, and this build's canonicals point
   there. Read this file before you change any of the three.
 
 **`public/` is copied into both build outputs** — `dist/` from `pnpm build` and `build/`
-from `pnpm ladle:build` — so all three files also govern `sahajatlas-design`. That is
+from `pnpm ladle:build` — so all three files also govern the design Worker. That is
 intentional: a component playground is no more a search surface than the app is. Do not
-edit one of the three files "for the app" only. Ladle generates its own `index.html`, so
-our `<meta robots>` tag never reaches the playground — the header covers it there instead.
+edit one of the three files "for the app" only, and remember the two now sit on different
+platforms, so an edit has to hold on both. Ladle generates its own `index.html`, so our
+`<meta robots>` tag never reaches the playground — the header covers it there instead.
 
 **Source maps are uploaded, then deleted — never deployed** (#130). The `/assets/*` CORS
 rule above is why: CORS-open plus a one-year immutable cache would publish this repo's
@@ -333,7 +345,10 @@ The Sentry variables are dashboard-only. The runbook is in `docs/environment.md`
 CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and checks all of the above against the preview.
 
-Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
+Use the **cloudflare-docs** MCP for Cloudflare Pages and Workers questions. ⚠ The public
+Workers configuration page does not document every key wrangler accepts — `previews` is one
+it omits. `node_modules/wrangler/config-schema.json` and a `wrangler deploy --dry-run` are
+the authority when the page is silent (#279).
 
 This repo once ran two Accent translation workflows
 (`.github/workflows/{push,sync}-accent.yml`, `accent.json`). #99 deleted them: every run

@@ -81,12 +81,19 @@
  *
  * What the live state DOES buy is honest classification. `pending` now
  * rests on our own project's run saying `in_progress`. It no longer rests
- * only on the sibling `sahajatlas-design` run (a median 41 seconds
+ * only on the sibling `sahajatlas-design` Pages run (a median 41 seconds
  * ahead), or on the Cloudflare bot's PR comment (one per PR, edited in
  * place, naming the SHA it deploys). Both of those remain evidence.
  * Neither is load-bearing alone anymore. This is also why the `failed`
  * check below insists on `status === 'completed'`. An in-progress run has
  * a null conclusion, and it must never read as a failure.
+ *
+ * ⚠ That sibling run is GONE: #279 moved the playground to Workers and
+ * deleted its Pages project, so no "Cloudflare Pages: sahajatlas-design"
+ * check run is posted any more. Nothing breaks — the run was never
+ * load-bearing alone, and `runProject` below simply stops matching it —
+ * but do not re-derive a timing rule from evidence that no longer
+ * arrives. #266's child 4 deletes this discovery subsystem outright.
  *
  * ## "Empty" is not one outcome (issue #132)
  *
@@ -236,8 +243,9 @@ const SHORT_SHA_RE = /^[0-9a-f]{7}$/i.test(shortSha)
   : null
 
 // The project's own slug. This lets the script tell our check run
-// ("Cloudflare Pages: sahajatlas") apart from the sibling playground's
-// ("…: sahajatlas-design").
+// ("Cloudflare Pages: sahajatlas") apart from any other Cloudflare run on
+// the same commit — the playground's ("…: sahajatlas-design") until #279
+// moved it off Pages, and a second Pages project if one is ever added.
 const projectSlug = project.split('.')[0].toLowerCase()
 
 /** @param {string} [name] */
