@@ -165,7 +165,7 @@ gate reads can never carry Production's values. The `VITE_HOST` story above is t
 direction. A Production origin blanked by a dashboard edit is the same hole in the other, and
 running the PR gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 16 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 17 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -221,12 +221,13 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
-10 of the 16 fail against the Ladle playground, so the lane is not vacuously green. ⚠ **The
-playground half of that measurement is owed a re-run**, against
-`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke` (#279). The old 10 cannot be carried
-across: it was measured on Pages, and the playground now serves from a Worker whose header
-defaults differ. Its number lands here and in #266 when a person runs it.
+No spec is scoped by environment. The lane is **17 cases**, from 13 declarations — count it rather
+than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
+was then: all 16 passed against `sahajatlas.com`, and 10 of the 16 failed against the Ladle
+playground, so the lane is not vacuously green. ⚠ **The playground half of that measurement is
+owed a re-run**, against `PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke` (#279). The
+old 10 cannot be carried across: it was measured on Pages, and the playground now serves from a
+Worker whose header defaults differ. Its number lands here and in #266 when a person runs it.
 
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all
