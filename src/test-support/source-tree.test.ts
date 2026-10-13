@@ -62,17 +62,19 @@ describe('the comment strip two closed-list specs read through', () => {
 })
 
 /**
- * `src/test-support/` is test-only code living under `src/`, which the bundler and `pnpm size`
- * are both blind to: an app module importing the walk would ship a `node:fs` directory walk to
- * every host page, and no other gate in the repo would say so. `Widget.standalone.test.ts`'s
- * graph walk cannot — `resolveModule` returns null for a bare `node:` specifier by design.
+ * ⚠ The gate is the `node:fs` import, not "test-only code under `src/`". `src/mocks/` is
+ * browser-safe data that `src/views/story-harness.tsx` imports on purpose, so nothing here
+ * reaches it. `test-support/` walks the filesystem, and the bundler and `pnpm size` are both
+ * blind to who imports it: an app module pulling the walk in would ship a directory walk to
+ * every host page, and no other gate would say so. `Widget.standalone.test.ts`'s graph walk
+ * cannot — `resolveModule` returns null for a bare `node:` specifier by design.
  *
- * Keeping the literal out of this file is deliberate, so the one-line regrowth check
- * `docs/testing.md` publishes still names the walker and nothing else.
+ * `eslint.config.js` bans a SECOND walk. This is the other direction: who may import the one
+ * there is. Stories are in scope because a story ships to the Ladle build.
  */
-describe('nothing but a spec imports the test support', () => {
-  it('has no importer outside `test-support/` and the specs', () => {
-    const importers = sourceFiles()
+describe('nothing outside `test-support/` imports the test support', () => {
+  it('has no importer among the app modules or the stories', () => {
+    const importers = sourceFiles({ includeStories: true })
       .filter((path) => !path.startsWith('test-support/'))
       .filter((path) => readSourceWithoutComments(path).includes('test-support'))
 
