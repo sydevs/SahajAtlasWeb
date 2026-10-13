@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest'
 
 import { LIVE_PREVIEW_HEADER } from './config/live-preview/request'
 
-import { readSource, readSourceWithoutComments, sourceFiles } from '@/test-support/source-tree'
+import {
+  readSource,
+  readSourceWithoutComments as read,
+  sourceFiles,
+  stripComments,
+} from '@/test-support/source-tree'
 
 /**
  * What the embedded `<sahaj-atlas>` element is not allowed to reach.
@@ -36,12 +41,6 @@ import { readSource, readSourceWithoutComments, sourceFiles } from '@/test-suppo
  */
 
 const SRC = dirname(fileURLToPath(import.meta.url))
-
-const stripComments = (source: string) =>
-  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
-
-/** One module's source, comments removed. */
-const read = readSourceWithoutComments
 
 /** Every specifier a module imports: `from '…'`, a bare side-effect import, and `import('…')`. */
 function specifiers(source: string): string[] {
@@ -143,7 +142,6 @@ describe('the widget entry', () => {
   })
 })
 
-/** Every non-spec module under `src/`, as a `/`-joined path relative to it. */
 const SOURCES = sourceFiles({ includeStories: true })
 
 /**
@@ -174,7 +172,7 @@ describe('the Payload live-preview library', () => {
 /** Every module under `src/` that imports one of ours, by its path relative to `src/`. */
 const importersOf = (module: string) =>
   SOURCES.filter((path) =>
-    specifiers(read(path)).some(
+    specifiers(readSource(path)).some(
       (specifier) => resolveModule(specifier, join(SRC, path)) === join(SRC, module),
     ),
   )

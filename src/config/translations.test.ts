@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { describe, it, expect } from 'vitest'
 
@@ -8,7 +8,7 @@ import { TRANSLATION_SELECT } from './api/fetch'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
 import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
-import { SRC_DIR, readSource, sourceFiles } from '@/test-support/source-tree'
+import { readSource, sourceFiles } from '@/test-support/source-tree'
 
 /**
  * This replaces the bundle-parity gate `public/locales/` used to need (#198).
@@ -166,7 +166,10 @@ describe('the tab list the widget reads', () => {
     // without ever being requested at runtime.
     expect(Object.keys(TRANSLATION_SELECT).sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())
 
-    const script = readFileSync(join(SRC_DIR, '../scripts/sync-translations.mjs'), 'utf8')
+    const script = readFileSync(
+      fileURLToPath(new URL('../../scripts/sync-translations.mjs', import.meta.url)),
+      'utf8',
+    )
     const tabs = arrayLiterals(script, 'const WIDGET_TABS[^=]*=')
 
     expect(tabs.sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())

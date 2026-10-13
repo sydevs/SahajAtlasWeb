@@ -378,17 +378,15 @@ were not interchangeable, so a tenth would inherit whichever one its author copi
 (`src/test-support/source-ast.ts`) for the two specs that parse. **`grep -rln readdirSync src/`
 naming anything else means a walk grew back.**
 
-⚠ **The scopes did not merge, and must not.** The nine cover seven different file sets,
-and every difference is load-bearing: a story IS one of the two sanctioned viewport callers, a
-story is NOT the app using a lucide glyph, a generated declaration has no call sites. So each
-spec passes its own `sourceFiles({…})` options beside the assertions they serve, and
-`source-tree.test.ts` pins every option as biting in both directions — a scope that silently
-stopped matching would make all nine pass by vacuum.
+⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
+`source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
+options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
+in both directions, because a scope that silently stopped matching would make all nine closed
+lists pass by vacuum.
 
-**This changed one walk implementation, not nine walks.** Vitest gives each spec file its own
-module registry, so the memos are per-file and the tree is still read once per spec. Measured
-2026-10-13, median of three on 4 cores: **28.6s before, 28.8s after** — no change, which is
-what to expect. The lane's cost is #285.
+**This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module
+registry, so the memos are per-file and the tree is still read once per spec — do not expect a
+faster lane from it, and do not "fix" the memos to chase one. The lane's cost is #285.
 
 ## Type-checking & the edit-loop hook
 

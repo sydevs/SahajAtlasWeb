@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
 import { describe, expect, it } from 'vitest'
 
 import { readSource, sourceFiles } from '@/test-support/source-tree'
@@ -25,9 +22,8 @@ import { readSource, sourceFiles } from '@/test-support/source-tree'
  * test exists to keep out.
  */
 
-const STORY = fileURLToPath(new URL('./Icons.stories.tsx', import.meta.url))
+const STORY = 'components/atoms/Icons/Icons.stories.tsx'
 
-/** Every `.ts`/`.tsx` under `src/` that is app code rather than a story, a spec or a declaration. */
 const APP_FILES = sourceFiles({ includeDeclarations: false })
 
 /** The icon names a file imports from lucide-react, ignoring the `LucideIcon` type. */
@@ -52,7 +48,7 @@ describe('the Icons story gallery matches what the app actually renders', () => 
   const used = new Set(APP_FILES.flatMap((path) => lucideImports(readSource(path))))
 
   // The gallery's own list, read out of the story's ICONS table.
-  const story = readFileSync(STORY, 'utf8')
+  const story = readSource(STORY)
   const gallery = new Set(
     [...story.matchAll(/\{ name: '([A-Za-z]+)', Icon: [A-Za-z]+ \}/g)].map((m) => m[1]),
   )

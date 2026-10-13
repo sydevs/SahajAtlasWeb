@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { WIDE_MIN_PX } from './responsive'
 
-import { readSourceWithoutComments, sourceFiles } from '@/test-support/source-tree'
+import { readSourceWithoutComments as read, sourceFiles } from '@/test-support/source-tree'
 
 // This makes the decision table of issue #107 executable.
 //
@@ -20,7 +20,6 @@ import { readSourceWithoutComments, sourceFiles } from '@/test-support/source-tr
 // Without that, documenting the rule breaks it.
 // The sentence "resize past the 768px crossing" in a story's docblock reddened the lane as a second hardcoded crossing.
 // A comment naming `useIsWideViewport` would also have been read as a call site.
-const read = readSourceWithoutComments
 
 // Stories stay in scope: one of the two sanctioned viewport callers below IS a story.
 const SOURCE_FILES = sourceFiles({ includeStories: true })

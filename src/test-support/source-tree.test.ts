@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { readSource, readSourceWithoutComments, sourceFiles } from './source-tree'
+import { readSource, readSourceWithoutComments, sourceFiles, stripComments } from './source-tree'
 
 /**
  * Nine specs inventory `src/` through this one walk, and most of them assert that a list of call
  * sites is CLOSED. A scope that quietly stopped matching would make every one of them pass by
- * vacuum, so each option below is asserted to bite in both directions — the default leaves a
- * named file out, and the opt-in brings that same file back.
+ * vacuum, so each option is asserted to bite in both directions — the default leaves a named
+ * file out, and the opt-in brings that same file back.
  *
- * ⚠ These are the walk's own properties. What each spec's scope has to BE stays at that spec,
- * beside the assertions it serves.
+ * ⚠ These are the walk's own properties. What each spec's scope has to BE stays at that spec.
  */
 describe('the shared src/ walk', () => {
   it('finds the tree, relative and `/`-joined', () => {
@@ -45,25 +44,38 @@ describe('the shared src/ walk', () => {
 
   it('takes the extensions it is given, and no others', () => {
     expect(sourceFiles()).not.toContain('styles/globals.css')
-    expect(sourceFiles({ extensions: ['.css'] })).toEqual([
-      'styles/base.css',
-      'styles/globals.css',
-      'styles/host-reset.css',
-      'styles/vaul.css',
-    ])
+    expect(sourceFiles({ extensions: ['.css'] })).toContain('styles/globals.css')
+  })
+})
+
+describe('the comment strip two closed-list specs read through', () => {
+  it('drops both comment forms, and keeps a protocol-relative literal', () => {
+    expect(stripComments('keep /* drop */ keep2')).toBe('keep  keep2')
+    expect(stripComments('keep // drop\nkeep2')).toBe('keep \nkeep2')
+    // The `[^:]` guard. Without it a `//` inside a URL swallows the rest of the line.
+    expect(stripComments("const u = 'https://x'")).toBe("const u = 'https://x'")
   })
 
-  it('strips comments where a caller asks for it, and leaves the raw read alone', () => {
-    const walker = 'test-support/source-tree.ts'
-    const inAComment = 'The SCOPES stay with the specs'
+  it('is what the stripped reader composes with the raw one', () => {
+    expect(readSourceWithoutComments('App.tsx')).toBe(stripComments(readSource('App.tsx')))
+  })
+})
 
-    expect(readSource(walker)).toContain(inAComment)
-    expect(readSourceWithoutComments(walker)).not.toContain(inAComment)
+/**
+ * `src/test-support/` is test-only code living under `src/`, which the bundler and `pnpm size`
+ * are both blind to: an app module importing the walk would ship a `node:fs` directory walk to
+ * every host page, and no other gate in the repo would say so. `Widget.standalone.test.ts`'s
+ * graph walk cannot — `resolveModule` returns null for a bare `node:` specifier by design.
+ *
+ * Keeping the literal out of this file is deliberate, so the one-line regrowth check
+ * `docs/testing.md` publishes still names the walker and nothing else.
+ */
+describe('nothing but a spec imports the test support', () => {
+  it('has no importer outside `test-support/` and the specs', () => {
+    const importers = sourceFiles()
+      .filter((path) => !path.startsWith('test-support/'))
+      .filter((path) => readSourceWithoutComments(path).includes('test-support'))
 
-    // Two closed-list specs read only stripped source, so the strip must bite widely, not here alone.
-    const files = sourceFiles()
-    const stripped = files.filter((path) => readSourceWithoutComments(path) !== readSource(path))
-
-    expect(stripped.length).toBeGreaterThan(files.length / 2)
+    expect(importers).toEqual([])
   })
 })

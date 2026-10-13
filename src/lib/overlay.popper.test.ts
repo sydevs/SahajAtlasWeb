@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { readSource, readSourceWithoutComments, sourceFiles } from '@/test-support/source-tree'
+import {
+  readSource as readRaw,
+  readSourceWithoutComments as read,
+  sourceFiles,
+} from '@/test-support/source-tree'
 
 /**
  * Every Radix popper surface is bounded by the frame (issue #169), as a CLOSED list.
@@ -24,10 +28,6 @@ import { readSource, readSourceWithoutComments, sourceFiles } from '@/test-suppo
 // list is wrong in the most confusing way: `atoms/Dropdown` renders Floating UI and merely NAMES
 // `@radix-ui/react-dropdown-menu` in a docblock recommending it for menus — which the first
 // version of this spec read as a fifth popper. Same fix, same reason, as `responsive.test.ts`.
-const read = readSourceWithoutComments
-
-/** The raw text, for the one assertion that is ABOUT a file not naming something. */
-const readRaw = readSource
 
 const SOURCE_FILES = sourceFiles()
 
@@ -73,7 +73,7 @@ describe('Radix poppers are bounded by the frame', () => {
 
   it('leaves Floating UI alone, which already respects the frame', () => {
     // `clippingAncestors` is Floating UI's own default, so these need no boundary — and passing
-    // one would be a second, weaker definition of the same thing. Raw text here on purpose: this
+    // one would be a second, weaker definition of the same thing. `readRaw` on purpose: this
     // asserts an ABSENCE, so a mention in a comment is worth catching too.
     expect(readRaw('components/atoms/Dropdown/Dropdown.tsx')).not.toContain('frameCollision')
     expect(readRaw('hooks/use-popover.ts')).not.toContain('frameCollision')

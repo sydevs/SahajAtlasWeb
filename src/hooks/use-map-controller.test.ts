@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { readSource, sourceFiles } from '@/test-support/source-tree'
+import { readSource as read, sourceFiles } from '@/test-support/source-tree'
 
 // The drawer's width lives in two places that cannot reference each other.
 // One is `DRAWER_W_PX` in `use-map-controller-real.tsx`, which becomes the map's LEFT CAMERA PADDING, so the map knows how much of itself the panel covers.
@@ -16,7 +16,6 @@ import { readSource, sourceFiles } from '@/test-support/source-tree'
 // This reads the files, instead of importing the hook.
 // The constants are module-private, and exporting them purely for a test would widen the module's surface for no runtime reason.
 // Importing the hook would also drag React, turf, and the mapbox hooks into the node lane.
-const read = readSource
 
 // This discovers the sites, instead of listing them.
 // A hardcoded list would miss a fallback added to a new file, precisely the failure mode this replaces.
