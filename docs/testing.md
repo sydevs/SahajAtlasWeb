@@ -98,8 +98,13 @@ Two findings sit behind that script, worth keeping so nobody re-derives them:
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the three `public/` files that only Cloudflare Pages executes — `_redirects`,
-`_headers`, `robots.txt`. Those are inert text in the repo, so no local gate can prove they work.
+It also covers the `public/` files only the platform executes: `_headers` and `robots.txt` on both
+sites, and `_redirects` on the Pages app alone — the design Worker gets its SPA fallback from
+`assets.not_found_handling` instead (#279). Those are inert text in the repo, so no local gate can
+prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
+here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
+overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
+cannot be that mechanism.
 `robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
 claim about platform behaviour, asserted rather than left as a comment.
 
@@ -218,12 +223,10 @@ alert. The lane's last step opens an issue instead, and three things about it ar
 
 No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
 10 of the 16 fail against the Ladle playground, so the lane is not vacuously green. ⚠ **The
-playground half of that measurement is owed a re-run.** It was taken against
-`sahajatlas-design.pages.dev`, and #279 moved the playground to a Workers static-assets Worker at
-`design.sahajatlas.com` and deleted the Pages project, so the address it names is gone. The
-negative control is now `PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, and its
-number lands here and in #266 when a person runs it — the platform differs, so the old 10 cannot
-simply be carried across. Do not quote a figure this file has not recorded.
+playground half of that measurement is owed a re-run**, against
+`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke` (#279). The old 10 cannot be carried
+across: it was measured on Pages, and the playground now serves from a Worker whose header
+defaults differ. Its number lands here and in #266 when a person runs it.
 
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all

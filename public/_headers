@@ -1,13 +1,14 @@
 # Cloudflare reads this from the build output (like public/_redirects) — from dist/ on the
-# Pages app, and from build/ on the design Worker.
+# Pages app, and from build/ on the design Worker. CORS and the indexing policy are set once,
+# site-wide, at the bottom; these three rules carry Cache-Control only.
 #
 # Everything Vite emits under /assets/ is content-hashed, so the long immutable cache is
 # safe — a change ships under a new URL. `embed.js` deliberately sits outside this rule at
-# the dist root: it is the one stable URL hosts hardcode, and it must stay revalidated.
+# the output root: it is the one stable URL hosts hardcode, and it must stay revalidated.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The two unhashed entry files at the dist root (#148). Everything above is
+# The two unhashed entry files at the output root (#148). Everything above is
 # content-hashed and so may be cached forever; these carry stable names precisely so hosts
 # can hardcode them, which means the CDN must revalidate instead.
 #
@@ -21,9 +22,7 @@
 # against.
 #
 # `max-age=0, must-revalidate` rather than `no-store`: a conditional request that answers 304
-# is cheap, and it keeps the browser cache useful while making staleness impossible. CORS
-# reaches these two through the site-wide rule at the bottom, which is the only place it may
-# be set — see that rule for why.
+# is cheap, and it keeps the browser cache useful while making staleness impossible.
 /auto.js
   Cache-Control: public, max-age=0, must-revalidate
 
@@ -31,41 +30,34 @@
   Cache-Control: public, max-age=0, must-revalidate
 
 
-# The site-wide rule, and the ONLY place Access-Control-Allow-Origin may be set.
+# CORS. The widget is embedded in OTHER sites, so everything it loads at runtime is a
+# cross-origin request from the host page's point of view. A font is always fetched in CORS
+# mode, so without this header the self-hosted Raleway silently fails to render (issue #91);
+# a `type="module"` script is fetched that way too. sydevs/SahajCloud#913 depends on a
+# library's assets staying readable cross-origin.
 #
-# CORS, first. The widget is embedded in OTHER sites, so everything it loads at runtime is a
-# cross-origin request from the host page's point of view. Fonts are the strict case: a font
-# is always fetched in CORS mode, so a missing Access-Control-Allow-Origin means the
-# self-hosted Raleway silently fails to render (issue #91). A `type="module"` script is
-# fetched in CORS mode too, which is why the two unhashed entry files need it as well.
+# Cloudflare Pages adds `access-control-allow-origin: *` to every static asset by itself.
+# Workers static assets add none. So this rule is what makes the playground work, and the
+# reason a rendering requirement is not left resting on a platform default.
 #
-# This is a RENDERING REQUIREMENT, not a nicety, and it is stated here because the platform
-# default differs by platform. Cloudflare Pages adds `access-control-allow-origin: *` to
-# every static asset by itself; Workers static assets add none — their only defaults are
-# Content-Type, Cache-Control, ETag and CF-Cache-Status. So on the Pages app this rule
-# changes no observable behaviour, and on the design Worker it is the whole of CORS.
-# sydevs/SahajCloud#913 depends on a library's assets staying readable cross-origin.
+# ⚠ EXACTLY ONE rule may set Access-Control-Allow-Origin. Both platforms apply EVERY matching
+# rule and join repeated values with a comma, so a second ACAO rule would serve
+# `Access-Control-Allow-Origin: *, *` — invalid, and #91 again. `scripts/deploy-headers.test.ts`
+# holds this, for every header name, before a deploy. The smoke lane only observes the
+# symptom, on two URLs, after one.
 #
-# ⚠ EXACTLY ONE ACAO rule may match any given path. Both platforms apply EVERY matching rule
-# and join repeated values with a comma, so a second ACAO rule anywhere above would serve
-# `Access-Control-Allow-Origin: *, *` on /assets/*, /auto.js and /embed.js — an invalid value
-# that re-opens #91. `tests/smoke/cache-headers.smoke.test.ts` asserts the value is exactly
-# `*`, so a comma-joined one fails a live spec rather than shipping. This is why the three
-# rules above carry Cache-Control only.
-#
-# Indexing, second (issue #106). The policy and the robots.txt interaction are written down
-# once, in public/robots.txt; what follows is only why this half exists.
+# Indexing (issue #106). The policy and the robots.txt interaction are written down once, in
+# public/robots.txt; what follows is only why this half exists.
 #
 # A HEADER reaches what a <meta> cannot. index.html's tag covers every ROUTE (`_redirects`
-# rewrites unknown paths to that shell), but the three root entry files and the hashed assets
-# are each a fetchable URL with no document to carry a tag. This covers all of them.
+# rewrites unknown paths to that shell on the Pages app, `assets.not_found_handling` on the
+# Worker), but the root entry files and the hashed assets are each a fetchable URL with no
+# document to carry a tag. This covers all of them.
 #
 # It cannot leak into a host page's own indexing: X-Robots-Tag governs the URL it is served
 # on, and a directive on a subresource says nothing about the document embedding it.
 # `noindex` alone, deliberately — no `nofollow`, because the canonicals point at WeMeditate
 # and there is no reason to stop a crawler following them there.
-#
-# Ordered last for reading only: this rule and the three above set disjoint header NAMES.
 /*
   Access-Control-Allow-Origin: *
   X-Robots-Tag: noindex

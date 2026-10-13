@@ -51,6 +51,10 @@ describe('pick', () => {
     expect(pick([`https://${HOST}@evil.com/`], HOST)).toBeNull()
   })
 
+  // ⚠ Keep the match at the worker-name label, never a domain suffix. A Workers preview host
+  // is `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas-design` contains
+  // `sahajatlas` as a prefix just as this Pages host does — so a suffix match would let the
+  // playground's deploy pass for the app's once #266 brings Workers hosts through here.
   it('refuses the sibling Ladle project, whose deploy is not what we smoke-test', () => {
     expect(pick(['https://abc.sahajatlas-design.pages.dev'], HOST)).toBeNull()
   })
