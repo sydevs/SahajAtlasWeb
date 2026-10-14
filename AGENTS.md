@@ -91,6 +91,7 @@ Permissions Policy table holds the specifics.
 ```bash
 pnpm dev          # Vite dev server (http://localhost:5174)
 pnpm build        # tsc (typecheck) + vite build → dist/ + assert:css + assert:maps
+pnpm build:worker # pnpm build, minus dist/_redirects — the app Worker's Builds command (#280)
 pnpm preview      # serve the production build locally
 pnpm typecheck    # tsc --noEmit (app + tests/scripts via tsconfig.test.json)
 pnpm lint         # eslint . --max-warnings 0 (CI gate — fails on any warning)
