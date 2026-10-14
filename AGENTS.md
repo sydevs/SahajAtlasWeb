@@ -113,7 +113,8 @@ typecheck, `test:run`, build, `pnpm size`, `ladle:build`, and `pnpm check:wrangl
 Dependency Review job.
 Smoke runs separately, and the same specs read production on each deploy
 (`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
-A PostToolUse hook runs the unit lane on `src/**` edits.
+A PostToolUse hook runs the specs one `src/**` or `scripts/**` edit can break, under the per-edit
+budget in `docs/testing.md`.
 
 Four CI gates exist because each one once missed something, unnoticed (#99). Each is
 built so passing proves something real:

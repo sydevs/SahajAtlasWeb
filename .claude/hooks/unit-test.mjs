@@ -3,15 +3,18 @@
 /**
  * Unit Test Hook (PostToolUse / Edit|Write)
  *
- * Runs the fast unit lane (`pnpm test:run`) after editing a source file or a
- * co-located spec, giving sub-second feedback while editing. Silent on success;
- * surfaces a short failure tail as NON-blocking context when a spec breaks (it
- * informs rather than aborting the edit). Tier 1 of the testing strategy — see
- * `docs/testing.md`.
+ * Runs the specs one edit can break after editing a source file or a co-located spec.
+ * Silent on success; surfaces a short failure tail as NON-blocking context when a spec
+ * breaks (it informs rather than aborting the edit). Tier 1 of the testing strategy — see
+ * `docs/testing.md`, which states the budget this has to run inside and what the selection
+ * deliberately does not reach. The whole lane still runs in the lean gate and in CI.
  */
 
-import { readFileSync } from 'fs'
 import { spawnSync } from 'child_process'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+import { REPO_ROOT, selectSpecs } from '../../scripts/select-unit-specs.mjs'
 
 let input
 try {
@@ -22,17 +25,19 @@ try {
 
 // Claude Code nests the path under tool_input.file_path; tolerate a top-level fallback.
 const filePath = input?.tool_input?.file_path ?? input?.filePath ?? ''
-const projectDir = process.env.CLAUDE_PROJECT_DIR || ''
+const projectDir = process.env.CLAUDE_PROJECT_DIR || REPO_ROOT
 const rel = filePath.startsWith(projectDir + '/') ? filePath.slice(projectDir.length + 1) : filePath
 
-// Co-located specs live under src/ (`*.test.ts(x)` included). Skip Ladle stories
-// (not covered by the unit lane) and anything outside src/.
-if (!/^src\/.*\.(ts|tsx)$/.test(rel) || /\.stories\.(ts|tsx)$/.test(rel)) {
+// Empty for a Ladle story, a path outside src/, or a tree with no specs in it.
+const specs = selectSpecs(rel, projectDir)
+if (specs.length === 0) {
   process.exit(0)
 }
 
-const res = spawnSync('pnpm', ['test:run'], {
-  cwd: projectDir || process.cwd(),
+// The binary, not `pnpm test:run`: pnpm's script indirection measures ~0.5s, which is 5% of a
+// budget stated in seconds. A missing binary exits null below, the same as a failed spawn.
+const res = spawnSync(join(projectDir, 'node_modules/.bin/vitest'), ['run', ...specs], {
+  cwd: projectDir,
   encoding: 'utf-8',
   timeout: 60_000,
 })
