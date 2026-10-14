@@ -1,7 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
-
 import { describe, expect, it } from 'vitest'
+
+import { readSource, sourceFiles } from '@/test-support/source-tree'
 
 /**
  * Where `announceEmbed` is called from is the guarantee, not a detail — so it is pinned here the
@@ -24,26 +23,13 @@ import { describe, expect, it } from 'vitest'
  * A pure spec cannot see any of that, and a browser check is a one-off. This asserts the shape
  * that keeps it true.
  */
-const SRC = new URL('..', import.meta.url).pathname
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name)
-
-    if (entry.isDirectory()) return sourceFiles(path)
-    if (!/\.tsx?$/.test(entry.name) || /\.test\.tsx?$/.test(entry.name)) return []
-
-    return [path]
-  })
-}
 
 /** The module that declares it — its own signature is not a call site. */
 const DEFINITION = 'lib/embed-announce.ts'
 
 describe('the announce call site', () => {
-  const callers = sourceFiles(SRC)
-    .filter((path) => /\bannounceEmbed\s*\(/.test(readFileSync(path, 'utf8')))
-    .map((path) => path.slice(SRC.length))
+  const callers = sourceFiles({ includeStories: true })
+    .filter((path) => /\bannounceEmbed\s*\(/.test(readSource(path)))
     .filter((path) => path !== DEFINITION)
     .sort()
 
@@ -57,7 +43,7 @@ describe('the announce call site', () => {
    * the routing DOWN — that is `mountDecision`'s answer travelling to the component that attests it.
    */
   it('is not the widget root, which sits above the boundary', () => {
-    const widget = readFileSync(join(SRC, 'Widget.tsx'), 'utf8')
+    const widget = readSource('Widget.tsx')
 
     expect(widget).not.toMatch(/\bannounceEmbed\s*\(/)
     expect(widget).toMatch(/routing=\{attested\}/)
@@ -66,7 +52,7 @@ describe('the announce call site', () => {
   // The other half of the pair: the two boundaries that replace the whole widget take the marker
   // back down. A drawer boundary deliberately does not — see the comment in App.tsx.
   it('clears the marker from both widget-level boundaries', () => {
-    const app = readFileSync(join(SRC, 'App.tsx'), 'utf8')
+    const app = readSource('App.tsx')
 
     expect(app.match(/clearReadiness/g) ?? []).toHaveLength(3)
   })

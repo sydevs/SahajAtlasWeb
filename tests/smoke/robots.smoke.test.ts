@@ -65,14 +65,14 @@ describe('indexing directives', () => {
   })
 
   test.skipIf(skipWithoutPreview)('adds the header without displacing the CORS rules', async () => {
-    // This is the regression this change could realistically cause. `_headers` already
-    // carried CORS rules (issue #91: a font always fetches in CORS mode), and adding the `/*`
-    // rule is safe only because Pages applies every matching rule. This test asserts that fact
-    // instead of trusting the comment in `_headers`.
+    // This is the regression this change could realistically cause. CORS is a rendering
+    // requirement (issue #91: a font always fetches in CORS mode), and the `/*` rule now
+    // carries both it and the noindex header. This test asserts that one rule really serves
+    // both, instead of trusting the comment in `_headers`.
     //
     // It pins `embed.js` since #198 removed the `/locales/*` rule this used to read. That is
-    // the better subject anyway: it is the one file every host loads by a hardcoded URL, and it
-    // carries both a CORS rule and a cache rule that the `/*` rule could displace.
+    // the better subject anyway: it is the one file every host loads by a hardcoded URL, and
+    // its own rule's `Cache-Control` is what the `/*` rule could displace.
     const res = await fetchPreview('/embed.js')
 
     expect(res.headers.get('access-control-allow-origin')).toBe('*')

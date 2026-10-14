@@ -1,8 +1,10 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { describe, expect, it } from 'vitest'
+
+import {
+  readSource as readRaw,
+  readSourceWithoutComments as read,
+  sourceFiles,
+} from '@/test-support/source-tree'
 
 /**
  * Every Radix popper surface is bounded by the frame (issue #169), as a CLOSED list.
@@ -22,24 +24,12 @@ import { describe, expect, it } from 'vitest'
  * Same shape as `href.test.ts` pinning the app's three JSX anchors, and for the same reason.
  */
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
-
-// Comments are stripped before every scan, so these assertions are about CODE. Without it the
+// Every scan reads comment-stripped source, so these assertions are about CODE. Without it the
 // list is wrong in the most confusing way: `atoms/Dropdown` renders Floating UI and merely NAMES
 // `@radix-ui/react-dropdown-menu` in a docblock recommending it for menus — which the first
 // version of this spec read as a fifth popper. Same fix, same reason, as `responsive.test.ts`.
-const stripComments = (source: string) =>
-  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 
-const read = (relative: string) => stripComments(readFileSync(join(SRC, relative), 'utf8'))
-
-/** The raw text, for the one assertion that is ABOUT a file not naming something. */
-const readRaw = (relative: string) => readFileSync(join(SRC, relative), 'utf8')
-
-const SOURCE_FILES = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
-  .map((relative) => relative.split(sep).join('/'))
-  .filter((relative) => /\.tsx?$/.test(relative))
-  .filter((relative) => !/\.(test|stories)\.tsx?$/.test(relative))
+const SOURCE_FILES = sourceFiles()
 
 /**
  * The Radix primitives that position a floating surface with the shared popper.
@@ -83,7 +73,7 @@ describe('Radix poppers are bounded by the frame', () => {
 
   it('leaves Floating UI alone, which already respects the frame', () => {
     // `clippingAncestors` is Floating UI's own default, so these need no boundary — and passing
-    // one would be a second, weaker definition of the same thing. Raw text here on purpose: this
+    // one would be a second, weaker definition of the same thing. `readRaw` on purpose: this
     // asserts an ABSENCE, so a mention in a comment is worth catching too.
     expect(readRaw('components/atoms/Dropdown/Dropdown.tsx')).not.toContain('frameCollision')
     expect(readRaw('hooks/use-popover.ts')).not.toContain('frameCollision')

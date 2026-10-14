@@ -4,4 +4,6 @@
 # index.html and let the client router resolve the route. Vite copies this
 # file from public/ to dist/, where Cloudflare Pages reads it.
 # (Replaces the old vercel.json rewrite — Cloudflare ignores vercel.json.)
+# ⚠ Pages only. Workers static assets reject this rule as an infinite loop and
+# fail the deploy, so `pnpm ladle:build` deletes this file from build/ (#279).
 /*  /index.html  200

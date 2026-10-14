@@ -1,11 +1,10 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 import { hasAllowedScheme, isSafeHref } from './href'
+
+import { parseSource } from '@/test-support/source-ast'
+import { readSource, sourceFiles } from '@/test-support/source-tree'
 
 // The sink-level gate for every caller-supplied `<a href>` in the app (issue #114). These
 // cases are the reason the predicate is one function in one place: each recurrence it
@@ -130,8 +129,6 @@ describe('hasAllowedScheme', () => {
 // so it is executable here instead. Precedent: `config/i18n-options.test.ts`
 // pins the locale directories the same way.
 describe('the JSX anchor inventory', () => {
-  const srcDir = fileURLToPath(new URL('../../', import.meta.url))
-
   const GATED_ANCHORS = [
     'components/atoms/Button/Button.tsx',
     'components/atoms/Link/Link.tsx',
@@ -141,15 +138,7 @@ describe('the JSX anchor inventory', () => {
   // Only `.tsx` — JSX is the sink this predicate guards. `lexicalToHtml` (`lexical.ts`) also
   // emits `<a href>`, but as an HTML *string* sanitized by DOMPurify downstream: a different
   // sink with a different mechanism, deliberately out of this inventory.
-  const sources = readdirSync(srcDir, { recursive: true, withFileTypes: true })
-    .filter(
-      (entry) =>
-        entry.isFile() &&
-        entry.name.endsWith('.tsx') &&
-        !entry.name.includes('.test.') &&
-        !entry.name.includes('.stories.'),
-    )
-    .map((entry) => relative(srcDir, join(entry.parentPath, entry.name)).split(sep).join('/'))
+  const sources = sourceFiles({ extensions: ['.tsx'] })
 
   // This is parsed, not grepped. A regex over the raw text has to strip
   // comments first, and every cheap way of doing that has a false pass in
@@ -157,14 +146,8 @@ describe('the JSX anchor inventory', () => {
   // everything up to the next docblock, hiding a real anchor from the one
   // test whose whole job is to find it. `typescript` is already a
   // devDependency.
-  const rendersJsxAnchor = (source: string, fileName: string): boolean => {
-    const parsed = ts.createSourceFile(
-      fileName,
-      source,
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    )
+  const rendersJsxAnchor = (path: string): boolean => {
+    const parsed = parseSource(path)
     let found = false
 
     const visit = (node: ts.Node): void => {
@@ -194,9 +177,7 @@ describe('the JSX anchor inventory', () => {
   })
 
   it('is exactly the three components that call isSafeHref', () => {
-    const withAnchor = sources.filter((path) =>
-      rendersJsxAnchor(readFileSync(join(srcDir, path), 'utf8'), path),
-    )
+    const withAnchor = sources.filter(rendersJsxAnchor)
 
     // A fourth file here renders an anchor. Route its href through
     // `isSafeHref` (`lib/shape/href.ts`), then add it below. Adding it below
@@ -212,7 +193,7 @@ describe('the JSX anchor inventory', () => {
 
   it('has every one of them importing and calling the shared gate', () => {
     for (const path of GATED_ANCHORS) {
-      const source = readFileSync(join(srcDir, path), 'utf8')
+      const source = readSource(path)
 
       // The import, not just the name — otherwise prose mentioning `isSafeHref` satisfies it.
       expect(source).toMatch(/import\s*\{[^}]*\bisSafeHref\b[^}]*\}\s*from/)

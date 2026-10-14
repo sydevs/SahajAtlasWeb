@@ -44,8 +44,11 @@ experience, with a country → region → area → venue → event hierarchy.
   Other reference docs live in `docs/*.md`. Read the guide for a subsystem before you
   edit it.
 
-- **Commit messages** end with:
-  `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
+- **Commit messages** end with two attribution trailers: `Co-Authored-By:` naming the model that
+  wrote the commit, then `Claude-Session:` linking the session. This file deliberately pins
+  neither — the model name is whichever one ran, so a fixed one here goes stale at the next
+  release, and did. Take both lines from the session's own attribution, or read them off
+  `git log` when unsure.
 
 ## Project overview
 
@@ -62,7 +65,7 @@ experience, with a country → region → area → venue → event hierarchy.
 | Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid. Our own header replaces SX's, via the `calendar-controls` plugin. |
 | Misc | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets). |
 | Embedding | `@r2wc/react-to-web-component` (`src/Widget.tsx`). CSS injects via JS for shadow-free embedding. |
-| Deploy | **Cloudflare Pages** — `sahajatlas` (app) plus `sahajatlas-design` (Ladle). SPA fallback via `public/_redirects`, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
+| Deploy | **Cloudflare**, Pages and Workers — see Deployment below (#266, #279, #280). Deep-link fallback via `public/_redirects` on Pages and `assets.not_found_handling` on a Worker, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
 
 The app also runs standalone in dev (`index.html` → `src/main.tsx`). The embeddable
 entry is `src/Widget.tsx` (demo in `demo.html`).
@@ -88,6 +91,7 @@ Permissions Policy table holds the specifics.
 ```bash
 pnpm dev          # Vite dev server (http://localhost:5174)
 pnpm build        # tsc (typecheck) + vite build → dist/ + assert:css + assert:maps
+pnpm build:worker # pnpm build, minus dist/_redirects — the app Worker's Builds command (#280)
 pnpm preview      # serve the production build locally
 pnpm typecheck    # tsc --noEmit (app + tests/scripts via tsconfig.test.json)
 pnpm lint         # eslint . --max-warnings 0 (CI gate — fails on any warning)
@@ -99,18 +103,20 @@ pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm ladle        # Ladle component previews (http://localhost:61000)
 pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
+pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
 ```
 
 Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted via
 `renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against the Cloudflare
 preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on lint,
-typecheck, `test:run`, build, `pnpm size`, and `ladle:build`, plus a Dependency Review job.
+typecheck, `test:run`, build, `pnpm size`, `ladle:build`, and `pnpm check:wrangler`, plus a
+Dependency Review job.
 Smoke runs separately, and the same specs read production on each deploy
 (`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
 A PostToolUse hook runs the specs one `src/**` or `scripts/**` edit can break, under the per-edit
 budget in `docs/testing.md`.
 
-Three CI gates exist because each one once missed something, unnoticed (#99). Each is
+Four CI gates exist because each one once missed something, unnoticed (#99). Each is
 built so passing proves something real:
 
 - **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the gzipped eager payload —
@@ -132,6 +138,18 @@ built so passing proves something real:
   PRs at once when a new advisory landed on `main` (#233, #237, #243, #248).
 - **A green Smoke check means the specs ran.** A missing Cloudflare preview annotates the
   run, and fails it outright on same-repo PRs. Forks keep the graceful skip.
+- **`pnpm check:wrangler`** (`wrangler deploy --dry-run`) reads `wrangler.jsonc` and
+  `wrangler.design.jsonc`, which nothing else in this repo deploys from — Workers Builds holds
+  the dashboard's copy of each path. So a rename, a typo, or an `assets.directory` that drifts
+  from what `pnpm build` or `ladle:build` writes would surface only in a Cloudflare build log,
+  on `main` (#279, #280). It is also what makes the pinned `wrangler` devDependency
+  load-bearing rather than autocomplete.
+  ⚠ **Each half fails unless its output directory already exists** — `dist/` for the app,
+  `build/` for the playground — because the dry run checks the assets directory, which is the
+  drift case worth catching. Run `pnpm build` and `pnpm ladle:build` first; cold, the failure
+  names a missing directory and reads like a broken gate.
+  `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
+  dry-runs one of them exits 0.
 
 ## Code quality
 
@@ -172,6 +190,10 @@ src/
                       # error narrowing (errorMessage, classifyError, atlasError,
                       # reportInternalError). Failure KIND is domain — its copy and
                       # buttons are UI, so ERROR_POLICY lives with the fallbacks
+  test-support/       # Imported by specs only, and one spec asserts that. source-tree.ts = the
+                      # ONE walk of `src/` behind every spec that inventories the source, plus
+                      # its memoised reads and the comment strip; source-ast.ts = the memoised
+                      # `ts.SourceFile`. Each spec states its own scope (#286)
   types/              # zod schemas + inferred types per entity
                       # config/translations.en.json = the committed English snapshot of
                       # SahajCloud's `sy-atlas-translations`, written by
@@ -268,38 +290,72 @@ secrets must never reach client code — the bundle is public.
 
 ## Deployment
 
-Two Cloudflare Pages projects deploy from this repo, both on the current Node 22 build
-image:
+**This is the one place the deploy topology is written down.** Everything else that mentions it
+points here. Two Cloudflare sites deploy from this repo, on **both platforms**, because the
+move to Workers proceeds one site at a time and the app's own cutover is split from building it
+(#266, #279, #280):
 
-- **`sahajatlas`** — the app. Builds with `pnpm build` into `dist/`, served at
-  `sahajatlas.pages.dev`.
-- **`sahajatlas-design`** — the Ladle component playground. Builds with
-  `pnpm ladle:build`, served at `sahajatlas-design.pages.dev`.
+- **`sahajatlas`, the app, builds to both platforms during the move.** One `pnpm build` into
+  `dist/` feeds each.
+  - On **Cloudflare Pages**, served at `sahajatlas.pages.dev` and at the custom domain
+    `sahajatlas.com`. The Cloudflare dashboard holds its build command and output directory,
+    not the repo, and it has no `_routes.json`. ⚠ **This is what a visitor gets**, until #266's
+    last child moves the domain and deletes the project.
+  - On **Workers static assets**, from `wrangler.jsonc`, served at its own `workers.dev` host
+    and nowhere a visitor goes. Same shape as the playground's config below, pointed at
+    `dist/`. Workers Builds holds the build command and the trigger's variables and branch
+    rules **per trigger**, not per project — which is what `docs/environment.md` works out
+    for each variable.
+- **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
+  Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
+  `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
+  `not_found_handling: "single-page-application"`, previews on. Workers Builds holds the
+  build command and the trigger's branch and path rules.
+  The Workers build image honours `.node-version` and `packageManager`: the first build
+  (2026-10-13) reported `nodejs@22.17.0, pnpm@9.15.0`, though its own defaults are newer.
+  ⚠ **Its branch rules take only a literal branch name or a lone `*`.** The API refuses
+  `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
+  show prefix wildcards — so unlike the Pages app, merge-queue and mockup branches do start
+  preview builds here (#266).
 
-The Cloudflare dashboard holds the build command and output directory, not the repo —
-there is no `wrangler` config or `_routes.json`. Three deploy files live in `public/`,
-and Pages reads all three from the build output:
+Three deploy files live in `public/`, copied into both build outputs. ⚠ **The two platforms do
+not read the same three.** `_headers` and `robots.txt` govern both sites; `_redirects` governs
+the Pages app alone:
 
 - **`_redirects`** (`/* /index.html 200`) — the SPA deep-link fallback for the standalone
-  `BrowserRouter` build. The embeddable widget routes off a query parameter instead, so
-  only the standalone build depends on this file.
-- **`_headers`** — CORS on `/assets/*` and the two unhashed entry files (#91: a font always
-  fetches in CORS mode), plus `X-Robots-Tag: noindex` on `/*` (#106). The `/locales/*` rule went
-  with the bundles in #198. Pages applies every matching rule, so a broad
-  rule never displaces a specific one.
+  `BrowserRouter` build, on the Pages app only. The embeddable widget routes off a query
+  parameter instead, so only the standalone build depends on this file. A Worker gets the
+  same behaviour from `assets.not_found_handling`.
+  ⚠ **Workers static assets do read `_redirects`, and reject this rule** as an infinite loop
+  (API code 100324) — the whole deploy fails. So `pnpm ladle:build` deletes it from `build/`.
+  `pnpm check:wrangler` cannot catch this, since the dry run never reaches the API.
+  ⚠ **The app cannot delete it in `pnpm build`**, because that one `dist/` is also what the
+  Pages project serving `sahajatlas.com` deploys, and Pages needs the line. So the app Worker
+  builds with **`pnpm build:worker`** — `pnpm build` plus the same `rm -f`, pointed at `dist/`
+  — and that, not `pnpm build`, is the Workers Builds build command for it (#280).
+  `scripts/wrangler-config.test.ts` pins the pairing, since nothing else reads it.
+- **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
+  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
+  unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.
+  ⚠ **No two rules may set the same header name on paths that overlap** — both platforms apply
+  every matching rule and comma-join a repeated value, so two would serve `<value>, <value>`.
+  `scripts/deploy-headers.test.ts` holds this before a deploy, and it is why CORS lives in one
+  rule only (#279). Pages adds CORS to every asset by itself; Workers static assets add none.
 - **`robots.txt`** — `Disallow: /`, with an allow-group for link-preview scrapers (#106).
   WeMeditate and the other embedding sites own search, and this build's canonicals point
   there. Read this file before you change any of the three.
 
 **`public/` is copied into both build outputs** — `dist/` from `pnpm build` and `build/`
-from `pnpm ladle:build` — so all three files also govern `sahajatlas-design`. That is
+from `pnpm ladle:build` — so all three files also govern both Workers. That is
 intentional: a component playground is no more a search surface than the app is. Do not
-edit one of the three files "for the app" only. Ladle generates its own `index.html`, so
-our `<meta robots>` tag never reaches the playground — the header covers it there instead.
+edit one of the three files "for the app" only — an edit has to hold on both platforms. Ladle
+generates its own `index.html`, so our
+`<meta robots>` tag never reaches the playground — the header covers it there instead.
 
-**Source maps are uploaded, then deleted — never deployed** (#130). The `/assets/*` CORS
-rule above is why: CORS-open plus a one-year immutable cache would publish this repo's
-source irrevocably, from a page we don't own, if a `.map` file ever shipped. So
+**Source maps are uploaded, then deleted — never deployed** (#130). The site-wide CORS rule
+above is why, together with `/assets/*`'s one-year immutable cache: CORS-open plus that cache
+would publish this repo's source irrevocably, from a page we don't own, if a `.map` file ever
+shipped. So
 `build.sourcemap` and `@sentry/vite-plugin` are both gated on `SENTRY_AUTH_TOKEN` — with
 no token, a build writes no maps at all (every local build, CI run, and fork build).
 `pnpm build` ends in `pnpm assert:maps` (`scripts/assert-no-sourcemaps.mjs`), a guarantee
@@ -326,12 +382,15 @@ Three facts to remember:
   emission, the non-fatal handler, deletion, and the gate are all proven on a runner
   first.
 
-The Sentry variables are dashboard-only. The runbook is in `docs/environment.md`.
+The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
+runbook is in `docs/environment.md`.
 
 CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
 (`.github/workflows/ci.yml`) and checks all of the above against the preview.
 
-Use the **cloudflare-docs** MCP for Cloudflare Pages questions.
+Use the **cloudflare-docs** MCP for Cloudflare Pages and Workers questions. ⚠ Its published
+docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one
+when they are silent (#279).
 
 This repo once ran two Accent translation workflows
 (`.github/workflows/{push,sync}-accent.yml`, `accent.json`). #99 deleted them: every run

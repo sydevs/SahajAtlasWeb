@@ -10,6 +10,7 @@ import {
   pick,
   pickPreview,
   provenanceOf,
+  runProject,
   timeoutFrom,
   timeoutStatus,
   waitingLine,
@@ -51,6 +52,10 @@ describe('pick', () => {
     expect(pick([`https://${HOST}@evil.com/`], HOST)).toBeNull()
   })
 
+  // ⚠ Keep the match at the worker-name label, never a domain suffix. A Workers preview host
+  // is `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas-design` contains
+  // `sahajatlas` as a prefix just as this Pages host does — so a suffix match would let the
+  // playground's deploy pass for the app's once #266 brings Workers hosts through here.
   it('refuses the sibling Ladle project, whose deploy is not what we smoke-test', () => {
     expect(pick(['https://abc.sahajatlas-design.pages.dev'], HOST)).toBeNull()
   })
@@ -365,6 +370,31 @@ describe('explain', () => {
     )
 
     for (const message of messages) expect(message).not.toMatch(/\d+m\d+s|\b\d+s\b/)
+  })
+})
+
+describe('runProject', () => {
+  // `wrangler.jsonc` names the app Worker `sahajatlas`, which is the Pages project's own name,
+  // and one Cloudflare App posts both runs on a commit. On the trailing slug alone each run was
+  // this project's, so a failed Worker build set `failure` for a healthy Pages preview — the one
+  // conclusion whose advice is that re-running cannot help.
+  it('claims the Pages run for this project and no other integration', () => {
+    expect(runProject('Cloudflare Pages: sahajatlas')).toBe('sahajatlas')
+    expect(runProject('Workers Builds: sahajatlas')).toBeNull()
+  })
+
+  // The sibling is still named, because source 3 counts it as evidence a deploy exists while
+  // refusing it as a conclusion. Its Worker run is neither.
+  it('names the sibling Pages project but not its Worker', () => {
+    expect(runProject('Cloudflare Pages: sahajatlas-design')).toBe('sahajatlas-design')
+    expect(runProject('Workers Builds: sahajatlas-design')).toBeNull()
+  })
+
+  it('claims nothing from a name it cannot read', () => {
+    expect(runProject('Deploy Preview: sahajatlas')).toBeNull()
+    expect(runProject('CI / Lint, typecheck, test')).toBeNull()
+    expect(runProject('')).toBeNull()
+    expect(runProject(undefined)).toBeNull()
   })
 })
 

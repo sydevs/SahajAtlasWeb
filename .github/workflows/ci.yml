@@ -43,6 +43,21 @@ jobs:
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
 
+      # Validates the design Worker's config against the pinned Wrangler's own schema.
+      # Nothing else in this repo reads `wrangler.design.jsonc` — Workers Builds holds the
+      # dashboard's copy of the path — so without this step a rename, a typo, or an
+      # `assets.directory` that drifts from what `ladle:build` writes would surface only in
+      # a Cloudflare build log, on main (#279).
+      #
+      # It must follow `ladle:build`: the dry run fails when `assets.directory` does not
+      # exist, which is exactly the drift worth catching, and `build/` is what that step
+      # writes. No credential and no network — `--dry-run` reaches neither, and metrics
+      # are off so a telemetry endpoint cannot make the gate flaky.
+      - name: Wrangler config (offline dry run)
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: pnpm check:wrangler
+
       # Exercises the credentialed source-map path (#130), with no network
       # call and no real secret. See AGENTS.md's "Deployment" section for
       # the full rationale.
@@ -108,7 +123,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CF_PROJECT: sahajatlas.pages.dev # the app's *.pages.dev host (not the sahajatlas-design Ladle playground)
+          CF_PROJECT: sahajatlas.pages.dev # the app's *.pages.dev host; the app is the only Pages project (#279)
         run: node scripts/get-cloudflare-preview-url.mjs
       - name: Run smoke specs against the preview
         if: ${{ steps.preview.outputs.preview_url != '' }}

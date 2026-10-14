@@ -10,9 +10,10 @@ Two lanes, kept separate so the fast one never touches the network:
 - `pnpm test` runs watch mode, for the inner loop. `pnpm test:run` runs once — for CI, the
   pre-PR gate, and the PostToolUse hook.
 - `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
-- CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, and `ladle:build`. A Dependency
-  Audit job and the smoke job run separately. The smoke job targets the deployed Cloudflare
-  preview.
+- CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
+  `check:wrangler` — which covers both Worker configs, and needs what the build steps write
+  before it (`AGENTS.md` → the CI gates). A Dependency Audit job and the smoke job run
+  separately. The smoke job targets the deployed Cloudflare preview.
 - The **same** smoke specs also run against production, fired by the deploy rather than by a PR
   (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
   below.
@@ -68,7 +69,10 @@ stays legible without opening the raw log.
 folding it into "a deploy exists" would send the reader to re-run a job that fails identically —
 training the exact habit this ticket set out to break. Evidence must come from the run matching
 `CF_PROJECT`'s own slug, not whichever run GitHub lists first — the `-design` sibling succeeding
-says nothing about the app's build.
+says nothing about the app's build. ⚠ **The slug alone is not that match**: `runProject` anchors
+the integration prefix too, because the app Worker carries the Pages project's own name, so
+`Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` both end in this project's slug
+and only the second one is this lane's (#280).
 
 Two findings sit behind that script, worth keeping so nobody re-derives them:
 
@@ -98,8 +102,14 @@ Two findings sit behind that script, worth keeping so nobody re-derives them:
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the three `public/` files that only Cloudflare Pages executes — `_redirects`,
-`_headers`, `robots.txt`. Those are inert text in the repo, so no local gate can prove they work.
+It also covers the `public/` files only the platform executes: `_headers`, `robots.txt` and
+`_redirects`. All three are read on **both** platforms, but a Worker rejects the splat outright
+rather than serving it, so each Worker build deletes that file and takes the fallback from
+`assets.not_found_handling` instead (#279, #280; `AGENTS.md` § Deployment owns the mechanism).
+Those are inert text in the repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
+here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
+overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
+cannot be that mechanism.
 `robots.smoke.test.ts` pins the #91 CORS headers against displacement by the #106 `/*` rule — a
 claim about platform behaviour, asserted rather than left as a comment.
 
@@ -160,7 +170,7 @@ gate reads can never carry Production's values. The `VITE_HOST` story above is t
 direction. A Production origin blanked by a dashboard edit is the same hole in the other, and
 running the PR gate more often closes neither.
 
-`.github/workflows/production-smoke.yml` runs these same 16 specs against production. Five things
+`.github/workflows/production-smoke.yml` runs these same 17 specs against production. Five things
 about it are deliberate:
 
 - **The deploy fires it, not the clock.** What the lane reads is deployed file *content*, which
@@ -216,8 +226,13 @@ alert. The lane's last step opens an issue instead, and three things about it ar
   production read, and a ticket claiming production is red when nothing read it is worse than no
   ticket. `ci-workflows.test.ts` pins that gate and the token, since both fail silently.
 
-No spec is scoped by environment. Measured 2026-10-06: all 16 pass against `sahajatlas.com`, and
-10 of the 16 fail against `sahajatlas-design.pages.dev`, so the lane is not vacuously green.
+No spec is scoped by environment. The lane is **17 cases**, from 13 declarations — count it rather
+than trusting a figure, since `.each` makes the two differ. Measured 2026-10-06 against the 16 it
+was then: all 16 passed against `sahajatlas.com`. Re-measured 2026-10-13 against the playground
+on its Worker (`PREVIEW_URL=https://design.sahajatlas.com pnpm test:smoke`, #279): **10 of the 17
+failed**, so the lane is not vacuously green. The ten are every spec that reads the app's own
+files — `boot-origins`, both entry-file `cache-headers`, both `embed`, the three `robots` cases,
+`root` and `spa-fallback`.
 
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all
@@ -367,6 +382,28 @@ still right. It just is not enough on its own when the pure part encodes a forei
 - **Mock at the boundary** with `vi.mock` + `vi.hoisted` (see `src/config/api/fetch.test.ts`):
   mock `@payloadcms/sdk` and `@/config/i18n`, not our own logic. Do not test Radix, react-map-gl,
   or library internals — only *our* contracts.
+
+### A spec that inventories `src/` walks it through `src/test-support/` (issue #286)
+
+Nine specs assert that some list of call sites is CLOSED — the JSX anchors, the viewport reads,
+the Radix poppers, the SahajCloud reads. Each rolled its own `readdirSync`, in three shapes that
+were not interchangeable, so a tenth would inherit whichever one its author copied.
+`sourceFiles()` (`src/test-support/source-tree.ts`) is the one walk now, with
+`readSource` / `readSourceWithoutComments` beside it and `parseSource`
+(`src/test-support/source-ast.ts`) for the two specs that parse. **A tenth walk fails `pnpm
+lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `node:fs` and `fs`
+everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
+grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
+
+⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
+`source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
+options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
+in both directions, because a scope that silently stopped matching would make all nine closed
+lists pass by vacuum.
+
+**This is one walk implementation, not fewer walks.** Vitest gives each spec file its own module
+registry, so the memos are per-file and the tree is still read once per spec — do not expect a
+faster lane from it, and do not "fix" the memos to chase one. The lane's cost is #285.
 
 ## Type-checking & the edit-loop hook
 

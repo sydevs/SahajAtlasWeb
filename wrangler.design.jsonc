@@ -1,0 +1,39 @@
+{
+  // The `sahajatlas-design` Ladle playground, as a Cloudflare Workers static-assets Worker.
+  // Two Workers build from this one repo, so this filename carries its target; the app's took
+  // the bare `wrangler.jsonc`, which is also what a bare `wrangler` command resolves to.
+  //
+  // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so this name contains
+  // `sahajatlas` as a prefix, exactly as the two Pages hosts do. A check that tells the app's
+  // deploy from the playground's must match the worker-name LABEL segment, never a domain
+  // suffix — `scripts/get-cloudflare-preview-url.test.ts` pins that boundary for today's shape.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sahajatlas-design",
+
+  // Required even with no `main`. This is the date wrangler 4.150.0 suggests.
+  "compatibility_date": "2026-10-06",
+
+  // `public/` is copied into `build/`, which is how the shared `_headers` and `robots.txt`
+  // reach the playground. `not_found_handling` is what `public/_redirects` does for the
+  // Pages app. ⚠ The Worker DOES read `_redirects`, and its API rejects that file's
+  // `/* /index.html 200` as an infinite loop (code 100324), failing the deploy — so
+  // `pnpm ladle:build` deletes it from `build/`. `check:wrangler` cannot see this: the
+  // check runs server-side, past the dry run.
+  "assets": {
+    "directory": "build",
+    "not_found_handling": "single-page-application"
+  },
+
+  // Not the default — wrangler's own schema says `false` — and switching previews off is
+  // refused by #266: it would re-create the silent-green preview check that a sibling ticket
+  // exists to close.
+  "preview_urls": true,
+
+  // Pre-placed for a consumer that does not exist here yet, and empty because a preview of
+  // this Worker diverges from production in nothing. `cloudflare/wrangler-action` throws
+  // without the block (sydevs/SahajCloud#903's Technical notes, `ensure-config.ts:167,212`)
+  // and #279's child 4 is what introduces that Action — this Worker deploys through Workers
+  // Builds, so nothing here reads it. Measured: `wrangler deploy --dry-run` is silent either
+  // way, so do not go looking for a local failure it prevents.
+  "previews": {}
+}

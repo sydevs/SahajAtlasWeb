@@ -38,3 +38,7 @@ src/types/payload/openapi.json
 
 # Worktrees from /implement-ticket — a second checkout of this repo, never source
 .claude/worktrees/
+
+# Wrangler's local scratch — `wrangler dev` and `--dry-run` write temp and
+# simulated-state files here, and the state can reach tens of megabytes
+.wrangler/

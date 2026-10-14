@@ -1,9 +1,9 @@
-# Cloudflare Pages serves this from the build output, like _redirects and _headers.
-# NOTE it lands in BOTH: `pnpm build` copies public/ into dist/ (the `sahajatlas` app)
-# and `pnpm ladle:build` copies it into build/ (the `sahajatlas-design` playground), so
-# this one file is the policy for both projects. That is wanted — a component playground
-# is no more a search surface than the app is — but it means the runbook at the bottom
-# opens the playground too.
+# Cloudflare serves this from the build output, beside _headers.
+# NOTE it lands in BOTH: `pnpm build` copies public/ into dist/ (the `sahajatlas` app, on
+# Pages) and `pnpm ladle:build` copies it into build/ (the `sahajatlas-design` playground,
+# on Workers static assets — #279), so this one file is the policy for both sites. That is
+# wanted — a component playground is no more a search surface than the app is — but it
+# means the runbook at the bottom opens the playground too.
 #
 # ---------------------------------------------------------------------------------
 # THE POLICY, and the one place it is written down (issue #106).
@@ -28,7 +28,7 @@
 # RUNBOOK. If sahajatlas.* is ever FOUND in an index, relax this file rather than
 # tightening it — swap `Disallow: /` for `Allow: /` so the crawler can fetch the page,
 # read the noindex and drop the entry, then restore this once it is gone. Remember that
-# doing so opens sahajatlas-design.pages.dev for the same window (see the note above).
+# doing so opens design.sahajatlas.com for the same window (see the note above).
 # ---------------------------------------------------------------------------------
 User-agent: *
 Disallow: /

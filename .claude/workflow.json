@@ -11,7 +11,7 @@
     "command": "pnpm types:cms && pnpm types:openapi"
   },
   "securityReview": {
-    "triggerPattern": "src/config/api/|src/types/event|src/Widget\\.tsx|src/App\\.tsx|src/lib/shape/routing|src/lib/atlas-history|src/router\\.tsx|src/loader/|src/lib/shape/lexical|src/lib/shape/path|src/lib/shape/href|src/components/atoms/Link/|src/components/organisms/EventDetails/|src/styles/|src/lib/scope|scripts/[^/]*css|postcss\\.config\\.js|src/config/attributes|src/lib/report|package\\.json|pnpm-lock\\.yaml|patches/|(^|/)\\.env|vite\\.config\\.ts",
+    "triggerPattern": "src/config/api/|src/types/event|src/Widget\\.tsx|src/App\\.tsx|src/lib/shape/routing|src/lib/atlas-history|src/router\\.tsx|src/loader/|src/lib/shape/lexical|src/lib/shape/path|src/lib/shape/href|src/components/atoms/Link/|src/components/organisms/EventDetails/|src/styles/|src/lib/scope|scripts/[^/]*css|postcss\\.config\\.js|src/config/attributes|src/lib/report|package\\.json|pnpm-lock\\.yaml|patches/|(^|/)\\.env|vite\\.config\\.ts|(^|/)wrangler[^/]*\\.jsonc?$|public/_(headers|redirects)$",
     "contentPattern": "dangerouslySetInnerHTML|dompurify|DOMPurify|\\.innerHTML",
     "contentPaths": [
       "src"
@@ -22,7 +22,7 @@
     "pnpm install"
   ],
   "worktreeNotes": "Copy .env.local from the main checkout when the branch needs it.",
-  "deployTarget": "Cloudflare Pages (sahajatlas, sahajatlas-design)",
+  "deployTarget": "Cloudflare Workers static assets (sahajatlas, sahajatlas-design); sahajatlas.com stays on Cloudflare Pages (sahajatlas) until #266's cutover",
   "devServer": {
     "command": "pnpm dev --port {port}",
     "basePort": 5174,
@@ -47,7 +47,6 @@
     "package.json",
     "pnpm-lock.yaml",
     "**/*.md",
-    ".claude/**",
     "src/types/payload/**",
     "public/locales/**"
   ]

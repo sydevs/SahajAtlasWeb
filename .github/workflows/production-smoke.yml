@@ -136,7 +136,7 @@ jobs:
               "- Failing run: $RUN_URL" \
               "- Commit: \`$GITHUB_SHA\`" \
               "" \
-              "The same 16 specs pass on every PR against a \`*.pages.dev\` preview, so a red here" \
+              "The same 17 specs pass on every PR against a \`*.pages.dev\` preview, so a red here" \
               "means production differs from the preview the gate read. #148 was a zone cache" \
               "setting, not a commit, so read the run before assuming the last merge caused it." \
               "" \

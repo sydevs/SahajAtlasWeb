@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && pnpm assert:css && pnpm assert:maps",
+    "build:worker": "pnpm build && rm -f dist/_redirects",
     "assert:css": "node scripts/assert-css-scoped.mjs",
     "assert:maps": "node scripts/assert-no-sourcemaps.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
@@ -20,7 +21,8 @@
     "test:smoke": "vitest run --config vitest.smoke.config.ts tests/smoke",
     "size": "node scripts/check-bundle-size.mjs",
     "ladle": "ladle serve",
-    "ladle:build": "ladle build && pnpm assert:maps ../build",
+    "ladle:build": "ladle build && rm -f build/_redirects && pnpm assert:maps ../build",
+    "check:wrangler": "wrangler deploy --dry-run --config wrangler.jsonc && wrangler deploy --dry-run --config wrangler.design.jsonc",
     "preview": "vite preview",
     "review:embed": "node scripts/serve-embed-review.mjs",
     "sync:atlas-contract": "node scripts/sync-atlas-contract.mjs",
@@ -122,7 +124,8 @@
     "typescript": "5.6.3",
     "vite": "^8.3.2",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "4.150.0"
   },
   "pnpm": {
     "patchedDependencies": {

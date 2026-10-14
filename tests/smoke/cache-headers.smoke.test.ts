@@ -64,17 +64,17 @@ describe('entry-file caching', () => {
     const res = await fetchPreview(path)
 
     // A `type="module"` script fetches in CORS mode, so this header is a rendering
-    // requirement, not a nicety. The font and locale rules make the same argument.
-    // Pages supplies this header by default today. Pinning it here means the widget
-    // does not depend on that default.
+    // requirement, not a nicety. The font makes the same argument (#91).
+    //
+    // This observes the symptom on one URL. What forbids the `*, *` collision across the
+    // whole file is `scripts/deploy-headers.test.ts`, before a deploy.
     expect(res.headers.get('access-control-allow-origin')).toBe('*')
   })
 
-  // Pages applies every matching rule, and joins repeated header values with a comma.
-  // A new rule can silently collide with an existing one. The `/*` rule sets
-  // `X-Robots-Tag`, and the entry rules set different header names, so the two stay
-  // safe together. This test asserts that, instead of assuming it, the same way
-  // `robots.smoke.test.ts` asserts the CORS half.
+  // Pages applies every matching rule, and joins repeated header values with a comma, so a
+  // new rule can silently collide with an existing one. This asserts the live result, the
+  // way `robots.smoke.test.ts` asserts the CORS half; `scripts/deploy-headers.test.ts` is
+  // what rules the collision out in the first place.
   test.skipIf(skipWithoutPreview).each(ENTRY_FILES)(
     '%s still carries the site-wide noindex header',
     async (path) => {
@@ -84,4 +84,24 @@ describe('entry-file caching', () => {
       expect(res.headers.get('cache-control')).not.toMatch(/,\s*public.*,\s*public/i)
     },
   )
+
+  // #91's actual subject is the self-hosted Raleway woff2, which ships under `/assets/`.
+  // That rule carried CORS explicitly until #279 lifted the header to `/*`, and until this
+  // spec no check ever read CORS on a hashed asset — the specs above read the two entry
+  // files only. A font is served by this same rule, so one asset here covers it.
+  //
+  // The path is discovered from the deploy rather than written down: an asset name is
+  // content-hashed, so a literal would be stale on the next build.
+  test.skipIf(skipWithoutPreview)('hashed assets are readable cross-origin', async () => {
+    const html = await (await fetchPreview('/')).text()
+    const asset = /["'(](\/assets\/[^"')]+)/.exec(html)?.[1]
+
+    // No match would make the assertion below pass against nothing.
+    expect(asset, 'no /assets/ reference in the deployed index.html').toBeTruthy()
+
+    const res = await fetchPreview(asset as string)
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+  })
 })
