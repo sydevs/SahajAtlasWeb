@@ -5,7 +5,7 @@ Two lanes, kept separate so the fast one never touches the network:
 | Lane      | Config                   | Command                  | Runs                                    |
 | --------- | ------------------------ | ------------------------ | ---------------------------------------- |
 | **Unit**  | `vitest.config.ts`       | `pnpm test` / `test:run` | Co-located `src/**/*.test.ts(x)`, node  |
-| **Smoke** | `vitest.smoke.config.ts` | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs CF preview   |
+| **Smoke** | `vitest.smoke.config.ts` | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs a preview   |
 
 - `pnpm test` runs watch mode, for the inner loop. `pnpm test:run` runs once — for CI, the
   pre-PR gate, and the PostToolUse hook.
@@ -13,91 +13,129 @@ Two lanes, kept separate so the fast one never touches the network:
 - CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
   `check:wrangler` — which covers both Worker configs, and needs what the build steps write
   before it (`AGENTS.md` → the CI gates). A Dependency Audit job and the smoke job run
-  separately. The smoke job targets the deployed Cloudflare preview.
+  separately. The smoke job builds the app and **publishes its own Workers preview**, then reads
+  the address its publish step returned (#282).
 - The **same** smoke specs also run against production, fired by the deploy rather than by a PR
   (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
   below.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
-- **A green Smoke check means the specs ran — nothing more.** Discovery emits an empty URL and
-  exits 0 when no preview turns up, so the specs then skip themselves
-  (`test.skipIf(skipWithoutPreview)`). The workflow **fails** that state on a same-repo PR, where
-  a preview was expected, and only annotates it elsewhere. Forks and local runs keep the graceful
-  skip. If you add a spec, guard it with `test.skipIf(skipWithoutPreview)` like its siblings — the
-  loudness belongs to the job, not the spec.
+- **A green Smoke check means the specs ran — nothing more.** Given no `PREVIEW_URL` the specs
+  skip themselves (`test.skipIf(skipWithoutPreview)`), so the **job** is what makes a missing
+  preview loud. Exactly two states skip quietly, and both say so in the step summary: a forked
+  pull request, which holds no Cloudflare credential by design, and a `merge_group` entry, which
+  has no pull-request number to key a preview on and whose required check the merge queue would
+  stall on. Every other route to no preview fails the job — a same-repo pull request with the
+  credential missing, a publish that produced no address, an address refused as not the app
+  Worker's, and any state the report does not recognise. If you add a spec, guard it with
+  `test.skipIf(skipWithoutPreview)` like its siblings — the loudness belongs to the job, not the
+  spec.
 - **A 200 status is not proof of anything.** `public/_redirects` is `/* /index.html 200`, so
   Cloudflare answers **200 `text/html`** for any path that is not a built asset. A spec asserting
   `res.status === 200` therefore passes for a missing file too — `embed.smoke.test.ts` learned
   this the hard way. Assert on the body or the content type instead.
-- **A green Smoke check proves the specs ran against this commit, wherever Cloudflare names one —
-  and never against a commit it names as a different one** (issue #138). Cloudflare publishes two
-  hosts per project: a per-deployment alias (one commit forever) and a stable branch alias
-  (whatever last deployed to that branch). Both pass `pick()`'s host gate, because whose host it
-  is and whose build it serves are separate questions. So discovery **ranks candidates by
-  provenance**, not by the first match: our own check run for the head SHA wins first, then a
-  deploy-shaped URL from a per-SHA source, then a Cloudflare comment naming the head commit, then
-  the branch alias. A comment naming a different commit is refused outright, and so is the bare
-  project host — that is production, not a preview.
-  **This ranking is a security property, not just a mechanism.** `pages.dev` subdomains are
-  first-come-first-served, and one discovery source scrapes URLs out of bot comments — so a plain
-  substring match would let any installed GitHub App's bot comment redirect the smoke lane to a
-  host somebody else controls, and collect a green check that verified nothing.
-  `pick()`'s hostname-boundary match and the ranked sources are both pinned by
-  `scripts/get-cloudflare-preview-url.test.ts`. A refused URL is also **named in the step
-  summary** — otherwise `absent` ("no check run, no deployment, no bot comment") would flatly
-  contradict the poll line that just named the URL it declined.
+- **A green Smoke check proves the specs ran against THIS commit's build, on the app's OWN
+  Worker** (issues #138, #282). The address comes from our own publish step, so the provenance
+  half of this invariant is now structural: nothing is scraped, nothing is derived from a branch
+  name, and no text anyone can edit is read at all. Two questions survive that, and the lane
+  answers each separately.
 
-### Why a red Smoke check now says which kind of red (issue #132)
+  **Which build.** `wrangler preview` returns two addresses, and both are ours: `preview-url`
+  follows the preview across pushes, and `preview-deployment-url` is pinned to the version just
+  uploaded. ⚠ The specs must read the **pinned** one — reading the branch-following one would let
+  a later push's build answer for this commit's, which is #138's defect in its Workers spelling.
+  `preview-url` appears only in what a person is given, and `deployment-url` is the same value
+  again rather than a third address.
+
+  **Which Worker.** `scripts/assert-preview-host.mjs` refuses an address that is not a preview of
+  the Worker `wrangler.jsonc` names. ⚠ A preview host is
+  `<preview>-<worker>.<subdomain>.workers.dev`, and `sahajatlas` is a **prefix** of
+  `sahajatlas-design` (#280), so the match **anchors the whole worker-name label segment at both
+  ends**: the first label ends at `-<worker>`, and the labels after it are exactly the account
+  subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra label on
+  either side all let the playground's deploy pass for the app's and collect a green check that
+  verified the wrong site. The label-segment anchor is what refuses it, and
+  `scripts/assert-preview-host.test.ts` pins that with the playground's own host, a label that
+  merely ends with the Worker name, our host as a prefix of somebody else's domain, a credential
+  form, the Worker's own production host, and a label inserted before the subdomain. The
+  substring defect reddens three of those; the suffix defect one.
+
+  **This is stronger than what it replaced, in two specific ways.** Discovery (#122, #138) ranked
+  candidates by provenance because a `pages.dev` label is globally first-come-first-served and
+  one of its sources scraped URLs out of bot comments — so any installed GitHub App's bot could
+  aim the lane at a host somebody else controlled. The middle label of a Workers preview host is
+  our own account subdomain, and the address is one our own CI produced, so that whole class is
+  gone rather than ranked. The staleness half is gone the same way: on **PR #135** the Cloudflare
+  comment for this project still named `9326e3b` and offered that commit's deploy while the head
+  was `56c6b0d`, which had deployed elsewhere — only the order the sources happened to run in
+  kept the right URL that time. Our publish step cannot name another commit's build, because it
+  is the build.
+
+### Why a red Smoke check says which kind of red (issues #132, #282)
 
 The first invariant says what GREEN means. It says nothing about whose fault RED is, and "no
-preview" is not one thing. `scripts/get-cloudflare-preview-url.mjs` emits a second output beside
-`preview_url`: **`preview_status`**, and `ci.yml` branches its message on it.
+preview" is not one thing. The job's last step names the cause:
 
-| status                    | what it saw                                       | what it tells the reader                                    |
-| ------------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
-| `pending` / `unreachable` | a deploy demonstrably exists, but we stopped waiting | **re-run**                                                  |
-| `failed`                  | our project's run finished and did NOT succeed    | **read the Cloudflare log** — re-running fails identically    |
-| `absent`                  | no Cloudflare signal of any kind for the SHA      | **investigate** — the deploy never happened                    |
-| `error`                   | discovery itself broke (missing env, a throw)     | read the discovery step                                        |
+| cause                                     | what it tells the reader                                        |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| a forked pull request (no credential)     | expected — annotated, exit 0                                    |
+| a `merge_group` entry (no PR number)      | expected — annotated, exit 0, so the queue completes            |
+| no `CLOUDFLARE_API_TOKEN` on a same-repo PR | **enter the Actions secrets** — nothing can publish until then |
+| the publish produced no address           | **read the publish step** — it is the upload's own log          |
+| the address was refused                   | **read the guard step** — a wrong `--config` is the usual cause |
+| anything else                             | **investigate** — the plan step emitted a reason it does not know |
 
-All of them still fail a same-repo PR. An **unrecognised** status also takes the loud branch, on
-purpose. The step summary carries the elapsed wait and the last observed state, so a slow deploy
-stays legible without opening the raw log.
+Only the first two exit 0, and both are **stated**. An **unrecognised** reason takes the loud
+branch, on purpose, so a future one cannot inherit the softer advice.
 
-**`failed` is the row that has to exist.** A failed Cloudflare build still posts a check run, so
-folding it into "a deploy exists" would send the reader to re-run a job that fails identically —
-training the exact habit this ticket set out to break. Evidence must come from the run matching
-`CF_PROJECT`'s own slug, not whichever run GitHub lists first — the `-design` sibling succeeding
-says nothing about the app's build. ⚠ **The slug alone is not that match**: `runProject` anchors
-the integration prefix too, because the app Worker carries the Pages project's own name, so
-`Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` both end in this project's slug
-and only the second one is this lane's (#280).
+**The vocabulary is deliberately shorter than it was.** `pending`, `unreachable`, `absent` and
+`failed` all described somebody else's build, back when the lane hunted for a Cloudflare Pages
+deploy. Our own publish either succeeded or failed, and a failure is already a red step carrying
+the upload's log — so a row for "a deploy exists but we stopped waiting" would now describe
+nothing. ⚠ What the collapse must not lose is the lesson under `failed`: never send a reader to
+re-run a job that will fail identically. Each row above points at the one step that can answer
+it.
 
-Two findings sit behind that script, worth keeping so nobody re-derives them:
+Four findings from the subsystem this replaced, worth keeping so nobody re-derives them:
 
 - **A "Cloudflare is building" state IS observable — and a retrospective query will tell you it
-  is not.** The check run carries `status: in_progress` for the whole build. But Cloudflare sets
-  `started_at` only when the run **completes**, so a finished run always shows
+  is not.** The check run carried `status: in_progress` for the whole build. But Cloudflare set
+  `started_at` only when the run **completed**, so a finished run always showed
   `started_at == completed_at`. Sampling historical commits — what #124's evidence and a 230-run
-  sweep of this repo both did — cannot see the in-progress window at all, and concludes it never
-  existed. **#132 was written on that wrong conclusion, survived a full review pass, and only a
-  live CI run caught it.** To ask what an integration publishes while it works, watch a live
-  build — a query over completed objects cannot answer it. (The check *suite* is useless alone:
-  GitHub pre-creates one per installed app on every push, so Cloudflare's looks like any silent
-  app's.)
-  The deadline stays **flat** on purpose, justified against 86 measured builds (p50 99s, p95
-  373s, max 453s) — about 1.3× the slowest. The 6-minute deadline it replaced sat *below* the
-  95th percentile, which is how #124 went red on a healthy commit. Override with
-  `PREVIEW_TIMEOUT_MS` (milliseconds, capped). Do not edit the constant.
-- **The discovery sources (#122) and `pick()`'s hostname-boundary match are load-bearing** — see
-  the security property under invariant three above.
+  sweep of this repo both did — could not see the in-progress window at all, and concluded it
+  never existed. **#132 was written on that wrong conclusion, survived a full review pass, and
+  only a live CI run caught it.** To ask what an integration publishes while it works, watch a
+  live build — a query over completed objects cannot answer it. (The check *suite* is useless
+  alone: GitHub pre-creates one per installed app on every push, so Cloudflare's looks like any
+  silent app's.)
+- **How long a Cloudflare Pages build took here, measured over 86 successful
+  `Cloudflare Pages: sahajatlas` check runs** — every commit on `main` plus every pull-request
+  head from #58 to #128, timed from the push landing to the run being posted:
+
+  **p50 99s · p75 138s · p90 232s · p95 373s · max 453s**
+
+  The slow tail came from queueing, not from build size: the slowest samples clustered in windows
+  where several pull requests deployed at once (280 / 301 / 373 / 393 / 453s formed one such
+  window). The sibling `sahajatlas-design` Pages check run ran a median **41 seconds ahead** of
+  the app's, which is why it was no use as a second timing source once #279 moved the playground
+  to Workers and deleted that project. The wait this justified was **flat**, at about 1.3× the
+  slowest sample; the 6-minute deadline it replaced sat *below* the 95th percentile, which is how
+  #124 went red on a healthy commit. Kept as the record of a lane this repo no longer runs: a
+  Workers upload is live when the command returns, so there is no build to wait on and no
+  deadline to tune.
 - **A passing unit spec is not evidence that the thing it tests is reachable.** #132 added the
   `failed` status, spec'd `timeoutStatus` returning it, then never destructured `failure` in
-  `main()` — so `timeoutStatus` ran without it, and `failed` could never occur in production while
-  its four assertions stayed green. Both reviews and CI missed it, because the defect was in the
-  wiring, which no pure test can see. When a helper's output feeds a caller, make sure something
-  exercises the caller — a live run of the script against a real SHA is what caught this one.
+  `main()` — so `timeoutStatus` ran without it, and `failed` could never occur in production
+  while its four assertions stayed green. Both reviews and CI missed it, because the defect was
+  in the wiring, which no pure test can see. When a helper's output feeds a caller, make sure
+  something exercises the caller — a live run of the script against a real SHA is what caught
+  this one.
+- **A check-run name identifies the integration as well as the target, and only both together
+  identify a build.** The app Worker carries the Pages project's own name, so
+  `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` share this project's slug and
+  differ only in their prefix (#280, #297). ⚠ That is why `production-smoke.yml` compares the
+  **whole** name with `==` — see the production lane below.
 
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
@@ -160,15 +198,18 @@ Playwright verification (see the note atop `embed.smoke.test.ts`).
 
 ### The PR gate can only ever read a preview (issue #244)
 
-`ci.yml` runs on `pull_request` and `merge_group`, and discovery refuses the bare project host by
-construction (`provenanceOf` demotes it, because that host is production). So until #244, no job
-had ever read the deploy visitors and host sites actually get.
+`ci.yml` runs on `pull_request` and `merge_group`, and what it reads is a preview it published
+itself — the host guard refuses the Worker's own production host, as discovery refused the bare
+Pages project host before it. So until #244, no job had ever read the deploy visitors and host
+sites actually get.
 
 **That gap is structural, not a coverage hole.** `VITE_*` values are inlined at build time, and
-Pages builds Preview and Production from separate dashboard environments, so the bundle the PR
-gate reads can never carry Production's values. The `VITE_HOST` story above is that hole in one
-direction. A Production origin blanked by a dashboard edit is the same hole in the other, and
-running the PR gate more often closes neither.
+the preview's are the ones `ci.yml`'s publish step hands its own build — so the bundle the PR
+gate reads can never carry the production deploy's values. (Before #282 the same gap came from
+Pages building Preview and Production out of separate dashboard environments. The owner of the
+values changed; the gap did not.) The `VITE_HOST` story above is that hole in one direction. A
+production origin blanked by a dashboard edit is the same hole in the other, and running the PR
+gate more often closes neither.
 
 `.github/workflows/production-smoke.yml` runs these same 17 specs against production. Five things
 about it are deliberate:
@@ -178,21 +219,25 @@ about it are deliberate:
   for one real signal per merge, and still be up to 24 hours late. A `push` trigger fires before
   the deploy exists. So the trigger is Cloudflare's own check run, which is posted when the
   artifact under test comes into existence.
-- **It reads `sahajatlas.com`, the custom domain — not `*.pages.dev`, and not a URL from the
+- **It reads `sahajatlas.com`, the custom domain — not a vendor host, and not a URL from the
   event.** `docs/embedding.md` is what decides which host "production" means, and
-  `ci-workflows.test.ts` pins the lane to that table's row. The two hosts serve one build, and
-  **their headers can diverge**: `public/_headers` records #148, `max-age=14400` on the custom
-  domain against `max-age=0` on `*.pages.dev`, a defect that "was invisible on the host every
-  check runs against". Previews are `*.pages.dev` already, so a production lane there would add
-  no coverage and inherit that blindness. The host being a constant is also why the event is a clock
-  rather than a source: a URL out of a payload would re-open #138's question — any installed App
-  with `deployments: write` posts one, and `pages.dev` subdomains are first-come-first-served —
-  for a value that does not vary.
+  `ci-workflows.test.ts` pins the lane to that table's row. The custom domain and the vendor host
+  serve one build, and **their headers can diverge**: `public/_headers` records #148,
+  `max-age=14400` on the custom domain against `max-age=0` on `*.pages.dev`, a defect that "was
+  invisible on the host every check runs against". A preview is on a vendor host either way, so a
+  production lane there would add no coverage and inherit that blindness. The host being a
+  constant is also why the event is a clock rather than a source: a URL out of a payload would
+  re-open #138's question — any installed App with `deployments: write` posts one, and a vendor
+  subdomain is first-come-first-served — for a value that does not vary.
 - ⚠ **#244 specified a `deployment_status` trigger, and that signal is the one this repo has
-  measured as absent**: `get-cloudflare-preview-url.mjs`'s header records Cloudflare posting
-  neither commit statuses nor GitHub deployments here (PR #120). A workflow on an event that never
-  arrives is invisible — no red check, no annotation, nothing to notice — so the trigger is the
-  check run instead, at the cost of one skipped workflow run per check run in the repo.
+  measured as absent**: Cloudflare posts neither commit statuses nor GitHub deployments here,
+  measured on PR #120 and recorded by the discovery script #282 deleted — which is why the
+  evidence now lives in this file. A workflow on an event that never arrives is invisible — no
+  red check, no annotation, nothing to notice — so the trigger is the check run instead, at the
+  cost of one skipped workflow run per check run in the repo. ⚠ Do not read our own publish step
+  as evidence against this: `cloudflare/wrangler-action` creates a GitHub Deployment for each
+  preview, so a `deployment_status` event *does* now arrive on pull requests. It comes from our
+  action, not from Cloudflare, and it says nothing about a production deploy.
 - **The base URL is a bare literal, and `ci-workflows.test.ts` pins it as one** — the regex
   matches a scalar, so putting an expression back fails the spec at collection. The lane takes no
   `workflow_dispatch` input for it: that input was the one way a dispatcher could aim a green
@@ -237,8 +282,17 @@ files — `boot-origins`, both entry-file `cache-headers`, both `embed`, the thr
 **On 2026-10-03 the custom domain was 14 of 16, and that split was the lane's first find.** The
 two cache-header specs failed on the unhashed loader files while `sahajatlas.pages.dev` passed all
 16 — #148, a zone-level Browser Cache TTL overriding `public/_headers`. It is why the lane reads
-the custom domain and not a preview: no `*.pages.dev` host could have shown it, and the fix was a
-dashboard setting rather than a commit.
+the custom domain and not a preview: no vendor host could have shown it, and the fix was a
+dashboard setting rather than a commit. ⚠ Both measurements above were taken against `*.pages.dev`
+previews and a Pages-served custom domain, so each is evidence about a **host**, not about a
+platform. The preview the PR gate reads is a Worker since #282, and `sahajatlas.com` stays on
+Pages until #266's last child moves it — so re-measure rather than carrying either figure across
+that cutover. Whether a Workers preview host adds `X-Robots-Tag: noindex` of its own accord is
+**not yet known**, and it decides whether four assertions still test our own `public/_headers`
+rule: `robots.smoke.test.ts` at its three cases, and `cache-headers.smoke.test.ts`'s `embed.js`
+case. If the platform supplies the header, those four stop telling our rule from a default.
+Record the finding; do not weaken the specs for it — sydevs/SahajCloud#903's success list owns
+the repair.
 
 ## Decision: node-only (no jsdom / Testing Library)
 

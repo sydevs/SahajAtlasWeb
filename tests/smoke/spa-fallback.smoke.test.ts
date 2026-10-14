@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 
 import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
-// Smoke test: does the Cloudflare Pages preview serve the SPA shell for a deep link
-// that is not the root?
+// Smoke test: does the published preview serve the SPA shell for a deep link that is
+// not the root?
 //
 // The standalone build uses BrowserRouter. A direct GET /search only returns the app
 // if the `public/_redirects` fallback (`/* /index.html 200`) is deployed. This spec

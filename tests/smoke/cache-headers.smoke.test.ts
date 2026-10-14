@@ -6,9 +6,10 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // files? (#148)
 //
 // This is a deploy-time fact, and the unit lane cannot reach it in two ways.
-// `public/_headers` is an inert text file in the repo until Cloudflare Pages reads it
-// out of the build output. The thing under test is platform behavior, not code this
-// repo wrote.
+// `public/_headers` is an inert text file in the repo until the platform reads it out
+// of the build output — Workers on the preview, Pages on `sahajatlas.com` until #266's
+// last child moves the domain. The thing under test is platform behavior, not code
+// this repo wrote.
 //
 // This is also a regression test. The defect it guards against shipped invisibly.
 // `_headers` carried a comment saying `embed.js` "must stay revalidated", but nothing

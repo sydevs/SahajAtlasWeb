@@ -1,6 +1,6 @@
 /**
  * Reporting helpers shared by the CI gate scripts (`check-bundle-size.mjs`,
- * `get-cloudflare-preview-url.mjs`).
+ * `assert-preview-host.mjs`).
  *
  * Every gate writes the same two kinds of output. This keeps them
  * consistent when they report a failure. An early draft copied this code

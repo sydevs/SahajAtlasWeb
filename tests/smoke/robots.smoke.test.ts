@@ -5,8 +5,9 @@ import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 // Smoke test: does the deploy actually resist direct indexing? (issue #106)
 //
 // Every part of that answer is a deploy-time fact, and the unit lane cannot reach it.
-// `public/robots.txt` and `public/_headers` are inert files in the repo until
-// Cloudflare Pages reads them out of the build output. `_headers` in particular
+// `public/robots.txt` and `public/_headers` are inert files in the repo until the
+// platform reads them out of the build output — Workers on the preview, Pages on
+// `sahajatlas.com` until #266's last child moves the domain. `_headers` in particular
 // asserts platform behavior, not code this repo wrote.
 
 /**

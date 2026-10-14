@@ -48,8 +48,8 @@ describe('production-smoke.yml', () => {
 
   // The trigger is the app's own Cloudflare build, never the `-design` playground's, which
   // deploys from this repo too. ⚠ The anchor is the app Worker's `name`, so a rename fails this
-  // spec at collection — `CF_PROJECT`, which used to carry it, went with the discovery
-  // subsystem (#282).
+  // spec at collection. The `ci.yml` environment value that used to carry it went with the
+  // discovery subsystem (#282).
   it('waits on the Cloudflare build of the Worker wrangler.jsonc names', () => {
     expect(match(lane, /check_run\.name == 'Cloudflare Pages: (\S+)'/)).toBe(appWorkerName())
   })

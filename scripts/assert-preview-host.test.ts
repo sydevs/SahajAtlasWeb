@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { WORKERS_SUBDOMAIN, appPreviewHost } from './assert-preview-host.mjs'
 import { appWorkerName } from './_wrangler-config.mjs'
 
-// The security property `scripts/get-cloudflare-preview-url.test.ts` held before #282 deleted
-// it. It got stronger in the move, and the ranking it needed went away with the scraping: the
-// address now comes from our own publish step, so nothing is read out of text anyone can edit.
-// What survives is the question of WHICH Worker an address names, and the three refusals below
-// are that spec's carried over in their Workers spelling.
+// The security property the Pages-era discovery spec held, carried over by #282. It got
+// stronger in the move, and the provenance ranking it needed went away with the scraping: the
+// address now comes from our own publish step, so nothing is read out of text anyone can edit
+// (#122, #138). What survives is the question of WHICH Worker an address names, and three of the
+// refusals below are that spec's in their Workers spelling.
 const WORKER = appWorkerName()
 const PREVIEW = `https://pr-1-${WORKER}.${WORKERS_SUBDOMAIN}`
 
@@ -48,9 +48,9 @@ describe('appPreviewHost', () => {
   })
 
   // The bare worker label is the Worker's own `workers.dev` host — production, not a preview of
-  // it. `get-cloudflare-preview-url.mjs` refused the bare Pages project host for the same
-  // reason, and `tests/smoke/boot-origins.smoke.test.ts` still rests on the lane only ever
-  // reading a preview.
+  // it. Pages-era discovery refused the bare project host for the same reason, and
+  // `tests/smoke/boot-origins.smoke.test.ts` still rests on the lane only ever reading a
+  // preview.
   it('refuses the Worker’s own production host', () => {
     expect(appPreviewHost(`https://${WORKER}.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()
     expect(appPreviewHost(`https://-${WORKER}.${WORKERS_SUBDOMAIN}`, WORKER)).toBeNull()

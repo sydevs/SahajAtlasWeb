@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { fetchPreview, skipWithoutPreview } from './_helpers/preview'
 
-// Smoke test: does the deployed Cloudflare Pages preview actually serve the app?
+// Smoke test: does the published preview actually serve the app?
 //
 // This is the minimal "is the deploy alive" check. It fetches the root page and
 // asserts that the SPA shell comes back. It catches a broken build, a missing

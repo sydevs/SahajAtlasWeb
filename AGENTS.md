@@ -384,8 +384,8 @@ Three facts to remember:
 The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
 runbook is in `docs/environment.md`.
 
-CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
-(`.github/workflows/ci.yml`) and checks all of the above against the preview.
+CI's smoke lane publishes its own preview of the app Worker and checks all of the above against
+it (`.github/workflows/ci.yml`, #282). Nothing is discovered, so no project host is configured.
 
 Use the **cloudflare-docs** MCP for Cloudflare Pages and Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one
