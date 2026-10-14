@@ -1,0 +1,43 @@
+{
+  // The `sahajatlas` app, as a Cloudflare Workers static-assets Worker. Through #280 the
+  // `sahajatlas` Cloudflare **Pages** project still serves `sahajatlas.com` from this same
+  // `dist/`, and #266's last child is what moves the domain. `AGENTS.md` § Deployment is the
+  // one place that topology is stated.
+  //
+  // ⚠ This name collides twice, and both anchors are pinned by
+  // `scripts/get-cloudflare-preview-url.test.ts`:
+  //   - `sahajatlas` is a PREFIX of `sahajatlas-design`, and a preview host is
+  //     `<preview>-<worker>.<subdomain>.workers.dev`, so telling the two deploys apart means
+  //     anchoring `-sahajatlas.<subdomain>.workers.dev`, never the bare substring.
+  //   - it also equals the Pages project's name, so this Worker's check run is
+  //     `Workers Builds: sahajatlas` against the Pages run's `Cloudflare Pages: sahajatlas`.
+  //     `runProject` matches the integration prefix too, or a failed Worker build would
+  //     report the Pages preview as failed.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sahajatlas",
+
+  // Required even with no `main`. This is the date wrangler 4.150.0 suggests.
+  "compatibility_date": "2026-10-06",
+
+  // `pnpm build` writes `dist/` and copies `public/` into it, which is how the shared
+  // `_headers` and `robots.txt` reach this Worker. `not_found_handling` does the job the
+  // `public/_redirects` splat does on Pages.
+  //
+  // ⚠ Build this Worker with **`pnpm build:worker`**, never `pnpm build`. A Worker reads
+  // `_redirects` and its API rejects that splat as an infinite loop (100324), failing the
+  // deploy, and `pnpm build` must keep the file because the same `dist/` is what the Pages
+  // project serving `sahajatlas.com` deploys. `build:worker` is `build` plus the `rm -f`
+  // (#280). `check:wrangler` cannot catch a regression here — the dry run never reaches the
+  // API — so `scripts/wrangler-config.test.ts` pins the pairing instead.
+  "assets": {
+    "directory": "dist",
+    "not_found_handling": "single-page-application"
+  },
+
+  // Not the default — wrangler's own schema says `false`.
+  "preview_urls": true,
+
+  // Empty on purpose; `cloudflare/wrangler-action` throws without the block
+  // (sydevs/SahajCloud#903). `wrangler.design.jsonc` carries what it is pre-placed for.
+  "previews": {}
+}

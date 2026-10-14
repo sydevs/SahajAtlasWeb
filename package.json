@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && pnpm assert:css && pnpm assert:maps",
+    "build:worker": "pnpm build && rm -f dist/_redirects",
     "assert:css": "node scripts/assert-css-scoped.mjs",
     "assert:maps": "node scripts/assert-no-sourcemaps.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
@@ -21,7 +22,7 @@
     "size": "node scripts/check-bundle-size.mjs",
     "ladle": "ladle serve",
     "ladle:build": "ladle build && rm -f build/_redirects && pnpm assert:maps ../build",
-    "check:wrangler": "wrangler deploy --dry-run --config wrangler.design.jsonc",
+    "check:wrangler": "wrangler deploy --dry-run --config wrangler.jsonc && wrangler deploy --dry-run --config wrangler.design.jsonc",
     "preview": "vite preview",
     "review:embed": "node scripts/serve-embed-review.mjs",
     "sync:atlas-contract": "node scripts/sync-atlas-contract.mjs",

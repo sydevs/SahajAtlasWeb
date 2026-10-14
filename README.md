@@ -182,17 +182,18 @@ components through `renderToStaticMarkup`, not jsdom. See
 
 ## Deployment
 
-Two Cloudflare sites build from this repo, on two platforms. The topology —
-hosts, build commands, which platform serves which — is stated once, in the
-deployment section of [`AGENTS.md`](AGENTS.md).
+Two Cloudflare sites build from this repo. The topology — hosts, build
+commands, which platform serves which, and which one a visitor actually
+reaches — is stated once, in the deployment section of
+[`AGENTS.md`](AGENTS.md).
 
 ### Source maps (build-time only)
 
 Three **build-time** variables — `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
 `SENTRY_PROJECT` — control whether a build uploads its source maps to
 Sentry. They carry no `VITE_` prefix, so they cannot reach the bundle. The
-token is a real secret and lives in the Cloudflare Pages dashboard, never in
-the repo.
+token is a real secret and lives in the Cloudflare dashboard, never in the
+repo.
 
 **Maps are uploaded, then removed — never deployed.** `/assets/*` is served
 CORS-open with a one-year immutable cache, so a shipped `.map` would publish
@@ -202,6 +203,5 @@ survives into the output.
 
 With the variables unset — every local build, CI run, and forked PR — no
 maps are emitted, and the output is byte-identical to a build from before
-this existed. The full runbook, including which Pages project gets the
-variables and which does not, is in
-[`docs/environment.md`](docs/environment.md).
+this existed. The full runbook, including which target gets the variables
+and which does not, is in [`docs/environment.md`](docs/environment.md).

@@ -11,8 +11,9 @@ Two lanes, kept separate so the fast one never touches the network:
   pre-PR gate, and the PostToolUse hook.
 - `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
 - CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
-  `check:wrangler`. A Dependency Audit job and the smoke job run separately. The smoke job
-  targets the deployed Cloudflare preview.
+  `check:wrangler` — which covers both Worker configs, and needs what the build steps write
+  before it (`AGENTS.md` → the CI gates). A Dependency Audit job and the smoke job run
+  separately. The smoke job targets the deployed Cloudflare preview.
 - The **same** smoke specs also run against production, fired by the deploy rather than by a PR
   (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
   below.
@@ -68,7 +69,10 @@ stays legible without opening the raw log.
 folding it into "a deploy exists" would send the reader to re-run a job that fails identically —
 training the exact habit this ticket set out to break. Evidence must come from the run matching
 `CF_PROJECT`'s own slug, not whichever run GitHub lists first — the `-design` sibling succeeding
-says nothing about the app's build.
+says nothing about the app's build. ⚠ **The slug alone is not that match**: `runProject` anchors
+the integration prefix too, because the app Worker carries the Pages project's own name, so
+`Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` both end in this project's slug
+and only the second one is this lane's (#280).
 
 Two findings sit behind that script, worth keeping so nobody re-derives them:
 
@@ -98,10 +102,11 @@ Two findings sit behind that script, worth keeping so nobody re-derives them:
 The lane also covers `embed.js`, not only the standalone page — the embed is what a host
 installs, so a deploy that breaks it while `index.html` stays healthy must not be a green check.
 
-It also covers the `public/` files only the platform executes: `_headers` and `robots.txt` on both
-sites, and `_redirects` on the Pages app alone — the design Worker gets its SPA fallback from
-`assets.not_found_handling` instead (#279). Those are inert text in the repo, so no local gate can
-prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
+It also covers the `public/` files only the platform executes: `_headers`, `robots.txt` and
+`_redirects`. All three are read on **both** platforms, but a Worker rejects the splat outright
+rather than serving it, so each Worker build deletes that file and takes the fallback from
+`assets.not_found_handling` instead (#279, #280; `AGENTS.md` § Deployment owns the mechanism).
+Those are inert text in the repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
 here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
 overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
 cannot be that mechanism.
