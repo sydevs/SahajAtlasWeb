@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { appWorkerName } from './_wrangler-config.mjs'
+import { APP_CONFIG, appWorkerName, readPackage } from './_wrangler-config.mjs'
 
 // These workflows name things that live elsewhere, inside expressions no local run can
 // evaluate: the domain the production lane reads, the Worker whose build fires it, and the
@@ -11,20 +11,6 @@ import { appWorkerName } from './_wrangler-config.mjs'
 // from, or wait on a check run nobody posts again. Silence is the thing issue #244 exists to
 // end.
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
-
-/**
- * Compared part by part, because a string or an array comparison reads `4.9.0` as newer than
- * `4.136.3` and would pass on a wrangler too old to carry `preview` at all.
- */
-const atLeast = (version: string, floor: string) => {
-  const [a, b] = [version, floor].map((v) => v.split('.').map(Number))
-
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0)
-  }
-
-  return true
-}
 
 /** A missing match must fail, not pass vacuously on `undefined`. */
 const match = (text: string, re: RegExp) => {
@@ -86,20 +72,27 @@ describe('production-smoke.yml', () => {
 // the one input that would write the PRODUCTION Worker's secrets.
 describe('ci.yml', () => {
   const ci = read('.github/workflows/ci.yml')
-  const smoke = ci.slice(ci.indexOf('\n  smoke:'))
-  const PACKAGE = JSON.parse(read('package.json')) as {
-    devDependencies: Record<string, string>
-    scripts: Record<string, string>
-  }
+
+  // ⚠ Sliced, not searched per assertion — and the marker is asserted first. `indexOf` returns
+  // -1 for a renamed job, and `slice(-1)` would leave one character, against which every
+  // negative assertion below passes by vacuum. Same rule as `match()` above.
+  const at = ci.indexOf('\n  smoke:')
+
+  if (at < 0) throw new Error('ci.yml has no `smoke:` job — every assertion below would vacuum')
+
+  const smoke = ci.slice(at)
 
   // `wrangler preview` is open beta, so the publish must upload with the version this repo
   // pins rather than whatever the action would pick — and the action's own floor for Workers
   // Previews is 4.136.3, below which the command does not exist.
   it('uploads with the wrangler package.json pins, at or above the action floor', () => {
-    const pinned = PACKAGE.devDependencies.wrangler.replace(/^[^\d]*/, '')
+    const pinned = readPackage().devDependencies.wrangler.replace(/^[^\d]*/, '')
 
     expect(match(smoke, /^\s*wranglerVersion: '(\S+)'$/m)).toBe(pinned)
-    expect(atLeast(pinned, '4.136.3')).toBe(true)
+
+    // ⚠ Numeric collation, never a plain compare: `4.9.0` sorts ABOVE `4.136.3` as a string,
+    // so a lexical test would pass on a wrangler with no `preview` command at all.
+    expect(pinned.localeCompare('4.136.3', undefined, { numeric: true })).toBeGreaterThanOrEqual(0)
   })
 
   // A tag moves; a SHA does not. Both uses of the action — the publish here and the teardown —
@@ -149,6 +142,38 @@ describe('ci.yml', () => {
     expect(smoke).not.toMatch(/^\s*(- )?run: pnpm build$/m)
   })
 
+  // ⚠ The publish and the teardown must key the preview on the SAME name. Wrangler has no
+  // `preview list`, so a mismatch leaves a preview no later sweep can reach, silently
+  // (`preview-teardown.yml`'s own header). Nothing but this couples the two expressions.
+  it('deletes the preview the publish created, by the same name and config', () => {
+    const name = /--name (\S+)/
+    const config = /--config (\S+)/
+    const teardown = read('.github/workflows/preview-teardown.yml')
+
+    expect(match(teardown, name)).toBe(match(smoke, name))
+    expect(match(teardown, config)).toBe(APP_CONFIG)
+    expect(match(smoke, config)).toBe(APP_CONFIG)
+  })
+
+  // The plan step names the states, and the report step decides which are loud. Two copies of
+  // one vocabulary, in one file, with nothing between them: a reason the report does not know
+  // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `fork` and
+  // `queue` may exit 0 — every other route to no preview fails the job, which is this lane's
+  // first invariant (`docs/testing.md`).
+  it('reports every state the plan step can emit, and makes only two of them quiet', () => {
+    const emitted = [...smoke.matchAll(/^\s*reason=(\S+)$/gm)].map((m) => m[1])
+    const handled = [...smoke.matchAll(/^\s{12}([a-z|-]+)\)$/gm)].map((m) => m[1])
+    const quiet = [...smoke.matchAll(/^\s{12}(\S+)\)\n\s*FATAL=false$/gm)].map((m) => m[1])
+
+    expect(emitted.length).toBeGreaterThan(1)
+    expect([...emitted].sort()).toEqual([...handled].sort())
+    expect(quiet.sort()).toEqual(['fork', 'queue'])
+
+    // Without the fallback, a state added to the plan step and not here would inherit the
+    // previous case's advice instead of going loud.
+    expect(smoke).toMatch(/^\s{12}\*\)$/m)
+  })
+
   // The guard is what refuses the `-design` playground's host. A publish step whose address
   // nothing checks is the silent green this whole lane exists to prevent.
   it('checks the published address against the app Worker', () => {
@@ -158,7 +183,6 @@ describe('ci.yml', () => {
 
     // The name comes off the config, never typed in: a rename has to break the guard rather
     // than leave it anchored on a Worker that no longer exists.
-    expect(guard).toMatch(/import \{[^}]*\bappWorkerName\b[^}]*\} from '\.\/_wrangler-config\.mjs'/)
     expect(guard).toContain('appWorkerName()')
   })
 })

@@ -1,8 +1,8 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { APP_CONFIG, readWranglerConfig } from './_wrangler-config.mjs'
+import { APP_CONFIG, ROOT, readPackage, readWranglerConfig } from './_wrangler-config.mjs'
 
 // `pnpm check:wrangler` is the only thing that DEPLOYS from a wrangler config — Workers Builds
 // holds the dashboard's copy of each path (#279, #280). So the gate's own argument list has no
@@ -13,8 +13,6 @@ import { APP_CONFIG, readWranglerConfig } from './_wrangler-config.mjs'
 // This spec takes the half the dry run cannot. It enumerates the configs on disk rather than
 // listing them, so a third target cannot arrive ungated.
 
-const ROOT = new URL('../', import.meta.url)
-
 /**
  * `wrangler.jsonc` plus every `wrangler.<target>.*` beside it. The extensions are wrangler's
  * own accepted set, not ours: matching `.jsonc` alone would make a `wrangler.embed.toml`
@@ -24,9 +22,7 @@ const CONFIG_FILES = readdirSync(ROOT).filter((name) =>
   /^wrangler(\..+)?\.(jsonc?|toml)$/.test(name),
 )
 
-const PACKAGE = JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8')) as {
-  scripts: Record<string, string>
-}
+const PACKAGE = readPackage()
 
 const GATE = PACKAGE.scripts['check:wrangler']
 

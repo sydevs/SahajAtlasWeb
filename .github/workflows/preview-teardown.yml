@@ -22,7 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # ⚠ Check out the BASE commit, not the default `refs/pull/<n>/merge`. GitHub stops
+      # serving that merge ref once a pull request closes, so the default checkout can fail
+      # with "couldn't find remote ref" — on the one event that can ever delete this preview.
+      # The base's `wrangler.jsonc` is also the right copy: all this job needs from the
+      # checkout is the Worker name, and the branch's own copy could have been edited.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
 
       # ⚠ `--skip-confirmation` (alias `-y`) is load-bearing: `previewDeleteCommand`'s own arg
       # table defaults it to `false` and `previewDelete` then prompts, and a prompt in a

@@ -64,21 +64,26 @@ export function appPreviewHost(url, worker, subdomain = WORKERS_SUBDOMAIN) {
   // The left end: the label ENDS at the worker name, so `-sahajatlas-design` cannot pass for
   // `-sahajatlas`. A preview name has to precede it — the bare worker label is the production
   // host, not a preview of it.
-  if (!label.endsWith(suffix) || label.length <= suffix.length) return null
+  if (!label.endsWith(suffix) || label === suffix) return null
 
   return parsed.hostname.toLowerCase()
 }
 
 function main() {
-  const urls = process.argv.slice(2).filter(Boolean)
-  const worker = appWorkerName()
+  // Every argument must be there AND be an address. An empty one means the publish step
+  // produced no such output, which is the same failure as a wrong host and belongs in the same
+  // place: were empties filtered out instead, "we have an address" would be half here and half
+  // in a workflow expression.
+  const urls = process.argv.slice(2)
 
-  if (urls.length === 0) {
+  if (urls.length === 0 || urls.some((url) => url === '')) {
     annotate('error', `No preview address to check against \`${APP_CONFIG}\`'s Worker.`)
     process.exit(1)
   }
 
-  const refused = urls.filter((url) => !appPreviewHost(url, worker))
+  const worker = appWorkerName()
+  const hosts = urls.map((url) => appPreviewHost(url, worker))
+  const refused = urls.filter((_, i) => !hosts[i])
 
   if (refused.length > 0) {
     annotate(
@@ -89,12 +94,17 @@ function main() {
     process.exit(1)
   }
 
-  report([`Preview addresses belong to the \`${worker}\` Worker: ${urls.join(', ')}.`])
+  // The hostnames the match returned, not the arguments: a reader of a green step wants the
+  // host that was accepted, normalised, rather than an echo of what was passed in.
+  report([`Preview hosts belong to the \`${worker}\` Worker: ${hosts.join(', ')}.`])
 }
 
 // Lets the spec import `appPreviewHost` without running the check. `realpathSync` on both
 // sides, because `process.argv[1]` keeps a symlink's path while `import.meta.url` resolves to
-// the target file.
-if (realpathSync(process.argv[1] || '') === realpathSync(fileURLToPath(import.meta.url))) {
+// the target file. ⚠ It is tested first: `realpathSync('')` throws ENOENT, so a defaulted empty
+// would crash the import rather than read as false.
+const invokedAs = process.argv[1]
+
+if (invokedAs && realpathSync(invokedAs) === realpathSync(fileURLToPath(import.meta.url))) {
   main()
 }

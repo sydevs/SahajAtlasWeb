@@ -117,14 +117,6 @@ jobs:
       deployments: write
       checks: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-
       # Publishing needs both a pull-request number to key the preview on and the Cloudflare
       # credential, and the two absences mean opposite things. A fork holds no secrets by
       # design, and a `merge_group` entry has no `github.event.pull_request` at all — both are
@@ -134,6 +126,10 @@ jobs:
       #
       # `secrets` is not a context an `if:` can read, so the credential's presence arrives
       # through `env` as a boolean rather than as the credential.
+      #
+      # It runs FIRST, before the checkout, so the states that cannot publish pay for no setup
+      # at all. A `merge_group` entry is the common case — one per merge — and it has nothing to
+      # install for.
       - name: Decide whether a preview can be published
         id: plan
         env:
@@ -150,12 +146,19 @@ jobs:
           else
             reason=fork
           fi
-          publish=false
-          [ "$reason" = "publish" ] && publish=true
-          {
-            echo "reason=$reason"
-            echo "publish=$publish"
-          } >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        if: steps.plan.outputs.reason == 'publish'
+      - uses: pnpm/action-setup@v6
+        if: steps.plan.outputs.reason == 'publish'
+      - uses: actions/setup-node@v7
+        if: steps.plan.outputs.reason == 'publish'
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.plan.outputs.reason == 'publish'
 
       # This job builds its own `dist/`, and must: `wrangler preview` uploads from a local
       # directory, and the gate job's `pnpm build` is deliberately secret-free so a fork can run
@@ -174,7 +177,7 @@ jobs:
       # unset on purpose: no maps are emitted at all and `pnpm assert:maps` passes, which is the
       # simplest correct state for a preview.
       - name: Build the preview
-        if: steps.plan.outputs.publish == 'true'
+        if: steps.plan.outputs.reason == 'publish'
         env:
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           VITE_SENTRY_ENVIRONMENT: preview # unset, a build tags itself `production`
@@ -199,7 +202,7 @@ jobs:
       # its own log rather than as a discovery timeout.
       - name: Publish the preview
         id: publish
-        if: steps.plan.outputs.publish == 'true'
+        if: steps.plan.outputs.reason == 'publish'
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -213,7 +216,7 @@ jobs:
       # worker-name label segment at both ends, reading the name off `wrangler.jsonc`.
       - name: Refuse an address that is not the app Worker's
         id: guard
-        if: steps.plan.outputs.publish == 'true'
+        if: steps.plan.outputs.reason == 'publish'
         env:
           PINNED_URL: ${{ steps.publish.outputs.preview-deployment-url }}
           STABLE_URL: ${{ steps.publish.outputs.preview-url }}
@@ -234,7 +237,7 @@ jobs:
       # on purpose: this check run carries links and gates nothing. The addresses arrive through
       # `env` and the body is built with `jq`, so neither can reach the shell as syntax.
       - name: Post the preview address as a check run
-        if: steps.plan.outputs.publish == 'true'
+        if: steps.plan.outputs.reason == 'publish'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -257,9 +260,14 @@ jobs:
       # published. `preview-url` follows the preview across pushes, so reading it would let a
       # later push's build answer for this commit's — #138's defect in its Workers spelling.
       # `deployment-url` is the same value as `preview-url`, not a third address; do not read it.
+      #
+      # Gated on `reason`, like every step above it, and NOT on the address being non-empty.
+      # Every `if:` here is implicitly `success() && …`, so a failed publish or a refused host
+      # already skips this step — and the guard is the one place that decides whether an address
+      # exists, so a second spelling of that rule here could only ever disagree with it.
       - name: Run the smoke specs against the preview
         id: smoke
-        if: steps.publish.outputs.preview-deployment-url != ''
+        if: steps.plan.outputs.reason == 'publish'
         env:
           PREVIEW_URL: ${{ steps.publish.outputs.preview-deployment-url }}
         run: |

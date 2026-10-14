@@ -1,10 +1,15 @@
 /**
- * Reads a wrangler config off disk, comments and trailing commas included.
+ * Reads the repo-root files the deploy gates share — the wrangler configs, comments and
+ * trailing commas included, and `package.json` beside them.
  *
  * Three readers need the app Worker's own `name` and nothing else would couple them:
  * `assert-preview-host.mjs` anchors the preview host on it, `ci-workflows.test.ts` anchors the
  * production lane's trigger on it, and `wrangler-config.test.ts` asserts the shape of every
  * config in the root. A rename has to fail all three at once, so there is one parser (#282).
+ *
+ * `package.json` sits here for the same reason: the two specs above read it to pin the scripts
+ * that fill each config's `assets.directory` and the wrangler version the publish uploads with,
+ * and each had grown its own parse and its own hand-written type for it.
  *
  * The underscore prefix marks this file as a helper, not a runnable script, as
  * `_ci-output.mjs` and `tests/smoke/_helpers/` do.
@@ -17,7 +22,8 @@ import ts from 'typescript'
 /** The app Worker's config. `wrangler.design.jsonc` is the Ladle playground's. */
 export const APP_CONFIG = 'wrangler.jsonc'
 
-const ROOT = new URL('../', import.meta.url)
+/** The repo root, for a caller resolving a sibling of the files below. */
+export const ROOT = new URL('../', import.meta.url)
 
 /**
  * @typedef {object} WranglerConfig
@@ -42,6 +48,17 @@ export function readWranglerConfig(file) {
   if (error) throw new Error(`${file}: ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}`)
 
   return /** @type {WranglerConfig} */ (config)
+}
+
+/**
+ * @typedef {object} PackageJson
+ * @property {Record<string, string>} scripts
+ * @property {Record<string, string>} devDependencies
+ */
+
+/** @returns {PackageJson} */
+export function readPackage() {
+  return /** @type {PackageJson} */ (JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8')))
 }
 
 /**
