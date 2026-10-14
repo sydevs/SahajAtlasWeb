@@ -1,4 +1,4 @@
-# Cloudflare serves this from the build output, like _redirects and _headers.
+# Cloudflare serves this from the build output, beside _headers.
 # NOTE it lands in BOTH: `pnpm build` copies public/ into dist/ (the `sahajatlas` app, on
 # Pages) and `pnpm ladle:build` copies it into build/ (the `sahajatlas-design` playground,
 # on Workers static assets — #279), so this one file is the policy for both sites. That is

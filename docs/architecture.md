@@ -110,11 +110,12 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   architecturally is the deep-link fallback, and it is **per platform, not
   per build**: the standalone `BrowserRouter` build gets it from
   `public/_redirects` (`/* /index.html 200`), which Vite copies into
-  `dist/`, while a Worker serving that same `dist/` has
-  `assets.not_found_handling` for the same job. ⚠ A Worker still *reads*
-  `_redirects` — see `AGENTS.md` § Deployment for what is proven and what is
-  unmeasured (#280). The widget build routes off a query parameter on the
-  host's page, so it needs no fallback of its own.
+  `dist/`, while a Worker takes it from `assets.not_found_handling`
+  instead. ⚠ The two are not interchangeable: a Worker reads `_redirects`
+  and rejects that splat, failing the deploy, so each Worker build deletes
+  the file — see `AGENTS.md` § Deployment (#280). The widget build routes
+  off a query parameter on the host's page, so it needs no fallback of its
+  own.
 - **Translations**: there is no sync pipeline. Locale JSON under
   SahajCloud owns every string since #198 (`pnpm sync:translations`). The two **Accent**
   translation-sync workflows were removed in #99 (see `AGENTS.md` →

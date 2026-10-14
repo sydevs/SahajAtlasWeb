@@ -18,11 +18,12 @@
   // `_headers` and `robots.txt` reach this Worker. `not_found_handling` does the job the
   // `public/_redirects` splat does on Pages.
   //
-  // ⚠ It does not REPLACE that splat: wrangler reads `_redirects` out of this directory and
-  // uploads it, and `dist/` still carries `/*  /index.html  200`. Whether that shadows real
-  // assets here is unmeasured — measure `/embed.js`, `/auto.js`, `/robots.txt` and
-  // `/assets/*` on this Worker's host before anything depends on it (#280, and
-  // `AGENTS.md` § Deployment for the evidence).
+  // ⚠ Build this Worker with **`pnpm build:worker`**, never `pnpm build`. A Worker reads
+  // `_redirects` and its API rejects that splat as an infinite loop (100324), failing the
+  // deploy, and `pnpm build` must keep the file because the same `dist/` is what the Pages
+  // project serving `sahajatlas.com` deploys. `build:worker` is `build` plus the `rm -f`
+  // (#280). `check:wrangler` cannot catch a regression here — the dry run never reaches the
+  // API — so `scripts/wrangler-config.test.ts` pins the pairing instead.
   "assets": {
     "directory": "dist",
     "not_found_handling": "single-page-application"

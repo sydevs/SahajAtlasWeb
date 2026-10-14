@@ -309,32 +309,29 @@ move to Workers proceeds one site at a time and the app's own cutover is split f
   `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
   `not_found_handling: "single-page-application"`, previews on. Workers Builds holds the
   build command and the trigger's branch and path rules.
-  ⚠ **Which Node and pnpm a Workers build image uses is unverified** — whether the image
-  reads `.node-version` is undocumented, and its defaults are newer than the Pages image's.
-  Read the first build log rather than assuming; #266 records the answer, for whichever
-  Worker builds first.
+  The Workers build image honours `.node-version` and `packageManager`: the first build
+  (2026-10-13) reported `nodejs@22.17.0, pnpm@9.15.0`, though its own defaults are newer.
+  ⚠ **Its branch rules take only a literal branch name or a lone `*`.** The API refuses
+  `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
+  show prefix wildcards — so unlike the Pages app, merge-queue and mockup branches do start
+  preview builds here (#266).
 
-Three deploy files live in `public/`, copied into both build outputs, and **all three are read
-on both platforms**:
+Three deploy files live in `public/`, copied into both build outputs. ⚠ **The two platforms do
+not read the same three.** `_headers` and `robots.txt` govern both sites; `_redirects` governs
+the Pages app alone:
 
 - **`_redirects`** (`/* /index.html 200`) — the SPA deep-link fallback for the standalone
-  `BrowserRouter` build. The embeddable widget routes off a query parameter instead, so only
-  the standalone build depends on it, and a Worker has `assets.not_found_handling` for the same
-  job.
-  ⚠ **A Worker does NOT ignore this file, and what it does with the splat is unmeasured
-  (#280).** The claim that a Workers static-assets Worker never reads `_redirects` is false:
-  `wrangler`'s `getAssetsOptions` reads `_redirects` and `_headers` with the same
-  `maybeGetFile` pair and uploads each as a deployment module, which is exactly why `_headers`
-  works on the playground. What `createAssetsIgnoreFunction` does is keep both out of the asset
-  manifest, so neither is *served* — a different thing from not being read, and
-  `.assetsignore` cannot suppress either, because that read is unconditional.
-  Cloudflare documents, for **both** platforms, that "Redirects are always followed, regardless
-  of whether or not an asset matches the incoming request" — and that sentence does not
-  describe Pages: measured on `sahajatlas.com` 2026-10-13 with this splat live, `/embed.js` and
-  `/auto.js` answer `application/javascript` and `/robots.txt` answers `text/plain`, so an
-  asset wins there and only an unbuilt path falls through. So the splat is safe on Pages by
-  measurement and unknown on a Worker by the same token. Measure `/embed.js`, `/auto.js`,
-  `/robots.txt` and `/assets/*` on a Worker host before anything depends on one.
+  `BrowserRouter` build, on the Pages app only. The embeddable widget routes off a query
+  parameter instead, so only the standalone build depends on this file. A Worker gets the
+  same behaviour from `assets.not_found_handling`.
+  ⚠ **Workers static assets do read `_redirects`, and reject this rule** as an infinite loop
+  (API code 100324) — the whole deploy fails. So `pnpm ladle:build` deletes it from `build/`.
+  `pnpm check:wrangler` cannot catch this, since the dry run never reaches the API.
+  ⚠ **The app cannot delete it in `pnpm build`**, because that one `dist/` is also what the
+  Pages project serving `sahajatlas.com` deploys, and Pages needs the line. So the app Worker
+  builds with **`pnpm build:worker`** — `pnpm build` plus the same `rm -f`, pointed at `dist/`
+  — and that, not `pnpm build`, is the Workers Builds build command for it (#280).
+  `scripts/wrangler-config.test.ts` pins the pairing, since nothing else reads it.
 - **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
   mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
   unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.

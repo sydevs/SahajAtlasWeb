@@ -100,8 +100,8 @@ describe.each([...CONFIGS])('%s', (_file, config) => {
     expect(config.assets?.directory).toBeTruthy()
   })
 
-  // The Worker never reads `public/_redirects`, so this key alone resolves a deep link into
-  // the shell it was copied beside.
+  // A Worker rejects `public/_redirects`'s splat outright, so this key is the only deep-link
+  // fallback it has.
   it('falls back to the shell for an unbuilt path', () => {
     expect(config.assets?.not_found_handling).toBe('single-page-application')
   })
@@ -133,5 +133,26 @@ describe('the targets', () => {
   // refuse `sahajatlas` while the Pages project of that name lives (#280).
   it('serve the app out of `dist`', () => {
     expect(CONFIGS.get('wrangler.jsonc')?.assets?.directory).toBe('dist')
+  })
+
+  // Every assets directory a Worker deploys must have `_redirects` deleted from it first: the
+  // API rejects that file's splat as an infinite loop and fails the deploy, and the dry run
+  // never reaches the API to catch it. `pnpm build` cannot do the deleting for `dist/`, since
+  // the Pages project serving sahajatlas.com deploys the same directory and needs the file —
+  // hence a separate `build:worker`. Nothing else pairs a config with the script that fills it.
+  it.each([
+    ['wrangler.jsonc', 'build:worker'],
+    ['wrangler.design.jsonc', 'ladle:build'],
+  ])('%s is filled by a script that drops _redirects', (file, script) => {
+    const directory = CONFIGS.get(file)?.assets?.directory
+
+    expect(directory).toBeTruthy()
+    expect(PACKAGE.scripts[script]).toContain(`rm -f ${directory}/_redirects`)
+  })
+
+  // The Pages app deploys `dist/` too and depends on the splat, so the plain build must leave
+  // it alone. Only the Worker's own script may delete it.
+  it('leaves `pnpm build` free of the deletion the Pages app depends on', () => {
+    expect(PACKAGE.scripts.build).not.toContain('_redirects')
   })
 })
