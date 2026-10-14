@@ -50,8 +50,14 @@ describe('production-smoke.yml', () => {
   // deploys from this repo too. ⚠ The anchor is the app Worker's `name`, so a rename fails this
   // spec at collection. The `ci.yml` environment value that used to carry it went with the
   // discovery subsystem (#282).
-  it('waits on the Cloudflare build of the Worker wrangler.jsonc names', () => {
-    expect(match(lane, /check_run\.name == 'Cloudflare Pages: (\S+)'/)).toBe(appWorkerName())
+  //
+  // ⚠ The integration prefix is part of the match, because the app Worker carries the Pages
+  // project's own name: `Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` differ
+  // in nothing else, and only one of them is this lane's (#280, #297). And the comparison must
+  // stay `==`: `sahajatlas` is a prefix of `sahajatlas-design`, so a `startsWith` would let the
+  // playground's deploy fire the atlas's lane.
+  it('waits on the Workers build of the Worker wrangler.jsonc names', () => {
+    expect(match(lane, /check_run\.name == '(.+?)'/)).toBe(`Workers Builds: ${appWorkerName()}`)
   })
 
   // A red production read reaches a human only as an issue filed by the bot

@@ -3,7 +3,7 @@ name: Production Smoke
 # Runs the smoke specs against the deploy visitors and host sites actually
 # get (issue #244). Why the PR gate can only ever read a preview, why the
 # deploy fires the run rather than a clock, why the host is `sahajatlas.com`
-# and not `*.pages.dev` (#148), and ⚠ why the trigger is Cloudflare's check
+# and not a vendor host (#148), and ⚠ why the trigger is Cloudflare's check
 # run rather than the `deployment_status` #244 specified: `docs/testing.md`
 # → "The PR gate can only ever read a preview".
 #
@@ -26,18 +26,31 @@ jobs:
     name: Production smoke
     # Every filter lives here on purpose: a non-production event SKIPS the
     # job, so it never reaches a step and never reads as a green run that
-    # checked nothing. The name is the app's Pages project, not the
-    # `-design` Ladle playground, which deploys from this repo too.
+    # checked nothing.
+    #
+    # ⚠ The name is compared with `==`, in full, and must stay that way.
+    # Workers Builds names its check run `Workers Builds: <worker name>`
+    # (observed on the `-design` sibling, #297), and `sahajatlas` is a
+    # PREFIX of `sahajatlas-design` — so `startsWith` or `contains` would
+    # let the Ladle playground's deploy, which builds from this repo too,
+    # fire the atlas's production lane. `Workers Builds: sahajatlas` never
+    # equals `Workers Builds: sahajatlas-design`. The same prefix hazard
+    # `scripts/assert-preview-host.mjs` guards, one layer up (#280, #282).
+    #
+    # `startsWith(app.slug, 'cloudflare')` holds unchanged: one Cloudflare
+    # App posts both the Workers Builds run and the Pages one.
     #
     # Two independent conditions say "this is a main-branch build", and
-    # neither can admit a preview: a PR head is not the default branch, and
-    # it is not the default branch's tip either. Taking both means a null
-    # `head_branch` cannot silence the lane.
+    # neither can admit a preview build of the same Worker: a PR head is
+    # not the default branch, and it is not the default branch's tip
+    # either. Taking both means a null `head_branch` cannot silence the
+    # lane. Both Workers Builds triggers post the same check-run name, so
+    # this pair is what separates them — keep it exactly as it is.
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
       (github.event.check_run.conclusion == 'success' &&
       startsWith(github.event.check_run.app.slug, 'cloudflare') &&
-      github.event.check_run.name == 'Cloudflare Pages: sahajatlas' &&
+      github.event.check_run.name == 'Workers Builds: sahajatlas' &&
       (github.event.check_run.check_suite.head_branch == github.event.repository.default_branch ||
       github.event.check_run.check_suite.head_sha == github.sha)) }}
     runs-on: ubuntu-latest
@@ -136,7 +149,7 @@ jobs:
               "- Failing run: $RUN_URL" \
               "- Commit: \`$GITHUB_SHA\`" \
               "" \
-              "The same 17 specs pass on every PR against a \`*.pages.dev\` preview, so a red here" \
+              "The same 17 specs pass on every PR against a published Workers preview, so a red here" \
               "means production differs from the preview the gate read. #148 was a zone cache" \
               "setting, not a commit, so read the run before assuming the last merge caused it." \
               "" \
