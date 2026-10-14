@@ -31,14 +31,41 @@ place it is stated — everywhere else in this repo just points here.
 | `VITE_FATHOM_ID`           | `.env.local`                  | Fathom analytics site id (optional). Analytics is disabled when unset or on localhost. |
 | `SAHAJCLOUD_DOCS_PASSWORD` | `.env.local`                  | HTTP basic-auth password for the SahajCloud OpenAPI docs. Used **only** by the `pnpm types:openapi` script. Never `VITE_`-prefixed — tooling-only, never in the bundle. |
 
+## GitHub Actions secrets — the smoke lane's preview (#282)
+
+The `Smoke` job builds the app and publishes its own Workers preview, so five values live in
+**this repository's Actions secrets** rather than in Cloudflare. They are read only by
+`.github/workflows/ci.yml`'s smoke job and by `preview-teardown.yml`. Nothing else in the repo
+reads them, and a fork cannot: `pull_request` gives a forked run no secrets at all, which is
+exactly why a fork's smoke run is an annotated skip rather than a red check.
+
+| Secret | Purpose |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | The preview upload, and the delete on close. ⚠ Scope it to **Workers only** — nothing here touches Pages, a zone, or an account setting. |
+| `CLOUDFLARE_ACCOUNT_ID` | The account the preview publishes into. |
+| `VITE_SENTRY_DSN` | Not optional for a preview: `tests/smoke/boot-origins.smoke.test.ts` **fails** when an origin pattern finds nothing, and the ingest host is one of its two (#232). |
+| `VITE_SAHAJCLOUD_API_KEY` | Without it the preview serves the configuration-error screen instead of the keyless world list, and a reviewer reads nothing off it. |
+| `VITE_MAPBOX_ACCESSTOKEN` | Without it the preview draws an empty canvas instead of tiles. |
+
+⚠ **Until all five exist, every same-repo pull request fails its `Smoke` check**, with a message
+naming the missing pair. That is deliberate: the alternative is a green check that read nothing,
+which is the hole #99 closed.
+
+`VITE_SENTRY_ENVIRONMENT: preview` is a plain workflow value in `ci.yml`, not a secret — unset, a
+build tags itself `production`. `VITE_SAHAJCLOUD_URL` and `VITE_TURNSTILE_SITE_KEY` keep `.env`'s
+committed defaults, the Turnstile one being the always-passes test key. `SENTRY_AUTH_TOKEN` is
+deliberately **not** set for a preview: no maps are emitted at all and `pnpm assert:maps` passes,
+which is the simplest correct state.
+
 ## Secrets that must NOT reach the client
 
 - `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) — a Mapbox **secret** token, for its token-management
   API. It carries no `VITE_` prefix and must never appear in client code or in a commit. The
   `security-scan` hook blocks staged files containing `sk.`/secret patterns.
 
-- `SENTRY_AUTH_TOKEN` — see the table above. Build-time only, never `VITE_`-prefixed. It is the
-  **only** secret in this repo read by a build rather than run by hand.
+- `SENTRY_AUTH_TOKEN` — see the table above. Build-time only, never `VITE_`-prefixed. ⚠ It was
+  the only secret in this repo read by a build rather than run by hand until #282 added the
+  Actions secrets above, and it is still the only one a **deploy** build reads.
 
 (`ACCENT_API_KEY` used to live here, for the Accent translation-sync workflows. Those were
 deleted in #99 — see `AGENTS.md` → Deployment — so nothing in this repo reads that secret now,
