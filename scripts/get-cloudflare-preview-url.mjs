@@ -246,9 +246,26 @@ const SHORT_SHA_RE = /^[0-9a-f]{7}$/i.test(shortSha)
 // same commit.
 const projectSlug = project.split('.')[0].toLowerCase()
 
-/** @param {string} [name] */
-function runProject(name) {
-  const match = /:\s*([a-z0-9-]+)\s*$/i.exec(name || '')
+/**
+ * The Pages project a check run is FOR, or `null` for any other run.
+ *
+ * ⚠ The integration prefix is load-bearing, not decoration. One App posts
+ * every Cloudflare deploy run on a commit, and a Worker may carry a live
+ * Pages project's own name — `sydevs/SahajAtlasWeb#297` added
+ * `wrangler.jsonc` naming the Worker `sahajatlas`, so the two runs on one
+ * commit are `Cloudflare Pages: sahajatlas` and `Workers Builds:
+ * sahajatlas`. Matching the trailing slug alone made both this project's,
+ * and `failure` and `deployment` are last-write-wins: a failed Worker
+ * build would then report the Pages preview as failed, the one conclusion
+ * whose advice is "re-running cannot help". `CF_PROJECT` names a
+ * `pages.dev` host and `pick()` admits no other, so Pages is the only
+ * integration this script may conclude from. #266's last child moves the
+ * app to the Worker, and moves both of those together.
+ *
+ * @param {string} [name]
+ */
+export function runProject(name) {
+  const match = /^cloudflare pages:\s*([a-z0-9-]+)\s*$/i.exec(name || '')
 
   return match ? match[1].toLowerCase() : null
 }

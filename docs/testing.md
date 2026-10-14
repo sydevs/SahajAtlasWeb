@@ -69,7 +69,10 @@ stays legible without opening the raw log.
 folding it into "a deploy exists" would send the reader to re-run a job that fails identically —
 training the exact habit this ticket set out to break. Evidence must come from the run matching
 `CF_PROJECT`'s own slug, not whichever run GitHub lists first — the `-design` sibling succeeding
-says nothing about the app's build.
+says nothing about the app's build. ⚠ **The slug alone is not that match**: `runProject` anchors
+the integration prefix too, because the app Worker carries the Pages project's own name, so
+`Workers Builds: sahajatlas` and `Cloudflare Pages: sahajatlas` both end in this project's slug
+and only the second one is this lane's (#280).
 
 Two findings sit behind that script, worth keeping so nobody re-derives them:
 

@@ -10,6 +10,7 @@ import {
   pick,
   pickPreview,
   provenanceOf,
+  runProject,
   timeoutFrom,
   timeoutStatus,
   waitingLine,
@@ -369,6 +370,31 @@ describe('explain', () => {
     )
 
     for (const message of messages) expect(message).not.toMatch(/\d+m\d+s|\b\d+s\b/)
+  })
+})
+
+describe('runProject', () => {
+  // `wrangler.jsonc` names the app Worker `sahajatlas`, which is the Pages project's own name,
+  // and one Cloudflare App posts both runs on a commit. On the trailing slug alone each run was
+  // this project's, so a failed Worker build set `failure` for a healthy Pages preview — the one
+  // conclusion whose advice is that re-running cannot help.
+  it('claims the Pages run for this project and no other integration', () => {
+    expect(runProject('Cloudflare Pages: sahajatlas')).toBe('sahajatlas')
+    expect(runProject('Workers Builds: sahajatlas')).toBeNull()
+  })
+
+  // The sibling is still named, because source 3 counts it as evidence a deploy exists while
+  // refusing it as a conclusion. Its Worker run is neither.
+  it('names the sibling Pages project but not its Worker', () => {
+    expect(runProject('Cloudflare Pages: sahajatlas-design')).toBe('sahajatlas-design')
+    expect(runProject('Workers Builds: sahajatlas-design')).toBeNull()
+  })
+
+  it('claims nothing from a name it cannot read', () => {
+    expect(runProject('Deploy Preview: sahajatlas')).toBeNull()
+    expect(runProject('CI / Lint, typecheck, test')).toBeNull()
+    expect(runProject('')).toBeNull()
+    expect(runProject(undefined)).toBeNull()
   })
 })
 
