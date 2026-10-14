@@ -77,6 +77,14 @@ describe('the check:wrangler gate', () => {
     expect(segments).toHaveLength(CONFIG_FILES.length)
     for (const segment of segments) expect(segment).not.toMatch(/[;|]/)
   })
+
+  // `--dry-run` is the whole reason a CI gate may run `wrangler deploy`: it keeps the gate
+  // offline and needs no Cloudflare credential. Today a dropped flag only makes a red gate
+  // noisy, because nothing in this repo holds a token. The day #266's child adds
+  // `cloudflare/wrangler-action` and one, the same script would deploy from CI instead.
+  it('deploys nothing', () => {
+    for (const segment of GATE.split('&&')) expect(segment).toContain('--dry-run')
+  })
 })
 
 // A config the shape assertions below cannot read would skip them silently, so the parser's
