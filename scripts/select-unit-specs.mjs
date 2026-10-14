@@ -40,12 +40,19 @@ const QUOTED = /['"]([^'"\n]+)['"]/g
 
 /**
  * Calls that enumerate the tree rather than import from it. The trailing `(` is load-bearing —
- * `responsive.test.ts` names `readdirSync` in prose. Only `readdirSync(` occurs today, and the
- * rest are here because a spec written with another enumerator would otherwise drop out of the
- * per-edit set in silence, which is the one failure this list exists to prevent. `glob(` also
- * catches the `import.meta.glob(` form.
+ * a spec can name `readdirSync` in prose. Only `readdirSync(` occurs today, and the rest are here
+ * because a spec written with another enumerator would otherwise drop out of the per-edit set in
+ * silence, which is the one failure this list exists to prevent. `glob(` also catches the
+ * `import.meta.glob(` form.
  */
 const ENUMERATES = /readdirSync\(|readdir\(|globSync\(|glob\(/
+
+/**
+ * The shared walk of `src/` (#286). A spec that imports it enumerates the tree without making any
+ * call above, so importing it is what marks a walker — found through the reference index, which
+ * already resolves every specifier form.
+ */
+const SHARED_WALK = 'src/test-support/source-tree.ts'
 
 // `readdirSync` yields the OS separator, and every path here is POSIX, the way the specs that
 // already walk `src/` write theirs.
@@ -153,8 +160,10 @@ export function referencingSpecs(rel, index) {
   return [...new Set(referenceKeys(rel).flatMap((key) => [...(index.get(key) ?? [])]))]
 }
 
-function treeWalkingSpecs(specs, read) {
-  return specs.filter((spec) => ENUMERATES.test(read(spec)))
+function treeWalkingSpecs(specs, read, index) {
+  const viaSharedWalk = new Set(referencingSpecs(SHARED_WALK, index))
+
+  return specs.filter((spec) => viaSharedWalk.has(spec) || ENUMERATES.test(read(spec)))
 }
 
 /** The lane's spec text, read once. Every selection below is answered from this. */
@@ -162,8 +171,9 @@ export function readLane(root) {
   const specs = listSpecs(root)
   const texts = new Map(specs.map((spec) => [spec, readText(root, spec)]))
   const read = (spec) => texts.get(spec) ?? ''
+  const index = referenceIndex(specs, read)
 
-  return { specs, index: referenceIndex(specs, read), walkers: treeWalkingSpecs(specs, read) }
+  return { specs, index, walkers: treeWalkingSpecs(specs, read, index) }
 }
 
 /**

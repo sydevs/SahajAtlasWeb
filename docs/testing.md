@@ -443,13 +443,16 @@ a coupling the others cannot:
   quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
-- **Tree-walking** — the ten specs that enumerate the source tree instead of importing from it
-  (the nine `src/` inventories, plus the selector's own spec). Nothing in them references the file
-  that breaks them, so neither source above can find one and they always run.
+- **Tree-walking** — the twelve specs that enumerate the source tree instead of importing from it:
+  the nine `src/` inventories and `source-tree.test.ts`, found because they import the shared walk
+  (#286), plus two `scripts/` specs found by an enumerating call (`readdirSync(` and its kin).
+  Nothing in them references the file that breaks them, so neither source above can find one and
+  they always run. `wrangler-config.test.ts` only lists the repo root, so it is over-included —
+  deliberately, since the detector errs toward running a spec, and it costs nothing measurable.
 
 **That third source is ~4.5s of every edit, and 133 of 412 source files select nothing else.** The
 floor, not the selection, is what the budget mostly buys — so the lever left here is moving those
-ten repo-wide inventories into their own vitest project and running the hook against the unit one.
+repo-wide inventories into their own vitest project and running the hook against the unit one.
 The hook would still need the other two sources, so this narrows the floor rather than replacing
 the selector. #293 owns that change, and the figures above are what it is measured against.
 
@@ -460,10 +463,11 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 22 against a
-ceiling of 24; each of the three specifier forms, end to end against this tree; the tree-walking
-set as a closed list; and `vitest.config.ts`'s own `include`, so a spec in a new location fails
-here rather than quietly going uncovered per edit. ⚠ A walker is found by the enumerating call it
-makes, so one that reaches the tree through a shared helper is invisible to that pin — #286 is
-exactly that change. The three times above are unchecked, like every other measurement in this
-file.
+that**: the widest edit in the tree, exhaustively through the real composition, at 24 against a
+ceiling of 26 (22 when the times above were taken; #286's two added walkers measured no wall-time
+difference); each of the three specifier forms, end to end against this tree; the tree-walking set
+as a closed list; and `vitest.config.ts`'s own `include`, so a spec in a new location fails here
+rather than quietly going uncovered per edit. ⚠ A walker is found by importing
+`src/test-support/source-tree.ts` or by an enumerating call, so one that reaches the tree through
+some *other* helper is still invisible to that pin. The three times above are unchecked, like
+every other measurement in this file.

@@ -61,6 +61,12 @@ beforeAll(() => {
   write(fixture, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
   write(fixture, 'src/views/lister.test.tsx', "const COPY = ['src/lib/thing.ts']\n")
   write(fixture, 'src/views/walker.test.tsx', 'readdirSync(SRC, { recursive: true })\n')
+  write(fixture, 'src/test-support/source-tree.ts', 'export const sourceFiles = () => []\n')
+  write(
+    fixture,
+    'src/views/shared.test.tsx',
+    "import { sourceFiles } from '@/test-support/source-tree'\n",
+  )
 })
 
 afterAll(() => {
@@ -124,13 +130,14 @@ describe('referencingSpecs', () => {
 })
 
 describe('selectFrom', () => {
-  it('runs a tree-walking spec that holds no reference to the edit', () => {
+  it('runs a tree-walking spec that holds no reference to the edit, by either route', () => {
     expect(selectFrom('src/lib/thing.ts', readLane(fixture))).toEqual([
       'src/lib/neighbour.test.ts',
       'src/lib/thing.edge.test.ts',
       'src/lib/thing.test.ts',
       'src/views/importer.test.tsx',
       'src/views/lister.test.tsx',
+      'src/views/shared.test.tsx',
       'src/views/walker.test.tsx',
     ])
   })
@@ -148,12 +155,14 @@ describe('this repository', () => {
    * reference to it exists. Adding one means adding it here: the hook runs this set on every
    * edit, and one left out would stop being checked per edit without failing anything.
    *
-   * ⚠ #286 consolidates the nine `src/` inventories onto one shared walker. A spec that reaches
-   * the tree through that helper instead of calling an enumerator stops matching, and this list
-   * is what says so.
+   * The nine `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
+   * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
+   * so no lane edit can break it, but the detector over-includes on purpose and it costs nothing
+   * measurable.
    */
   const WALKERS = [
     'scripts/select-unit-specs.test.ts',
+    'scripts/wrangler-config.test.ts',
     'src/Widget.standalone.test.ts',
     'src/components/atoms/Icons/Icons.usage.test.tsx',
     'src/config/api/reads.inventory.test.ts',
@@ -163,6 +172,7 @@ describe('this repository', () => {
     'src/lib/announce-site.test.ts',
     'src/lib/overlay.popper.test.ts',
     'src/lib/shape/href.test.ts',
+    'src/test-support/source-tree.test.ts',
   ]
 
   it('enumerates the tree in exactly the specs named here', () => {
@@ -219,8 +229,9 @@ describe('this repository', () => {
       .map((source) => ({ source, count: selectFrom(source, lane).length }))
       .reduce((a, b) => (b.count > a.count ? b : a))
 
-    // 22 when `docs/testing.md`'s budget was measured, on `src/config/i18n.ts`. The ceiling is
-    // what holds the per-edit time down, so a jump here is a re-measure, not a bump.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(24)
+    // 22 when `docs/testing.md`'s budget was measured, on `src/config/i18n.ts`, and 24 once #286
+    // added two walkers. The ceiling is what holds the per-edit time down, so a jump here is a
+    // re-measure, not a bump.
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(26)
   })
 })
