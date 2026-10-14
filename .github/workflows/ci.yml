@@ -213,6 +213,40 @@ jobs:
           STABLE_URL: ${{ steps.publish.outputs.preview-url }}
         run: node scripts/assert-preview-host.mjs "$PINNED_URL" "$STABLE_URL"
 
+      # `finalize-pr` in sydevs/claude-workflow reads a preview address out of an `<a href>`
+      # whose own anchor text matches /branch\s+preview\s+url/i (`branch-preview-url.mjs`). On
+      # Workers no vendor writes that label, and once Cloudflare stops previewing the app Worker
+      # there is no vendor comment to read at all — so this posts the anchors itself.
+      #
+      # ⚠ The branch anchor comes FIRST and is the only one labelled. The pinned alias needs no
+      # label: `commitAliasFrom` identifies it by shape, eight hex characters followed by `-` or
+      # `.`, and `projectFrom` recovers the Worker's name from the same label. A per-commit alias
+      # under the branch label is the defect `finalize-pr/SKILL.md` names — it freezes, so the
+      # reviewer opens a dead build two pushes later.
+      #
+      # Posted before the specs, so a red smoke run still leaves the reviewer a link. `neutral`
+      # on purpose: this check run carries links and gates nothing. The addresses arrive through
+      # `env` and the body is built with `jq`, so neither can reach the shell as syntax.
+      - name: Post the preview address as a check run
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          STABLE_URL: ${{ steps.publish.outputs.preview-url }}
+          PINNED_URL: ${{ steps.publish.outputs.preview-deployment-url }}
+        run: |
+          summary=$(printf '%s\n' \
+            "<p><a href=\"$STABLE_URL\">Branch Preview URL</a></p>" \
+            "<p><a href=\"$PINNED_URL\">This commit's build</a></p>")
+          jq -n --arg sha "$HEAD_SHA" --arg summary "$summary" '{
+            name: "Atlas preview",
+            head_sha: $sha,
+            status: "completed",
+            conclusion: "neutral",
+            output: { title: "Atlas preview", summary: $summary }
+          }' | gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" --input - > /dev/null
+          echo "📍 [Branch Preview URL]($STABLE_URL) · [this commit's build]($PINNED_URL)" >> "$GITHUB_STEP_SUMMARY"
+
       # ⚠ The specs read `preview-deployment-url`, the immutable address of the version just
       # published. `preview-url` follows the preview across pushes, so reading it would let a
       # later push's build answer for this commit's — #138's defect in its Workers spelling.

@@ -123,6 +123,17 @@ describe('ci.yml', () => {
     )
   })
 
+  // ⚠ The reverse coupling, and the one `finalize-pr/SKILL.md` names: a per-commit alias under
+  // the `Branch Preview URL` label freezes, so the reviewer opens a dead build two pushes
+  // later. `branch-preview-url.mjs` matches the anchor's own text, so the label has to sit on
+  // the address that follows the preview. Swapping the two was watched change its output.
+  it('labels the branch-following address in the check run, and only that one', () => {
+    expect(match(smoke, /<a href=\\"\$(\w+)\\">Branch Preview URL<\/a>/)).toBe('STABLE_URL')
+    expect(match(smoke, /^\s*STABLE_URL: \$\{\{ steps\.\S+\.outputs\.(\S+) \}\}$/m)).toBe(
+      'preview-url',
+    )
+  })
+
   // ⚠ A bare `pnpm build` leaves `dist/_redirects`, whose splat the Workers API rejects as an
   // infinite loop (100324) and fails the whole upload (#280, #295). The pairing of the config
   // with the script that fills it is pinned in `wrangler-config.test.ts`; this is the pairing
