@@ -11,12 +11,11 @@ concurrency:
   group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+# The four read scopes that used to sit here existed only to hunt GitHub for whatever
+# Cloudflare had published. The smoke job publishes its own preview now, and the two write
+# scopes that needs are granted on that job alone (#282).
 permissions:
   contents: read
-  pull-requests: read # Cloudflare posts the preview URL in a PR comment
-  statuses: read # fallback: preview URL in a commit status target_url
-  deployments: read # fallback: preview URL in a deployment environment_url
-  checks: read # fallback: preview URL in a check-run output
 
 jobs:
   gate:
@@ -89,19 +88,28 @@ jobs:
     name: Dependency Review
     uses: sydevs/claude-workflow/.github/workflows/dependency-review.yml@main
     permissions:
-      contents: read # the four read scopes above exist for preview discovery, not this
+      contents: read
 
-  # Smoke specs run against the Cloudflare Pages PR preview. This job finds
-  # the preview URL through the GitHub API, since Cloudflare posts it on the
-  # PR. It waits until the preview is reachable, then fetches the root page.
-  # A missing preview is a graceful skip only on forks: forks have no
-  # secrets and no preview by design. On a same-repo PR, a missing preview
-  # fails the job. See "Report a missing preview" below for what the
-  # failure tells you to do next.
+  # Smoke specs run against a preview THIS job publishes. Nothing is discovered any more: the
+  # publish step returns the address, so a green Smoke check cannot have read somebody else's
+  # build, and no address is scraped out of text anyone can edit (#282, replacing the discovery
+  # subsystem of #122 and #138 — `docs/testing.md` carries what it measured).
+  #
+  # A green Smoke check still means the specs RAN. Only two states skip them quietly, and both
+  # say so: a forked pull request, which has no Cloudflare credential by design, and a
+  # merge-queue entry, which has no pull-request number to key a preview on. Every other way of
+  # reaching no preview fails the job.
   smoke:
     name: Smoke
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Granted on this job alone. `cloudflare/wrangler-action` creates a GitHub Deployment, and
+    # the check-run step posts ours. At the workflow level either scope would also reach the
+    # gate job and the Dependency Review job, which need neither.
+    permissions:
+      contents: read
+      deployments: write
+      checks: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -110,25 +118,110 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Emits `preview_url` and `preview_status`. It waits 10 minutes by
-      # default, a number measured against 86 real Cloudflare builds (see
-      # the script's header for the full data). It never fails the job
-      # itself. Set PREVIEW_TIMEOUT_MS here to wait longer. The value is in
-      # milliseconds, and the script caps it: an override past this job's
-      # `timeout-minutes` gets the job cancelled, which skips the reporting
-      # step below and leaves a red check with no message.
-      - name: Discover Cloudflare Pages preview URL
-        id: preview
+
+      # Publishing needs both a pull-request number to key the preview on and the Cloudflare
+      # credential, and the two absences mean opposite things. A fork holds no secrets by
+      # design, and a `merge_group` entry has no `github.event.pull_request` at all — both are
+      # expected, and a red required check on the queue entry would stall the merge queue. A
+      # same-repo pull request missing the credential is neither: that is an Actions secret
+      # nobody has entered, so it goes red and names which.
+      #
+      # `secrets` is not a context an `if:` can read, so the credential's presence arrives
+      # through `env` as a boolean rather than as the credential.
+      - name: Decide whether a preview can be published
+        id: plan
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CF_PROJECT: sahajatlas.pages.dev # the app's *.pages.dev host; the app is the only Pages project (#279)
-        run: node scripts/get-cloudflare-preview-url.mjs
-      - name: Run smoke specs against the preview
-        if: ${{ steps.preview.outputs.preview_url != '' }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          if [ -z "$PR_NUMBER" ]; then
+            reason=queue
+          elif [ "$HAS_TOKEN" = "true" ]; then
+            reason=publish
+          elif [ "$SAME_REPO" = "true" ]; then
+            reason=no-credentials
+          else
+            reason=fork
+          fi
+          publish=false
+          [ "$reason" = "publish" ] && publish=true
+          {
+            echo "reason=$reason"
+            echo "publish=$publish"
+          } >> "$GITHUB_OUTPUT"
+
+      # This job builds its own `dist/`, and must: `wrangler preview` uploads from a local
+      # directory, and the gate job's `pnpm build` is deliberately secret-free so a fork can run
+      # it, so its output carries none of the values below. Two builds in one run is the price
+      # of a preview the specs can trust.
+      #
+      # ⚠ `pnpm build:worker`, never `pnpm build`. A Worker reads `_redirects` and the API
+      # rejects its `/* /index.html 200` splat as an infinite loop (code 100324), failing the
+      # WHOLE upload rather than one route — and `pnpm build` must keep the file, because that
+      # same `dist/` is what the Pages project serving sahajatlas.com deploys (#280, #295).
+      #
+      # `VITE_SENTRY_DSN` is here because `tests/smoke/boot-origins.smoke.test.ts` FAILS when an
+      # origin pattern finds nothing, and the DSN is one of its two (#232). The API key and the
+      # Mapbox token are what make the preview render the world list keyless, rather than the
+      # configuration-error screen a reviewer can read nothing off. `SENTRY_AUTH_TOKEN` stays
+      # unset on purpose: no maps are emitted at all and `pnpm assert:maps` passes, which is the
+      # simplest correct state for a preview.
+      - name: Build the preview
+        if: steps.plan.outputs.publish == 'true'
         env:
-          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_ENVIRONMENT: preview # unset, a build tags itself `production`
+          VITE_SAHAJCLOUD_API_KEY: ${{ secrets.VITE_SAHAJCLOUD_API_KEY }}
+          VITE_MAPBOX_ACCESSTOKEN: ${{ secrets.VITE_MAPBOX_ACCESSTOKEN }}
+        run: pnpm build:worker
+
+      # ⚠ `--config` is passed explicitly. Two configs build from this repo, and leaving wrangler
+      # to resolve the default is one rename away from publishing the playground into the app's
+      # Worker. Keying the preview on the pull-request number is collision-proof, which a branch
+      # slug is not.
+      #
+      # ⚠ Never pass this action's `secrets:` input — it writes the PRODUCTION Worker's secrets.
+      #
+      # The action is pinned by SHA and `wranglerVersion` to the version `package.json` pins,
+      # because `wrangler preview` is open beta: a behaviour change upstream should arrive as a
+      # deliberate bump. The action's own floor for Workers Previews is 4.136.3, and
+      # `scripts/ci-workflows.test.ts` pins both ends against drift.
+      #
+      # Nothing waits for the Worker to answer. A Workers upload is live when the command
+      # returns, unlike a Pages build, so an unreachable host surfaces as a red smoke spec with
+      # its own log rather than as a discovery timeout.
+      - name: Publish the preview
+        id: publish
+        if: steps.plan.outputs.publish == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.150.0'
+          command: preview --name pr-${{ github.event.pull_request.number }} --config wrangler.jsonc
+
+      # The publish step cannot say WHICH Worker it published to, and a wrong `--config`, a
+      # copied step or a rename would aim the lane at the `sahajatlas-design` playground and
+      # collect a green check that verified the wrong site. The guard anchors the whole
+      # worker-name label segment at both ends, reading the name off `wrangler.jsonc`.
+      - name: Refuse an address that is not the app Worker's
+        id: guard
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          PINNED_URL: ${{ steps.publish.outputs.preview-deployment-url }}
+          STABLE_URL: ${{ steps.publish.outputs.preview-url }}
+        run: node scripts/assert-preview-host.mjs "$PINNED_URL" "$STABLE_URL"
+
+      # ⚠ The specs read `preview-deployment-url`, the immutable address of the version just
+      # published. `preview-url` follows the preview across pushes, so reading it would let a
+      # later push's build answer for this commit's — #138's defect in its Workers spelling.
+      # `deployment-url` is the same value as `preview-url`, not a third address; do not read it.
+      - name: Run the smoke specs against the preview
+        id: smoke
+        if: steps.publish.outputs.preview-deployment-url != ''
+        env:
+          PREVIEW_URL: ${{ steps.publish.outputs.preview-deployment-url }}
         run: |
           pnpm test:smoke
           {
@@ -137,47 +230,51 @@ jobs:
             echo "✅ Smoke specs ran against \`$PREVIEW_URL\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # A skip must never look like a pass. Discovery exits 0 with an empty
-      # URL when no preview turns up, and the specs then skip themselves. So
-      # this step keeps the invariant: a green "Smoke" check always means
-      # the specs ran. See docs/testing.md for the full history (issue #132).
+      # A skip must never look like a pass, so this step keeps the invariant that a green Smoke
+      # check means the specs ran. It fires only when they were SKIPPED: a red spec is a red job
+      # with its own log, and reporting "read nothing" over it would be a lie.
       #
-      # Same-repo PRs carry the secrets and the Cloudflare integration. So a
-      # missing preview there is a real failure: the deploy did not happen.
-      # This fails the job. Forked PRs get no preview by design, so they
-      # stay a graceful, annotated skip, and so do local `pnpm test:smoke`
-      # runs.
-      #
-      # Both branches below fail a same-repo PR. Only the message differs,
-      # because only one of the two is a defect. `preview_status` carries
-      # that distinction: `absent` means Cloudflare posted nothing at all
-      # for this commit. `pending` or `unreachable` means a deploy
-      # demonstrably exists and this step stopped waiting on it.
-      - name: Report a missing preview
-        if: ${{ steps.preview.outputs.preview_url == '' }}
+      # The reason vocabulary is deliberately short. `pending`, `unreachable`, `absent` and
+      # `failed` described somebody else's build; our own publish either succeeded or failed,
+      # and a failure is already a red step with its own log. An unrecognised reason still takes
+      # the loud branch, so a future one cannot inherit the softer advice.
+      - name: Report a smoke run that read nothing
+        if: ${{ always() && steps.smoke.outcome == 'skipped' }}
         env:
-          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-          PREVIEW_STATUS: ${{ steps.preview.outputs.preview_status }}
+          REASON: ${{ steps.plan.outputs.reason }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+          GUARD_OUTCOME: ${{ steps.guard.outcome }}
         run: |
-          case "$PREVIEW_STATUS" in
-            pending | unreachable)
-              MSG="Cloudflare had not published a usable preview before discovery gave up — NO smoke specs ran."
-              HINT="A Cloudflare deploy for this commit WAS seen ($PREVIEW_STATUS), so this is a slow deploy rather than a broken one: RE-RUN this job. The 'Discover Cloudflare Pages preview URL' step reports how long it waited and what it last saw. If it keeps happening, raise PREVIEW_TIMEOUT_MS on that step rather than re-running by hand."
+          FATAL=true
+          case "$REASON" in
+            fork)
+              FATAL=false
+              MSG="A forked pull request has no Cloudflare credential, so no preview was published — NO smoke specs ran."
+              HINT="By design: a fork cannot hold secrets. The specs run once this branch is pushed to this repository."
               ;;
-            failed)
-              MSG="The Cloudflare Pages build for this commit FAILED — NO smoke specs ran."
-              HINT="Cloudflare finished and did not succeed, so re-running this job will fail identically: read the Cloudflare deployment log. If that build failed in 0s with a clean log, it is a transient rate-limit — retry the DEPLOYMENT (not this job)."
+            queue)
+              FATAL=false
+              MSG="A merge-queue entry has no pull-request number to key a preview on — NO smoke specs ran."
+              HINT="Expected: the queue runs the required checks against a merge_group ref, and the specs already ran on the pull request itself."
               ;;
-            error)
-              MSG="Preview discovery could not run — NO smoke specs ran."
-              HINT="This is a fault in the discovery step itself, not in Cloudflare: read the 'Discover Cloudflare Pages preview URL' step, which prints why (usually a missing GITHUB_TOKEN / PR_HEAD_SHA)."
+            no-credentials)
+              MSG="This repository has no CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID, so no preview could be published — NO smoke specs ran."
+              HINT="Add both Actions secrets, scoped to Workers only. Until then every same-repo pull request fails here instead of reporting a green check that read nothing."
               ;;
-            # `absent`, and any unrecognized status. An unknown status gets
-            # the loud message on purpose. This stops a future status from
-            # quietly inheriting the softer "just re-run it" advice.
+            publish)
+              # Two causes reach here, and sending the reader to the wrong step is how #132's
+              # "just re-run it" habit started. The guard's own outcome says which.
+              if [ "$GUARD_OUTCOME" = "failure" ]; then
+                MSG="The published address was refused as not the app Worker's — NO smoke specs ran."
+                HINT="Read the 'Refuse an address that is not the app Worker's' step: the publish named a host that is no preview of the Worker wrangler.jsonc names. A wrong --config is the usual cause."
+              else
+                MSG="The preview publish produced no address ($PUBLISH_OUTCOME) — NO smoke specs ran."
+                HINT="Read the 'Publish the preview' step: it is the upload's own log. Re-running repeats the upload, so a bad credential, config path or rejected asset fails identically."
+              fi
+              ;;
             *)
-              MSG="No Cloudflare Pages preview was found for this commit — NO smoke specs ran."
-              HINT="Nothing from Cloudflare turned up for this commit at all, so the deploy did not happen: INVESTIGATE, don't re-run. If the Pages build failed in 0s with a clean log, that is a transient rate-limit — retry the deployment itself."
+              MSG="The smoke lane reached an unrecognised state ($REASON) — NO smoke specs ran."
+              HINT="INVESTIGATE the 'Decide whether a preview can be published' step: it emitted a reason this report does not know."
               ;;
           esac
           {
@@ -185,8 +282,8 @@ jobs:
             echo ""
             echo "⚠️ $MSG"
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$SAME_REPO" = "true" ]; then
-            echo "::error::$MSG This PR is from the same repository, so a preview was expected. $HINT"
+          if [ "$FATAL" = "true" ]; then
+            echo "::error::$MSG $HINT"
             exit 1
           fi
-          echo "::warning::$MSG Forked PRs have no preview deployment, so the specs were skipped."
+          echo "::warning::$MSG $HINT"
