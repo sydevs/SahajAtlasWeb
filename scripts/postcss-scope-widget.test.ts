@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs'
-
 import { describe, expect, it } from 'vitest'
 import postcss from 'postcss'
 
 import { WIDGET_SCOPE_CLASS } from '../src/lib/scope'
+import { readRepoSource } from '../src/test-support/repo-source'
 
 import scopeWidgetCss, {
   THEME_CLASSES,
@@ -282,8 +281,6 @@ describe('isSelectorScoped — flattened nesting', () => {
   })
 })
 
-const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
-
 // The build-time pass and the runtime must agree on the scope class. A
 // mismatch is invisible to every other gate. The CSS still builds. Lint
 // and typecheck still pass. The widget simply renders with no styles at
@@ -294,12 +291,14 @@ describe('agreement with the runtime', () => {
   })
 
   it('is applied inline by the embedded widget, for a styled first paint', () => {
-    expect(read('src/Widget.tsx')).toContain('WIDGET_SCOPE_CLASS')
+    expect(readRepoSource('src/Widget.tsx')).toContain('WIDGET_SCOPE_CLASS')
   })
 
   it('is on <html> for the two builds with no widget wrapper', () => {
-    expect(read('index.html')).toMatch(new RegExp(`<html[^>]*class="[^"]*${WIDGET_SCOPE}`))
-    expect(read('.ladle/components.tsx')).toContain('classList.add(WIDGET_SCOPE_CLASS)')
+    expect(readRepoSource('index.html')).toMatch(
+      new RegExp(`<html[^>]*class="[^"]*${WIDGET_SCOPE}`),
+    )
+    expect(readRepoSource('.ladle/components.tsx')).toContain('classList.add(WIDGET_SCOPE_CLASS)')
   })
 
   it('is never written to whatever getThemeRoot() happens to return', () => {
@@ -310,7 +309,9 @@ describe('agreement with the runtime', () => {
     // two embeds on one page, the survivor's next theme write would
     // stamp the scope onto the HOST page's `<html>`, and apply the
     // entire widget stylesheet to their site.
-    expect(read('src/hooks/use-theme.ts')).not.toContain('classList.add(WIDGET_SCOPE_CLASS)')
+    expect(readRepoSource('src/hooks/use-theme.ts')).not.toContain(
+      'classList.add(WIDGET_SCOPE_CLASS)',
+    )
   })
 
   // Half of THEME_CLASSES is ours: the classes applyTheme writes. A rule
@@ -320,7 +321,7 @@ describe('agreement with the runtime', () => {
   // matches nothing, with every gate still green.
   it('compounds the theme classes the theme machinery actually writes', () => {
     const written = [
-      ...read('src/hooks/use-theme.ts').matchAll(/^ {2}(light|dark): '([\w-]+)',$/gm),
+      ...readRepoSource('src/hooks/use-theme.ts').matchAll(/^ {2}(light|dark): '([\w-]+)',$/gm),
     ].map((m) => m[2])
 
     expect(written).toHaveLength(2)
@@ -353,7 +354,7 @@ describe('the defensive reset, retired by the shadow root (#236)', () => {
   // whether a browser paints a glyph is not a question it can answer.
   // The sheet is host-reset.css since #246: v4's entry is `@import`, and an
   // `@import` has to lead the file, so a rule can no longer sit above it.
-  const css = readFileSync('src/styles/host-reset.css', 'utf8')
+  const css = readRepoSource('src/styles/host-reset.css')
 
   // Comments stripped, because the retirement note above the baseline QUOTES the rule it
   // retired — and a test that cannot tell a declaration from a mention would force the

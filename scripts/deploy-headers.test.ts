@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs'
-
 import { describe, expect, it } from 'vitest'
+
+import { readRepoSource } from '../src/test-support/repo-source'
 
 // `public/_headers` is inert text until Cloudflare reads it out of a build output, so the
 // smoke lane is where its EFFECT is observed. This spec holds the one rule that must be
@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest'
 // `cache-headers.smoke.test.ts:18` states the principle this spec exists to honour: a
 // comment stating an intention is not a mechanism.
 
-const HEADERS = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8')
+const HEADERS = readRepoSource('public/_headers')
 
 type Rule = { pattern: string; headers: string[] }
 

@@ -20,8 +20,13 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const TYPES_PATH = new URL('../src/types/payload/payload-types.ts', import.meta.url)
+const TYPES_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '../src/types/payload/payload-types.ts',
+)
 
 // Matches the augmentation block, and any whitespace before it, through
 // end of file. Upstream always emits this block last, so removing to the

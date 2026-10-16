@@ -12,8 +12,7 @@ import { SINK_KEY, adoptStyles } from './sheet'
  * check can go red for it. jsdom, because constructable stylesheets and
  * `adoptedStyleSheets` are the subject.
  *
- * The spec stays node-only in its sibling because that file reads itself off disk, which
- * jsdom's `import.meta.url` cannot do.
+ * The sibling stays node-only because nothing in it needs a DOM.
  */
 
 type Sink = { chunks: { id: string | null; css: string }[]; listeners: (() => void)[] }

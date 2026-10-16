@@ -1,15 +1,15 @@
-import { readFileSync } from 'node:fs'
-
 import { describe, expect, it } from 'vitest'
 
 import { SINK_KEY } from './sheet'
+
+import { readRepoSource } from '@/test-support/repo-source'
 
 // `vite.config.ts`'s `styleSink` is STRINGIFIED into the bundle, so it cannot import
 // `SINK_KEY` or the chunk shape from the module that reads them. Prose is the only thing
 // joining the two halves, which is exactly the coupling #153 broke across the loader seam
 // with a one-line edit. These read both files and fail on drift.
-const config = readFileSync(new URL('../../vite.config.ts', import.meta.url), 'utf8')
-const sheet = readFileSync(new URL('./sheet.ts', import.meta.url), 'utf8')
+const config = readRepoSource('vite.config.ts')
+const sheet = readRepoSource('src/styles/sheet.ts')
 
 describe('the CSS sink contract with vite.config.ts', () => {
   it('writes to the key this module reads', () => {
@@ -47,10 +47,7 @@ describe('the CSS sink contract with vite.config.ts', () => {
   // module would then count one site more than it holds. That is a real failure mode: it
   // read 4 sites against 3 stylesheets on the first build of #236.
   it('carries the marker the CSS gate counts sites by', () => {
-    const gate = readFileSync(
-      new URL('../../scripts/assert-css-scoped.mjs', import.meta.url),
-      'utf8',
-    )
+    const gate = readRepoSource('scripts/assert-css-scoped.mjs')
 
     expect(gate).toContain("const INJECTION_MARKER = 'data-vite-dev-id'")
     expect(config).toContain('data-vite-dev-id')

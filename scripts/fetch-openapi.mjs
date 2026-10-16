@@ -13,10 +13,13 @@
  * `.env.local`. Any username works. See `docs/environment.md`.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const ENDPOINT = 'https://cloud.sydevelopers.com/api/openapi.json'
-const OUT_DIR = new URL('../src/types/payload/', import.meta.url)
-const OUT_FILE = new URL('openapi.json', OUT_DIR)
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
+const OUT_DIR = join(SCRIPT_DIR, '../src/types/payload')
+const OUT_FILE = join(OUT_DIR, 'openapi.json')
 
 // This function prefers the environment variable. It falls back to parsing
 // .env.local, so the script works out of the box without exporting the
@@ -26,7 +29,7 @@ async function resolvePassword() {
   if (process.env.SAHAJCLOUD_DOCS_PASSWORD) return process.env.SAHAJCLOUD_DOCS_PASSWORD
 
   try {
-    const env = await readFile(new URL('../.env.local', import.meta.url), 'utf8')
+    const env = await readFile(join(SCRIPT_DIR, '../.env.local'), 'utf8')
     const line = env.match(/^\s*SAHAJCLOUD_DOCS_PASSWORD\s*=\s*(.*)$/m)
     if (line) {
       const raw = line[1].trim()

@@ -1,7 +1,9 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
+
+import { REPO_ROOT, readRepoSource } from '../src/test-support/repo-source'
 
 // `pnpm check:wrangler` is the only thing that DEPLOYS from a wrangler config — Workers Builds
 // holds the dashboard's copy of each path (#279, #280). So the gate's own argument list has no
@@ -12,18 +14,16 @@ import { describe, expect, it } from 'vitest'
 // This spec takes the half the dry run cannot. It enumerates the configs on disk rather than
 // listing them, so a third target cannot arrive ungated.
 
-const ROOT = new URL('../', import.meta.url)
-
 /**
  * `wrangler.jsonc` plus every `wrangler.<target>.*` beside it. The extensions are wrangler's
  * own accepted set, not ours: matching `.jsonc` alone would make a `wrangler.embed.toml`
  * invisible here, and "no target arrives ungated" would pass by vacuum.
  */
-const CONFIG_FILES = readdirSync(ROOT).filter((name) =>
+const CONFIG_FILES = readdirSync(REPO_ROOT).filter((name) =>
   /^wrangler(\..+)?\.(jsonc?|toml)$/.test(name),
 )
 
-const PACKAGE = JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8')) as {
+const PACKAGE = JSON.parse(readRepoSource('package.json')) as {
   scripts: Record<string, string>
 }
 
@@ -43,7 +43,7 @@ type WranglerConfig = {
  * ships, so a config wrangler accepts never fails here for a reason wrangler would not.
  */
 function readConfig(file: string): WranglerConfig {
-  const text = readFileSync(new URL(file, ROOT), 'utf8')
+  const text = readRepoSource(file)
   const { config, error } = ts.parseConfigFileTextToJson(file, text)
 
   if (error) throw new Error(`${file}: ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}`)
