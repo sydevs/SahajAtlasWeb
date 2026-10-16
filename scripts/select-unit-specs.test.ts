@@ -1,7 +1,11 @@
+// `.claude/hooks/unit-test.mjs` pays this selection on every `src/**` edit, and `docs/testing.md`
+// states the budget it has to fit. Nothing times the hook, so what is pinned here is the property
+// the budget rests on: the selection stays a bounded slice of the lane, and the tree-walking specs
+// stay out of it while staying a closed list (#293).
+
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -12,16 +16,11 @@ import {
   listSpecs,
   readLane,
   referencingSpecs,
+  REPO_ROOT as ROOT,
   resolveSpecifier,
   selectFrom,
   selectSpecs,
 } from './select-unit-specs.mjs'
-
-// `.claude/hooks/unit-test.mjs` pays this selection on every `src/**` edit, and `docs/testing.md`
-// states the budget it has to fit. Nothing times the hook, so what is pinned here is the property
-// the budget rests on: the selection stays a bounded slice of the lane, and the tree-walking specs
-// stay out of it while staying a closed list (#293).
-const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
 const SPEC_NAME = /\.(test|spec)\.(ts|tsx)$/
 

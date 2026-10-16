@@ -13,6 +13,7 @@
 // somebody's half-finished copy edit to every host page. `VITE_SAHAJCLOUD_URL` is deliberately
 // not consulted for the origin.
 import { readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
@@ -20,7 +21,7 @@ import { loadEnv } from 'vite'
 
 const PRODUCTION = 'https://cloud.sydevelopers.com'
 const GLOBAL = 'sy-atlas-translations'
-const SNAPSHOT = fileURLToPath(new URL('../src/config/translations.en.json', import.meta.url))
+const SNAPSHOT = join(dirname(fileURLToPath(import.meta.url)), '../src/config/translations.en.json')
 
 // Payload's own document metadata, plus the two groups the widget must never ship: `emails` is
 // the registrant mail SahajCloud sends, and `event.title` its auto-titles. Both hold live

@@ -395,6 +395,26 @@ lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `
 everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
 grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
 
+**A spec reading a file the walk cannot reach goes through `readRepoSource`
+(`src/test-support/repo-source.ts`), and a second lint rule holds that one too** (#302).
+`no-restricted-syntax` fails any spec, anything in `test-support/`, and any `scripts/**/*.mjs`,
+that writes `new URL(…, import.meta.url)`: Vite rewrites that expression under the WEB transform,
+which vitest picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies
+before one assertion runs. It killed `source-tree.ts` that way. ⚠ **Bare `import.meta.url` is
+left alone and stays a `file:` URL** — measured — so the ban is on the one expression, not the
+property, and `src/styles/fonts.ts` and `.ladle/` keep the same form as Vite's asset-URL idiom.
+
+**The rule reaches `scripts/**/*.mjs` because five of them are imported by a spec**, which puts
+them in the same module graph as `source-tree.ts` was — the module the defect actually killed was
+no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
+`dirname(fileURLToPath(import.meta.url))` and the lint message says so.
+
+`repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
+from, and `readSource` reads through it. It is a separate module because importing
+`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and since
+#293 a walker is excluded from the per-edit selection — so a single-file reader that imported the
+walk would take every spec using it off the inner loop.
+
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
@@ -461,7 +481,7 @@ saving.
 ⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
 edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
 read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
-is selected for 6 of 417 lane sources, by reference alone. 117 of those 417 select nothing at all
+is selected for 7 of 420 lane sources, by reference alone. 117 of those 420 select nothing at all
 and spawn no vitest. The inventory that refuses the change still goes red in the lean gate
 (`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
 covers it, the inner loop no longer does.

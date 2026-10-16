@@ -1,17 +1,14 @@
 import type { AtRule, Rule } from 'postcss'
 
-import { readFileSync } from 'node:fs'
-
 import postcss from 'postcss'
 import { describe, it, expect } from 'vitest'
 
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
+import { readRepoSource } from '@/test-support/repo-source'
 
 // Only what the SOURCE of `host-reset.css` can answer. Whether its `var()`s resolve is not one
 // of those: check 5 in `scripts/assert-css-scoped.mjs` asks that of the emitted sheet, after
 // Tailwind has tree-shaken `@theme` (#262).
-
-const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 
 /**
  * One TOP-LEVEL block's declarations, by literal selector, or `@name` for an at-rule.
@@ -49,14 +46,14 @@ const match = (text: string | undefined, pattern: RegExp): string => {
   return found as string
 }
 
-const ROOT = declarations(read('./host-reset.css'), `.${WIDGET_SCOPE_CLASS}`)
+const ROOT = declarations(readRepoSource('src/styles/host-reset.css'), `.${WIDGET_SCOPE_CLASS}`)
 
 describe('host-reset.css', () => {
   it('restates exactly the properties the embedding guide promises hosts it restates', () => {
     // A property dropped here reaches our text; one added without the guide leaves hosts a
     // promise we never published. No gate on the emitted sheet can know either.
     const promised = match(
-      read('../../docs/embedding.md'),
+      readRepoSource('docs/embedding.md'),
       /the widget restates ([^.]*?) on its own root/,
     )
 
@@ -70,7 +67,7 @@ describe('host-reset.css', () => {
     // `hsl(var(--color-foreground))` resolves to `hsl(#202020)` and computes to nothing, and
     // so does a bare token holding `32 0% 13%` rather than a colour (#262).
     const token = match(ROOT.get('color'), /^var\((--[\w-]+)\)$/)
-    const value = declarations(read('./globals.css'), '@theme').get(token)
+    const value = declarations(readRepoSource('src/styles/globals.css'), '@theme').get(token)
 
     expect(value, `@theme declares no \`${token}\``).toBeTruthy()
 
