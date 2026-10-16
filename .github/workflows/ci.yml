@@ -115,15 +115,21 @@ jobs:
       contents: read
       checks: write
     steps:
-      # Publishing needs both a pull-request number to key the preview on and the Cloudflare
-      # credential, and the two absences mean opposite things. A fork holds no secrets by
-      # design, and a `merge_group` entry has no `github.event.pull_request` at all — both are
-      # expected, and a red required check on the queue entry would stall the merge queue. A
-      # same-repo pull request missing the credential is neither: that is an Actions secret
-      # nobody has entered, so it goes red and names which.
+      # Publishing needs a pull-request number to key the preview on and all five Actions
+      # secrets, and the absences mean opposite things. A fork holds no secrets by design, and
+      # a `merge_group` entry has no `github.event.pull_request` at all — both are expected,
+      # and a red required check on the queue entry would stall the merge queue. A same-repo
+      # pull request missing a secret is neither: that is an Actions secret nobody has
+      # entered, so it goes red and names which.
       #
-      # `secrets` is not a context an `if:` can read, so the credential's presence arrives
-      # through `env` as a boolean rather than as the credential.
+      # ⚠ All five, not just the Cloudflare pair. Gating on the pair alone lets a run with the
+      # three `VITE_*` secrets missing reach `publish`, upload successfully, and then fail
+      # `boot-origins.smoke.test.ts` on an origin vite inlined as empty — a missing secret
+      # arriving as a spec failure that blames the deploy. The build step below is the one
+      # list of what the preview needs; keep the two in step.
+      #
+      # `secrets` is not a context an `if:` can read, so each secret's presence arrives
+      # through `env` as a boolean rather than as the secret.
       #
       # It runs FIRST, before the checkout, so the states that cannot publish pay for no setup
       # at all. A `merge_group` entry is the common case — one per merge — and it has nothing to
@@ -131,13 +137,13 @@ jobs:
       - name: Decide whether a preview can be published
         id: plan
         env:
-          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+          HAS_SECRETS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.VITE_SENTRY_DSN != '' && secrets.VITE_SAHAJCLOUD_API_KEY != '' && secrets.VITE_MAPBOX_ACCESSTOKEN != '' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           if [ -z "$PR_NUMBER" ]; then
             reason=queue
-          elif [ "$HAS_TOKEN" = "true" ]; then
+          elif [ "$HAS_SECRETS" = "true" ]; then
             reason=publish
           elif [ "$SAME_REPO" = "true" ]; then
             reason=no-credentials
@@ -219,6 +225,7 @@ jobs:
       # For `versions upload` the action exposes only the version's own URL, as `deployment-url`.
       # The alias's URL exists only in wrangler's stdout, so it is read from there, and the guard
       # refuses it like any other address — an empty read fails the step.
+
       - name: Refuse an address that is not the app Worker's
         id: guard
         if: steps.plan.outputs.reason == 'publish'
@@ -313,8 +320,8 @@ jobs:
               HINT="Expected: the queue runs the required checks against a merge_group ref, and the specs already ran on the pull request itself."
               ;;
             no-credentials)
-              MSG="This repository has no CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID, so no preview could be published — NO smoke specs ran."
-              HINT="Add both Actions secrets, scoped to Workers only. Until then every same-repo pull request fails here instead of reporting a green check that read nothing."
+              MSG="This repository is missing at least one of the five Actions secrets the preview needs, so none could be published — NO smoke specs ran."
+              HINT="Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, scoped to Workers only, plus VITE_SENTRY_DSN, VITE_SAHAJCLOUD_API_KEY and VITE_MAPBOX_ACCESSTOKEN. Until all five exist every same-repo pull request fails here instead of reporting a green check that read nothing."
               ;;
             publish)
               # Two causes reach here, and sending the reader to the wrong step is how #132's

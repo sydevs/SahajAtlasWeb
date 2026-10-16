@@ -151,6 +151,20 @@ describe('ci.yml', () => {
     expect(smoke).not.toMatch(/^\s*(- )?run: pnpm build$/m)
   })
 
+  // ⚠ The plan step decides whether to publish; the build step consumes what it decided on.
+  // Gating on fewer secrets than the build reads lets a half-entered set upload a build with a
+  // `VITE_*` value inlined as empty, which arrives as a red `boot-origins` spec blaming the
+  // deploy rather than as the missing secret it is (PR #299). Neither list can move alone.
+  it('gates the publish on every secret the preview build reads', () => {
+    const gated = [...match(smoke, /^\s*HAS_SECRETS: (.+)$/m).matchAll(/secrets\.(\w+)/g)]
+    const read = [...smoke.matchAll(/\$\{\{ secrets\.((?:VITE|CLOUDFLARE)_\w+) \}\}/g)]
+
+    expect(read.length).toBeGreaterThan(0)
+    expect([...new Set(gated.map((m) => m[1]))].sort()).toEqual(
+      [...new Set(read.map((m) => m[1]))].sort(),
+    )
+  })
+
   // The plan step names the states, and the report step decides which are loud. Two copies of
   // one vocabulary, in one file, with nothing between them: a reason the report does not know
   // reddens a fork's pull request, and a reason nothing emits is dead advice. Only `fork` and

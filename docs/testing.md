@@ -90,7 +90,7 @@ preview" is not one thing. The job's last step names the cause:
 | ----------------------------------------- | --------------------------------------------------------------- |
 | a forked pull request (no credential)     | expected — annotated, exit 0                                    |
 | a `merge_group` entry (no PR number)      | expected — annotated, exit 0, so the queue completes            |
-| no `CLOUDFLARE_API_TOKEN` on a same-repo PR | **enter the Actions secrets** — nothing can publish until then |
+| a missing Actions secret on a same-repo PR  | **enter all five** — the plan step gates on every one, so a half-entered set cannot reach a build whose output a spec then blames |
 | the publish produced no address           | **read the publish step** — it is the upload's own log          |
 | the address was refused                   | **read the guard step** — a wrong `--config` is the usual cause |
 | anything else                             | **investigate** — the plan step emitted a reason it does not know |
