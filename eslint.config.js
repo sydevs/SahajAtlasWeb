@@ -164,10 +164,10 @@ export default [
     // `src/styles/fonts.ts` and `.ladle/` write the same form as the Vite asset-URL idiom, which
     // is what the form is for.
     //
-    // Specs are the block below's alone, so the two scopes do not overlap. They cannot both
-    // apply: see the shared constant above.
+    // A `test-support/` spec matches the block below as well, and flat config hands a
+    // doubly-matched file that block's options whole — so the two never stack, and this scope
+    // is what would still ban the URL form in one if that block ever went.
     files: ['src/test-support/**/*.ts', 'scripts/**/*.mjs'],
-    ignores: ['**/*.{test,spec}.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': ['error', NO_URL_FROM_IMPORT_META],
     },
