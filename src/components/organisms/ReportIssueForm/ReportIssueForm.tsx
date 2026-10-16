@@ -43,7 +43,7 @@ import { userSubmissionValueMax } from '@/config/api/mutate'
  * the build here, instead of silently routing the new case to the generic
  * "try again" sentence.
  *
- * Two of these five are actionable by the sender, and two are not. That is
+ * Two of these six are actionable by the sender, and three are not. That is
  * what decides the copy, rather than the HTTP status:
  *
  * - `captcha_failed` — the token was forged, expired, or already redeemed.
@@ -59,6 +59,10 @@ import { userSubmissionValueMax } from '@/config/api/mutate'
  * - `urls_not_allowed` — a link in the message body. This is actionable,
  *   and worth saying precisely. The generic "wait for the security check"
  *   is actively misleading here, since waiting will never help.
+ * - `content_unscannable` — the guard could not finish checking the
+ *   submission. It names the `proposed` patch of an event proposal, which no
+ *   intake in this widget sends, so re-sending is the only move a reporter
+ *   has and the generic sentence is the honest one.
  */
 const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   captcha_failed: 'common.report_errors.captcha',
@@ -66,6 +70,7 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   invalid_email: 'common.report_errors.email',
   disposable_email: 'common.report_errors.disposable_email',
   urls_not_allowed: 'common.report_errors.urls_not_allowed',
+  content_unscannable: 'common.report_errors.send_failed',
 }
 
 export type ReportIssueFormProps = {
