@@ -1,8 +1,6 @@
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { describe, expect, it } from 'vitest'
+
+import { readRepoSource } from '@/test-support/repo-source'
 
 // ⚠ This reads the SOURCE because the defect is in the wiring, which no pure spec can see
 // (`docs/testing.md`): `useLocale()` offers a resolved tag and a base subtag, both `string`, so
@@ -12,10 +10,7 @@ import { describe, expect, it } from 'vitest'
 // Comments are stripped first, so documenting the rule cannot satisfy it — the trap
 // `config/responsive.test.ts` hit. Whitespace and a trailing comma go too, so Prettier stays
 // free to wrap the call as the argument list grows or shrinks.
-const source = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), 'DynamicEventsList.tsx'),
-  'utf8',
-)
+const source = readRepoSource('src/components/organisms/EventsList/DynamicEventsList.tsx')
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/(^|[^:])\/\/.*$/gm, '$1')
   .replace(/\s+/g, '')

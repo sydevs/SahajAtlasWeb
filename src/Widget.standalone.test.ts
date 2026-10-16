@@ -40,6 +40,9 @@ import {
  * Everything that BEHAVES is on the other side of this line.
  */
 
+// `readRepoSource` returns text, and `importGraph` needs a real directory: it resolves every
+// specifier on disk with `existsSync` / `statSync` below, which takes absolute paths (#289).
+// eslint-disable-next-line no-restricted-syntax
 const SRC = dirname(fileURLToPath(import.meta.url))
 
 /** Every specifier a module imports: `from '…'`, a bare side-effect import, and `import('…')`. */

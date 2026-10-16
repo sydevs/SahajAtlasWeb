@@ -21,5 +21,8 @@ export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..')
  * but importing that module is what marks a spec a tree-walker, and the walkers run on every
  * edit (`docs/testing.md`). So a spec reading a file or two comes here, whichever directory it
  * sits in, and only a spec that inventories the tree pays for the walk.
+ *
+ * `eslint.config.js` holds the second half: a spec may not write its own
+ * `fileURLToPath(import.meta.url)` root either, safe as that form is (#289).
  */
 export const readRepoSource = (path: string) => readFileSync(join(REPO_ROOT, path), 'utf8')

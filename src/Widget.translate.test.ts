@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
+
+import { readRepoSource } from '@/test-support/repo-source'
 
 /**
  * Every scope root `Widget.tsx` renders opts out of page translation (#239).
@@ -15,15 +13,18 @@ import { describe, expect, it } from 'vitest'
  * Pinned in source, as `Widget.theme-root.test.tsx` pins its wiring: rendering the real element
  * would boot the router, i18n and the loader's config for one attribute. Read from the AST rather
  * than matched as text, so a reformat cannot hide a scope root from it.
+ *
+ * The path stays a literal because `ts.createSourceFile` wants it as well as the text — it is
+ * the `fileName` every reported line is attributed to.
  */
-const FILE = join(dirname(fileURLToPath(import.meta.url)), 'Widget.tsx')
+const FILE = 'src/Widget.tsx'
 
 type ScopeRoot = { line: number; translate: string | undefined }
 
 function scopeRoots(): ScopeRoot[] {
   const source = ts.createSourceFile(
     FILE,
-    readFileSync(FILE, 'utf8'),
+    readRepoSource(FILE),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.TSX,

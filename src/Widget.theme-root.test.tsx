@@ -1,8 +1,4 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { StrictMode, act, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -12,6 +8,7 @@ import { BrandTheme } from '@/config/theme/BrandTheme'
 import { usePublishedNode } from '@/hooks/use-published-node'
 import { getThemeRoot, setThemeRoot } from '@/hooks/use-theme'
 import { overlayContainer } from '@/lib/overlay'
+import { readRepoSource } from '@/test-support/repo-source'
 
 /**
  * The widget wrapper is the theme root, and so the portal target, from `App`'s first render.
@@ -94,11 +91,8 @@ describe('the theme root', () => {
  * element here would boot the router, i18n and the loader's config for one line of wiring.
  */
 describe('the wiring', () => {
-  const read = (relative: string) =>
-    readFileSync(join(dirname(fileURLToPath(import.meta.url)), relative), 'utf8')
-
   it('is what Widget.tsx does with its wrapper', () => {
-    const source = read('Widget.tsx')
+    const source = readRepoSource('src/Widget.tsx')
 
     expect(source).toContain('usePublishedNode<HTMLDivElement>(setThemeRoot)')
     expect(source).toContain('ref={adoptThemeRoot}')

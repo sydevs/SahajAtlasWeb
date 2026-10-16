@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs'
-
 import { describe, expect, it } from 'vitest'
+
+import { readRepoSource } from '@/test-support/repo-source'
 
 /**
  * The widget must not name itself in front of a visitor (#156).
@@ -46,6 +46,10 @@ const copySnapshot = () => 'src/config/translations.en.json'
  * console diagnostics, docblocks and the element name, and the noise would get the whole check
  * disabled the first time somebody hit a false positive. Add a file here when it starts carrying
  * a string a visitor can read.
+ *
+ * ⚠ **Every entry stays a quoted repo-relative literal.** `scripts/select-unit-specs.mjs`
+ * resolves quoted specifiers, so this list is how an edit to one of these files selects this
+ * spec per edit — composing a path would drop all seven from that selection (#289).
  */
 const COPY_FILES = [
   'index.html',
@@ -61,11 +65,11 @@ const COPY_FILES = [
 
 describe('no brand names reach a visitor', () => {
   it(copySnapshot(), () => {
-    expect(readFileSync(copySnapshot(), 'utf8')).not.toMatch(BRAND)
+    expect(readRepoSource(copySnapshot())).not.toMatch(BRAND)
   })
 
   it.each(COPY_FILES)('%s', (file) => {
-    expect(readFileSync(file, 'utf8')).not.toMatch(BRAND)
+    expect(readRepoSource(file)).not.toMatch(BRAND)
   })
 
   // Guards the guard: a pattern that matched nothing would pass every case above forever.

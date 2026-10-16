@@ -165,4 +165,32 @@ export default [
       ],
     },
   },
+  {
+    // The safe root form, banned in specs alone (#289). A spec that hand-rolls it duplicates
+    // `readRepoSource` and is what the next author copies, so the reader has to be the only way
+    // in. The block above cannot carry this: `repo-source.ts` owns that root, and six
+    // `scripts/*.mjs` cannot import the reader at all.
+    //
+    // ⚠ **Restates the `new URL` selector**, because flat config REPLACES a rule's options
+    // rather than merging them — listing only the new one here would drop #302's ban for every
+    // spec, silently.
+    files: ['**/*.{test,spec}.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"]',
+          message:
+            'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#302).',
+        },
+        {
+          selector:
+            'CallExpression[callee.name="fileURLToPath"][arguments.0.object.type="MetaProperty"][arguments.0.property.name="url"]',
+          message:
+            'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#289).',
+        },
+      ],
+    },
+  },
 ]
