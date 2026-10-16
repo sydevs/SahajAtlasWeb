@@ -411,9 +411,9 @@ no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
 
 `repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
 from, and `readSource` reads through it. It is a separate module because importing
-`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and the
-walkers run on EVERY edit — so a single-file reader that imported the walk would be paid for on
-all of them.
+`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and since
+#293 a walker is excluded from the per-edit selection — so a single-file reader that imported the
+walk would take every spec using it off the inner loop.
 
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
@@ -436,11 +436,11 @@ faster lane from it, and do not "fix" the memos to chase one. The lane's cost is
 
 ### The per-edit budget is 12 seconds on 4 cores (issue #285)
 
-That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-13
-on 4 cores, median of three: **4.3s** for `src/lib/geo.ts` (11 specs), **9.7s** for
-`src/config/i18n.ts` (22 specs, the widest selection in the tree), and **4.5s** for a file with no
-spec of its own. Re-measure by timing the hook itself, since the command it builds is the thing
-under budget:
+That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-16
+on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
+`src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **5.5s** for
+`src/lib/shape/index.ts` (14 specs, the widest). The slowest edit sits at about half the bound.
+Re-measure by timing the hook itself, since the command it builds is the thing under budget:
 
 ```bash
 echo "{\"tool_input\":{\"file_path\":\"$PWD/src/config/i18n.ts\"}}" > /tmp/edit.json
@@ -451,30 +451,40 @@ time CLAUDE_PROJECT_DIR=$PWD node .claude/hooks/unit-test.mjs < /tmp/edit.json
 anything failing.** It reports non-blocking context, so a slower lane breaks no gate and shows up
 only as latency on every edit — which is why the bound is a stated number rather than a feeling.
 
-`scripts/select-unit-specs.mjs` picks what one edit can break, from three sources that each reach
-a coupling the others cannot:
+`scripts/select-unit-specs.mjs` picks what one edit can break, from two sources that each reach a
+coupling the other cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
   `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
-  six specs the lane indexes and whose own edits cost ~3.6s.
+  eight specs the lane indexes and whose own edits select at most two — ~1.1s, or nothing at all
+  for the six of its 21 sources no spec names.
 - **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
   spec rather than matching the module's name, because one module is addressed three ways and a
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
   quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
-- **Tree-walking** — the twelve specs that enumerate the source tree instead of importing from it:
-  the nine `src/` inventories and `source-tree.test.ts`, found because they import the shared walk
-  (#286), plus two `scripts/` specs found by an enumerating call (`readdirSync(` and its kin).
-  Nothing in them references the file that breaks them, so neither source above can find one and
-  they always run. `wrangler-config.test.ts` only lists the repo root, so it is over-included —
-  deliberately, since the detector errs toward running a spec, and it costs nothing measurable.
 
-**That third source is ~4.5s of every edit, and 133 of 412 source files select nothing else.** The
-floor, not the selection, is what the budget mostly buys — so the lever left here is moving those
-repo-wide inventories into their own vitest project and running the hook against the unit one.
-The hook would still need the other two sources, so this narrows the floor rather than replacing
-the selector. #293 owns that change, and the figures above are what it is measured against.
+**A third source selected the tree-walking specs until #293, and it was the whole floor.** Twelve
+specs enumerate the source tree instead of importing from it — the nine `src/` inventories and
+`source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
+found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
+breaks them, so no reference can select one, and all twelve ran on every edit. `readLane` still
+reports the set, because
+`select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
+needed no edit to stop running it — it exits before spawning vitest on an empty selection
+(`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
+protected path no unattended run can write. A separate vitest project for the inventories, which
+#293 was filed with, was rejected on that: a config split and a `.claude/` edit for the same
+saving.
+
+⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
+edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
+read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
+is selected for 7 of 420 lane sources, by reference alone. 117 of those 420 select nothing at all
+and spawn no vitest. The inventory that refuses the change still goes red in the lean gate
+(`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
+covers it, the inner loop no longer does.
 
 ⚠ **The selection does not reach a spec coupled through a second module**: editing `geo.ts` runs
 `geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **26s**
@@ -483,11 +493,15 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 24 against a
-ceiling of 26 (22 when the times above were taken; #286's two added walkers measured no wall-time
-difference); each of the three specifier forms, end to end against this tree; the tree-walking set
-as a closed list; and `vitest.config.ts`'s own `include`, so a spec in a new location fails here
-rather than quietly going uncovered per edit. ⚠ A walker is found by importing
+that**: the widest edit in the tree, exhaustively through the real composition, at 14 against a
+ceiling of 16. ⚠ The widest is no longer the slowest — `i18n.ts`
+selects 12, four of them jsdom, and takes 6.6s against the widest's 5.5s and three — so width
+bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
+of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
+and its absence from the selection, where the fixture carries a walker of each kind, so a re-added
+source fails there while a detector that stopped matching fails the closed list; and
+`vitest.config.ts`'s own `include`, so a spec in a new location fails here rather than quietly
+going uncovered per edit. ⚠ A walker is found by importing
 `src/test-support/source-tree.ts` or by an enumerating call, so one that reaches the tree through
 some *other* helper is still invisible to that pin. The three times above are unchecked, like
 every other measurement in this file.

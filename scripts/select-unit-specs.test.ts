@@ -1,7 +1,7 @@
 // `.claude/hooks/unit-test.mjs` pays this selection on every `src/**` edit, and `docs/testing.md`
 // states the budget it has to fit. Nothing times the hook, so what is pinned here is the property
-// the budget rests on: the selection stays a bounded slice of the lane, and the specs no reference
-// can reach are in it anyway.
+// the budget rests on: the selection stays a bounded slice of the lane, and the tree-walking specs
+// stay out of it while staying a closed list (#293).
 
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -56,6 +56,8 @@ beforeAll(() => {
   write(fixture, 'src/lib/thing.edge.test.ts', "import { thing } from './thing'\n")
   write(fixture, 'src/lib/neighbour.test.ts', "import { thing } from './thing'\n")
   write(fixture, 'src/lib/thing-other.ts', 'export const other = 2\n')
+  // No spec names this one: the hook exits on an empty selection, before any vitest run (#293).
+  write(fixture, 'src/lib/unspoken.ts', 'export const unspoken = 3\n')
   write(fixture, 'src/views/importer.test.tsx', "import { thing } from '@/lib/thing'\n")
   write(fixture, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
   write(fixture, 'src/views/lister.test.tsx', "const COPY = ['src/lib/thing.ts']\n")
@@ -129,16 +131,21 @@ describe('referencingSpecs', () => {
 })
 
 describe('selectFrom', () => {
-  it('runs a tree-walking spec that holds no reference to the edit, by either route', () => {
+  it('leaves the tree-walking specs out of the selection', () => {
+    // The fixture carries one walker of each kind — `walker.test.tsx` enumerates,
+    // `shared.test.tsx` imports the shared walk — so taking either back into `selectFrom` fails
+    // here. A detector that stopped matching is the closed list below, not this.
     expect(selectFrom('src/lib/thing.ts', readLane(fixture))).toEqual([
       'src/lib/neighbour.test.ts',
       'src/lib/thing.edge.test.ts',
       'src/lib/thing.test.ts',
       'src/views/importer.test.tsx',
       'src/views/lister.test.tsx',
-      'src/views/shared.test.tsx',
-      'src/views/walker.test.tsx',
     ])
+  })
+
+  it('selects nothing for a lane source no spec names', () => {
+    expect(selectFrom('src/lib/unspoken.ts', readLane(fixture))).toEqual([])
   })
 
   it('selects nothing for a path the hook must not act on', () => {
@@ -151,8 +158,10 @@ describe('this repository', () => {
 
   /**
    * The specs whose fixture is the source tree, so an edit anywhere is their input and no
-   * reference to it exists. Adding one means adding it here: the hook runs this set on every
-   * edit, and one left out would stop being checked per edit without failing anything.
+   * reference to it exists. The hook no longer runs them per edit (#293), so this list gates
+   * nothing — it documents. It is the register of which specs carry no per-edit signal, the set
+   * `docs/testing.md`'s trade paragraph is scoped by, and a spec joining or leaving it fails here
+   * and nowhere else.
    *
    * The nine `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
    * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
@@ -228,9 +237,10 @@ describe('this repository', () => {
       .map((source) => ({ source, count: selectFrom(source, lane).length }))
       .reduce((a, b) => (b.count > a.count ? b : a))
 
-    // 22 when `docs/testing.md`'s budget was measured, on `src/config/i18n.ts`, and 24 once #286
-    // added two walkers. The ceiling is what holds the per-edit time down, so a jump here is a
-    // re-measure, not a bump.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(26)
+    // 14, on `src/lib/shape/index.ts` (#293). ⚠ The widest is no longer the slowest: `i18n.ts`
+    // selects 12, four of them jsdom, and measures 6.6s against the widest selection's 5.5s and
+    // three. This pins width, and `docs/testing.md` carries the times, so a jump here is a
+    // re-measure of both.
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(16)
   })
 })
