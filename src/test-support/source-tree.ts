@@ -1,6 +1,7 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
+
+import { REPO_ROOT, readRepoSource } from './repo-source'
 
 // The one walk of `src/` behind every spec that inventories the source (#286). Nine specs rolled
 // their own, in three incompatible path shapes.
@@ -9,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 // caller states its own beside the assertions it serves. Widening or narrowing a spec's scope
 // from here changes what it asserts, silently and in the passing direction.
 
-const SRC_DIR = fileURLToPath(new URL('..', import.meta.url))
+const SRC_DIR = join(REPO_ROOT, 'src')
 
 /** Every file under `src/`, as a `/`-joined path relative to it, sorted. */
 const TREE: readonly string[] = readdirSync(SRC_DIR, { recursive: true, withFileTypes: true })
@@ -65,7 +66,7 @@ export const stripComments = (source: string): string =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
 
 /** One module's raw source. `path` is relative to `src/`. */
-export const readSource = memo((path) => readFileSync(join(SRC_DIR, path), 'utf8'))
+export const readSource = memo((path) => readRepoSource(join('src', path)))
 
 /** The same source, comment-stripped. `path` is relative to `src/`. */
 export const readSourceWithoutComments = memo((path) => stripComments(readSource(path)))
