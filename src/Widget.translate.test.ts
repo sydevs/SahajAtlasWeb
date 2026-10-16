@@ -14,8 +14,8 @@ import { readRepoSource } from '@/test-support/repo-source'
  * would boot the router, i18n and the loader's config for one attribute. Read from the AST rather
  * than matched as text, so a reformat cannot hide a scope root from it.
  *
- * The path stays a literal because `ts.createSourceFile` wants it as well as the text — it is
- * the `fileName` every reported line is attributed to.
+ * A quoted literal, which `scripts/select-unit-specs.mjs` resolves — and `createSourceFile` wants
+ * the path beside the text anyway. Not `parseSource`: that reaches the walk (#289).
  */
 const FILE = 'src/Widget.tsx'
 

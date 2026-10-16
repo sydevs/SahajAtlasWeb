@@ -413,20 +413,31 @@ puts them in the same module graph as `source-tree.ts` was — the module the de
 was no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
 `dirname(fileURLToPath(import.meta.url))` and the lint message says so.
 
-**The second fails a spec that writes `fileURLToPath(import.meta.url)` at all**, the safe form the
-first leaves alone, because a hand-rolled root duplicates the reader and is what the next author
-copies. ⚠ **It is a second config block scoped to specs, and it restates the `new URL` selector**:
-flat config replaces a rule's options rather than merging them, so a block listing only the new
-ban would drop the first for every spec, silently. Widening the first block is not the
-alternative — `repo-source.ts` owns that root and the six `scripts/*.mjs` have no reader to
-import. `src/Widget.standalone.test.ts` is the one spec left writing it, under a disable:
-`importGraph` resolves specifiers on disk, which needs a directory rather than text.
+**The second fails a spec that writes `fileURLToPath(import.meta.url)` at all** (#289), the safe
+form the first leaves alone, because a hand-rolled root duplicates the reader and is what the next
+author copies. The two rules own disjoint scopes — specs, and `test-support/` plus
+`scripts/**/*.mjs` — and share one selector constant, because ⚠ **flat config replaces a rule's
+options rather than merging them**, so a second block matching a spec would silently drop the
+first ban for every one of them.
+
+It bans the shape, not `import.meta.url` itself: `src/lib/shadow-patches.test.ts` resolves into
+`node_modules` with `createRequire(import.meta.url)`, which no repo-relative reader can serve.
+**`src/Widget.standalone.test.ts` is the one spec left deriving a root**, under a disable —
+`importGraph` resolves specifiers on disk, so it needs a directory rather than text, and naming
+`repo-source` for `REPO_ROOT` would add it to that module's own per-edit selection, which has one
+slot left.
+
+**Neither rule reaches a cwd-relative `readFileSync('src/App.tsx', 'utf8')`**, the third shape
+`brand.test.ts` carried until #289 — it works only while vitest runs from the repo root, and
+nothing but review catches it.
 
 `repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
 from, and `readSource` reads through it. It is a separate module because importing
-`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and since
-#293 a walker is excluded from the per-edit selection — so a single-file reader that imported the
-walk would take every spec using it off the inner loop.
+`source-tree.ts` walks `src/` at module scope, so importing it costs a recursive `readdirSync` of
+the whole tree on every run of every spec that does — which a spec reading one file would pay for
+nothing. ⚠ **The walker mark itself costs no selection**: since #293 `selectFrom` no longer adds
+the walkers to every edit, but it still selects one that names the edited module, so a walker runs
+per edit like any other spec. `lane.walkers` is a register, read only by the closed-list pin.
 
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
@@ -451,9 +462,13 @@ faster lane from it, and do not "fix" the memos to chase one. The lane's cost is
 
 That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-16
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
-`src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **5.5s** for
-`src/test-support/repo-source.ts` (15 specs, the widest since #289). The slowest edit sits at
-about half the bound.
+`src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
+`src/test-support/repo-source.ts` (15 specs, the widest — #289 moved it there). The slowest edit
+sits at about half the bound.
+⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
+nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
+per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
+buys selection, and selection is what the budget is spent on.
 Re-measure by timing the hook itself, since the command it builds is the thing under budget:
 
 ```bash

@@ -49,7 +49,7 @@ const copySnapshot = () => 'src/config/translations.en.json'
  *
  * ⚠ **Every entry stays a quoted repo-relative literal.** `scripts/select-unit-specs.mjs`
  * resolves quoted specifiers, so this list is how an edit to one of these files selects this
- * spec per edit — composing a path would drop all seven from that selection (#289).
+ * spec per edit — composing a path would drop each lane source here from that selection (#289).
  */
 const COPY_FILES = [
   'index.html',

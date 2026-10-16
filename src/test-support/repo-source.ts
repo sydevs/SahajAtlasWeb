@@ -18,11 +18,10 @@ export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..')
  * One repo file's raw text, by a path relative to the REPO root.
  *
  * `readSource` (`./source-tree`) is `src/`-relative, and would serve a path under `src/` too —
- * but importing that module is what marks a spec a tree-walker, and the walkers run on every
- * edit (`docs/testing.md`). So a spec reading a file or two comes here, whichever directory it
- * sits in, and only a spec that inventories the tree pays for the walk.
+ * but that module walks `src/` at module scope, so importing it costs a recursive `readdirSync`
+ * of the tree on every run (`docs/testing.md`). So a spec reading a file or two comes here,
+ * whichever directory it sits in, and only a spec that inventories the tree pays for the walk.
  *
- * `eslint.config.js` holds the second half: a spec may not write its own
- * `fileURLToPath(import.meta.url)` root either, safe as that form is (#289).
+ * `eslint.config.js` enforces this for specs (#289).
  */
 export const readRepoSource = (path: string) => readFileSync(join(REPO_ROOT, path), 'utf8')

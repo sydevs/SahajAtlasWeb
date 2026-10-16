@@ -12,6 +12,21 @@ import tsPlugin from '@typescript-eslint/eslint-plugin'
 // sy-devs-cms. Prettier handles formatting through `.prettierrc`. The lint
 // rules below match this project's existing conventions: import order,
 // jsx-sort-props, padding lines, and automatic removal of unused imports.
+
+// Vite rewrites this expression under the WEB transform, which vitest picks for every jsdom
+// spec, so `fileURLToPath` throws AT IMPORT and the file dies before one assertion.
+// `src/test-support/repo-source.ts` owns the root instead (#302).
+//
+// ⚠ **Shared by two blocks**, because flat config REPLACES a rule's options rather than merging
+// them, so each block listing `no-restricted-syntax` has to carry every selector that applies
+// in its scope.
+const NO_URL_FROM_IMPORT_META = {
+  selector:
+    'NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"]',
+  message:
+    'Read a repo file with readRepoSource (src/test-support/repo-source.ts), or, in a .mjs that cannot import it, dirname(fileURLToPath(import.meta.url)) (#302).',
+}
+
 export default [
   {
     ignores: [
@@ -143,48 +158,34 @@ export default [
     },
   },
   {
-    // Vite rewrites `new URL(<path>, import.meta.url)` under the WEB transform, which vitest
-    // picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies before
-    // one assertion. `src/test-support/repo-source.ts` owns the root instead (#302).
+    // The non-spec half of the lane's module graph: `source-tree.ts` is what the defect actually
+    // killed and it is no spec, and six `scripts/*.mjs` are in the graph one directory over,
+    // five of them imported by a spec. Shipped code and the build configs are out —
+    // `src/styles/fonts.ts` and `.ladle/` write the same form as the Vite asset-URL idiom, which
+    // is what the form is for.
     //
-    // Specs plus `test-support/`, because `source-tree.ts` is what the defect actually killed
-    // and it is no spec. `scripts/**/*.mjs` for the same reason one directory over: five of them
-    // are imported by a spec, so they are in the lane's module graph too. Shipped code and the
-    // build configs are out: `src/styles/fonts.ts` and `.ladle/` write the same form as the Vite
-    // asset-URL idiom, which is what the form is for.
-    files: ['**/*.{test,spec}.{ts,tsx}', 'src/test-support/**/*.ts', 'scripts/**/*.mjs'],
+    // Specs are the block below's alone, so the two scopes do not overlap. They cannot both
+    // apply: see the shared constant above.
+    files: ['src/test-support/**/*.ts', 'scripts/**/*.mjs'],
+    ignores: ['**/*.{test,spec}.{ts,tsx}'],
     rules: {
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector:
-            'NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"]',
-          message:
-            'Read a repo file with readRepoSource (src/test-support/repo-source.ts), or, in a .mjs that cannot import it, dirname(fileURLToPath(import.meta.url)) (#302).',
-        },
-      ],
+      'no-restricted-syntax': ['error', NO_URL_FROM_IMPORT_META],
     },
   },
   {
-    // The safe root form, banned in specs alone (#289). A spec that hand-rolls it duplicates
-    // `readRepoSource` and is what the next author copies, so the reader has to be the only way
-    // in. The block above cannot carry this: `repo-source.ts` owns that root, and six
-    // `scripts/*.mjs` cannot import the reader at all.
-    //
-    // ⚠ **Restates the `new URL` selector**, because flat config REPLACES a rule's options
-    // rather than merging them — listing only the new one here would drop #302's ban for every
-    // spec, silently.
+    // A spec may not derive a repo root at all, not even the safe way (#289): a hand-rolled one
+    // duplicates `readRepoSource` and is what the next author copies. The block above cannot
+    // carry this — `repo-source.ts` owns that root, and the `scripts/*.mjs` have no reader to
+    // import.
     files: ['**/*.{test,spec}.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': [
         'error',
+        NO_URL_FROM_IMPORT_META,
         {
-          selector:
-            'NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"]',
-          message:
-            'Read a repo file with readRepoSource (src/test-support/repo-source.ts) (#302).',
-        },
-        {
+          // Shape-specific, not a ban on `import.meta.url` itself: `src/lib/shadow-patches.test.ts`
+          // resolves into `node_modules` with `createRequire(import.meta.url)`, which no
+          // repo-relative reader can serve.
           selector:
             'CallExpression[callee.name="fileURLToPath"][arguments.0.object.type="MetaProperty"][arguments.0.property.name="url"]',
           message:
