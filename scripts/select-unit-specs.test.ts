@@ -19,8 +19,8 @@ import {
 
 // `.claude/hooks/unit-test.mjs` pays this selection on every `src/**` edit, and `docs/testing.md`
 // states the budget it has to fit. Nothing times the hook, so what is pinned here is the property
-// the budget rests on: the selection stays a bounded slice of the lane, and the specs no reference
-// can reach are in it anyway.
+// the budget rests on: the selection stays a bounded slice of the lane, and the tree-walking specs
+// — the whole per-edit floor until #293 — stay out of it while staying a closed list.
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
 const SPEC_NAME = /\.(test|spec)\.(ts|tsx)$/
@@ -57,6 +57,8 @@ beforeAll(() => {
   write(fixture, 'src/lib/thing.edge.test.ts', "import { thing } from './thing'\n")
   write(fixture, 'src/lib/neighbour.test.ts', "import { thing } from './thing'\n")
   write(fixture, 'src/lib/thing-other.ts', 'export const other = 2\n')
+  // No spec names this one, so the hook must spawn nothing for it (#293).
+  write(fixture, 'src/lib/unspoken.ts', 'export const unspoken = 3\n')
   write(fixture, 'src/views/importer.test.tsx', "import { thing } from '@/lib/thing'\n")
   write(fixture, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
   write(fixture, 'src/views/lister.test.tsx', "const COPY = ['src/lib/thing.ts']\n")
@@ -130,16 +132,20 @@ describe('referencingSpecs', () => {
 })
 
 describe('selectFrom', () => {
-  it('runs a tree-walking spec that holds no reference to the edit, by either route', () => {
+  it('leaves out a tree-walking spec, by either route that marks one', () => {
+    // `walker.test.tsx` enumerates and `shared.test.tsx` imports the shared walk. Both broke an
+    // edit here and neither is selected since #293 — they are the lean gate's and CI's now.
     expect(selectFrom('src/lib/thing.ts', readLane(fixture))).toEqual([
       'src/lib/neighbour.test.ts',
       'src/lib/thing.edge.test.ts',
       'src/lib/thing.test.ts',
       'src/views/importer.test.tsx',
       'src/views/lister.test.tsx',
-      'src/views/shared.test.tsx',
-      'src/views/walker.test.tsx',
     ])
+  })
+
+  it('selects nothing for a lane source no spec names, so the hook spawns no vitest', () => {
+    expect(selectFrom('src/lib/unspoken.ts', readLane(fixture))).toEqual([])
   })
 
   it('selects nothing for a path the hook must not act on', () => {
@@ -152,8 +158,9 @@ describe('this repository', () => {
 
   /**
    * The specs whose fixture is the source tree, so an edit anywhere is their input and no
-   * reference to it exists. Adding one means adding it here: the hook runs this set on every
-   * edit, and one left out would stop being checked per edit without failing anything.
+   * reference to it exists. The hook stopped running them per edit in #293, so this list is now
+   * the only thing that notices one joining or leaving the set — and `selectFrom` above asserts
+   * the set stays out of the per-edit selection.
    *
    * The nine `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
    * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
@@ -229,9 +236,10 @@ describe('this repository', () => {
       .map((source) => ({ source, count: selectFrom(source, lane).length }))
       .reduce((a, b) => (b.count > a.count ? b : a))
 
-    // 22 when `docs/testing.md`'s budget was measured, on `src/config/i18n.ts`, and 24 once #286
-    // added two walkers. The ceiling is what holds the per-edit time down, so a jump here is a
-    // re-measure, not a bump.
-    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(26)
+    // 14 since #293 dropped the twelve walkers, on `src/lib/shape/index.ts`, down from 24 on
+    // `src/config/i18n.ts`. ⚠ The widest is no longer the slowest: `i18n.ts` selects 12 and
+    // measures 6.6s, because two of them boot jsdom. This pins width, and `docs/testing.md`
+    // carries the times, so a jump here is a re-measure of both, not a bump.
+    expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(16)
   })
 })

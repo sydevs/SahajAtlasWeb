@@ -4,8 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 /**
  * Chooses the specs one edit can break, for the per-edit hook
- * (`.claude/hooks/unit-test.mjs`). Three sources, because none of them reaches the others'
- * couplings:
+ * (`.claude/hooks/unit-test.mjs`). Two sources, because neither reaches the other's coupling:
  *
  *   1. **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
  *      `Foo.mount.test.tsx` but not every spec sharing their folder.
@@ -13,12 +12,17 @@ import { fileURLToPath } from 'node:url'
  *      alias, a relative sibling, or a quoted repo-relative path the way `src/lib/brand.test.ts`
  *      does. Specifiers are resolved, never matched by name, because the three forms address one
  *      module and a spec picks whichever its own directory makes natural.
- *   3. **Tree-walking** — a spec whose fixture is the source tree holds no reference to the file
- *      that breaks it, so neither source above can find it and it always runs.
+ *
+ * `readLane` reports a third set it no longer selects: the **tree-walking** specs, whose fixture
+ * is the source tree, so no reference to the edited file exists in them. They ran on every edit
+ * until #293 and were the whole per-edit floor — twelve specs, ~3.8s, paid by an edit with no
+ * spec of its own. They still run in `pnpm test:run`, the lean gate and CI, and
+ * `select-unit-specs.test.ts` keeps them a closed list so one cannot leave the set unnoticed.
  *
  * ⚠ **It does not reach a spec coupled through a second module**: editing `geo.ts` runs
- * `geo.test.ts`, never `camera.test.ts`. `docs/testing.md` carries that trade, the budget this
- * runs inside, and why `vitest related` is not the answer here.
+ * `geo.test.ts`, never `camera.test.ts`. Nor does it reach an inventory an edit breaks —
+ * `docs/testing.md` carries both trades, the budget this runs inside, and why `vitest related`
+ * is not the answer here.
  */
 
 /** Resolved against this module, so nothing here depends on the working directory. */
@@ -160,6 +164,7 @@ export function referencingSpecs(rel, index) {
   return [...new Set(referenceKeys(rel).flatMap((key) => [...(index.get(key) ?? [])]))]
 }
 
+/** Reported by `readLane`, not selected per edit (#293) — the closed-list pin is its one reader. */
 function treeWalkingSpecs(specs, read, index) {
   const viaSharedWalk = new Set(referencingSpecs(SHARED_WALK, index))
 
@@ -177,18 +182,15 @@ export function readLane(root) {
 }
 
 /**
- * The specs to run for one edited path, sorted. Empty means the hook should not run: either the
- * path is outside the lane, or the tree holds no specs at all.
+ * The specs to run for one edited path, sorted. Empty means the hook should not run, and since
+ * #293 that is the common case rather than an edge one: a lane source no spec names has nothing
+ * to run, so the hook exits before it spawns vitest at all.
  */
 export function selectFrom(rel, lane) {
   if (!isLaneSource(rel)) return []
 
   return [
-    ...new Set([
-      ...coLocatedSpecs(rel, lane.specs),
-      ...referencingSpecs(rel, lane.index),
-      ...lane.walkers,
-    ]),
+    ...new Set([...coLocatedSpecs(rel, lane.specs), ...referencingSpecs(rel, lane.index)]),
   ].sort()
 }
 
