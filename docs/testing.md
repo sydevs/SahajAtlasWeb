@@ -445,22 +445,27 @@ coupling the other cannot:
   quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
   name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
   reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
+
 **A third source selected the tree-walking specs until #293, and it was the whole floor.** Twelve
 specs enumerate the source tree instead of importing from it — the nine `src/` inventories and
 `source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
 found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
 breaks them, so no reference can select one, and all twelve ran on every edit: 3.8s of an edit with
-no spec of its own, which 137 of 417 lane sources were. `readLane` still reports the set, because
+no spec of its own, which 117 of 417 lane sources are. `readLane` still reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
 (`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
-protected path no unattended run can write.
+protected path no unattended run can write. A separate vitest project for the inventories, which
+#293 was filed with, was rejected on that: a config split and a `.claude/` edit for the same
+saving.
 
-⚠ **What that gives up is per-edit immediacy, on a bounded set.** 117 of 417 lane sources now run
-nothing per edit, so adding an unregistered viewport read, JSX anchor or SahajCloud read to one of
-them draws no immediate signal. The inventory that refuses it still goes red in the lean gate
-(`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session. Nothing
-is uncovered — the full lane's twelve inventories are unchanged.
+⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
+edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
+read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
+is selected for 6 of 417 lane sources, by reference alone. 117 of those 417 select nothing at all
+and spawn no vitest. The inventory that refuses the change still goes red in the lean gate
+(`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
+covers it, the inner loop no longer does.
 
 ⚠ **The selection does not reach a spec coupled through a second module**: editing `geo.ts` runs
 `geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **26s**
@@ -471,11 +476,13 @@ in CI, so this narrows the inner loop, not the gate.
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
 that**: the widest edit in the tree, exhaustively through the real composition, at 14 against a
 ceiling of 16 (24 against 26 before #293). ⚠ The widest is no longer the slowest — `i18n.ts`
-selects 12 and takes 6.6s, because two of them boot jsdom — so a width jump is a re-measure of the
-times too. It also pins each of the three specifier forms, end to end against this tree; the
-tree-walking set as a closed list, and its absence from the selection by both routes that mark a
-walker; and `vitest.config.ts`'s own `include`, so a spec in a new location fails here rather than
-quietly going uncovered per edit. ⚠ A walker is found by importing
+selects 12, four of them jsdom, and takes 6.6s against the widest's 5.5s and three — so width
+bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
+of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
+and its absence from the selection, where the fixture carries a walker of each kind, so a re-added
+source fails there while a detector that stopped matching fails the closed list; and
+`vitest.config.ts`'s own `include`, so a spec in a new location fails here rather than quietly
+going uncovered per edit. ⚠ A walker is found by importing
 `src/test-support/source-tree.ts` or by an enumerating call, so one that reaches the tree through
 some *other* helper is still invisible to that pin. The three times above are unchecked, like
 every other measurement in this file.

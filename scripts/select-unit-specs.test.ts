@@ -57,7 +57,7 @@ beforeAll(() => {
   write(fixture, 'src/lib/thing.edge.test.ts', "import { thing } from './thing'\n")
   write(fixture, 'src/lib/neighbour.test.ts', "import { thing } from './thing'\n")
   write(fixture, 'src/lib/thing-other.ts', 'export const other = 2\n')
-  // No spec names this one, so the hook must spawn nothing for it (#293).
+  // No spec names this one: the hook exits on an empty selection, before any vitest run (#293).
   write(fixture, 'src/lib/unspoken.ts', 'export const unspoken = 3\n')
   write(fixture, 'src/views/importer.test.tsx', "import { thing } from '@/lib/thing'\n")
   write(fixture, 'src/views/prefix.test.tsx', "import { other } from '@/lib/thing-other'\n")
@@ -132,9 +132,10 @@ describe('referencingSpecs', () => {
 })
 
 describe('selectFrom', () => {
-  it('leaves out a tree-walking spec, by either route that marks one', () => {
-    // `walker.test.tsx` enumerates and `shared.test.tsx` imports the shared walk. Both broke an
-    // edit here and neither is selected since #293 — they are the lean gate's and CI's now.
+  it('leaves the tree-walking specs out of the selection', () => {
+    // The fixture carries one walker of each kind — `walker.test.tsx` enumerates,
+    // `shared.test.tsx` imports the shared walk — so taking either back into `selectFrom` fails
+    // here. A detector that stopped matching is the closed list below, not this.
     expect(selectFrom('src/lib/thing.ts', readLane(fixture))).toEqual([
       'src/lib/neighbour.test.ts',
       'src/lib/thing.edge.test.ts',
@@ -144,7 +145,7 @@ describe('selectFrom', () => {
     ])
   })
 
-  it('selects nothing for a lane source no spec names, so the hook spawns no vitest', () => {
+  it('selects nothing for a lane source no spec names', () => {
     expect(selectFrom('src/lib/unspoken.ts', readLane(fixture))).toEqual([])
   })
 
@@ -158,9 +159,9 @@ describe('this repository', () => {
 
   /**
    * The specs whose fixture is the source tree, so an edit anywhere is their input and no
-   * reference to it exists. The hook stopped running them per edit in #293, so this list is now
-   * the only thing that notices one joining or leaving the set — and `selectFrom` above asserts
-   * the set stays out of the per-edit selection.
+   * reference to it exists. Since the hook no longer runs them per edit (#293), this list is the
+   * only thing that notices one joining or leaving the set — a detector that silently stopped
+   * matching would change nothing else that fails.
    *
    * The nine `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
    * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
@@ -237,9 +238,9 @@ describe('this repository', () => {
       .reduce((a, b) => (b.count > a.count ? b : a))
 
     // 14 since #293 dropped the twelve walkers, on `src/lib/shape/index.ts`, down from 24 on
-    // `src/config/i18n.ts`. ⚠ The widest is no longer the slowest: `i18n.ts` selects 12 and
-    // measures 6.6s, because two of them boot jsdom. This pins width, and `docs/testing.md`
-    // carries the times, so a jump here is a re-measure of both, not a bump.
+    // `src/config/i18n.ts`. ⚠ The widest is no longer the slowest: `i18n.ts` selects 12, four of
+    // them jsdom, and measures 6.6s against the widest selection's 5.5s and three. This pins
+    // width, and `docs/testing.md` carries the times, so a jump here is a re-measure of both.
     expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(16)
   })
 })

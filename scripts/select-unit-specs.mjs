@@ -13,10 +13,9 @@ import { fileURLToPath } from 'node:url'
  *      does. Specifiers are resolved, never matched by name, because the three forms address one
  *      module and a spec picks whichever its own directory makes natural.
  *
- * `readLane` reports a third set it no longer selects: the **tree-walking** specs, whose fixture
- * is the source tree, so no reference to the edited file exists in them. They ran on every edit
- * until #293 and were the whole per-edit floor — twelve specs, ~3.8s, paid by an edit with no
- * spec of its own. They still run in `pnpm test:run`, the lean gate and CI, and
+ * `readLane` reports a third set this does not select: the **tree-walking** specs, whose fixture
+ * is the source tree, so no reference to the edited file exists in them and nothing here can
+ * reach one. They run in `pnpm test:run`, the lean gate and CI instead (#293), and
  * `select-unit-specs.test.ts` keeps them a closed list so one cannot leave the set unnoticed.
  *
  * ⚠ **It does not reach a spec coupled through a second module**: editing `geo.ts` runs
@@ -182,9 +181,9 @@ export function readLane(root) {
 }
 
 /**
- * The specs to run for one edited path, sorted. Empty means the hook should not run, and since
- * #293 that is the common case rather than an edge one: a lane source no spec names has nothing
- * to run, so the hook exits before it spawns vitest at all.
+ * The specs to run for one edited path, sorted. Empty means the hook should not run, and that is
+ * the common case rather than an edge one (#293): a lane source no spec names has nothing to run,
+ * so the hook exits before it spawns vitest at all.
  */
 export function selectFrom(rel, lane) {
   if (!isLaneSource(rel)) return []
