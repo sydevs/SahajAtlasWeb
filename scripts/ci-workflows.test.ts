@@ -82,30 +82,33 @@ describe('ci.yml', () => {
 
   const smoke = ci.slice(at)
 
-  // `wrangler preview` is open beta, so the publish must upload with the version this repo
-  // pins rather than whatever the action would pick — and the action's own floor for Workers
-  // Previews is 4.136.3, below which the command does not exist.
-  it('uploads with the wrangler package.json pins, at or above the action floor', () => {
+  // The publish must upload with the version this repo pins rather than whatever the action
+  // would pick, so a behaviour change upstream arrives as a deliberate bump.
+  it('uploads with the wrangler package.json pins', () => {
     const pinned = readPackage().devDependencies.wrangler.replace(/^[^\d]*/, '')
 
     expect(match(smoke, /^\s*wranglerVersion: '(\S+)'$/m)).toBe(pinned)
-
-    // ⚠ Numeric collation, never a plain compare: `4.9.0` sorts ABOVE `4.136.3` as a string,
-    // so a lexical test would pass on a wrangler with no `preview` command at all.
-    expect(pinned.localeCompare('4.136.3', undefined, { numeric: true })).toBeGreaterThanOrEqual(0)
   })
 
-  // A tag moves; a SHA does not. Both uses of the action — the publish here and the teardown —
-  // are pinned, so a compromised release cannot arrive as an unreviewed upgrade.
-  it.each(['.github/workflows/ci.yml', '.github/workflows/preview-teardown.yml'])(
-    '%s pins cloudflare/wrangler-action by SHA',
-    (file) => {
-      const refs = [...read(file).matchAll(/cloudflare\/wrangler-action@(\S+)/g)].map((m) => m[1])
+  // A tag moves; a SHA does not, so a compromised release cannot arrive as an unreviewed upgrade.
+  it('pins cloudflare/wrangler-action by SHA', () => {
+    const refs = [...ci.matchAll(/cloudflare\/wrangler-action@(\S+)/g)].map((m) => m[1])
 
-      expect(refs.length).toBeGreaterThan(0)
-      for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
-    },
-  )
+    expect(refs.length).toBeGreaterThan(0)
+    for (const ref of refs) expect(ref).toMatch(/^[0-9a-f]{40}$/)
+  })
+
+  // ⚠ `wrangler preview` gives an assets-only Worker a placeholder script, and the platform then
+  // serves the SPA fallback to browser navigations only, so `fetch('/search')` 404s on the
+  // preview while production serves the shell (#282, measured on PR #299). `versions upload`
+  // routes like `wrangler deploy`. It must also never become a deploy: that moves production.
+  it('uploads a version of the app Worker under the pull request alias, and deploys nothing', () => {
+    const command = match(smoke, /^\s*command: (.+)$/m)
+
+    expect(command).toMatch(/^versions upload /)
+    expect(match(command, /--config (\S+)/)).toBe(APP_CONFIG)
+    expect(command).toContain('--preview-alias pr-${{ github.event.pull_request.number }}')
+  })
 
   // ⚠ The action's `secrets:` input writes the PRODUCTION Worker's secrets
   // (sydevs/SahajCloud#903). Nothing in this repo may pass it, and a run that did would look
@@ -114,11 +117,12 @@ describe('ci.yml', () => {
     expect(smoke).not.toMatch(/^\s*secrets:/m)
   })
 
-  // ⚠ `preview-url` follows the preview across pushes, so a later push's build would answer for
-  // this commit's — #138's defect, one platform along. The specs read the immutable address.
+  // ⚠ The alias follows the pull request across pushes, so a later push's build would answer for
+  // this commit's — #138's defect, one platform along. The specs read the version's own URL,
+  // which is all the action exposes as `deployment-url` for a version upload.
   it('reads the immutable preview address, not the one that follows the branch', () => {
     expect(match(smoke, /^\s*PREVIEW_URL: \$\{\{ steps\.\S+\.outputs\.(\S+) \}\}$/m)).toBe(
-      'preview-deployment-url',
+      'deployment-url',
     )
   })
 
@@ -126,11 +130,16 @@ describe('ci.yml', () => {
   // the `Branch Preview URL` label freezes, so the reviewer opens a dead build two pushes
   // later. `branch-preview-url.mjs` matches the anchor's own text, so the label has to sit on
   // the address that follows the preview. Swapping the two was watched change its output.
+  //
+  // The alias's URL is in wrangler's stdout alone, so the guard reads it from the line wrangler
+  // prints, checks it, and hands on only what it checked.
   it('labels the branch-following address in the check run, and only that one', () => {
     expect(match(smoke, /<a href=\\"\$(\w+)\\">Branch Preview URL<\/a>/)).toBe('STABLE_URL')
-    expect(match(smoke, /^\s*STABLE_URL: \$\{\{ steps\.\S+\.outputs\.(\S+) \}\}$/m)).toBe(
-      'preview-url',
+    expect(match(smoke, /^\s*STABLE_URL: \$\{\{ steps\.(\S+) \}\}$/m)).toBe(
+      'guard.outputs.stable-url',
     )
+    expect(smoke).toContain("sed -n 's/^Version Preview Alias URL: *//p'")
+    expect(smoke).toContain('node scripts/assert-preview-host.mjs "$PINNED_URL" "$STABLE_URL"')
   })
 
   // ⚠ A bare `pnpm build` leaves `dist/_redirects`, whose splat the Workers API rejects as an
@@ -140,19 +149,6 @@ describe('ci.yml', () => {
   it('builds the upload with the script that drops _redirects', () => {
     expect(smoke).toContain('run: pnpm build:worker')
     expect(smoke).not.toMatch(/^\s*(- )?run: pnpm build$/m)
-  })
-
-  // ⚠ The publish and the teardown must key the preview on the SAME name. Wrangler has no
-  // `preview list`, so a mismatch leaves a preview no later sweep can reach, silently
-  // (`preview-teardown.yml`'s own header). Nothing but this couples the two expressions.
-  it('deletes the preview the publish created, by the same name and config', () => {
-    const name = /--name (\S+)/
-    const config = /--config (\S+)/
-    const teardown = read('.github/workflows/preview-teardown.yml')
-
-    expect(match(teardown, name)).toBe(match(smoke, name))
-    expect(match(teardown, config)).toBe(APP_CONFIG)
-    expect(match(smoke, config)).toBe(APP_CONFIG)
   })
 
   // The plan step names the states, and the report step decides which are loud. Two copies of

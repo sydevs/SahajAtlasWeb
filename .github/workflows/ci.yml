@@ -109,12 +109,10 @@ jobs:
     name: Smoke
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Granted on this job alone. `cloudflare/wrangler-action` creates a GitHub Deployment, and
-    # the check-run step posts ours. At the workflow level either scope would also reach the
-    # gate job and the Dependency Review job, which need neither.
+    # Granted on this job alone, for the check run the job posts. At the workflow level it would
+    # also reach the gate job and the Dependency Review job, which need neither.
     permissions:
       contents: read
-      deployments: write
       checks: write
     steps:
       # Publishing needs both a pull-request number to key the preview on and the Cloudflare
@@ -160,7 +158,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
         if: steps.plan.outputs.reason == 'publish'
 
-      # This job builds its own `dist/`, and must: `wrangler preview` uploads from a local
+      # This job builds its own `dist/`, and must: `wrangler versions upload` uploads from a local
       # directory, and the gate job's `pnpm build` is deliberately secret-free so a fork can run
       # it, so its output carries none of the values below. Two builds in one run is the price
       # of a preview the specs can trust.
@@ -185,21 +183,24 @@ jobs:
           VITE_MAPBOX_ACCESSTOKEN: ${{ secrets.VITE_MAPBOX_ACCESSTOKEN }}
         run: pnpm build:worker
 
+      # ⚠ `versions upload`, never `wrangler preview`. For an assets-only Worker, `preview`
+      # (open beta, through 4.151.0) uploads a placeholder `no-op-worker.js`, so the platform
+      # serves the SPA fallback to browser navigations alone and every other deep link gets the
+      # no-op's 404 — measured on this PR, where `fetch('/search')` failed and production did
+      # not. `versions upload` sends the assets-only shape `wrangler deploy` does. It uploads a
+      # version and deploys nothing, so production traffic never moves.
+      #
       # ⚠ `--config` is passed explicitly. Two configs build from this repo, and leaving wrangler
       # to resolve the default is one rename away from publishing the playground into the app's
-      # Worker. Keying the preview on the pull-request number is collision-proof, which a branch
-      # slug is not.
+      # Worker. Keying the alias on the pull-request number is collision-proof, which a branch
+      # slug is not, and Workers Builds' own preview aliases are branch slugs.
       #
       # ⚠ Never pass this action's `secrets:` input — it writes the PRODUCTION Worker's secrets.
       #
-      # The action is pinned by SHA and `wranglerVersion` to the version `package.json` pins,
-      # because `wrangler preview` is open beta: a behaviour change upstream should arrive as a
-      # deliberate bump. The action's own floor for Workers Previews is 4.136.3, and
-      # `scripts/ci-workflows.test.ts` pins both ends against drift.
-      #
-      # Nothing waits for the Worker to answer. A Workers upload is live when the command
-      # returns, unlike a Pages build, so an unreachable host surfaces as a red smoke spec with
-      # its own log rather than as a discovery timeout.
+      # The action is pinned by SHA and `wranglerVersion` to the version `package.json` pins, so
+      # a behaviour change upstream arrives as a deliberate bump; `scripts/ci-workflows.test.ts`
+      # pins both. Nothing waits for the Worker to answer: a version URL is live when the command
+      # returns, so an unreachable host surfaces as a red smoke spec with its own log.
       - name: Publish the preview
         id: publish
         if: steps.plan.outputs.reason == 'publish'
@@ -208,19 +209,26 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4.150.0'
-          command: preview --name pr-${{ github.event.pull_request.number }} --config wrangler.jsonc
+          command: versions upload --config wrangler.jsonc --preview-alias pr-${{ github.event.pull_request.number }}
 
       # The publish step cannot say WHICH Worker it published to, and a wrong `--config`, a
       # copied step or a rename would aim the lane at the `sahajatlas-design` playground and
       # collect a green check that verified the wrong site. The guard anchors the whole
       # worker-name label segment at both ends, reading the name off `wrangler.jsonc`.
+      #
+      # For `versions upload` the action exposes only the version's own URL, as `deployment-url`.
+      # The alias's URL exists only in wrangler's stdout, so it is read from there, and the guard
+      # refuses it like any other address — an empty read fails the step.
       - name: Refuse an address that is not the app Worker's
         id: guard
         if: steps.plan.outputs.reason == 'publish'
         env:
-          PINNED_URL: ${{ steps.publish.outputs.preview-deployment-url }}
-          STABLE_URL: ${{ steps.publish.outputs.preview-url }}
-        run: node scripts/assert-preview-host.mjs "$PINNED_URL" "$STABLE_URL"
+          PINNED_URL: ${{ steps.publish.outputs.deployment-url }}
+          COMMAND_OUTPUT: ${{ steps.publish.outputs.command-output }}
+        run: |
+          STABLE_URL=$(printf '%s\n' "$COMMAND_OUTPUT" | sed -n 's/^Version Preview Alias URL: *//p' | head -n 1)
+          node scripts/assert-preview-host.mjs "$PINNED_URL" "$STABLE_URL"
+          echo "stable-url=$STABLE_URL" >> "$GITHUB_OUTPUT"
 
       # `finalize-pr` in sydevs/claude-workflow reads a preview address out of an `<a href>`
       # whose own anchor text matches /branch\s+preview\s+url/i (`branch-preview-url.mjs`). On
@@ -241,8 +249,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          STABLE_URL: ${{ steps.publish.outputs.preview-url }}
-          PINNED_URL: ${{ steps.publish.outputs.preview-deployment-url }}
+          STABLE_URL: ${{ steps.guard.outputs.stable-url }}
+          PINNED_URL: ${{ steps.publish.outputs.deployment-url }}
         run: |
           summary=$(printf '%s\n' \
             "<p><a href=\"$STABLE_URL\">Branch Preview URL</a></p>" \
@@ -256,10 +264,9 @@ jobs:
           }' | gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" --input - > /dev/null
           echo "📍 [Branch Preview URL]($STABLE_URL) · [this commit's build]($PINNED_URL)" >> "$GITHUB_STEP_SUMMARY"
 
-      # ⚠ The specs read `preview-deployment-url`, the immutable address of the version just
-      # published. `preview-url` follows the preview across pushes, so reading it would let a
+      # ⚠ The specs read `deployment-url`, the immutable address of the version just uploaded.
+      # The `pr-<n>` alias follows the pull request across pushes, so reading it would let a
       # later push's build answer for this commit's — #138's defect in its Workers spelling.
-      # `deployment-url` is the same value as `preview-url`, not a third address; do not read it.
       #
       # Gated on `reason`, like every step above it, and NOT on the address being non-empty.
       # Every `if:` here is implicitly `success() && …`, so a failed publish or a refused host
@@ -269,7 +276,7 @@ jobs:
         id: smoke
         if: steps.plan.outputs.reason == 'publish'
         env:
-          PREVIEW_URL: ${{ steps.publish.outputs.preview-deployment-url }}
+          PREVIEW_URL: ${{ steps.publish.outputs.deployment-url }}
         run: |
           pnpm test:smoke
           {

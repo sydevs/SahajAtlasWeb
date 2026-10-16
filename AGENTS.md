@@ -139,8 +139,8 @@ built so passing proves something real:
   address is discovered (#282). Only a fork, which holds no Cloudflare credential, and a
   merge-queue entry, which has no pull-request number to key a preview on, skip quietly — and
   both say so. Every other route to no preview fails the job, a same-repo PR with the secret
-  missing included. A closed PR's preview is deleted by `preview-teardown.yml`, the only
-  chance there is: wrangler has no `preview list`.
+  missing included. ⚠ It publishes with `wrangler versions upload`, never `wrangler preview`,
+  whose placeholder script makes deep links 404 on an assets-only Worker (`docs/testing.md`).
 - **`pnpm check:wrangler`** (`wrangler deploy --dry-run`) reads `wrangler.jsonc` and
   `wrangler.design.jsonc`, which nothing else in this repo deploys from — Workers Builds holds
   the dashboard's copy of each path. So a rename, a typo, or an `assets.directory` that drifts

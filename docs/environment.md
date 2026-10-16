@@ -34,14 +34,16 @@ place it is stated — everywhere else in this repo just points here.
 ## GitHub Actions secrets — the smoke lane's preview (#282)
 
 The `Smoke` job builds the app and publishes its own Workers preview, so five values live in
-**this repository's Actions secrets** rather than in Cloudflare. They are read only by
-`.github/workflows/ci.yml`'s smoke job and by `preview-teardown.yml`. Nothing else in the repo
-reads them, and a fork cannot: `pull_request` gives a forked run no secrets at all, which is
-exactly why a fork's smoke run is an annotated skip rather than a red check.
+**GitHub Actions secrets** rather than in Cloudflare. The three `VITE_*` values are this
+repository's own. The Cloudflare pair are **`sydevs` organization secrets**, granted to selected
+repositories (this one and WeMeditateWeb), so add a repository there rather than here. They are
+read only by `.github/workflows/ci.yml`'s smoke job. Nothing else in the repo reads them, and a
+fork cannot: `pull_request` gives a forked run no secrets at all, which is exactly why a fork's
+smoke run is an annotated skip rather than a red check.
 
 | Secret | Purpose |
 | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | The preview upload, and the delete on close. ⚠ Scope it to **Workers only** — nothing here touches Pages, a zone, or an account setting. |
+| `CLOUDFLARE_API_TOKEN` | The preview upload. ⚠ Scope it to **Workers only** — nothing here touches Pages, a zone, or an account setting. SahajCloud's `CLOUDFLARE_API_KEY` is a different token, scoped to Images, Stream and R2, and cannot upload a Worker. |
 | `CLOUDFLARE_ACCOUNT_ID` | The account the preview publishes into. |
 | `VITE_SENTRY_DSN` | Not optional for a preview: `tests/smoke/boot-origins.smoke.test.ts` **fails** when an origin pattern finds nothing, and the ingest host is one of its two (#232). |
 | `VITE_SAHAJCLOUD_API_KEY` | Without it the preview serves the configuration-error screen instead of the keyless world list, and a reviewer reads nothing off it. |

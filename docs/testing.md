@@ -41,12 +41,21 @@ Two lanes, kept separate so the fast one never touches the network:
   name, and no text anyone can edit is read at all. Two questions survive that, and the lane
   answers each separately.
 
-  **Which build.** `wrangler preview` returns two addresses, and both are ours: `preview-url`
-  follows the preview across pushes, and `preview-deployment-url` is pinned to the version just
-  uploaded. ⚠ The specs must read the **pinned** one — reading the branch-following one would let
-  a later push's build answer for this commit's, which is #138's defect in its Workers spelling.
-  `preview-url` appears only in what a person is given, and `deployment-url` is the same value
-  again rather than a third address.
+  **Which build.** `wrangler versions upload --preview-alias pr-<n>` returns two addresses, and
+  both are ours: the `pr-<n>` alias follows the pull request across pushes, and the version URL
+  (the action's `deployment-url`) is pinned to the version just uploaded. ⚠ The specs must read
+  the **pinned** one — reading the alias would let a later push's build answer for this commit's,
+  which is #138's defect in its Workers spelling. The alias appears only in what a person is
+  given; the action does not expose it, so the guard step reads it off wrangler's stdout.
+
+  ⚠ **Never publish with `wrangler preview`.** For an assets-only Worker it uploads a placeholder
+  `no-op-worker.js` (through wrangler 4.151.0), and the platform then serves the
+  `single-page-application` fallback to browser navigations (`Sec-Fetch-Mode: navigate`) alone.
+  Node's `fetch` always sends `cors`, so `/search` came back 404 `Not found` on the preview while
+  production, deployed by `wrangler deploy`, served the shell to every client (PR #299). A preview
+  that routes differently from production is the silent divergence this lane exists to refuse.
+  There is no alias delete: Cloudflare keeps a Worker's 1,000 most recent aliases and drops the
+  oldest, so nothing tears a preview down on close.
 
   **Which Worker.** `scripts/assert-preview-host.mjs` refuses an address that is not a preview of
   the Worker `wrangler.jsonc` names. ⚠ A preview host is
@@ -234,10 +243,7 @@ about it are deliberate:
   measured on PR #120 and recorded by the discovery script #282 deleted — which is why the
   evidence now lives in this file. A workflow on an event that never arrives is invisible — no
   red check, no annotation, nothing to notice — so the trigger is the check run instead, at the
-  cost of one skipped workflow run per check run in the repo. ⚠ Do not read our own publish step
-  as evidence against this: `cloudflare/wrangler-action` creates a GitHub Deployment for each
-  preview, so a `deployment_status` event *does* now arrive on pull requests. It comes from our
-  action, not from Cloudflare, and it says nothing about a production deploy.
+  cost of one skipped workflow run per check run in the repo.
 - **The base URL is a bare literal, and `ci-workflows.test.ts` pins it as one** — the regex
   matches a scalar, so putting an expression back fails the spec at collection. The lane takes no
   `workflow_dispatch` input for it: that input was the one way a dispatcher could aim a green
