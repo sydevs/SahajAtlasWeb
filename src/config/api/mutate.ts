@@ -224,9 +224,13 @@ const createRegistration = async (
  * That command covers `responseTypes.ts` and the generated `Config`, and this union lives in neither.
  * So this file restates it, the same way `RegistrationErrorCode` restates `captcha_failed`.
  *
- * All five codes are reachable for the report form.
+ * Five of the six are reachable for the report form.
  * `invalid_email` is belt-and-braces. The widget validates the address with zod before sending.
  * But the guard checks `senderEmail` itself, so this code can still come back.
+ * `content_unscannable` (sydevs/SahajCloud#948) needs a `proposed` patch to reach, which only an
+ * event proposal carries, so neither intake here can earn it today. It is mirrored anyway: the
+ * mirror is what forces each new code through `ReportIssueForm`'s copy map, and a proposal intake
+ * in this widget would make it live without touching this union.
  */
 export type UserSubmissionErrorCode =
   | 'captcha_failed'
@@ -234,6 +238,7 @@ export type UserSubmissionErrorCode =
   | 'invalid_email'
   | 'disposable_email'
   | 'urls_not_allowed'
+  | 'content_unscannable'
 
 /**
  * This is a user submission SahajCloud refused for a reason the write-guard named.
