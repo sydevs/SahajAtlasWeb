@@ -510,7 +510,7 @@ saving.
 ⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
 edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
 read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
-is selected for 7 of 420 lane sources, by reference alone. 117 of those 420 select nothing at all
+is selected for 7 of 420 lane sources, by reference alone. 116 of those 420 select nothing at all
 and spawn no vitest. The inventory that refuses the change still goes red in the lean gate
 (`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
 covers it, the inner loop no longer does.
