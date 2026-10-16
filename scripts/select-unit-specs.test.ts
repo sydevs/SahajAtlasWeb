@@ -159,9 +159,10 @@ describe('this repository', () => {
 
   /**
    * The specs whose fixture is the source tree, so an edit anywhere is their input and no
-   * reference to it exists. Since the hook no longer runs them per edit (#293), this list is the
-   * only thing that notices one joining or leaving the set — a detector that silently stopped
-   * matching would change nothing else that fails.
+   * reference to it exists. The hook no longer runs them per edit (#293), so this list gates
+   * nothing — it documents. It is the register of which specs carry no per-edit signal, the set
+   * `docs/testing.md`'s trade paragraph is scoped by, and a spec joining or leaving it fails here
+   * and nowhere else.
    *
    * The nine `src/` inventories and `source-tree.test.ts` are found by importing the shared walk
    * (#286); the rest by an enumerating call. `wrangler-config.test.ts` lists only the repo root,
