@@ -438,7 +438,8 @@ coupling the other cannot:
 
 - **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
   `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
-  six specs the lane indexes and whose own edits cost ~3.6s.
+  eight specs the lane indexes and whose own edits select at most two — ~1.1s, or nothing at all
+  for the six of its 21 sources no spec names.
 - **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
   spec rather than matching the module's name, because one module is addressed three ways and a
   spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
