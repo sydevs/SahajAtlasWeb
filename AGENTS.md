@@ -193,9 +193,9 @@ src/
   test-support/       # Imported by specs only, and one spec asserts that. source-tree.ts = the
                       # ONE walk of `src/` behind every spec that inventories the source, plus
                       # its memoised reads and the comment strip; source-ast.ts = the memoised
-                      # `ts.SourceFile`; repo-source.ts = the ONE module resolving the REPO root,
-                      # which a spec reads a file beside `src/` through (#302). Each spec states
-                      # its own scope (#286)
+                      # `ts.SourceFile`; repo-source.ts = the ONE root a spec reads a repo file
+                      # through, for a file the walk cannot reach (#302). Each spec states its
+                      # own scope (#286)
   types/              # zod schemas + inferred types per entity
                       # config/translations.en.json = the committed English snapshot of
                       # SahajCloud's `sy-atlas-translations`, written by

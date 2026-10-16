@@ -397,12 +397,17 @@ grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSyn
 
 **A spec reading a file the walk cannot reach goes through `readRepoSource`
 (`src/test-support/repo-source.ts`), and a second lint rule holds that one too** (#302).
-`no-restricted-syntax` fails any spec, and anything in `test-support/`, that writes
-`new URL(…, import.meta.url)`: Vite rewrites that expression under the WEB transform, which
-vitest picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies before
-one assertion runs. It killed `source-tree.ts` that way. ⚠ **Bare `import.meta.url` is left
-alone and stays a `file:` URL** — measured — so the ban is on the one expression, not the
-property, and `src/styles/fonts.ts` keeps the same form as Vite's asset-URL idiom.
+`no-restricted-syntax` fails any spec, anything in `test-support/`, and any `scripts/**/*.mjs`,
+that writes `new URL(…, import.meta.url)`: Vite rewrites that expression under the WEB transform,
+which vitest picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies
+before one assertion runs. It killed `source-tree.ts` that way. ⚠ **Bare `import.meta.url` is
+left alone and stays a `file:` URL** — measured — so the ban is on the one expression, not the
+property, and `src/styles/fonts.ts` and `.ladle/` keep the same form as Vite's asset-URL idiom.
+
+**The rule reaches `scripts/**/*.mjs` because five of them are imported by a spec**, which puts
+them in the same module graph as `source-tree.ts` was — the module the defect actually killed was
+no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
+`dirname(fileURLToPath(import.meta.url))` and the lint message says so.
 
 `repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
 from, and `readSource` reads through it. It is a separate module because importing
