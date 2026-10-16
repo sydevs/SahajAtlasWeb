@@ -98,7 +98,7 @@ pnpm lint         # eslint . --max-warnings 0 (CI gate — fails on any warning)
 pnpm lint:fix     # eslint . --fix (auto-fix + Prettier)
 pnpm test         # vitest watch (fast unit lane)
 pnpm test:run     # vitest run (one-shot — CI + pre-PR gate)
-pnpm test:smoke   # smoke specs vs the Cloudflare preview (needs PREVIEW_URL)
+pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
 pnpm ladle        # Ladle component previews (http://localhost:61000)
@@ -107,7 +107,7 @@ pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build
 ```
 
 Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted via
-`renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against the Cloudflare
+`renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against a deployed
 preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on lint,
 typecheck, `test:run`, build, `pnpm size`, `ladle:build`, and `pnpm check:wrangler`, plus a
 Dependency Review job.
@@ -136,8 +136,12 @@ built so passing proves something real:
   already on `main` never blocks a PR: the loop's daily Dependabot check fires `audit-deps`
   to fix it. The full-lockfile `pnpm audit:check` gate it replaced failed four unrelated
   PRs at once when a new advisory landed on `main` (#233, #237, #243, #248).
-- **A green Smoke check means the specs ran.** A missing Cloudflare preview annotates the
-  run, and fails it outright on same-repo PRs. Forks keep the graceful skip.
+- **A green Smoke check means the specs ran.** The job publishes the preview it reads, so no
+  address is discovered (#282). Only a fork, which holds no Cloudflare credential, and a
+  merge-queue entry, which has no pull-request number to key a preview on, skip quietly — and
+  both say so. Every other route to no preview fails the job, a same-repo PR with the secret
+  missing included. ⚠ It publishes with `wrangler versions upload`, never `wrangler preview`,
+  whose placeholder script makes deep links 404 on an assets-only Worker (`docs/testing.md`).
 - **`pnpm check:wrangler`** (`wrangler deploy --dry-run`) reads `wrangler.jsonc` and
   `wrangler.design.jsonc`, which nothing else in this repo deploys from — Workers Builds holds
   the dashboard's copy of each path. So a rename, a typo, or an `assets.directory` that drifts
@@ -387,8 +391,8 @@ Three facts to remember:
 The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
 runbook is in `docs/environment.md`.
 
-CI's smoke lane targets the app project via `CF_PROJECT=sahajatlas.pages.dev`
-(`.github/workflows/ci.yml`) and checks all of the above against the preview.
+CI's smoke lane publishes its own preview of the app Worker and checks all of the above against
+it (`.github/workflows/ci.yml`, #282). Nothing is discovered, so no project host is configured.
 
 Use the **cloudflare-docs** MCP for Cloudflare Pages and Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one

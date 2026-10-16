@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config'
 
-// Smoke specs run against a deployed Cloudflare Pages preview
+// Smoke specs run against a deployed preview
 // (PREVIEW_URL). They do not run against the local build. They use fetch
 // calls, not a browser. This config is separate, so the fast local unit
 // lane never runs these specs.

@@ -68,8 +68,9 @@ const REQUEST_ORIGINS = [
   // Crash reporting, from `VITE_SENTRY_DSN` (#232) — here for presence, not for
   // reachability, since nothing else observed that the variable was set on neither
   // Pages environment. Two caveats, both load-bearing:
-  // ⚠ it can only ever see a preview. `get-cloudflare-preview-url.mjs` refuses the
-  // production host, so a green run says nothing about Production.
+  // ⚠ it can only ever see a preview. `scripts/assert-preview-host.mjs` refuses the
+  // Worker's own production host, so a green run says nothing about production — which is
+  // what `production-smoke.yml` exists for.
   // ⚠ the `sentry.io` anchor is what stops a lookalike `<key>@<host>/<digits>` literal
   // from a future dependency standing in for the DSN and turning this green while
   // reporting stays dead. A move onto a self-hosted ingest goes red instead.

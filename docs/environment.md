@@ -20,7 +20,7 @@ place it is stated — everywhere else in this repo just points here.
 | `VITE_SAHAJCLOUD_URL`      | `.env`                        | SahajCloud origin. The client appends `/api`. Default `https://cloud.sydevelopers.com`. Local backend: `http://localhost:3000`. |
 | `ATLAS_API_KEY`            | shell (never committed)       | A **production** `sahaj-atlas-client` API key, read by `pnpm sync:translations` to pull the English copy out of SahajCloud. Build-time only, no `VITE_` prefix — it never reaches the bundle. The script falls back to `VITE_SAHAJCLOUD_API_KEY` **only** when `VITE_SAHAJCLOUD_URL` is the production origin: a key minted against a local CMS, sent to `cloud.sydevelopers.com`, lands in production's log as a rejected credential and gets rotated in a hurry. ⚠ It replaced `VITE_HOST` here, which #198 deleted along with `public/locales/` — the widget fetches its copy from SahajCloud now, so there is no second origin to name. |
 | `VITE_TURNSTILE_SITE_KEY`  | `.env`                        | Cloudflare Turnstile **site** key for the report-issue form. Public by design — the secret half lives in SahajCloud — so this is committed. `.env` holds Cloudflare's always-passes test key `1x00000000000000000000AA` for dev, Ladle, and CI. Production overrides it in Cloudflare, on each target that builds the app. Unset, `probeTurnstile` answers `false` and `useTurnstileGuard` fails the whole widget to the captcha-blocked screen — the same state as a CSP-refused script, and no `mailto:` fallback since #182. **Since #103 this key is load-bearing, not decorative.** The form now sends a real email through SahajCloud's captcha-gated endpoint. In production, the test key then makes that captcha a no-op. A site key that does not pair with SahajCloud's `TURNSTILE_SECRET_KEY` makes every report fail with a 403 `captcha_failed`. The viewer sees only one sentence of text for this. |
-| `VITE_SENTRY_DSN`          | Cloudflare — **Production + Preview** | Sentry ingest DSN for automatic error reporting (issue #108). Use the **modern public-key form** `https://<key>@<host>/<project>`. The legacy `https://<key>:<secret>@…` form puts a real secret in the public bundle. A DSN is write-only, so it is public by design. This repo still does **not** commit it to `.env`: a committed DSN would send every fork, preview, and `pnpm dev` into the production project. Set it per environment in the Cloudflare dashboard — Pages environments and Workers Builds triggers alike, since both build the app while the move runs. This org is in Sentry's **DE region**, so the ingest host is `o…​.ingest.de.sentry.io` — not `…us…`, which is what the DSN's own text will tell you. **The integrator CSP needs no edit for it**: `docs/embedding.md`'s `connect-src` row already carries `*.sentry.io`, wide on purpose so a regional host matches (#123). **Unset, `reportInternalError` only logs to the console** — the SDK chunk is never fetched, and that is the only gate there is: the `error-reporting` embed attribute was removed in #149. **Preview carries one too, and that is load-bearing, not a convenience** (#232): `boot-origins.smoke.test.ts` reads the ingest host back off the deploy, and `get-cloudflare-preview-url.mjs` refuses the production host, so a preview is the only deploy anything automated can observe. |
+| `VITE_SENTRY_DSN`          | Cloudflare — **Production + Preview** | Sentry ingest DSN for automatic error reporting (issue #108). Use the **modern public-key form** `https://<key>@<host>/<project>`. The legacy `https://<key>:<secret>@…` form puts a real secret in the public bundle. A DSN is write-only, so it is public by design. This repo still does **not** commit it to `.env`: a committed DSN would send every fork, preview, and `pnpm dev` into the production project. Set it per environment in the Cloudflare dashboard — Pages environments and Workers Builds triggers alike, since both build the app while the move runs. This org is in Sentry's **DE region**, so the ingest host is `o…​.ingest.de.sentry.io` — not `…us…`, which is what the DSN's own text will tell you. **The integrator CSP needs no edit for it**: `docs/embedding.md`'s `connect-src` row already carries `*.sentry.io`, wide on purpose so a regional host matches (#123). **Unset, `reportInternalError` only logs to the console** — the SDK chunk is never fetched, and that is the only gate there is: the `error-reporting` embed attribute was removed in #149. **Preview carries one too, and that is load-bearing, not a convenience** (#232): `boot-origins.smoke.test.ts` reads the ingest host back off the deploy, and `assert-preview-host.mjs` refuses the Worker's own production host, so a preview is the only deploy the PR gate can observe. ⚠ Since #282 the preview's copy is an **Actions secret in this repo**, read by `ci.yml`'s publish build — not a Cloudflare Preview-environment variable. The production deploy's stays in the dashboard. |
 | `VITE_SENTRY_ENVIRONMENT`  | Cloudflare — **Preview**       | The `environment` tag on every reported event (#232). It replaced `import.meta.env.MODE`, which reads `production` for **every** `vite build`, preview included — so with a DSN on Preview, preview noise would be indistinguishable from the events that matter. Set it to `preview` there and leave Production alone: unset, a build defaults to `production` and `pnpm dev` to `development`, so nothing gets mislabelled. Not a secret, and not in `.env`, where it would be inert anyway — nothing reports without a DSN. |
 | `SENTRY_AUTH_TOKEN`        | Cloudflare                    | **Build-time only, and a real secret** (issue #130). It carries no `VITE_` prefix, so Vite cannot inline it. **`pnpm assert:maps` also greps every emitted file for its value** and fails the build if it appears — a gate, not a habit. Its presence switches source-map upload on. Set: `build.sourcemap: 'hidden'`, and `@sentry/vite-plugin` uploads the maps, then deletes them. Unset: **no maps are emitted at all**, and the build matches one from before #130 byte-for-byte. See runbook step 2 for the token scopes it needs. The plugin never creates, finalizes, or sets commits on a release. Still, the upload call stays release-scoped. |
 | `SENTRY_ORG`               | Cloudflare                    | Sentry organisation slug. Build-time only. Required **whenever `SENTRY_AUTH_TOKEN` is set** — a half-configured build fails loudly instead of shipping green with every frame still minified. |
@@ -31,14 +31,45 @@ place it is stated — everywhere else in this repo just points here.
 | `VITE_FATHOM_ID`           | `.env.local`                  | Fathom analytics site id (optional). Analytics is disabled when unset or on localhost. |
 | `SAHAJCLOUD_DOCS_PASSWORD` | `.env.local`                  | HTTP basic-auth password for the SahajCloud OpenAPI docs. Used **only** by the `pnpm types:openapi` script. Never `VITE_`-prefixed — tooling-only, never in the bundle. |
 
+## GitHub Actions secrets — the smoke lane's preview (#282)
+
+The `Smoke` job builds the app and publishes its own Workers preview, so five values live in
+**GitHub Actions secrets** rather than in Cloudflare. The three `VITE_*` values are this
+repository's own. The Cloudflare pair are **`sydevs` organization secrets**, granted to selected
+repositories (this one and WeMeditateWeb), so add a repository there rather than here. They are
+read only by `.github/workflows/ci.yml`'s smoke job. Nothing else in the repo reads them, and a
+fork cannot: `pull_request` gives a forked run no secrets at all, which is exactly why a fork's
+smoke run is an annotated skip rather than a red check.
+
+| Secret | Purpose |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | The preview upload. ⚠ Scope it to **Workers only** — nothing here touches Pages, a zone, or an account setting. SahajCloud's `CLOUDFLARE_API_KEY` is a different token, scoped to Images, Stream and R2, and cannot upload a Worker. |
+| `CLOUDFLARE_ACCOUNT_ID` | The account the preview publishes into. |
+| `VITE_SENTRY_DSN` | Not optional for a preview: `tests/smoke/boot-origins.smoke.test.ts` **fails** when an origin pattern finds nothing, and the ingest host is one of its two (#232). |
+| `VITE_SAHAJCLOUD_API_KEY` | Without it the preview serves the configuration-error screen instead of the keyless world list, and a reviewer reads nothing off it. |
+| `VITE_MAPBOX_ACCESSTOKEN` | Without it the preview draws an empty canvas instead of tiles. |
+
+⚠ **Until all five exist, every same-repo pull request fails its `Smoke` check**, with a message
+naming all five. The plan step gates on each one, so a half-entered set cannot publish a preview
+whose build silently lacks a `VITE_*` value — that would arrive as a spec failure blaming the
+deploy. That is deliberate: the alternative is a green check that read nothing,
+which is the hole #99 closed.
+
+`VITE_SENTRY_ENVIRONMENT: preview` is a plain workflow value in `ci.yml`, not a secret — unset, a
+build tags itself `production`. `VITE_SAHAJCLOUD_URL` and `VITE_TURNSTILE_SITE_KEY` keep `.env`'s
+committed defaults, the Turnstile one being the always-passes test key. `SENTRY_AUTH_TOKEN` is
+deliberately **not** set for a preview: no maps are emitted at all and `pnpm assert:maps` passes,
+which is the simplest correct state.
+
 ## Secrets that must NOT reach the client
 
 - `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) — a Mapbox **secret** token, for its token-management
   API. It carries no `VITE_` prefix and must never appear in client code or in a commit. The
   `security-scan` hook blocks staged files containing `sk.`/secret patterns.
 
-- `SENTRY_AUTH_TOKEN` — see the table above. Build-time only, never `VITE_`-prefixed. It is the
-  **only** secret in this repo read by a build rather than run by hand.
+- `SENTRY_AUTH_TOKEN` — see the table above. Build-time only, never `VITE_`-prefixed. ⚠ It was
+  the only secret in this repo read by a build rather than run by hand until #282 added the
+  Actions secrets above, and it is still the only one a **deploy** build reads.
 
 (`ACCENT_API_KEY` used to live here, for the Accent translation-sync workflows. Those were
 deleted in #99 — see `AGENTS.md` → Deployment — so nothing in this repo reads that secret now,

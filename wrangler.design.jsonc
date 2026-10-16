@@ -6,7 +6,8 @@
   // ⚠ The preview host is `<preview>-<worker>.<subdomain>.workers.dev`, so this name contains
   // `sahajatlas` as a prefix, exactly as the two Pages hosts do. A check that tells the app's
   // deploy from the playground's must match the worker-name LABEL segment, never a domain
-  // suffix — `scripts/get-cloudflare-preview-url.test.ts` pins that boundary for today's shape.
+  // suffix — `scripts/assert-preview-host.test.ts` pins that boundary, with this very host
+  // among its refusals (#282).
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sahajatlas-design",
 

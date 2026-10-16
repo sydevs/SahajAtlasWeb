@@ -1,9 +1,10 @@
 import { readdirSync } from 'node:fs'
 
-import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
-import { REPO_ROOT, readRepoSource } from '../src/test-support/repo-source'
+import { REPO_ROOT } from '../src/test-support/repo-source'
+
+import { APP_CONFIG, readPackage, readWranglerConfig } from './_wrangler-config.mjs'
 
 // `pnpm check:wrangler` is the only thing that DEPLOYS from a wrangler config — Workers Builds
 // holds the dashboard's copy of each path (#279, #280). So the gate's own argument list has no
@@ -23,43 +24,21 @@ const CONFIG_FILES = readdirSync(REPO_ROOT).filter((name) =>
   /^wrangler(\..+)?\.(jsonc?|toml)$/.test(name),
 )
 
-const PACKAGE = JSON.parse(readRepoSource('package.json')) as {
-  scripts: Record<string, string>
-}
+const PACKAGE = readPackage()
 
 const GATE = PACKAGE.scripts['check:wrangler']
-
-type WranglerConfig = {
-  name?: string
-  compatibility_date?: string
-  preview_urls?: boolean
-  previews?: Record<string, unknown>
-  assets?: { directory?: string; not_found_handling?: string }
-}
-
-/**
- * A config may legally carry comments and trailing commas — wrangler's own schema sets
- * `allowTrailingCommas`. TypeScript's tsconfig reader is the JSONC parser this repo already
- * ships, so a config wrangler accepts never fails here for a reason wrangler would not.
- */
-function readConfig(file: string): WranglerConfig {
-  const text = readRepoSource(file)
-  const { config, error } = ts.parseConfigFileTextToJson(file, text)
-
-  if (error) throw new Error(`${file}: ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}`)
-
-  return config as WranglerConfig
-}
 
 /** Only the JSON-ish configs, so a `.toml` arrival fails its own assertion below, legibly. */
 const PARSEABLE = CONFIG_FILES.filter((name) => /\.jsonc?$/.test(name))
 
-const CONFIGS = new Map(PARSEABLE.map((file) => [file, readConfig(file)]))
+// `readWranglerConfig` is shared with the two readers that anchor on the app Worker's `name`
+// (`scripts/_wrangler-config.mjs`). One JSONC parser, so a rename fails all three at once.
+const CONFIGS = new Map(PARSEABLE.map((file) => [file, readWranglerConfig(file)]))
 
 describe('the check:wrangler gate', () => {
   // An empty enumeration would make every `it.each` below pass by vacuum.
   it('finds the configs it is meant to cover', () => {
-    expect(CONFIG_FILES).toContain('wrangler.jsonc')
+    expect(CONFIG_FILES).toContain(APP_CONFIG)
     expect(CONFIG_FILES.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -140,7 +119,7 @@ describe('the targets', () => {
   // the app's own output; the Worker's NAME is deliberately unpinned, because Cloudflare may
   // refuse `sahajatlas` while the Pages project of that name lives (#280).
   it('serve the app out of `dist`', () => {
-    expect(CONFIGS.get('wrangler.jsonc')?.assets?.directory).toBe('dist')
+    expect(CONFIGS.get(APP_CONFIG)?.assets?.directory).toBe('dist')
   })
 
   // Every assets directory a Worker deploys must have `_redirects` deleted from it first: the
@@ -149,7 +128,7 @@ describe('the targets', () => {
   // the Pages project serving sahajatlas.com deploys the same directory and needs the file —
   // hence a separate `build:worker`. Nothing else pairs a config with the script that fills it.
   it.each([
-    ['wrangler.jsonc', 'build:worker'],
+    [APP_CONFIG, 'build:worker'],
     ['wrangler.design.jsonc', 'ladle:build'],
   ])('%s is filled by a script that drops _redirects', (file, script) => {
     const directory = CONFIGS.get(file)?.assets?.directory

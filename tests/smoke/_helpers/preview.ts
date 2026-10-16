@@ -1,9 +1,10 @@
-// Shared helpers for smoke specs that test the deployed Cloudflare Pages preview.
+// Shared helpers for smoke specs that read a deployed preview over the network.
 //
-// CI sets PREVIEW_URL after it finds the preview deployment
-// (scripts/get-cloudflare-preview-url.mjs). PREVIEW_URL is empty on a local run or on a
-// forked PR with no secrets. In that case, specs skip instead of failing. Guard each spec
-// with `test.skipIf(skipWithoutPreview)`, and call fetchPreview only inside the guard.
+// CI sets PREVIEW_URL to the address its own publish step returned (#282), pinned to the
+// version just uploaded. PREVIEW_URL is empty on a local run, on a forked PR with no
+// secrets, and on a merge-queue entry. In that case, specs skip instead of failing — the
+// JOB is what makes a missing preview loud, not the spec. Guard each spec with
+// `test.skipIf(skipWithoutPreview)`, and call fetchPreview only inside the guard.
 
 /** The base URL of the preview to test. The build removes any trailing slash. */
 export const PREVIEW_URL = process.env.PREVIEW_URL?.replace(/\/$/, '')

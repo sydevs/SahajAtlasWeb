@@ -4,15 +4,15 @@
   // `dist/`, and #266's last child is what moves the domain. `AGENTS.md` § Deployment is the
   // one place that topology is stated.
   //
-  // ⚠ This name collides twice, and both anchors are pinned by
-  // `scripts/get-cloudflare-preview-url.test.ts`:
+  // ⚠ This name collides twice, and this `name` is the anchor both checks read (#282):
   //   - `sahajatlas` is a PREFIX of `sahajatlas-design`, and a preview host is
   //     `<preview>-<worker>.<subdomain>.workers.dev`, so telling the two deploys apart means
-  //     anchoring `-sahajatlas.<subdomain>.workers.dev`, never the bare substring.
+  //     anchoring the whole `-sahajatlas` LABEL segment, never the bare substring.
+  //     `scripts/assert-preview-host.mjs` is what the smoke lane refuses the playground with.
   //   - it also equals the Pages project's name, so this Worker's check run is
   //     `Workers Builds: sahajatlas` against the Pages run's `Cloudflare Pages: sahajatlas`.
-  //     `runProject` matches the integration prefix too, or a failed Worker build would
-  //     report the Pages preview as failed.
+  //     `production-smoke.yml` therefore compares the WHOLE name with `==`, prefix included,
+  //     or a Pages build would fire the lane the Workers build owns.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sahajatlas",
 
