@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { join, sep } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
@@ -21,8 +21,14 @@ import { fileURLToPath } from 'node:url'
  * runs inside, and why `vitest related` is not the answer here.
  */
 
-/** Resolved against this module, so nothing here depends on the working directory. */
-export const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..')
+/**
+ * Resolved against this module, so nothing here depends on the working directory.
+ *
+ * ⚠ **Not `new URL('.', import.meta.url)`** (#302). A spec imports this module, and Vite
+ * rewrites that expression under the WEB transform it picks for a jsdom spec, so
+ * `fileURLToPath` would throw AT IMPORT. `eslint.config.js` bans the form here.
+ */
+export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
  * Where the unit lane's specs and their subjects both live. `tests/` holds only smoke specs,

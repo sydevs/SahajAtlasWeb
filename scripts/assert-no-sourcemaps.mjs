@@ -58,7 +58,7 @@
  * that path.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
@@ -67,7 +67,7 @@ import process from 'node:process'
 // the gate's result never depends on where someone runs it from. It
 // defaults to the app's `dist/`. `pnpm ladle:build` passes `../build`
 // instead.
-const OUT_DIR = fileURLToPath(new URL(process.argv[2] ?? '../dist', import.meta.url))
+const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), process.argv[2] ?? '../dist')
 
 // Only the file types a browser is actually served. This script matches
 // `.map` files by name, not by content. It scans every other listed
