@@ -395,6 +395,21 @@ lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `
 everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
 grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
 
+**A spec reading a file the walk cannot reach goes through `readRepoSource`
+(`src/test-support/repo-source.ts`), and a second lint rule holds that one too** (#302).
+`no-restricted-syntax` fails any spec, and anything in `test-support/`, that writes
+`new URL(…, import.meta.url)`: Vite rewrites that expression under the WEB transform, which
+vitest picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies before
+one assertion runs. It killed `source-tree.ts` that way. ⚠ **Bare `import.meta.url` is left
+alone and stays a `file:` URL** — measured — so the ban is on the one expression, not the
+property, and `src/styles/fonts.ts` keeps the same form as Vite's asset-URL idiom.
+
+`repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
+from, and `readSource` reads through it. It is a separate module because importing
+`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and the
+walkers run on EVERY edit — so a single-file reader that imported the walk would be paid for on
+all of them.
+
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
