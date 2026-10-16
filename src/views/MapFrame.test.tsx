@@ -1,8 +1,4 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -11,6 +7,7 @@ import { MapFrame } from './MapFrame'
 
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import { setThemeRoot } from '@/hooks/use-theme'
+import { readRepoSource } from '@/test-support/repo-source'
 
 /**
  * The frame a contained map embed lives in (issue #169).
@@ -219,12 +216,9 @@ describe('MapFrame, contained', () => {
  * `react-map-gl`, whose `exports-mapbox.js` fires `import('mapbox-gl')` at module scope, which
  * is precisely what the node lane must never pull in.
  */
-const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (relative: string) => readFileSync(join(SRC, relative), 'utf8')
-
 describe('the wiring', () => {
   it('is what FullInterface wraps the map and the drawer stack in', () => {
-    const source = read('views/FullInterface.tsx')
+    const source = readRepoSource('src/views/FullInterface.tsx')
 
     expect(source).toMatch(/<MapFrame contained=\{contained\}>/)
     // Inside it, not beside it — a frame whose siblings are the fixed layer contains nothing.
@@ -248,20 +242,22 @@ describe('the data-sy-frame contract', () => {
   const ATTRIBUTE = 'data-sy-frame'
 
   it('is emitted by both frames', () => {
-    expect(read('views/MapFrame.tsx')).toContain(`${ATTRIBUTE}=""`)
+    expect(readRepoSource('src/views/MapFrame.tsx')).toContain(`${ATTRIBUTE}=""`)
     // The compact card's expanded dialog is the other one. It also carries `data-sy-expanded`,
     // which is deliberately NARROWER — dialog-only, for the Mapbox control-column nudge.
-    expect(read('views/CompactEmbedView/CompactEmbedView.tsx')).toContain(`${ATTRIBUTE}=""`)
+    expect(readRepoSource('src/views/CompactEmbedView/CompactEmbedView.tsx')).toContain(
+      `${ATTRIBUTE}=""`,
+    )
   })
 
   it('is what the stylesheet keys the frame height off', () => {
-    const css = readFileSync(join(SRC, 'styles/globals.css'), 'utf8')
+    const css = readRepoSource('src/styles/globals.css')
 
     expect(css).toMatch(new RegExp(`\\[${ATTRIBUTE}\\]\\s*\\{[^}]*--sy-frame-h:\\s*100%`))
     // And the fallback it overrides, so a deleted token is not mistaken for a passing test.
     // It sits in host-reset.css since #246 — the token is declared on the scope root, with
     // the rest of the inherited baseline, and that sheet has to load before Tailwind's.
-    const reset = readFileSync(join(SRC, 'styles/host-reset.css'), 'utf8')
+    const reset = readRepoSource('src/styles/host-reset.css')
 
     expect(reset).toMatch(/--sy-frame-h:\s*100dvh/)
   })

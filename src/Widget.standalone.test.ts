@@ -40,6 +40,15 @@ import {
  * Everything that BEHAVES is on the other side of this line.
  */
 
+// `readRepoSource` returns text, and `importGraph` needs a real directory: it resolves every
+// specifier on disk with `existsSync` / `statSync` below, which takes absolute paths (#289).
+// Naming `repo-source` for its `REPO_ROOT` instead would put this spec in that module's own
+// per-edit selection, which is already 15 of a ceiling of 16.
+//
+// ⚠ The disable is rule-wide, so #302's `new URL` ban is off on this line too. That ban guards
+// an at-import crash under the WEB transform, and this spec is node-only, so there is nothing
+// here for it to catch. Give this file a jsdom docblock and the exemption has to narrow.
+// eslint-disable-next-line no-restricted-syntax
 const SRC = dirname(fileURLToPath(import.meta.url))
 
 /** Every specifier a module imports: `from '…'`, a bare side-effect import, and `import('…')`. */

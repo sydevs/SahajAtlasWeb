@@ -455,25 +455,49 @@ lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `
 everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
 grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
 
-**A spec reading a file the walk cannot reach goes through `readRepoSource`
-(`src/test-support/repo-source.ts`), and a second lint rule holds that one too** (#302).
-`no-restricted-syntax` fails any spec, anything in `test-support/`, and any `scripts/**/*.mjs`,
-that writes `new URL(…, import.meta.url)`: Vite rewrites that expression under the WEB transform,
-which vitest picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies
-before one assertion runs. It killed `source-tree.ts` that way. ⚠ **Bare `import.meta.url` is
-left alone and stays a `file:` URL** — measured — so the ban is on the one expression, not the
-property, and `src/styles/fonts.ts` and `.ladle/` keep the same form as Vite's asset-URL idiom.
+**A spec reading one file or two goes through `readRepoSource`
+(`src/test-support/repo-source.ts`), whatever directory it sits in, and two lint rules hold that
+one** (#302, #289). Reaching a path the walk could serve is no reason to hand-roll a root: the
+walk is what marks a walker, and that is a per-edit cost, not a question of where the file lives.
 
-**The rule reaches `scripts/**/*.mjs` because five of them are imported by a spec**, which puts
-them in the same module graph as `source-tree.ts` was — the module the defect actually killed was
-no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
+`no-restricted-syntax` carries both bans. The first fails any spec, anything in `test-support/`,
+and any `scripts/**/*.mjs`, that writes `new URL(…, import.meta.url)`: Vite rewrites that
+expression under the WEB transform, which vitest picks for every jsdom spec, so `fileURLToPath`
+throws AT IMPORT and the file dies before one assertion runs. It killed `source-tree.ts` that way.
+⚠ **Bare `import.meta.url` is left alone and stays a `file:` URL** — measured — so the ban is on
+the one expression, not the property, and `src/styles/fonts.ts` and `.ladle/` keep the same form
+as Vite's asset-URL idiom.
+
+**The first rule reaches `scripts/**/*.mjs` because five of them are imported by a spec**, which
+puts them in the same module graph as `source-tree.ts` was — the module the defect actually killed
+was no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
 `dirname(fileURLToPath(import.meta.url))` and the lint message says so.
+
+**The second fails a spec that writes `fileURLToPath(import.meta.url)` at all** (#289), the safe
+form the first leaves alone, because a hand-rolled root duplicates the reader and is what the next
+author copies. The two rules own disjoint scopes — specs, and `test-support/` plus
+`scripts/**/*.mjs` — and share one selector constant, because ⚠ **flat config replaces a rule's
+options rather than merging them**, so a second block matching a spec would silently drop the
+first ban for every one of them.
+
+It bans the shape, not `import.meta.url` itself: `src/lib/shadow-patches.test.ts` resolves into
+`node_modules` with `createRequire(import.meta.url)`, which no repo-relative reader can serve.
+**`src/Widget.standalone.test.ts` is the one spec left deriving a root**, under a disable —
+`importGraph` resolves specifiers on disk, so it needs a directory rather than text, and naming
+`repo-source` for `REPO_ROOT` would add it to that module's own per-edit selection, which has one
+slot left.
+
+**Neither rule reaches a cwd-relative `readFileSync('src/App.tsx', 'utf8')`**, the third shape
+`brand.test.ts` carried until #289 — it works only while vitest runs from the repo root, and
+nothing but review catches it.
 
 `repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
 from, and `readSource` reads through it. It is a separate module because importing
-`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and since
-#293 a walker is excluded from the per-edit selection — so a single-file reader that imported the
-walk would take every spec using it off the inner loop.
+`source-tree.ts` walks `src/` at module scope, so importing it costs a recursive `readdirSync` of
+the whole tree on every run of every spec that does — which a spec reading one file would pay for
+nothing. ⚠ **The walker mark itself costs no selection**: since #293 `selectFrom` no longer adds
+the walkers to every edit, but it still selects one that names the edited module, so a walker runs
+per edit like any other spec. `lane.walkers` is a register, read only by the closed-list pin.
 
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
@@ -498,8 +522,13 @@ faster lane from it, and do not "fix" the memos to chase one. The lane's cost is
 
 That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-16
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
-`src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **5.5s** for
-`src/lib/shape/index.ts` (14 specs, the widest). The slowest edit sits at about half the bound.
+`src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **4.5s** for
+`src/test-support/repo-source.ts` (15 specs, the widest — #289 moved it there). The slowest edit
+sits at about half the bound.
+⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
+nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
+per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
+buys selection, and selection is what the budget is spent on.
 Re-measure by timing the hook itself, since the command it builds is the thing under budget:
 
 ```bash
@@ -541,7 +570,7 @@ saving.
 ⚠ **What that gives up is per-edit immediacy, and it applies to every edit, not to a subset.** No
 edit runs an inventory now, so an unregistered viewport read, JSX anchor, Radix popper, SahajCloud
 read or `t()` key draws no immediate signal wherever it is added — `src/config/translations.test.ts`
-is selected for 7 of 420 lane sources, by reference alone. 117 of those 420 select nothing at all
+is selected for 7 of 420 lane sources, by reference alone. 116 of those 420 select nothing at all
 and spawn no vitest. The inventory that refuses the change still goes red in the lean gate
 (`.claude/skills/pr-prep/check.sh`) and in CI, so the break surfaces in the same session: the lane
 covers it, the inner loop no longer does.
@@ -553,9 +582,9 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 14 against a
+that**: the widest edit in the tree, exhaustively through the real composition, at 15 against a
 ceiling of 16. ⚠ The widest is no longer the slowest — `i18n.ts`
-selects 12, four of them jsdom, and takes 6.6s against the widest's 5.5s and three — so width
+selects 12, four of them jsdom, and takes 6.6s against the widest's 4.5s and three — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
 and its absence from the selection, where the fixture carries a walker of each kind, so a re-added
