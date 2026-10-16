@@ -16,14 +16,21 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import ts from 'typescript'
 
 /** The app Worker's config. `wrangler.design.jsonc` is the Ladle playground's. */
 export const APP_CONFIG = 'wrangler.jsonc'
 
-/** The repo root, for a caller resolving a sibling of the files below. */
-export const ROOT = new URL('../', import.meta.url)
+/**
+ * The repo root. ⚠ Never `new URL(<path>, import.meta.url)` (#302) — a spec imports this module,
+ * and Vite rewrites that expression under the transform vitest picks for a jsdom spec, so
+ * `fileURLToPath` throws AT IMPORT. A `.mjs` cannot import `src/test-support/repo-source.ts`,
+ * which owns the root everywhere else, so it resolves its own in the form that survives both.
+ */
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
  * @typedef {object} WranglerConfig
@@ -42,7 +49,7 @@ export const ROOT = new URL('../', import.meta.url)
  * @returns {WranglerConfig}
  */
 export function readWranglerConfig(file) {
-  const text = readFileSync(new URL(file, ROOT), 'utf8')
+  const text = readFileSync(join(ROOT, file), 'utf8')
   const { config, error } = ts.parseConfigFileTextToJson(file, text)
 
   if (error) throw new Error(`${file}: ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}`)
@@ -58,7 +65,7 @@ export function readWranglerConfig(file) {
 
 /** @returns {PackageJson} */
 export function readPackage() {
-  return /** @type {PackageJson} */ (JSON.parse(readFileSync(new URL('package.json', ROOT), 'utf8')))
+  return /** @type {PackageJson} */ (JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')))
 }
 
 /**

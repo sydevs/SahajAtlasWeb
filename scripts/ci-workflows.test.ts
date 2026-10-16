@@ -1,16 +1,15 @@
-import { readFileSync } from 'node:fs'
-
-import { describe, expect, it } from 'vitest'
-
-import { APP_CONFIG, appWorkerName, readPackage } from './_wrangler-config.mjs'
-
 // These workflows name things that live elsewhere, inside expressions no local run can
 // evaluate: the domain the production lane reads, the Worker whose build fires it, and the
 // wrangler the preview publish uploads with. Nothing couples any of those spellings to its
 // source, and every one of the failures is silent — the lane would read a host nobody embeds
 // from, or wait on a check run nobody posts again. Silence is the thing issue #244 exists to
 // end.
-const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+
+import { describe, expect, it } from 'vitest'
+
+import { readRepoSource } from '../src/test-support/repo-source'
+
+import { APP_CONFIG, appWorkerName, readPackage } from './_wrangler-config.mjs'
 
 /** A missing match must fail, not pass vacuously on `undefined`. */
 const match = (text: string, re: RegExp) => {
@@ -22,14 +21,16 @@ const match = (text: string, re: RegExp) => {
 }
 
 describe('production-smoke.yml', () => {
-  const lane = read('.github/workflows/production-smoke.yml')
+  const lane = readRepoSource('.github/workflows/production-smoke.yml')
   const target = match(lane, /^\s*PREVIEW_URL: (\S+)$/m)
 
   // `docs/embedding.md` is the host-facing contract, so its table decides
   // which host "production" means. Reading the other one is how #148
   // stayed invisible: the two serve one build and two sets of headers.
   it('reads the host the embedding guide calls the production domain', () => {
-    expect(target).toBe(match(read('docs/embedding.md'), /`(\S+)`\s*\|\s*the production domain/))
+    expect(target).toBe(
+      match(readRepoSource('docs/embedding.md'), /`(\S+)`\s*\|\s*the production domain/),
+    )
   })
 
   // The trigger is the app's own Cloudflare build, never the `-design` playground's, which
@@ -71,7 +72,7 @@ describe('production-smoke.yml', () => {
 // outside it. Each fails silently: a drifted wrangler, an unpinned action, a stale address, or
 // the one input that would write the PRODUCTION Worker's secrets.
 describe('ci.yml', () => {
-  const ci = read('.github/workflows/ci.yml')
+  const ci = readRepoSource('.github/workflows/ci.yml')
 
   // ⚠ Sliced, not searched per assertion — and the marker is asserted first. `indexOf` returns
   // -1 for a renamed job, and `slice(-1)` would leave one character, against which every
@@ -189,7 +190,7 @@ describe('ci.yml', () => {
   it('checks the published address against the app Worker', () => {
     expect(smoke).toContain('node scripts/assert-preview-host.mjs')
 
-    const guard = read('scripts/assert-preview-host.mjs')
+    const guard = readRepoSource('scripts/assert-preview-host.mjs')
 
     // The name comes off the config, never typed in: a rename has to break the guard rather
     // than leave it anchored on a Worker that no longer exists.

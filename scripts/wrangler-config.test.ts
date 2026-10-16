@@ -2,7 +2,9 @@ import { readdirSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import { APP_CONFIG, ROOT, readPackage, readWranglerConfig } from './_wrangler-config.mjs'
+import { REPO_ROOT } from '../src/test-support/repo-source'
+
+import { APP_CONFIG, readPackage, readWranglerConfig } from './_wrangler-config.mjs'
 
 // `pnpm check:wrangler` is the only thing that DEPLOYS from a wrangler config — Workers Builds
 // holds the dashboard's copy of each path (#279, #280). So the gate's own argument list has no
@@ -18,7 +20,7 @@ import { APP_CONFIG, ROOT, readPackage, readWranglerConfig } from './_wrangler-c
  * own accepted set, not ours: matching `.jsonc` alone would make a `wrangler.embed.toml`
  * invisible here, and "no target arrives ungated" would pass by vacuum.
  */
-const CONFIG_FILES = readdirSync(ROOT).filter((name) =>
+const CONFIG_FILES = readdirSync(REPO_ROOT).filter((name) =>
   /^wrangler(\..+)?\.(jsonc?|toml)$/.test(name),
 )
 

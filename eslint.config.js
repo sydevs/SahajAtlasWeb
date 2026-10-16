@@ -142,4 +142,27 @@ export default [
       ],
     },
   },
+  {
+    // Vite rewrites `new URL(<path>, import.meta.url)` under the WEB transform, which vitest
+    // picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies before
+    // one assertion. `src/test-support/repo-source.ts` owns the root instead (#302).
+    //
+    // Specs plus `test-support/`, because `source-tree.ts` is what the defect actually killed
+    // and it is no spec. `scripts/**/*.mjs` for the same reason one directory over: five of them
+    // are imported by a spec, so they are in the lane's module graph too. Shipped code and the
+    // build configs are out: `src/styles/fonts.ts` and `.ladle/` write the same form as the Vite
+    // asset-URL idiom, which is what the form is for.
+    files: ['**/*.{test,spec}.{ts,tsx}', 'src/test-support/**/*.ts', 'scripts/**/*.mjs'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"]',
+          message:
+            'Read a repo file with readRepoSource (src/test-support/repo-source.ts), or, in a .mjs that cannot import it, dirname(fileURLToPath(import.meta.url)) (#302).',
+        },
+      ],
+    },
+  },
 ]

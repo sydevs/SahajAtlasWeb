@@ -113,7 +113,8 @@ typecheck, `test:run`, build, `pnpm size`, `ladle:build`, and `pnpm check:wrangl
 Dependency Review job.
 Smoke runs separately, and the same specs read production on each deploy
 (`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
-A PostToolUse hook runs the unit lane on `src/**` edits.
+A PostToolUse hook runs the specs one `src/**` or `scripts/**` edit can break, under the per-edit
+budget in `docs/testing.md`.
 
 Four CI gates exist because each one once missed something, unnoticed (#99). Each is
 built so passing proves something real:
@@ -196,7 +197,9 @@ src/
   test-support/       # Imported by specs only, and one spec asserts that. source-tree.ts = the
                       # ONE walk of `src/` behind every spec that inventories the source, plus
                       # its memoised reads and the comment strip; source-ast.ts = the memoised
-                      # `ts.SourceFile`. Each spec states its own scope (#286)
+                      # `ts.SourceFile`; repo-source.ts = the ONE root a spec reads a repo file
+                      # through, for a file the walk cannot reach (#302). Each spec states its
+                      # own scope (#286)
   types/              # zod schemas + inferred types per entity
                       # config/translations.en.json = the committed English snapshot of
                       # SahajCloud's `sy-atlas-translations`, written by

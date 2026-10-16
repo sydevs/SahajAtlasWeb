@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
 import { describe, it, expect } from 'vitest'
 
 import snapshot from './translations.en.json'
@@ -8,6 +5,7 @@ import { TRANSLATION_SELECT } from './api/fetch'
 
 import { REGISTRATION_QUESTION_NAMES, WIDGET_TRANSLATION_TABS } from '@/types'
 import { SORT_ORDERS, TIME_PERIODS } from '@/lib/shape'
+import { readRepoSource } from '@/test-support/repo-source'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
 
 /**
@@ -166,10 +164,7 @@ describe('the tab list the widget reads', () => {
     // without ever being requested at runtime.
     expect(Object.keys(TRANSLATION_SELECT).sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())
 
-    const script = readFileSync(
-      fileURLToPath(new URL('../../scripts/sync-translations.mjs', import.meta.url)),
-      'utf8',
-    )
+    const script = readRepoSource('scripts/sync-translations.mjs')
     const tabs = arrayLiterals(script, 'const WIDGET_TABS[^=]*=')
 
     expect(tabs.sort()).toEqual([...WIDGET_TRANSLATION_TABS].sort())

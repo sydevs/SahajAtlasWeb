@@ -35,9 +35,10 @@ export default defineConfig({
     //
     // No spec here waits on a network call or a timer, so this timeout
     // never catches a hang. It only caps how slow a genuinely slow spec
-    // may run while the pool is busy. Keep the lane fast
-    // (`docs/testing.md` wants under 5 seconds total) by not adding slow
-    // specs. This ceiling exists so a slow spec fails for a real reason.
+    // may run while the pool is busy. Keep the lane fast by not adding
+    // slow specs — `docs/testing.md` budgets what one edit pays, and a
+    // spec the whole tree is related to is paid on every one of them.
+    // This ceiling exists so a slow spec fails for a real reason.
     testTimeout: 20_000,
   },
 })

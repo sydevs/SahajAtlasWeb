@@ -46,7 +46,7 @@
  * enforce it.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
@@ -68,7 +68,7 @@ const INJECTION_MARKER = 'data-vite-dev-id'
 // This path resolves against this module, not the current working
 // directory, matching the other scripts here. This way, the gate's result
 // never depends on where someone runs it from.
-const DIST = fileURLToPath(new URL('../dist', import.meta.url))
+const DIST = join(dirname(fileURLToPath(import.meta.url)), '../dist')
 
 // Origins the widget must never request a font from. Self-hosting the
 // font removed both origins. A re-added `@import` would silently bring

@@ -322,10 +322,10 @@ stays `node` regardless.
 
 A spec opts in per file with a `// @vitest-environment jsdom` docblock on line 1, keeping the fast
 path fast. ⚠ **Re-measure before quoting either half of this trade — nothing checks these two
-numbers.** Measured 2026-10-11 on 4 cores: 113 node-only files take **~16s**, and the 25 jsdom
-files add **~12s** on top, for **~28s** over 1698 tests. The per-file opt-in is what keeps the
-first number from becoming the second, and the hook note at the end of this file carries what the
-total costs per edit.
+numbers.** Measured 2026-10-13 on 4 cores: the 115 node-only files take **~20s**, and the 25 jsdom
+files add **~15s** on top, over 1714 tests. The per-file opt-in is what keeps the first number from
+becoming the second. **Neither half is the per-edit cost** — the hook runs a slice, against the
+budget at the end of this file.
 
 **Reach for jsdom only when the behaviour is a re-render SSR markup cannot express, an agreement
 with a router or DOM API a pure test can only assume, or a library whose whole job IS the DOM.**
@@ -455,6 +455,26 @@ lint`**: `no-restricted-imports` in `eslint.config.js` bans `readdirSync` from `
 everywhere under `src/` but `test-support/`, so regrowth is caught at the import instead of by a
 grep nobody runs. `importNames` is what leaves a spec's single-file `readFileSync` alone.
 
+**A spec reading a file the walk cannot reach goes through `readRepoSource`
+(`src/test-support/repo-source.ts`), and a second lint rule holds that one too** (#302).
+`no-restricted-syntax` fails any spec, anything in `test-support/`, and any `scripts/**/*.mjs`,
+that writes `new URL(…, import.meta.url)`: Vite rewrites that expression under the WEB transform,
+which vitest picks for every jsdom spec, so `fileURLToPath` throws AT IMPORT and the file dies
+before one assertion runs. It killed `source-tree.ts` that way. ⚠ **Bare `import.meta.url` is
+left alone and stays a `file:` URL** — measured — so the ban is on the one expression, not the
+property, and `src/styles/fonts.ts` and `.ladle/` keep the same form as Vite's asset-URL idiom.
+
+**The rule reaches `scripts/**/*.mjs` because five of them are imported by a spec**, which puts
+them in the same module graph as `source-tree.ts` was — the module the defect actually killed was
+no spec either. A `.mjs` cannot import the `.ts` reader, so its root is
+`dirname(fileURLToPath(import.meta.url))` and the lint message says so.
+
+`repo-source.ts` is the lower-level of the two: it owns the root `source-tree.ts` derives `src/`
+from, and `readSource` reads through it. It is a separate module because importing
+`source-tree.ts` is what marks a spec a tree-walker (`scripts/select-unit-specs.mjs`), and the
+walkers run on EVERY edit — so a single-file reader that imported the walk would be paid for on
+all of them.
+
 ⚠ **The scopes did not merge, and must not** — the nine cover seven different file sets, and
 `source-tree.ts`'s own docblock owns that rule. Each spec passes its own `sourceFiles({…})`
 options beside the assertions they serve, and `source-tree.test.ts` pins every option as biting
@@ -470,8 +490,64 @@ faster lane from it, and do not "fix" the memos to chase one. The lane's cost is
 - Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks
   them. `tests/**` and `scripts/**` are checked by `tsconfig.test.json` — the second half of
   `pnpm typecheck`.
-- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs `pnpm test:run` after editing a
-  `src/**/*.{ts,tsx}` file, and reports failures as non-blocking context. So the whole lane is
-  the cost of every such edit — keep a new spec's own share of it near zero. The "under ~5s" this
-  note asked for has not held since the jsdom specs arrived, and **#285 owns the total**, so the
-  budget lives on one ticket rather than as a figure restated here that nothing checks.
+- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a source file in either
+  directory the lane collects from — `src/**/*.{ts,tsx}` or `scripts/**/*.{mjs,ts}` — and reports
+  failures as non-blocking context.
+
+### The per-edit budget is 12 seconds on 4 cores (issue #285)
+
+That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-13
+on 4 cores, median of three: **4.3s** for `src/lib/geo.ts` (11 specs), **9.7s** for
+`src/config/i18n.ts` (22 specs, the widest selection in the tree), and **4.5s** for a file with no
+spec of its own. Re-measure by timing the hook itself, since the command it builds is the thing
+under budget:
+
+```bash
+echo "{\"tool_input\":{\"file_path\":\"$PWD/src/config/i18n.ts\"}}" > /tmp/edit.json
+time CLAUDE_PROJECT_DIR=$PWD node .claude/hooks/unit-test.mjs < /tmp/edit.json
+```
+
+**The hook ran the whole lane until #285, and that is how "under ~5s" stopped being true without
+anything failing.** It reports non-blocking context, so a slower lane breaks no gate and shows up
+only as latency on every edit — which is why the bound is a stated number rather than a feeling.
+
+`scripts/select-unit-specs.mjs` picks what one edit can break, from three sources that each reach
+a coupling the others cannot:
+
+- **Co-located** — the stem's own siblings, so `Foo.tsx` reaches `Foo.test.tsx` and
+  `Foo.mount.test.tsx` but not every spec in their folder. This is what covers `scripts/`, whose
+  six specs the lane indexes and whose own edits cost ~3.6s.
+- **Referencing** — a spec that names the module. It **resolves** every quoted specifier in every
+  spec rather than matching the module's name, because one module is addressed three ways and a
+  spec picks whichever its own directory makes natural: `@/config/api/client`, `./client`, or the
+  quoted repo-relative path `src/App.tsx` that `src/lib/brand.test.ts`'s `COPY_FILES` holds. A
+  name match misses two of the three — `fetch.test.ts` is the only spec for `client.ts` and
+  reaches it as `'./client'`, and `Chip.test.tsx` imports its own folder as `'.'`.
+- **Tree-walking** — the twelve specs that enumerate the source tree instead of importing from it:
+  the nine `src/` inventories and `source-tree.test.ts`, found because they import the shared walk
+  (#286), plus two `scripts/` specs found by an enumerating call (`readdirSync(` and its kin).
+  Nothing in them references the file that breaks them, so neither source above can find one and
+  they always run. `wrangler-config.test.ts` only lists the repo root, so it is over-included —
+  deliberately, since the detector errs toward running a spec, and it costs nothing measurable.
+
+**That third source is ~4.5s of every edit, and 133 of 412 source files select nothing else.** The
+floor, not the selection, is what the budget mostly buys — so the lever left here is moving those
+repo-wide inventories into their own vitest project and running the hook against the unit one.
+The hook would still need the other two sources, so this narrows the floor rather than replacing
+the selector. #293 owns that change, and the figures above are what it is measured against.
+
+⚠ **The selection does not reach a spec coupled through a second module**: editing `geo.ts` runs
+`geo.test.ts`, never `camera.test.ts`. `vitest related` does reach that one, and measured **26s**
+for `src/lib/geo.ts` alone — 67 of the 140 files — because the module graph here is too connected
+to select from. The full lane still runs in the lean gate (`.claude/skills/pr-prep/check.sh`) and
+in CI, so this narrows the inner loop, not the gate.
+
+**What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
+that**: the widest edit in the tree, exhaustively through the real composition, at 24 against a
+ceiling of 26 (22 when the times above were taken; #286's two added walkers measured no wall-time
+difference); each of the three specifier forms, end to end against this tree; the tree-walking set
+as a closed list; and `vitest.config.ts`'s own `include`, so a spec in a new location fails here
+rather than quietly going uncovered per edit. ⚠ A walker is found by importing
+`src/test-support/source-tree.ts` or by an enumerating call, so one that reaches the tree through
+some *other* helper is still invisible to that pin. The three times above are unchecked, like
+every other measurement in this file.
