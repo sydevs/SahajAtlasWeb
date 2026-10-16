@@ -20,7 +20,7 @@ import {
 // `.claude/hooks/unit-test.mjs` pays this selection on every `src/**` edit, and `docs/testing.md`
 // states the budget it has to fit. Nothing times the hook, so what is pinned here is the property
 // the budget rests on: the selection stays a bounded slice of the lane, and the tree-walking specs
-// — the whole per-edit floor until #293 — stay out of it while staying a closed list.
+// stay out of it while staying a closed list (#293).
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 
 const SPEC_NAME = /\.(test|spec)\.(ts|tsx)$/
@@ -237,10 +237,10 @@ describe('this repository', () => {
       .map((source) => ({ source, count: selectFrom(source, lane).length }))
       .reduce((a, b) => (b.count > a.count ? b : a))
 
-    // 14 since #293 dropped the twelve walkers, on `src/lib/shape/index.ts`, down from 24 on
-    // `src/config/i18n.ts`. ⚠ The widest is no longer the slowest: `i18n.ts` selects 12, four of
-    // them jsdom, and measures 6.6s against the widest selection's 5.5s and three. This pins
-    // width, and `docs/testing.md` carries the times, so a jump here is a re-measure of both.
+    // 14, on `src/lib/shape/index.ts` (#293). ⚠ The widest is no longer the slowest: `i18n.ts`
+    // selects 12, four of them jsdom, and measures 6.6s against the widest selection's 5.5s and
+    // three. This pins width, and `docs/testing.md` carries the times, so a jump here is a
+    // re-measure of both.
     expect(worst.count, `widest selection: ${worst.source}`).toBeLessThanOrEqual(16)
   })
 })

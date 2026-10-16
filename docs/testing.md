@@ -419,10 +419,8 @@ faster lane from it, and do not "fix" the memos to chase one. The lane's cost is
 That is the hook's whole command, wall clock, not the lane, which takes ~36s. Measured 2026-10-16
 on 4 cores, median of three: **0.12s** for a lane source with no spec of its own, **6.6s** for
 `src/config/i18n.ts` (12 specs, the slowest edit in the tree), and **5.5s** for
-`src/lib/shape/index.ts` (14 specs, the widest). The bound keeps its headroom: #293 took those
-three from 3.8s, 9.0s and 7.2s by dropping the tree-walking specs from the selection, so the
-slowest edit now sits at about half of it. Re-measure by timing the hook itself, since the command
-it builds is the thing under budget:
+`src/lib/shape/index.ts` (14 specs, the widest). The slowest edit sits at about half the bound.
+Re-measure by timing the hook itself, since the command it builds is the thing under budget:
 
 ```bash
 echo "{\"tool_input\":{\"file_path\":\"$PWD/src/config/i18n.ts\"}}" > /tmp/edit.json
@@ -451,8 +449,8 @@ coupling the other cannot:
 specs enumerate the source tree instead of importing from it — the nine `src/` inventories and
 `source-tree.test.ts`, found because they import the shared walk (#286), plus two `scripts/` specs
 found by an enumerating call (`readdirSync(` and its kin). Nothing in them references the file that
-breaks them, so no reference can select one, and all twelve ran on every edit: 3.8s of an edit with
-no spec of its own, which 117 of 417 lane sources are. `readLane` still reports the set, because
+breaks them, so no reference can select one, and all twelve ran on every edit. `readLane` still
+reports the set, because
 `select-unit-specs.test.ts` pins it as a closed list. `selectFrom` no longer takes it, and the hook
 needed no edit to stop running it — it exits before spawning vitest on an empty selection
 (`.claude/hooks/unit-test.mjs:32`), which is also what keeps this change out of `.claude/`, a
@@ -476,7 +474,7 @@ in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
 that**: the widest edit in the tree, exhaustively through the real composition, at 14 against a
-ceiling of 16 (24 against 26 before #293). ⚠ The widest is no longer the slowest — `i18n.ts`
+ceiling of 16. ⚠ The widest is no longer the slowest — `i18n.ts`
 selects 12, four of them jsdom, and takes 6.6s against the widest's 5.5s and three — so width
 bounds the slice, never the time, and a jump in either is a re-measure of both. It also pins each
 of the three specifier forms, end to end against this tree; the tree-walking set as a closed list,
