@@ -225,7 +225,16 @@ jobs:
       # For `versions upload` the action exposes only the version's own URL, as `deployment-url`.
       # The alias's URL exists only in wrangler's stdout, so it is read from there, and the guard
       # refuses it like any other address — an empty read fails the step.
-
+      #
+      # Both halves of that are read off the two pins, not off a README. At
+      # wrangler-action@953926a2, `action.yml` declares `command-output` ("comes from stdout"),
+      # and `handleVersionsUploadOutputEntry` sets `deployment-url` to the output file's
+      # `preview_url` and reads no other field. At wrangler 4.150.0, `versionsUpload` writes
+      # that `preview_url` as `versionPreviewUrl` — `https://<first 8 of the version id>…` —
+      # and puts the alias in `preview_alias_url`, which the action never reads, logging it as
+      # the `Version Preview Alias URL:` line parsed below. So the two addresses cannot swap,
+      # and `ci-workflows.test.ts` pins the action SHA and `wranglerVersion` that make this
+      # reading hold.
       - name: Refuse an address that is not the app Worker's
         id: guard
         if: steps.plan.outputs.reason == 'publish'
