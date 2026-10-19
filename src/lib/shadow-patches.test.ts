@@ -12,7 +12,28 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { deepActiveElement } from './active-element'
 
-const require_ = createRequire(import.meta.url)
+/**
+ * ⚠ Resolving focus-scope from HERE finds our own direct devDependency, which the patch
+ * key names — and that is not where the defect lives. Every Radix primitive declares its
+ * own `^` range on focus-scope, so a bump resolves a second copy under the primitive
+ * while ours stays patched in place (#308 measured exactly that). So each chain below
+ * starts at a primitive we mount and asks what IT loads. dropdown-menu reaches focus-scope
+ * through `react-menu`, so its chain has two hops.
+ */
+const FOCUS_SCOPE_CONSUMERS = [
+  { mounter: 'our own devDependency', chain: ['@radix-ui/react-focus-scope'] },
+  { mounter: 'dialog', chain: ['@radix-ui/react-dialog', '@radix-ui/react-focus-scope'] },
+  { mounter: 'popover', chain: ['@radix-ui/react-popover', '@radix-ui/react-focus-scope'] },
+  { mounter: 'select', chain: ['@radix-ui/react-select', '@radix-ui/react-focus-scope'] },
+  {
+    mounter: 'dropdown-menu',
+    chain: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-menu', '@radix-ui/react-focus-scope'],
+  },
+] as const
+
+function resolveThrough(chain: readonly string[]) {
+  return chain.reduce((from, specifier) => createRequire(from).resolve(specifier), import.meta.url)
+}
 
 /**
  * The two dependency patches the shadow boundary forces (#236).
@@ -140,8 +161,8 @@ describe('FocusScope through a shadow boundary', () => {
    * none, so what stands in for it is drift detection plus the attended browser pass that
    * `docs/embedding.md` already owes.
    */
-  it('keeps both hunks in the installed bundles', () => {
-    const dist = dirname(require_.resolve('@radix-ui/react-focus-scope'))
+  it.each(FOCUS_SCOPE_CONSUMERS)('keeps both hunks in the copy $mounter resolves', ({ chain }) => {
+    const dist = dirname(resolveThrough(chain))
 
     for (const file of ['index.js', 'index.mjs']) {
       const src = readFileSync(join(dist, file), 'utf8')
