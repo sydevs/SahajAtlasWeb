@@ -14,6 +14,24 @@ import { deepActiveElement } from './active-element'
 
 const require_ = createRequire(import.meta.url)
 
+const FOCUS_SCOPE = '@radix-ui/react-focus-scope'
+
+const PATCH_HUNKS: [string, string][] = [
+  ['focusin reads the composed path', 'const target = getEventTarget(event);'],
+  ['focusout exempts the shadow host', 'if (relatedTarget === getShadowHost(container)) return;'],
+  ['activeElement resolves through the boundary', 'function getActiveElement()'],
+]
+
+function expectPatched(dist: string, label: string) {
+  for (const file of ['index.js', 'index.mjs']) {
+    const src = readFileSync(join(dist, file), 'utf8')
+
+    for (const [what, hunk] of PATCH_HUNKS) {
+      expect(src, `${label} ${file}: ${what}`).toContain(hunk)
+    }
+  }
+}
+
 /**
  * The two dependency patches the shadow boundary forces (#236).
  *
@@ -141,20 +159,44 @@ describe('FocusScope through a shadow boundary', () => {
    * `docs/embedding.md` already owes.
    */
   it('keeps both hunks in the installed bundles', () => {
-    const dist = dirname(require_.resolve('@radix-ui/react-focus-scope'))
+    expectPatched(dirname(require_.resolve(FOCUS_SCOPE)), 'direct')
+  })
 
-    for (const file of ['index.js', 'index.mjs']) {
-      const src = readFileSync(join(dist, file), 'utf8')
-
-      expect(src, `${file}: focusin reads the composed path`).toContain(
-        'const target = getEventTarget(event);',
-      )
-      expect(src, `${file}: focusout exempts the shadow host`).toContain(
-        'if (relatedTarget === getShadowHost(container)) return;',
-      )
-      expect(src, `${file}: activeElement resolves through the boundary`).toContain(
-        'function getActiveElement()',
-      )
+  /**
+   * ⚠ The assertion above answers for OUR copy, which is pinned and so always passes. The
+   * copy that matters is the one each Radix primitive resolves, and they are not the same
+   * question: every `@radix-ui/react-*` package declares its own caret range on
+   * focus-scope, so bumping one resolves a SECOND, unpatched copy beneath it while ours
+   * stays in the tree as a direct devDependency. The patch then applies to a module
+   * nothing renders. Nothing fails — the patch is still "installed" — and every defect
+   * this file documents comes back.
+   *
+   * Measured, not feared: `pnpm update` on dialog, popover and select put all three on an
+   * unpatched 1.3.1 while the assertion above stayed green.
+   *
+   * So resolve from each primitive's own entry, and require ONE copy. The consumer list
+   * comes from `package.json` rather than this file, because a list written here would go
+   * stale the day a primitive is added — which is the shape of the hole being closed.
+   */
+  it('resolves ONE patched copy from every Radix primitive, not just from our own pin', () => {
+    const { dependencies } = require_('../../package.json') as {
+      dependencies: Record<string, string>
     }
+    const primitives = Object.keys(dependencies).filter((name) =>
+      name.startsWith('@radix-ui/react-'),
+    )
+
+    expect(primitives.length, 'no Radix primitive found to resolve from').toBeGreaterThan(0)
+
+    const copies = new Set<string>()
+
+    for (const name of primitives) {
+      const dist = dirname(createRequire(require_.resolve(name)).resolve(FOCUS_SCOPE))
+
+      copies.add(dist)
+      expectPatched(dist, name)
+    }
+
+    expect([...copies], 'a primitive renders an unpatched FocusScope').toHaveLength(1)
   })
 })
