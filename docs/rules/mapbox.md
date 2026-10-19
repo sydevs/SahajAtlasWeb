@@ -301,7 +301,7 @@ The embed renders in a shadow root, so a *document*-level DOM lookup made from i
 answers about the host's document instead. Each line below was read off the installed
 version, because the folklore on this is older than the code.
 
-- **mapbox-gl 3.32.0 needs no accommodation.** It calls `elementFromPoint` nowhere, and
+- **mapbox-gl 3.33.0 needs no accommodation.** It calls `elementFromPoint` nowhere, and
   reads neither `document.body` nor `ownerDocument`. Pointer position is
   `getBoundingClientRect` against a stored element reference (`mousePos`), and the
   window-level drag listeners pass the event to it rather than reading `e.target`, so
