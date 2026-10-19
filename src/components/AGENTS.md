@@ -413,13 +413,26 @@ ref-based in dialog, dropdown and popover, so focus return works.
 is shadow-correct in exactly the two ways the patch is — the target comes from
 `composedPath()[0]`, and `activeElement` resolves recursively through each root — but it
 cannot be reached from here: `@radix-ui/react-dialog` hard-codes `trapFocus:
-context.open` on its `FocusScope` with no prop to decline it, and dialog, popover and
-select all mount that one component. So the choice is three patched reads covering three
-primitives, or replacing all three. `focus-lock@1.3.6` holds `deepActiveElement`
-verbatim and does not export it — only a path inside its `dist/`. `aria-hidden@1.2.6`
-and `@radix-ui/react-focus-scope@1.1.16` are both the newest published, so neither patch
-waits on an upstream release. `shadow-dom-utils` scopes itself to tests in its own
-README. Six expressions in non-test `src/` touch the boundary at all.
+context.open` on its `FocusScope` with no prop to decline it, and dialog, popover,
+dropdown-menu and select all mount that one component. So the choice is three patched
+reads covering all four primitives, or replacing all four. `focus-lock@1.3.6` holds
+`deepActiveElement` verbatim and does not export it — only a path inside its `dist/`.
+`aria-hidden@1.2.6` is still the newest published, so that patch waits on no upstream
+release.
+⚠ **`@radix-ui/react-focus-scope` is not — 1.3.1 is out, and this is now a BLOCK on the
+Radix family rather than a wait.** The patch is keyed to `1.1.16`, and every Radix
+primitive declares its own `^` range on focus-scope, so bumping any of them — dialog is
+at `1.1.23` and its next release is `1.1.24`, nowhere near `1.3.x` — resolves
+focus-scope `1.3.x` underneath all four, a second UNPATCHED copy, while the patched one
+stays in the tree as our direct devDependency. Nothing fails: the shadow boundary
+defects above come back silently. Measured on `pnpm update`, 2026-10-19.
+`pnpm.overrides` now holds focus-scope at `1.1.16` for every consumer, so a bump
+resolves the patched copy rather than an unpatched `1.3.x`. ⚠ That is a pin, not a
+refusal — pnpm violates a primitive's own range silently, so one that genuinely needs
+`1.3.x` would get `1.1.16` with no warning. Moving the family forward means re-basing
+the patch onto `1.3.1` and dropping the override in one change. `shadow-dom-utils`
+scopes itself to tests in its own README. Six expressions in non-test `src/` touch the
+boundary at all.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right
