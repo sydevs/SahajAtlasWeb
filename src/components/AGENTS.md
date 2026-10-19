@@ -413,11 +413,12 @@ ref-based in dialog, dropdown and popover, so focus return works.
 is shadow-correct in exactly the two ways the patch is — the target comes from
 `composedPath()[0]`, and `activeElement` resolves recursively through each root — but it
 cannot be reached from here: `@radix-ui/react-dialog` hard-codes `trapFocus:
-context.open` on its `FocusScope` with no prop to decline it, and dialog, popover and
-select all mount that one component. So the choice is three patched reads covering three
-primitives, or replacing all three. `focus-lock@1.3.6` holds `deepActiveElement`
-verbatim and does not export it — only a path inside its `dist/`. `aria-hidden@1.2.6` is
-still the newest published, so that patch waits on no upstream release.
+context.open` on its `FocusScope` with no prop to decline it, and dialog, popover,
+dropdown-menu and select all mount that one component. So the choice is three patched
+reads covering all four primitives, or replacing all four. `focus-lock@1.3.6` holds
+`deepActiveElement` verbatim and does not export it — only a path inside its `dist/`.
+`aria-hidden@1.2.6` is still the newest published, so that patch waits on no upstream
+release.
 ⚠ **`@radix-ui/react-focus-scope` is not — 1.3.1 is out, and this is now a BLOCK on the
 Radix family rather than a wait.** The patch is keyed to `1.1.16`, and every Radix
 primitive declares its own `^` range on focus-scope, so bumping dialog, popover,
