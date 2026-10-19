@@ -424,11 +424,15 @@ Radix family rather than a wait.** The patch is keyed to `1.1.16`, and every Rad
 primitive declares its own `^` range on focus-scope, so bumping any of them — dialog is
 at `1.1.23` and its next release is `1.1.24`, nowhere near `1.3.x` — resolves
 focus-scope `1.3.x` underneath all four, a second UNPATCHED copy, while the patched one
-stays in the tree as our direct devDependency. Nothing fails: the
-shadow boundary defects above come back silently. Measured on `pnpm update`, 2026-10-19.
-Re-basing the patch onto 1.3.1, or pinning focus-scope through `pnpm.overrides`, is the
-work that unblocks it. `shadow-dom-utils` scopes itself to tests in its own
-README. Six expressions in non-test `src/` touch the boundary at all.
+stays in the tree as our direct devDependency. Nothing fails: the shadow boundary
+defects above come back silently. Measured on `pnpm update`, 2026-10-19.
+`pnpm.overrides` now holds focus-scope at `1.1.16` for every consumer, so a bump
+resolves the patched copy rather than an unpatched `1.3.x`. ⚠ That is a pin, not a
+refusal — pnpm violates a primitive's own range silently, so one that genuinely needs
+`1.3.x` would get `1.1.16` with no warning. Moving the family forward means re-basing
+the patch onto `1.3.1` and dropping the override in one change. `shadow-dom-utils`
+scopes itself to tests in its own README. Six expressions in non-test `src/` touch the
+boundary at all.
 
 ⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
 Every drawer, peek strip, and sheet is `position: fixed`, so `100dvh` is only right

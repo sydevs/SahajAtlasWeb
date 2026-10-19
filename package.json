@@ -134,6 +134,7 @@
       "aria-hidden@1.2.6": "patches/aria-hidden@1.2.6.patch"
     },
     "overrides": {
+      "@radix-ui/react-focus-scope": "1.1.16",
       "undici": "^7.29.1"
     }
   }

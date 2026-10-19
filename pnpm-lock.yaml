@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@radix-ui/react-focus-scope': 1.1.16
   undici: ^7.29.1
 
 patchedDependencies:
