@@ -421,9 +421,10 @@ reads covering all four primitives, or replacing all four. `focus-lock@1.3.6` ho
 release.
 ⚠ **`@radix-ui/react-focus-scope` is not — 1.3.1 is out, and this is now a BLOCK on the
 Radix family rather than a wait.** The patch is keyed to `1.1.16`, and every Radix
-primitive declares its own `^` range on focus-scope, so bumping dialog, popover,
-dropdown-menu or select to 1.3.x resolves a second, UNPATCHED copy underneath all four
-while the patched one stays in the tree as our direct devDependency. Nothing fails: the
+primitive declares its own `^` range on focus-scope, so bumping any of them — dialog is
+at `1.1.23` and its next release is `1.1.24`, nowhere near `1.3.x` — resolves
+focus-scope `1.3.x` underneath all four, a second UNPATCHED copy, while the patched one
+stays in the tree as our direct devDependency. Nothing fails: the
 shadow boundary defects above come back silently. Measured on `pnpm update`, 2026-10-19.
 Re-basing the patch onto 1.3.1, or pinning focus-scope through `pnpm.overrides`, is the
 work that unblocks it. `shadow-dom-utils` scopes itself to tests in its own
