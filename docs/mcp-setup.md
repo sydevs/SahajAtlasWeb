@@ -27,7 +27,7 @@ servers per-user in `.claude/settings.local.json`
 
 - Transport: HTTP (`https://docs.mcp.cloudflare.com/mcp`).
 - Search Cloudflare docs (Pages, Workers, redirects, build settings). This
-  repo deploys to both platforms (`AGENTS.md` § Deployment). Reach for this
+  repo deploys to both platforms (`docs/rules/deployment.md`). Reach for this
   instead of `WebFetch` for Cloudflare deployment, `_redirects`, or
   build-config questions.
 - ⚠ It searches the published docs, which do not cover every wrangler config

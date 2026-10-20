@@ -106,14 +106,14 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
   shadow root, the standalone shell's document (#236).
 - **Deploy**: two Cloudflare sites build this repo, on Pages and on Workers
   static assets (#266, #279, #280). The platforms, hosts and build commands
-  are stated once, in [`AGENTS.md`](../AGENTS.md) § Deployment. What matters
+  are stated once, in [`docs/rules/deployment.md`](rules/deployment.md). What matters
   architecturally is the deep-link fallback, and it is **per platform, not
   per build**: the standalone `BrowserRouter` build gets it from
   `public/_redirects` (`/* /index.html 200`), which Vite copies into
   `dist/`, while a Worker takes it from `assets.not_found_handling`
   instead. ⚠ The two are not interchangeable: a Worker reads `_redirects`
   and rejects that splat, failing the deploy, so each Worker build deletes
-  the file — see `AGENTS.md` § Deployment (#280). The widget build routes
+  the file — see `docs/rules/deployment.md` (#280). The widget build routes
   off a query parameter on the host's page, so it needs no fallback of its
   own.
 - **Translations**: there is no sync pipeline. Locale JSON under
@@ -126,6 +126,8 @@ Host page  →  <script src="…/auto.js?key=…&locale=…&map=true|false">
 - Map: `docs/rules/mapbox.md`
 - Data layer: `docs/rules/data-layer.md`
 - i18n + state: `docs/rules/i18n-and-state.md`
+- Deployment: `docs/rules/deployment.md`
+- Bundle-size budget: `scripts/AGENTS.md`
 - Components: `src/components/AGENTS.md`
 - Code style: `src/AGENTS.md`
 - Tests: `docs/testing.md`

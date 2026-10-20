@@ -38,7 +38,7 @@ jobs:
         # Measures the eager first-load payload, gzipped: the standalone
         # shell's entry plus its modulepreload closure, and embed.js's
         # static import graph. Never budget one chunk alone — the build
-        # re-chunks freely. Full rationale: AGENTS.md and the script itself.
+        # re-chunks freely. Full rationale: scripts/AGENTS.md and the script itself.
         run: pnpm size
       - run: pnpm ladle:build # fail the gate on broken component stories
 
@@ -64,7 +64,7 @@ jobs:
         run: pnpm check:wrangler
 
       # Exercises the credentialed source-map path (#130), with no network
-      # call and no real secret. See AGENTS.md's "Deployment" section for
+      # call and no real secret. See docs/rules/deployment.md for
       # the full rationale.
       #
       # `SENTRY_URL` points at a closed port, so the upload fails at once

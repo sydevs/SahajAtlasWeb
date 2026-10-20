@@ -1,23 +1,33 @@
+---
+description: The two test lanes, the smoke lane's invariants, the node-only decision and its jsdom exception, the portal traps, spec conventions, and the per-edit budget.
+paths:
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - 'tests/**'
+  - 'src/test-support/**'
+  - 'vitest.config.ts'
+  - 'vitest.smoke.config.ts'
+  - 'scripts/select-unit-specs.mjs'
+  - 'scripts/assert-preview-host.mjs'
+  - '.claude/hooks/unit-test.mjs'
+  - '.github/workflows/ci.yml'
+  - '.github/workflows/production-smoke.yml'
+---
+
 # Testing
 
-Two lanes, kept separate so the fast one never touches the network:
+This file is also a path-scoped rule: `.claude/rules/testing.md` symlinks here, so it loads
+when a session reads a spec, a vitest config or the test tooling. The always-loaded summary —
+the validation policy and the never-rules — is the root `AGENTS.md` § Testing.
 
-| Lane      | Config                   | Command                  | Runs                                    |
-| --------- | ------------------------ | ------------------------ | ---------------------------------------- |
-| **Unit**  | `vitest.config.ts`       | `pnpm test` / `test:run` | Co-located `src/**/*.test.ts(x)`, node  |
-| **Smoke** | `vitest.smoke.config.ts` | `pnpm test:smoke`        | `tests/smoke/**`, fetch vs a preview   |
-
-- `pnpm test` runs watch mode, for the inner loop. `pnpm test:run` runs once — for CI, the
-  pre-PR gate, and the PostToolUse hook.
-- `pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one.
-- CI gates on `lint`, `typecheck`, `test:run`, `build`, `size`, `ladle:build`, and
-  `check:wrangler` — which covers both Worker configs, and needs what the build steps write
-  before it (`AGENTS.md` → the CI gates). A Dependency Audit job and the smoke job run
-  separately. The smoke job builds the app and **publishes its own Workers preview**, then reads
-  the address its publish step returned (#282).
-- The **same** smoke specs also run against production, fired by the deploy rather than by a PR
-  (`.github/workflows/production-smoke.yml`). See "The PR gate can only ever read a preview"
-  below.
+Two lanes, kept separate so the fast one never touches the network: the **unit** lane
+(`vitest.config.ts`, every `*.test.ts(x)` outside `tests/smoke/`, node) and the **smoke** lane
+(`vitest.smoke.config.ts`, `tests/smoke/**`, fetch against a deployed preview).
+`pnpm test:smoke` needs `PREVIEW_URL` and skips gracefully without one. In CI the smoke job
+builds the app and **publishes its own Workers preview**, then reads the address its publish
+step returned (#282). The **same** smoke specs also run against production, fired by the
+deploy rather than by a PR (`.github/workflows/production-smoke.yml`) — see "The PR gate can
+only ever read a preview" below.
 
 ## The smoke lane's three invariants (issues #99, #138)
 
@@ -65,10 +75,8 @@ Two lanes, kept separate so the fast one never touches the network:
   subdomain. A bare substring, a domain suffix test, an unanchored regex, or one extra label on
   either side all let the playground's deploy pass for the app's and collect a green check that
   verified the wrong site. The label-segment anchor is what refuses it, and
-  `scripts/assert-preview-host.test.ts` pins that with the playground's own host, a label that
-  merely ends with the Worker name, our host as a prefix of somebody else's domain, a credential
-  form, the Worker's own production host, and a label inserted before the subdomain. The
-  substring defect reddens three of those; the suffix defect one.
+  `scripts/assert-preview-host.test.ts` pins it against six near-miss hosts, the playground's
+  own among them. The substring defect reddens three of those; the suffix defect one.
 
   **This is stronger than what it replaced, in two specific ways.** Discovery (#122, #138) ranked
   candidates by provenance because a `pages.dev` label is globally first-come-first-served and
@@ -152,7 +160,7 @@ installs, so a deploy that breaks it while `index.html` stays healthy must not b
 It also covers the `public/` files only the platform executes: `_headers`, `robots.txt` and
 `_redirects`. All three are read on **both** platforms, but a Worker rejects the splat outright
 rather than serving it, so each Worker build deletes that file and takes the fallback from
-`assets.not_found_handling` instead (#279, #280; `AGENTS.md` § Deployment owns the mechanism).
+`assets.not_found_handling` instead (#279, #280; `docs/rules/deployment.md` owns the mechanism).
 Those are inert text in the repo, so no local gate can prove they work. ⚠ One claim about `_headers` is settled locally and must not be re-litigated
 here: `scripts/deploy-headers.test.ts` holds "no two rules set the same header name on paths that
 overlap" before a deploy, because the smoke lane reads two URLs on one of the two platforms and
@@ -305,11 +313,9 @@ the repair.
 This mirrors WeMeditateWeb. The unit lane runs in the `node` environment by default, with **no
 `@testing-library/react`**. It covers:
 
-- **Logic and contracts** — zod schemas (`src/types/`), zustand stores
-  (`src/config/store.ts`), i18n config (`src/config/i18n-options.ts`), the per-request context
-  the SDK client attaches (`applyRequestContext` / `interceptFetch`, `src/config/api/client.ts` —
-  spec'd from `fetch.test.ts`, which is why there is no `client.test.ts`), and the fetchers that
-  parse responses through zod (`src/config/api/fetch.ts`).
+- **Logic and contracts** — schemas, stores, config, and the fetchers' zod parsing. The
+  per-request context `src/config/api/client.ts` attaches is spec'd from `fetch.test.ts`,
+  which is why there is no `client.test.ts`.
 - **Presentational components** — assert the SSR output with `renderToStaticMarkup` from
   `react-dom/server` (see `src/components/atoms/Icons/Icons.test.tsx` for the template). Hover,
   portals, focus, and map interaction belong in Ladle or the browser, not here.
@@ -400,10 +406,6 @@ holds.
 loudly: a portal that renders when it should not makes SSR **throw** rather than pass quietly.
 That asymmetry is the useful part — the node lane is blind to a closed portal and deafening about
 an open one.
-
-(An earlier version of this section said `renderToStaticMarkup` "renders NO portals" and drew the
-broad conclusion. That was inferred, not measured, and it is wrong: it throws — the point of the
-section above.)
 
 ### A regression spec is not finished until it has FAILED
 
@@ -509,14 +511,11 @@ lists pass by vacuum.
 registry, so the memos are per-file and the tree is still read once per spec — do not expect a
 faster lane from it, and do not "fix" the memos to chase one. The lane's cost is #285.
 
-## Type-checking & the edit-loop hook
+## The edit-loop hook
 
-- Co-located specs sit under `src/`, so the app project (`tsconfig.json`) already type-checks
-  them. `tests/**` and `scripts/**` are checked by `tsconfig.test.json` — the second half of
-  `pnpm typecheck`.
-- A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a source file in either
-  directory the lane collects from — `src/**/*.{ts,tsx}` or `scripts/**/*.{mjs,ts}` — and reports
-  failures as non-blocking context.
+A PostToolUse hook (`.claude/hooks/unit-test.mjs`) runs after editing a source file in either
+directory the lane collects from — `src/**/*.{ts,tsx}` or `scripts/**/*.{mjs,ts}` — and reports
+failures as non-blocking context. No hook type-checks an edit; run `pnpm typecheck` yourself.
 
 ### The per-edit budget is 12 seconds on 4 cores (issue #285)
 

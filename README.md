@@ -168,15 +168,15 @@ components through `renderToStaticMarkup`, not jsdom. See
   host-facing reference (snippet, attributes, CSP, sizing, troubleshooting)
 - [`CHANGELOG.md`](CHANGELOG.md) — what changes under an embed, for host
   sites
-- [`AGENTS.md`](AGENTS.md) — developer guide: layout, conventions, PR
+- [`AGENTS.md`](AGENTS.md) — developer guide: conventions, PR
   workflow (`CLAUDE.md` is a symlink, so every agent reads one file)
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — component taxonomy, exports,
   styling
 - [`STORYBOOK.md`](STORYBOOK.md) — Ladle story conventions
-- nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`) —
-  directory-scoped guidance. Run `find src -name AGENTS.md` for the inventory
+- nested `AGENTS.md` files (`src/`, `src/components/`, `src/views/`, `scripts/`) —
+  directory-scoped guidance. Run `find . -name AGENTS.md -not -path './node_modules/*'` for the inventory
 - [`docs/rules/`](docs/rules/) — guidance scoped to files no single
-  directory names (i18n and state, the data layer, the map), symlinked into
+  directory names (i18n and state, the data layer, the map, deployment), symlinked into
   `.claude/rules/`
 - [`docs/`](docs/) — testing, architecture, environment, MCP setup
 
@@ -184,8 +184,8 @@ components through `renderToStaticMarkup`, not jsdom. See
 
 Two Cloudflare sites build from this repo. The topology — hosts, build
 commands, which platform serves which, and which one a visitor actually
-reaches — is stated once, in the deployment section of
-[`AGENTS.md`](AGENTS.md).
+reaches — is stated once, in
+[`docs/rules/deployment.md`](docs/rules/deployment.md).
 
 ### Source maps (build-time only)
 

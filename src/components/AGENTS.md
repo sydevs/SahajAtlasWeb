@@ -13,24 +13,19 @@ reach for `@nextui-org/react` — it is not a dependency.
 
 Before hand-rolling UI, check in this order:
 
-1. **`src/components/atoms/`** — Alert, Button, Checkbox, Chip, Combobox, Drawer,
-   Dropdown, Input, Link, Modal, RadioGroup, Select, Slider, Spinner, Textarea,
-   ToggleGroup already exist and carry the app's tokens and focus behavior. Drawer
-   (vaul) is the surface for anything that is a _place_ in the URL-driven stack.
-   Modal (Radix Dialog) is the ephemeral surface that never touches the URL or
-   history. Input and Textarea wrap the native controls on the shared `fieldChrome`
-   recipe. `Combobox` is the search-in-the-field picker (Radix Popover + cmdk — the
-   region filter). `Select` is the plain list picker. Every form-control atom shares
-   one error and active-state interface: **`isInvalid`** (danger visual plus
-   `aria-invalid`, with `aria-describedby` for the error text) and **`highlight`**
-   (tints the _unselected_ state, no layout shift, to flag an active filter). See
-   `DESIGN_SYSTEM.md`.
-2. **Radix** for an unstyled primitive to build on (`@radix-ui/react-*` — dialog,
-   select, popover, checkbox, switch, slider, toggle-group, dropdown-menu, label
-   are installed). Radix owns the interaction and ARIA. We own the Tailwind skin.
+1. **`src/components/atoms/`** — its atoms already exist and carry the app's tokens
+   and focus behavior. Drawer (vaul) is the surface for anything that is a _place_ in
+   the URL-driven stack. Modal (Radix Dialog) is the ephemeral surface that never
+   touches the URL or history. Input and Textarea wrap the native controls on the
+   shared `fieldChrome` recipe. `Combobox` is the search-in-the-field picker (Radix
+   Popover + cmdk — the region filter). `Select` is the plain list picker. Every
+   form-control atom shares one error and active-state interface: **`isInvalid`**
+   (danger visual plus `aria-invalid`, with `aria-describedby` for the error text)
+   and **`highlight`** (tints the _unselected_ state, no layout shift, to flag an
+   active filter). See `DESIGN_SYSTEM.md`.
+2. **Radix** for an unstyled primitive to build on. Radix owns the interaction and
+   ARIA. We own the Tailwind skin.
 3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
-
-Fewer custom components means less maintenance and a more consistent look.
 
 ## Styling
 
@@ -192,8 +187,9 @@ host pages, and it also runs standalone in dev. Because of that:
   ids. It is the only doc an embedding site reads, so a change here that a host
   could notice is not finished until that guide (and `CHANGELOG.md`) says so, in
   the same PR. See the root `AGENTS.md` for the full rule.
-- Provider stack lives in `src/providers.tsx` (React Query + Helmet + theme). Add new
-  context providers there, not scattered across the tree.
+- Provider stack lives in `src/providers.tsx` (`StrictMode`, React Query, Helmet, and the
+  reduced-motion `MotionConfig`); `BrandTheme` mounts in `App`. Add new context providers
+  to `providers.tsx`, not scattered across the tree.
 
 ## Responsive: which signal answers which question (issue #107)
 
@@ -271,7 +267,7 @@ fixed layer onto the HOST's element, a box a map-less embed shares with the host
 page. On `MapFrame`, re-parenting is the entire point, and the element is ours.
 
 **What decides containment is whether the host sized the element, and nothing
-else** (`mapIsContained`). Map mode renders everything fixed, so `<sahaj-atlas>`
+else** (`mapMode`, `lib/embed-slot.ts`). Map mode renders everything fixed, so `<sahaj-atlas>`
 measures zero height on its own — a height cannot appear by accident. An
 **unsized** map embed fills the viewport, and one without the page to itself gets a
 **compact card** instead of a takeover — `lib/slot-decision.ts` measures at mount
@@ -286,8 +282,9 @@ and one task-named button that opens the interface somewhere it fits.
 - **One question, not three.** The question underneath the earlier three-predicate
   version: **is the space we have meaningfully smaller than the space the button
   would take the visitor to?** `resolveDestination` answers where the button goes,
-  `embedLayout` answers what to render, and `decideSlot` (`lib/slot-decision.ts`)
-  joins them — because the join is where the original bug lived.
+  `embedLayout` answers what to render — both pure, in `lib/embed-slot.ts`, with the
+  floors and `SLOT_GAIN` — and `decideSlot` (`lib/slot-decision.ts`) measures the DOM and
+  joins them, because the join is where the original bug lived.
 - **The destination discriminator is NOT "am I framed," though it looks like it
   should be.** It is whether the local viewport is bigger than the slot. Framing
   only picks the fallback when it is not. A frame IS a viewport (`position: fixed`
@@ -309,7 +306,7 @@ and one task-named button that opens the interface somewhere it fits.
   through the `Button` atom's href form — not a new JSX anchor, since `href.test.ts`
   pins that inventory to three components.
 - **What it expands into is a module-private dialog inside `CompactEmbedView`, and it
-  keeps a margin.** It is not the `Dialog` atom: it publishes itself as the app's
+  keeps a margin.** It is not an atom: it publishes itself as the app's
   portal target, needs `contain: layout` since this app's interface is fixed
   throughout, and has exactly one caller. `Modal` stays the generic dialog atom. A
   full-bleed layer would read as a navigation — the host's page simply gone — so the
@@ -530,9 +527,7 @@ touching an anchor.
 
 ## Accessibility
 
-`jsx-a11y` is enabled. Pair `onClick` on non-button elements with keyboard handlers
-(or use a real `<button>` / the `Button` atom), and provide `alt` / ARIA labels. The
-lint warns — do not ignore it on interactive elements.
+Never silence a `jsx-a11y` warning on an interactive element.
 
 **Motion needs a way out** (WCAG 2.2.2, issue #104). Anything that moves on its own
 for more than five seconds needs a visible, keyboard-operable control to stop it, and

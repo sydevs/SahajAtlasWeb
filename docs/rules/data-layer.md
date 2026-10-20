@@ -21,10 +21,8 @@ moves, in the same bump as `@payloadcms/sdk`.
 
 ## Generated types
 
-- `src/types/payload/` holds the synced `payload-types.ts` plus `response-types.ts`
-  (the Events collection's endpoint contract). Run `pnpm types:cms` to refresh both.
-- Keep the zod schemas aligned with these generated types — they are the SDK's
-  compile-time source of truth.
+- Keep the zod schemas aligned with the generated types in `src/types/payload/` — they are
+  the SDK's compile-time source of truth.
 - **Name the producer, not the category: `SahajCloud`, never `CMS`.** The type that pins a
   schema to the generated ones is `PinnedToSahajCloud`, and its helpers are `SahajCloudFormField`
   and `SahajCloudBlock` (`src/types/report.ts` is the worked example). The same preference holds
@@ -97,17 +95,7 @@ moves, in the same bump as `@payloadcms/sdk`.
   site**, by parsing `src/**` through the `typescript` API: an `sdk.find` that sends no
   `limit` or `page`, sends `pagination`, `limit: 0` or a *fixed* `page`, sits outside a
   `readAllPages` callback, or sorts without `walkSort` turns the unit lane red naming the
-  file and the line. A fixed `page` is in that list because it reads one page
-  `totalPages` times rather than paginating.
-  `findByID` and `findGlobal` are out of scope by construction — neither takes a `limit`.
-  A **custom endpoint** cannot be classified from its AST, so the spec holds the read
-  paths as two named inventories (`/events/geojson` is a list read; `/clients/me` is one
-  record) and fails an unlisted one with instructions rather than guessing. It reads a
-  `json` or `file` option as the mark of a write, which is what puts `mutate.ts`'s POSTs
-  out of scope: the method cannot do that job, since the SDK sends `args` as the query
-  string at any verb and a POST-as-GET is a read. This is the same mechanism, and the
-  same reason, as `href.test.ts`'s anchor inventory below: enforcing a rule by example
-  says nothing about the next read somebody adds.
+  file and the line.
 
 ## Fetchers: raw reads plus client-derived shaping
 
@@ -123,8 +111,8 @@ or HTML descriptions — the client derives all of these:
   members off the RAW response, before any parse — every schema here is a plain
   `z.object` and strips them, so a loop reading `totalPages` after parsing fetches
   exactly one page, forever.
-- **`getCountries` / `getCountry` / `getRegion` / `getArea` / `getVenue`** → raw
-  `/api/regions` plus the geojson feed. Derive `eventCount` and `bounds` via
+- **`getCountries`** (the home list) / **`getRegion`** (one fetcher for every region level)
+  → raw `/api/regions` plus the geojson feed. Derive `eventCount` and `bounds` via
   `src/lib/shape` (breadcrumb ancestry) and `src/lib/geo` (`@turf`). Region taxonomy
   is `country / region / city / venue`, routed `city` → area and `venue` → venue
   (`src/lib/shape/path.ts`). ⚠ SahajCloud used to spell the leaf level `center`
@@ -137,12 +125,6 @@ or HTML descriptions — the client derives all of these:
   permanently unreachable. Treat paging as a render budget, not a network one — the
   feed fetches once and the results list reveals it a page at a time
   (`revealRows`, `src/lib/shape/reveal.ts`).
-- **`getCalendarEvents`** → the whole filtered feed (region cut plus
-  `matchesFilters`, online included, uncapped), for the CalendarView to expand into
-  per-occurrence entries. Shares the `filteredFeed` helper with `getEvents` so both
-  stay on one predicate.
-- **`getRegions`** → the wholesale region tree (`['regions']`, `RegionNode[]`), used
-  by the region filter's matcher and options (the `regionsQuery()` factory).
 - **`getEvent`** → raw `/api/events/:id` (depth 1, region plus images populated).
   Serialize the Lexical `description` to HTML client-side
   (`src/lib/shape/lexical.ts`) and render it through `sanitizeDescription`
@@ -150,11 +132,6 @@ or HTML descriptions — the client derives all of these:
   `dangerouslySetInnerHTML`. Keep that allowlist a **superset** of what the
   serializer emits — its spec round-trips `lexicalToHtml`'s own output, because a
   tag the sanitizer drops keeps its text and goes missing in silence (#101).
-- **`getClient`** → `/api/clients/me` via the raw `request` helper (the bare
-  `sdk.me()` cannot carry the required `select`). An API-key self-read of locale,
-  theme colors, and home `region`.
-- **`getAtlasConfig`** → the `sy-atlas-config` global (map defaults, the offered
-  locales, and `reportIssueForm` — read at `depth: 0`, so it stays a bare id).
 - **`getReportForm`** → `/api/forms/:id`, the authored report-issue form
   (`reportFormQuery`). Fetched once for the widget's life by the modal host, never on
   open: the report path is mostly reached FROM a failure, so a read fired at that
@@ -345,9 +322,6 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
   throws to the ErrorBoundary, a warm cache returns immediately and revalidates in
   the background. Do not switch these to `fetchQuery` — it blocks on the stale
   refetch.
-- Keep these loaders pinned at **`retry: false`**. They are not leaves —
-  `getRegion` / `getCountries` / `getEvents` await them from inside a query that
-  already retries on its own, so a retry here would multiply with that one.
 - **Memoize the region index per feed load.** `indexedFeed(regions, geojson)`
   derives the region index and per-feature ancestry once per cached feed
   reference. `getCountries` and `getRegion` both reuse it instead of rebuilding it
@@ -379,28 +353,11 @@ senderEmail }` plus `name`, `locale` and the question answers as pairs. The
 Pressure knobs, tuned for an embed on pages we do not own, at whatever traffic
 those pages carry:
 
-- **`staleTime` is a floor, not zero.** `DEFAULT_STALE_TIME` (30s) applies under
-  everything. Caches that know their own cadence override it. `EVENTS_STALE_TIME`
-  deliberately matches `GEOJSON_STALE_TIME` — `eventsQuery` issues no request of
-  its own, so recomputing its predicate more often than the feed can change is
-  wasted work with no new answer possible.
-- **`gcTime` must exceed `staleTime`, always.** Retention counts from the moment
-  the last observer unmounts. The 5-minute default is shorter than
-  `REGIONS_STALE_TIME`, so a wholesale cache could evict while still nominally
-  fresh, turning the fetch-once design into fetch-once-per-idle-gap.
-  `WHOLESALE_GC_TIME` (1h) pins `['regions']` / `['geojson']` / `['event-titles']`.
-  The derived events cache keeps 2× its own window, since it grows with use.
 - **Bound retries and skip them for a verdict, not a moment.** `shouldRetryQuery`
   allows one retry, never for a 4xx except 408/425, and never for the app's own
   `not-found` / `config` kinds. `retryDelayFor` caps and jitters the backoff, so a
   recovering API is not met with every client's second attempt in the same
   millisecond. Keep this list in sync with `ERROR_POLICY`'s `retry` column.
-- **Keep mutations at `retry: 0`.** Both are unsafe to repeat: a re-sent
-  registration is a duplicate signup, and a re-sent report replays a single-use
-  Turnstile token the server already redeemed. Set the report mutation's
-  `networkMode: 'always'` too — the default _pauses_ an offline mutation instead
-  of failing it, which on the one screen that exists because something already
-  broke means a spinner that never resolves.
 - **Never override `retry` (or any option) per-fetch on a shared key.**
   `prefetchQuery` writes the option onto the shared `Query` object, and
   `useSuspenseQuery` later calls `query.fetch()` with no arguments — inheriting

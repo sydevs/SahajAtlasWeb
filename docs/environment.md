@@ -81,7 +81,7 @@ and it can be revoked.)
 maps. Everything below is a Sentry or Cloudflare dashboard action. Until you do it, the build
 behaves exactly as it did before #130: no maps, no upload, minified frames. Nothing here happens
 from this repository — build configuration and environment variables live in the Cloudflare
-dashboard, per Pages environment and per Workers Builds trigger (`AGENTS.md` → Deployment).
+dashboard, per Pages environment and per Workers Builds trigger (`docs/rules/deployment.md`).
 
 1. **Provision the Sentry project, and check `VITE_SENTRY_DSN` is set on both the Production
    and the Preview environment** — it is the precondition for the whole loop, since maps with no

@@ -38,8 +38,9 @@ not clear-cut.
 - **`src/mocks/regions.ts` holds 27 trailing `// prettier-ignore`**, each keeping one region literal
   on a single line. Delete them and the next format run explodes the file.
 - **`jsx-sort-props` autofix moves props and leaves comments where they sat.** In #161 it swapped a
-  note for `measureAgainst` onto `handleOnly`, and lint stayed green. Never edit a comment inside a
-  JSX opening element. Re-read the block after `--fix`.
+  note for `measureAgainst` onto `handleOnly`, and lint stayed green. Insert a new prop in its
+  alphabetical position by hand. Never edit a comment inside a JSX opening element. Re-read the
+  block after `--fix`.
 - **`src/lib/brand.test.ts` reads raw file text**, comments included, and fails if a visitor-facing
   brand name appears in seven named copy files (#156). It fired once on a comment reflowed onto one
   line. The hyphenated form is safe. The spaced form is not.

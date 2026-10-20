@@ -143,7 +143,7 @@ const SLACK_RATIO = 0.15
 // the ratchet rule and the leave-headroom-for-Sentry rule cannot both
 // hold on a small graph.
 //
-// `AGENTS.md` records that a credentialed build ships more than CI
+// `scripts/AGENTS.md` records that a credentialed build ships more than CI
 // measures. `@sentry/vite-plugin` injects a debug-ID snippet into every
 // chunk, and CI has no token to trigger that. The gap is therefore
 // per-graph, not a constant: it scales with chunk count, not bytes.

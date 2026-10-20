@@ -18,7 +18,7 @@
  * **There is a third answer since #169, and it sits upstream of that whole comparison.**
  * A map embed whose host gave the element a box of its own is *contained* — it lives in
  * their page rather than filling the window — and containment changes what the
- * questions below mean, rather than merely their answers. See `mapIsContained`.
+ * questions below mean, rather than merely their answers. See `mapMode`.
  */
 
 /**
