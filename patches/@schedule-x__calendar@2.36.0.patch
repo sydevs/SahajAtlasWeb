@@ -1,0 +1,627 @@
+diff --git a/dist/core.cjs.js b/dist/core.cjs.js
+index ef7c28982627459075ea30daa7a787aaa694a8d4..f1fc64cbcb6492258833bdf7a0127d52de471739 100644
+--- a/dist/core.cjs.js
++++ b/dist/core.cjs.js
+@@ -6,6 +6,37 @@ var hooks = require('preact/hooks');
+ var compat = require('preact/compat');
+ var signals = require('@preact/signals');
+ 
++// sydevs: Schedule-X reaches its own elements through `document`, and writes its sizing and
++// colour variables onto the page's <html>. Inside the SahajAtlasWeb embed's shadow root the
++// lookups find nothing, so the grid never mounted; and <html> is the HOST page's, where the
++// theme's `:root` defaults restated on the embed's scope root win (the week grid collapsed to
++// 0px) and the widget's own tokens do not resolve (online events lost their colour). Lookups
++// also search the root of every element a calendar rendered into, and the variables are set
++// on that element instead.
++const sydevsContainers = new Set();
++const sydevsById = (id) => {
++    const found = document.getElementById(id);
++    if (found) return found;
++    for (const container of sydevsContainers) {
++        const root = container.getRootNode();
++        const inRoot = root.getElementById ? root.getElementById(id) : null;
++        if (inRoot) return inRoot;
++    }
++    return null;
++};
++const sydevsQuery = (selector) => {
++    const found = document.querySelector(selector);
++    if (found) return found;
++    for (const container of sydevsContainers) {
++        const inRoot = container.getRootNode().querySelector(selector);
++        if (inRoot) return inRoot;
++    }
++    return null;
++};
++const sydevsSetProperty = (name, value) => {
++    for (const container of sydevsContainers) container.style.setProperty(name, value);
++};
++
+ const AppContext$1 = preact.createContext({});
+ 
+ const DateFormats = {
+@@ -95,7 +126,7 @@ function AppInput() {
+     }, [$app.datePickerState.selectedDate.value, $app.config.locale.value]);
+     const [wrapperClasses, setWrapperClasses] = hooks.useState([]);
+     const setInputElement = () => {
+-        const inputWrapperEl = document.getElementById(inputWrapperId);
++        const inputWrapperEl = sydevsById(inputWrapperId);
+         $app.datePickerState.inputWrapperElement.value =
+             inputWrapperEl instanceof HTMLDivElement ? inputWrapperEl : undefined;
+     };
+@@ -122,7 +153,7 @@ function AppInput() {
+         }
+     };
+     hooks.useEffect(() => {
+-        const inputElement = document.getElementById(datePickerInputId);
++        const inputElement = sydevsById(datePickerInputId);
+         if (inputElement === null)
+             return;
+         inputElement.addEventListener('change', handleInputValue); // Preact onChange triggers on every input
+@@ -137,7 +168,7 @@ function AppInput() {
+             keyboardEvent.preventDefault();
+             $app.datePickerState.open();
+             setTimeout(() => {
+-                const element = document.querySelector('[data-focus="true"]');
++                const element = sydevsQuery('[data-focus="true"]');
+                 if (element instanceof HTMLElement)
+                     element.focus();
+             }, 50);
+@@ -791,7 +822,7 @@ function MonthView({ seatYearsView }) {
+                     mutatedElement.focus();
+             });
+         });
+-        const monthViewElement = document.getElementById(elementId);
++        const monthViewElement = sydevsById(elementId);
+         observer.observe(monthViewElement, {
+             childList: true,
+             subtree: true,
+@@ -1213,7 +1244,7 @@ function ForwardBackwardNavigation() {
+ /**
+  * Get an element in the DOM by their custom component id
+  * */
+-const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
++const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
+ 
+ class PreactView {
+     constructor(config) {
+@@ -1284,7 +1315,7 @@ class PreactView {
+         preact.render(preact.createElement(this.Component, { $app, id: this.randomId }), onElement);
+     }
+     destroy() {
+-        const el = document.getElementById(this.randomId);
++        const el = sydevsById(this.randomId);
+         if (el) {
+             el.remove();
+         }
+@@ -1857,7 +1888,7 @@ function TimeAxis() {
+         setHours(getTimeAxisHours($app.config.dayBoundaries.value, $app.config.isHybridDay));
+         const hoursPerDay = $app.config.timePointsPerDay / 100;
+         const pixelsPerHour = $app.config.weekOptions.value.gridHeight / hoursPerDay;
+-        document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
++        sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
+     });
+     const formatter = new Intl.DateTimeFormat($app.config.locale.value, $app.config.weekOptions.value.timeAxisFormatOptions);
+     const hourCustomComponentFn = $app.config._customComponentFns.weekGridHour;
+@@ -1869,7 +1900,7 @@ function TimeAxis() {
+     hooks.useEffect(() => {
+         if (hourCustomComponentFn && hourCCIDs.length) {
+             hours.forEach((hour, idx) => {
+-                const el = document.querySelector(`[data-ccid="${hourCCIDs[idx]}"]`);
++                const el = sydevsQuery(`[data-ccid="${hourCCIDs[idx]}"]`);
+                 if (!(el instanceof HTMLElement)) {
+                     return console.warn('Could not find element for custom component weekGridHour');
+                 }
+@@ -1897,7 +1928,7 @@ function DateAxis({ week }) {
+     hooks.useEffect(() => {
+         if (weekGridDateCustomComponentFn) {
+             week.forEach((date, idx) => {
+-                const el = document.querySelector(`[data-ccid="${weekGridDateCCIDs[0][idx]}"]`);
++                const el = sydevsQuery(`[data-ccid="${weekGridDateCCIDs[0][idx]}"]`);
+                 if (!(el instanceof HTMLElement)) {
+                     return console.warn('Could not find element for custom component weekGridDate');
+                 }
+@@ -2229,7 +2260,7 @@ const filterByRange = (events, range) => {
+ };
+ 
+ const WeekWrapper = ({ $app, id }) => {
+-    document.documentElement.style.setProperty('--sx-week-grid-height', `${$app.config.weekOptions.value.gridHeight}px`);
++    sydevsSetProperty('--sx-week-grid-height', `${$app.config.weekOptions.value.gridHeight}px`);
+     const week = signals.useComputed(() => {
+         var _a, _b;
+         const rangeStart = (_a = $app.calendarState.range.value) === null || _a === void 0 ? void 0 : _a.start;
+@@ -2407,7 +2438,7 @@ function CalendarHeader() {
+ }
+ 
+ const setWrapperElement = ($app, calendarId) => {
+-    $app.elements.calendarWrapper = document.getElementById(calendarId);
++    $app.elements.calendarWrapper = sydevsById(calendarId);
+ };
+ 
+ const setScreenSizeCompatibleView = ($app, isSmall) => {
+@@ -2520,7 +2551,7 @@ function CalendarWrapper({ $app }) {
+     const [currentView, setCurrentView] = hooks.useState();
+     signals.useSignalEffect(() => {
+         const newView = $app.config.views.value.find((view) => view.name === $app.calendarState.view.value);
+-        const viewElement = document.getElementById(viewContainerId);
++        const viewElement = sydevsById(viewContainerId);
+         if (!newView || !viewElement || newView.name === (currentView === null || currentView === void 0 ? void 0 : currentView.name))
+             return;
+         if (currentView)
+@@ -2641,6 +2672,10 @@ class CalendarApp {
+     }
+     render(el) {
+         this.calendarContainerEl = el;
++        sydevsContainers.add(el);
++        const sydevsColors = new EventColors(this.$app.config);
++        if (this.$app.calendarState.isDark.value) sydevsColors.setDark();
++        else sydevsColors.setLight();
+         preact.render(preact.createElement(CalendarWrapper, { $app: this.$app }), el);
+     }
+     destroy() {
+@@ -2651,6 +2686,7 @@ class CalendarApp {
+         });
+         if (this.calendarContainerEl) {
+             preact.render(null, this.calendarContainerEl);
++            sydevsContainers.delete(this.calendarContainerEl);
+         }
+     }
+     setTheme(theme) {
+@@ -4546,9 +4582,9 @@ class EventColors {
+         });
+     }
+     setColors(colorName, colorDefinition) {
+-        document.documentElement.style.setProperty(`--sx-color-${colorName}`, colorDefinition.main);
+-        document.documentElement.style.setProperty(`--sx-color-${colorName}-container`, colorDefinition.container);
+-        document.documentElement.style.setProperty(`--sx-color-on-${colorName}-container`, colorDefinition.onContainer);
++        sydevsSetProperty(`--sx-color-${colorName}`, colorDefinition.main);
++        sydevsSetProperty(`--sx-color-${colorName}-container`, colorDefinition.container);
++        sydevsSetProperty(`--sx-color-on-${colorName}-container`, colorDefinition.onContainer);
+     }
+ }
+ 
+@@ -5707,7 +5743,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+     hooks.useEffect(() => {
+         if (!monthGridDayNameCustomComponent)
+             return;
+-        const dayNameEl = document.querySelector(`[data-ccid="${monthGridDayNameCCID}"]`);
++        const dayNameEl = sydevsQuery(`[data-ccid="${monthGridDayNameCCID}"]`);
+         if (!(dayNameEl instanceof HTMLElement)) {
+             return;
+         }
+@@ -5720,7 +5756,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+     hooks.useEffect(() => {
+         if (!monthGridDateCustomComponent)
+             return;
+-        const dateEl = document.querySelector(`[data-ccid="${monthGridDateCCID}"]`);
++        const dateEl = sydevsQuery(`[data-ccid="${monthGridDateCCID}"]`);
+         if (!(dateEl instanceof HTMLElement))
+             return;
+         monthGridDateCustomComponent(dateEl, {
+@@ -6037,7 +6073,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
+                     mutatedElement.focus();
+             });
+         });
+-        const monthViewElement = document.getElementById(id);
++        const monthViewElement = sydevsById(id);
+         observer.observe(monthViewElement, {
+             childList: true,
+             subtree: true,
+diff --git a/dist/core.js b/dist/core.js
+index 4b9a234da202d170604bc12aee5e39a18fc2adb3..a94244f44df809d3d5e2390d4a70a3eec90efcfa 100644
+--- a/dist/core.js
++++ b/dist/core.js
+@@ -4,6 +4,37 @@ import { useContext, useEffect, useState, useMemo, useRef } from 'preact/hooks';
+ import { createPortal } from 'preact/compat';
+ import { useSignalEffect, useComputed, signal, effect, computed, batch } from '@preact/signals';
+ 
++// sydevs: Schedule-X reaches its own elements through `document`, and writes its sizing and
++// colour variables onto the page's <html>. Inside the SahajAtlasWeb embed's shadow root the
++// lookups find nothing, so the grid never mounted; and <html> is the HOST page's, where the
++// theme's `:root` defaults restated on the embed's scope root win (the week grid collapsed to
++// 0px) and the widget's own tokens do not resolve (online events lost their colour). Lookups
++// also search the root of every element a calendar rendered into, and the variables are set
++// on that element instead.
++const sydevsContainers = new Set();
++const sydevsById = (id) => {
++    const found = document.getElementById(id);
++    if (found) return found;
++    for (const container of sydevsContainers) {
++        const root = container.getRootNode();
++        const inRoot = root.getElementById ? root.getElementById(id) : null;
++        if (inRoot) return inRoot;
++    }
++    return null;
++};
++const sydevsQuery = (selector) => {
++    const found = document.querySelector(selector);
++    if (found) return found;
++    for (const container of sydevsContainers) {
++        const inRoot = container.getRootNode().querySelector(selector);
++        if (inRoot) return inRoot;
++    }
++    return null;
++};
++const sydevsSetProperty = (name, value) => {
++    for (const container of sydevsContainers) container.style.setProperty(name, value);
++};
++
+ const AppContext$1 = createContext({});
+ 
+ const DateFormats = {
+@@ -93,7 +124,7 @@ function AppInput() {
+     }, [$app.datePickerState.selectedDate.value, $app.config.locale.value]);
+     const [wrapperClasses, setWrapperClasses] = useState([]);
+     const setInputElement = () => {
+-        const inputWrapperEl = document.getElementById(inputWrapperId);
++        const inputWrapperEl = sydevsById(inputWrapperId);
+         $app.datePickerState.inputWrapperElement.value =
+             inputWrapperEl instanceof HTMLDivElement ? inputWrapperEl : undefined;
+     };
+@@ -120,7 +151,7 @@ function AppInput() {
+         }
+     };
+     useEffect(() => {
+-        const inputElement = document.getElementById(datePickerInputId);
++        const inputElement = sydevsById(datePickerInputId);
+         if (inputElement === null)
+             return;
+         inputElement.addEventListener('change', handleInputValue); // Preact onChange triggers on every input
+@@ -135,7 +166,7 @@ function AppInput() {
+             keyboardEvent.preventDefault();
+             $app.datePickerState.open();
+             setTimeout(() => {
+-                const element = document.querySelector('[data-focus="true"]');
++                const element = sydevsQuery('[data-focus="true"]');
+                 if (element instanceof HTMLElement)
+                     element.focus();
+             }, 50);
+@@ -789,7 +820,7 @@ function MonthView({ seatYearsView }) {
+                     mutatedElement.focus();
+             });
+         });
+-        const monthViewElement = document.getElementById(elementId);
++        const monthViewElement = sydevsById(elementId);
+         observer.observe(monthViewElement, {
+             childList: true,
+             subtree: true,
+@@ -1211,7 +1242,7 @@ function ForwardBackwardNavigation() {
+ /**
+  * Get an element in the DOM by their custom component id
+  * */
+-const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
++const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
+ 
+ class PreactView {
+     constructor(config) {
+@@ -1282,7 +1313,7 @@ class PreactView {
+         render(createElement(this.Component, { $app, id: this.randomId }), onElement);
+     }
+     destroy() {
+-        const el = document.getElementById(this.randomId);
++        const el = sydevsById(this.randomId);
+         if (el) {
+             el.remove();
+         }
+@@ -1855,7 +1886,7 @@ function TimeAxis() {
+         setHours(getTimeAxisHours($app.config.dayBoundaries.value, $app.config.isHybridDay));
+         const hoursPerDay = $app.config.timePointsPerDay / 100;
+         const pixelsPerHour = $app.config.weekOptions.value.gridHeight / hoursPerDay;
+-        document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
++        sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
+     });
+     const formatter = new Intl.DateTimeFormat($app.config.locale.value, $app.config.weekOptions.value.timeAxisFormatOptions);
+     const hourCustomComponentFn = $app.config._customComponentFns.weekGridHour;
+@@ -1867,7 +1898,7 @@ function TimeAxis() {
+     useEffect(() => {
+         if (hourCustomComponentFn && hourCCIDs.length) {
+             hours.forEach((hour, idx) => {
+-                const el = document.querySelector(`[data-ccid="${hourCCIDs[idx]}"]`);
++                const el = sydevsQuery(`[data-ccid="${hourCCIDs[idx]}"]`);
+                 if (!(el instanceof HTMLElement)) {
+                     return console.warn('Could not find element for custom component weekGridHour');
+                 }
+@@ -1895,7 +1926,7 @@ function DateAxis({ week }) {
+     useEffect(() => {
+         if (weekGridDateCustomComponentFn) {
+             week.forEach((date, idx) => {
+-                const el = document.querySelector(`[data-ccid="${weekGridDateCCIDs[0][idx]}"]`);
++                const el = sydevsQuery(`[data-ccid="${weekGridDateCCIDs[0][idx]}"]`);
+                 if (!(el instanceof HTMLElement)) {
+                     return console.warn('Could not find element for custom component weekGridDate');
+                 }
+@@ -2227,7 +2258,7 @@ const filterByRange = (events, range) => {
+ };
+ 
+ const WeekWrapper = ({ $app, id }) => {
+-    document.documentElement.style.setProperty('--sx-week-grid-height', `${$app.config.weekOptions.value.gridHeight}px`);
++    sydevsSetProperty('--sx-week-grid-height', `${$app.config.weekOptions.value.gridHeight}px`);
+     const week = useComputed(() => {
+         var _a, _b;
+         const rangeStart = (_a = $app.calendarState.range.value) === null || _a === void 0 ? void 0 : _a.start;
+@@ -2405,7 +2436,7 @@ function CalendarHeader() {
+ }
+ 
+ const setWrapperElement = ($app, calendarId) => {
+-    $app.elements.calendarWrapper = document.getElementById(calendarId);
++    $app.elements.calendarWrapper = sydevsById(calendarId);
+ };
+ 
+ const setScreenSizeCompatibleView = ($app, isSmall) => {
+@@ -2518,7 +2549,7 @@ function CalendarWrapper({ $app }) {
+     const [currentView, setCurrentView] = useState();
+     useSignalEffect(() => {
+         const newView = $app.config.views.value.find((view) => view.name === $app.calendarState.view.value);
+-        const viewElement = document.getElementById(viewContainerId);
++        const viewElement = sydevsById(viewContainerId);
+         if (!newView || !viewElement || newView.name === (currentView === null || currentView === void 0 ? void 0 : currentView.name))
+             return;
+         if (currentView)
+@@ -2639,6 +2670,10 @@ class CalendarApp {
+     }
+     render(el) {
+         this.calendarContainerEl = el;
++        sydevsContainers.add(el);
++        const sydevsColors = new EventColors(this.$app.config);
++        if (this.$app.calendarState.isDark.value) sydevsColors.setDark();
++        else sydevsColors.setLight();
+         render(createElement(CalendarWrapper, { $app: this.$app }), el);
+     }
+     destroy() {
+@@ -2649,6 +2684,7 @@ class CalendarApp {
+         });
+         if (this.calendarContainerEl) {
+             render(null, this.calendarContainerEl);
++            sydevsContainers.delete(this.calendarContainerEl);
+         }
+     }
+     setTheme(theme) {
+@@ -4544,9 +4580,9 @@ class EventColors {
+         });
+     }
+     setColors(colorName, colorDefinition) {
+-        document.documentElement.style.setProperty(`--sx-color-${colorName}`, colorDefinition.main);
+-        document.documentElement.style.setProperty(`--sx-color-${colorName}-container`, colorDefinition.container);
+-        document.documentElement.style.setProperty(`--sx-color-on-${colorName}-container`, colorDefinition.onContainer);
++        sydevsSetProperty(`--sx-color-${colorName}`, colorDefinition.main);
++        sydevsSetProperty(`--sx-color-${colorName}-container`, colorDefinition.container);
++        sydevsSetProperty(`--sx-color-on-${colorName}-container`, colorDefinition.onContainer);
+     }
+ }
+ 
+@@ -5705,7 +5741,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+     useEffect(() => {
+         if (!monthGridDayNameCustomComponent)
+             return;
+-        const dayNameEl = document.querySelector(`[data-ccid="${monthGridDayNameCCID}"]`);
++        const dayNameEl = sydevsQuery(`[data-ccid="${monthGridDayNameCCID}"]`);
+         if (!(dayNameEl instanceof HTMLElement)) {
+             return;
+         }
+@@ -5718,7 +5754,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+     useEffect(() => {
+         if (!monthGridDateCustomComponent)
+             return;
+-        const dateEl = document.querySelector(`[data-ccid="${monthGridDateCCID}"]`);
++        const dateEl = sydevsQuery(`[data-ccid="${monthGridDateCCID}"]`);
+         if (!(dateEl instanceof HTMLElement))
+             return;
+         monthGridDateCustomComponent(dateEl, {
+@@ -6035,7 +6071,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
+                     mutatedElement.focus();
+             });
+         });
+-        const monthViewElement = document.getElementById(id);
++        const monthViewElement = sydevsById(id);
+         observer.observe(monthViewElement, {
+             childList: true,
+             subtree: true,
+diff --git a/dist/core.umd.js b/dist/core.umd.js
+index dced0ca53681c3d64eaa0472a1e69c3621b91c42..a960709ffe020b2f40a069b7679da4b3a0154a64 100644
+--- a/dist/core.umd.js
++++ b/dist/core.umd.js
+@@ -4,6 +4,37 @@
+   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.SXCalendar = {}, global.preact, global.jsxRuntime, global.preactHooks, global.preactCompat, global.preactSignals));
+ })(this, (function (exports, preact, jsxRuntime, hooks, compat, signals) { 'use strict';
+ 
++  // sydevs: Schedule-X reaches its own elements through `document`, and writes its sizing and
++  // colour variables onto the page's <html>. Inside the SahajAtlasWeb embed's shadow root the
++  // lookups find nothing, so the grid never mounted; and <html> is the HOST page's, where the
++  // theme's `:root` defaults restated on the embed's scope root win (the week grid collapsed to
++  // 0px) and the widget's own tokens do not resolve (online events lost their colour). Lookups
++  // also search the root of every element a calendar rendered into, and the variables are set
++  // on that element instead.
++  const sydevsContainers = new Set();
++  const sydevsById = (id) => {
++      const found = document.getElementById(id);
++      if (found) return found;
++      for (const container of sydevsContainers) {
++          const root = container.getRootNode();
++          const inRoot = root.getElementById ? root.getElementById(id) : null;
++          if (inRoot) return inRoot;
++      }
++      return null;
++  };
++  const sydevsQuery = (selector) => {
++      const found = document.querySelector(selector);
++      if (found) return found;
++      for (const container of sydevsContainers) {
++          const inRoot = container.getRootNode().querySelector(selector);
++          if (inRoot) return inRoot;
++      }
++      return null;
++  };
++  const sydevsSetProperty = (name, value) => {
++      for (const container of sydevsContainers) container.style.setProperty(name, value);
++  };
++
+   const AppContext$1 = preact.createContext({});
+ 
+   const DateFormats = {
+@@ -93,7 +124,7 @@
+       }, [$app.datePickerState.selectedDate.value, $app.config.locale.value]);
+       const [wrapperClasses, setWrapperClasses] = hooks.useState([]);
+       const setInputElement = () => {
+-          const inputWrapperEl = document.getElementById(inputWrapperId);
++          const inputWrapperEl = sydevsById(inputWrapperId);
+           $app.datePickerState.inputWrapperElement.value =
+               inputWrapperEl instanceof HTMLDivElement ? inputWrapperEl : undefined;
+       };
+@@ -120,7 +151,7 @@
+           }
+       };
+       hooks.useEffect(() => {
+-          const inputElement = document.getElementById(datePickerInputId);
++          const inputElement = sydevsById(datePickerInputId);
+           if (inputElement === null)
+               return;
+           inputElement.addEventListener('change', handleInputValue); // Preact onChange triggers on every input
+@@ -135,7 +166,7 @@
+               keyboardEvent.preventDefault();
+               $app.datePickerState.open();
+               setTimeout(() => {
+-                  const element = document.querySelector('[data-focus="true"]');
++                  const element = sydevsQuery('[data-focus="true"]');
+                   if (element instanceof HTMLElement)
+                       element.focus();
+               }, 50);
+@@ -789,7 +820,7 @@
+                       mutatedElement.focus();
+               });
+           });
+-          const monthViewElement = document.getElementById(elementId);
++          const monthViewElement = sydevsById(elementId);
+           observer.observe(monthViewElement, {
+               childList: true,
+               subtree: true,
+@@ -1211,7 +1242,7 @@
+   /**
+    * Get an element in the DOM by their custom component id
+    * */
+-  const getElementByCCID = (customComponentId) => document.querySelector(`[data-ccid="${customComponentId}"]`);
++  const getElementByCCID = (customComponentId) => sydevsQuery(`[data-ccid="${customComponentId}"]`);
+ 
+   class PreactView {
+       constructor(config) {
+@@ -1282,7 +1313,7 @@
+           preact.render(preact.createElement(this.Component, { $app, id: this.randomId }), onElement);
+       }
+       destroy() {
+-          const el = document.getElementById(this.randomId);
++          const el = sydevsById(this.randomId);
+           if (el) {
+               el.remove();
+           }
+@@ -1855,7 +1886,7 @@
+           setHours(getTimeAxisHours($app.config.dayBoundaries.value, $app.config.isHybridDay));
+           const hoursPerDay = $app.config.timePointsPerDay / 100;
+           const pixelsPerHour = $app.config.weekOptions.value.gridHeight / hoursPerDay;
+-          document.documentElement.style.setProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
++          sydevsSetProperty('--sx-week-grid-hour-height', `${pixelsPerHour}px`);
+       });
+       const formatter = new Intl.DateTimeFormat($app.config.locale.value, $app.config.weekOptions.value.timeAxisFormatOptions);
+       const hourCustomComponentFn = $app.config._customComponentFns.weekGridHour;
+@@ -1867,7 +1898,7 @@
+       hooks.useEffect(() => {
+           if (hourCustomComponentFn && hourCCIDs.length) {
+               hours.forEach((hour, idx) => {
+-                  const el = document.querySelector(`[data-ccid="${hourCCIDs[idx]}"]`);
++                  const el = sydevsQuery(`[data-ccid="${hourCCIDs[idx]}"]`);
+                   if (!(el instanceof HTMLElement)) {
+                       return console.warn('Could not find element for custom component weekGridHour');
+                   }
+@@ -1895,7 +1926,7 @@
+       hooks.useEffect(() => {
+           if (weekGridDateCustomComponentFn) {
+               week.forEach((date, idx) => {
+-                  const el = document.querySelector(`[data-ccid="${weekGridDateCCIDs[0][idx]}"]`);
++                  const el = sydevsQuery(`[data-ccid="${weekGridDateCCIDs[0][idx]}"]`);
+                   if (!(el instanceof HTMLElement)) {
+                       return console.warn('Could not find element for custom component weekGridDate');
+                   }
+@@ -2227,7 +2258,7 @@
+   };
+ 
+   const WeekWrapper = ({ $app, id }) => {
+-      document.documentElement.style.setProperty('--sx-week-grid-height', `${$app.config.weekOptions.value.gridHeight}px`);
++      sydevsSetProperty('--sx-week-grid-height', `${$app.config.weekOptions.value.gridHeight}px`);
+       const week = signals.useComputed(() => {
+           var _a, _b;
+           const rangeStart = (_a = $app.calendarState.range.value) === null || _a === void 0 ? void 0 : _a.start;
+@@ -2405,7 +2436,7 @@
+   }
+ 
+   const setWrapperElement = ($app, calendarId) => {
+-      $app.elements.calendarWrapper = document.getElementById(calendarId);
++      $app.elements.calendarWrapper = sydevsById(calendarId);
+   };
+ 
+   const setScreenSizeCompatibleView = ($app, isSmall) => {
+@@ -2518,7 +2549,7 @@
+       const [currentView, setCurrentView] = hooks.useState();
+       signals.useSignalEffect(() => {
+           const newView = $app.config.views.value.find((view) => view.name === $app.calendarState.view.value);
+-          const viewElement = document.getElementById(viewContainerId);
++          const viewElement = sydevsById(viewContainerId);
+           if (!newView || !viewElement || newView.name === (currentView === null || currentView === void 0 ? void 0 : currentView.name))
+               return;
+           if (currentView)
+@@ -2639,6 +2670,10 @@
+       }
+       render(el) {
+           this.calendarContainerEl = el;
++          sydevsContainers.add(el);
++          const sydevsColors = new EventColors(this.$app.config);
++          if (this.$app.calendarState.isDark.value) sydevsColors.setDark();
++          else sydevsColors.setLight();
+           preact.render(preact.createElement(CalendarWrapper, { $app: this.$app }), el);
+       }
+       destroy() {
+@@ -2649,6 +2684,7 @@
+           });
+           if (this.calendarContainerEl) {
+               preact.render(null, this.calendarContainerEl);
++              sydevsContainers.delete(this.calendarContainerEl);
+           }
+       }
+       setTheme(theme) {
+@@ -4544,9 +4580,9 @@
+           });
+       }
+       setColors(colorName, colorDefinition) {
+-          document.documentElement.style.setProperty(`--sx-color-${colorName}`, colorDefinition.main);
+-          document.documentElement.style.setProperty(`--sx-color-${colorName}-container`, colorDefinition.container);
+-          document.documentElement.style.setProperty(`--sx-color-on-${colorName}-container`, colorDefinition.onContainer);
++          sydevsSetProperty(`--sx-color-${colorName}`, colorDefinition.main);
++          sydevsSetProperty(`--sx-color-${colorName}-container`, colorDefinition.container);
++          sydevsSetProperty(`--sx-color-on-${colorName}-container`, colorDefinition.onContainer);
+       }
+   }
+ 
+@@ -5705,7 +5741,7 @@
+       hooks.useEffect(() => {
+           if (!monthGridDayNameCustomComponent)
+               return;
+-          const dayNameEl = document.querySelector(`[data-ccid="${monthGridDayNameCCID}"]`);
++          const dayNameEl = sydevsQuery(`[data-ccid="${monthGridDayNameCCID}"]`);
+           if (!(dayNameEl instanceof HTMLElement)) {
+               return;
+           }
+@@ -5718,7 +5754,7 @@
+       hooks.useEffect(() => {
+           if (!monthGridDateCustomComponent)
+               return;
+-          const dateEl = document.querySelector(`[data-ccid="${monthGridDateCCID}"]`);
++          const dateEl = sydevsQuery(`[data-ccid="${monthGridDateCCID}"]`);
+           if (!(dateEl instanceof HTMLElement))
+               return;
+           monthGridDateCustomComponent(dateEl, {
+@@ -6035,7 +6071,7 @@
+                       mutatedElement.focus();
+               });
+           });
+-          const monthViewElement = document.getElementById(id);
++          const monthViewElement = sydevsById(id);
+           observer.observe(monthViewElement, {
+               childList: true,
+               subtree: true,
