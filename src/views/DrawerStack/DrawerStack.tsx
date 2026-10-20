@@ -37,6 +37,7 @@ import {
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { stripLabel } from '@/views/DrawerStack/strip-label'
+import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import { DrawerControlContext } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -648,32 +649,27 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      <AnimatePresence mode="popLayout">
-        <motion.div
-          key={top?.path ?? '/'}
-          animate={{ opacity: 1 }}
-          className="flex min-h-0 flex-1 flex-col"
-          exit={{ opacity: 0 }}
-          initial={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
-              suspend that shows `DrawerLoading` — the shared chrome (header plus close
-              control, rebuilt from the URL) over a spinner — and only a FAILED load
-              throws inward to the boundary. That is what keeps a first open of the
-              calendar, register, or share drawer from flashing blank or unstyled: the
-              drawer's identity is on screen from the first frame, and only its body
-              arrives late (issue #96). */}
-          <Suspense fallback={<DrawerLoading />}>
-            <ResetErrorBoundary
-              FallbackComponent={DrawerErrorFallback}
-              onReset={() => setSecondary(loadSecondaryViews())}
-            >
-              <TopView entry={top} parentPath={parentPath ?? '/'} secondary={secondary} />
-            </ResetErrorBoundary>
-          </Suspense>
-        </motion.div>
-      </AnimatePresence>
+      <div className="relative min-h-0 flex-1">
+        <AnimatePresence>
+          <ViewLayer key={top?.path ?? '/'}>
+            {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
+                suspend that shows `DrawerLoading` — the shared chrome (header plus close
+                control, rebuilt from the URL) over a spinner — and only a FAILED load
+                throws inward to the boundary. That is what keeps a first open of the
+                calendar, register, or share drawer from flashing blank or unstyled: the
+                drawer's identity is on screen from the first frame, and only its body
+                arrives late (issue #96). */}
+            <Suspense fallback={<DrawerLoading />}>
+              <ResetErrorBoundary
+                FallbackComponent={DrawerErrorFallback}
+                onReset={() => setSecondary(loadSecondaryViews())}
+              >
+                <TopView entry={top} parentPath={parentPath ?? '/'} secondary={secondary} />
+              </ResetErrorBoundary>
+            </Suspense>
+          </ViewLayer>
+        </AnimatePresence>
+      </div>
     </DrawerContent>
   )
 

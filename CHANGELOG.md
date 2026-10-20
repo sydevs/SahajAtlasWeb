@@ -287,6 +287,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **The panel no longer flickers halfway down on every navigation.** ([#312]) Since the widget
+  moved into its shadow root ([#236]), each change of view showed the arriving view in the lower
+  half of the panel for the length of the fade, before it jumped to the top. The fade relied on a
+  `<style>` element the animation library appended to your `<head>`, which cannot reach inside
+  the shadow root. The views now overlap for the fade instead, so nothing is added to your
+  `<head>` while the panel changes view. No change for you to make.
 - **Panels have their shadows, list rows their separators, and form fields their outlines
   again.** ([#311]) Since the widget moved into its shadow root ([#236]), Chrome, Edge and other
   Chromium browsers drew it with none of them: the `@property` registrations its borders and
@@ -734,6 +740,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
 [#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
+[#312]: https://github.com/sydevs/SahajAtlasWeb/pull/312
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe
