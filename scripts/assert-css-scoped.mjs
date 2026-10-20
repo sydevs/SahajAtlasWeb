@@ -37,10 +37,13 @@
  *   5. every fallbackless `var()` names a property this build declares —
  *      an undeclared one voids its whole declaration at computed-value
  *      time, which for an INHERITED property hands the HOST page the
- *      value (#262).
+ *      value (#262),
+ *   6. every `@property` rule is one `src/styles/sheet.ts` can lift onto
+ *      the document — inside the shadow root the engine ignores it, and
+ *      Tailwind's borders and shadows compute to `none` without it.
  *
- * Checks 1 to 4 ask whether a rule can reach a host page. Check 5 asks the
- * other direction: whether what we ship resolves at all.
+ * Checks 1 to 4 ask whether a rule can reach a host page. Checks 5 and 6 ask
+ * the other direction: whether what we ship resolves at all.
  *
  * `pnpm build` runs this gate, so both CI and the Cloudflare Pages build
  * enforce it.
@@ -166,6 +169,11 @@ const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
 // is, and anything else fails loudly rather than shipping unnoticed.
 const ALLOWED_PROPERTY = /^--tw-[a-z0-9-]+$/
 
+// ⚠ A copy of `PROPERTY_RULE` in `src/styles/sheet.ts`, which lifts these rules out of the
+// shadow root at runtime — a script cannot import the TypeScript. `sheet.test.ts` pins the
+// two copies equal. A registration this misses is one the document never gets.
+const PROPERTY_RULE = /@property\s+--[\w-]+\s*\{[^}]*\}/g
+
 // Schedule-X's theme is the one sheet allowed `rem`: third-party, pinned,
 // and injected only by the lazy calendar chunk. Its rem lengths also prove
 // the detector below still matches the minifier's output — finding none
@@ -225,7 +233,8 @@ function collectVars(root) {
     }
   })
 
-  // These carry a typed initial value, so a reference to one always computes.
+  // These carry a typed initial value, so a reference to one always computes — on the
+  // document, where `src/styles/sheet.ts` registers them (check 6).
   root.walkAtRules('property', (atRule) => {
     declared.add(atRule.params.trim())
   })
@@ -354,10 +363,13 @@ for (const file of distFiles('.js')) {
 
     refsByFile.push({ file, refs: vars.refs })
 
+    let sheetProperties = 0
+
     root.walkAtRules('property', (atRule) => {
       const name = atRule.params.trim()
 
       properties += 1
+      sheetProperties += 1
 
       if (!ALLOWED_PROPERTY.test(name)) {
         fail(
@@ -365,6 +377,16 @@ for (const file of distFiles('.js')) {
         )
       }
     })
+
+    const liftable = css.match(PROPERTY_RULE)?.length ?? 0
+
+    if (liftable !== sheetProperties) {
+      fail(
+        `${file}: ${sheetProperties} @property rule(s), but PROPERTY_RULE matches ${liftable} — ` +
+          `src/styles/sheet.ts lifts only what it matches onto the document, and a registration ` +
+          `left in the shadow root is ignored, so its borders and shadows compute to none`,
+      )
+    }
   }
 }
 
