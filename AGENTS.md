@@ -20,22 +20,24 @@ experience, with a country → region → area → venue → event hierarchy.
   **github** MCP for issues, PRs, and code search. Use the **Playwright** MCP to drive the
   running widget in a browser — screenshots, clicks, map interaction. See
   `docs/mcp-setup.md`.
-- **Modular rules and docs: three loaders**, split by scope, not by subject.
+- **Modular rules and docs: two loaders**, split by scope, not by subject.
 
   - **Nested `AGENTS.md` files** cover a directory's own scope: `src/AGENTS.md` (code
     style), `src/components/AGENTS.md` (components — `src/views/AGENTS.md` references
-    it). Each loads when an agent reads a file in that directory.
+    it), `scripts/AGENTS.md` (the bundle-size budget). Each loads when an agent reads a file
+    in that directory.
     Find them all: `find . -name AGENTS.md -not -path './node_modules/*'`.
   - **`docs/rules/*.md`**, symlinked into `.claude/rules/`, cover a set of files no single
-    directory names: `i18n-and-state.md`, `mapbox.md`, `data-layer.md`. Each declares a
-    `paths:` front-matter list and loads on a glob match.
+    directory names: `i18n-and-state.md`, `mapbox.md`, `data-layer.md`, `deployment.md`.
+    `docs/testing.md` is one too (`.claude/rules/testing.md`), kept at its own path because
+    the specs cite it there; § Testing below is its always-loaded summary.
+    Each declares a `paths:` front-matter list and loads on a glob match.
     ⚠ The key is `paths:`, not Cursor's `globs:`/`alwaysApply:` — Claude Code ignores
-    those. A rule with no valid `paths:` loads unconditionally (these three did, silently,
+    those. A rule with no valid `paths:` loads unconditionally (the first three did, silently,
     before). List them: `ls -l .claude/rules`.
-  - **`@docs/testing.md`** is imported at the bottom of this file, so it loads every
-    session. Its two lanes apply to any change.
 
-  **The rule bodies live in `docs/rules/`, symlinked into `.claude/rules/` on purpose:** a
+  **The rule bodies live in `docs/` (`docs/rules/`, plus `docs/testing.md`), symlinked into
+  `.claude/rules/` on purpose:** a
   direct write under `.claude/` triggers Claude Code's Protected Paths guard, which can
   stall an unattended run for good (it once cost ~75 minutes). A symlink editable outside
   `.claude/` still loads under its `docs/rules/…` name. Do not move content back into
@@ -54,21 +56,10 @@ experience, with a country → region → area → venue → event hierarchy.
 
 | Concern | Choice |
 | --- | --- |
-| Build tool | Vite 8 (`vite.config.ts`), `type: module`. Two entries: `index.html` (app) and `src/Widget.tsx` → `embed.js`. |
-| UI | React 18, **Radix UI** primitives (`@radix-ui/react-*`), Tailwind 4 (CSS-first `@theme`) plus **tailwind-variants**. |
-| Map | **Mapbox GL** via `react-map-gl`, `@mapbox/search-js-react`, `@turf/*` geo helpers. |
 | Routing | `react-router` v7 over a hand-written history (`src/router.tsx`, `src/lib/shape/routing.ts`). The route is the `?atlas=` query parameter on the host's page URL — indexable, shareable, and it never touches `#anchor`. `routing=path` puts it in the pathname instead, under a prefix from the client record's `canonical.embed`, so path mode waits for that record before it routes. It uses in-memory routing only where the document refuses `replaceState` (#154). |
-| Data | **TanStack Query** plus **`@payloadcms/sdk`** (`PayloadSDK`, `src/config/api/`), **zod**-checked responses. |
-| State | **zustand** (`src/config/store.ts`) plus URL query (search filters). |
 | i18n | `i18next` plus `react-i18next`. One namespace, served per locale by SahajCloud's `sy-atlas-translations` global; `src/config/translations.en.json` is the committed English snapshot i18next boots from (#198). |
-| Forms | `react-hook-form` plus `zod` (`@hookform/resolvers`). |
 | Calendar | **Schedule-X** (`@schedule-x/*`, pinned `2.36.0`) drives CalendarView's month/week/list grid. Our own header replaces SX's, via the `calendar-controls` plugin. |
-| Misc | `framer-motion`, `swiper`, `luxon` (dates), `dompurify`, `fathom-client` (analytics), `react-helmet-async`, `react-share` (region-aware share targets). |
-| Embedding | `@r2wc/react-to-web-component` (`src/Widget.tsx`). CSS injects via JS for shadow-free embedding. |
-| Deploy | **Cloudflare**, Pages and Workers — see Deployment below (#266, #279, #280). Deep-link fallback via `public/_redirects` on Pages and `assets.not_found_handling` on a Worker, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
-
-The app also runs standalone in dev (`index.html` → `src/main.tsx`). The embeddable
-entry is `src/Widget.tsx` (demo in `demo.html`).
+| Deploy | **Cloudflare**, Pages and Workers — see `docs/rules/deployment.md` (#266, #279, #280). Deep-link fallback via `public/_redirects` on Pages and `assets.not_found_handling` on a Worker, headers via `public/_headers`, indexing policy in `public/robots.txt`. |
 
 **The host-facing contract lives in `docs/embedding.md`** (the integrator guide) and
 `CHANGELOG.md` — attributes, the CSP a host must send, sizing, the URL shape, privacy.
@@ -89,129 +80,24 @@ Permissions Policy table holds the specifics.
 ## Essential commands
 
 ```bash
-pnpm dev          # Vite dev server (http://localhost:5174)
-pnpm build        # tsc (typecheck) + vite build → dist/ + assert:css + assert:maps
 pnpm build:worker # pnpm build, minus dist/_redirects — the app Worker's Builds command (#280)
-pnpm preview      # serve the production build locally
-pnpm typecheck    # tsc --noEmit (app + tests/scripts via tsconfig.test.json)
-pnpm lint         # eslint . --max-warnings 0 (CI gate — fails on any warning)
-pnpm lint:fix     # eslint . --fix (auto-fix + Prettier)
-pnpm test         # vitest watch (fast unit lane)
-pnpm test:run     # vitest run (one-shot — CI + pre-PR gate)
 pnpm test:smoke   # smoke specs vs a deployed preview (needs PREVIEW_URL)
 pnpm size         # eager-payload budget (CI gate — run after pnpm build)
 pnpm review:embed # serve dist/ as REAL host-page embeds for browser review (after pnpm build)
-pnpm ladle        # Ladle component previews (http://localhost:61000)
-pnpm ladle:build  # static Ladle build (CI gate — broken stories fail)
 pnpm check:wrangler # both Worker configs, dry run (CI gate — after pnpm build + ladle:build)
 ```
 
-Two test lanes: fast node-only unit (`src/**/*.test.ts(x)`, no jsdom, asserted via
-`renderToStaticMarkup`) and smoke (`tests/smoke/`, fetch-based against a deployed
-preview). See `docs/testing.md`. CI (`.github/workflows/ci.yml`) gates PRs on lint,
-typecheck, `test:run`, build, `pnpm size`, `ladle:build`, and `pnpm check:wrangler`, plus a
-Dependency Review job.
-Smoke runs separately, and the same specs read production on each deploy
-(`.github/workflows/production-smoke.yml`, #244 — the PR gate can only ever read a preview).
-A PostToolUse hook runs the specs one `src/**` or `scripts/**` edit can break, under the per-edit
-budget in `docs/testing.md`.
-
-Four CI gates exist because each one once missed something, unnoticed (#99). Each is
-built so passing proves something real:
-
-- **`pnpm size`** (`scripts/check-bundle-size.mjs`) budgets the gzipped eager payload —
-  the standalone shell's entry plus its modulepreload closure, and `embed.js`'s import
-  graph. Never budget a single chunk — the build re-chunks freely. A graph far under
-  budget also fails, since that is both a ratchet (lower `BUDGET_KIB` in the same commit)
-  and a sign of a half-broken import walker.
-  It also checks that the loader and embed graphs share no chunk. The size budget alone
-  cannot see this failure, since a shared chunk costs no bytes: one value import across
-  the `src/loader/` seam pulls a module into a chunk both entries import statically, so
-  every host fetches it on the loader's critical path whether the widget renders or not.
-  `src/loader/literals.ts` states this rule. #153 broke it anyway with a one-line string
-  join, since prose was the only enforcement. Fix: never import across the seam.
-  Duplicate the value into `literals.ts` and pin both copies in `literals.test.ts`.
-- **Dependency Review** (shared from `sydevs/claude-workflow`) fails only when a PR *adds*
-  a dependency with a high or critical runtime advisory. An advisory against a dependency
-  already on `main` never blocks a PR: the loop's daily Dependabot check fires `audit-deps`
-  to fix it. The full-lockfile `pnpm audit:check` gate it replaced failed four unrelated
-  PRs at once when a new advisory landed on `main` (#233, #237, #243, #248).
-- **A green Smoke check means the specs ran.** The job publishes the preview it reads, so no
-  address is discovered (#282). Only a fork, which holds no Cloudflare credential, and a
-  merge-queue entry, which has no pull-request number to key a preview on, skip quietly — and
-  both say so. Every other route to no preview fails the job, a same-repo PR with the secret
-  missing included. ⚠ It publishes with `wrangler versions upload`, never `wrangler preview`,
-  whose placeholder script makes deep links 404 on an assets-only Worker (`docs/testing.md`).
-- **`pnpm check:wrangler`** (`wrangler deploy --dry-run`) reads `wrangler.jsonc` and
-  `wrangler.design.jsonc`, which nothing else in this repo deploys from — Workers Builds holds
-  the dashboard's copy of each path. So a rename, a typo, or an `assets.directory` that drifts
-  from what `pnpm build` or `ladle:build` writes would surface only in a Cloudflare build log,
-  on `main` (#279, #280). It is also what makes the pinned `wrangler` devDependency
-  load-bearing rather than autocomplete.
-  ⚠ **Each half fails unless its output directory already exists** — `dist/` for the app,
-  `build/` for the playground — because the dry run checks the assets directory, which is the
-  drift case worth catching. Run `pnpm build` and `pnpm ladle:build` first; cold, the failure
-  names a missing directory and reads like a broken gate.
-  `scripts/wrangler-config.test.ts` pins which configs the gate names, since a script that
-  dry-runs one of them exits 0.
-
-## Code quality
-
-- **Formatting**: Prettier. See `src/AGENTS.md` for the exact rules. A PostToolUse hook
-  runs Prettier and `eslint --fix` on every edited file.
-- **Type checking**: `pnpm typecheck`. A PostToolUse hook also runs `tsc` after each
-  `.ts`/`.tsx` edit and reports errors for that file.
-- The hooks handle format and lint after every change. Run `pnpm typecheck` yourself for
-  cross-file type safety before you open a PR.
-
-## File layout
-
-```
-src/
-  Widget.tsx          # Web-component entry — defines <sahaj-atlas> (map prop), wraps <App>
-  App.tsx             # Providers + client bootstrap — renders the map (or not) + DrawerStack
-  main.tsx            # Standalone dev entry (BrowserRouter, ?map=0 for content-only)
-  providers.tsx       # React Query + Helmet (Radix is headless, BrandTheme mounts in App)
-  components/         # atomic taxonomy, folder-per-component — full taxonomy: DESIGN_SYSTEM.md
-    atoms/            # Primitives, e.g. Drawer/, Button/, Chip/, Select/, Icons/
-    molecules/        # Compositions, e.g. ListToolbar/, EventListItem/, ImageCarousel/, FormField/
-    organisms/        # Data-connected, e.g. EventsList/, EventDetails/, RegistrationForm/, Mapbox/
-    <tier>/<Name>/    # PascalCase folder: <Name>.tsx + <Name>.stories.tsx + index.ts
-    <tier>/index.ts   # one barrel per tier
-  views/              # URL-driven drawer views (replace pages/): DrawerStack + Countries (the base)/Search/Calendar/Region/Online/Event/Registration/Filter/Share/Compact
-  config/
-    api/              # PayloadSDK client + zod-parsed fetchers (client.ts, fetch.ts, mutate.ts, auth.ts) + query factories (index.ts)
-    store.ts          # zustand stores: view, camera-history, calendar-position, results-reveal, report-modal, registration-draft (filters live in the URL)
-    mode.ts           # WidgetMode context (standalone + hasMap + linkable)
-    i18n.ts           # i18next init
-    live-preview/     # protocol.ts = param names + session state (any graph); token.ts + request.ts (the credential header + the decorator that sends it) + boot.ts (standalone only)
-    responsive.ts, query-client.ts, i18n-options.ts, theme/
-  hooks/              # use-locale, use-mapbox, use-map-controller, use-expansion, use-theme, use-reduced-motion
-  lib/                # Pure domain helpers, no React or i18n. shape/ = URL + entity codecs
-                      # (filters, sort, path, country, hierarchy). geo.ts + camera.ts =
-                      # the maths. share/platforms.ts + country-sites.ts = static
-                      # country-keyed tables (not src/data/). report.ts = never-throws
-                      # error narrowing (errorMessage, classifyError, atlasError,
-                      # reportInternalError). Failure KIND is domain — its copy and
-                      # buttons are UI, so ERROR_POLICY lives with the fallbacks
-  test-support/       # Imported by specs only, and one spec asserts that. source-tree.ts = the
-                      # ONE walk of `src/` behind every spec that inventories the source, plus
-                      # its memoised reads and the comment strip; source-ast.ts = the memoised
-                      # `ts.SourceFile`; repo-source.ts = the ONE root a spec reads a repo file
-                      # through, for any read of a file or two, whichever directory the spec
-                      # sits in — two lint rules hold it (#302, #289). Each spec states its
-                      # own scope (#286)
-  types/              # zod schemas + inferred types per entity
-                      # config/translations.en.json = the committed English snapshot of
-                      # SahajCloud's `sy-atlas-translations`, written by
-                      # `pnpm sync:translations`. DATA, not source — never hand-edited.
-                      # Rules: `docs/rules/i18n-and-state.md`
-```
+Four CI gates exist because each one once missed something, unnoticed (#99): `pnpm size`
+(`scripts/AGENTS.md`), Dependency Review and `pnpm check:wrangler`
+(`docs/rules/deployment.md`), and Smoke (`docs/testing.md`). Never import a value across the
+`src/loader/` seam — duplicate it into `literals.ts` and pin both copies in
+`literals.test.ts` (#153).
 
 ## Conventions (see the nested `AGENTS.md` files and `docs/rules/` for detail)
 
-- **Path aliases**: `@/*` → `src/*` (Vite + tsconfig). Prefer `@/…` over deep relative
-  imports.
+- **`src/lib/`** is pure domain helpers — no React, no i18n. Static country-keyed tables live
+  there (`share/platforms.ts`, `country-sites.ts`), not in a `src/data/`. Failure KIND is domain
+  (`lib/report.ts`); its copy and buttons are UI, so `ERROR_POLICY` lives with the fallbacks.
 - **API layer**: every fetcher in `src/config/api/fetch.ts` parses the response through a
   zod schema from `src/types/`. Keep that contract. See `docs/rules/data-layer.md`.
 - **State**: zustand stores (`src/config/store.ts`) are the single source of truth for the
@@ -235,165 +121,31 @@ src/
   swipe, and Esc go chronologically back (`navigate(-1)`, restoring the prior camera) when
   in-widget history exists, and climb to the structural parent only for a fresh deep link
   (depth 0) — never popping the host page's history. See `docs/rules/i18n-and-state.md`.
-- **Map containment**: map mode fills the viewport only when the host gives
-  `<sahaj-atlas>` no height. Given a height, `MapFrame` (`src/views/MapFrame.tsx`) takes
-  the containing block with `contain: layout`, and the whole fixed layer re-parents onto
-  the host's box unchanged (#169). `lib/overlay.ts` holds the one frame reference, shared
-  with the compact card's expanded dialog. Never put `contain: layout` on the widget's
-  scope root — see `src/components/AGENTS.md`'s first statement for why.
-- **Layout**: when the interface does not fit, `AppShell` renders a compact card instead —
-  one task-named button. The real question is never "is this small" but "is the space
-  meaningfully smaller than where the button would send the visitor?" (`lib/slot-decision.ts`
-  plus `lib/embed-slot.ts` plus `useExpansion`, issue #161). Decided ONCE, at mount, above
-  `MapProvider`, so mapbox-gl is never fetched — a saving `pnpm size` cannot see, by
-  design. There is deliberately no override parameter. See `src/components/AGENTS.md`.
-- **Responsive**: the widget adapts to its own box, not the browser window
-  (`src/config/responsive.ts`, issue #107). `useIsWide`/`useIsWideWidget` measure the
-  container via a `DrawerStack`-owned `ResizeObserver` (`WidgetWidthContext`).
-  `useCoarsePointer` is for touch affordances. Map mode measures its frame where one
-  exists — a contained embed's box (#169), or the compact card's expanded dialog —
-  otherwise it defaults to the viewport, which is what an unsized map embed spans.
-  Detail and reasoning: `src/components/AGENTS.md`. `src/config/responsive.test.ts` pins
-  the viewport call sites as a closed list.
+- **Map containment, layout, responsive**: the widget adapts to its own box, not the window,
+  and a slot too small for any layout gets a compact card. Detail and reasoning:
+  `src/components/AGENTS.md` (#107, #161, #169). Never put `contain: layout` on the widget's
+  scope root.
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`. Never
   inline layer paint or layout in JSX. Camera control goes through the `MapController`
   seam (`src/hooks/use-map-controller.tsx`), a no-op when `map=false`, so no view needs to
   branch on whether a map exists. See `docs/rules/mapbox.md`.
-- **Components**: atomic tiers (`atoms`/`molecules`/`organisms`), one PascalCase folder
-  per component (`Chip/Chip.tsx` plus stories plus `index.ts`), named exports, one barrel
-  per tier. Prefer the existing atoms, Radix primitives, and `tailwind-variants` over a
-  hand-rolled styled component. See `DESIGN_SYSTEM.md`, `STORYBOOK.md`, and
-  `src/components/AGENTS.md`. Preview components with `pnpm ladle`.
-- **Tests**: node-only Vitest, co-located as `src/**/*.test.ts(x)`. Assert components with
-  `renderToStaticMarkup` (no jsdom). Run `pnpm test`. See `docs/testing.md`.
 
 ## Environment
 
 Vite env vars are prefixed `VITE_` and read via `import.meta.env`. Public defaults live
 in `.env`. Secrets live in `.env.local` (gitignored, matched by `*.local`). See
-`docs/environment.md` for the full variable reference and the client-exposure rule. Key
-vars used in this repo:
-
-- `VITE_SAHAJCLOUD_URL` — SahajCloud origin. The client appends `/api` (default
-  `https://cloud.sydevelopers.com`).
-- `VITE_MAPBOX_ACCESSTOKEN` — Mapbox GL public token (`pk.…`).
-- `VITE_SAHAJCLOUD_API_KEY` — published `sahaj-atlas-client` API key passed to the widget
-  in dev.
-- `VITE_FATHOM_ID` — Fathom analytics site id (optional).
-- `VITE_WEMEDITATE_MAP_URL` — where a framed embed too small for the interface sends a
-  visitor (a frame cannot expand in place). Public. A per-region canonical ownership will
-  eventually replace this default.
-- `VITE_TURNSTILE_SITE_KEY` — Cloudflare Turnstile site key for the report-issue form.
-  Public by design. `.env` ships the always-passes test key, and production must
-  override it — the form delivers real email since #103, so this key is what stands in
-  front of it.
-- `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` — build-time only, no `VITE_`
-  prefix (#130). Their presence switches source-map upload on. Unset, the build emits no
-  maps at all. Dashboard-only, on the `sahajatlas` project — see the runbook in
-  `docs/environment.md`.
+`docs/environment.md` for the full variable reference and the client-exposure rule.
 
 Never commit a real secret. `MAPBOX_SECRET_ACCESSTOKEN` (`sk.…`) and other non-`VITE_`
 secrets must never reach client code — the bundle is public.
 
 ## Deployment
 
-**This is the one place the deploy topology is written down.** Everything else that mentions it
-points here. Two Cloudflare sites deploy from this repo, on **both platforms**, because the
-move to Workers proceeds one site at a time and the app's own cutover is split from building it
-(#266, #279, #280):
-
-- **`sahajatlas`, the app, builds to both platforms during the move.** One `pnpm build` into
-  `dist/` feeds each.
-  - On **Cloudflare Pages**, served at `sahajatlas.pages.dev` and at the custom domain
-    `sahajatlas.com`. The Cloudflare dashboard holds its build command and output directory,
-    not the repo, and it has no `_routes.json`. ⚠ **This is what a visitor gets**, until #266's
-    last child moves the domain and deletes the project.
-  - On **Workers static assets**, from `wrangler.jsonc`, served at its own `workers.dev` host
-    and nowhere a visitor goes. Same shape as the playground's config below, pointed at
-    `dist/`. Workers Builds holds the build command and the trigger's variables and branch
-    rules **per trigger**, not per project — which is what `docs/environment.md` works out
-    for each variable.
-- **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
-  Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
-  `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
-  `not_found_handling: "single-page-application"`, previews on. Workers Builds holds the
-  build command and the trigger's branch and path rules.
-  The Workers build image honours `.node-version` and `packageManager`: the first build
-  (2026-10-13) reported `nodejs@22.17.0, pnpm@9.15.0`, though its own defaults are newer.
-  ⚠ **Its branch rules take only a literal branch name or a lone `*`.** The API refuses
-  `gh-readonly-queue/*` and `mockup/*` with `12002 Invalid request body`, although the docs
-  show prefix wildcards — so unlike the Pages app, merge-queue and mockup branches do start
-  preview builds here (#266).
-
-Three deploy files live in `public/`, copied into both build outputs. ⚠ **The two platforms do
-not read the same three.** `_headers` and `robots.txt` govern both sites; `_redirects` governs
-the Pages app alone:
-
-- **`_redirects`** (`/* /index.html 200`) — the SPA deep-link fallback for the standalone
-  `BrowserRouter` build, on the Pages app only. The embeddable widget routes off a query
-  parameter instead, so only the standalone build depends on this file. A Worker gets the
-  same behaviour from `assets.not_found_handling`.
-  ⚠ **Workers static assets do read `_redirects`, and reject this rule** as an infinite loop
-  (API code 100324) — the whole deploy fails. So `pnpm ladle:build` deletes it from `build/`.
-  `pnpm check:wrangler` cannot catch this, since the dry run never reaches the API.
-  ⚠ **The app cannot delete it in `pnpm build`**, because that one `dist/` is also what the
-  Pages project serving `sahajatlas.com` deploys, and Pages needs the line. So the app Worker
-  builds with **`pnpm build:worker`** — `pnpm build` plus the same `rm -f`, pointed at `dist/`
-  — and that, not `pnpm build`, is the Workers Builds build command for it (#280).
-  `scripts/wrangler-config.test.ts` pins the pairing, since nothing else reads it.
-- **`_headers`** — one site-wide `/*` rule carrying CORS (#91: a font always fetches in CORS
-  mode) and `X-Robots-Tag: noindex` (#106), plus `Cache-Control` on `/assets/*` and the two
-  unhashed entry files (#148). The `/locales/*` rule went with the bundles in #198.
-  ⚠ **No two rules may set the same header name on paths that overlap** — both platforms apply
-  every matching rule and comma-join a repeated value, so two would serve `<value>, <value>`.
-  `scripts/deploy-headers.test.ts` holds this before a deploy, and it is why CORS lives in one
-  rule only (#279). Pages adds CORS to every asset by itself; Workers static assets add none.
-- **`robots.txt`** — `Disallow: /`, with an allow-group for link-preview scrapers (#106).
-  WeMeditate and the other embedding sites own search, and this build's canonicals point
-  there. Read this file before you change any of the three.
-
-**`public/` is copied into both build outputs** — `dist/` from `pnpm build` and `build/`
-from `pnpm ladle:build` — so all three files also govern both Workers. That is
-intentional: a component playground is no more a search surface than the app is. Do not
-edit one of the three files "for the app" only — an edit has to hold on both platforms. Ladle
-generates its own `index.html`, so our
-`<meta robots>` tag never reaches the playground — the header covers it there instead.
-
-**Source maps are uploaded, then deleted — never deployed** (#130). The site-wide CORS rule
-above is why, together with `/assets/*`'s one-year immutable cache: CORS-open plus that cache
-would publish this repo's source irrevocably, from a page we don't own, if a `.map` file ever
-shipped. So
-`build.sourcemap` and `@sentry/vite-plugin` are both gated on `SENTRY_AUTH_TOKEN` — with
-no token, a build writes no maps at all (every local build, CI run, and fork build).
-`pnpm build` ends in `pnpm assert:maps` (`scripts/assert-no-sourcemaps.mjs`), a guarantee
-rather than an intention. It fails on any surviving `.map` file, and on any
-`sourceMappingURL` comment, since `sourcemap: 'inline'` would embed every source in the
-shipped JS while leaving no `.map` file behind.
-
-Three facts to remember:
-
-- **An upload failure is deliberately non-fatal.** A telemetry outage must never block a
-  bug fix, so a green deploy alone does not prove the maps got there — only `assert:maps`
-  and the build log do. Deletion runs in `writeBundle`'s `finally` block, the one path a
-  map could reach the output by, and the gate closes it.
-- **`pnpm size` in CI reads under production**, because the Sentry plugin needs credentials
-  CI lacks — that gap is its per-chunk debug-ID snippet. **The gap is per-graph, not a
-  constant**: it scales with chunk count, not bytes. Measured on the same commit
-  (uncredentialed vs the offline dry run below): **`standalone` +1.1 KiB, `embed` +1.2 KiB,
-  `loader` +0.3 KiB**. So never lower a budget to within *that graph's own measured gap* of
-  the CI number, and record both numbers beside the budget in
-  `scripts/check-bundle-size.mjs`. A flat figure is wrong in both directions — read as
-  2.1 KiB the loader's 3.5 KiB budget would have to be ≥ 4.7, above the 3.8 it already had.
-- **A credentialed build still runs in CI, offline.** The "Source-map upload chain
-  (offline dry run)" step in `ci.yml` builds with a dummy token against a closed port, so
-  emission, the non-fatal handler, deletion, and the gate are all proven on a runner
-  first.
-
-The Sentry variables are dashboard-only, and owed to **each** target that builds the app. The
-runbook is in `docs/environment.md`.
-
-CI's smoke lane publishes its own preview of the app Worker and checks all of the above against
-it (`.github/workflows/ci.yml`, #282). Nothing is discovered, so no project host is configured.
+Two Cloudflare sites deploy from this repo: the app, `sahajatlas`, and the Ladle playground,
+`sahajatlas-design` (#266, #279, #280). ⚠ `sahajatlas.com` is still the Pages project until
+#266's last child moves the domain. Source maps are uploaded, then deleted — never deployed
+(#130). Topology, the `public/` deploy files, the source-map policy and the deploy-side CI
+gates: `docs/rules/deployment.md`.
 
 Use the **cloudflare-docs** MCP for Cloudflare Pages and Workers questions. ⚠ Its published
 docs do not cover every wrangler config key — see `docs/mcp-setup.md` for what settles one
@@ -464,18 +216,23 @@ phases in full, including why they batch CI runs instead of pushing on every cha
 Both are enabled in `.claude/settings.json`.
 
 This repo's own variation lives in `.claude/workflow.json`: the lean gate, the contract
-step, the security-review trigger paths, and the autonomy allowlist. There is exactly one
-copy of each skill, so no parity spec needs to stay in sync.
-
-The lean gate is `.claude/skills/pr-prep/check.sh` (`pnpm lint && pnpm typecheck &&
-pnpm test:run`). CI adds the production build and `ladle:build` — see `docs/testing.md`.
+step, the security-review trigger paths, and the autonomy allowlist.
 
 ## Testing
 
-`docs/testing.md` is the testing guide: the two lanes and what each is for, the smoke
-lane's invariants and what a red one means, the node-only decision and the jsdom
-exception, the portal traps, and the spec conventions. It is imported below, so it loads
-with this file in every session — the split serves the reader, not the loader. Cite it as
-`docs/testing.md`.
+Two lanes: the node-only **unit** lane (`pnpm test:run`) and the fetch-only **smoke** lane
+(`pnpm test:smoke`, against a deployed preview). Validate only what your change can break:
 
-@docs/testing.md
+- **Per edit**, the PostToolUse hook runs the specs that edit selects, inside a 12-second
+  budget. To run more, name them: `pnpm test:run <spec>…`.
+- **Before a PR**, run the lean gate, `.claude/skills/pr-prep/check.sh` (lint, typecheck,
+  `test:run`); `--full` adds the build and `pnpm size`. Leave `ladle:build`, `check:wrangler`
+  and smoke to CI unless you are debugging one.
+
+Never add `@testing-library/react` or make jsdom the default — a spec opts in per file with
+`// @vitest-environment jsdom`. Never count a new assertion as coverage until you have watched
+it fail against the defect. Never assert a bare 200 in a smoke spec: the SPA fallback answers
+200 for any path. Never publish the smoke preview with `wrangler preview`.
+
+`docs/testing.md` holds the reasons, the measurements and the rest of the conventions. It
+loads by itself when you read a spec, a vitest config or the test tooling.
