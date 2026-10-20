@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { SINK_KEY } from './sheet'
+import { SINK_KEY, propertyRules } from './sheet'
 
 import { readRepoSource } from '@/test-support/repo-source'
 
@@ -67,5 +67,33 @@ describe('adoptStyles', () => {
   it('is the only exported way in, so no caller reaches the sink directly', () => {
     expect(sheet).toContain('export function adoptStyles')
     expect(sheet).not.toMatch(/export (function|const) sink\b/)
+  })
+})
+
+describe('propertyRules', () => {
+  it('lifts each registration in the shape the minifier emits, and nothing else', () => {
+    const css =
+      '@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}' +
+      ':where(.sy-atlas) .shadow{box-shadow:var(--tw-shadow)}' +
+      '@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}'
+
+    expect(propertyRules(css)).toEqual([
+      '@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}',
+      '@property --tw-border-style{syntax:"*";inherits:false;initial-value:solid}',
+    ])
+  })
+
+  it('finds none in a sheet that registers none', () => {
+    expect(propertyRules(':where(.sy-atlas) .a{color:red}')).toEqual([])
+  })
+
+  // `assert-css-scoped.mjs` fails the build when this pattern misses a rule the parser finds,
+  // and it can only check that with its own copy — a script cannot import the TypeScript.
+  it('matches the copy the CSS gate checks the build against', () => {
+    const literal = (source: string) => source.match(/^const PROPERTY_RULE = (.+)$/m)?.[1]
+    const gate = readRepoSource('scripts/assert-css-scoped.mjs')
+
+    expect(literal(sheet)).toBeDefined()
+    expect(literal(gate)).toBe(literal(sheet))
   })
 })

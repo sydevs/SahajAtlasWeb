@@ -2,12 +2,14 @@ import { Suspense, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
-import { ScheduleXCalendar, useNextCalendarApp } from '@schedule-x/react'
+import { useNextCalendarApp } from '@schedule-x/react'
 import { createViewList, createViewMonthGrid, createViewWeek } from '@schedule-x/calendar'
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 import { ChevronRight } from 'lucide-react'
 
 import '@schedule-x/theme-default/dist/index.css'
+
+import { CalendarMount } from './CalendarMount'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
@@ -335,7 +337,7 @@ function CalendarGrid({
   return (
     <DrawerBody className="max-w-none overflow-hidden p-4">
       <div className="sx-calendar">
-        <ScheduleXCalendar calendarApp={calendar} />
+        <CalendarMount calendar={calendar} />
       </div>
     </DrawerBody>
   )

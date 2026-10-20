@@ -1048,7 +1048,11 @@ Six honest exceptions, none of them styling your content:
   registers 62 of them, every one named `--tw-…`. Registering a name in your document gives it a
   typed initial value and `inherits: false` there, so a `--tw-…` property of your own would pick
   up those semantics. They cannot be renamed, since Tailwind writes the `var()` references
-  itself, so the build gate allows that one prefix by name and fails on any other.
+  itself, so the build gate allows that one prefix by name and fails on any other. They reach
+  your document as **one constructed stylesheet appended to `document.adoptedStyleSheets`**,
+  holding those registrations and nothing else: a registration inside a shadow root is ignored,
+  and without them the widget draws no borders and no shadows. Like the widget's own sheet, it is
+  constructed, so it asks nothing new of your [CSP](#content-security-policy).
 
 **The reverse direction is a boundary, not a defence.** The widget renders inside a **shadow
 root**, so a selector in your stylesheet cannot match an element inside it — at any specificity,

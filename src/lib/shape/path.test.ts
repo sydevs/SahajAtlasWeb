@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import {
   childRoute,
+  filterOriginRegion,
   isCanonicalPath,
   listResetKey,
   nearestKnownRegion,
@@ -50,6 +51,22 @@ describe('safePath', () => {
 
     // Deeper in the path these are just characters, like the backslash above.
     expect(safePath('/be/anna\tmaria')).toBe('/be/anna\tmaria')
+  })
+})
+
+describe('filterOriginRegion', () => {
+  it('names the region a filter drawer was opened over, at any depth', () => {
+    expect(filterOriginRegion('/gb/filters')).toBe('gb')
+    expect(filterOriginRegion('/gb/london/filters')).toBe('london')
+    expect(filterOriginRegion('/gb/s%C3%A3o-paulo/filters')).toBe('são-paulo')
+  })
+
+  it('is null over anything that is not a region, and off the filter drawer', () => {
+    expect(filterOriginRegion('/filters')).toBeNull()
+    expect(filterOriginRegion('/search/filters')).toBeNull()
+    expect(filterOriginRegion('/calendar/filters')).toBeNull()
+    expect(filterOriginRegion('/gb/london/507/filters')).toBeNull()
+    expect(filterOriginRegion('/gb/london')).toBeNull()
   })
 })
 

@@ -4,11 +4,17 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
 import { FocusScope } from '@radix-ui/react-focus-scope'
+import {
+  createCalendar,
+  createViewList,
+  createViewMonthGrid,
+  createViewWeek,
+} from '@schedule-x/calendar'
 import { hideOthers } from 'aria-hidden'
 import { createElement } from 'react'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { deepActiveElement } from './active-element'
 
@@ -28,6 +34,8 @@ const require_ = createRequire(import.meta.url)
 const FOCUS_SCOPE = '@radix-ui/react-focus-scope'
 
 const ARIA_HIDDEN = 'aria-hidden'
+
+const SCHEDULE_X = '@schedule-x/calendar'
 
 const PATCHES: Record<string, Patch> = {
   [FOCUS_SCOPE]: {
@@ -53,6 +61,32 @@ const PATCHES: Record<string, Patch> = {
       ["issue-10's exemption is collected from the target's own root", 'sydevsTargetRoot'],
     ],
     gone: [['correctTargets keeps the target, not its host', 'return correctedTarget;']],
+  },
+  // ⚠ All three builds, since the bundle loads `core.js` (`module`) while this lane loads
+  // `core.cjs.js` (`main`) — a spec green against one says nothing about the other.
+  [SCHEDULE_X]: {
+    files: ['dist/core.js', 'dist/core.cjs.js', 'dist/core.umd.js'],
+    hunks: [
+      ['ids resolve through the rendered roots too', 'const sydevsById = (id) => {'],
+      ['selectors resolve through the rendered roots too', 'const sydevsQuery = (selector) => {'],
+      ['render records the element it rendered into', 'sydevsContainers.add(el);'],
+      ['the week grid is sized on that element', "sydevsSetProperty('--sx-week-grid-height'"],
+      ['the hour rows are sized on that element', "sydevsSetProperty('--sx-week-grid-hour-height'"],
+      ['calendar colours are set on that element', 'sydevsSetProperty(`--sx-color-${colorName}`'],
+      ['render sets the colours again', 'const sydevsColors = new EventColors(this.$app.config);'],
+    ],
+    gone: [
+      [
+        'the view container lookup reads only the document',
+        'document.getElementById(viewContainerId)',
+      ],
+      ['the wrapper lookup reads only the document', 'document.getElementById(calendarId)'],
+      ['view teardown reads only the document', 'document.getElementById(this.randomId)'],
+      [
+        'a variable is written onto the host page’s <html>',
+        'document.documentElement.style.setProperty(',
+      ],
+    ],
   },
 }
 
@@ -142,11 +176,11 @@ function consumersOf(module: string) {
 }
 
 /**
- * The two dependency patches the shadow boundary forces (#236).
+ * The dependency patches the shadow boundary forces (#236).
  *
- * Both libraries read the DOM in ways a shadow root defeats, and both fail SILENTLY: no
- * throw, no log, just a focus trap that does not trap and a screen reader that still
- * reaches everything behind a modal. `patches/` carries the fixes, so what is asserted
+ * Each library reads the DOM in ways a shadow root defeats, and each fails SILENTLY: no
+ * throw, no log, just a focus trap that does not trap, a screen reader that still reaches
+ * everything behind a modal, and a calendar with no grid. `patches/` carries the fixes, so what is asserted
  * here is the installed library's behaviour through a real boundary — the only place the
  * defect is observable.
  *
@@ -281,8 +315,81 @@ describe('FocusScope through a shadow boundary', () => {
   })
 })
 
+describe('Schedule-X through a shadow boundary', () => {
+  // Unpatched, the core finds its view container with `document.getElementById`, which
+  // cannot see into the root, so the grid never renders: the embed showed the calendar's
+  // header over an empty body.
+  it('renders its view inside a shadow root', async () => {
+    const root = mountShadowHost()
+    const container = document.createElement('div')
+
+    root.append(container)
+
+    const calendar = createCalendar({
+      views: [createViewMonthGrid(), createViewList()],
+      selectedDate: '2026-10-19',
+      events: [{ id: 1, title: 'Meditation', start: '2026-10-20 19:00', end: '2026-10-20 20:00' }],
+    })
+
+    await act(async () => {
+      calendar.render(container)
+    })
+
+    // The view mounts a beat after the wrapper, from an effect.
+    await vi.waitFor(() => {
+      expect(root.querySelector('.sx__view-container .sx__month-grid-wrapper')).not.toBeNull()
+    })
+
+    await act(async () => {
+      calendar.destroy()
+    })
+  })
+
+  // Unpatched, both go onto the host page's <html>. There the theme's
+  // `:root { --sx-week-grid-height: 0 }`, restated on the widget's scope root inside the
+  // shadow root, wins over the inherited height, so the week grid collapsed to 0px; and a
+  // colour written as `hsl(var(--secondary-9))` resolves against the host's tokens, not ours,
+  // so online events lost their colour.
+  it('sets its sizing and colours on the element it rendered into, not on the host page', async () => {
+    const root = mountShadowHost()
+    const container = document.createElement('div')
+
+    root.append(container)
+
+    const online = { main: 'red', container: 'pink', onContainer: 'black' }
+    const calendar = createCalendar({
+      views: [createViewWeek()],
+      selectedDate: '2026-10-19',
+      weekOptions: { gridHeight: 1200 },
+      calendars: { online: { colorName: 'online', lightColors: online, darkColors: online } },
+    })
+
+    await act(async () => {
+      calendar.render(container)
+    })
+
+    await vi.waitFor(() => {
+      expect(container.style.getPropertyValue('--sx-week-grid-height')).toBe('1200px')
+    })
+    expect(container.style.getPropertyValue('--sx-week-grid-hour-height')).toBe('50px')
+    expect(container.style.getPropertyValue('--sx-color-online')).toBe('red')
+    expect(document.documentElement.getAttribute('style') ?? '').toBe('')
+
+    await act(async () => {
+      calendar.destroy()
+    })
+  })
+
+  // No consumer pin below: only `@schedule-x/react` reaches this package besides us, as a peer,
+  // so it resolves our pinned copy rather than bringing its own.
+  it('keeps every hunk in our own pinned copy', () => {
+    expectPatched(SCHEDULE_X, packageRoot(require_, SCHEDULE_X), 'our pin')
+  })
+})
+
 /**
- * ⚠ The two pins above answer for the copy OUR patch is keyed to, so neither can report drift.
+ * ⚠ The focus-scope and aria-hidden pins above answer for the copy OUR patch is keyed to, so
+ * neither can report drift.
  * The copy that matters is the one each consumer resolves, and the two are different questions.
  *
  * Radix pins its own primitives EXACTLY — dialog, menu, popover and select each declare

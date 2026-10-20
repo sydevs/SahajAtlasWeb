@@ -211,13 +211,14 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
           heading at all. It still holds the left slot so the control stays right-aligned. */}
       {title ? <DrawerTitle title={title} /> : <div />}
       <div className="flex shrink-0 items-center gap-2">
-        {/* A region's own header offers these two, and both still work — they navigate
-            rather than read. The calendar is scoped to the region whose page failed, which
-            is exactly where a viewer wanted to be. */}
+        {/* A region's own header offers these three, and all still work — they navigate
+            rather than read. The calendar and the filters are scoped to the region whose page
+            failed, which is exactly where a viewer wanted to be. */}
         {entry.kind === 'region' && (
           <>
             <CalendarButton regionSlug={entry.slug} />
             <SearchButton />
+            <FilterButton iconOnly />
           </>
         )}
         {entry.kind === 'online' && <SearchButton />}

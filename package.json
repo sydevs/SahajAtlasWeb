@@ -131,7 +131,8 @@
     "patchedDependencies": {
       "vaul@1.1.2": "patches/vaul@1.1.2.patch",
       "@radix-ui/react-focus-scope@1.1.16": "patches/@radix-ui__react-focus-scope@1.1.16.patch",
-      "aria-hidden@1.2.6": "patches/aria-hidden@1.2.6.patch"
+      "aria-hidden@1.2.6": "patches/aria-hidden@1.2.6.patch",
+      "@schedule-x/calendar@2.36.0": "patches/@schedule-x__calendar@2.36.0.patch"
     },
     "overrides": {
       "@radix-ui/react-focus-scope": "1.1.16",

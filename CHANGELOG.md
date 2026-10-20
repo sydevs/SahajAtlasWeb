@@ -152,6 +152,10 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Added
 
+- **A region's panel has a filter control.** ([#311]) It sits beside search on every country,
+  city and venue panel, with the same active-count badge the country list's carries. It opens
+  the filters scoped to that region, so applying them lists the region's matching classes, not
+  the whole world's. No parameter, no origin, and no change to your snippet.
 - **`gestures=cooperative` lets your page scroll past a contained map.** ([#251]) A map sized
   into your page took every wheel and one-finger gesture, so a visitor scrolling down the page
   got stuck zooming or panning the map instead. With this parameter the page scrolls, and the
@@ -283,6 +287,20 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Fixed
 
+- **Panels have their shadows, list rows their separators, and form fields their outlines
+  again.** ([#311]) Since the widget moved into its shadow root ([#236]), Chrome, Edge and other
+  Chromium browsers drew it with none of them: the `@property` registrations its borders and
+  shadows depend on were declared inside the shadow root, where those browsers ignore them. They
+  are now registered on your document, as
+  [What the widget does to your page](docs/embedding.md#what-the-widget-does-to-your-page)
+  already said they were — one constructed stylesheet on `document.adoptedStyleSheets`, holding
+  the same 62 `--tw-…` names and nothing else. No CSP change.
+- **The calendar view shows its grid in an embed again.** ([#311]) Since [#236], the month,
+  week and list views showed their header over an empty body on every host page, because the
+  calendar library looked its own elements up on your document, which cannot see into the
+  shadow root. With that fixed, it also stopped writing its grid sizing and calendar colours
+  onto your page's `<html>` element as inline style properties — inside the widget they had
+  collapsed the week grid and left online classes uncoloured.
 - **Your page's text colour no longer tints the widget's copy.** ([#262]) `color` is one of the
   six inherited properties the widget restates on its own root, and for `color` the restatement
   had never worked — it named an internal variable that nothing declared, which voids the whole
@@ -715,6 +733,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#232]: https://github.com/sydevs/SahajAtlasWeb/issues/232
 [#236]: https://github.com/sydevs/SahajAtlasWeb/issues/236
 [#262]: https://github.com/sydevs/SahajAtlasWeb/issues/262
+[#311]: https://github.com/sydevs/SahajAtlasWeb/pull/311
 [Sizing the element]: docs/embedding.md#sizing-the-element
 [compact card]: docs/embedding.md#when-the-slot-is-too-small
 [Embedding in an iframe]: docs/embedding.md#embedding-in-an-iframe

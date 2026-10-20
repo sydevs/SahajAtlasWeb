@@ -48,6 +48,44 @@ function sink(): Sink {
   return (scope[SINK_KEY] ??= { chunks: [], listeners: [] })
 }
 
+/** One `@property` rule, as the minifier emits it: a name, then a brace-free body. */
+const PROPERTY_RULE = /@property\s+--[\w-]+\s*\{[^}]*\}/g
+
+/** Every `@property` rule in a chunk's CSS, in order. */
+export function propertyRules(css: string): string[] {
+  return css.match(PROPERTY_RULE) ?? []
+}
+
+/** The one document-level sheet holding the hoisted registrations, shared by every root. */
+let propertySheet: CSSStyleSheet | null = null
+
+/**
+ * Register the sheet's `@property` rules on the document that owns `root`.
+ *
+ * ⚠ **An `@property` rule inside a shadow root is ignored** (measured, Chromium 143), and
+ * Tailwind 4 composes every border, shadow and ring through registered `--tw-*` names — so
+ * unregistered, `border-style: var(--tw-border-style)` and `box-shadow: var(--tw-…)` are
+ * invalid at computed-value time and the embed shipped with no borders and no shadows. The
+ * registration is document-global either way, which `docs/embedding.md` already declares.
+ * A constructed sheet, like the widget's own, so `style-src` is not asked again.
+ */
+function hoistProperties(root: DocumentOrShadowRoot, chunks: Chunk[]): void {
+  if (!(root instanceof ShadowRoot)) return
+
+  const rules = chunks.flatMap((chunk) => propertyRules(chunk.css))
+
+  if (rules.length === 0) return
+
+  const owner = root.host.ownerDocument
+
+  propertySheet ??= new CSSStyleSheet()
+  propertySheet.replaceSync(rules.join('\n'))
+
+  if (!owner.adoptedStyleSheets.includes(propertySheet)) {
+    owner.adoptedStyleSheets = [...owner.adoptedStyleSheets, propertySheet]
+  }
+}
+
 /**
  * Adopt the widget's stylesheet into one root, and keep it adopted as later chunks
  * arrive.
@@ -83,6 +121,7 @@ export function adoptStyles(root: DocumentOrShadowRoot): void {
     const foreign = root.adoptedStyleSheets.filter((sheet) => !mine.includes(sheet))
 
     root.adoptedStyleSheets = [...foreign, ...mine]
+    hoistProperties(root, live.chunks)
   }
 
   sync()

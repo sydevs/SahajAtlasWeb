@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SINK_KEY, adoptStyles } from './sheet'
 
@@ -89,5 +89,54 @@ describe('adoptStyles', () => {
     adoptStyles(seed(document))
 
     expect(rules(document)).toContain('red')
+  })
+})
+
+describe('adoptStyles — @property registrations', () => {
+  const REGISTERED = '@property --tw-x{syntax:"*";inherits:false;initial-value:solid}'
+
+  // The engine ignores an `@property` rule inside a shadow root, so a sheet adopted there
+  // registers nothing, and every Tailwind border and shadow computes to `none` (#243's
+  // regression). What this pins is where the registrations end up, since jsdom applies none
+  // of them either way.
+  it('registers a shadow root’s @property rules on the document, and nothing else', () => {
+    seed(document)
+    const root = openRoot()
+
+    inject(`${REGISTERED} .a { border-bottom-style: var(--tw-x); }`)
+    adoptStyles(root)
+
+    expect(rules(document)).toContain('@property --tw-x')
+    expect(rules(document)).not.toContain('.a')
+    expect(rules(root)).toContain('.a')
+  })
+
+  // ⚠ jsdom's parser drops an `@property` rule that follows another, so the second name
+  // cannot be read back out of `cssRules` here. A real engine keeps all 62 the build emits.
+  // The text handed to the document sheet is what this module controls, so that is read.
+  it('carries a lazy chunk’s registrations in the same document sheet', () => {
+    seed(document)
+    const root = openRoot()
+    const replace = vi.spyOn(CSSStyleSheet.prototype, 'replaceSync')
+
+    inject(REGISTERED)
+    adoptStyles(root)
+    inject('@property --tw-y{syntax:"*";inherits:false}')
+
+    const sheet = document.adoptedStyleSheets[0]
+    const written = replace.mock.calls.filter((_, i) => replace.mock.contexts[i] === sheet).at(-1)
+
+    expect(written?.[0]).toContain('--tw-x')
+    expect(written?.[0]).toContain('--tw-y')
+    expect(document.adoptedStyleSheets).toHaveLength(1)
+
+    replace.mockRestore()
+  })
+
+  it('adds no second sheet when the root IS the document, which registers them itself', () => {
+    inject(REGISTERED)
+    adoptStyles(seed(document))
+
+    expect(document.adoptedStyleSheets).toHaveLength(1)
   })
 })

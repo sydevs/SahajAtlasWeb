@@ -20,6 +20,7 @@ import {
   CloseButton,
   DrawerTitle,
   EmptyEventList,
+  FilterButton,
   GeolocationSuggestion,
   SearchButton,
   useFrameOnTop,
@@ -87,11 +88,13 @@ export function RegionView({ slug }: { slug: string }) {
       )}
       <DrawerHeader className="justify-between">
         <DrawerTitle subtitle={subheader} title={header} />
-        {/* Calendar, search, and close form one right-aligned control group. justify-between
-            keeps the title left. The calendar opens pre-scoped to this region. */}
+        {/* Calendar, search, filters and close form one right-aligned control group.
+            justify-between keeps the title left. The calendar and the filters both open
+            pre-scoped to this region. */}
         <div className="flex shrink-0 items-center gap-2">
           <CalendarButton regionSlug={region.slug} />
           <SearchButton />
+          <FilterButton iconOnly />
           <CloseButton />
         </div>
       </DrawerHeader>
