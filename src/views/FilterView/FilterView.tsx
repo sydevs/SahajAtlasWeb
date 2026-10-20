@@ -13,6 +13,7 @@ import { useRegionMatcher } from '@/hooks/use-region-matcher'
 import {
   DEFAULT_FILTERS,
   type EventFilters,
+  filterOriginRegion,
   filtersKey,
   filtersToParams,
   hasActiveFilters,
@@ -22,13 +23,14 @@ import {
 } from '@/lib/shape'
 import { CloseButton, DrawerTitle } from '@/views/shared'
 
-// The event-filters drawer, at route `/filters`, or `/search/filters` when stacked over a
-// search. This is a normal drawer view, with standard header and close chrome, and the usual
-// stacking. Filters are NOT applied live — the form edits a local draft. "Apply (N)" shows
-// only when the draft differs from what is applied. It commits the draft into the /search
-// query — the single source of truth that drives the list and the map — and closes the
-// drawer, showing how many events the draft matches. "Clear all" resets everything, applies,
-// and closes. The per-filter clears inside the form stay draft-only.
+// The event-filters drawer, at route `/filters`, `/search/filters` when stacked over a
+// search, or `<region-path>/filters` over a region. This is a normal drawer view, with
+// standard header and close chrome, and the usual stacking. Filters are NOT applied live —
+// the form edits a local draft. "Apply (N)" shows only when the draft differs from what is
+// applied. It commits the draft into the /search query — the single source of truth that
+// drives the list and the map — and closes the drawer, showing how many events the draft
+// matches. "Clear all" resets everything, applies, and closes. The per-filter clears inside
+// the form stay draft-only.
 // `initialDraft` seeds the form's draft for previews and tests, so a story can open in a
 // filled, unapplied "dirty" state. The app itself renders `<FilterView />` starting from the
 // applied filters.
@@ -39,8 +41,15 @@ export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {
   const applied = useEventFilters()
 
   // Start from the applied filters. This draft is discarded on close, unless the user
-  // applies it.
-  const [draft, setDraft] = useState(initialDraft ?? applied)
+  // applies it. Opened over a region, the draft starts scoped to it — see
+  // `filterOriginRegion` — so "Apply" offers that region's count straight away.
+  const [draft, setDraft] = useState(
+    () =>
+      initialDraft ?? {
+        ...applied,
+        region: applied.region ?? filterOriginRegion(location.pathname),
+      },
+  )
   // Region cut for the live count, from the draft's selected region (see matchesFilters).
   const matchesRegion = useRegionMatcher(draft.region)
 

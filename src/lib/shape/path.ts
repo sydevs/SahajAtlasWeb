@@ -348,6 +348,23 @@ export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =
   hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
 
 /**
+ * The region a filter drawer was opened over, or `null` — `/gb/london/filters` → `london`.
+ *
+ * A region's list does not itself reflect filters, so applying from there lands on
+ * `/search`. Without this as the starting scope, that search would be worldwide: filtering
+ * "evenings" from the UK would list evenings everywhere.
+ */
+export const filterOriginRegion = (pathname: string): string | null => {
+  const entries = resolveStack(pathname)
+
+  if (entries.at(-1)?.kind !== 'filters') return null
+
+  const origin = entries.at(-2)
+
+  return origin?.kind === 'region' ? origin.slug : null
+}
+
+/**
  * The entry the BASE drawer is showing — the stack's last entry, unless that is a
  * filter overlay.
  *
