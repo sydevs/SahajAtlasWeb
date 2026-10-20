@@ -158,6 +158,26 @@ export default [
     },
   },
   {
+    // framer-motion's popLayout pops the outgoing child out of flow with a `<style>` it appends
+    // to `document.head` — the host's head, which cannot reach into the widget's shadow root. So
+    // in an embed nothing pops, and the incoming view lands beside the outgoing one: the
+    // drawer's views flickered in halfway down the panel until
+    // `src/views/DrawerStack/ViewLayer.tsx` replaced it. Shipped code only, so this scope
+    // overlaps neither block below.
+    files: ['src/**/*.tsx'],
+    ignores: ['**/*.{test,spec}.tsx', 'src/test-support/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value="popLayout"]',
+          message:
+            'popLayout styles the host document, not the shadow root — overlap the layers absolutely instead (src/views/DrawerStack/ViewLayer.tsx).',
+        },
+      ],
+    },
+  },
+  {
     // The non-spec half of the lane's module graph: `source-tree.ts` is what the defect actually
     // killed and it is no spec, and six `scripts/*.mjs` are in the graph one directory over,
     // five of them imported by a spec. Shipped code and the build configs are out —
