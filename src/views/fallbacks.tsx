@@ -14,7 +14,7 @@ import { eventTitlesQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useLocale } from '@/hooks/use-locale'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, resolveStack } from '@/lib/shape'
+import { baseStackEntry, resolveStack, submitTitleKey } from '@/lib/shape'
 import {
   CalendarButton,
   CloseButton,
@@ -160,6 +160,9 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
         })
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })
+      case 'add':
+      case 'correct':
+        return t(submitTitleKey(entry.kind))
       default:
         return undefined
     }
@@ -186,13 +189,13 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
               tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
               the real field. There it is the escape hatch.
 
-              `syncToUrl={false}` for the same reason the BODY's field sets it. The only
+              `query="read-only"` for the same reason the BODY's field sets it. The only
               interactive case here is the error chrome, whose URL is the dead one this
               boundary just reported. Embedded, that URL lives in the host page's `#!`
               fragment, so writing keystrokes into it spreads a broken link into anything the
               visitor copies. Selecting a place still navigates. Only the `?q` echo is
               dropped. */}
-          {interactive ? <SearchField syncToUrl={false} /> : <SearchFieldSkeleton />}
+          {interactive ? <SearchField query="read-only" /> : <SearchFieldSkeleton />}
           {dismiss}
         </DrawerHeader>
         <DrawerToolbar>
@@ -304,6 +307,7 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
     case 'event':
     case 'register':
     case 'share':
+    case 'correct':
       return 'not-found-event'
     case 'region':
     case 'online':
@@ -350,12 +354,12 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
       reportContext={errorMessage(error) ?? undefined}
       resetErrorBoundary={resetErrorBoundary}
     >
-      {/* `syncToUrl={false}`. This URL is the dead one this boundary just reported. Embedded,
+      {/* `query="read-only"`. This URL is the dead one this boundary just reported. Embedded,
           it lives in the host page's `#!` fragment, so writing keystrokes into it spreads a
           broken link into anything the visitor copies. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
-        syncToUrl={false}
+        query="read-only"
       />
     </FallbackPanel>
   )

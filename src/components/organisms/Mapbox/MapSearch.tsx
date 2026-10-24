@@ -14,14 +14,18 @@ export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
   /**
-   * This mirrors what is typed into `?q` on the current URL (default `true`),
-   * so a reload or a shared link keeps the query. Pass `false` where the
-   * current URL is known-bad — the error screen for a dead link (issue #89).
-   * Writing state into a URL already flagged as broken only spreads the
-   * problem: embedded, that URL lives in the host page's `#!` fragment and
-   * travels with anything the visitor copies.
+   * Where the field's text lives.
+   *
+   * - `'url'` (default) mirrors what is typed into `?q`, so a reload or a shared link keeps the
+   *   query.
+   * - `'read-only'` still shows the URL's `?q` but never writes it — for where the current URL
+   *   is known-bad, the error screen for a dead link (issue #89). Writing state into a URL
+   *   already flagged as broken only spreads the problem: embedded, that URL lives in the host
+   *   page's `#!` fragment and travels with anything the visitor copies.
+   * - `{ initial }` makes this a form field (#147): it seeds from that value, and never reads or
+   *   writes `?q`.
    */
-  syncToUrl?: boolean
+  query?: 'url' | 'read-only' | { initial: string }
   /**
    * This is the accessible name and placeholder. It defaults to the "search
    * for events near…" phrasing, which is right in a header, where position
@@ -29,6 +33,16 @@ export interface MapSearchProps {
    * events when the field sits in an error body instead.
    */
   label?: string
+  /**
+   * Restricts suggestions to these Geocoding feature types, comma-separated — `place` for an
+   * online class's city, `address` for a venue (#147). Every type is offered when omitted.
+   */
+  types?: string
+  /**
+   * Biases suggestions toward this point rather than the map's centre — the region an
+   * add-a-class flow opened from, which a map-less embed has no camera to say.
+   */
+  proximity?: { lng: number; lat: number }
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -55,10 +69,13 @@ class GeocoderBoundary extends Component<
   }
 }
 
-export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps) {
+export function MapSearch({ onSelect, query = 'url', label, types, proximity }: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
-  const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
+  const isFormField = typeof query === 'object'
+  const [searchQuery, setSearchQuery] = React.useState(
+    isFormField ? query.initial : searchParams.get('q') || '',
+  )
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
@@ -97,22 +114,22 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   }, [])
 
   React.useEffect(() => {
-    if (urlQuery === ownWrite.current) return
+    if (isFormField || urlQuery === ownWrite.current) return
 
     ownWrite.current = urlQuery
     setSearchQuery(urlQuery)
-  }, [urlQuery])
+  }, [urlQuery, isFormField])
 
-  const setQuery = (query: string) => {
-    setSearchQuery(query)
-    ownWrite.current = query
-    if (!syncToUrl) return
+  const setQuery = (text: string) => {
+    setSearchQuery(text)
+    ownWrite.current = text
+    if (query !== 'url') return
 
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
 
-        next.set('q', query)
+        next.set('q', text)
 
         return next
       },
@@ -149,7 +166,8 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            proximity: mapbox?.getCenter(),
+            proximity: proximity ?? mapbox?.getCenter(),
+            ...(types ? { types } : {}),
           }}
           placeholder={fieldLabel}
           theme={controlTheme}

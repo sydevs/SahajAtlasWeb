@@ -22,7 +22,7 @@ import { Select, SelectItem } from '@/components/atoms/Select'
 import { Textarea } from '@/components/atoms/Textarea'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
 import api from '@/config/api'
-import { UserSubmissionError, USER_SUBMISSION_VALUE_MAX } from '@/config/api/mutate'
+import { USER_SUBMISSION_VALUE_MAX, refusalCopyKey } from '@/config/api/mutate'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import { lexicalToText } from '@/lib/shape/lexical'
 import {
@@ -50,19 +50,14 @@ import { userSubmissionValueMax } from '@/config/api/mutate'
  *   The challenge has been reset under the viewer by then, so the copy
  *   tells them to wait for it and re-send, rather than offering the email
  *   escape.
- * - `captcha_unavailable` — Cloudflare is unreachable on OUR side. There is
- *   nothing the sender can fix, and re-sending is the only move, so this
- *   takes the generic sentence.
+ * - `captcha_unavailable` and `content_unscannable` take the generic
+ *   sentence — see `UserSubmissionErrorCode`.
  * - `invalid_email` and `disposable_email` — the address. Both name the
  *   field, because the sender can change it, or clear it, since the
  *   address is optional.
  * - `urls_not_allowed` — a link in the message body. This is actionable,
  *   and worth saying precisely. The generic "wait for the security check"
  *   is actively misleading here, since waiting will never help.
- * - `content_unscannable` — the guard could not finish checking the
- *   submission. It names the `proposed` patch of an event proposal, which no
- *   intake in this widget sends, so re-sending is the only move a reporter
- *   has and the generic sentence is the honest one.
  */
 const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   captcha_failed: 'common.report_errors.captcha',
@@ -435,19 +430,10 @@ export function ReportIssueForm({
   // A named refusal gets its own sentence. Everything else — offline, 5xx,
   // a 502 from the mailer — gets the generic one. The thrown message never
   // reaches the screen. It is developer text, and it travels in the
-  // report. This uses `hasOwnProperty`, not a bare index: `code` is a cast
-  // over a `z.string()`, so at runtime it is whatever the response body
-  // said. A bare lookup walks the prototype chain, and a code of
-  // `constructor` or `toString` would hand `t()` a truthy non-string in
-  // place of the failure sentence. `isErrorKind` in lib/report.ts uses the
-  // same spelling.
-  const refusalKey =
-    mutation.error instanceof UserSubmissionError &&
-    Object.prototype.hasOwnProperty.call(REFUSAL_MESSAGE_KEYS, mutation.error.code)
-      ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
-      : undefined
-
-  const failureMessage = refusalKey ? t(refusalKey) : t('common.report_errors.send_failed')
+  // report.
+  const failureMessage = t(
+    refusalCopyKey(mutation.error, REFUSAL_MESSAGE_KEYS, 'common.report_errors.send_failed'),
+  )
 
   const failed = initialFailed || mutation.isError
 

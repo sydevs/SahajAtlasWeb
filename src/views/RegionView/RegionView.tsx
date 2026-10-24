@@ -6,14 +6,14 @@ import { Monitor } from 'lucide-react'
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { EventListItem, List, ListItem } from '@/components/molecules'
+import { AddClassLink, EventListItem, List, ListItem } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
-import { childRoute, searchPath } from '@/lib/shape'
+import { addClassPath, childRoute, searchPath } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CalendarButton,
@@ -176,6 +176,9 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
+        {/* A region or venue page opens the flow over itself, so its address search starts
+            near this place (#147). */}
+        <AddClassLink href={addClassPath(region.path)} label={t('submit.chrome.add_here')} />
       </DrawerBody>
     </>
   )

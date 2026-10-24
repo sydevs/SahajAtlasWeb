@@ -4,18 +4,17 @@ import { type ReactNode, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Info } from 'luxon'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown } from 'lucide-react'
 
-import { Checkbox } from '@/components/atoms/Checkbox'
 import { Combobox } from '@/components/atoms/Combobox'
-import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { fieldChrome } from '@/components/atoms/Select'
 import api, { regionsQuery } from '@/config/api'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
+import { feedLanguageCodes } from '@/lib/events'
+import { useLanguageOptions } from '@/hooks/use-language-options'
+import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
 import {
   type EventCadence,
   type EventFilters,
@@ -166,7 +165,7 @@ export type SearchFiltersProps = {
  */
 export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   const { t } = useTranslation()
-  const { locale, languageLabel } = useLocale()
+  const { locale } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = value
 
   // Patch one or more fields of the current draft.
@@ -225,17 +224,8 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   }, [locale])
 
   // The distinct language codes present in the feed, labelled and sorted per locale.
-  const languageOptions = useMemo(() => {
-    const codes = new Set<string>()
-
-    geojson?.features.forEach((feature) =>
-      feature.properties.languages.forEach((code) => codes.add(code)),
-    )
-
-    return [...codes]
-      .map((code) => ({ code, label: languageLabel(code) }))
-      .sort((a, b) => a.label.localeCompare(b.label, locale))
-  }, [geojson, languageLabel, locale])
+  const feedLanguages = useMemo(() => feedLanguageCodes(geojson), [geojson])
+  const languageOptions = useLanguageOptions(feedLanguages)
 
   const timeActive = isTimeRestricted(timeOfDay)
   // This shows the selected language names in the trigger, truncated, so
@@ -375,37 +365,14 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
         {languageOptions.length === 0 ? (
           <p className="text-sm text-gray-11">{t('filters.language.empty')}</p>
         ) : (
-          <Dropdown
-            fullWidth
-            aria-label={t('filters.language.label')}
-            role="dialog"
-            trigger={
-              <span className={fieldChrome({ trigger: true, highlight: languages.length > 0 })}>
-                <span className="truncate">{languageTriggerLabel}</span>
-                <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
-              </span>
-            }
-          >
-            <div className="max-h-56 overflow-y-auto p-1">
-              {languageOptions.map((option) => (
-                <Checkbox
-                  key={option.code}
-                  appearance="checkbox"
-                  checked={languages.includes(option.code)}
-                  className="w-full rounded px-2 py-1.5 hover:bg-gray-3"
-                  onCheckedChange={() =>
-                    patch({
-                      languages: languages.includes(option.code)
-                        ? languages.filter((code) => code !== option.code)
-                        : [...languages, option.code],
-                    })
-                  }
-                >
-                  {option.label}
-                </Checkbox>
-              ))}
-            </div>
-          </Dropdown>
+          <LanguageMultiSelect
+            highlight={languages.length > 0}
+            label={t('filters.language.label')}
+            options={languageOptions}
+            triggerLabel={languageTriggerLabel}
+            value={languages}
+            onChange={(next) => patch({ languages: next })}
+          />
         )}
       </FilterGroup>
 

@@ -3,7 +3,7 @@ import type { ReportContext } from '@/lib/report'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import z from 'zod'
 
-import mutate, { UserSubmissionError, RegistrationRefusedError } from './mutate'
+import mutate, { UserSubmissionError, RegistrationRefusedError, refusalCopyKey } from './mutate'
 
 // This uses the same boundary mock as `fetch.test.ts`.
 // It stubs the SDK, so `requestJson` runs against a controlled Response.
@@ -89,6 +89,18 @@ describe('createRegistration', () => {
     expect(pair(options.json, 'locale')).toBe('fr')
     expect(pair(options.json, 'experience')).toBe('Twice')
     expect(pair(options.json, 'referral')).toBe('A friend')
+  })
+
+  it('sends the mailing-list opt-in as `subscribe: yes`, and nothing when unticked', async () => {
+    sdk.request.mockResolvedValue(jsonResponse(created))
+
+    await mutate.createRegistration(42, { ...registration, subscribe: true }, CAPTCHA_TOKEN)
+    await mutate.createRegistration(42, { ...registration, subscribe: false }, CAPTCHA_TOKEN)
+
+    // SahajCloud's `spawnSubscribeFromRegistration` opens the linked subscribe row off this
+    // exact pair. Any other key is a 400 for the whole registration.
+    expect(pair(sdk.request.mock.calls[0][0].json, 'subscribe')).toBe('yes')
+    expect(pair(sdk.request.mock.calls[1][0].json, 'subscribe')).toBeUndefined()
   })
 
   it('drops a blank answer rather than sending an empty pair', async () => {
@@ -446,5 +458,26 @@ describe('reportEmbed', () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: false }))
 
     await expect(mutate.reportEmbed(embedReport)).rejects.toBeInstanceOf(z.ZodError)
+  })
+})
+
+describe('refusalCopyKey', () => {
+  const keys = { captcha_failed: 'captcha-copy', invalid_email: 'email-copy' }
+
+  it('reads the code off either refusal class, or takes a bare one', () => {
+    expect(refusalCopyKey(new UserSubmissionError('invalid_email', 'x'), keys, 'generic')).toBe(
+      'email-copy',
+    )
+    expect(
+      refusalCopyKey(new RegistrationRefusedError('captcha_failed', 'x'), keys, 'generic'),
+    ).toBe('captcha-copy')
+    expect(refusalCopyKey('captcha_failed', keys, 'generic')).toBe('captcha-copy')
+  })
+
+  it('falls back for an unknown code, a foreign error, and a prototype name', () => {
+    expect(refusalCopyKey('unknown', keys, 'generic')).toBe('generic')
+    expect(refusalCopyKey(new Error('offline'), keys, 'generic')).toBe('generic')
+    // The code is whatever the response body said, so it can name an inherited member.
+    expect(refusalCopyKey('constructor', keys, 'generic')).toBe('generic')
   })
 })

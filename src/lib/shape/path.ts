@@ -35,10 +35,10 @@ export const parentOf = (path: string): string | undefined => {
  * `parentOf`: `childRoute('/india/pune', 507)` returns `/india/pune/507`. Region
  * events use this, so navigating to an event keeps the region ancestry in the URL (an
  * event's own `webPath` is flat, and often null), rather than composing the path
- * inline.
+ * inline. Under the root it writes `/507`, never the protocol-relative `//507`.
  */
 export const childRoute = (parentPath: string, child: string | number): string =>
-  `${parentPath}/${child}`
+  `${parentPath === '/' ? '' : parentPath}/${child}`
 
 /**
  * A server-provided route (`webPath`) is only trusted as a same-origin route when it
@@ -229,8 +229,8 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 
 /**
  * Words that are never a region slug. `search` / `calendar` / `filters` / `register`
- * / `share` / `online` are our own routed views (a CMS region slug can never
- * silently shadow them — this guard prevents that). `preview` is the live-preview
+ * / `share` / `online` / `add` / `correct` are our own routed views (a SahajCloud region slug
+ * can never silently shadow them — this guard prevents that). `preview` is the live-preview
  * boot route, now kept for `user-submissions` alone — every other document previews at
  * its own page (issue #40, and `config/live-preview/protocol.ts`). It carries no drawer.
  * `events` / `areas` / `regions` / `venues` are legacy URL prefixes that carry no
@@ -243,6 +243,8 @@ export const RESERVED_SLUGS = new Set([
   'register',
   'share',
   'online',
+  'add',
+  'correct',
   'preview',
   'events',
   'areas',
@@ -260,6 +262,46 @@ export type StackEntry =
   | { kind: 'register'; eventPath: string; path: string }
   | { kind: 'share'; eventPath: string; path: string }
   | { kind: 'online'; regionSlug: string; path: string }
+  | { kind: 'add'; regionSlug: string | null; path: string }
+  | { kind: 'correct'; eventPath: string; path: string }
+
+/** The two routes of the add-a-class flow (#147): a new listing, and a correction to one. */
+export type SubmitEntry = Extract<StackEntry, { kind: 'add' | 'correct' }>
+
+export const isSubmitEntry = (entry: StackEntry | null | undefined): entry is SubmitEntry =>
+  entry?.kind === 'add' || entry?.kind === 'correct'
+
+/**
+ * Where the add-a-class step panel renders over `top` (#147): in a sheet of its own beside the
+ * listing, or inline above it in a map-less embed, which has no room for a second sheet. `null`
+ * off the flow's routes. DrawerStack and SubmitView both read this, so they cannot disagree.
+ */
+export const submitPanelPlacement = (
+  top: StackEntry | null | undefined,
+  hasMap: boolean,
+): 'sheet' | 'inline' | null => (isSubmitEntry(top) ? (hasMap ? 'sheet' : 'inline') : null)
+
+/**
+ * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
+ * both need the height, and the add-a-class listing, whose step panel rises over its lower half.
+ */
+const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'add', 'correct'])
+
+export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
+  kind !== undefined && OPENS_TALL.has(kind)
+
+/** The flow's title, which its panel, its listing and the drawer chrome all show. */
+export const submitTitleKey = (kind: SubmitEntry['kind']) =>
+  kind === 'correct' ? 'submit.chrome.title_correct' : 'submit.chrome.title_add'
+
+/**
+ * Where "add a class" opens: under a region, so the address search starts near it, or at the
+ * root with no place in context.
+ */
+export const addClassPath = (regionPath = '/'): string => childRoute(regionPath, 'add')
+
+/** Where "suggest a correction" opens, over the class it corrects. */
+export const correctionPath = (eventPath: string): string => childRoute(eventPath, 'correct')
 
 /**
  * The full ancestor chain for a pathname — one entry per meaningful segment, in
@@ -287,6 +329,16 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
     else if (word === 'online')
       entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
+    else if (word === 'add') {
+      // The place in context is the region the flow opened over, if it opened over one.
+      const parent = entries.at(-1)
+
+      entries.push({
+        kind: 'add',
+        regionSlug: parent?.kind === 'region' ? parent.slug : null,
+        path,
+      })
+    } else if (word === 'correct') entries.push({ kind: 'correct', eventPath: parentPath, path })
     else if (RESERVED_SLUGS.has(word))
       return // legacy prefix (events/areas/…) — no drawer
     else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })

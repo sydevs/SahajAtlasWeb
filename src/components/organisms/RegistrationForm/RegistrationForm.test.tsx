@@ -60,4 +60,40 @@ describe('RegistrationForm', () => {
 
     expect(html).toMatch(new RegExp(`id="name"[^>]*maxlength="${USER_SUBMISSION_VALUE_MAX}"`, 'i'))
   })
+
+  // The opt-in spawns a linked subscribe row server-side, and SahajCloud resolves whether any
+  // list would receive it. Offering the box where none would is a promise nobody keeps.
+  it('offers the mailing-list opt-in only when the event offers a list', () => {
+    const offered = render(
+      <RegistrationForm
+        offersMailingList
+        eventId={42}
+        eventTitle="Evening meditation"
+        isOnline={false}
+        questions={[]}
+        upcomingDates={[new Date('2026-10-01T18:00:00Z')]}
+      />,
+    )
+
+    expect(offered).toContain('registration.form.subscribe')
+    expect(offered).toContain('role="checkbox"')
+
+    for (const ui of [
+      form,
+      <RegistrationForm
+        key="false"
+        eventId={42}
+        eventTitle="Evening meditation"
+        isOnline={false}
+        offersMailingList={false}
+        questions={[]}
+        upcomingDates={[new Date('2026-10-01T18:00:00Z')]}
+      />,
+    ]) {
+      const html = render(ui)
+
+      expect(html).not.toContain('registration.form.subscribe')
+      expect(html).not.toContain('role="checkbox"')
+    }
+  })
 })

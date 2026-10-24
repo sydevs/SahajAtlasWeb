@@ -1,4 +1,4 @@
-import type { EventAddress } from '@/types'
+import type { EventAddress, Geojson } from '@/types'
 
 import { DateTime } from 'luxon'
 
@@ -46,4 +46,15 @@ export function formatTimePeriods(locale: string, periods: readonly TimePeriod[]
   return timePeriodRanges(periods)
     .map(([from, to]) => `${formatHour(locale, from)} – ${formatHour(locale, to)}`)
     .join(' · ')
+}
+
+/** The distinct language codes the feed's classes are held in. */
+export const feedLanguageCodes = (feed: Geojson | undefined): string[] => {
+  const codes = new Set<string>()
+
+  feed?.features.forEach((feature) =>
+    feature.properties.languages.forEach((code) => codes.add(code)),
+  )
+
+  return [...codes]
 }

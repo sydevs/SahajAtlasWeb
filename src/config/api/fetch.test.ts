@@ -625,6 +625,28 @@ describe('getEvent', () => {
   })
 })
 
+describe('getEvent — the mailing-list flag', () => {
+  // `offersMailingList` is a virtual field SahajCloud resolves on a single-event read only, so
+  // this `select` is the one place the registration opt-in can learn it.
+  it('selects offersMailingList and keeps it through the parse', async () => {
+    sdk.findByID.mockResolvedValue({
+      id: 13,
+      title: 'Voronezh Class',
+      eventType: 'offline',
+      languages: ['ru'],
+      registrationMode: 'sahaj-atlas',
+      region: { id: 5, slug: 'voronezh', level: 'city' },
+      offersMailingList: true,
+    })
+
+    const event = await api.getEvent(13)
+    const [options] = sdk.findByID.mock.calls[0] as [{ select: Record<string, unknown> }]
+
+    expect(options.select.offersMailingList).toBe(true)
+    expect(event.offersMailingList).toBe(true)
+  })
+})
+
 describe('shapeEventDoc', () => {
   const parse = (overrides: Record<string, unknown> = {}) =>
     EventDocSchema.parse({

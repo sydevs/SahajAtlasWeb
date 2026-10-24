@@ -1,7 +1,7 @@
 import type { EventRegistrationErrorCode } from '@/types/payload/response-types'
 import type { EmbedFingerprint } from '@/loader/detect'
 import type { MountParts } from '@/lib/mount'
-import type { ReportPayload } from '@/lib/report'
+import type { ReportContext, ReportPayload } from '@/lib/report'
 import type { Registration } from '@/types'
 
 import z from 'zod'
@@ -41,7 +41,7 @@ export type UserSubmissionResponse = z.infer<typeof UserSubmissionResponseSchema
  *
  * A blank value is dropped rather than sent. Every key is optional, and an empty answer is not one.
  */
-const submissionData = (entries: Record<string, string | undefined>) =>
+export const submissionData = (entries: Record<string, string | undefined>) =>
   Object.entries(entries)
     .filter((entry): entry is [string, string] => Boolean(entry[1]))
     .map(([field, value]) => ({ field, value }))
@@ -198,6 +198,9 @@ const createRegistration = async (
           // So this value must stay a subset of SahajCloud's LOCALES. All ten widget languages have been in it since SahajCloud#578.
           locale: activeLocale(),
           ...data.questions,
+          // The pair SahajCloud's `spawnSubscribeFromRegistration` reads to open a linked
+          // `subscribe` row. An unticked box sends nothing, which SahajCloud reads as no.
+          subscribe: data.subscribe ? 'yes' : undefined,
         }),
       },
     })
@@ -227,10 +230,9 @@ const createRegistration = async (
  * Five of the six are reachable for the report form.
  * `invalid_email` is belt-and-braces. The widget validates the address with zod before sending.
  * But the guard checks `senderEmail` itself, so this code can still come back.
- * `content_unscannable` (sydevs/SahajCloud#948) needs a `proposed` patch to reach, which only an
- * event proposal carries, so neither intake here can earn it today. It is mirrored anyway: the
- * mirror is what forces each new code through `ReportIssueForm`'s copy map, and a proposal intake
- * in this widget would make it live without touching this union.
+ * `content_unscannable` (sydevs/SahajCloud#948) needs a `proposed` patch to reach, so only
+ * `sendProposal` can earn it. Neither it nor `captcha_unavailable` is something a visitor can fix
+ * by editing a field, so both forms map them onto their generic send-failed copy.
  */
 export type UserSubmissionErrorCode =
   | 'captcha_failed'
@@ -256,6 +258,30 @@ export class UserSubmissionError extends Error {
     this.name = 'UserSubmissionError'
     this.code = code
   }
+}
+
+/**
+ * The copy key for a refusal, from a form's own map, or `fallback` for anything the map does not
+ * name. Takes the thrown error, or a bare code (a story's seeded refusal).
+ *
+ * `code` is a cast over a `z.string()`, so at runtime it is whatever the response body said. This
+ * uses `hasOwnProperty`, not a bare index or `in`: a code of `constructor` or `toString` would
+ * walk the prototype chain and hand `t()` a truthy non-string. `isErrorKind` in lib/report.ts uses
+ * the same spelling.
+ */
+export const refusalCopyKey = <Code extends string, Key, Fallback>(
+  refusal: unknown,
+  keys: Record<Code, Key>,
+  fallback: Fallback,
+): Key | Fallback => {
+  const code =
+    refusal instanceof UserSubmissionError || refusal instanceof RegistrationRefusedError
+      ? refusal.code
+      : refusal
+
+  return typeof code === 'string' && Object.prototype.hasOwnProperty.call(keys, code)
+    ? keys[code as Code]
+    : fallback
 }
 
 /** This is the caller's label for this channel. It becomes the email's subject line. */
@@ -301,6 +327,54 @@ export const userSubmissionValueMax = (key: string): number =>
 const clamp = (value: string, max: number) => value.slice(0, max)
 
 /**
+ * The context a submission carries as `submissionData` pairs, each clamped to the collection's
+ * bound. Our field is `pageUrl` and the collection's is `hostUrl`, for the same value: the host
+ * page as origin plus path, which `buildReportContext` has already stripped of its query and
+ * fragment, since a host's own URL can carry a reset token.
+ *
+ * `context.client` is deliberately NOT sent. The collection derives the client from the
+ * authenticated API key, so our cached copy would be a second, forgeable source for the row.
+ */
+export const contextSubmissionData = (context: ReportContext) => ({
+  path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
+  hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
+  locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
+  userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
+})
+
+/**
+ * Posts one row to the user-submissions intake, with the Turnstile token on the shared header,
+ * and re-casts a coded refusal as a `UserSubmissionError`.
+ *
+ * The parse deliberately sits OUTSIDE the try. See `createRegistration`. A `ZodError` looks
+ * exactly like a refusal body to `asRefusal`.
+ */
+export const postUserSubmission = async (
+  json: Record<string, unknown>,
+  turnstileToken: string,
+  fallbackMessage: string,
+): Promise<UserSubmissionResponse> => {
+  let response: unknown
+
+  try {
+    response = await requestJson({
+      method: 'POST',
+      path: USER_SUBMISSIONS_PATH,
+      init: { headers: { [TURNSTILE_HEADER]: turnstileToken } },
+      json,
+    })
+  } catch (error) {
+    throw asRefusal<UserSubmissionErrorCode>(
+      error,
+      (code, message) => new UserSubmissionError(code, message),
+      fallbackMessage,
+    )
+  }
+
+  return UserSubmissionResponseSchema.parse(response)
+}
+
+/**
  * This sends a viewer's issue report as a `contact` submission.
  * See sydevs/SahajCloud#632, #695 and #800, and issues #80, #103, and #171.
  * This is a shared, general-purpose intake.
@@ -341,44 +415,13 @@ const sendReport = async (payload: ReportPayload): Promise<UserSubmissionRespons
       // control instead. See `USER_SUBMISSION_VALUE_MAX`.
       ...payload.answers,
       subject: REPORT_SUBJECT,
-      path: clamp(context.path, USER_SUBMISSION_VALUE_MAX),
-      // Our field is `pageUrl`. The collection's field is `hostUrl`. Both carry the same value.
-      // That value is the host page as origin plus path.
-      // `buildReportContext` already strips its query and fragment, since a host's own URL can carry a reset token.
-      hostUrl: clamp(context.pageUrl, USER_SUBMISSION_VALUE_MAX),
-      locale: clamp(context.locale, USER_SUBMISSION_VALUE_MAX),
-      userAgent: clamp(context.userAgent, USER_SUBMISSION_VALUE_MAX),
+      ...contextSubmissionData(context),
       // `buildReportContext` already caps this at 500.
       error: context.error && clamp(context.error, USER_SUBMISSION_VALUE_MAX),
     }),
-    // This deliberately does NOT send `context.client`.
-    // The collection derives the client from the authenticated API key.
-    // So passing our cached copy would be a second, forgeable source for the same row.
   }
 
-  // The parse deliberately sits OUTSIDE the try. See `createRegistration`.
-  // A `ZodError` looks exactly like a refusal body to `asRefusal`.
-  let response: unknown
-
-  try {
-    response = await requestJson({
-      method: 'POST',
-      path: USER_SUBMISSIONS_PATH,
-      // The token moved out of the body and onto the shared header.
-      // The guard that reads it is a plugin above every collection, so it cannot know one body shape from another.
-      // This is the same header `createRegistration` already sends.
-      init: { headers: { [TURNSTILE_HEADER]: payload.turnstileToken } },
-      json,
-    })
-  } catch (error) {
-    throw asRefusal<UserSubmissionErrorCode>(
-      error,
-      (code, message) => new UserSubmissionError(code, message),
-      'Report refused',
-    )
-  }
-
-  return UserSubmissionResponseSchema.parse(response)
+  return postUserSubmission(json, payload.turnstileToken, 'Report refused')
 }
 
 /**

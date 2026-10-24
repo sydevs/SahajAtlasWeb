@@ -104,7 +104,11 @@ const POLICY_KEYS = [...allSource.matchAll(/messageKey: '([a-z_][a-zA-Z0-9_.]*)'
 )
 
 const REFUSAL_KEYS = [
-  ...['ReportIssueForm/ReportIssueForm', 'RegistrationForm/RegistrationForm'].flatMap((file) => {
+  ...[
+    'ReportIssueForm/ReportIssueForm',
+    'RegistrationForm/RegistrationForm',
+    'ProposalForm/ProposalForm',
+  ].flatMap((file) => {
     const source = readSource(`components/organisms/${file}.tsx`)
 
     return [
