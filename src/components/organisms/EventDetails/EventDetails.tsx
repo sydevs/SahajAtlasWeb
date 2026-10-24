@@ -8,11 +8,13 @@ import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
+import { AddClassLink } from '@/components/molecules/AddClassLink'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
 import { EventFacts } from '@/components/molecules/EventFacts'
-import { isUnverified, lexicalToHtml } from '@/lib/shape'
+import livePreview from '@/config/live-preview/protocol'
+import { correctionPath, isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
@@ -170,6 +172,12 @@ export function EventDetails({
             />
           </div>
         )
+      )}
+
+      {/* A published class takes corrections from anyone who knows it (#147). Never on a
+          reviewer's live preview, which is not yet a class anyone could correct. */}
+      {!preview && !livePreview.active && (
+        <AddClassLink href={correctionPath(basePath)} label={t('submit.chrome.correct_entry')} />
       )}
 
       {hasImages && (

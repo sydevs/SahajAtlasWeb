@@ -1,4 +1,4 @@
-import type { ListingDraft, ListingStep, PickedPlace, ZonedPoint } from '@/lib/proposal'
+import type { OpenedListing, PickedPlace, ZonedPoint } from '@/lib/proposal'
 import type { SubmitEntry } from '@/lib/shape'
 import type { Event, Geojson, Region } from '@/types'
 import type { ReactNode } from 'react'
@@ -19,13 +19,7 @@ import { useWidgetMode } from '@/config/mode'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import {
-  emptyDraft,
-  eventToDraft,
-  nearestTimeZone,
-  previewEvent,
-  searchProximity,
-} from '@/lib/proposal'
+import { nearestTimeZone, openListing, previewEvent, searchProximity } from '@/lib/proposal'
 import { buildReportContext } from '@/lib/report'
 import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
 
@@ -46,7 +40,7 @@ type FlowTarget = {
   path: string
   event?: Event
   region?: Region
-  open: () => { draft: ListingDraft; base?: ListingDraft; step: ListingStep }
+  open: () => OpenedListing
 }
 
 /** The visitor's own zone, until a picked place names a better one. */
@@ -70,7 +64,7 @@ function AddTarget({
     key: `add:${entry.path}`,
     path: entry.path,
     region,
-    open: () => ({ draft: emptyDraft(viewerZone(), [languageCode]), step: 'where' }),
+    open: () => openListing({ timeZone: viewerZone(), languages: [languageCode] }),
   })
 }
 
@@ -87,12 +81,7 @@ function CorrectionTarget({
     key: `correct:${event.id}`,
     path: entry.path,
     event,
-    // A correction opens straight on review, with the listing prefilled from the published class.
-    open: () => {
-      const draft = eventToDraft(event)
-
-      return { draft, base: draft, step: 'review' }
-    },
+    open: () => openListing({ event }),
   })
 }
 

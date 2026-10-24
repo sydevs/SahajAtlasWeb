@@ -1,15 +1,16 @@
 import { Link } from '@/components/atoms/Link'
 
 export type AddClassLinkProps = {
-  /** The add-a-class route: `/add`, or a region's own `/add` so the search starts near it. */
+  /** `/add`, a region's own `/add` so the search starts near it, or a class's `/correct`. */
   href: string
   label: string
 }
 
 /**
- * The quiet line at the foot of a list that opens the add-a-class flow (#147) — "Don't see your
- * class? Add it" under the results and the country index, "Add a class here" under a region.
- * It sits after the list rather than in a header, because it answers the list running out.
+ * The quiet foot-of-panel line into the add-a-class flow (#147) — "Don't see your class? Add
+ * it" under the results and the country index, "Add a class here" under a region, "Suggest a
+ * correction" under a class. It sits after the content rather than in a header, because it
+ * answers the content running out or being wrong.
  */
 export function AddClassLink({ href, label }: AddClassLinkProps) {
   return (

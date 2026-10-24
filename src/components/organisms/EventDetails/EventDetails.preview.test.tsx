@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { EventDetails } from './EventDetails'
@@ -25,11 +26,13 @@ const EDIT = 'submit.review.edit'
 
 const render = (preview?: Parameters<typeof EventDetails>[0]['preview']) =>
   renderToStaticMarkup(
-    <EventDetails
-      basePath="/add"
-      event={{ ...mockEvent, contactName: 'Ada', contactPhone: '+44 20 7946 0000' }}
-      preview={preview}
-    />,
+    <MemoryRouter>
+      <EventDetails
+        basePath="/add"
+        event={{ ...mockEvent, contactName: 'Ada', contactPhone: '+44 20 7946 0000' }}
+        preview={preview}
+      />
+    </MemoryRouter>,
   )
 
 const editLinks = (markup: string) => markup.match(new RegExp(`>${EDIT}<`, 'g')) ?? []
@@ -70,5 +73,17 @@ describe('EventDetails preview', () => {
     expect(markup).toContain('register-slot')
     expect(markup).toContain('actions-slot')
     expect(editLinks(markup)).toHaveLength(0)
+  })
+
+  it('offers a correction on a published class, and never on the preview itself', () => {
+    const published = renderToStaticMarkup(
+      <MemoryRouter>
+        <EventDetails basePath="/gb/oxford/507" event={mockEvent} />
+      </MemoryRouter>,
+    )
+
+    expect(published).toContain('submit.chrome.correct_entry')
+    expect(published).toMatch(/href="[^"]*\/gb\/oxford\/507\/correct"/)
+    expect(render({})).not.toContain('submit.chrome.correct_entry')
   })
 })

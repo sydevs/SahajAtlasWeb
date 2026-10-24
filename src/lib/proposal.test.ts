@@ -15,6 +15,7 @@ import {
   firstInvalidStep,
   nearestTimeZone,
   newListingPatch,
+  openListing,
   previewEvent,
   previewSessions,
   searchProximity,
@@ -416,5 +417,22 @@ describe('searchProximity', () => {
   it('leaves the search unbiased with no region', () => {
     expect(searchProximity(null)).toBeUndefined()
     expect(searchProximity(undefined)).toBeUndefined()
+  })
+})
+
+describe('openListing', () => {
+  it('opens a correction on review, prefilled, with the published class as its base', () => {
+    const event = publishedEvent()
+    const opened = openListing({ event })
+
+    expect(opened.step).toBe('review')
+    expect(opened.draft).toEqual(eventToDraft(event))
+    expect(opened.base).toBe(opened.draft)
+  })
+
+  it('opens a new listing blank, on Where, in the visitor zone', () => {
+    const opened = openListing({ timeZone: 'Europe/Paris', languages: ['fr'] })
+
+    expect(opened).toEqual({ draft: emptyDraft('Europe/Paris', ['fr']), step: 'where' })
   })
 })

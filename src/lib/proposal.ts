@@ -482,6 +482,24 @@ export const eventToDraft = (event: Event): ListingDraft => {
   }
 }
 
+export type OpenedListing = { draft: ListingDraft; base?: ListingDraft; step: ListingStep }
+
+/**
+ * Where a flow opens. A new listing starts blank on Where. A correction opens straight on
+ * Review, prefilled from the published class, which is also the base its diff is taken from.
+ */
+export const openListing = (
+  opening: { event: Event } | { timeZone: string; languages: string[] },
+): OpenedListing => {
+  if ('event' in opening) {
+    const draft = eventToDraft(opening.event)
+
+    return { draft, base: draft, step: 'review' }
+  }
+
+  return { draft: emptyDraft(opening.timeZone, opening.languages), step: 'where' }
+}
+
 // ── The live listing ─────────────────────────────────────────────────────────────
 
 /** How many sessions the preview projects, enough for the next-session line to resolve. */
