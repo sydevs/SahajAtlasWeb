@@ -30,13 +30,17 @@ function Navigator() {
 const client = new QueryClient()
 let root: ReturnType<typeof createRoot>
 
+let reported: boolean[] = []
+
 const render = (panel: boolean) =>
   act(async () =>
     root.render(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/add']}>
           <Navigator />
-          {panel && <SubmitPanel entry={entry} />}
+          {panel && (
+            <SubmitPanel entry={entry} onCompactChange={(compact) => reported.push(compact)} />
+          )}
         </MemoryRouter>
       </QueryClientProvider>,
     ),
@@ -46,6 +50,7 @@ describe('the listing session', () => {
   beforeEach(() => {
     useListingDraft.setState({ key: null, entry: null, draft: null, sent: false })
     root = createRoot(document.createElement('div'))
+    reported = []
   })
   afterEach(() => act(() => root.unmount()))
 
@@ -81,5 +86,14 @@ describe('the listing session', () => {
     await render(true)
 
     expect(useListingDraft.getState().sent).toBe(false)
+  })
+
+  it('tells its sheet when it shrinks to the review bar, and lets go when it closes', async () => {
+    await render(true)
+    act(() => useListingDraft.getState().setStep('review'))
+    expect(reported.at(-1)).toBe(true)
+
+    await render(false)
+    expect(reported.at(-1)).toBe(false)
   })
 })

@@ -291,6 +291,8 @@ export function DrawerStack() {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  // Whether the add-a-class step panel is the review bar, as the panel itself reports it.
+  const [panelCompact, setPanelCompact] = useState(false)
   const stripsRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
@@ -721,7 +723,7 @@ export function DrawerStack() {
   // The add-a-class step panel (#147). NON-modal, unlike the filter overlay, because the
   // listing behind it stays live: its Edit links are how review returns to a step. Not
   // dismissible, because the flow closes from its own X, which is the stack's dismiss.
-  const panelLayout = submitPanelLayout(isWide)
+  const panelLayout = submitPanelLayout(isWide, panelCompact)
   const submitPanel =
     isSubmitEntry(top) && submitPanelPlacement(top, hasMap) === 'sheet' ? (
       <DrawerControlContext.Provider value={control}>
@@ -744,7 +746,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
-                <secondary.SubmitPanel entry={top} />
+                <secondary.SubmitPanel entry={top} onCompactChange={setPanelCompact} />
               </ResetErrorBoundary>
             </Suspense>
           </DrawerContent>
