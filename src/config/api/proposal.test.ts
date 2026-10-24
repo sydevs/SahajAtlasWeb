@@ -7,7 +7,7 @@ import { UserSubmissionError } from './mutate'
 import proposalApi from './proposal'
 
 // The same boundary mock as `mutate.test.ts`: the SDK is stubbed, so `requestJson` runs against a
-// controlled Response, and i18n is stubbed so importing the client boots no HTTP backend.
+// controlled Response.
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
 vi.mock('@payloadcms/sdk', () => ({
@@ -17,7 +17,6 @@ vi.mock('@payloadcms/sdk', () => ({
     request = sdk.request
   },
 }))
-vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'fr' } }))
 
 const jsonResponse = (data: unknown) => ({ json: async () => data })
 

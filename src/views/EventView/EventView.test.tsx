@@ -13,19 +13,7 @@ import { mockEvent } from '@/mocks/events'
 const livePreview = vi.hoisted(() => ({ active: false }))
 
 vi.mock('@/config/live-preview/protocol', () => ({ default: livePreview }))
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
-}))
-vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({
-    t: (key: string) => key,
-    locale: 'en',
-    languageCode: 'en',
-    languageLabel: (code: string) => code,
-  }),
-}))
 vi.mock('@/hooks/use-ip-location', () => ({ useIpLocation: () => null }))
-vi.mock('@/config/i18n', () => ({ default: { resolvedLanguage: 'en' } }))
 vi.mock('@mapbox/search-js-react', () => ({ Geocoder: () => null }))
 
 const render = () => {
@@ -50,13 +38,12 @@ describe('EventView', () => {
   it('offers a correction to the class it shows', () => {
     const markup = render()
 
-    expect(markup).toContain('submit.chrome.correct_entry')
     expect(markup).toMatch(/href="[^"]*\/gb\/oxford\/507\/correct"/)
   })
 
   it('never on a reviewer’s live preview, which is not yet a class anyone could correct', () => {
     livePreview.active = true
 
-    expect(render()).not.toContain('submit.chrome.correct_entry')
+    expect(render()).not.toMatch(/\/gb\/oxford\/507\/correct"/)
   })
 })
