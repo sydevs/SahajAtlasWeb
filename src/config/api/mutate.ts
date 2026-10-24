@@ -199,7 +199,7 @@ const createRegistration = async (
           locale: activeLocale(),
           ...data.questions,
           // The pair SahajCloud's `spawnSubscribeFromRegistration` reads to open a linked
-          // `subscribe` row. An unticked box sends nothing, which the CMS reads as no.
+          // `subscribe` row. An unticked box sends nothing, which SahajCloud reads as no.
           subscribe: data.subscribe ? 'yes' : undefined,
         }),
       },

@@ -252,7 +252,7 @@ export type ScheduleFields = Pick<
   'firstDate' | 'startTime' | 'endTime' | 'repeats' | 'endDate' | 'timeZone'
 >
 
-/** The first session, as the instant the CMS stores, read in the draft's zone. */
+/** The first session, as the instant SahajCloud stores, read in the draft's zone. */
 const draftStart = (draft: ScheduleFields): DateTime | null => {
   if (!DATE.test(draft.firstDate) || !HHMM.test(draft.startTime)) return null
 
@@ -294,7 +294,7 @@ const draftSchedule = (draft: ScheduleFields): DraftSchedule | undefined => {
   }
 }
 
-/** One paragraph per line, the shape the CMS's own editor writes. */
+/** One paragraph per line, the shape SahajCloud's own editor writes. */
 export const plainTextToLexical = (value: string): LexicalDocument | null => {
   const lines = value
     .split(/\n+/)
@@ -437,7 +437,7 @@ export type BuiltProposal = {
 /**
  * What the panel sends. A correction compares the edited draft with the one the published
  * class opened as — both built by `draftToPatch`, so a section nobody touched produces the
- * same leaves and is not sent, however lossy the round trip from the CMS shape is.
+ * same leaves and is not sent, however lossy the round trip from SahajCloud's shape is.
  */
 export const buildProposal = (
   draft: ListingDraft,
@@ -540,7 +540,9 @@ export const openListing = (
 /** How many sessions the preview projects, enough for the next-session line to resolve. */
 const PREVIEW_SESSIONS = 8
 
-/** The sessions a draft schedule would produce, from today on — the CMS computes the real ones. */
+/**
+ * The sessions a draft schedule would produce, from today on — SahajCloud computes the real ones.
+ */
 export const previewSessions = (draft: ScheduleFields, now: DateTime = DateTime.now()): Date[] => {
   const start = draftStart(draft)
 
@@ -564,7 +566,9 @@ export const previewSessions = (draft: ScheduleFields, now: DateTime = DateTime.
   return sessions
 }
 
-/** What the listing is called before the visitor names it: the CMS fills a blank from the venue. */
+/**
+ * What the listing is called before the visitor names it: SahajCloud fills a blank from the venue.
+ */
 export const draftTitle = (draft: ListingDraft): string =>
   draft.title.trim() ||
   (draft.eventType === 'online' ? draft.city?.city : draft.address?.street) ||
