@@ -1,22 +1,25 @@
 import type { TranslationKey } from '@/types/i18next'
 import type { UserSubmissionErrorCode } from '@/config/api/mutate'
 import type { ReportContext } from '@/lib/report'
-import type { ListingDraft, ListingErrors, ListingStep, PickedPlace } from '@/lib/proposal'
+import type {
+  BuiltProposal,
+  ListingDraft,
+  ListingErrors,
+  ListingStep,
+  PickedPlace,
+} from '@/lib/proposal'
+import type { InputProps } from '@/components/atoms/Input'
 import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { ReactNode } from 'react'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown } from 'lucide-react'
 
 import { submitTitleKey } from '@/lib/shape'
 import { Alert } from '@/components/atoms/Alert'
 import { Button } from '@/components/atoms/Button'
-import { Checkbox } from '@/components/atoms/Checkbox'
-import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
-import { fieldChrome } from '@/components/atoms/Select'
 import { Textarea } from '@/components/atoms/Textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { FormField, fieldDescribedBy } from '@/components/molecules/FormField'
@@ -28,6 +31,8 @@ import {
   userSubmissionValueMax,
 } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
+import { useLanguageOptions } from '@/hooks/use-language-options'
+import { LanguageMultiSelect } from '@/components/molecules/LanguageMultiSelect'
 import { useTurnstile } from '@/hooks/use-turnstile'
 import {
   LISTING_STEPS,
@@ -154,21 +159,7 @@ export function ProposalForm({
     )
   }
 
-  const back = (target: ListingStep) => (
-    <Button variant="flat" onClick={() => go(target)}>
-      {t('submit.chrome.back')}
-    </Button>
-  )
-  const next = (
-    <Button color="primary" variant="flat" onClick={advance}>
-      {t('submit.chrome.next')}
-    </Button>
-  )
-  const skip = (
-    <Button variant="ghost" onClick={() => go(onward)}>
-      {t('submit.chrome.skip')}
-    </Button>
-  )
+  const backTo: ListingStep | undefined = step === 'more' ? 'review' : LISTING_STEPS[index - 1]
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -218,21 +209,21 @@ export function ProposalForm({
 
       {step !== 'review' && (
         <div className="flex flex-wrap justify-end gap-2">
-          {step === 'where' && next}
-          {step === 'when' && (
-            <>
-              {back('where')}
-              {next}
-            </>
+          {backTo && (
+            <Button variant="flat" onClick={() => go(backTo)}>
+              {t('submit.chrome.back')}
+            </Button>
           )}
           {(step === 'contact' || step === 'about') && (
-            <>
-              {back(LISTING_STEPS[index - 1])}
-              {skip}
-              {next}
-            </>
+            <Button variant="ghost" onClick={() => go(onward)}>
+              {t('submit.chrome.skip')}
+            </Button>
           )}
-          {step === 'more' && back('review')}
+          {step !== 'more' && (
+            <Button color="primary" variant="flat" onClick={advance}>
+              {t('submit.chrome.next')}
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -243,6 +234,38 @@ type StepProps = {
   draft: ListingDraft
   errors?: ListingErrors
   onChange: (patch: Partial<ListingDraft>) => void
+}
+
+/** A labelled input whose help and error text are wired to it by id. */
+function ValidatedInput({
+  id,
+  label,
+  required,
+  help,
+  error,
+  ...input
+}: Omit<InputProps, 'id' | 'isInvalid'> & {
+  id: string
+  label: string
+  required?: boolean
+  help?: string
+  /** The error sentence, shown in place of the help while set. */
+  error?: string | false
+}) {
+  return (
+    <FormField error={error} help={help} htmlFor={id} label={label} required={required}>
+      <Input
+        aria-describedby={fieldDescribedBy({
+          name: id,
+          help: Boolean(help) && !error,
+          error: Boolean(error),
+        })}
+        id={id}
+        isInvalid={Boolean(error)}
+        {...input}
+      />
+    </FormField>
+  )
 }
 
 function WhereStep({
@@ -288,36 +311,26 @@ function WhereStep({
               onSelect={onPick('address')}
             />
           </FormField>
-          <FormField htmlFor="submit-room" label={t('submit.where.room_label')}>
-            <Input
-              id="submit-room"
-              maxLength={CONTACT_MAX}
-              value={draft.room}
-              onChange={(event) => onChange({ room: event.target.value })}
-            />
-          </FormField>
+          <ValidatedInput
+            id="submit-room"
+            label={t('submit.where.room_label')}
+            maxLength={CONTACT_MAX}
+            value={draft.room}
+            onChange={(event) => onChange({ room: event.target.value })}
+          />
         </>
       ) : (
         <>
-          <FormField
+          <ValidatedInput
             required
             error={errors.onlineUrl && t('submit.errors.online_url')}
-            htmlFor="submit-online-url"
+            id="submit-online-url"
             label={t('submit.where.online_url_label')}
-          >
-            <Input
-              aria-describedby={fieldDescribedBy({
-                name: 'submit-online-url',
-                error: errors.onlineUrl,
-              })}
-              id="submit-online-url"
-              isInvalid={errors.onlineUrl}
-              placeholder={t('submit.where.online_url_placeholder')}
-              type="url"
-              value={draft.onlineUrl}
-              onChange={(event) => onChange({ onlineUrl: event.target.value })}
-            />
-          </FormField>
+            placeholder={t('submit.where.online_url_placeholder')}
+            type="url"
+            value={draft.onlineUrl}
+            onChange={(event) => onChange({ onlineUrl: event.target.value })}
+          />
           <FormField
             required
             error={errors.city && t('submit.errors.city_required')}
@@ -345,51 +358,32 @@ function WhenStep({ draft, errors = {}, onChange }: StepProps) {
   return (
     <div className="flex flex-col gap-4">
       <h3 className="text-md font-semibold">{t('submit.when.title')}</h3>
-      <FormField
+      <ValidatedInput
         required
         error={errors.firstDate && t('submit.errors.first_date')}
-        htmlFor="submit-first-date"
+        id="submit-first-date"
         label={t('submit.when.first_date')}
-      >
-        <Input
-          aria-describedby={fieldDescribedBy({
-            name: 'submit-first-date',
-            error: errors.firstDate,
-          })}
-          id="submit-first-date"
-          isInvalid={errors.firstDate}
-          type="date"
-          value={draft.firstDate}
-          onChange={(event) => onChange({ firstDate: event.target.value })}
-        />
-      </FormField>
+        type="date"
+        value={draft.firstDate}
+        onChange={(event) => onChange({ firstDate: event.target.value })}
+      />
       <div className="grid grid-cols-2 gap-3">
-        <FormField
+        <ValidatedInput
           required
           error={errors.startTime && t('submit.errors.start_time')}
-          htmlFor="submit-start-time"
+          id="submit-start-time"
           label={t('submit.when.start_time')}
-        >
-          <Input
-            aria-describedby={fieldDescribedBy({
-              name: 'submit-start-time',
-              error: errors.startTime,
-            })}
-            id="submit-start-time"
-            isInvalid={errors.startTime}
-            type="time"
-            value={draft.startTime}
-            onChange={(event) => onChange({ startTime: event.target.value })}
-          />
-        </FormField>
-        <FormField htmlFor="submit-end-time" label={t('submit.when.end_time')}>
-          <Input
-            id="submit-end-time"
-            type="time"
-            value={draft.endTime}
-            onChange={(event) => onChange({ endTime: event.target.value })}
-          />
-        </FormField>
+          type="time"
+          value={draft.startTime}
+          onChange={(event) => onChange({ startTime: event.target.value })}
+        />
+        <ValidatedInput
+          id="submit-end-time"
+          label={t('submit.when.end_time')}
+          type="time"
+          value={draft.endTime}
+          onChange={(event) => onChange({ endTime: event.target.value })}
+        />
       </div>
       <p className="-mt-2 text-xs text-gray-11">
         {t('submit.when.timezone_note', { timezone: draft.timeZone })}
@@ -410,15 +404,14 @@ function WhenStep({ draft, errors = {}, onChange }: StepProps) {
         </ToggleGroup>
       </FormField>
       {repeating && (
-        <FormField htmlFor="submit-end-date" label={t('submit.when.end_date')}>
-          <Input
-            id="submit-end-date"
-            min={draft.firstDate || undefined}
-            type="date"
-            value={draft.endDate}
-            onChange={(event) => onChange({ endDate: event.target.value })}
-          />
-        </FormField>
+        <ValidatedInput
+          id="submit-end-date"
+          label={t('submit.when.end_date')}
+          min={draft.firstDate || undefined}
+          type="date"
+          value={draft.endDate}
+          onChange={(event) => onChange({ endDate: event.target.value })}
+        />
       )}
     </div>
   )
@@ -433,44 +426,33 @@ function ContactStep({ draft, errors = {}, onChange }: StepProps) {
         <h3 className="text-md font-semibold">{t('submit.contact.title')}</h3>
         <p className="text-sm text-gray-11">{t('submit.contact.help')}</p>
       </div>
-      <FormField htmlFor="submit-contact-name" label={t('submit.contact.name_label')}>
-        <Input
-          autoComplete="name"
-          id="submit-contact-name"
-          maxLength={CONTACT_MAX}
-          value={draft.contactName}
-          onChange={(event) => onChange({ contactName: event.target.value })}
-        />
-      </FormField>
-      <FormField htmlFor="submit-contact-phone" label={t('submit.contact.phone_label')}>
-        <Input
-          autoComplete="tel"
-          id="submit-contact-phone"
-          maxLength={CONTACT_MAX}
-          type="tel"
-          value={draft.contactPhone}
-          onChange={(event) => onChange({ contactPhone: event.target.value })}
-        />
-      </FormField>
-      <FormField
+      <ValidatedInput
+        autoComplete="name"
+        id="submit-contact-name"
+        label={t('submit.contact.name_label')}
+        maxLength={CONTACT_MAX}
+        value={draft.contactName}
+        onChange={(event) => onChange({ contactName: event.target.value })}
+      />
+      <ValidatedInput
+        autoComplete="tel"
+        id="submit-contact-phone"
+        label={t('submit.contact.phone_label')}
+        maxLength={CONTACT_MAX}
+        type="tel"
+        value={draft.contactPhone}
+        onChange={(event) => onChange({ contactPhone: event.target.value })}
+      />
+      <ValidatedInput
+        autoComplete="email"
         error={errors.contactEmail && t('submit.errors.email')}
-        htmlFor="submit-contact-email"
+        id="submit-contact-email"
         label={t('submit.contact.email_label')}
-      >
-        <Input
-          aria-describedby={fieldDescribedBy({
-            name: 'submit-contact-email',
-            error: errors.contactEmail,
-          })}
-          autoComplete="email"
-          id="submit-contact-email"
-          isInvalid={errors.contactEmail}
-          maxLength={CONTACT_MAX}
-          type="email"
-          value={draft.contactEmail}
-          onChange={(event) => onChange({ contactEmail: event.target.value })}
-        />
-      </FormField>
+        maxLength={CONTACT_MAX}
+        type="email"
+        value={draft.contactEmail}
+        onChange={(event) => onChange({ contactEmail: event.target.value })}
+      />
     </div>
   )
 }
@@ -498,68 +480,40 @@ function AboutStep({ draft, onChange }: StepProps) {
 function MoreStep({ draft, languageOptions, onChange }: StepProps & { languageOptions: string[] }) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
-  const codes = [...new Set([...draft.languages, ...languageOptions])].sort((a, b) =>
-    languageLabel(a).localeCompare(languageLabel(b)),
+  const codes = useMemo(
+    () => [...new Set([...draft.languages, ...languageOptions])],
+    [draft.languages, languageOptions],
   )
-  const toggle = (code: string) =>
-    onChange({
-      languages: draft.languages.includes(code)
-        ? draft.languages.filter((other) => other !== code)
-        : [...draft.languages, code],
-    })
+  const options = useLanguageOptions(codes)
 
   return (
     <div className="flex flex-col gap-4">
       <h3 className="text-md font-semibold">{t('submit.more.title')}</h3>
-      <FormField
+      <ValidatedInput
         help={t('submit.more.title_help')}
-        htmlFor="submit-title"
+        id="submit-title"
         label={t('submit.more.title_label')}
-      >
-        <Input
-          aria-describedby={fieldDescribedBy({ name: 'submit-title', help: true })}
-          id="submit-title"
-          maxLength={TITLE_MAX}
-          value={draft.title}
-          onChange={(event) => onChange({ title: event.target.value })}
-        />
-      </FormField>
+        maxLength={TITLE_MAX}
+        value={draft.title}
+        onChange={(event) => onChange({ title: event.target.value })}
+      />
       <FormField label={t('submit.more.languages_label')}>
-        <Dropdown
-          fullWidth
-          aria-label={t('submit.more.languages_label')}
-          role="dialog"
-          trigger={
-            <span className={fieldChrome({ trigger: true })}>
-              <span className="truncate">{draft.languages.map(languageLabel).join(', ')}</span>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
-            </span>
-          }
-        >
-          <div className="max-h-56 overflow-y-auto p-1">
-            {codes.map((code) => (
-              <Checkbox
-                key={code}
-                appearance="checkbox"
-                checked={draft.languages.includes(code)}
-                className="w-full rounded px-2 py-1.5 hover:bg-gray-3"
-                onCheckedChange={() => toggle(code)}
-              >
-                {languageLabel(code)}
-              </Checkbox>
-            ))}
-          </div>
-        </Dropdown>
-      </FormField>
-      <FormField htmlFor="submit-website" label={t('submit.more.website_label')}>
-        <Input
-          id="submit-website"
-          maxLength={USER_SUBMISSION_VALUE_MAX}
-          type="url"
-          value={draft.website}
-          onChange={(event) => onChange({ website: event.target.value })}
+        <LanguageMultiSelect
+          label={t('submit.more.languages_label')}
+          options={options}
+          triggerLabel={draft.languages.map(languageLabel).join(', ')}
+          value={draft.languages}
+          onChange={(languages) => onChange({ languages })}
         />
       </FormField>
+      <ValidatedInput
+        id="submit-website"
+        label={t('submit.more.website_label')}
+        maxLength={USER_SUBMISSION_VALUE_MAX}
+        type="url"
+        value={draft.website}
+        onChange={(event) => onChange({ website: event.target.value })}
+      />
     </div>
   )
 }
@@ -598,17 +552,14 @@ function ReviewBar({
     retry: 0,
     // Offline, the default would pause this behind a spinner that never resolves.
     networkMode: 'always',
-    mutationFn: (captcha: string) => {
-      const built = buildProposal(draft, correction)
-
-      return api.sendProposal({
+    mutationFn: ({ built, captcha }: { built: BuiltProposal; captcha: string }) =>
+      api.sendProposal({
         ...built,
         senderEmail: senderEmail.trim(),
         note: note.trim() || undefined,
         turnstileToken: captcha,
         context,
-      })
-    },
+      }),
     onSuccess: onSent,
     // The token in hand is spent whatever the refusal was, so the retry needs a fresh one.
     onError: reset,
@@ -638,33 +589,24 @@ function ReviewBar({
         if (invalid) return onInvalid(invalid)
         if (!isEmail(senderEmail)) return setEmailError(true)
         setEmailError(false)
-        if (correction && Object.keys(buildProposal(draft, correction).proposed).length === 0) {
-          return setNoChanges(true)
-        }
-        if (token) mutation.mutate(token)
+
+        const built = buildProposal(draft, correction)
+
+        if (correction && Object.keys(built.proposed).length === 0) return setNoChanges(true)
+        if (token) mutation.mutate({ built, captcha: token })
       }}
     >
-      <FormField
+      <ValidatedInput
         required
+        autoComplete="email"
         error={emailError && t('submit.errors.email')}
         help={t('submit.review.email_help')}
-        htmlFor="submit-sender-email"
+        id="submit-sender-email"
         label={t('submit.review.email_label')}
-      >
-        <Input
-          aria-describedby={fieldDescribedBy({
-            name: 'submit-sender-email',
-            help: !emailError,
-            error: emailError,
-          })}
-          autoComplete="email"
-          id="submit-sender-email"
-          isInvalid={emailError}
-          type="email"
-          value={senderEmail}
-          onChange={(event) => setSenderEmail(event.target.value)}
-        />
-      </FormField>
+        type="email"
+        value={senderEmail}
+        onChange={(event) => setSenderEmail(event.target.value)}
+      />
       <FormField htmlFor="submit-note" label={t('submit.review.note_label')}>
         <Textarea
           id="submit-note"
