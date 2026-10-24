@@ -103,6 +103,7 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 
 | Folder               | Exports                                                                                    | Notes                                                                                                                                                                                                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AddClassLink/`      | `AddClassLink`                                                                             | The foot-of-list link into the add-a-class flow (#147): `/add` under the results and the country index, a region's own `/add` under a region |
 | `ActionRow/`         | `ActionRow`, `ActionCircle`                                                                | The labelled tonal-circle action row under an event's Register CTA. Always one line. Metrics assume a **four-action max**, with width-capped columns so a short set clusters instead of sprawling |
 | `ActiveFilterPills/` | `ActiveFilterPills`                                                                        | Removable pills for the active URL filters |
 | `EventActions/`      | `EventActions`                                                                             | The secondary action row under an event's Register CTA (directions/calendar/contact/share), set per resolver state |
@@ -129,11 +130,12 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | `Mapbox/` (sub-module) | `Mapbox`, `MapSearch` (+ `layers.ts`, `themes.ts` helpers)             | The Mapbox surface. See [`docs/rules/mapbox.md`](docs/rules/mapbox.md) |
 | `EventsList/`          | `DynamicEventsList`                                                    | Distance-sorted fetch. The presentational `EventsList` is module-private (single-use) |
 | `EventDetails/`        | `EventDetails`, `EventHeader`, `EventRegisterBar`, `EventSurfaceProps` | The event panel family — chips → facts → Register → actions → About → images. Takes `EventSurfaceProps` (`{ event, basePath }`). Lazy-loaded, **not** in the tier barrel. `EventHeader` is the pinned title alone (the chips lead the body). The secondary action row is the `EventActions` molecule |
+| `ProposalForm/`        | `ProposalForm`                                                         | The add-a-class and correction panel (#147): Where → When → Contact → About → Review, plus the details step off Review. Edits a draft its view owns and sends it through `sendProposal`. Reached only through the lazy `SubmitView`, so **not** in the barrel |
 | `RegistrationForm/`    | `RegistrationForm`                                                     | Form-only, config-driven registration (field chrome is private). Rendered in the RegistrationView drawer body. **Not** in the barrel |
 
 **Views** — `src/views/` holds the URL-driven drawer views (`DrawerStack` +
 `CountriesView`/`SearchView`/`RegionView`/`OnlineView`/`EventView`/
-`FilterView`/`RegistrationView`/`ShareView`), with shared pieces (`DrawerTitle`,
+`FilterView`/`RegistrationView`/`ShareView`/`SubmitView`), with shared pieces (`DrawerTitle`,
 `CloseButton`, `FilterButton`, `SearchField`, `GeolocationSuggestion`) in
 `views/shared.tsx`. `DrawerStack` derives the stack from the pathname
 (`resolveStack`) and renders ONE vaul drawer holding the active view, with peek

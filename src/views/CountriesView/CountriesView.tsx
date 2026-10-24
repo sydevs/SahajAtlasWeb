@@ -6,14 +6,14 @@ import { useTranslation } from 'react-i18next'
 import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
-import { List, ListItem } from '@/components/molecules'
+import { AddClassLink, List, ListItem } from '@/components/molecules'
 import api, { clientQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { GEOJSON_STALE_TIME } from '@/config/query-client'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
-import { DEFAULT_FILTERS, filtersToParams, isOnline } from '@/lib/shape'
+import { DEFAULT_FILTERS, addClassPath, filtersToParams, isOnline } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import {
   CollapseToggle,
@@ -119,6 +119,7 @@ export function CountriesView() {
             />
           ))}
         </List>
+        <AddClassLink href={addClassPath()} label={t('submit.chrome.add_entry')} />
       </DrawerBody>
     </>
   )

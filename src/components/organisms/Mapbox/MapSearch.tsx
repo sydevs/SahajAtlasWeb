@@ -29,6 +29,21 @@ export interface MapSearchProps {
    * events when the field sits in an error body instead.
    */
   label?: string
+  /**
+   * Restricts suggestions to these Geocoding feature types, comma-separated — `place` for an
+   * online class's city, `address` for a venue (#147). Every type is offered when omitted.
+   */
+  types?: string
+  /**
+   * Biases suggestions toward this point rather than the map's centre — the region an
+   * add-a-class flow opened from, which a map-less embed has no camera to say.
+   */
+  proximity?: { lng: number; lat: number }
+  /**
+   * Makes this a form field rather than the search: it seeds from this value, and never reads
+   * or writes `?q`, whatever `syncToUrl` says.
+   */
+  initialQuery?: string
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -55,10 +70,20 @@ class GeocoderBoundary extends Component<
   }
 }
 
-export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps) {
+export function MapSearch({
+  onSelect,
+  syncToUrl = true,
+  label,
+  types,
+  proximity,
+  initialQuery,
+}: MapSearchProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
-  const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
+  const isFormField = initialQuery !== undefined
+  const [searchQuery, setSearchQuery] = React.useState(
+    isFormField ? initialQuery : searchParams.get('q') || '',
+  )
   const { mapbox } = useMapbox()
   const { locale } = useLocale()
   const { t } = useTranslation()
@@ -97,16 +122,16 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
   }, [])
 
   React.useEffect(() => {
-    if (urlQuery === ownWrite.current) return
+    if (isFormField || urlQuery === ownWrite.current) return
 
     ownWrite.current = urlQuery
     setSearchQuery(urlQuery)
-  }, [urlQuery])
+  }, [urlQuery, isFormField])
 
   const setQuery = (query: string) => {
     setSearchQuery(query)
     ownWrite.current = query
-    if (!syncToUrl) return
+    if (!syncToUrl || isFormField) return
 
     setSearchParams(
       (prev) => {
@@ -149,7 +174,8 @@ export function MapSearch({ onSelect, syncToUrl = true, label }: MapSearchProps)
           map={mapbox?.getMap()}
           options={{
             language: locale, // TODO: Make sure this switches when locale changes
-            proximity: mapbox?.getCenter(),
+            proximity: proximity ?? mapbox?.getCenter(),
+            ...(types ? { types } : {}),
           }}
           placeholder={fieldLabel}
           theme={controlTheme}

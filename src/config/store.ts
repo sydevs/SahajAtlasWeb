@@ -1,3 +1,5 @@
+import type { ListingDraft, ListingStep } from '@/lib/proposal'
+
 import { create } from 'zustand'
 import { Feature } from 'geojson'
 
@@ -275,3 +277,43 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
     clearDraft: () => set(() => ({ eventId: null, values: {} })),
   }),
 )
+
+// ===== LISTING DRAFT ===== //
+
+// The add-a-class and correction flows (#147). Two surfaces read this at once — the live
+// listing in the drawer stack's base sheet, and the step panel DrawerStack renders beside it —
+// so the draft cannot live in either one's state. Hoisting it also keeps a half-filled listing
+// through the md-crossing remount, as the registration draft does.
+//
+// `key` names the route the draft belongs to (`add:/gb/london`, `correct:507`). Opening the
+// flow anywhere else starts a fresh draft; returning to the same route resumes this one.
+// `base` is what a correction opened as — the published class, as a draft — so the panel can
+// send only what changed.
+type ListingDraftState = {
+  key: string | null
+  draft: ListingDraft | null
+  base: ListingDraft | null
+  step: ListingStep
+  /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
+  sent: boolean
+}
+
+type ListingDraftAction = {
+  start: (key: string, draft: ListingDraft, step: ListingStep, base?: ListingDraft) => void
+  update: (patch: Partial<ListingDraft>) => void
+  setStep: (step: ListingStep) => void
+  markSent: () => void
+}
+
+export const useListingDraft = create<ListingDraftState & ListingDraftAction>((set) => ({
+  key: null,
+  draft: null,
+  base: null,
+  step: 'where',
+  sent: false,
+  start: (key, draft, step, base) =>
+    set(() => ({ key, draft, base: base ?? null, step, sent: false })),
+  update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
+  setStep: (step) => set(() => ({ step })),
+  markSent: () => set(() => ({ sent: true })),
+}))

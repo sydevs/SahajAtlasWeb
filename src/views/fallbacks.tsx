@@ -160,6 +160,10 @@ export function DrawerChrome({ interactive = true }: { interactive?: boolean }) 
         })
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })
+      case 'add':
+        return t('submit.chrome.title_add')
+      case 'correct':
+        return t('submit.chrome.title_correct')
       default:
         return undefined
     }
@@ -304,6 +308,7 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
     case 'event':
     case 'register':
     case 'share':
+    case 'correct':
       return 'not-found-event'
     case 'region':
     case 'online':

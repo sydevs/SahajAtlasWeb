@@ -7,6 +7,10 @@
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
+// AddClassLink — the foot-of-list entry to the add-a-class flow (#147).
+export { AddClassLink } from './AddClassLink'
+export type { AddClassLinkProps } from './AddClassLink'
+
 // SearchFilters — the controlled event-filters form (Format, Frequency,
 // Day, Time, Language), rendered inside the FilterView drawer.
 export { SearchFilters } from './SearchFilters'

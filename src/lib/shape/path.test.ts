@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  RESERVED_SLUGS,
+  addClassPath,
   childRoute,
+  correctionPath,
+  isSubmitEntry,
   filterOriginRegion,
   isCanonicalPath,
   listResetKey,
@@ -167,6 +171,35 @@ describe('resolveStack', () => {
       eventPath: '/507',
       path: '/507/share',
     })
+  })
+
+  it('opens the add-a-class flow with no place, or over the region it was opened from', () => {
+    expect(resolveStack('/add')).toEqual([{ kind: 'add', regionSlug: null, path: '/add' }])
+    expect(resolveStack('/gb/london/add').at(-1)).toEqual({
+      kind: 'add',
+      regionSlug: 'london',
+      path: '/gb/london/add',
+    })
+    // Over anything but a region — the search list, say — there is no place in context.
+    expect(resolveStack('/search/add').at(-1)).toEqual({
+      kind: 'add',
+      regionSlug: null,
+      path: '/search/add',
+    })
+  })
+
+  it('opens a correction over the class it corrects', () => {
+    expect(resolveStack('/india/pune/507/correct').at(-1)).toEqual({
+      kind: 'correct',
+      eventPath: '/india/pune/507',
+      path: '/india/pune/507/correct',
+    })
+  })
+
+  it('never reads add or correct as a region slug', () => {
+    expect(RESERVED_SLUGS.has('add')).toBe(true)
+    expect(RESERVED_SLUGS.has('correct')).toBe(true)
+    expect(resolveStack('/ADD')[0]?.kind).toBe('add')
   })
 
   it('owns /search', () => {
@@ -420,5 +453,25 @@ describe('topViewKey', () => {
   // change": the same SearchView must re-frame when `?center` moves.
   it('is unchanged by a re-search on the same view', () => {
     expect(topViewKey('/search')).toBe(topViewKey('/search'))
+  })
+})
+
+describe('the add-a-class routes', () => {
+  it('builds the add path under a region, or at the root', () => {
+    expect(addClassPath('/gb/london')).toBe('/gb/london/add')
+    expect(addClassPath()).toBe('/add')
+    // `childRoute('/', 'add')` would write a protocol-relative `//add`.
+    expect(addClassPath('/')).toBe('/add')
+  })
+
+  it('builds the correction path over an event', () => {
+    expect(correctionPath('/gb/oxford/507')).toBe('/gb/oxford/507/correct')
+  })
+
+  it('tells the flow routes from every other entry', () => {
+    expect(isSubmitEntry(resolveStack('/add')[0])).toBe(true)
+    expect(isSubmitEntry(resolveStack('/507/correct').at(-1))).toBe(true)
+    expect(isSubmitEntry(resolveStack('/507/register').at(-1))).toBe(false)
+    expect(isSubmitEntry(undefined)).toBe(false)
   })
 })

@@ -229,7 +229,7 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 
 /**
  * Words that are never a region slug. `search` / `calendar` / `filters` / `register`
- * / `share` / `online` are our own routed views (a CMS region slug can never
+ * / `share` / `online` / `add` / `correct` are our own routed views (a CMS region slug can never
  * silently shadow them — this guard prevents that). `preview` is the live-preview
  * boot route, now kept for `user-submissions` alone — every other document previews at
  * its own page (issue #40, and `config/live-preview/protocol.ts`). It carries no drawer.
@@ -243,6 +243,8 @@ export const RESERVED_SLUGS = new Set([
   'register',
   'share',
   'online',
+  'add',
+  'correct',
   'preview',
   'events',
   'areas',
@@ -260,6 +262,24 @@ export type StackEntry =
   | { kind: 'register'; eventPath: string; path: string }
   | { kind: 'share'; eventPath: string; path: string }
   | { kind: 'online'; regionSlug: string; path: string }
+  | { kind: 'add'; regionSlug: string | null; path: string }
+  | { kind: 'correct'; eventPath: string; path: string }
+
+/** The two routes of the add-a-class flow (#147): a new listing, and a correction to one. */
+export type SubmitEntry = Extract<StackEntry, { kind: 'add' | 'correct' }>
+
+export const isSubmitEntry = (entry: StackEntry | null | undefined): entry is SubmitEntry =>
+  entry?.kind === 'add' || entry?.kind === 'correct'
+
+/**
+ * Where "add a class" opens: under a region, so the address search starts near it, or at the
+ * root with no place in context. Never `childRoute('/', …)`, which would write `//add`.
+ */
+export const addClassPath = (regionPath?: string): string =>
+  regionPath && regionPath !== '/' ? childRoute(regionPath, 'add') : '/add'
+
+/** Where "suggest a correction" opens, over the class it corrects. */
+export const correctionPath = (eventPath: string): string => childRoute(eventPath, 'correct')
 
 /**
  * The full ancestor chain for a pathname — one entry per meaningful segment, in
@@ -287,6 +307,16 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
     else if (word === 'online')
       entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
+    else if (word === 'add') {
+      // The place in context is the region the flow opened over, if it opened over one.
+      const parent = entries.at(-1)
+
+      entries.push({
+        kind: 'add',
+        regionSlug: parent?.kind === 'region' ? parent.slug : null,
+        path,
+      })
+    } else if (word === 'correct') entries.push({ kind: 'correct', eventPath: parentPath, path })
     else if (RESERVED_SLUGS.has(word))
       return // legacy prefix (events/areas/…) — no drawer
     else if (/^\d+$/.test(segment)) entries.push({ kind: 'event', id: Number(segment), path })

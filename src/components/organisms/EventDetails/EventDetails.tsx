@@ -1,3 +1,5 @@
+import type { ListingSection } from '@/lib/proposal'
+
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -5,6 +7,7 @@ import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
+import { Button } from '@/components/atoms/Button'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageCarousel } from '@/components/molecules/ImageCarousel'
@@ -44,6 +47,13 @@ export type EventDetailsProps = EventSurfaceProps & {
    * keeps it above the sticky bar in reading order too.
    */
   children?: ReactNode
+  /**
+   * Renders a listing that does not exist yet — the add-a-class and correction flows build it
+   * live from what the visitor enters (#147). Nothing on it can be acted on, so Register, the
+   * action row and the unverified caveat drop, and the contact details show as plain lines.
+   * `onEdit`, passed on the review step, puts an Edit link on each section.
+   */
+  preview?: { onEdit?: (section: ListingSection) => void }
 }
 
 /**
@@ -57,8 +67,25 @@ export function EventDetails({
   basePath,
   registerInline = true,
   children,
+  preview,
 }: EventDetailsProps) {
   const { t } = useTranslation()
+  const onEdit = preview?.onEdit
+  // One Edit control per section. Every one reads "Edit", so each carries the section it
+  // returns to in its accessible name.
+  const edit = (section: ListingSection, name: string) =>
+    onEdit && (
+      <Button
+        aria-label={`${t('submit.review.edit')}: ${name}`}
+        className="-my-1 shrink-0"
+        color="primary"
+        size="sm"
+        variant="ghost"
+        onClick={() => onEdit(section)}
+      >
+        {t('submit.review.edit')}
+      </Button>
+    )
 
   const descriptionHtml = lexicalToHtml(event.description)
 
@@ -87,13 +114,86 @@ export function EventDetails({
           pinned header. The chips are a short row. The container's `gap-4` and
           the facts' own `my-2` add extra space before the facts. The `-mb-2`
           class removes that extra space. */}
-      <EventChips className="-mb-2" event={event} />
+      <div className="-mb-2 flex items-center justify-between gap-2">
+        <EventChips event={event} />
+        {edit('more', t('submit.more.title'))}
+      </div>
 
       {/* Extra space appears around the date and location facts, above the Register button. */}
-      <EventFacts className="my-2" event={event} />
+      <EventFacts
+        className="my-2"
+        event={event}
+        trailing={
+          onEdit && {
+            when: edit('when', t('submit.when.title')),
+            where: edit('where', t('submit.where.title')),
+          }
+        }
+      />
 
       {children}
 
+      {preview ? (
+        <PreviewSection
+          edit={edit('contact', t('submit.contact.title'))}
+          title={t('submit.contact.title')}
+        >
+          {[event.contactName, event.contactPhone].filter(Boolean).map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </PreviewSection>
+      ) : (
+        <PublishedSections basePath={basePath} event={event} registerInline={registerInline} />
+      )}
+
+      {/* About — host-authored prose always sits below the facts and actions. */}
+      {preview ? (
+        <PreviewSection
+          edit={edit('about', t('event.display.about'))}
+          title={t('event.display.about')}
+        >
+          {descriptionHtml && (
+            <div
+              dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
+              className="flex flex-col gap-2 colored-links normal-nums"
+            />
+          )}
+        </PreviewSection>
+      ) : (
+        descriptionHtml && (
+          <div className="flex flex-col gap-2">
+            <h2 className="text-md font-semibold">{t('event.display.about')}</h2>
+            <div
+              dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
+              // `colored-links` carries the host-prose treatment, wrapping included.
+              className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
+            />
+          </div>
+        )
+      )}
+
+      {hasImages && (
+        // This section sits full-bleed below the description. It cancels the
+        // container's `px-6` padding, so the carousel spans the full drawer
+        // width. The slides now carry no padding of their own.
+        <div className="-mx-6">
+          <ImageCarousel slides={slides} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** What a published class offers: the unverified caveat, Register, and the action row. */
+function PublishedSections({
+  event,
+  basePath,
+  registerInline,
+}: EventSurfaceProps & { registerInline: boolean }) {
+  const { t } = useTranslation()
+
+  return (
+    <>
       {/* Above Register, not at the top of a panel that scrolls. RegistrationView
           repeats it, since that route is reachable without passing here. Badging via the
           chips above would mark the list card, the surface this leaves alone. */}
@@ -109,27 +209,27 @@ export function EventDetails({
       {registerInline && <EventRegisterBar basePath={basePath} event={event} />}
 
       <EventActions basePath={basePath} event={event} />
+    </>
+  )
+}
 
-      {/* About — host-authored prose always sits below the facts and actions. */}
-      {descriptionHtml && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-md font-semibold">{t('event.display.about')}</h2>
-          <div
-            dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
-            // `colored-links` carries the host-prose treatment, wrapping included.
-            className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
-          />
-        </div>
-      )}
-
-      {hasImages && (
-        // This section sits full-bleed below the description. It cancels the
-        // container's `px-6` padding, so the carousel spans the full drawer
-        // width. The slides now carry no padding of their own.
-        <div className="-mx-6">
-          <ImageCarousel slides={slides} />
-        </div>
-      )}
+/** A preview section: its heading, its Edit link on review, and whatever it holds so far. */
+function PreviewSection({
+  title,
+  edit,
+  children,
+}: {
+  title: string
+  edit?: ReactNode
+  children?: ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-2 text-sm leading-snug">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-md font-semibold">{title}</h2>
+        {edit}
+      </div>
+      {children}
     </div>
   )
 }

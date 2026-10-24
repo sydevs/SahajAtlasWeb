@@ -745,6 +745,7 @@ export const TRANSLATION_SELECT = {
   event: { display: true, actions: true, recurrence: true },
   calendar: true,
   registration: true,
+  submit: true,
   share: true,
   compact: true,
 } as const
