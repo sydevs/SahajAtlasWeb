@@ -592,7 +592,11 @@ function ReviewBar({
 
         const built = buildProposal(draft, correction)
 
-        if (correction && Object.keys(built.proposed).length === 0) return setNoChanges(true)
+        // A new place re-places the class through `location` alone, so it counts as a change.
+        const unchanged =
+          Object.keys(built.proposed).length === 0 && Object.keys(built.location).length === 0
+
+        if (correction && unchanged) return setNoChanges(true)
         if (token) mutation.mutate({ built, captcha: token })
       }}
     >

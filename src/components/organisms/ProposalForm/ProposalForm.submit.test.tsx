@@ -277,6 +277,29 @@ describe('ProposalForm submit', () => {
     await act(async () => root.unmount())
   })
 
+  it('sends a correction that only moves an online class to a new city', async () => {
+    sdk.request.mockResolvedValue({ json: async () => ({ doc: { id: 9 } }) })
+
+    const online: ListingDraft = {
+      ...inPerson,
+      eventType: 'online',
+      address: null,
+      city: { label: 'Oxford', city: 'Oxford', location: {} },
+    }
+    const root = await mount({
+      initial: { ...online, city: featureToPlace(addressFeature) },
+      correction: { eventId: 507, baseDraft: online },
+    })
+
+    await type('#submit-sender-email', 'ada@example.org')
+    await submit()
+
+    expect(container.textContent).not.toContain('submit.review.no_changes')
+    expect(sdk.request.mock.calls[0][0].json.location.placeId).toBe('dXJuOm1ieHBsYzpBUVRC')
+
+    await act(async () => root.unmount())
+  })
+
   it('says so, and sends nothing, when a correction changes nothing', async () => {
     const root = await mount({
       initial: inPerson,
