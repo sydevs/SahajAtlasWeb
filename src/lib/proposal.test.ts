@@ -148,6 +148,18 @@ describe('stepErrors', () => {
     expect(stepErrors('when', inPerson({ endTime: '' }))).toEqual({})
   })
 
+  it('refuses a last date before the first, and only for a repeating class', () => {
+    const backwards = { firstDate: '2026-11-03', endDate: '2026-10-01' }
+
+    expect(stepErrors('when', inPerson({ ...backwards, repeats: 'weekly' }))).toEqual({
+      firstDate: true,
+    })
+    expect(stepErrors('when', inPerson({ ...backwards, repeats: 'once' }))).toEqual({})
+    expect(
+      stepErrors('when', inPerson({ firstDate: '2026-11-03', endDate: '2026-11-03' })),
+    ).toEqual({})
+  })
+
   it('lets Contact be skipped, but not filled with a broken address', () => {
     expect(stepErrors('contact', inPerson())).toEqual({})
     expect(stepErrors('contact', inPerson({ contactEmail: 'nope' }))).toEqual({

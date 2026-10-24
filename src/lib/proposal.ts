@@ -210,7 +210,12 @@ export const stepErrors = (
   }
 
   if (step === 'when') {
-    if (!DATE.test(draft.firstDate)) errors.firstDate = true
+    const endsBeforeStart =
+      draft.repeats !== 'once' && DATE.test(draft.endDate) && draft.endDate < draft.firstDate
+
+    // A backwards range flags the first date, whose own copy is the closest SahajCloud has.
+    // An end TIME before the start is an overnight session, so it is not checked.
+    if (!DATE.test(draft.firstDate) || endsBeforeStart) errors.firstDate = true
     if (!HHMM.test(draft.startTime)) errors.startTime = true
   }
 
