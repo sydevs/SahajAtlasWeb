@@ -225,6 +225,7 @@
       "show_more_dates": "Show more dates",
       "starting_date": "Starting date",
       "submit": "Register",
+      "subscribe": "Send me news about meditation programmes near me",
       "title": "Register for Meditation"
     },
     "questions": {
@@ -266,5 +267,86 @@
     "native": "Share…",
     "share_on": "Share on %{platform}",
     "title": "Share Meditation"
+  },
+  "submit": {
+    "about": {
+      "description_label": "Description",
+      "description_placeholder": "What to expect, who it is for, anything a newcomer should know.",
+      "title": "Tell people about the class"
+    },
+    "chrome": {
+      "add_entry": "Don’t see your class? Add it",
+      "add_here": "Add a class here",
+      "back": "Back",
+      "correct_entry": "Suggest a correction",
+      "next": "Next",
+      "preview_note": "This is how your class will appear once a coordinator approves it.",
+      "skip": "Skip",
+      "step_progress": "Step %{step} of %{total}",
+      "title_add": "Add a class",
+      "title_correct": "Suggest a correction"
+    },
+    "contact": {
+      "email_label": "Email",
+      "help": "Shown on the listing so people can ask questions before they come.",
+      "name_label": "Name",
+      "phone_label": "Phone",
+      "title": "Who can people contact?"
+    },
+    "done": {
+      "body": "A coordinator for %{city} will review it.",
+      "body_no_city": "A coordinator will review it.",
+      "title": "Thank you"
+    },
+    "errors": {
+      "address_required": "Choose an address from the search results.",
+      "captcha": "The security check expired. Please try again.",
+      "city_required": "Choose a city from the search results.",
+      "disposable_email": "Please use a permanent email address.",
+      "email": "Enter a valid email address.",
+      "first_date": "Choose the first date.",
+      "online_url": "Enter a link starting with https://",
+      "send_failed": "We couldn’t send your submission. Please try again.",
+      "start_time": "Choose a start time.",
+      "urls_not_allowed": "Links aren’t allowed here. Please remove them."
+    },
+    "more": {
+      "languages_label": "Languages",
+      "title": "More details",
+      "title_help": "Leave blank to name it after the venue.",
+      "title_label": "Class name",
+      "website_label": "Website"
+    },
+    "review": {
+      "add_more": "Add more details",
+      "edit": "Edit",
+      "email_help": "We’ll only use this to tell you what happens to your submission.",
+      "email_label": "Your email",
+      "no_changes": "Change at least one detail before submitting.",
+      "note_label": "Note for the coordinator (optional)",
+      "submit": "Submit"
+    },
+    "when": {
+      "end_date": "Last date (optional)",
+      "end_time": "Ends at",
+      "first_date": "First date",
+      "repeats": "Repeats",
+      "start_time": "Starts at",
+      "timezone_note": "Times are in %{timezone}.",
+      "title": "When does it meet?"
+    },
+    "where": {
+      "address_label": "Address",
+      "address_placeholder": "Search for the address",
+      "city_help": "The city the class is hosted from, so the right coordinator reviews it.",
+      "city_label": "City",
+      "city_placeholder": "Search for a city",
+      "offline": "In person",
+      "online": "Online",
+      "online_url_label": "Link to join",
+      "online_url_placeholder": "https://",
+      "room_label": "Room or floor (optional)",
+      "title": "Where does the class take place?"
+    }
   }
 }
