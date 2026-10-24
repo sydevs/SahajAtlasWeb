@@ -29,6 +29,7 @@ import {
   type RegistrationErrorCode,
   RegistrationRefusedError,
   USER_SUBMISSION_VALUE_MAX,
+  refusalCopyKey,
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { useRegistrationDraft } from '@/config/store'
@@ -229,13 +230,7 @@ export function RegistrationForm({
   // A refused registration renders OUR copy for the reason, not the
   // endpoint's English prose. An unrecognized code — a CMS newer than this
   // build — uses the generic error title and the server's message instead.
-  // `code` is a cast over a `z.string()`, so at runtime it is whatever the
-  // response body said.
-  const refusalKey =
-    mutation.error instanceof RegistrationRefusedError &&
-    mutation.error.code in REFUSAL_MESSAGE_KEYS
-      ? REFUSAL_MESSAGE_KEYS[mutation.error.code]
-      : null
+  const refusalKey = refusalCopyKey(mutation.error, REFUSAL_MESSAGE_KEYS, null)
 
   const refusalMessage = refusalKey ? t(refusalKey) : null
 

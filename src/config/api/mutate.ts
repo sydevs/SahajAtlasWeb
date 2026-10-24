@@ -262,6 +262,30 @@ export class UserSubmissionError extends Error {
   }
 }
 
+/**
+ * The copy key for a refusal, from a form's own map, or `fallback` for anything the map does not
+ * name. Takes the thrown error, or a bare code (a story's seeded refusal).
+ *
+ * `code` is a cast over a `z.string()`, so at runtime it is whatever the response body said. This
+ * uses `hasOwnProperty`, not a bare index or `in`: a code of `constructor` or `toString` would
+ * walk the prototype chain and hand `t()` a truthy non-string. `isErrorKind` in lib/report.ts uses
+ * the same spelling.
+ */
+export const refusalCopyKey = <Code extends string, Key, Fallback>(
+  refusal: unknown,
+  keys: Record<Code, Key>,
+  fallback: Fallback,
+): Key | Fallback => {
+  const code =
+    refusal instanceof UserSubmissionError || refusal instanceof RegistrationRefusedError
+      ? refusal.code
+      : refusal
+
+  return typeof code === 'string' && Object.prototype.hasOwnProperty.call(keys, code)
+    ? keys[code as Code]
+    : fallback
+}
+
 /** This is the caller's label for this channel. It becomes the email's subject line. */
 const REPORT_SUBJECT = 'Issue report'
 

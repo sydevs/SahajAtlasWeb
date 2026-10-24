@@ -24,7 +24,7 @@ import { MapSearch } from '@/components/organisms/Mapbox/MapSearch'
 import api from '@/config/api'
 import {
   USER_SUBMISSION_VALUE_MAX,
-  UserSubmissionError,
+  refusalCopyKey,
   userSubmissionValueMax,
 } from '@/config/api/mutate'
 import { useLocale } from '@/hooks/use-locale'
@@ -39,12 +39,7 @@ import {
   stepErrors,
 } from '@/lib/proposal'
 
-/**
- * The copy for each refusal the proposal intake can return. Two codes have none of their own:
- * neither an unreachable captcha service nor a patch the screener could not read is something a
- * visitor fixes by editing a field, so both read as the generic send failure — the same
- * convention `ReportIssueForm` follows.
- */
+/** The copy for each refusal the proposal intake can return. */
 const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   captcha_failed: 'submit.errors.captcha',
   captcha_unavailable: 'submit.errors.send_failed',
@@ -53,12 +48,6 @@ const REFUSAL_MESSAGE_KEYS: Record<UserSubmissionErrorCode, TranslationKey> = {
   urls_not_allowed: 'submit.errors.urls_not_allowed',
   content_unscannable: 'submit.errors.send_failed',
 }
-
-/** Every refusal renders a sentence: a code this build does not know reads as a send failure. */
-const refusalMessageKey = (error: unknown): TranslationKey =>
-  error instanceof UserSubmissionError && error.code in REFUSAL_MESSAGE_KEYS
-    ? REFUSAL_MESSAGE_KEYS[error.code]
-    : 'submit.errors.send_failed'
 
 /** The Events title's own bound. */
 const TITLE_MAX = 100
@@ -625,14 +614,16 @@ function ReviewBar({
     onError: reset,
   })
 
+  // Every refusal renders a sentence: a code this build does not know reads as a send failure.
   const refusal =
-    initialRefusal === undefined
-      ? mutation.isError && t(refusalMessageKey(mutation.error))
-      : t(
-          initialRefusal === 'unknown'
-            ? 'submit.errors.send_failed'
-            : REFUSAL_MESSAGE_KEYS[initialRefusal],
-        )
+    (initialRefusal !== undefined || mutation.isError) &&
+    t(
+      refusalCopyKey(
+        initialRefusal ?? mutation.error,
+        REFUSAL_MESSAGE_KEYS,
+        'submit.errors.send_failed',
+      ),
+    )
 
   return (
     <form

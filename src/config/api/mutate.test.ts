@@ -3,7 +3,7 @@ import type { ReportContext } from '@/lib/report'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import z from 'zod'
 
-import mutate, { UserSubmissionError, RegistrationRefusedError } from './mutate'
+import mutate, { UserSubmissionError, RegistrationRefusedError, refusalCopyKey } from './mutate'
 
 // This uses the same boundary mock as `fetch.test.ts`.
 // It stubs the SDK, so `requestJson` runs against a controlled Response.
@@ -633,5 +633,26 @@ describe('reportEmbed', () => {
     sdk.request.mockResolvedValue(jsonResponse({ ok: false }))
 
     await expect(mutate.reportEmbed(embedReport)).rejects.toBeInstanceOf(z.ZodError)
+  })
+})
+
+describe('refusalCopyKey', () => {
+  const keys = { captcha_failed: 'captcha-copy', invalid_email: 'email-copy' }
+
+  it('reads the code off either refusal class, or takes a bare one', () => {
+    expect(refusalCopyKey(new UserSubmissionError('invalid_email', 'x'), keys, 'generic')).toBe(
+      'email-copy',
+    )
+    expect(
+      refusalCopyKey(new RegistrationRefusedError('captcha_failed', 'x'), keys, 'generic'),
+    ).toBe('captcha-copy')
+    expect(refusalCopyKey('captcha_failed', keys, 'generic')).toBe('captcha-copy')
+  })
+
+  it('falls back for an unknown code, a foreign error, and a prototype name', () => {
+    expect(refusalCopyKey('unknown', keys, 'generic')).toBe('generic')
+    expect(refusalCopyKey(new Error('offline'), keys, 'generic')).toBe('generic')
+    // The code is whatever the response body said, so it can name an inherited member.
+    expect(refusalCopyKey('constructor', keys, 'generic')).toBe('generic')
   })
 })
