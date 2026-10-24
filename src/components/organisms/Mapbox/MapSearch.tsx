@@ -120,16 +120,16 @@ export function MapSearch({ onSelect, query = 'url', label, types, proximity }: 
     setSearchQuery(urlQuery)
   }, [urlQuery, isFormField])
 
-  const setQuery = (query: string) => {
-    setSearchQuery(query)
-    ownWrite.current = query
+  const setQuery = (text: string) => {
+    setSearchQuery(text)
+    ownWrite.current = text
     if (query !== 'url') return
 
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
 
-        next.set('q', query)
+        next.set('q', text)
 
         return next
       },
