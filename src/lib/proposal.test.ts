@@ -8,6 +8,7 @@ import {
   type ListingDraft,
   buildProposal,
   diffPatch,
+  draftPreviewSchedule,
   draftLocation,
   emptyDraft,
   eventToDraft,
@@ -401,6 +402,14 @@ describe('the live listing', () => {
     expect(preview.description).toBe(event.description)
     expect(preview.schedule).toBe(event.schedule)
     expect(preview.contactName).toBe('Alex')
+  })
+
+  it('takes a memoized schedule as given, and builds the same one itself otherwise', () => {
+    const draft = inPerson()
+    const schedule = draftPreviewSchedule(draft)
+
+    expect(previewEvent(draft, { path: '/add', schedule }).schedule).toBe(schedule)
+    expect(previewEvent(draft, { path: '/add' }).schedule).toEqual(schedule)
   })
 
   it('projects the sessions a weekly class would have, from today on', () => {

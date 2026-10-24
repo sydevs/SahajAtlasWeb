@@ -188,7 +188,7 @@ describe('useListingDraft', () => {
   it('starts a route draft, and keeps the base a correction opened as', () => {
     const draft = emptyDraft('Europe/London')
 
-    useListingDraft.getState().start('correct:507', draft, 'review', draft)
+    useListingDraft.getState().start('correct:507', { draft, base: draft, step: 'review' })
 
     expect(useListingDraft.getState()).toMatchObject({
       key: 'correct:507',
@@ -201,7 +201,7 @@ describe('useListingDraft', () => {
   it('merges an edit into the draft without touching the base', () => {
     const draft = emptyDraft('Europe/London')
 
-    useListingDraft.getState().start('correct:507', draft, 'review', draft)
+    useListingDraft.getState().start('correct:507', { draft, base: draft, step: 'review' })
     useListingDraft.getState().update({ room: 'Hall B' })
 
     expect(useListingDraft.getState().draft?.room).toBe('Hall B')
@@ -215,11 +215,11 @@ describe('useListingDraft', () => {
   })
 
   it('records the receipt, and a fresh start clears it', () => {
-    useListingDraft.getState().start('add:/add', emptyDraft('UTC'), 'where')
+    useListingDraft.getState().start('add:/add', { draft: emptyDraft('UTC'), step: 'where' })
     useListingDraft.getState().markSent()
     expect(useListingDraft.getState().sent).toBe(true)
 
-    useListingDraft.getState().start('add:/add', emptyDraft('UTC'), 'where')
+    useListingDraft.getState().start('add:/add', { draft: emptyDraft('UTC'), step: 'where' })
     expect(useListingDraft.getState().sent).toBe(false)
   })
 })

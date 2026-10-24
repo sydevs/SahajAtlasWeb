@@ -1,4 +1,4 @@
-import type { ListingDraft, ListingStep } from '@/lib/proposal'
+import type { ListingDraft, ListingStep, OpenedListing } from '@/lib/proposal'
 
 import { create } from 'zustand'
 import { Feature } from 'geojson'
@@ -280,18 +280,12 @@ export const useRegistrationDraft = create<RegistrationDraftState & Registration
 
 // ===== LISTING DRAFT ===== //
 
-// The add-a-class and correction flows (#147). Two surfaces read this at once — the live
-// listing in the drawer stack's base sheet, and the step panel DrawerStack renders beside it —
-// so the draft cannot live in either one's state. Hoisting it also keeps a half-filled listing
-// through the md-crossing remount, as the registration draft does.
-//
-// `key` names the route the draft belongs to (`add:/gb/london`, `correct:507`). Opening the
-// flow anywhere else starts a fresh draft; returning to the same route resumes this one.
-// `base` is what a correction opened as — the published class, as a draft — so the panel can
-// send only what changed.
+// The add-a-class and correction flows (#147): the listing and the step panel both read it, and
+// it survives the md-crossing remount. `key` names the route (`add:/gb/london`, `correct:507`).
 type ListingDraftState = {
   key: string | null
   draft: ListingDraft | null
+  /** What a correction opened as, so only what changed is sent. */
   base: ListingDraft | null
   step: ListingStep
   /** Set once a submission resolves. Nothing reads the row back, so this is the whole receipt. */
@@ -299,7 +293,7 @@ type ListingDraftState = {
 }
 
 type ListingDraftAction = {
-  start: (key: string, draft: ListingDraft, step: ListingStep, base?: ListingDraft) => void
+  start: (key: string, opened: OpenedListing) => void
   update: (patch: Partial<ListingDraft>) => void
   setStep: (step: ListingStep) => void
   markSent: () => void
@@ -311,7 +305,7 @@ export const useListingDraft = create<ListingDraftState & ListingDraftAction>((s
   base: null,
   step: 'where',
   sent: false,
-  start: (key, draft, step, base) =>
+  start: (key, { draft, base, step }) =>
     set(() => ({ key, draft, base: base ?? null, step, sent: false })),
   update: (patch) => set((state) => (state.draft ? { draft: { ...state.draft, ...patch } } : {})),
   setStep: (step) => set(() => ({ step })),

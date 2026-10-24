@@ -234,8 +234,14 @@ export const firstInvalidStep = (
 /** A blank optional field is `null`, which is how a correction clears a value. */
 const text = (value: string): string | null => value.trim() || null
 
+/** The fields a draft's schedule is built from. */
+export type ScheduleFields = Pick<
+  ListingDraft,
+  'firstDate' | 'startTime' | 'endTime' | 'repeats' | 'endDate' | 'timeZone'
+>
+
 /** The first session, as the instant the CMS stores, read in the draft's zone. */
-const draftStart = (draft: ListingDraft): DateTime | null => {
+const draftStart = (draft: ScheduleFields): DateTime | null => {
   if (!DATE.test(draft.firstDate) || !HHMM.test(draft.startTime)) return null
 
   const start = DateTime.fromISO(`${draft.firstDate}T${draft.startTime}`, { zone: draft.timeZone })
@@ -246,7 +252,7 @@ const draftStart = (draft: ListingDraft): DateTime | null => {
 /** What the flow can say about a schedule: everything but the exclusions, which it never edits. */
 type DraftSchedule = Omit<NonNullable<ProposedEventPatch['schedule']>, 'exclusions'>
 
-const draftSchedule = (draft: ListingDraft): DraftSchedule | undefined => {
+const draftSchedule = (draft: ScheduleFields): DraftSchedule | undefined => {
   const start = draftStart(draft)
 
   if (!start) return undefined
@@ -522,7 +528,7 @@ export const openListing = (
 const PREVIEW_SESSIONS = 8
 
 /** The sessions a draft schedule would produce, from today on — the CMS computes the real ones. */
-export const previewSessions = (draft: ListingDraft, now: DateTime = DateTime.now()): Date[] => {
+export const previewSessions = (draft: ScheduleFields, now: DateTime = DateTime.now()): Date[] => {
   const start = draftStart(draft)
 
   if (!start) return []
@@ -552,7 +558,7 @@ export const draftTitle = (draft: ListingDraft): string =>
   ''
 
 const previewSchedule = (
-  draft: ListingDraft,
+  draft: ScheduleFields,
   patch: DraftSchedule | undefined,
 ): EventSchedule | null => {
   if (!patch?.firstDate) return null
@@ -565,16 +571,25 @@ const previewSchedule = (
   }
 }
 
+/** The schedule a draft previews with, sessions included — for a caller that memoizes it. */
+export const draftPreviewSchedule = (fields: ScheduleFields): EventSchedule | null =>
+  previewSchedule(fields, draftSchedule(fields))
+
+/** The published class a correction previews over, and the patch its own draft builds. */
+export type PreviewBase = { event: Event; draft: ListingDraft; patch?: ProposedEventPatch }
+
 /**
  * The listing as the draft describes it, in the shape `EventDetails` renders.
  *
  * For a correction the published class is the base, and only the sections the visitor changed
  * are replaced — so an untouched description keeps its formatting and an untouched schedule its
  * real sessions, exactly as Accept would leave them.
+ *
+ * `schedule` and `base.patch` take a caller's memoized copies of the two costly parts.
  */
 export const previewEvent = (
   draft: ListingDraft,
-  { path, base }: { path: string; base?: { event: Event; draft: ListingDraft } },
+  { path, base, schedule }: { path: string; base?: PreviewBase; schedule?: EventSchedule | null },
 ): Event => {
   const patch = draftToPatch(draft)
   const online = draft.eventType === 'online'
@@ -588,7 +603,7 @@ export const previewEvent = (
       !online && draft.address
         ? { ...patch.address, mapboxId: draft.address.mapboxId ?? null }
         : null,
-    schedule: previewSchedule(draft, patch.schedule),
+    schedule: schedule === undefined ? previewSchedule(draft, patch.schedule) : schedule,
     description: patch.description as LexicalDocument | null,
     images: [],
     contactName: patch.contactName,
@@ -609,7 +624,7 @@ export const previewEvent = (
 
   if (!base) return fresh
 
-  const before = draftToPatch(base.draft)
+  const before = base.patch ?? draftToPatch(base.draft)
   const untouched = (key: keyof ProposedEventPatch) => same(before[key], patch[key])
 
   return {

@@ -1,8 +1,14 @@
-import type { OpenedListing, PickedPlace, ZonedPoint } from '@/lib/proposal'
+import type {
+  ListingDraft,
+  OpenedListing,
+  PickedPlace,
+  ScheduleFields,
+  ZonedPoint,
+} from '@/lib/proposal'
 import type { Event, Geojson, Region } from '@/types'
 import type { ReactNode } from 'react'
 
-import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useDeferredValue, useLayoutEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -20,7 +26,16 @@ import { useWidgetMode } from '@/config/mode'
 import { useListingDraft } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { nearestTimeZone, openListing, previewEvent, searchProximity } from '@/lib/proposal'
+import {
+  draftPreviewSchedule,
+  draftToPatch,
+  nearestTimeZone,
+  openListing,
+  previewEvent,
+  searchProximity,
+} from '@/lib/proposal'
+import { feedLanguageCodes } from '@/lib/events'
+import { GEOJSON_QUERY_KEY } from '@/config/api/fetch'
 import { buildReportContext } from '@/lib/report'
 import { viewerTimeZone } from '@/lib/time'
 import { CloseButton, useDrawerControl, useEventFromPath, useFrameOnTop } from '@/views/shared'
@@ -123,9 +138,7 @@ function useListingSession(target: FlowTarget) {
 
     if (current.key === target.key && !current.sent) return
 
-    const { draft, base, step } = open.current()
-
-    current.start(target.key, draft, step, base)
+    current.start(target.key, open.current())
   }, [target.key])
 
   return session.key === target.key ? session : null
@@ -136,19 +149,17 @@ function useFeedHints() {
   const queryClient = useQueryClient()
 
   return useMemo(() => {
-    const feed = queryClient.getQueryData<Geojson>(['geojson'])
+    const feed = queryClient.getQueryData<Geojson>(GEOJSON_QUERY_KEY)
     const points: ZonedPoint[] = []
-    const languages = new Set<string>()
 
     for (const feature of feed?.features ?? []) {
       const timeZone = feature.properties.schedule?.firstDate_tz
 
-      feature.properties.languages.forEach((code) => languages.add(code))
       if (feature.geometry && timeZone)
         points.push({ position: feature.geometry.coordinates, timeZone })
     }
 
-    return { points, languages: [...languages] }
+    return { points, languages: feedLanguageCodes(feed) }
   }, [queryClient])
 }
 
@@ -190,6 +201,23 @@ function FlowPanel({ target, trailing }: { target: FlowTarget; trailing?: ReactN
   )
 }
 
+/** The draft's schedule preview, rebuilt only when a field it reads changes. */
+function usePreviewSchedule(draft: ListingDraft | null) {
+  const {
+    firstDate = '',
+    startTime = '',
+    endTime = '',
+    repeats = 'once',
+    endDate = '',
+    timeZone = 'UTC',
+  }: Partial<ScheduleFields> = draft ?? {}
+
+  return useMemo(
+    () => draftPreviewSchedule({ firstDate, startTime, endTime, repeats, endDate, timeZone }),
+    [firstDate, startTime, endTime, repeats, endDate, timeZone],
+  )
+}
+
 function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boolean }) {
   const { t } = useTranslation()
   const session = useListingSession(target)
@@ -204,15 +232,21 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
     [event, region, frameEvent, frameRegion],
   )
 
+  // Typing re-renders the panel at once and lets the listing behind it catch up.
+  const draft = useDeferredValue(session?.draft ?? null)
+  const base = session?.base ?? null
+  const basePatch = useMemo(() => (base ? draftToPatch(base) : undefined), [base])
+  const schedule = usePreviewSchedule(draft)
   const listing = useMemo(
     () =>
-      session?.draft
-        ? previewEvent(session.draft, {
+      draft
+        ? previewEvent(draft, {
             path: target.path,
-            base: event && session.base ? { event, draft: session.base } : undefined,
+            base: event && base ? { event, draft: base, patch: basePatch } : undefined,
+            schedule,
           })
         : null,
-    [session?.draft, session?.base, event, target.path],
+    [draft, base, basePatch, schedule, event, target.path],
   )
 
   if (!session || !listing) return null
